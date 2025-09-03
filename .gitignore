@@ -1,0 +1,33 @@
+# Dependencies
+/node_modules
+/backend/venv
+/frontend/node_modules
+
+# Build artifacts
+/dist
+/build
+/.svelte-kit
+/out
+
+# IDE configuration
+.idea/
+.vscode/
+
+# Environment variables
+.env
+*.env.local
+.env.*.local
+!/.env.example
+
+# Cache and logs
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/backend/app/__pycache__
+/backend/alembic/__pycache__
+*.pyc
+
+# SQLite database
+project_manager.db
+*.sqlite3
