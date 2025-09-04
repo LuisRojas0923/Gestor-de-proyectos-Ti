@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   FileText,
-  TestTube,
+  Briefcase,
+  GitGraph,
   MessageSquare,
   BarChart3,
   Settings,
@@ -20,8 +21,8 @@ const Sidebar: React.FC = () => {
 
   const navigation = [
     { name: t('dashboard'), href: '/', icon: LayoutDashboard },
-    { name: t('requirements'), href: '/requirements', icon: FileText },
-    { name: t('testing'), href: '/testing', icon: TestTube },
+    { name: "Mis Desarrollos", href: '/developments', icon: Briefcase },
+    { name: "Indicadores", href: '/indicators', icon: GitGraph },
     { name: t('chat'), href: '/chat', icon: MessageSquare },
     { name: t('reports'), href: '/reports', icon: BarChart3 },
     { name: t('settings'), href: '/settings', icon: Settings },

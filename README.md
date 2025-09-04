@@ -1,8 +1,76 @@
-# Asistente Inteligente de Gestión de Proyectos
+# Asistente de Gestión y Seguimiento de Desarrollos
 
-Este proyecto es una aplicación web diseñada para actuar como un asistente personal en la gestión de proyectos de software, específicamente enfocado en optimizar el rol de intermediario entre los usuarios finales y los proveedores de tecnología.
+## 🎯 Visión del Producto
 
-La aplicación extrae requerimientos de una plataforma web externa, los centraliza, y utiliza Inteligencia Artificial para analizarlos, procesarlos y generar comunicaciones efectivas.
+Este proyecto evoluciona de un gestor de proyectos a un **asistente personal inteligente**, diseñado para el seguimiento detallado del ciclo de vida de los desarrollos de software. El objetivo es centralizar, gestionar y medir el rendimiento de los requerimientos gestionados tanto por equipos internos como por proveedores externos.
+
+La herramienta está enfocada en proporcionar un **"centro de control"** para cada desarrollo, registrar el día a día de las actividades y calcular automáticamente los indicadores clave de rendimiento (KPIs) para la toma de decisiones.
+
+---
+
+## ✨ Funcionalidades Clave
+
+-   ✅ **Módulo "Mis Desarrollos"**: Un panel central para visualizar y gestionar todos los desarrollos, replicando y mejorando el control que actualmente se lleva en Excel. Incluye toda la información relevante como responsable, proveedor, fechas clave y costos.
+
+-   ✅ **Centro de Control por Desarrollo**: Cada desarrollo tiene su propio espacio de trabajo detallado que incluye:
+    -   **Información Principal**: Todos los datos maestros del requerimiento.
+    -   **Cronograma de Hitos**: Fases clave del desarrollo (análisis, diseño, pruebas, etc.) en una vista de línea de tiempo.
+    -   **Bitácora de Actividades**: Un registro cronológico para anotar el progreso diario, devoluciones, reuniones o cualquier evento relevante.
+
+-   ✅ **Dashboard de Indicadores (KPIs)**: Un módulo dedicado a medir el rendimiento de los proveedores de forma automática, basado en los siguientes indicadores:
+    1.  **Cumplimiento de fechas Global**: `Entregas a tiempo ÷ entregas programadas × 100%`
+    2.  **Cumplimiento de fechas Desarrollo**: Diferencia en días entre fecha programada y real.
+    3.  **Calidad en primera entrega**: `Entregas aprobadas sin devoluciones ÷ entregas totales × 100%`
+    4.  **Tiempo de respuesta a fallas**: Mediana de horas desde el reporte hasta la solución.
+    5.  **Defectos por entrega**: `Defectos en Pruebas ÷ funcionalidades entregadas`
+    6.  **Retrabajo posproducción**: `Incidencias derivadas ÷ entregas en producción × 100%`
+
+-   ✅ **Registro de Incidencias**: Una sección para registrar fallos o problemas que ocurren después de una entrega, alimentando directamente los indicadores de calidad.
+
+---
+
+## 🚀 Configuración y Puesta en Marcha (con Docker)
+
+Este proyecto está completamente dockerizado para garantizar un entorno de desarrollo consistente y fácil de configurar.
+
+### Prerrequisitos
+
+-   **Docker Desktop**: Asegúrate de tenerlo instalado y en ejecución. Puedes descargarlo desde [aquí](https://www.docker.com/products/docker-desktop/).
+
+### Puesta en Marcha
+
+1.  **Clona el repositorio** (si aún no lo has hecho).
+
+2.  **Configura las variables de entorno:**
+    -   Dentro de la carpeta `backend/`, crea una copia del archivo `env.example` y renómbrala a `.env`.
+    -   Rellena las variables necesarias (credenciales, claves de API, etc.).
+
+3.  **Construye y levanta los servicios:**
+    -   Abre una terminal en la raíz del proyecto y ejecuta el siguiente comando:
+    ```bash
+    docker compose up --build
+    ```
+    -   Este comando construirá las imágenes para el backend y el frontend, y luego iniciará los contenedores.
+
+4.  **¡Listo!**
+    -   El **Frontend** estará disponible en `http://localhost:5173`.
+    -   El **Backend** estará disponible en `http://localhost:8000`.
+    -   La documentación interactiva de la API estará en `http://localhost:8000/docs`.
+
+### Comandos útiles de Docker
+
+-   **Para detener los servicios:**
+    ```bash
+    docker compose down
+    ```
+-   **Para ver los logs de un servicio (ej. backend):**
+    ```bash
+    docker compose logs -f backend
+    ```
+-   **Para entrar a la terminal de un contenedor (ej. backend):**
+    ```bash
+    docker compose exec backend bash
+    ```
 
 ---
 
@@ -11,7 +79,7 @@ La aplicación extrae requerimientos de una plataforma web externa, los centrali
 El proyecto está construido con una arquitectura moderna separando el frontend del backend:
 
 -   **Backend**: **Python** con el framework **FastAPI** para construir una API RESTful de alto rendimiento.
-    -   **Base de Datos**: **SQLite** para simplicidad y portabilidad, gestionada a través del ORM **SQLAlchemy**.
+    -   **Base de Datos**: **PostgreSQL** (gestionada dentro de Docker) a través del ORM **SQLAlchemy**.
     -   **Migraciones de BD**: **Alembic** para manejar cambios en el esquema de la base de datos de forma controlada.
     -   **Extracción de Datos**: **Selenium** para realizar web scraping de la plataforma de requerimientos.
     -   **Integración con IA**: Conexión a APIs de modelos de lenguaje grandes (ej. OpenAI, Google Gemini).
@@ -75,137 +143,10 @@ El proyecto está construido con una arquitectura moderna separando el frontend 
 
 ---
 
-## 🚀 Configuración y Puesta en Marcha
-
-### Prerrequisitos
-
--   Python 3.8+
--   Node.js 16+ y npm
--   Chrome/Chromium para Selenium
-
-### 1. Configuración del Backend
-
-1.  **Navegar al directorio del backend:**
-    ```bash
-    cd backend
-    ```
-
-2.  **Crear y activar un entorno virtual:**
-    ```bash
-    # En Windows
-    python -m venv venv
-    venv\Scripts\activate
-
-    # En macOS/Linux
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
-
-3.  **Instalar las dependencias de Python:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Configurar las variables de entorno:**
-    -   Crea una copia del archivo `env.example` y renómbrala a `.env`.
-    -   Rellena las variables necesarias (credenciales de la web de scraping, claves de la API de IA, etc.).
-
-5.  **Aplicar las migraciones de la base de datos:**
-    ```bash
-    alembic upgrade head
-    ```
-
-6.  **Ejecutar el servidor del backend:**
-    ```bash
-    uvicorn app.main:app --reload
-    ```
-    El servidor estará disponible en `http://127.0.0.1:8000`. La documentación interactiva de la API estará en `http://127.0.0.1:8000/docs`.
-
-### 2. Configuración del Frontend
-
-1.  **Navegar al directorio del frontend:**
-    ```bash
-    cd frontend
-    ```
-
-2.  **Instalar las dependencias de Node.js:**
-    ```bash
-    npm install
-    ```
-
-3.  **Ejecutar la aplicación de React:**
-    ```bash
-    npm run dev
-    ```
-    La aplicación web estará disponible en `http://localhost:5173`.
-
----
-
-## ✨ Funcionalidades Clave
-
--   ✅ **Extracción Automatizada**: Módulo de Selenium para iniciar sesión y extraer datos de requerimientos.
--   ✅ **Dashboard Centralizado**: Visualización de todos los requerimientos en una sola interfaz.
--   ✅ **Procesamiento con IA**:
-    -   Resumen automático de requerimientos.
-    -   Clasificación y priorización sugerida.
-    -   Generación de especificaciones técnicas para proveedores.
--   ✅ **Generación de Comunicaciones**:
-    -   Creación de borradores de correo para usuarios finales.
-    -   Envío de correos a través de la integración con Outlook.
--   ✅ **Cálculo de KPIs**: Medir tiempos de respuesta, volumen de requerimientos, etc.
-
----
-
-## 📊 Cobertura del Flujo del Analista y Controles
-
-A continuación se detalla cómo la aplicación cubre el flujo de trabajo del Analista de Sistemas descrito en el **procedimiento FD-PR-072**, indicando el nivel de automatización y los controles internos soportados.
-
-| Paso del Flujo | Módulo / Función | Nivel | Control |
-| -------------- | ---------------- | ------ | -------- |
-| Recepción de requerimiento (Remedy) | Ingesta `scraper.py` + webhook | A | — |
-| Validación de formato FD-FT-284 | Servicio `ai_service.py` (validación de campos) | A | C003-GT |
-| Notificación y recordatorios al Líder Usuario | `graph_service.py` (emails) | A | C003-GT |
-| Clasificación del tipo de requerimiento | `ai_service.py` (clasificador) | A | — |
-| Enrutamiento a ORM / Automatización / Desarrollo | Motor de flujo | A | — |
-| Gestión de propuestas con proveedor | Módulo de comunicaciones + versionado | S | — |
-| Plan de trabajo y cronograma | Dashboard Kanban/Gantt | S | — |
-| Instalación en ambiente de pruebas | Check-list interactivo | S | — |
-| Seguimiento de pruebas y SLA | Panel de incidencias | A | C021-GT |
-| Reporte mensual de avances | Generador de reportes PDF/Excel | A | — |
-| Verificación de entregables y áreas impactadas | Wizard de validación | S | C004-GT |
-| Repositorio documental y muestreo 10 % | Archivador + verificador | A | C027-GT |
-
-**Leyenda de nivel**: **A** = Automatizado, **S** = Semiautomatizado (requiere confirmación), **M** = Manual.
-
----
-
-## 🔧 Desarrollo
-
-### Estructura del Backend
-
-- **FastAPI**: API REST moderna y rápida con documentación automática
-- **SQLAlchemy**: ORM para gestión de base de datos
-- **Alembic**: Migraciones de base de datos
-- **Pydantic**: Validación de datos y serialización
-- **Selenium**: Web scraping automatizado
-- **OpenAI/Gemini**: Integración con servicios de IA
-- **Microsoft Graph**: Integración con Outlook/Office 365
-
-### Estructura del Frontend
-
-- **React 18**: Biblioteca de interfaz de usuario
-- **TypeScript**: Tipado estático para mejor desarrollo
-- **Vite**: Herramienta de construcción rápida
-- **Tailwind CSS**: Framework de CSS utilitario
-- **Recharts**: Biblioteca de gráficos para React
-- **React Router**: Enrutamiento de la aplicación
-- **React i18next**: Internacionalización
-
----
-
 ## 📝 Notas de Desarrollo
 
-- El backend está configurado para usar SQLite por defecto, pero puede cambiarse a PostgreSQL o MySQL modificando la variable `DATABASE_URL`.
+- El entorno de Docker está configurado para usar una base de datos PostgreSQL.
+- El backend y el frontend se recargan automáticamente cuando detectan cambios en el código (`hot-reloading`).
 - Los servicios de IA tienen fallback entre OpenAI y Google Gemini.
 - El frontend incluye modo oscuro/claro y sidebar colapsable.
 - Todas las páginas están implementadas con datos de ejemplo (mock data).
