@@ -92,6 +92,59 @@ El proyecto está construido con una arquitectura moderna separando el frontend 
 
 ---
 
+## 💾 Esquema de la Base de Datos
+
+El núcleo de la aplicación se basa en tres tablas principales que se relacionan entre sí:
+
+### Tabla `developments`
+Esta es la tabla central que almacena cada uno de los desarrollos o requerimientos.
+
+| Columna                   | Tipo           | Descripción                                           |
+| ------------------------- | -------------- | ----------------------------------------------------- |
+| `id`                      | `String` (PK)  | Identificador único (ej. No. Remedy).                 |
+| `name`                    | `String`       | Nombre del desarrollo.                                |
+| `description`             | `Text`         | Descripción detallada.                                |
+| `provider`                | `String`       | Proveedor o equipo responsable (TI, Ingesoft, etc.).  |
+| `general_status`          | `String`       | Estado general (En curso, Pendiente, Completado).     |
+| `current_stage`           | `String`       | Etapa específica del progreso.                        |
+| `start_date`              | `DateTime`     | Fecha de inicio del desarrollo.                       |
+| `scheduled_delivery_date` | `DateTime`     | Fecha programada de entrega (para KPIs).              |
+| `actual_delivery_date`    | `DateTime`     | Fecha real en la que se entregó (para KPIs).          |
+| `returns_count`           | `Integer`      | Contador de devoluciones (para KPI de calidad).       |
+| `test_defects_count`      | `Integer`      | Contador de defectos en pruebas (para KPI de calidad). |
+| `estimated_cost`          | `Float`        | Costo estimado o final del desarrollo.                |
+| `proposal_number`         | `String`       | Identificador de la propuesta comercial asociada.     |
+
+#### Relaciones
+
+-   **Una a Muchas:** Un `development` puede tener muchas `activity_logs`.
+-   **Una a Muchas:** Un `development` puede tener muchos `incidents`.
+
+La conexión se realiza a través del campo `development_id` en las tablas `activity_logs` e `incidents`, que actúa como Clave Foránea (FK) apuntando al `id` de la tabla `developments`.
+
+### Tabla `activity_logs`
+Almacena el historial de la bitácora para cada desarrollo.
+
+| Columna          | Tipo         | Descripción                                        |
+| ---------------- | ------------ | -------------------------------------------------- |
+| `id`             | `Integer` (PK) | Identificador único de la entrada.                 |
+| `development_id` | `String` (FK)  | Vincula la actividad al desarrollo correspondiente. |
+| `date`           | `DateTime`   | Fecha en que se registró la actividad.             |
+| `description`    | `Text`       | Descripción de la actividad o seguimiento.         |
+
+### Tabla `incidents`
+Registra las incidencias o fallos que ocurren después de que un desarrollo pasa a producción.
+
+| Columna           | Tipo         | Descripción                                        |
+| ----------------- | ------------ | -------------------------------------------------- |
+| `id`              | `Integer` (PK) | Identificador único de la incidencia.              |
+| `development_id`  | `String` (FK)  | Vincula la incidencia al desarrollo de origen.     |
+| `report_date`     | `DateTime`   | Fecha en que se reportó el fallo.                  |
+| `resolution_date` | `DateTime`   | Fecha en que se solucionó el fallo.                |
+| `description`     | `Text`       | Descripción de la incidencia.                      |
+
+---
+
 ## 📁 Estructura del Directorio
 
 ```
@@ -151,6 +204,68 @@ El proyecto está construido con una arquitectura moderna separando el frontend 
 - El frontend incluye modo oscuro/claro y sidebar colapsable.
 - Todas las páginas están implementadas con datos de ejemplo (mock data).
 - La base de datos se crea automáticamente al ejecutar las migraciones.
+
+## 🆕 Funcionalidades Implementadas Recientemente
+
+### ✅ Controles de Calidad por Etapa
+- **Integración con Procedimiento FD-PR-072**: Se implementaron los controles de calidad específicos para cada etapa del proceso de gestión de la demanda.
+- **Controles Dinámicos**: Cada desarrollo muestra automáticamente los controles correspondientes a su etapa actual:
+  - **C003-GT**: Validación de requerimientos claros y completos (Etapas 1-2)
+  - **C021-GT**: Validación de pruebas de usuario vs. requerimientos (Etapas 5-7)  
+  - **C004-GT**: Garantía de entregas sin impacto negativo (Etapas 8-10)
+  - **C027-GT**: Validación trimestral de soportes en producción (Etapas 8-10)
+
+### ✅ Reporte Mensual para Directivos
+- **Tabla Consolidada**: Vista específica en la página de Reportes que muestra:
+  - Estado detallado de desarrollos en curso
+  - Cálculo automático de días de desfase (comparando fecha estimada vs. actual)
+  - Conteo de incidencias por desarrollo
+  - Fechas de inicio y cierre estimadas
+- **Cumplimiento del Procedimiento**: Implementa exactamente lo requerido en la sección 6.3 del documento FD-PR-072.
+
+### ✅ Importación desde Excel (Frontend)
+- **Importador Visual**: Componente que permite arrastrar y soltar archivos Excel (.xls, .xlsx, .csv)
+- **Vista Previa**: Muestra los datos que se van a importar antes de confirmar
+- **Deduplicación Automática**: Evita importar desarrollos duplicados basándose en el ID de Remedy
+- **Mapeo de Columnas**: Configurado para la estructura real del archivo de exportación de Remedy:
+  - `'No. de la solicitud'` → ID de Remedy
+  - `'Cliente Interno'` → Nombre del desarrollo
+  - `'Asignado a'` → Responsable principal
+  - `'Solicitud Interna requerida'` → Área solicitante
+  - `'Estado'` → Estado general
+  - `'Fecha de envío'` → Fecha de inicio
+  - `'Fecha de finalización planificada'` → Fecha estimada de fin
+- **Persistencia Local**: Los datos importados se guardan en localStorage del navegador como solución temporal
+
+### ✅ Diseño Responsivo Optimizado
+- **Vista de Tabla para Desktop**: Tabla completa en pantallas grandes (>1024px)
+- **Vista de Tarjetas para Portátiles**: Cards compactas sin scroll horizontal para pantallas medianas (<1024px)
+- **Panel Lateral Adaptativo**: 
+  - Portátiles: Ancho reducido (320px)
+  - Tablets: Pantalla completa
+  - Desktop: Ancho original (384px)
+- **Filtros Responsivos**: Layout adaptativo según el tamaño de pantalla
+- **Sin Barras de Desplazamiento**: Eliminadas en pantallas de portátil (13"-15")
+
+## 🔄 Migración Futura (Backend)
+
+### Código Temporal que se Eliminará:
+- **Datos de Muestra**: ~100 líneas de `sampleDevelopments` (desarrollo ficticio)
+- **Lógica localStorage**: ~20 líneas de persistencia local
+- **Importación Manual**: ~40 líneas de procesamiento de Excel en frontend
+- **Total estimado**: ~35-40% del código actual (~280-290 líneas)
+
+### Funcionalidad que se Moverá al Backend:
+- **Importación de Excel**: Procesamiento server-side con `pandas` o `openpyxl`
+- **Gestión de Datos**: Reemplazar localStorage con PostgreSQL
+- **Deduplicación**: Lógica de validación en base de datos
+- **APIs RESTful**: Endpoints para CRUD de desarrollos, importación y reportes
+
+### Beneficios Post-Migración:
+- **Código más limpio**: Frontend enfocado solo en UI/UX
+- **Datos centralizados**: Sincronización entre múltiples usuarios
+- **Mejor rendimiento**: Sin limitaciones de localStorage
+- **Escalabilidad**: Preparado para crecimiento empresarial
 
 ---
 

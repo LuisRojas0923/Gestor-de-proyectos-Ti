@@ -1,16 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Calendar,
   Download,
   FileText,
-  BarChart3,
   PieChart,
   TrendingUp,
   Clock,
   Users,
   CheckCircle,
-  AlertTriangle,
 } from 'lucide-react';
 import {
   BarChart,
@@ -31,6 +28,10 @@ import {
 import { useAppContext } from '../context/AppContext';
 import MetricCard from '../components/common/MetricCard';
 
+// Temporary: Import development data to use in the report
+// In a real app, this would come from an API or a shared state management store
+import { initialSampleDevelopments as developmentsData, Development as DevelopmentType } from './MyDevelopments';
+
 const Reports: React.FC = () => {
   const { t } = useTranslation();
   const { state } = useAppContext();
@@ -40,9 +41,7 @@ const Reports: React.FC = () => {
     start: '2025-01-01',
     end: '2025-01-31',
   });
-  const [selectedMetric, setSelectedMetric] = useState('all');
-  const chartRef = useRef<HTMLDivElement>(null);
-
+  
   // Sample data
   const kpiData = {
     totalRequirements: 234,
@@ -99,8 +98,6 @@ const Reports: React.FC = () => {
     // Implementation for CSV export
     console.log('Exporting to CSV...');
   };
-
-  const COLORS = ['#0066A5', '#00B388', '#F59E0B', '#EF4444', '#8B5CF6'];
 
   return (
     <div className="space-y-6">
@@ -247,7 +244,7 @@ const Reports: React.FC = () => {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
@@ -386,6 +383,77 @@ const Reports: React.FC = () => {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Manager's Monthly Report Section */}
+      <div className={`${
+        darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+      } border rounded-xl p-6`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className={`text-lg font-semibold flex items-center ${
+            darkMode ? 'text-white' : 'text-neutral-900'
+          }`}>
+            <FileText className="mr-2" size={20} />
+            Reporte Mensual Consolidado para Directivos
+          </h3>
+          <button className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+            <Download size={18} />
+            <span>Generar Reporte</span>
+          </button>
+        </div>
+        
+        <div className="overflow-x-auto">
+            <div className="min-w-full inline-block align-middle">
+              <div className="border rounded-lg overflow-hidden border-neutral-200 dark:border-neutral-700">
+                <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
+                  <thead className={darkMode ? 'bg-neutral-700' : 'bg-neutral-50'}>
+                    <tr>
+                      {['ID', 'Nombre', 'Responsable', 'Estado', 'Fecha Inicio', 'Fecha Cierre Est.', 'Desfase (días)', 'Incidencias'].map(header => (
+                         <th key={header} scope="col" className="px-4 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">
+                           {header}
+                         </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
+                    {developmentsData.filter((d: DevelopmentType) => d.general_status === 'En curso').map((dev: DevelopmentType) => {
+                      
+                      const estimatedEndDate = new Date(dev.estimated_end_date);
+                      const today = new Date();
+                      
+                      // Calculate delay
+                      let delayDays = 0;
+                      if (today > estimatedEndDate) {
+                        delayDays = Math.floor((today.getTime() - estimatedEndDate.getTime()) / (1000 * 3600 * 24));
+                      }
+
+                      return (
+                        <tr key={dev.id} className="hover:bg-neutral-100 dark:hover:bg-neutral-700/50 transition-colors">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-primary-500">{dev.id}</td>
+                          <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{dev.name}</td>
+                          <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.main_responsible}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm">
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                              {dev.general_status}
+                            </span>
+                          </td>
+                          <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{new Date(dev.start_date).toLocaleDateString()}</td>
+                          <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{new Date(dev.estimated_end_date).toLocaleDateString()}</td>
+                          <td className={`px-4 py-3 whitespace-nowrap text-sm font-semibold text-center ${delayDays > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                            {delayDays > 0 ? `+${delayDays}`: 'En tiempo'}
+                          </td>
+                          <td className={`px-4 py-3 whitespace-nowrap text-sm text-center ${dev.incidents.length > 0 ? 'text-yellow-500' : darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                            {dev.incidents.length}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+      </div>
+
     </div>
   );
 };

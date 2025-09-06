@@ -1,0 +1,1970 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">
+	<DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+		<Author/>
+		<Title/>
+		<Description/>
+		<Subject/>
+	</DocumentProperties>
+	<Styles>
+		<Style ss:ID="HyperlinkId" ss:Name="Hyperlink">
+			<Font ss:Color="#0000ff"/>
+		</Style>
+		<Style ss:ID="1">
+			<NumberFormat ss:Format="yyyy-M-d HH:mm:ss AM/PM"/>
+		</Style>
+		<Style ss:ID="37" ss:Parent="HyperlinkId">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Underline="Single" ss:Color="#0000ff"/>
+			<Interior ss:Color="#eceaec" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="39">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Tahoma" ss:Size="10.0" ss:Color="#000000"/>
+		</Style>
+		<Style ss:ID="21">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="22">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="23">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="33">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="24">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="25">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="26">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="27">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="28">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="32">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="34">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="29">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="30">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="31">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Bold="1" ss:Color="#ffffff"/>
+			<Interior ss:Color="#004e8c" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="35" ss:Parent="HyperlinkId">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Underline="Single" ss:Color="#0000ff"/>
+		</Style>
+		<Style ss:ID="40">
+			<Alignment ss:Horizontal="Right" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Color="#000000"/>
+		</Style>
+		<Style ss:ID="38">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Color="#000000"/>
+			<Interior ss:Color="#eceaec" ss:Pattern="Solid"/>
+		</Style>
+		<Style ss:ID="20">
+			<Alignment ss:Horizontal="Center" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="serif" ss:Size="14.0" ss:Bold="1" ss:Color="#000000"/>
+		</Style>
+		<Style ss:ID="36">
+			<Alignment ss:Horizontal="Left" ss:Vertical="Top"/>
+			<Borders>
+				<Border ss:Position="Bottom"/>
+				<Border ss:Position="Top"/>
+				<Border ss:Position="Left"/>
+				<Border ss:Position="Right"/>
+				<Border ss:Position="DiagonalLeft"/>
+			</Borders>
+			<Font ss:FontName="Arial" ss:Size="10.0" ss:Color="#000000"/>
+		</Style>
+	</Styles>
+	<Names>
+		<NamedRange ss:Name="__bookmark_1" ss:RefersTo="Report!R2C1:R34C19"/>
+	</Names>
+
+<Worksheet ss:Name="Report">
+	<ss:Table>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<ss:Column ss:Width="144.0" ss:AutoFitWidth="0"/>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="20" ss:MergeAcross="3">
+				<Data ss:Type="String">Reporte de incidentes jcgr7223</Data>
+			</Cell>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="21">
+				<Data ss:Type="String">ID de la incidencia*+</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="22">
+				<Data ss:Type="String">Apellidos+</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="23">
+				<Data ss:Type="String">Nombre+</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="24">
+				<Data ss:Type="String">Resumen*</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="25">
+				<Data ss:Type="String">Notas</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="26">
+				<Data ss:Type="String">Prioridad*</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="27">
+				<Data ss:Type="String">Estado*</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="28">
+				<Data ss:Type="String">Estado SLM en tiempo real</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="29">
+				<Data ss:Type="String">Grupo asignado*+</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="30">
+				<Data ss:Type="String">Usuario asignado+</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="31">
+				<Data ss:Type="String">Fecha de envío</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="32">
+				<Data ss:Type="String">Fecha de última modificación</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="22">
+				<Data ss:Type="String">Resolución</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="24">
+				<Data ss:Type="String">Nivel 3 de categorización operacional</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="26">
+				<Data ss:Type="String">Nivel 3 de categorización de resolución</Data>
+			</Cell>
+			<Cell ss:Index="16" ss:StyleID="22">
+				<Data ss:Type="String">Nombre del producto+</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="33">
+				<Data ss:Type="String">Nombre del producto (R)+</Data>
+			</Cell>
+			<Cell ss:Index="18" ss:StyleID="34">
+				<Data ss:Type="String">Modelo/versión</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="22">
+				<Data ss:Type="String">Modelo/Versión (R)</Data>
+			</Cell>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002545411">
+				<Data ss:Type="String">INC000004442399</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Correa Valencia</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Evelyn Maryuri</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: Evelyn Correa Valencia&#10;teléfono de contacto: 3017349525&#10;describa su solicitud: Buenos días, &#10;&#10;De acuerdo a lo indicado por el gerente de operaciones y a las validaciones internas, confirmamos y solicitamos lo siguiente, cabe aclarar que se pueden generar mas solicitudes: &#10;&#10;En la consulta agrupada el campo Vencuota se evidencia la cantidad de cuotas activas. &#10;Se requiere un campo adicional de observaciones donde se le pueda incluir la información como por ejemplo días de corte, esto con el fin de poder relacionar o estructurar la información particular en el repositorio del aplicativo a manejar ( Finansoft) y no manejar archivos con información adicional. &#10;Para realizar los recálculos de la tasa (en el caso de Ban100 II DTF con o sin puntos adicionales) se requiere información del saldo a capital de cada título al corte de consulta puesto que los ajustes de cuota se deben de realizar sobre esta base.&#10;Se requiere que la misma macro genere los archivos de cargue o descargue de cuotas de manera automática, tener presente que para el cargue de cuota no se puede repetir la identificación del titulo por, lo que se debe adicionar una carácter alfabético.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">18/4/24 12:11:27</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">17/6/25 09:46:29</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36">
+				<Data ss:Type="String">Pendiente de entrega, lo esta trabajando Aseguramiento y mejora FID</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002578559">
+				<Data ss:Type="String">INC000004480057</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Castillo Montoya</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Jhon Edwin</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: Jhon Edwin Castillo Montoya&#10;teléfono de contacto: 3022061033&#10;describa su solicitud: Al momento de realizar operaciones de libranzas, se ha detectado errores operativos que solo se pueden evidenciar al momento de realizar el cargue definitivo en fideicomisos y/o títulos cuando se utiliza la funcionalidad de precargue por el módulo de Fideicomisos. Esto genera retrasos de los horarios establecidos para el cumplimiento de las operaciones, afectando de manera negativa la relación con los clientes y ocasiona retrasos en el proceso de cierre del día por parte del área de Operaciones.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">22/5/24 11:29:56</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">17/6/25 10:24:07</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38">
+				<Data ss:Type="String">Pendiente las instalaciones en el ambiente de pruebas para volver a iniciar.</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38">
+				<Data ss:Type="String">Sistema</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002584540">
+				<Data ss:Type="String">INC000004486849</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Mafla Ospina</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Felipe</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: Felipe Mafla Ospina&#10;teléfono de contacto: 3168715299&#10;describa su solicitud: Se requiere de su colaboración gestionando nuevo desarrollo (mejora) para los Core de negocio Finansoft y SIFI en lo que corresponde a la opción de listas de excepciones en ambas. se adjunta formato de requerimiento.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">28/5/24 15:24:07</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">17/6/25 10:32:40</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36">
+				<Data ss:Type="String">Se crea sesión para certificación de Escenarios de pruebas&#10;SE CREA CASO 60890</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">Sistema</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002614650">
+				<Data ss:Type="String">INC000004520448</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Collazos Correa</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Mayra Alejandra</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: Mayra Alejandra Collazos Correa&#10;teléfono de contacto: 3162253215&#10;describa su solicitud: Cordial saludo,&#10;&#10;Solicitamos de su amable colaboración, puesto que se observa que en las carteras internas el primer día de su constitución, no genera rendimientos y esto es correcto, pero al momento de la generación del formato 351, no se reportar ese primer día, se requiere que este primer día sea reportado en el plano.&#10;&#10;Nota: cabe mencionar que, para las carteras externas, el formato 351 si las reporta a partir del primer día.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">27/6/24 15:40:34</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">1/7/25 08:35:29</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38">
+				<Data ss:Type="String">Ingesoft se encuentra realizando la integración del script proporcionado para iniciar pruebas y entregarlo.</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38">
+				<Data ss:Type="String">Sistema</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002754066">
+				<Data ss:Type="String">INC000004678864</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Castro Llanos</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Pedro</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Cordial Saludo &#10;&#10;Se solicita unifican casos bajo un solo requerimiento hacia el proveedor se adjunta formato con los requerimientos detallados &#10;&#10;INC000004662949&#10;INC000004663133&#10;INC000004665337</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Media</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">28/11/24 16:33:14</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">25/6/25 12:34:13</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36">
+				<Data ss:Type="String">Se agenda sesión para certificación de pruebas.&#10;&#10;Pendiente instalaciones en el ambiente de pruebas se crea el caso 60927 hacia el proveedor</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Oficina virtual</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36"/>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002765161">
+				<Data ss:Type="String">INC000004691353</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Castro Llanos</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Pedro</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Cordial saludo &#10;&#10;Se crea caso como desarrollo del  remedy INC000004647666 se esca el caso al proveedor</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Media</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">11/12/24 09:22:32</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">25/6/25 11:37:21</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38">
+				<Data ss:Type="String">Pendiente ajuste e instalación en ambiente de pruebas - se crea caso 60930 hacia el proveedor</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38">
+				<Data ss:Type="String">Sistema</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002775690">
+				<Data ss:Type="String">INC000004703037</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Castro Llanos</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Pedro</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: PEDRO CASTRO LLANOS&#10;teléfono de contacto: 3135374534&#10;describa su solicitud: Buenos días, por favor su ayuda con las siguientes solicitudes:&#10;&#10;•	Por favor su colaboración para que las operaciones de retiro en el portal transaccional, que generen la siguiente novedad “ER_VR_RETI_SL ER_VR_RETI_SL El monto de retiro supera el saldo del encargo” no deben ser contempladas en la funcionalidad “Procesos/Solicitudes Retiro Pendientes”, debido a que por falta de saldo no podrán ser reenviadas de forma manual.&#10;•	En la opción “Procesos/Acreditación Rechazadas” Sean reprocesadas de manera automática cada 15 minutos, siempre y cuando la novedad no sea por concepto de Sarlaft, como: &#10;“Error Existen id(s) de cliente(s) reportados en listas (Id 52817137 ListaColombia - Personas Expuestas Políticamente -PEPS-) Procedimiento spFDETransaccionesInsertar Linea 88”, &#10;“Se presento el siguiente error:\nER_NUID_RP_LS 416 N?mero de Identificaci?n se encuentra Reportado en alguna Lista de Vetados”</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">23/12/24 11:40:07</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">1/7/25 08:52:36</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36">
+				<Data ss:Type="String">Pendiente Entrega desarrollo - 11/04/2025 - SE CREA CASO HACIA EL PROVEEDOR 60945, Todavía no han terminado con la entrega.</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002824400">
+				<Data ss:Type="String">INC000004757900</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Erazo Vasquez</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Viviana</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : SIFI&#10;Nombre de contacto: viviana erazo vasquez&#10;teléfono de contacto: 3117799867&#10;describa su solicitud: se requiere realizar un desarrollo para que el sistema Poble automáticamente los campos de dirección de correspondencia y grupo de impresión en SIFI de los encargos realizados por Fiduexpress y el área de Inmobiliario.&#10;Se adjunta pantallazo del modulo en donde se debe de relacionar la información de la dirección de la correspondencia y grupo de impresión en SIFI.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">19/2/25 09:13:03</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">26/6/25 14:19:23</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38">
+				<Data ss:Type="String">Se crea sesión para entendimiento del caso</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Sifi</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002841259">
+				<Data ss:Type="String">INC000004776678</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Carvajal Aguilar</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Michael</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios,</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Se requiere desarrollar en el portal web de Fiducoomeva consultas de producto y continuidad para FVP</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Alta</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">7/3/25 15:37:56</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">1/7/25 11:38:09</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36">
+				<Data ss:Type="String">Se crea sesión para la elaboración y certificación de escenarios de pruebas</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Oficina virtual</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002846560">
+				<Data ss:Type="String">INC000004782806</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Artunduaga Noguera</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Jhon Hevert</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: jhon hevert artunduaga noguera&#10;teléfono de contacto: 3146811714&#10;describa su solicitud: Incorporación deterioro fonmutuales y fondo de garantías en formato 351, ver documentos adjuntos.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">13/3/25 14:42:43</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">25/6/25 14:47:01</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38">
+				<Data ss:Type="String">Se crea sesió para entendimiento del caso</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Sifi</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002850843">
+				<Data ss:Type="String">INC000004787482</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Artunduaga Noguera</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Jhon Hevert</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : SIFI&#10;Nombre de contacto: jhon hevert artunduaga noguera&#10;teléfono de contacto: 3146811714&#10;describa su solicitud: Se solicita que en la generación de formato 351, específicamente en la forma PIFZ16PI, se evidencia lo siguiente  esta forma  genera paralelamente los formato 351-portafolio de inversiones y 397-Operaciones repo y simultaneas, pero para el formato 397 se observa que al momento de creación de esta información para el caso del FVP, el sistema solo genera la data de la opción 83714-FVP consolidadora, es decir, cuando exista este tipo de operaciones simultaneas para el FVP el sistema debe generar la data en formato plano tanto en la 83714-FVP consolidadora como su respectiva opción 83719 Inversiones no tradicionales (hija), cabe mencionar que para  dar continuidad con las trasmisiones este proceso  faltante se realiza manualmente.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">19/3/25 09:40:15</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">25/6/25 14:46:22</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36">
+				<Data ss:Type="String">Se crea sesión de entendimiento para el martes 29 de abril</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Sifi</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002876679">
+				<Data ss:Type="String">INC000004816080</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Andrade Rivera</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Lorena</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : SIFI&#10;Nombre de contacto: LORENA ANDRADE RIVERA&#10;teléfono de contacto: 3174228965&#10;describa su solicitud: Buenas Tardes, se solicita desarrollo según lo enviado por el proveedor Caso 142072 XBRL.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">21/4/25 15:12:28</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">15/7/25 09:02:12</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38">
+				<Data ss:Type="String">Se crea SIDE 143966 al proveedor ITC.</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Sifi</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002880873">
+				<Data ss:Type="String">INC000004820935</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Vallecilla</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Sarany</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: Sarany Vallecilla&#10;teléfono de contacto: 3173391673&#10;describa su solicitud: Se requiere la carga de información al aplicativo de monitoreo transaccional Monitor ACRM bajo el registro (interfaz) 2525 (ACRM+ - Relacion Cliente -ENTRADA-) que provenga de los diferentes orígenes de información que permita almacenar los datos de las personas que a diario se encuentran relacionadas con un producto activos, incluyendo a los beneficiarios finales</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">25/4/25 11:48:41</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">1/7/25 10:45:22</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36">
+				<Data ss:Type="String">Nos reunimos con el proveedor para el entendimiento, y se concluye que de parte de la Fiduciari debemos proporcionar los Scripts que van a Monitor, de esta manera poder hacer el análisis y realizar el estudio del Desarrollo.</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002899108">
+				<Data ss:Type="String">INC000004841295</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Dominguez Lopez</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Rodolfo</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Seleccione aplicación: Finansoft&#10;Solicitante : rodl1875&#10;Nombre de contacto: RODOLFO DOMINGUEZ LOPEZ&#10;teléfono de contacto: 3043366094&#10;describa su solicitud: Teniendo presente el requerimiento de la SFC donde solicita se manejen las inversiones en libranzas en los negocios de titularización como cartera (activa), se requiere realizar las adecuaciones necesarias al módulo de cartera para que soporte el cargue, valoración y cancelación de los diferentes títulos. Para esto se requiere que nos brinden un espacio con el proveedor para plantear la necesidad, validar los ajustes necesarios para el cargue masivo y los recaudos masivos y como resultado, se generé la propuesta para el ajuste e implementación,</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Alta</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">15/5/25 13:59:08</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">20/6/25 10:52:33</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38"/>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Configurar</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002923704">
+				<Data ss:Type="String">INC000004868672</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Forero Parra</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Maritza Fernanda</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: Maritza Forero&#10;teléfono de contacto: 3184468254&#10;describa su solicitud: Por favor activar el botón de retiros en cheque del FVP en Finansoft, el cual debe contener los siguientes campos adicionales a los que ya cuenta. Una vez se seleccione la opción retiro en cheque y se diligencia el valor, al dar clic en el botón siguiente, debe mostrar una ventana que solicite lo siguiente:&#10;&#10;. Opción para grabar el beneficiario del cheque, el cual debe contener tipo de identificación, numero de identificación y nombre completo.&#10;&#10;. Opción de seleccionar: El nombre de la oficina bancaria (Bancoomeva) y Ciudad donde desean reclamar el cheque&#10;&#10;. Casilla para diligenciar cual es la persona autorizada para reclamar el cheque (Nombre e Identificación y tipo de identificación).&#10;&#10;Una vez se grabe el retiro debe hacer interface en SIFI para que tesorería realice el cumplimiento.&#10;&#10;Para las funcionalidades en el portal transaccional debe aplicar los mismos campos cuando el cliente solicite el retiro en cheque y también debe hacer interface en SIFI para el cumplimiento por parte de tesorería.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">6/6/25 09:23:48</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">18/6/25 08:34:23</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud realizada al proveedor con numero de SIDE  60980, Pendiente reunion de entendimiento</Data>
+			</Cell>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002928581">
+				<Data ss:Type="String">INC000004874305</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Andrade Rivera</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Lorena</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: LORENA ANDRADE RIVERA&#10;teléfono de contacto: 3174228965&#10;describa su solicitud: Sistematizar la totalidad de los pasivos administrados a través de los Negocios Fiduciarios en moneda nacional y moneda extranjera y que además realice la causación de intereses sea a tasa fija o variable, y permita igualmente aplicar los pagos de las cuotas del crédito y los intereses.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">11/6/25 13:08:40</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">18/6/25 14:00:33</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38"/>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Gestion Contable</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38"/>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002937292">
+				<Data ss:Type="String">INC000004884160</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Solano Rodriguez</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Sharon Dayana</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : SIFI&#10;Nombre de contacto: sharon solano&#10;teléfono de contacto: 3013250067&#10;describa su solicitud: 1.	Se solicita que en la forma GEMSPCXR se puedan parametrizar todas las estructuras activas en el sistema a la fecha (12-13-14-15-16-17).&#10;2.	Se solicita que en la forma GEMSPCXR se puedan asignar en los Renglones 4 y 5 cuentas contables de Utilidades y Perdidas (ctas 39) que ya han sido utilizados en el renglón 3&#10;3.	Que se puedan generar los certificados de manera individual y en masivo.&#10;4.	Se modifique la planilla y texto ya que se está generando con el nombre y firma de otra fiduciaria.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">20/6/25 10:56:12</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">1/7/25 10:57:18</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36"/>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Sifi</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002941132">
+				<Data ss:Type="String">INC000004888509</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">INC000004274763	Ajuste Deterioro al 100&#10;&#10;Caso creado ya que el sistema cerro el caso mensionado</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Media</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">26/6/25 10:46:30</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">21/7/25 10:35:44</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38"/>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Validar Requerimiento</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Nuevos Servicios</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38"/>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002945612">
+				<Data ss:Type="String">INC000004893354</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Andrade Rivera</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Lorena</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">ANTECEDENTES:	El sistema Finansoft no realiza el cálculo de la perdida esperada.&#10;OBJETIVO:	Poder automatizar el proceso de cálculo de la perdida esperada.&#10;JUSTIFICACIÓN:	De acuerdo con la norma y el concepto emitido desde el área de contabilidad se debe realizar el calculo manual de la perdida esperada para los negocios de Titularización y demás que así lo requieran.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Media</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">2/7/25 12:13:52</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">7/7/25 14:00:19</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36"/>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002951588">
+				<Data ss:Type="String">INC000004900455</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Chaverra Ordoñez</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Adriana Lucia</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : SIFI&#10;Nombre de contacto: Adriana Chaverra&#10;teléfono de contacto: 3138735327&#10;describa su solicitud: Nuevo desarrollo OFV PN-PJ</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">9/7/25 10:55:33</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">16/7/25 10:56:19</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38"/>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Sifi</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002968218">
+				<Data ss:Type="String">INC000004919670</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Modelo Retiro Express FVP&#10;&#10;Se requiere añadir el servicio de solictud de retiro de FVP, por express.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Alta</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">28/7/25 09:51:30</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">29/7/25 15:47:09</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36"/>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Oficina virtual</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002968825">
+				<Data ss:Type="String">INC000004920437</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Forero Parra</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Maritza Fernanda</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: Maritza Forero&#10;teléfono de contacto: 3184468254&#10;describa su solicitud: Se solicita que cuando se marque a un cliente desde el modulo de clientes en Finansoft como exento de Rte Fte, replique ésta información en las cuentas del FVP en el módulo del FVP ya que actualmente lo que debemos hacer es levantar parámetros para que el pago se genere sin cobros.&#10;Es algo similar a lo que se hizo con la marcación de los pensionados, que una vez se marquen con ésta condición replique en las cuentas del FVP.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">28/7/25 15:06:44</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">4/8/25 15:08:29</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38"/>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002971917">
+				<Data ss:Type="String">INC000004924201</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Camacho Moreno</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Brigit Sthephany</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Seleccione aplicación: SIFI&#10;Solicitante : BSCM2743&#10;Nombre de contacto: BRIGIT STHEPHANY CAMACHO MORENO&#10;teléfono de contacto: 3173323815&#10;describa su solicitud: AGRADECEMOS VALIDAR LA MACRO QUE SE ADJUNTA, EL CUAL NOS INFORMA LOS SALDOS QUE SE TIENEN EN SIFI, PERO EN LA CUENTA 82100005943 DE BANCOLOMBIA DEL PA FIDEICOMISO BANKAMODA (88337) INFORMA UN SALDO EN NEGATIVO Y VALIDANDO SIFI EL SALDO ESTA EN 0, POR LO CUAL SERIA NECESARIO VALIDAR LA MACRO PARA SABER DE DONDE ESTA TOMANDO LA INFORMACION.&#10;QUEDO ATENTA.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Alta</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">Asignado</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">31/7/25 11:22:06</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">1/8/25 17:22:38</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36"/>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Configurar</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36"/>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36"/>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002972489">
+				<Data ss:Type="String">INC000004924567</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Forero Parra</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Maritza Fernanda</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : SIFI&#10;Nombre de contacto: Maritza Forero&#10;teléfono de contacto: 3184468254&#10;describa su solicitud: Por favor solicito que a el log de envio de extractos de Fics se ajuste y muestre el numero de extractos enviados y si hay alguna interrupcion en la base del envio de dichos exctractos me muestre alguna alerta para la revision. Por favor asignar a Michael. Gracias..</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">Asignado</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">31/7/25 15:09:52</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">7/8/25 15:11:21</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38"/>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38"/>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38"/>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002975081">
+				<Data ss:Type="String">INC000004927585</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Mafla Prieto</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Janneth</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : ORM&#10;Nombre de contacto: JANNETH MAFLA PRIETO&#10;teléfono de contacto: 3017687932&#10;describa su solicitud: En cumplimiento de lo establecido en la Circular Externa 011 de 2022, Parte I, Título IV, Capítulo IV del Compendio de Normas de la Superintendencia Financiera de Colombia, la Fiduciaria tiene la obligación de verificar, previo y durante la relación contractual, que las personas naturales o jurídicas autorizadas para actuar, así como los miembros de Junta Directiva y órganos de administración o control de los fideicomitentes, beneficiarios, proveedores u otros terceros relacionados, no se encuentren incluidos en listas vinculantes (como ONU) o restrictivas (como OFAC, UE), ni en otras fuentes públicas o privadas que identifiquen riesgos asociados al Lavado de Activos, la Financiación del Terrorismo y la Financiación de la Proliferación de Armas de Destrucción Masiva (LA/FT/FPADM).&#10;Dicha validación aplica tanto para los terceros autorizados expresamente en los negocios fiduciarios, como para los miembros de Junta Directiva o quienes ejerzan funciones de administración o representación legal, conforme a los principios de debida diligencia y conocimiento del cliente exigidos por el SARLAFT.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">Asignado</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">4/8/25 12:32:39</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">11/8/25 14:00:17</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36"/>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36"/>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36"/>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002978876">
+				<Data ss:Type="String">INC000004931942</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Tabima Chepe</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Daniela Lisbeth</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Seleccione aplicación: ORM&#10;Solicitante : dltc7285&#10;Nombre de contacto: Daniela Lisbeth Tabima Chepe&#10;teléfono de contacto: 3226807553&#10;describa su solicitud: solicit6o de su apoyo con la revision al momento de ejecutar una rendición de cuentas, ya que al momento me esta generando un error, adjunto evidencia.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Alta</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">Asignado</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">8/8/25 09:41:24</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">11/8/25 15:42:05</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38"/>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Configurar</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38"/>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38"/>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002985075">
+				<Data ss:Type="String">INC000004939219</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Erazo Vasquez</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Viviana</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: viviana erazo vasquez&#10;teléfono de contacto: 3117799867&#10;describa su solicitud: Se requiere que todos los clientes que se crean por Fiduexpress en el campo de clase de cliente quede No asociado a coomeva, adjunto pantallazo del campo en finnasoft.</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">15/8/25 09:54:41</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">25/8/25 09:55:28</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36"/>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000002993736">
+				<Data ss:Type="String">INC000004949269</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Correa Valencia</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Evelyn Maryuri</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: Evelyn Correa&#10;teléfono de contacto: 301734925&#10;describa su solicitud: Cargue de cuotas vencidas o en mora en el modulo de títulos y fideicomiso</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Objetivos de servicio incumplidos</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">26/8/25 17:34:07</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">2/9/25 17:35:57</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38"/>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000003000004">
+				<Data ss:Type="String">INC000004956282</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Diruggiero Freire</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">William Andres</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : SIFI&#10;Nombre de contacto: William Diruggiero Freire&#10;teléfono de contacto: 3114159027&#10;describa su solicitud: Se requiere ajustar el archivo 2 del reporte de negocios fiduciarios que se realiza a la UIAF y actualmente es generado en la plataforma SIFOS, se identificaron inconsistencias las cuales están descritas en el documento adjunto:</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">En curso</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Advertencia de objetivo de servicio</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">2/9/25 12:26:26</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">2/9/25 14:37:56</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36"/>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36">
+				<Data ss:Type="String">Finansoft - Sistema para el manejo de libranzas y fondo de garantias</Data>
+			</Cell>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36">
+				<Data ss:Type="String">TI</Data>
+			</Cell>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="37" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000003000492">
+				<Data ss:Type="String">INC000004956888</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="38">
+				<Data ss:Type="String">Forero Parra</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="38">
+				<Data ss:Type="String">Maritza Fernanda</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="38">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="38">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Finansoft&#10;Nombre de contacto: Maritza Forero&#10;teléfono de contacto: 3184468254&#10;describa su solicitud: Solicito por favor se creen los logs de correos enviados a los clientes de los certificados tributarios que se generan cada año y crear un control o reporte asi como el que se tiene con los extractos para validar dicho envío. Por favor asignar a Michael.&#10;Gracias…</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="38">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="38">
+				<Data ss:Type="String">Asignado</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="38">
+				<Data ss:Type="String">Dentro del Objetivo de servicio</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="38">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="38">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="38">
+				<Data ss:Type="String">2/9/25 15:53:50</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="38">
+				<Data ss:Type="String">2/9/25 15:53:53</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="38"/>
+			<Cell ss:Index="14" ss:StyleID="38">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="38"/>
+			<Cell ss:Index="16" ss:StyleID="38"/>
+			<Cell ss:Index="17" ss:StyleID="38"/>
+			<Cell ss:Index="18" ss:StyleID="38"/>
+			<Cell ss:Index="19" ss:StyleID="38"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="35" ss:HRef="https://centrodegestiongecc.onbmc.com/arsys/servlet/ViewFormServlet?form=HPD%3AHelp+Desk&amp;server=onbmc-s&amp;eid=INC000003001691">
+				<Data ss:Type="String">INC000004958354</Data>
+			</Cell>
+			<Cell ss:Index="2" ss:StyleID="36">
+				<Data ss:Type="String">Ruiz Aguirre</Data>
+			</Cell>
+			<Cell ss:Index="3" ss:StyleID="36">
+				<Data ss:Type="String">Maria Camila</Data>
+			</Cell>
+			<Cell ss:Index="4" ss:StyleID="36">
+				<Data ss:Type="String">Solicitud nuevos desarrollos y orden de servicios</Data>
+			</Cell>
+			<Cell ss:Index="5" ss:StyleID="36">
+				<Data ss:Type="String">Tipo de solicitud Nuevo desarrollo o mejoras&#10;Aplicación : Métrica&#10;Nombre de contacto: Maria Camila Ruiz&#10;teléfono de contacto: 3158060306&#10;describa su solicitud: Automatización proceso Elaboración del formato 524 REPORTE DE INGRESOS PERCIBIDOS POR COMISIONES</Data>
+			</Cell>
+			<Cell ss:Index="6" ss:StyleID="36">
+				<Data ss:Type="String">Baja</Data>
+			</Cell>
+			<Cell ss:Index="7" ss:StyleID="36">
+				<Data ss:Type="String">Asignado</Data>
+			</Cell>
+			<Cell ss:Index="8" ss:StyleID="36">
+				<Data ss:Type="String">Dentro del Objetivo de servicio</Data>
+			</Cell>
+			<Cell ss:Index="9" ss:StyleID="36">
+				<Data ss:Type="String">Soporte TI Fiducoomeva</Data>
+			</Cell>
+			<Cell ss:Index="10" ss:StyleID="36">
+				<Data ss:Type="String">Luis Enrique Rojas Villota</Data>
+			</Cell>
+			<Cell ss:Index="11" ss:StyleID="36">
+				<Data ss:Type="String">3/9/25 16:56:58</Data>
+			</Cell>
+			<Cell ss:Index="12" ss:StyleID="36">
+				<Data ss:Type="String">3/9/25 16:57:00</Data>
+			</Cell>
+			<Cell ss:Index="13" ss:StyleID="36"/>
+			<Cell ss:Index="14" ss:StyleID="36">
+				<Data ss:Type="String">Ajustes y nuevos desarrollos</Data>
+			</Cell>
+			<Cell ss:Index="15" ss:StyleID="36"/>
+			<Cell ss:Index="16" ss:StyleID="36"/>
+			<Cell ss:Index="17" ss:StyleID="36"/>
+			<Cell ss:Index="18" ss:StyleID="36"/>
+			<Cell ss:Index="19" ss:StyleID="36"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="39"/>
+			<Cell ss:Index="2" ss:StyleID="39"/>
+			<Cell ss:Index="3" ss:StyleID="39"/>
+			<Cell ss:Index="4" ss:StyleID="39"/>
+			<Cell ss:Index="5" ss:StyleID="39"/>
+			<Cell ss:Index="6" ss:StyleID="39"/>
+			<Cell ss:Index="7" ss:StyleID="39"/>
+			<Cell ss:Index="8" ss:StyleID="39"/>
+			<Cell ss:Index="9" ss:StyleID="39"/>
+			<Cell ss:Index="10" ss:StyleID="39"/>
+			<Cell ss:Index="11" ss:StyleID="39"/>
+			<Cell ss:Index="12" ss:StyleID="39"/>
+			<Cell ss:Index="13" ss:StyleID="39"/>
+			<Cell ss:Index="14" ss:StyleID="39"/>
+			<Cell ss:Index="15" ss:StyleID="39"/>
+			<Cell ss:Index="16" ss:StyleID="39"/>
+			<Cell ss:Index="17" ss:StyleID="39"/>
+			<Cell ss:Index="18" ss:StyleID="39"/>
+			<Cell ss:Index="19" ss:StyleID="39"/>
+		</Row>
+		<Row ss:AutoFitHeight="1">
+			<Cell ss:Index="1" ss:StyleID="40" ss:MergeAcross="3">
+				<Data ss:Type="String">5 sep. 2025 08:27</Data>
+			</Cell>
+		</Row>
+	</ss:Table>
+	<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+		<PageSetup>
+			<PageMargins x:Bottom="0.25" x:Left="0.25" x:Right="0.25" x:Top="0.25"/>
+		</PageSetup>
+		<Print>
+			<PaperSizeIndex>9</PaperSizeIndex>
+		</Print>
+	</WorksheetOptions>
+</Worksheet>
+</Workbook>
