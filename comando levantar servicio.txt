@@ -1,1 +1,21 @@
-cd frontend; npm run dev
+# Comandos para gestionar el entorno de desarrollo manualmente con Docker
+# (Workaround para el problema con docker compose)
+
+# --- INICIAR SERVICIOS ---
+# Ejecutar en orden. Asegúrate de que Docker Desktop esté corriendo.
+
+# 1. Iniciar Base de Datos (solo la primera vez, o si la detuviste)
+docker run --name gestor-db --network gestor-proyectos-net -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_DB=project_manager -p 5432:5432 -v postgres_data:/var/lib/postgresql/data -d postgres:15-alpine
+
+# 2. Iniciar Backend
+docker run --name gestor-backend --network gestor-proyectos-net -p 8000:8000 -v ./backend:/app -e DATABASE_URL=postgresql://user:password@gestor-db/project_manager -d backend-image-test uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# 3. Iniciar Frontend
+docker run --name gestor-frontend --network gestor-proyectos-net -p 5173:5173 -v ./frontend:/app -v /app/node_modules -e VITE_API_URL=http://gestor-backend:8000 -d frontend-image-test npm run dev -- --host
+
+# --- DETENER SERVICIOS ---
+docker stop gestor-frontend gestor-backend gestor-db
+docker rm gestor-frontend gestor-backend gestor-db # Opcional: elimina los contenedores
+
+# --- VERIFICAR ESTADO ---
+docker pr

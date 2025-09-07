@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   backend:
-    build: ./backend
+    image: backend-image-test
     ports:
       - "8000:8000"
     environment:
@@ -12,17 +10,31 @@ services:
       - ./backend:/app
       - ./data:/app/data
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - db
 
   frontend:
-    build: ./frontend
+    image: frontend-image-test
     ports:
       - "5173:5173"
     volumes:
+      # Mapea el código fuente, pero mantiene node_modules aislado en el contenedor
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:8000
-    command: npm run dev -- --host 0.0.0.0
+      - VITE_API_URL=http://backend:8000
+    command: npm run dev -- --host
+
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=project_manager
+    ports:
+      - "5432:5432"
 
 volumes:
-  data:
+  postgres_data:
