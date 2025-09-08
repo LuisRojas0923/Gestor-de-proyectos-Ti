@@ -51,7 +51,7 @@ def get_requirements(db: Session, skip: int = 0, limit: int = 100,
     if assigned_user_id:
         query = query.filter(models.Requirement.assigned_user_id == assigned_user_id)
     
-    return query.offset(skip).limit(limit).order_by(desc(models.Requirement.created_at)).all()
+    return query.order_by(desc(models.Requirement.created_at)).offset(skip).limit(limit).all()
 
 def create_requirement(db: Session, requirement: schemas.RequirementCreate):
     db_requirement = models.Requirement(**requirement.dict())
