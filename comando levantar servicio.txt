@@ -18,4 +18,4 @@ docker stop gestor-frontend gestor-backend gestor-db
 docker rm gestor-frontend gestor-backend gestor-db # Opcional: elimina los contenedores
 
 # --- VERIFICAR ESTADO ---
-docker pr
+docker ps
