@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { useAppContext } from '../context/AppContext';
-import { Plus, Search, Eye, Edit, X, Calendar, ListChecks, ShieldCheck, Upload } from 'lucide-react';
+import { Calendar, Edit, Eye, ListChecks, Search, ShieldCheck, Upload, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ExcelImporter from '../components/common/ExcelImporter';
+import { useAppContext } from '../context/AppContext';
 
 type Incident = {
   id: number;
@@ -26,6 +26,19 @@ type Development = {
   current_stage: string;
   activities: { date: string; description: string }[];
   incidents: Incident[];
+  description?: string;
+  module?: string;
+  type?: string;
+  observations?: string;
+  estimated_cost?: number | null;
+  proposal_number?: string;
+  environment?: string;
+  remedy_link?: string;
+  target_closure_date?: string | null;
+  scheduled_delivery_date?: string | null;
+  actual_delivery_date?: string | null;
+  returns_count?: number;
+  test_defects_count?: number;
 };
 
 const processStages = [
@@ -203,21 +216,9 @@ const MyDevelopments: React.FC = () => {
   const [developments, setDevelopments] = useState<Development[]>([]);
   const [isImportModalOpen, setImportModalOpen] = useState(false);
 
-  // Load developments from localStorage on initial render
+  // Load developments from API on initial render
   useEffect(() => {
-    try {
-      const storedDevelopments = localStorage.getItem('developments');
-      if (storedDevelopments) {
-        setDevelopments(JSON.parse(storedDevelopments));
-      } else {
-        // If nothing is in localStorage, initialize with sample data
-        setDevelopments(sampleDevelopments);
-        localStorage.setItem('developments', JSON.stringify(sampleDevelopments));
-      }
-    } catch (error) {
-      console.error("Failed to parse developments from localStorage", error);
-      setDevelopments(sampleDevelopments);
-    }
+    loadDevelopments();
   }, []);
 
   // Column mapping for the importer - Updated to match your Excel structure
@@ -232,19 +233,13 @@ const MyDevelopments: React.FC = () => {
     // Add more mappings as needed based on your Excel columns
   };
 
-  const handleImport = (importedData: Partial<Development>[]) => {
-    const newDevelopments = [...developments];
-    let addedCount = 0;
-
-    importedData.forEach(item => {
-      // Basic validation
-      if (!item.id) return;
-
-      const exists = developments.some(dev => dev.id === item.id);
-      if (!exists) {
-        // Add default empty values for fields that might be missing from excel
-        const fullItem: Development = {
-          id: item.id,
+  const handleImport = async (importedData: Partial<Development>[]) => {
+    try {
+      // Prepare data for API
+      const validData = importedData
+        .filter(item => item.id) // Only items with ID
+        .map(item => ({
+          id: item.id!,
           name: item.name ?? 'N/A',
           provider: item.provider ?? 'N/A',
           requesting_area: item.requesting_area ?? 'N/A',
@@ -254,21 +249,48 @@ const MyDevelopments: React.FC = () => {
           estimated_days: item.estimated_days ?? 0,
           general_status: item.general_status ?? 'Pendiente',
           current_stage: item.current_stage ?? '1. Definición',
-          activities: [],
-          incidents: [],
-          ...item,
-        };
-        newDevelopments.push(fullItem);
-        addedCount++;
-      }
-    });
+          description: item.description ?? '',
+          module: item.module ?? '',
+          type: item.type ?? '',
+          observations: item.observations ?? '',
+          estimated_cost: item.estimated_cost ?? null,
+          proposal_number: item.proposal_number ?? '',
+          environment: item.environment ?? '',
+          remedy_link: item.remedy_link ?? '',
+          target_closure_date: item.target_closure_date ? new Date(item.target_closure_date).toISOString() : null,
+          scheduled_delivery_date: item.scheduled_delivery_date ? new Date(item.scheduled_delivery_date).toISOString() : null,
+          actual_delivery_date: item.actual_delivery_date ? new Date(item.actual_delivery_date).toISOString() : null,
+          returns_count: item.returns_count ?? 0,
+          test_defects_count: item.test_defects_count ?? 0,
+        }));
 
-    if (addedCount > 0) {
-      setDevelopments(newDevelopments);
-      localStorage.setItem('developments', JSON.stringify(newDevelopments));
-      alert(`${addedCount} nuevo(s) desarrollo(s) importado(s) exitosamente.`);
-    } else {
-      alert('No se encontraron nuevos desarrollos para importar. Los IDs ya existen.');
+      if (validData.length === 0) {
+        alert('No se encontraron datos válidos para importar.');
+        return;
+      }
+
+      // Send to API
+      const response = await fetch('http://localhost:8000/developments/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(validData),
+      });
+
+      if (response.ok) {
+        const createdDevelopments = await response.json();
+        alert(`${createdDevelopments.length} desarrollo(s) importado(s) exitosamente.`);
+        
+        // Refresh the developments list
+        loadDevelopments();
+      } else {
+        const errorData = await response.json();
+        alert(`Error al importar: ${errorData.detail || 'Error desconocido'}`);
+      }
+    } catch (error) {
+      console.error('Error importing developments:', error);
+      alert('Error al conectar con el servidor. Verifica que el backend esté ejecutándose.');
     }
     
     setImportModalOpen(false);
@@ -277,6 +299,30 @@ const MyDevelopments: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [providerFilter, setProviderFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  const loadDevelopments = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/developments');
+      if (response.ok) {
+        const data = await response.json();
+        setDevelopments(data);
+      } else {
+        console.error('Error loading developments from API');
+        // Fallback to localStorage if API fails
+        const storedDevelopments = localStorage.getItem('developments');
+        if (storedDevelopments) {
+          setDevelopments(JSON.parse(storedDevelopments));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading developments:', error);
+      // Fallback to localStorage if API fails
+      const storedDevelopments = localStorage.getItem('developments');
+      if (storedDevelopments) {
+        setDevelopments(JSON.parse(storedDevelopments));
+      }
+    }
+  };
   
   const [selectedDevelopment, setSelectedDevelopment] = useState<Development | null>(null);
   const [isViewPanelOpen, setViewPanelOpen] = useState(false);

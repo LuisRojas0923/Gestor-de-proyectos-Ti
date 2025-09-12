@@ -1,29 +1,18 @@
+import { AlertTriangle, BarChart3, Bug, CheckCircle, Clock, Repeat, TrendingUp } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useAppContext } from '../context/AppContext';
-import MetricCard from '../components/common/MetricCard';
-import { TrendingUp, CheckCircle, Clock, AlertTriangle, Bug, Repeat, BarChart3 } from 'lucide-react';
 import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
 } from 'recharts';
+import MetricCard from '../components/common/MetricCard';
+import { useAppContext } from '../context/AppContext';
 
-
-// Sample data for the indicators
-const kpiData = {
-  globalCompliance: { value: 92, change: { value: 2, type: 'increase' } },
-  developmentComplianceDays: { value: -1.5, change: { value: 0.5, type: 'decrease' } },
-  firstTimeQuality: { value: 85, change: { value: 5, type: 'decrease' } },
-  failureResponseTime: { value: 4.2, change: { value: -1.2, type: 'decrease' } },
-  defectsPerDelivery: { value: 1.2, change: { value: 0.1, type: 'increase' } },
-  postProductionRework: { value: 3, change: { value: -1, type: 'decrease' } },
-};
 
 const providerQualityData = [
     { name: 'Ingesoft', quality: 95, color: '#10B981' },
@@ -34,9 +23,18 @@ const providerQualityData = [
 
 
 const Indicators: React.FC = () => {
-  const { t } = useTranslation();
   const { state } = useAppContext();
   const { darkMode } = state;
+
+  // Load KPI data from API
+  const [kpiData] = useState({
+    globalCompliance: { value: 0, change: { value: 0, type: 'increase' as const } },
+    developmentComplianceDays: { value: 0, change: { value: 0, type: 'decrease' as const } },
+    firstTimeQuality: { value: 0, change: { value: 0, type: 'decrease' as const } },
+    failureResponseTime: { value: 0, change: { value: 0, type: 'decrease' as const } },
+    defectsPerDelivery: { value: 0, change: { value: 0, type: 'increase' as const } },
+    postProductionRework: { value: 0, change: { value: 0, type: 'decrease' as const } },
+  });
 
   return (
     <div className="space-y-6">

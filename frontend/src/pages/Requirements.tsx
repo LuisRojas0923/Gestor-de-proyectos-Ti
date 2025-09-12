@@ -1,54 +1,77 @@
-import React, { useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Download,
+  Edit,
+  Eye,
   Filter,
   Plus,
   Search,
-  Download,
-  Eye,
-  Edit,
-  CheckCircle,
-  Clock,
-  AlertTriangle,
 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FixedSizeList as List } from 'react-window';
 import { useAppContext } from '../context/AppContext';
+import { useApi } from '../hooks/useApi';
 
-// Sample data - replace with actual API data
-const sampleRequirements = Array.from({ length: 100 }, (_, i) => ({
-  id: `REQ-${String(i + 1).padStart(4, '0')}`,
-  title: `Requerimiento ${i + 1}: Implementación de funcionalidad ${i % 3 === 0 ? 'crítica' : i % 2 === 0 ? 'media' : 'básica'}`,
-  description: `Descripción detallada del requerimiento ${i + 1}`,
-  status: ['new', 'validated', 'testing', 'completed', 'rejected'][i % 5] as any,
-  priority: ['high', 'medium', 'low'][i % 3] as any,
-  dueDate: new Date(Date.now() + (i * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
-  assignedTo: `Usuario ${(i % 5) + 1}`,
-  createdAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
-  updatedAt: new Date(Date.now() - (i * 12 * 60 * 60 * 1000)).toISOString(),
-  controls: [`C00${(i % 4) + 1}-GT`],
-}));
+// Type definition for a requirement
+interface Requirement {
+  id: number;
+  external_id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  due_date: string;
+  assigned_user_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
 
 const Requirements: React.FC = () => {
   const { t } = useTranslation();
   const { state } = useAppContext();
   const { darkMode } = state;
+  const api = useApi();
 
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [selectedRequirement, setSelectedRequirement] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  useEffect(() => {
+    const fetchRequirements = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/requirements');
+        setRequirements(response);
+        setError(null);
+      } catch (err) {
+        setError('Failed to fetch requirements');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRequirements();
+  }, [api]);
+
   const filteredRequirements = useMemo(() => {
-    return sampleRequirements.filter((req) => {
+    return requirements.filter((req) => {
       const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           req.id.toLowerCase().includes(searchTerm.toLowerCase());
+                           req.external_id.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
       const matchesPriority = priorityFilter === 'all' || req.priority === priorityFilter;
       
       return matchesSearch && matchesStatus && matchesPriority;
     });
-  }, [searchTerm, statusFilter, priorityFilter]);
+  }, [searchTerm, statusFilter, priorityFilter, requirements]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -88,7 +111,7 @@ const Requirements: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
                   <span className={`font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                    {requirement.id}
+                    {requirement.external_id}
                   </span>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(requirement.priority)}`}>
                     {t(requirement.priority)}
@@ -98,9 +121,9 @@ const Requirements: React.FC = () => {
                   {requirement.title}
                 </h3>
                 <div className={`flex items-center space-x-4 text-sm mt-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
-                  <span>Asignado a: {requirement.assignedTo}</span>
-                  <span>Vence: {new Date(requirement.dueDate).toLocaleDateString()}</span>
-                  <span>Controles: {requirement.controls.join(', ')}</span>
+                  <span>Asignado a: {requirement.assigned_user_id || 'N/A'}</span>
+                  <span>Vence: {requirement.due_date ? new Date(requirement.due_date).toLocaleDateString() : 'N/A'}</span>
+                  <span>Controles: N/A</span>
                 </div>
               </div>
             </div>
@@ -202,23 +225,27 @@ const Requirements: React.FC = () => {
                 darkMode ? 'text-neutral-400' : 'text-neutral-600'
               }`}>
                 <Filter size={16} className="mr-2" />
-                {filteredRequirements.length} de {sampleRequirements.length} requerimientos
+                {filteredRequirements.length} de {requirements.length} requerimientos
               </div>
             </div>
           </div>
 
           {/* Virtualized List */}
-          <div className={`${
-            darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-          } border rounded-xl overflow-hidden`}>
-            <List
-              height={600}
-              itemCount={filteredRequirements.length}
-              itemSize={120}
-            >
-              {Row}
-            </List>
-          </div>
+          {loading && <p>Loading...</p>}
+          {error && <p className="text-red-500">{error}</p>}
+          {!loading && !error && (
+            <div className={`${
+              darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+            } border rounded-xl overflow-hidden`}>
+              <List
+                height={600}
+                itemCount={filteredRequirements.length}
+                itemSize={120}
+              >
+                {Row}
+              </List>
+            </div>
+          )}
         </div>
       </div>
 
@@ -245,7 +272,7 @@ const Requirements: React.FC = () => {
             <div className="space-y-6">
               <div>
                 <span className={`text-lg font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                  {selectedRequirement.id}
+                  {selectedRequirement.external_id}
                 </span>
                 <h3 className={`text-xl font-bold mt-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                   {selectedRequirement.title}
@@ -298,7 +325,7 @@ const Requirements: React.FC = () => {
                     Asignado a
                   </label>
                   <span className={darkMode ? 'text-white' : 'text-neutral-900'}>
-                    {selectedRequirement.assignedTo}
+                    {selectedRequirement.assigned_user_id || 'N/A'}
                   </span>
                 </div>
 
@@ -309,7 +336,7 @@ const Requirements: React.FC = () => {
                     Fecha límite
                   </label>
                   <span className={darkMode ? 'text-white' : 'text-neutral-900'}>
-                    {new Date(selectedRequirement.dueDate).toLocaleDateString()}
+                    {selectedRequirement.due_date ? new Date(selectedRequirement.due_date).toLocaleDateString() : 'N/A'}
                   </span>
                 </div>
               </div>
@@ -321,13 +348,12 @@ const Requirements: React.FC = () => {
                   Controles Aplicables
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {selectedRequirement.controls.map((control: string) => (
-                    <span key={control} className={`px-3 py-1 text-sm font-medium rounded-full ${
+                    {/* Placeholder for controls */}
+                    <span className={`px-3 py-1 text-sm font-medium rounded-full ${
                       darkMode ? 'bg-neutral-700 text-neutral-300' : 'bg-neutral-100 text-neutral-700'
                     }`}>
-                      {control}
+                      N/A
                     </span>
-                  ))}
                 </div>
               </div>
 

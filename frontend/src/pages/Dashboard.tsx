@@ -1,24 +1,23 @@
+import {
+  AlertTriangle,
+  Calendar,
+  CheckCircle,
+  Clock,
+  TrendingUp
+} from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  TrendingUp,
-  Calendar,
-  Users,
-} from 'lucide-react';
-import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
 import MetricCard from '../components/common/MetricCard';
 import { useAppContext } from '../context/AppContext';
@@ -28,44 +27,60 @@ const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const { state } = useAppContext();
   const { darkMode } = state;
-  const { get, loading } = useApi();
+  const { get } = useApi();
 
-  // Sample data - replace with actual API calls
+  // Load metrics from API
   const [metrics, setMetrics] = useState({
-    pending: 24,
-    inProgress: 15,
-    completed: 89,
-    avgSLA: '2.3d',
+    pending: 0,
+    inProgress: 0,
+    completed: 0,
+    avgSLA: '0d',
   });
 
-  const weeklyData = [
-    { name: 'Lun', completed: 12, created: 15 },
-    { name: 'Mar', completed: 19, created: 22 },
-    { name: 'Mié', completed: 8, created: 18 },
-    { name: 'Jue', completed: 25, created: 28 },
-    { name: 'Vie', completed: 18, created: 20 },
-    { name: 'Sáb', completed: 5, created: 8 },
-    { name: 'Dom', completed: 3, created: 4 },
-  ];
+  const [weeklyData, setWeeklyData] = useState([
+    { name: 'Lun', completed: 0, created: 0 },
+    { name: 'Mar', completed: 0, created: 0 },
+    { name: 'Mié', completed: 0, created: 0 },
+    { name: 'Jue', completed: 0, created: 0 },
+    { name: 'Vie', completed: 0, created: 0 },
+    { name: 'Sáb', completed: 0, created: 0 },
+    { name: 'Dom', completed: 0, created: 0 },
+  ]);
 
-  const priorityData = [
+  const [priorityData, setPriorityData] = useState([
     { name: 'Alta', value: 30, color: '#EF4444' },
     { name: 'Media', value: 45, color: '#F59E0B' },
     { name: 'Baja', value: 25, color: '#10B981' },
-  ];
+  ]);
 
-  const upcomingMilestones = [
+  const [upcomingMilestones, setUpcomingMilestones] = useState([
     { id: 1, title: 'Entrega Módulo CRM', date: '2025-01-20', status: 'on-track' },
     { id: 2, title: 'Revisión Seguridad', date: '2025-01-25', status: 'at-risk' },
     { id: 3, title: 'Testing Integración', date: '2025-01-30', status: 'delayed' },
-  ];
+  ]);
 
   useEffect(() => {
     // Load dashboard data
     const loadDashboardData = async () => {
-      // Replace with actual API calls
-      // const data = await get('/dashboard/metrics');
-      // setMetrics(data);
+      try {
+        // Load metrics
+        const metricsData = await get('/dashboard/metrics') as typeof metrics;
+        setMetrics(metricsData);
+        
+        // Load weekly progress
+        const weeklyDataResponse = await get('/dashboard/weekly-progress') as typeof weeklyData;
+        setWeeklyData(weeklyDataResponse);
+        
+        // Load priority distribution
+        const priorityDataResponse = await get('/dashboard/priority-distribution') as typeof priorityData;
+        setPriorityData(priorityDataResponse);
+        
+        // Load upcoming milestones
+        const milestonesData = await get('/dashboard/upcoming-milestones') as typeof upcomingMilestones;
+        setUpcomingMilestones(milestonesData);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      }
     };
     loadDashboardData();
   }, [get]);
@@ -162,7 +177,7 @@ const Dashboard: React.FC = () => {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"

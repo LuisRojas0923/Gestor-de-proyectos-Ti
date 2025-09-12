@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface ApiResponse<T> {
@@ -7,7 +7,7 @@ interface ApiResponse<T> {
   error: string | null;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export function useApi<T>() {
   const [state, setState] = useState<ApiResponse<T>>({

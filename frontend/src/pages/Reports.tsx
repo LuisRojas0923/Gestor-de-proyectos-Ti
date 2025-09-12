@@ -1,36 +1,35 @@
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
+  CheckCircle,
+  Clock,
   Download,
   FileText,
   PieChart,
   TrendingUp,
-  Clock,
   Users,
-  CheckCircle,
 } from 'lucide-react';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart as RechartsPieChart,
-  Pie,
-  Cell,
   Area,
   AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart as RechartsPieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
-import { useAppContext } from '../context/AppContext';
 import MetricCard from '../components/common/MetricCard';
+import { useAppContext } from '../context/AppContext';
 
-// Temporary: Import development data to use in the report
-// In a real app, this would come from an API or a shared state management store
-import { initialSampleDevelopments as developmentsData, Development as DevelopmentType } from './MyDevelopments';
+// Load development data from API
+// import { Development as DevelopmentType } from './MyDevelopments';
 
 const Reports: React.FC = () => {
   const { t } = useTranslation();
@@ -42,15 +41,15 @@ const Reports: React.FC = () => {
     end: '2025-01-31',
   });
   
-  // Sample data
-  const kpiData = {
-    totalRequirements: 234,
-    completedRequirements: 189,
-    avgCycleTime: 2.3,
-    slaCompliance: 89,
-    controlsExecuted: 567,
-    pendingTasks: 45,
-  };
+  // Load KPI data from API
+  const [kpiData, setKpiData] = useState({
+    totalRequirements: 0,
+    completedRequirements: 0,
+    avgCycleTime: 0,
+    slaCompliance: 0,
+    controlsExecuted: 0,
+    pendingTasks: 0,
+  });
 
   const cycleTimeData = [
     { name: 'Sem 1', tiempo: 2.1, objetivo: 2.5 },
@@ -415,38 +414,12 @@ const Reports: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
-                    {developmentsData.filter((d: DevelopmentType) => d.general_status === 'En curso').map((dev: DevelopmentType) => {
-                      
-                      const estimatedEndDate = new Date(dev.estimated_end_date);
-                      const today = new Date();
-                      
-                      // Calculate delay
-                      let delayDays = 0;
-                      if (today > estimatedEndDate) {
-                        delayDays = Math.floor((today.getTime() - estimatedEndDate.getTime()) / (1000 * 3600 * 24));
-                      }
-
-                      return (
-                        <tr key={dev.id} className="hover:bg-neutral-100 dark:hover:bg-neutral-700/50 transition-colors">
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-primary-500">{dev.id}</td>
-                          <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{dev.name}</td>
-                          <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.main_responsible}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm">
-                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                              {dev.general_status}
-                            </span>
-                          </td>
-                          <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{new Date(dev.start_date).toLocaleDateString()}</td>
-                          <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{new Date(dev.estimated_end_date).toLocaleDateString()}</td>
-                          <td className={`px-4 py-3 whitespace-nowrap text-sm font-semibold text-center ${delayDays > 0 ? 'text-red-500' : 'text-green-500'}`}>
-                            {delayDays > 0 ? `+${delayDays}`: 'En tiempo'}
-                          </td>
-                          <td className={`px-4 py-3 whitespace-nowrap text-sm text-center ${dev.incidents.length > 0 ? 'text-yellow-500' : darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-                            {dev.incidents.length}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {/* TODO: Load developments data from API */}
+                    <tr>
+                      <td colSpan={8} className="px-4 py-8 text-center text-neutral-500">
+                        No hay datos disponibles. Los datos se cargarán desde la API.
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
