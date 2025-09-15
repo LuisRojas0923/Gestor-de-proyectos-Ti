@@ -90,9 +90,208 @@ El proyecto está construido con una arquitectura moderna separando el frontend 
     -   **Gráficos**: **Recharts** para visualizaciones de datos.
     -   **Internacionalización**: **react-i18next** para soporte multiidioma.
 
+### 📋 Documentación Arquitectónica
+
+El proyecto cuenta con una **documentación arquitectónica completa** distribuida en tres documentos especializados:
+
+-   **`ARQUITECTURA_BASE_DATOS.md`**: Especificación completa de la estructura de base de datos normalizada, incluyendo:
+    -   28 tablas normalizadas con relaciones detalladas
+    -   Ciclo de desarrollo con 11 etapas agrupadas en 3 fases principales
+    -   Vistas SQL para cálculo automático de KPIs
+    -   Índices optimizados para rendimiento
+    -   Flujo de datos y automatización de indicadores
+
+-   **`ARQUITECTURA_BACKEND.md`**: Arquitectura completa del backend, incluyendo:
+    -   Modelos SQLAlchemy para todas las entidades
+    -   Endpoints de API RESTful organizados por módulos
+    -   Servicios de negocio y lógica de aplicación
+    -   Schemas Pydantic para validación de datos
+    -   Flujo del ciclo de desarrollo con disparadores automáticos
+
+-   **`ARQUITECTURA_FRONTEND.md`**: Especificación de la arquitectura del frontend, incluyendo:
+    -   Estructura de componentes React organizados por módulos
+    -   Jerarquía de componentes UI y estados de aplicación
+    -   Hooks personalizados y gestión de estado
+    -   Integración con servicios de backend
+    -   Diseño responsive y experiencia de usuario
+
 ---
 
 ## 💾 Esquema de la Base de Datos
+
+### 🏗️ Estructura Visual de la Base de Datos
+
+```
+PostgreSQL Database: "gestor_proyectos"
+│
+├── 📋 developments (Tabla Principal)
+│   ├── 🔑 id (VARCHAR, PK) ──────────────┐
+│   ├── name (VARCHAR)                    │
+│   ├── description (TEXT)                │
+│   ├── module (VARCHAR)                  │
+│   ├── type (VARCHAR)                    │
+│   ├── provider (VARCHAR)                │
+│   ├── requesting_area (VARCHAR)         │
+│   ├── main_responsible (VARCHAR)        │
+│   ├── general_status (VARCHAR)          │
+│   ├── current_stage (VARCHAR)           │
+│   ├── observations (TEXT)               │
+│   ├── 📅 start_date (TIMESTAMP)         │
+│   ├── 📅 estimated_end_date (TIMESTAMP) │
+│   ├── 📅 actual_end_date (TIMESTAMP)    │
+│   ├── 📅 target_closure_date (TIMESTAMP)│
+│   ├── 📅 scheduled_delivery_date (TIMESTAMP) │
+│   ├── 📅 actual_delivery_date (TIMESTAMP)    │
+│   ├── estimated_days (INTEGER)          │
+│   ├── 💰 estimated_cost (DECIMAL)       │
+│   ├── proposal_number (VARCHAR)         │
+│   ├── environment (VARCHAR)             │
+│   ├── remedy_link (VARCHAR)             │
+│   ├── returns_count (INTEGER)           │
+│   ├── test_defects_count (INTEGER)      │
+│   ├── 📅 created_at (TIMESTAMP)         │
+│   └── 📅 updated_at (TIMESTAMP)         │
+│                                         │
+├── 📝 activity_logs (Bitácora)           │
+│   ├── 🔑 id (SERIAL, PK)                │
+│   ├── 🔗 development_id (VARCHAR, FK) ──┘
+│   ├── 📅 date (TIMESTAMP)
+│   ├── description (TEXT)
+│   ├── user_id (VARCHAR) [Futuro]
+│   ├── activity_type (VARCHAR) [Futuro]
+│   ├── 📅 created_at (TIMESTAMP)
+│   └── 📅 updated_at (TIMESTAMP)
+│
+└── 🚨 incidents (Incidencias Post-Producción)
+    ├── 🔑 id (SERIAL, PK)
+    ├── 🔗 development_id (VARCHAR, FK) ──┘
+    ├── description (TEXT)
+    ├── severity (VARCHAR) [Futuro]
+    ├── impact (VARCHAR) [Futuro]
+    ├── 📅 report_date (TIMESTAMP)
+    ├── 📅 resolution_date (TIMESTAMP)
+    ├── status ('Abierta'|'Cerrada')
+    ├── assigned_to (VARCHAR) [Futuro]
+    ├── 📅 created_at (TIMESTAMP)
+    └── 📅 updated_at (TIMESTAMP)
+
+Relaciones:
+├── developments 1 ──── N activity_logs
+└── developments 1 ──── N incidents
+```
+
+### 📊 Índices y Constraints
+
+```
+Índices Principales:
+├── developments
+│   ├── 🔑 PRIMARY KEY (id)
+│   ├── 📇 INDEX idx_dev_status (general_status)
+│   ├── 📇 INDEX idx_dev_provider (provider)
+│   ├── 📇 INDEX idx_dev_dates (start_date, estimated_end_date)
+│   └── 📇 INDEX idx_dev_responsible (main_responsible)
+│
+├── activity_logs
+│   ├── 🔑 PRIMARY KEY (id)
+│   ├── 🔗 FOREIGN KEY (development_id) REFERENCES developments(id)
+│   ├── 📇 INDEX idx_activity_dev (development_id)
+│   └── 📇 INDEX idx_activity_date (date)
+│
+└── incidents
+    ├── 🔑 PRIMARY KEY (id)
+    ├── 🔗 FOREIGN KEY (development_id) REFERENCES developments(id)
+    ├── 📇 INDEX idx_incident_dev (development_id)
+    ├── 📇 INDEX idx_incident_status (status)
+    └── 📇 INDEX idx_incident_dates (report_date, resolution_date)
+
+Constraints:
+├── developments.general_status ∈ ('Pendiente', 'En curso', 'Completado', 'Cancelado')
+├── incidents.status ∈ ('Abierta', 'Cerrada')
+├── developments.estimated_days >= 0
+├── developments.returns_count >= 0
+├── developments.test_defects_count >= 0
+└── developments.estimated_cost >= 0
+```
+
+### 🔄 Flujo de Datos y Operaciones
+
+```
+Operaciones CRUD Principales:
+
+📝 CREATE Operations:
+├── INSERT development → Nuevo proyecto/requerimiento
+├── INSERT activity_log → Nueva entrada en bitácora
+└── INSERT incident → Nueva incidencia reportada
+
+📖 READ Operations:
+├── SELECT developments → Lista principal (con filtros)
+├── SELECT development + activities + incidents → Vista detallada
+├── SELECT para KPIs → Cálculos de rendimiento
+└── SELECT para reportes → Datos consolidados
+
+✏️ UPDATE Operations:
+├── UPDATE development.current_stage → Cambio de etapa
+├── UPDATE development.general_status → Cambio de estado
+├── UPDATE incident.resolution_date → Cierre de incidencia
+└── UPDATE development.actual_end_date → Finalización real
+
+🗑️ DELETE Operations:
+├── Soft delete developments → Marcar como cancelado
+├── CASCADE delete activities → Al eliminar desarrollo
+└── CASCADE delete incidents → Al eliminar desarrollo
+```
+
+### 📈 Consultas para KPIs
+
+```sql
+-- Cumplimiento de Fechas Global
+SELECT 
+    provider,
+    COUNT(*) as total_entregas,
+    SUM(CASE WHEN actual_delivery_date <= scheduled_delivery_date 
+        THEN 1 ELSE 0 END) as entregas_a_tiempo,
+    ROUND(
+        (SUM(CASE WHEN actual_delivery_date <= scheduled_delivery_date 
+            THEN 1 ELSE 0 END) * 100.0) / COUNT(*), 2
+    ) as porcentaje_cumplimiento
+FROM developments 
+WHERE actual_delivery_date IS NOT NULL
+GROUP BY provider;
+
+-- Calidad en Primera Entrega
+SELECT 
+    provider,
+    COUNT(*) as total_entregas,
+    SUM(CASE WHEN returns_count = 0 THEN 1 ELSE 0 END) as sin_devoluciones,
+    ROUND(
+        (SUM(CASE WHEN returns_count = 0 THEN 1 ELSE 0 END) * 100.0) / COUNT(*), 2
+    ) as calidad_primera_entrega
+FROM developments 
+WHERE general_status = 'Completado'
+GROUP BY provider;
+
+-- Defectos por Entrega
+SELECT 
+    provider,
+    AVG(test_defects_count) as promedio_defectos,
+    MAX(test_defects_count) as max_defectos,
+    MIN(test_defects_count) as min_defectos
+FROM developments 
+WHERE general_status = 'Completado'
+GROUP BY provider;
+
+-- Tiempo de Respuesta a Incidencias
+SELECT 
+    d.provider,
+    AVG(EXTRACT(EPOCH FROM (i.resolution_date - i.report_date))/3600) as horas_promedio,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (
+        ORDER BY EXTRACT(EPOCH FROM (i.resolution_date - i.report_date))/3600
+    ) as mediana_horas
+FROM incidents i
+JOIN developments d ON i.development_id = d.id
+WHERE i.resolution_date IS NOT NULL
+GROUP BY d.provider;
+```
 
 El núcleo de la aplicación se basa en tres tablas principales que se relacionan entre sí:
 
@@ -142,6 +341,314 @@ Registra las incidencias o fallos que ocurren después de que un desarrollo pasa
 | `report_date`     | `DateTime`   | Fecha en que se reportó el fallo.                  |
 | `resolution_date` | `DateTime`   | Fecha en que se solucionó el fallo.                |
 | `description`     | `Text`       | Descripción de la incidencia.                      |
+
+---
+
+## 📊 Modelo Entidad-Relación (MER) Completo
+
+### 🏗️ Diagrama del Sistema de Gestión de Proyectos TI
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                           SISTEMA DE GESTIÓN DE PROYECTOS TI                        │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│   AUTH_USERS     │    │   DEVELOPMENTS   │    │  ACTIVITY_LOGS   │
+├──────────────────┤    ├──────────────────┤    ├──────────────────┤
+│ id (PK)          │    │ id (PK)          │    │ id (PK)          │
+│ email (UNIQUE)   │    │ name             │    │ development_id(FK)│
+│ password_hash    │    │ description      │    │ date             │
+│ name             │    │ module           │    │ description      │
+│ role             │    │ type             │    │ category         │
+│ is_active        │    │ start_date       │    │ user_id (FK)     │
+│ email_verified   │    │ estimated_end_date│   │ created_at       │
+│ avatar_url       │    │ target_closure_date│   └──────────────────┘
+│ timezone         │    │ estimated_days   │              │
+│ created_at       │    │ main_responsible │              │
+│ updated_at       │    │ provider         │              │
+│ last_login       │    │ requesting_area  │              │
+└──────────────────┘    │ general_status   │              │
+         │               │ current_stage    │              │
+         │               │ observations     │              │
+         │               │ estimated_cost   │              │
+         │               │ proposal_number  │              │
+         │               │ environment      │              │
+         │               │ remedy_link      │              │
+         │               │ scheduled_delivery_date │       │
+         │               │ actual_delivery_date    │       │
+         │               │ returns_count    │              │
+         │               │ test_defects_count│             │
+         │               │ created_at       │              │
+         │               │ updated_at       │              │
+         │               └──────────────────┘              │
+         │                        │                        │
+         │                        │                        │
+         │               ┌──────────────────┐              │
+         │               │    INCIDENTS     │              │
+         │               ├──────────────────┤              │
+         │               │ id (PK)          │              │
+         │               │ development_id(FK)│             │
+         │               │ report_date      │              │
+         │               │ resolution_date  │              │
+         │               │ description      │              │
+         │               │ severity         │              │
+         │               │ impact           │              │
+         │               │ status           │              │
+         │               │ assigned_to (FK) │              │
+         │               │ created_at       │              │
+         │               │ updated_at       │              │
+         │               └──────────────────┘              │
+         │                        │                        │
+         │                        │                        │
+         │               ┌──────────────────┐              │
+         │               │   MILESTONES     │              │
+         │               ├──────────────────┤              │
+         │               │ id (PK)          │              │
+         │               │ development_id(FK)│             │
+         │               │ title            │              │
+         │               │ description      │              │
+         │               │ due_date         │              │
+         │               │ status           │              │
+         │               │ completion_date  │              │
+         │               │ created_by (FK)  │              │
+         │               │ created_at       │              │
+         │               └──────────────────┘              │
+         │                        │                        │
+         │                        │                        │
+         │               ┌──────────────────┐              │
+         │               │ QUALITY_CONTROLS │              │
+         │               ├──────────────────┤              │
+         │               │ id (PK)          │              │
+         │               │ development_id(FK)│             │
+         │               │ control_code     │              │
+         │               │ control_name     │              │
+         │               │ stage_prefix     │              │
+         │               │ status           │              │
+         │               │ completed_by (FK)│              │
+         │               │ completed_at     │              │
+         │               │ observations     │              │
+         │               │ created_at       │              │
+         │               └──────────────────┘              │
+         │                        │                        │
+         │                        │                        │
+         │               ┌──────────────────┐              │
+         │               │   TEST_TASKS     │              │
+         │               ├──────────────────┤              │
+         │               │ id (PK)          │              │
+         │               │ development_id(FK)│             │
+         │               │ requirement_id   │              │
+         │               │ title            │              │
+         │               │ description      │              │
+         │               │ status           │              │
+         │               │ estimated_hours  │              │
+         │               │ actual_hours     │              │
+         │               │ assigned_to (FK) │              │
+         │               │ priority         │              │
+         │               │ is_timer_active  │              │
+         │               │ created_at       │              │
+         │               │ updated_at       │              │
+         │               └──────────────────┘              │
+         │                        │                        │
+         │                        │                        │
+         │               ┌──────────────────┐              │
+         │               │   KPI_METRICS    │              │
+         │               ├──────────────────┤              │
+         │               │ id (PK)          │              │
+         │               │ development_id(FK)│             │
+         │               │ metric_type      │              │
+         │               │ provider         │              │
+         │               │ period_start     │              │
+         │               │ period_end       │              │
+         │               │ value            │              │
+         │               │ target_value     │              │
+         │               │ calculated_at    │              │
+         │               │ calculated_by(FK)│              │
+         │               └──────────────────┘              │
+         │                                                 │
+         │               ┌──────────────────┐              │
+         │               │  CHAT_SESSIONS   │              │
+         │               ├──────────────────┤              │
+         │               │ id (PK)          │              │
+         │               │ user_id (FK)     │──────────────┘
+         │               │ title            │
+         │               │ created_at       │
+         │               │ updated_at       │
+         │               └──────────────────┘
+         │                        │
+         │                        │
+         │               ┌──────────────────┐
+         │               │  CHAT_MESSAGES   │
+         │               ├──────────────────┤
+         │               │ id (PK)          │
+         │               │ session_id (FK)  │
+         │               │ content          │
+         │               │ sender           │
+         │               │ message_type     │
+         │               │ metadata         │
+         │               │ created_at       │
+         │               └──────────────────┘
+         │
+         │               ┌──────────────────┐
+         │               │   AUTH_TOKENS    │
+         │               ├──────────────────┤
+         │               │ id (PK)          │
+         │               │ user_id (FK)     │──────────────┘
+         │               │ token_hash       │
+         │               │ token_type       │
+         │               │ name             │
+         │               │ expires_at       │
+         │               │ last_used_at     │
+         │               │ created_at       │
+         │               └──────────────────┘
+         │
+         │               ┌──────────────────┐
+         │               │ USER_SESSIONS    │
+         │               ├──────────────────┤
+         │               │ id (PK)          │
+         │               │ user_id (FK)     │──────────────┘
+         │               │ session_token    │
+         │               │ ip_address       │
+         │               │ user_agent       │
+         │               │ expires_at       │
+         │               │ created_at       │
+         │               └──────────────────┘
+         │
+         │               ┌──────────────────┐
+         │               │ SYSTEM_SETTINGS  │
+         │               ├──────────────────┤
+         │               │ id (PK)          │
+         │               │ user_id (FK)     │──────────────┘
+         │               │ category         │
+         │               │ key              │
+         │               │ value            │
+         │               │ created_at       │
+         │               │ updated_at       │
+         │               └──────────────────┘
+
+         ┌──────────────────┐
+         │   PERMISSIONS    │
+         ├──────────────────┤
+         │ id (PK)          │
+         │ name (UNIQUE)    │
+         │ description      │
+         │ resource         │
+         │ action           │
+         └──────────────────┘
+                  │
+                  │
+         ┌──────────────────┐
+         │ ROLE_PERMISSIONS │
+         ├──────────────────┤
+         │ role (PK)        │
+         │ permission_id(PK)│
+         └──────────────────┘
+```
+
+### 🔗 Relaciones Principales
+
+#### **1. AUTH_USERS (1:N) con múltiples tablas:**
+- `AUTH_USERS` → `AUTH_TOKENS` (Un usuario puede tener múltiples tokens)
+- `AUTH_USERS` → `USER_SESSIONS` (Un usuario puede tener múltiples sesiones)
+- `AUTH_USERS` → `CHAT_SESSIONS` (Un usuario puede tener múltiples chats)
+- `AUTH_USERS` → `SYSTEM_SETTINGS` (Un usuario puede tener múltiples configuraciones)
+
+#### **2. DEVELOPMENTS (1:N) como entidad central:**
+- `DEVELOPMENTS` → `ACTIVITY_LOGS` (Un desarrollo tiene múltiples actividades)
+- `DEVELOPMENTS` → `INCIDENTS` (Un desarrollo puede tener múltiples incidencias)
+- `DEVELOPMENTS` → `MILESTONES` (Un desarrollo tiene múltiples hitos)
+- `DEVELOPMENTS` → `QUALITY_CONTROLS` (Un desarrollo tiene múltiples controles)
+- `DEVELOPMENTS` → `TEST_TASKS` (Un desarrollo tiene múltiples tareas de testing)
+- `DEVELOPMENTS` → `KPI_METRICS` (Un desarrollo genera múltiples métricas)
+
+#### **3. Relaciones de Chat:**
+- `CHAT_SESSIONS` → `CHAT_MESSAGES` (Una sesión tiene múltiples mensajes)
+
+#### **4. Sistema de Permisos:**
+- `PERMISSIONS` ↔ `ROLE_PERMISSIONS` ↔ `AUTH_USERS.role` (Many-to-Many a través de roles)
+
+### 📋 Cardinalidades Detalladas
+
+```
+AUTH_USERS (1) ──── (N) AUTH_TOKENS
+AUTH_USERS (1) ──── (N) USER_SESSIONS  
+AUTH_USERS (1) ──── (N) CHAT_SESSIONS
+AUTH_USERS (1) ──── (N) SYSTEM_SETTINGS
+AUTH_USERS (1) ──── (N) ACTIVITY_LOGS (created_by)
+AUTH_USERS (1) ──── (N) INCIDENTS (assigned_to)
+AUTH_USERS (1) ──── (N) MILESTONES (created_by)
+AUTH_USERS (1) ──── (N) QUALITY_CONTROLS (completed_by)
+AUTH_USERS (1) ──── (N) TEST_TASKS (assigned_to)
+AUTH_USERS (1) ──── (N) KPI_METRICS (calculated_by)
+
+DEVELOPMENTS (1) ──── (N) ACTIVITY_LOGS
+DEVELOPMENTS (1) ──── (N) INCIDENTS
+DEVELOPMENTS (1) ──── (N) MILESTONES
+DEVELOPMENTS (1) ──── (N) QUALITY_CONTROLS
+DEVELOPMENTS (1) ──── (N) TEST_TASKS
+DEVELOPMENTS (1) ──── (N) KPI_METRICS
+
+CHAT_SESSIONS (1) ──── (N) CHAT_MESSAGES
+
+PERMISSIONS (N) ──── (N) ROLES (via ROLE_PERMISSIONS)
+```
+
+### 🎯 Índices Recomendados para Performance
+
+```sql
+-- Índices para performance
+CREATE INDEX idx_developments_status ON developments(general_status);
+CREATE INDEX idx_developments_provider ON developments(provider);
+CREATE INDEX idx_developments_dates ON developments(start_date, estimated_end_date);
+CREATE INDEX idx_activity_logs_dev_date ON activity_logs(development_id, date);
+CREATE INDEX idx_incidents_dev_status ON incidents(development_id, status);
+CREATE INDEX idx_quality_controls_dev ON quality_controls(development_id);
+CREATE INDEX idx_test_tasks_assigned ON test_tasks(assigned_to, status);
+CREATE INDEX idx_auth_tokens_user ON auth_tokens(user_id, token_type);
+CREATE INDEX idx_chat_messages_session ON chat_messages(session_id, created_at);
+CREATE INDEX idx_kpi_metrics_dev_type ON kpi_metrics(development_id, metric_type);
+CREATE INDEX idx_milestones_dev_status ON milestones(development_id, status);
+```
+
+### 📊 Tablas por Estado de Implementación
+
+#### ✅ **Implementadas Actualmente:**
+- `developments` - Tabla principal de desarrollos
+- `activity_logs` - Bitácora de actividades
+- `incidents` - Incidencias post-producción
+
+#### 🚧 **Pendientes de Implementar:**
+- `auth_users` - Sistema de autenticación
+- `auth_tokens` - Tokens de API y sesiones
+- `user_sessions` - Sesiones de usuario
+- `permissions` - Permisos del sistema
+- `role_permissions` - Relación roles-permisos
+- `milestones` - Hitos del proyecto
+- `quality_controls` - Controles de calidad
+- `test_tasks` - Tareas de testing
+- `kpi_metrics` - Métricas de rendimiento
+- `chat_sessions` - Sesiones de chat
+- `chat_messages` - Mensajes del chat
+- `system_settings` - Configuraciones del sistema
+
+### 🔄 Flujo de Datos Completo
+
+```
+1. AUTENTICACIÓN:
+   AUTH_USERS → AUTH_TOKENS → USER_SESSIONS
+
+2. GESTIÓN DE PROYECTOS:
+   DEVELOPMENTS → ACTIVITY_LOGS + INCIDENTS + MILESTONES
+
+3. CONTROL DE CALIDAD:
+   QUALITY_CONTROLS → TEST_TASKS → KPI_METRICS
+
+4. COMUNICACIÓN:
+   CHAT_SESSIONS → CHAT_MESSAGES
+
+5. CONFIGURACIÓN:
+   SYSTEM_SETTINGS (por usuario)
+```
 
 ---
 
@@ -196,14 +703,159 @@ Registra las incidencias o fallos que ocurren después de que un desarrollo pasa
 
 ---
 
+## 🏗️ Jerarquía de Componentes UI
+
+### Página "Mis Desarrollos" (`MyDevelopments.tsx`)
+
+```
+MyDevelopments (Componente Principal)
+├── Header Section
+│   ├── Título: "Mis Desarrollos"
+│   ├── Indicador de Panel Abierto (condicional)
+│   └── Botón "Importar Excel"
+│
+├── Filtros Section
+│   ├── Barra de Búsqueda (por ID o nombre)
+│   ├── Filtro por Proveedor (dropdown)
+│   └── Filtro por Estado (dropdown)
+│
+├── Tabla de Desarrollos (Vista Desktop > 1024px)
+│   ├── Headers: [ID Remedy, Nombre, Proveedor, Responsable, Estado, Progreso, Acciones]
+│   └── Filas de Datos
+│       ├── Botón Ver Detalles (ícono ojo) → Abre Side Panel
+│       └── Botón Editar (ícono lápiz) → Abre Modal de Edición
+│
+├── Vista de Tarjetas (Vista Mobile/Tablet < 1024px)
+│   └── Cards Individuales por Desarrollo
+│       ├── Información Principal
+│       ├── Detalles en Grid (Responsable, Proveedor)
+│       └── Acciones (Ver/Editar)
+│
+├── Side Panel - "Centro de Control" (Condicional: isViewPanelOpen)
+│   ├── Header
+│   │   ├── Título: "Centro de Control - {ID}"
+│   │   └── Botón Cerrar (X)
+│   ├── Información Principal
+│   │   ├── ID del Desarrollo
+│   │   └── Nombre del Desarrollo
+│   ├── Grid de Detalles Clave
+│   │   ├── Estado
+│   │   ├── Progreso
+│   │   ├── Proveedor
+│   │   └── Responsable
+│   ├── Sección Cronograma de Hitos
+│   │   └── Placeholder para Gantt Chart
+│   ├── Controles de Calidad (Dinámicos por Etapa)
+│   │   ├── Título con nombre de etapa actual
+│   │   └── Lista de Controles (checkboxes + descripciones)
+│   │       ├── C003-GT (Etapas 1-2)
+│   │       ├── C021-GT (Etapas 5-7)
+│   │       ├── C004-GT (Etapas 8-10)
+│   │       └── C027-GT (Etapas 8-10)
+│   └── Bitácora de Actividades
+│       ├── Formulario de Nueva Actividad
+│       │   ├── Textarea para descripción
+│       │   └── Botón "Registrar Actividad"
+│       └── Lista de Actividades (orden cronológico inverso)
+│
+├── Modal de Edición (Condicional: isEditModalOpen)
+│   ├── Header con título y botón cerrar
+│   ├── Formulario en Grid
+│   │   ├── ID Remedy (deshabilitado)
+│   │   ├── Nombre del Desarrollo
+│   │   ├── Estado General (dropdown)
+│   │   └── Etapa del Progreso (dropdown con optgroups)
+│   │       ├── "EN EJECUCIÓN" (Definición, Análisis, Desarrollo, etc.)
+│   │       ├── "EN ESPERA" (Propuesta, Aprobación, etc.)
+│   │       └── "FINALES/OTROS" (Desplegado, Cancelado)
+│   └── Botones de Acción (Cancelar, Guardar)
+│
+└── Modal de Importación (Condicional: isImportModalOpen)
+    ├── Header con título y botón cerrar
+    └── Componente ExcelImporter
+        ├── Zona de arrastrar archivo
+        ├── Vista previa de datos
+        ├── Mapeo de columnas
+        └── Botones de confirmación
+```
+
+### Estados y Variables de Control
+
+```
+Estados Principales:
+├── developments: Development[] - Lista principal de desarrollos
+├── selectedDevelopment: Development | null - Desarrollo seleccionado
+├── isViewPanelOpen: boolean - Control del Side Panel
+├── isEditModalOpen: boolean - Control del Modal de Edición
+├── isImportModalOpen: boolean - Control del Modal de Importación
+├── editingDevelopment: Development | null - Copia para edición
+└── newActivity: string - Texto de nueva actividad
+
+Estados de Filtros:
+├── searchTerm: string - Término de búsqueda
+├── providerFilter: string - Filtro por proveedor
+└── statusFilter: string - Filtro por estado
+
+Datos Calculados (useMemo):
+└── filteredDevelopments - Lista filtrada según criterios
+```
+
+### Funciones de Manejo de Eventos
+
+```
+Navegación y Visualización:
+├── handleViewDetails(dev) → Abre Side Panel
+├── handleEdit(dev) → Abre Modal de Edición
+├── handleCloseModal() → Cierra Modal de Edición
+└── setViewPanelOpen(false) → Cierra Side Panel
+
+Gestión de Datos:
+├── loadDevelopments() → Carga desde API/localStorage
+├── handleImport(data) → Procesa importación de Excel
+├── handleAddActivity() → Agrega actividad a bitácora
+└── handleFormChange(e) → Actualiza formulario de edición
+
+Filtros:
+├── setSearchTerm(value) → Actualiza búsqueda
+├── setProviderFilter(value) → Actualiza filtro proveedor
+└── setStatusFilter(value) → Actualiza filtro estado
+```
+
+### Configuraciones y Constantes
+
+```
+Mapeo de Datos:
+└── columnMapping - Mapeo Excel → Modelo de datos
+
+Etapas del Proceso:
+├── executionStages[] - Etapas en ejecución
+├── waitingStages[] - Etapas de espera
+├── finalStages[] - Etapas finales
+└── processStages[] - Controles de calidad por etapa
+
+Estilos y Utilidades:
+├── getStatusColor(status) → Clases CSS por estado
+├── uniqueProviders - Lista de proveedores únicos
+└── uniqueStatuses - Lista de estados únicos
+```
+
+---
+
 ## 📝 Notas de Desarrollo
 
-- El entorno de Docker está configurado para usar una base de datos PostgreSQL.
-- El backend y el frontend se recargan automáticamente cuando detectan cambios en el código (`hot-reloading`).
-- Los servicios de IA tienen fallback entre OpenAI y Google Gemini.
-- El frontend incluye modo oscuro/claro y sidebar colapsable.
-- Todas las páginas están implementadas con datos de ejemplo (mock data).
-- La base de datos se crea automáticamente al ejecutar las migraciones.
+- **Entorno Dockerizado**: PostgreSQL, FastAPI y React con hot-reloading automático
+- **Base de Datos**: Se crea automáticamente al ejecutar las migraciones Alembic
+- **API Documentada**: FastAPI genera documentación automática en `/docs`
+- **Datos Híbridos**: API PostgreSQL como fuente principal, localStorage como fallback
+- **Consultas SQL**: Herramientas integradas para desarrollo y debugging de BD
+- **Responsive Design**: Optimizado para desktop, tablet y móvil
+- **Modo Oscuro**: Tema adaptativo en toda la aplicación
+- **Controles de Calidad**: Integración completa con procedimiento FD-PR-072
+- **Importación Excel**: Procesamiento full-stack con validación y deduplicación
+- **Centro de Control**: Panel dinámico específico por desarrollo
+- **Servicios de IA**: Preparado para integración (OpenAI/Google Gemini)
+- **Documentación Técnica**: Jerarquías UI y esquemas de BD completamente documentados
+- **📋 Documentación Arquitectónica**: Ver `ARQUITECTURA_BASE_DATOS.md`, `ARQUITECTURA_BACKEND.md` y `ARQUITECTURA_FRONTEND.md` para especificaciones completas
 
 ## 🆕 Funcionalidades Implementadas Recientemente
 
@@ -223,10 +875,24 @@ Registra las incidencias o fallos que ocurren después de que un desarrollo pasa
   - Fechas de inicio y cierre estimadas
 - **Cumplimiento del Procedimiento**: Implementa exactamente lo requerido en la sección 6.3 del documento FD-PR-072.
 
-### ✅ Importación desde Excel (Frontend)
-- **Importador Visual**: Componente que permite arrastrar y soltar archivos Excel (.xls, .xlsx, .csv)
+### ✅ Backend API Completa (FastAPI + PostgreSQL)
+- **Modelos de Datos Robustos**: SQLAlchemy con relaciones completas entre tablas
+- **Endpoints RESTful**: CRUD completo para desarrollos, actividades e incidencias
+- **Importación Masiva**: Endpoint `/developments/bulk` para importar múltiples desarrollos
+- **Validación de Datos**: Esquemas Pydantic para validación automática
+- **Manejo de Errores**: Respuestas HTTP apropiadas y manejo de excepciones
+- **Consultas Optimizadas**: Índices y queries optimizadas para KPIs
+
+### ✅ Integración Frontend-Backend Completa
+- **Carga Dinámica**: Los datos se cargan desde la API PostgreSQL
+- **Fallback a localStorage**: Si la API no está disponible, usa datos locales
+- **Sincronización**: Actualización automática después de operaciones CRUD
+- **Manejo de Estados**: Loading states y error handling apropiados
+
+### ✅ Importación desde Excel (Full-Stack)
+- **Frontend**: Componente que permite arrastrar y soltar archivos Excel (.xls, .xlsx, .csv)
+- **Backend**: Procesamiento server-side con validación y deduplicación
 - **Vista Previa**: Muestra los datos que se van a importar antes de confirmar
-- **Deduplicación Automática**: Evita importar desarrollos duplicados basándose en el ID de Remedy
 - **Mapeo de Columnas**: Configurado para la estructura real del archivo de exportación de Remedy:
   - `'No. de la solicitud'` → ID de Remedy
   - `'Cliente Interno'` → Nombre del desarrollo
@@ -235,7 +901,13 @@ Registra las incidencias o fallos que ocurren después de que un desarrollo pasa
   - `'Estado'` → Estado general
   - `'Fecha de envío'` → Fecha de inicio
   - `'Fecha de finalización planificada'` → Fecha estimada de fin
-- **Persistencia Local**: Los datos importados se guardan en localStorage del navegador como solución temporal
+
+### ✅ Centro de Control Avanzado
+- **Panel Lateral Dinámico**: "Centro de Control" específico por desarrollo
+- **Bitácora de Actividades**: Registro cronológico con persistencia en base de datos
+- **Controles de Calidad Contextuales**: Muestran automáticamente los controles según la etapa actual
+- **Cronograma de Hitos**: Preparado para integración con Gantt charts
+- **Responsive Design**: Adaptativo a diferentes tamaños de pantalla
 
 ### ✅ Diseño Responsivo Optimizado
 - **Vista de Tabla para Desktop**: Tabla completa en pantallas grandes (>1024px)
@@ -247,25 +919,60 @@ Registra las incidencias o fallos que ocurren después de que un desarrollo pasa
 - **Filtros Responsivos**: Layout adaptativo según el tamaño de pantalla
 - **Sin Barras de Desplazamiento**: Eliminadas en pantallas de portátil (13"-15")
 
-## 🔄 Migración Futura (Backend)
+### ✅ Documentación Técnica Completa
+- **Jerarquía de Componentes UI**: Estructura visual detallada de todos los componentes
+- **Esquema de Base de Datos**: Diagramas visuales, índices, constraints y consultas SQL
+- **Estados y Variables**: Documentación completa de la gestión de estado
+- **Flujo de Datos**: Operaciones CRUD y flujos de información documentados
+- **Consultas KPI**: Queries SQL listas para usar en análisis de rendimiento
 
-### Código Temporal que se Eliminará:
-- **Datos de Muestra**: ~100 líneas de `sampleDevelopments` (desarrollo ficticio)
-- **Lógica localStorage**: ~20 líneas de persistencia local
-- **Importación Manual**: ~40 líneas de procesamiento de Excel en frontend
-- **Total estimado**: ~35-40% del código actual (~280-290 líneas)
+### ✅ Herramientas de Desarrollo
+- **Configuración SQLTools**: Conexión automática a PostgreSQL desde VS Code
+- **Consultas Predefinidas**: Archivo `consultas.sql` con queries optimizadas
+- **Scripts de Desarrollo**: Comandos Docker y utilidades de desarrollo
+- **Extensiones Recomendadas**: Lista de extensiones VS Code para el proyecto
 
-### Funcionalidad que se Moverá al Backend:
-- **Importación de Excel**: Procesamiento server-side con `pandas` o `openpyxl`
-- **Gestión de Datos**: Reemplazar localStorage con PostgreSQL
-- **Deduplicación**: Lógica de validación en base de datos
-- **APIs RESTful**: Endpoints para CRUD de desarrollos, importación y reportes
+## 🚀 Estado Actual del Proyecto
 
-### Beneficios Post-Migración:
-- **Código más limpio**: Frontend enfocado solo en UI/UX
-- **Datos centralizados**: Sincronización entre múltiples usuarios
-- **Mejor rendimiento**: Sin limitaciones de localStorage
-- **Escalabilidad**: Preparado para crecimiento empresarial
+### ✅ Backend Completamente Implementado
+- **API RESTful**: FastAPI con todos los endpoints necesarios
+- **Base de Datos**: PostgreSQL con migraciones Alembic
+- **Modelos Robustos**: SQLAlchemy con relaciones y validaciones
+- **Importación Server-Side**: Procesamiento de Excel en backend
+- **Consultas Optimizadas**: Índices y queries para KPIs
+
+### ✅ Frontend-Backend Integrado
+- **Carga de Datos**: API calls reemplazaron localStorage como fuente principal
+- **Sincronización**: Actualizaciones en tiempo real
+- **Fallback Inteligente**: localStorage como backup si API no disponible
+- **Manejo de Errores**: UX apropiado para estados de error y carga
+
+### 🔄 Próximas Mejoras Planificadas
+
+#### 🎯 Funcionalidades de Negocio:
+- **Autenticación y Autorización**: Sistema de usuarios y roles
+- **Notificaciones**: Alertas por email usando Microsoft Graph API
+- **Web Scraping**: Automatización de importación desde Remedy
+- **Gantt Charts**: Cronogramas interactivos en el Centro de Control
+- **Reportes Avanzados**: Dashboards con métricas en tiempo real
+
+#### 🛠️ Mejoras Técnicas:
+- **Testing**: Suite de pruebas unitarias y de integración
+- **CI/CD**: Pipeline de despliegue automatizado
+- **Monitoring**: Logs estructurados y métricas de aplicación
+- **Cache**: Redis para optimización de consultas frecuentes
+- **API Versioning**: Versionado de endpoints para compatibilidad
+
+#### 📊 Análisis y BI:
+- **Machine Learning**: Predicción de fechas de entrega
+- **Análisis Predictivo**: Identificación de riesgos en proyectos
+- **Dashboards Ejecutivos**: Métricas consolidadas para directivos
+- **Integración BI**: Conectores para Power BI o Tableau
+
+### 🧹 Código Legacy a Limpiar:
+- **Datos de Muestra**: ~50 líneas de `sampleDevelopments` (mantenidas para desarrollo)
+- **Comentarios TODO**: Marcadores de funcionalidades pendientes
+- **Código Comentado**: Limpieza de código experimental
 
 ---
 

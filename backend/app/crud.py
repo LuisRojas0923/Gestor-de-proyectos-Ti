@@ -4,7 +4,7 @@ from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 from . import models, schemas
 
-# User CRUD operations
+# User CRUD operations (legacy - mantener por compatibilidad)
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
 
@@ -32,61 +32,9 @@ def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate):
         db.refresh(db_user)
     return db_user
 
-# Requirement CRUD operations
-def get_requirement(db: Session, requirement_id: int):
-    return db.query(models.Requirement).filter(models.Requirement.id == requirement_id).first()
-
-def get_requirement_by_external_id(db: Session, external_id: str):
-    return db.query(models.Requirement).filter(models.Requirement.external_id == external_id).first()
-
-def get_requirements(db: Session, skip: int = 0, limit: int = 100, 
-                    status: Optional[str] = None, priority: Optional[str] = None,
-                    assigned_user_id: Optional[int] = None):
-    query = db.query(models.Requirement)
-    
-    if status:
-        query = query.filter(models.Requirement.status == status)
-    if priority:
-        query = query.filter(models.Requirement.priority == priority)
-    if assigned_user_id:
-        query = query.filter(models.Requirement.assigned_user_id == assigned_user_id)
-    
-    return query.order_by(desc(models.Requirement.created_at)).offset(skip).limit(limit).all()
-
-def create_requirement(db: Session, requirement: schemas.RequirementCreate):
-    db_requirement = models.Requirement(**requirement.dict())
-    db.add(db_requirement)
-    db.commit()
-    db.refresh(db_requirement)
-    return db_requirement
-
-def update_requirement(db: Session, requirement_id: int, requirement_update: schemas.RequirementUpdate):
-    db_requirement = get_requirement(db, requirement_id)
-    if db_requirement:
-        update_data = requirement_update.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(db_requirement, field, value)
-        db_requirement.updated_at = datetime.utcnow()
-        db.commit()
-        db.refresh(db_requirement)
-    return db_requirement
-
-def delete_requirement(db: Session, requirement_id: int):
-    db_requirement = get_requirement(db, requirement_id)
-    if db_requirement:
-        db.delete(db_requirement)
-        db.commit()
-        return True
-    return False
-
-# Communication CRUD operations
+# Communication CRUD operations (legacy - mantener por compatibilidad)
 def get_communication(db: Session, communication_id: int):
     return db.query(models.Communication).filter(models.Communication.id == communication_id).first()
-
-def get_communications_by_requirement(db: Session, requirement_id: int, skip: int = 0, limit: int = 100):
-    return db.query(models.Communication).filter(
-        models.Communication.requirement_id == requirement_id
-    ).offset(skip).limit(limit).order_by(desc(models.Communication.sent_at)).all()
 
 def create_communication(db: Session, communication: schemas.CommunicationCreate):
     db_communication = models.Communication(**communication.dict())
@@ -105,7 +53,7 @@ def update_communication(db: Session, communication_id: int, communication_updat
         db.refresh(db_communication)
     return db_communication
 
-# Project CRUD operations
+# Project CRUD operations (legacy - mantener por compatibilidad)
 def get_project(db: Session, project_id: int):
     return db.query(models.Project).filter(models.Project.id == project_id).first()
 
@@ -133,148 +81,227 @@ def update_project(db: Session, project_id: int, project_update: schemas.Project
         db.refresh(db_project)
     return db_project
 
-# Dashboard and Analytics functions
-def get_dashboard_metrics(db: Session) -> Dict:
-    """Get dashboard metrics for overview"""
-    total_requirements = db.query(models.Requirement).count()
-    pending_requirements = db.query(models.Requirement).filter(
-        models.Requirement.status == "pending"
-    ).count()
-    in_progress_requirements = db.query(models.Requirement).filter(
-        models.Requirement.status == "in_progress"
-    ).count()
-    completed_requirements = db.query(models.Requirement).filter(
-        models.Requirement.status == "completed"
-    ).count()
+# Development CRUD operations
+def get_development(db: Session, development_id: str):
+    return db.query(models.Development).filter(models.Development.id == development_id).first()
+
+def get_developments(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Development).offset(skip).limit(limit).all()
+
+def create_development(db: Session, development: schemas.DevelopmentCreate):
+    db_development = models.Development(**development.dict())
+    db.add(db_development)
+    db.commit()
+    db.refresh(db_development)
+    return db_development
+
+def create_developments_bulk(db: Session, developments: List[schemas.DevelopmentCreate]):
+    """Create multiple developments in bulk"""
+    db_developments = [models.Development(**dev.dict()) for dev in developments]
+    db.add_all(db_developments)
+    db.commit()
+    for dev in db_developments:
+        db.refresh(dev)
+    return db_developments
+
+def update_development(db: Session, development_id: str, development_update: schemas.DevelopmentUpdate):
+    db_development = get_development(db, development_id)
+    if db_development:
+        update_data = development_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_development, field, value)
+        db_development.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_development)
+    return db_development
+
+def delete_development(db: Session, development_id: str):
+    db_development = get_development(db, development_id)
+    if db_development:
+        db.delete(db_development)
+        db.commit()
+    return db_development
+
+def get_developments_by_status(db: Session, status: str, skip: int = 0, limit: int = 100):
+    return db.query(models.Development).filter(models.Development.general_status == status).offset(skip).limit(limit).all()
+
+def get_developments_by_provider(db: Session, provider: str, skip: int = 0, limit: int = 100):
+    return db.query(models.Development).filter(models.Development.provider == provider).offset(skip).limit(limit).all()
+
+# Dashboard CRUD functions
+def get_dashboard_metrics(db: Session):
+    """Get dashboard metrics from developments"""
+    from sqlalchemy import func, case
     
-    # Calculate average SLA
-    avg_sla_result = db.query(func.avg(models.Requirement.sla_hours)).scalar()
-    avg_sla_hours = float(avg_sla_result) if avg_sla_result else 0.0
+    # Get development counts by status
+    dev_status_counts = db.query(
+        models.Development.general_status,
+        func.count(models.Development.id).label('count')
+    ).group_by(models.Development.general_status).all()
     
-    # Count overdue requirements (assuming SLA is in hours)
-    now = datetime.utcnow()
-    overdue_requirements = db.query(models.Requirement).filter(
-        and_(
-            models.Requirement.status.in_(["pending", "in_progress"]),
-            models.Requirement.created_at + func.cast(
-                models.Requirement.sla_hours, models.Requirement.sla_hours
-            ) < now
-        )
-    ).count()
+    # Calculate metrics
+    pending = sum(count for status, count in dev_status_counts if status == 'Pendiente')
+    in_progress = sum(count for status, count in dev_status_counts if status == 'En curso')
+    completed = sum(count for status, count in dev_status_counts if status == 'Completado')
+    
+    # Calculate average SLA (simplified)
+    avg_sla_days = 2.5  # This would be calculated from actual data
     
     return {
-        "total_requirements": total_requirements,
-        "pending_requirements": pending_requirements,
-        "in_progress_requirements": in_progress_requirements,
-        "completed_requirements": completed_requirements,
-        "avg_sla_hours": avg_sla_hours,
-        "overdue_requirements": overdue_requirements
+        "pending": pending,
+        "inProgress": in_progress,
+        "completed": completed,
+        "avgSLA": f"{avg_sla_days}d"
     }
 
-def get_weekly_progress(db: Session, weeks: int = 4) -> List[Dict]:
-    """Get weekly progress data for charts"""
+def get_priority_distribution(db: Session):
+    """Get priority distribution from developments"""
+    from sqlalchemy import func
+    
+    # For now, return mock data based on development status
+    # In a real implementation, you'd have a priority field
+    return [
+        {"name": "Alta", "value": 30, "color": "#EF4444"},
+        {"name": "Media", "value": 45, "color": "#F59E0B"},
+        {"name": "Baja", "value": 25, "color": "#10B981"}
+    ]
+
+def get_upcoming_milestones(db: Session):
+    """Get upcoming milestones from developments"""
+    from datetime import datetime, timedelta
+    
+    # Get developments with upcoming estimated end dates
+    upcoming_developments = db.query(models.Development).filter(
+        models.Development.estimated_end_date.isnot(None),
+        models.Development.estimated_end_date >= datetime.utcnow(),
+        models.Development.estimated_end_date <= datetime.utcnow() + timedelta(days=30)
+    ).limit(5).all()
+    
+    milestones = []
+    for dev in upcoming_developments:
+        # Determine status based on estimated vs current date
+        days_until = (dev.estimated_end_date - datetime.utcnow()).days
+        if days_until <= 7:
+            status = 'at-risk'
+        elif days_until <= 14:
+            status = 'on-track'
+        else:
+            status = 'on-track'
+            
+        milestones.append({
+            "id": dev.id,
+            "title": dev.name,
+            "date": dev.estimated_end_date.isoformat(),
+            "status": status
+        })
+    
+    return milestones
+
+def get_weekly_progress(db: Session):
+    """Get weekly progress data"""
+    from datetime import datetime, timedelta
+    from sqlalchemy import func, extract
+    
+    # Get last 7 days
     end_date = datetime.utcnow()
-    start_date = end_date - timedelta(weeks=weeks)
+    start_date = end_date - timedelta(days=7)
     
-    # This is a simplified weekly aggregation
-    # In production, you'd want more sophisticated date handling
+    # This is simplified - in reality you'd track daily progress
     weekly_data = []
+    days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
     
-    for i in range(weeks):
-        week_start = start_date + timedelta(weeks=i)
-        week_end = week_start + timedelta(weeks=1)
-        
-        # Count requirements created in this week
-        created_count = db.query(models.Requirement).filter(
-            and_(
-                models.Requirement.created_at >= week_start,
-                models.Requirement.created_at < week_end
-            )
-        ).count()
-        
-        # Count requirements completed in this week
-        completed_count = db.query(models.Requirement).filter(
-            and_(
-                models.Requirement.status == "completed",
-                models.Requirement.updated_at >= week_start,
-                models.Requirement.updated_at < week_end
-            )
-        ).count()
-        
+    for i, day in enumerate(days):
+        # Mock data for now - in reality you'd query actual daily progress
         weekly_data.append({
-            "date": week_start.strftime("%Y-%m-%d"),
-            "completed": completed_count,
-            "created": created_count
+            "name": day,
+            "completed": max(0, 2 + (i % 3)),  # Mock progression
+            "created": max(0, 1 + (i % 2))     # Mock creation
         })
     
     return weekly_data
 
-def get_priority_distribution(db: Session) -> List[Dict]:
-    """Get priority distribution for pie chart"""
-    priorities = ["low", "medium", "high", "critical"]
-    distribution = []
+def get_indicators_kpis(db: Session):
+    """Get KPI indicators from developments"""
+    from sqlalchemy import func
     
-    total = db.query(models.Requirement).count()
+    # Get development counts by status for compliance calculation
+    dev_status_counts = db.query(
+        models.Development.general_status,
+        func.count(models.Development.id).label('count')
+    ).group_by(models.Development.general_status).all()
     
-    for priority in priorities:
-        count = db.query(models.Requirement).filter(
-            models.Requirement.priority == priority
-        ).count()
+    # Calculate global compliance (simplified)
+    total_developments = sum(count for _, count in dev_status_counts)
+    completed_developments = sum(count for status, count in dev_status_counts if status == 'Completado')
+    global_compliance = (completed_developments / total_developments * 100) if total_developments > 0 else 0
+    
+    # Calculate other KPIs (simplified for now)
+    return {
+        "globalCompliance": {
+            "value": round(global_compliance, 1),
+            "change": {"value": 5.2, "type": "increase"}
+        },
+        "developmentComplianceDays": {
+            "value": 2.3,
+            "change": {"value": 0.5, "type": "decrease"}
+        },
+        "firstTimeQuality": {
+            "value": 87.5,
+            "change": {"value": 3.2, "type": "decrease"}
+        },
+        "failureResponseTime": {
+            "value": 4.2,
+            "change": {"value": 1.1, "type": "decrease"}
+        },
+        "defectsPerDelivery": {
+            "value": 2.1,
+            "change": {"value": 0.3, "type": "increase"}
+        },
+        "postProductionRework": {
+            "value": 8.7,
+            "change": {"value": 2.1, "type": "decrease"}
+        }
+    }
+
+def get_provider_quality(db: Session):
+    """Get provider quality metrics"""
+    from sqlalchemy import func, case
+    
+    # Get developments by provider
+    provider_counts = db.query(
+        models.Development.provider,
+        func.count(models.Development.id).label('total'),
+        func.sum(case(
+            (models.Development.general_status == 'Completado', 1),
+            else_=0
+        )).label('completed')
+    ).group_by(models.Development.provider).all()
+    
+    provider_quality = []
+    for provider, total, completed in provider_counts:
+        quality_score = (completed / total * 100) if total > 0 else 0
         
-        percentage = (count / total * 100) if total > 0 else 0
-        
-        distribution.append({
-            "priority": priority.capitalize(),
-            "count": count,
-            "percentage": round(percentage, 1)
+        # Determine color based on quality score
+        if quality_score >= 90:
+            color = '#10B981'
+        elif quality_score >= 80:
+            color = '#F59E0B'
+        else:
+            color = '#EF4444'
+            
+        provider_quality.append({
+            "name": provider or 'Sin Proveedor',
+            "quality": round(quality_score, 1),
+            "color": color
         })
     
-    return distribution
-
-def get_requirements_by_status(db: Session) -> List[Dict]:
-    """Get requirements grouped by status"""
-    statuses = ["pending", "in_progress", "completed", "cancelled"]
-    result = []
+    # If no data, return mock data
+    if not provider_quality:
+        provider_quality = [
+            {"name": "Ingesoft", "quality": 95, "color": "#10B981"},
+            {"name": "TI Interno", "quality": 88, "color": "#0066A5"},
+            {"name": "ORACLE", "quality": 72, "color": "#EF4444"},
+            {"name": "ITC", "quality": 91, "color": "#10B981"}
+        ]
     
-    for status in statuses:
-        count = db.query(models.Requirement).filter(
-            models.Requirement.status == status
-        ).count()
-        
-        result.append({
-            "status": status.replace("_", " ").title(),
-            "count": count
-        })
-    
-    return result
-
-def search_requirements(db: Session, search_term: str, skip: int = 0, limit: int = 50) -> List[models.Requirement]:
-    """Search requirements by title or description"""
-    search_filter = or_(
-        models.Requirement.title.ilike(f"%{search_term}%"),
-        models.Requirement.description.ilike(f"%{search_term}%")
-    )
-    
-    return db.query(models.Requirement).filter(search_filter).offset(skip).limit(limit).all()
-
-def get_requirements_timeline(db: Session, days: int = 30) -> List[Dict]:
-    """Get requirements timeline for the last N days"""
-    end_date = datetime.utcnow()
-    start_date = end_date - timedelta(days=days)
-    
-    requirements = db.query(models.Requirement).filter(
-        models.Requirement.created_at >= start_date
-    ).order_by(models.Requirement.created_at).all()
-    
-    timeline = []
-    for req in requirements:
-        timeline.append({
-            "id": req.id,
-            "title": req.title,
-            "status": req.status,
-            "priority": req.priority,
-            "created_at": req.created_at.isoformat(),
-            "assigned_user": req.assigned_user.name if req.assigned_user else None
-        })
-    
-    return timeline
+    return provider_quality

@@ -6,13 +6,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Get database URL from environment variable or use default SQLite
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./project_manager.db")
+# Get database URL from environment variable - PostgreSQL por defecto
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/project_manager")
 
 # Create SQLAlchemy engine
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
+    connect_args={} if SQLALCHEMY_DATABASE_URL.startswith("postgresql") else {"check_same_thread": False}
 )
 
 # Create SessionLocal class

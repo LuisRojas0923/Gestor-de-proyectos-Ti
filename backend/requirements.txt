@@ -13,3 +13,6 @@ requests==2.32.3
 beautifulsoup4==4.12.3
 lxml==5.2.2
 psycopg2-binary==2.9.9
+email-validator
+aiohttp==3.9.1
+psutil==5.9.6

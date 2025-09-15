@@ -1,7 +1,12 @@
-import { Calendar, Edit, Eye, ListChecks, Search, ShieldCheck, Upload, X } from 'lucide-react';
+import { Calendar, Edit, Eye, GitBranch, ListChecks, Search, ShieldCheck, Upload, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import ExcelImporter from '../components/common/ExcelImporter';
+import { DevelopmentPhases, DevelopmentTimeline } from '../components/development';
 import { useAppContext } from '../context/AppContext';
+import { useApi } from '../hooks/useApi';
+import { useDevelopmentUpdates } from '../hooks/useDevelopmentUpdates';
+import { useObservations } from '../hooks/useObservations';
+import { DevelopmentWithCurrentStatus } from '../types';
 
 type Incident = {
   id: number;
@@ -11,35 +16,8 @@ type Incident = {
   status: 'Abierta' | 'Cerrada';
 };
 
-// Sample data based on the provided Excel sheet
-type Development = {
-  id: string;
-  name: string;
-  provider: string;
-  requesting_area: string;
-  main_responsible: string;
-  start_date: string;
-  estimated_end_date: string;
-  actual_end_date?: string;
-  estimated_days: number;
-  general_status: string;
-  current_stage: string;
-  activities: { date: string; description: string }[];
-  incidents: Incident[];
-  description?: string;
-  module?: string;
-  type?: string;
-  observations?: string;
-  estimated_cost?: number | null;
-  proposal_number?: string;
-  environment?: string;
-  remedy_link?: string;
-  target_closure_date?: string | null;
-  scheduled_delivery_date?: string | null;
-  actual_delivery_date?: string | null;
-  returns_count?: number;
-  test_defects_count?: number;
-};
+// Usar el tipo real del backend
+type Development = DevelopmentWithCurrentStatus;
 
 const processStages = [
     {
@@ -212,6 +190,7 @@ export type { Development };
 const MyDevelopments: React.FC = () => {
   const { state } = useAppContext();
   const { darkMode } = state;
+  const { get } = useApi();
   
   const [developments, setDevelopments] = useState<Development[]>([]);
   const [isImportModalOpen, setImportModalOpen] = useState(false);
@@ -284,7 +263,7 @@ const MyDevelopments: React.FC = () => {
         
         // Refresh the developments list
         loadDevelopments();
-      } else {
+    } else {
         const errorData = await response.json();
         alert(`Error al importar: ${errorData.detail || 'Error desconocido'}`);
       }
@@ -302,12 +281,18 @@ const MyDevelopments: React.FC = () => {
 
   const loadDevelopments = async () => {
     try {
-      const response = await fetch('http://localhost:8000/developments');
-      if (response.ok) {
-        const data = await response.json();
-        setDevelopments(data);
-      } else {
-        console.error('Error loading developments from API');
+      const response = await get('/developments/');
+      
+      // El backend retorna directamente un array de desarrollos
+      if (Array.isArray(response)) {
+        setDevelopments(response);
+      } 
+      // Si la respuesta tiene el formato esperado (con developments property)
+      else if (response && response.developments) {
+        setDevelopments(response.developments);
+      } 
+      else {
+        console.error('Error loading developments from API - unexpected response format');
         // Fallback to localStorage if API fails
         const storedDevelopments = localStorage.getItem('developments');
         if (storedDevelopments) {
@@ -328,27 +313,51 @@ const MyDevelopments: React.FC = () => {
   const [isViewPanelOpen, setViewPanelOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [newActivity, setNewActivity] = useState('');
+  const [activeView, setActiveView] = useState<'list' | 'phases' | 'timeline'>('list');
   const [editingDevelopment, setEditingDevelopment] = useState<Development | null>(null);
 
-  const handleAddActivity = () => {
+  // Hooks para observaciones y actualizaciones
+  const { 
+    observations, 
+    loading: observationsLoading, 
+    error: observationsError, 
+    createObservation, 
+    refreshObservations 
+  } = useObservations(selectedDevelopment?.id || null);
+  
+  const { 
+    loading: updateLoading, 
+    error: updateError, 
+    updateDevelopment 
+  } = useDevelopmentUpdates();
+
+  const handleAddActivity = async () => {
     if (newActivity.trim() && selectedDevelopment) {
-      const updatedDevelopment = {
-        ...selectedDevelopment,
-        activities: [
-          ...selectedDevelopment.activities,
-          { date: new Date().toISOString().split('T')[0], description: newActivity.trim() },
-        ],
-      };
-      setSelectedDevelopment(updatedDevelopment);
-      // Here we would also update the main list
-      // For now, it only updates in the panel view
-      setNewActivity('');
+      try {
+        const result = await createObservation({
+          observation_type: 'seguimiento',
+          content: newActivity.trim(),
+          author: 'Usuario Actual', // TODO: Obtener del contexto de auth
+          is_current: true
+        });
+        
+        if (result) {
+          setNewActivity('');
+          // Recargar observaciones
+          await refreshObservations();
+        }
+      } catch (error) {
+        console.error('Error adding activity:', error);
+        alert('Error al agregar la actividad');
+      }
     }
   };
 
   const handleViewDetails = (dev: Development) => {
+    console.log('Opening details for:', dev);
     setSelectedDevelopment(dev);
     setViewPanelOpen(true);
+    console.log('Panel should be open now');
   };
   
   const handleEdit = (dev: Development) => {
@@ -369,6 +378,35 @@ const MyDevelopments: React.FC = () => {
         ...editingDevelopment,
         [e.target.name]: e.target.value,
       });
+    }
+  };
+
+  const handleSaveDevelopment = async () => {
+    if (!editingDevelopment) return;
+
+    try {
+      const result = await updateDevelopment(editingDevelopment.id, {
+        name: editingDevelopment.name,
+        description: editingDevelopment.description,
+        general_status: editingDevelopment.general_status,
+        // TODO: Mapear current_stage a current_stage_id cuando se implemente
+      });
+
+      if (result) {
+        // Actualizar la lista de desarrollos
+        setDevelopments(prev => 
+          prev.map(dev => dev.id === editingDevelopment.id ? { ...dev, ...result } : dev)
+        );
+        
+        // Cerrar modal
+        setEditModalOpen(false);
+        setEditingDevelopment(null);
+        
+        alert('Desarrollo actualizado exitosamente');
+      }
+    } catch (error) {
+      console.error('Error updating development:', error);
+      alert('Error al actualizar el desarrollo');
     }
   };
 
@@ -408,12 +446,55 @@ const MyDevelopments: React.FC = () => {
             <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
               Mis Desarrollos
             </h1>
-            <button 
-              onClick={() => setImportModalOpen(true)}
-              className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-              <Upload size={20} />
-              <span>Importar Excel</span>
-            </button>
+            <div className="flex items-center space-x-3">
+              {/* Botones de vista */}
+              <div className="flex items-center space-x-1 bg-gray-100 dark:bg-neutral-700 rounded-lg p-1">
+                <button
+                  onClick={() => setActiveView('list')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    activeView === 'list'
+                      ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                  }`}
+                >
+                  Lista
+                </button>
+                <button
+                  onClick={() => setActiveView('phases')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    activeView === 'phases'
+                      ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                  }`}
+                >
+                  <GitBranch size={16} className="inline mr-1" />
+                  Fases
+                </button>
+                <button
+                  onClick={() => setActiveView('timeline')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    activeView === 'timeline'
+                      ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                  }`}
+                >
+                  Timeline
+                </button>
+              </div>
+              
+              {isViewPanelOpen && (
+                <div className="bg-green-500 text-white px-3 py-1 rounded text-sm">
+                  Panel abierto: {selectedDevelopment?.id}
+                </div>
+              )}
+              
+              <button 
+                onClick={() => setImportModalOpen(true)}
+                className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                <Upload size={20} />
+                <span>Importar Excel</span>
+              </button>
+            </div>
           </div>
 
           {/* Filters */}
@@ -471,10 +552,13 @@ const MyDevelopments: React.FC = () => {
             </div>
           </div>
 
-          {/* Developments Table - Responsive Design */}
+          {/* Contenido Principal - Vista Condicional */}
           <div className="overflow-hidden">
-            {/* Desktop Table View */}
-            <div className="hidden lg:block">
+            {/* Vista de Lista */}
+            {activeView === 'list' && (
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden lg:block">
               <div className={`${
                   darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
                 } border rounded-xl overflow-hidden`}>
@@ -493,17 +577,27 @@ const MyDevelopments: React.FC = () => {
                       <tr key={dev.id} className="hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-primary-500 dark:text-primary-400">{dev.id}</td>
                         <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{dev.name}</td>
-                        <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.provider}</td>
-                        <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.main_responsible}</td>
+                        <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.provider || 'N/A'}</td>
+                        <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.main_responsible || 'N/A'}</td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
                           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(dev.general_status)}`}>
                             {dev.general_status}
                           </span>
                         </td>
-                        <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.current_stage}</td>
+                        <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                          {typeof dev.current_stage === 'object' ? dev.current_stage?.stage_name || 'N/A' : dev.current_stage}
+                        </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center space-x-2">
-                            <button onClick={() => handleViewDetails(dev)} className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"><Eye size={18} /></button>
+                            <button 
+                              onClick={() => {
+                                console.log('Button clicked for:', dev.id);
+                                handleViewDetails(dev);
+                              }} 
+                              className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 bg-blue-100 dark:bg-blue-900 p-1 rounded"
+                            >
+                              <Eye size={18} />
+                            </button>
                             <button onClick={() => handleEdit(dev)} className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300"><Edit size={18} /></button>
                           </div>
                         </td>
@@ -540,11 +634,11 @@ const MyDevelopments: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
                       <span className={`font-medium ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>Responsable:</span>
-                      <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mt-1`}>{dev.main_responsible}</p>
+                      <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mt-1`}>{dev.main_responsible || 'N/A'}</p>
                     </div>
                     <div>
                       <span className={`font-medium ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>Proveedor:</span>
-                      <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mt-1`}>{dev.provider}</p>
+                      <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mt-1`}>{dev.provider || 'N/A'}</p>
                     </div>
                   </div>
                   
@@ -553,23 +647,70 @@ const MyDevelopments: React.FC = () => {
                       {dev.general_status}
                     </span>
                     <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
-                      {dev.current_stage}
+                      {typeof dev.current_stage === 'object' ? dev.current_stage?.stage_name || 'N/A' : dev.current_stage}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
+              </>
+            )}
+
+            {/* Vista de Fases */}
+            {activeView === 'phases' && (
+              <div className="space-y-6">
+                {selectedDevelopment ? (
+                  <DevelopmentPhases developmentId={selectedDevelopment.id} />
+                ) : (
+                  <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6`}>
+                    <div className="text-center">
+                      <GitBranch size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                      <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                        Selecciona un Desarrollo
+                      </h3>
+                      <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Haz clic en un desarrollo de la lista para ver su sistema de fases y etapas
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Vista de Timeline */}
+            {activeView === 'timeline' && (
+              <div className="space-y-6">
+                {selectedDevelopment ? (
+                  <DevelopmentTimeline 
+                    cycleFlow={[]} // Se cargará desde el componente
+                    currentDevelopment={selectedDevelopment}
+                  />
+                ) : (
+                  <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6`}>
+                    <div className="text-center">
+                      <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                      <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                        Selecciona un Desarrollo
+                      </h3>
+                      <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Haz clic en un desarrollo de la lista para ver su timeline
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
     
     {/* Side Panel for Viewing Details - Responsive */}
       {isViewPanelOpen && selectedDevelopment && (
-        <div className={`fixed top-0 right-0 h-full shadow-xl z-50 transition-transform transform ${isViewPanelOpen ? 'translate-x-0' : 'translate-x-full'} ${darkMode ? 'bg-neutral-900 border-l border-neutral-700' : 'bg-white border-l'} w-full md:w-96 lg:w-80 xl:w-96`}>
-          <div className="p-6 h-full overflow-y-auto">
+        <div className={`fixed top-0 right-0 h-full shadow-xl z-[9999] transition-transform transform ${isViewPanelOpen ? 'translate-x-0' : 'translate-x-full'} ${darkMode ? 'bg-neutral-900 border-l border-neutral-700' : 'bg-white border-l'} w-full md:w-96 lg:w-80 xl:w-96`}>
+          <div className="p-6 h-full overflow-y-auto bg-blue-100 dark:bg-blue-900">
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                Centro de Control
+                Centro de Control - {selectedDevelopment?.id}
               </h2>
               <button onClick={() => setViewPanelOpen(false)} className={`p-1 rounded-full transition-colors ${darkMode ? 'hover:bg-neutral-700' : 'hover:bg-neutral-200'}`}>
                 <X size={20} className={darkMode ? 'text-neutral-400' : 'text-neutral-600'}/>
@@ -591,15 +732,17 @@ const MyDevelopments: React.FC = () => {
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 dark:text-neutral-400">Progreso</label>
-                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.current_stage}</p>
+                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>
+                    {typeof selectedDevelopment.current_stage === 'object' ? selectedDevelopment.current_stage?.stage_name || 'N/A' : selectedDevelopment.current_stage}
+                  </p>
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 dark:text-neutral-400">Proveedor</label>
-                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.provider}</p>
+                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.provider || 'N/A'}</p>
                 </div>
                  <div>
                   <label className="text-xs text-neutral-500 dark:text-neutral-400">Responsable</label>
-                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.main_responsible}</p>
+                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.main_responsible || 'N/A'}</p>
                 </div>
               </div>
 
@@ -616,7 +759,10 @@ const MyDevelopments: React.FC = () => {
 
               {/* Quality Controls */}
               {(() => {
-                const stagePrefix = selectedDevelopment.current_stage.split('.')[0];
+                const currentStageName = typeof selectedDevelopment.current_stage === 'object' 
+                  ? selectedDevelopment.current_stage?.stage_name || '1. Definición'
+                  : selectedDevelopment.current_stage || '1. Definición';
+                const stagePrefix = currentStageName.split('.')[0] || '1';
                 const currentProcessStage = processStages.find(s => s.stagePrefixes.includes(stagePrefix));
 
                 return (
@@ -674,11 +820,31 @@ const MyDevelopments: React.FC = () => {
 
                  {/* Activity List */}
                 <div className="space-y-3">
-                  {selectedDevelopment.activities.length > 0 ? (
-                    selectedDevelopment.activities.slice().reverse().map((activity, index) => (
-                      <div key={index} className={`p-3 rounded-lg text-sm ${darkMode ? 'bg-neutral-800' : 'bg-neutral-100'}`}>
-                        <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{activity.description}</p>
-                        <p className={`text-xs mt-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>{new Date(activity.date).toLocaleDateString()}</p>
+                  {observationsLoading ? (
+                    <div className="text-center p-4">
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400">Cargando actividades...</p>
+                    </div>
+                  ) : observationsError ? (
+                    <div className="text-center p-4 border-2 border-dashed rounded-lg border-red-300 dark:border-red-700">
+                      <p className="text-sm text-red-500 dark:text-red-400">Error: {observationsError}</p>
+                    </div>
+                  ) : observations && observations.length > 0 ? (
+                    observations.map((observation) => (
+                      <div key={observation.id} className={`p-3 rounded-lg text-sm ${darkMode ? 'bg-neutral-800' : 'bg-neutral-100'}`}>
+                        <div className="flex justify-between items-start mb-1">
+                          <span className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
+                            {observation.observation_type}
+                          </span>
+                          {observation.author && (
+                            <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                              {observation.author}
+                            </span>
+                          )}
+                        </div>
+                        <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{observation.content}</p>
+                        <p className={`text-xs mt-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                          {new Date(observation.observation_date).toLocaleDateString()}
+                        </p>
                       </div>
                     ))
                   ) : (
@@ -723,7 +889,7 @@ const MyDevelopments: React.FC = () => {
                   </div>
                   <div>
                     <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Etapa del Progreso</label>
-                    <select name="current_stage" value={editingDevelopment.current_stage} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`}>
+                    <select name="current_stage" value={typeof editingDevelopment.current_stage === 'object' ? editingDevelopment.current_stage?.stage_name || '1. Definición' : editingDevelopment.current_stage} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`}>
                        <optgroup label="--- EN EJECUCIÓN ---">
                          {executionStages.map(stage => <option key={stage} value={stage}>{stage}</option>)}
                        </optgroup>
@@ -740,8 +906,13 @@ const MyDevelopments: React.FC = () => {
                   <button type="button" onClick={handleCloseModal} className={`px-4 py-2 rounded ${darkMode ? 'bg-neutral-600 hover:bg-neutral-500' : 'bg-neutral-200 hover:bg-neutral-300'}`}>
                     Cancelar
                   </button>
-                  <button type="submit" className="px-4 py-2 rounded bg-primary-500 text-white hover:bg-primary-600">
-                    Guardar Cambios
+                  <button 
+                    type="button" 
+                    onClick={handleSaveDevelopment}
+                    disabled={updateLoading}
+                    className="px-4 py-2 rounded bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {updateLoading ? 'Guardando...' : 'Guardar Cambios'}
                   </button>
                 </div>
               </form>

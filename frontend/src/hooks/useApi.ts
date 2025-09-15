@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
+import { API_CONFIG, ERROR_MESSAGES, HTTP_STATUS } from '../config/api';
 
 interface ApiResponse<T> {
   data: T | null;
@@ -7,7 +8,20 @@ interface ApiResponse<T> {
   error: string | null;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const getErrorMessage = (status: number): string => {
+  switch (status) {
+    case HTTP_STATUS.UNAUTHORIZED:
+      return ERROR_MESSAGES.UNAUTHORIZED;
+    case HTTP_STATUS.NOT_FOUND:
+      return ERROR_MESSAGES.NOT_FOUND;
+    case HTTP_STATUS.UNPROCESSABLE_ENTITY:
+      return ERROR_MESSAGES.VALIDATION_ERROR;
+    case HTTP_STATUS.INTERNAL_SERVER_ERROR:
+      return ERROR_MESSAGES.SERVER_ERROR;
+    default:
+      return ERROR_MESSAGES.UNKNOWN_ERROR;
+  }
+};
 
 export function useApi<T>() {
   const [state, setState] = useState<ApiResponse<T>>({
@@ -23,7 +37,7 @@ export function useApi<T>() {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const response = await fetch(`${API_BASE_URL}${url}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
         headers: {
           'Content-Type': 'application/json',
           ...options.headers,
@@ -32,16 +46,29 @@ export function useApi<T>() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = getErrorMessage(response.status);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
       setState({ data, loading: false, error: null });
       return data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      let errorMessage = ERROR_MESSAGES.UNKNOWN_ERROR;
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorMessage = ERROR_MESSAGES.NETWORK_ERROR;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       setState({ data: null, loading: false, error: errorMessage });
-      toast.error(errorMessage);
+      
+      // Solo mostrar toast para errores de red, no para errores de datos
+      if (errorMessage === ERROR_MESSAGES.NETWORK_ERROR) {
+        toast.error(errorMessage);
+      }
+      
       return null;
     }
   }, []);

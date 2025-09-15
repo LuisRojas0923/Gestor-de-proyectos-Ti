@@ -1,0 +1,475 @@
+"""
+Endpoints de API para KPIs y métricas de rendimiento
+Implementación completa con datos reales de la base de datos
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, and_, or_
+from typing import Optional, List
+from datetime import datetime, date, timedelta
+from decimal import Decimal
+from .. import models, schemas
+from ..database import get_db
+from ..services.kpi_service import KPIService, get_kpi_service
+
+router = APIRouter(prefix="/kpi", tags=["kpi"])
+
+
+@router.get("/metrics")
+def get_kpi_metrics(
+    provider: Optional[str] = None,
+    metric_type: Optional[str] = None,
+    period_start: Optional[date] = None,
+    period_end: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtener métricas de KPIs con datos reales
+    
+    - **provider**: Filtrar por proveedor específico
+    - **metric_type**: Tipo de métrica ('cumplimiento_fechas', 'calidad_primera_entrega', etc.)
+    - **period_start**: Fecha inicio del período
+    - **period_end**: Fecha fin del período
+    """
+    try:
+        query = db.query(models.DevelopmentKpiMetric).options(
+            joinedload(models.DevelopmentKpiMetric.development)
+        )
+        
+        if provider:
+            query = query.filter(models.DevelopmentKpiMetric.provider.ilike(f"%{provider}%"))
+        
+        if metric_type:
+            query = query.filter(models.DevelopmentKpiMetric.metric_type == metric_type)
+        
+        if period_start:
+            query = query.filter(models.DevelopmentKpiMetric.period_start >= period_start)
+        
+        if period_end:
+            query = query.filter(models.DevelopmentKpiMetric.period_end <= period_end)
+        
+        metrics = query.order_by(models.DevelopmentKpiMetric.calculated_at.desc()).all()
+        
+        return {
+            "total_metrics": len(metrics),
+            "metrics": [
+                {
+                    "id": metric.id,
+                    "development_id": metric.development_id,
+                    "development_name": metric.development.name if metric.development else None,
+                    "metric_type": metric.metric_type,
+                    "provider": metric.provider,
+                    "value": float(metric.value) if metric.value else None,
+                    "target_value": float(metric.target_value) if metric.target_value else None,
+                    "period_start": metric.period_start,
+                    "period_end": metric.period_end,
+                    "calculated_at": metric.calculated_at
+                }
+                for metric in metrics
+            ]
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo métricas: {str(e)}"
+        )
+
+
+@router.post("/calculate")
+def calculate_metrics(
+    calculation_request: schemas.KPICalculationRequest,
+    kpi_service: KPIService = Depends(get_kpi_service)
+):
+    """
+    Calcular métricas automáticamente
+    
+    Ejecuta el cálculo de métricas para el período y proveedor especificado
+    """
+    try:
+        results = {}
+        
+        # Calcular según el tipo de métrica solicitado
+        if calculation_request.metric_types is None or "cumplimiento_fechas" in calculation_request.metric_types:
+            compliance = kpi_service.calculate_global_compliance(
+                provider=calculation_request.provider,
+                period_start=calculation_request.period_start,
+                period_end=calculation_request.period_end
+            )
+            results["cumplimiento_fechas"] = compliance
+        
+        if calculation_request.metric_types is None or "calidad_primera_entrega" in calculation_request.metric_types:
+            quality = kpi_service.calculate_first_time_quality(
+                provider=calculation_request.provider,
+                period_start=calculation_request.period_start,
+                period_end=calculation_request.period_end
+            )
+            results["calidad_primera_entrega"] = quality
+        
+        if calculation_request.metric_types is None or "tiempo_respuesta" in calculation_request.metric_types:
+            response_time = kpi_service.calculate_failure_response_time(
+                provider=calculation_request.provider,
+                period_start=calculation_request.period_start,
+                period_end=calculation_request.period_end
+            )
+            results["tiempo_respuesta"] = response_time
+        
+        if calculation_request.metric_types is None or "defectos_entrega" in calculation_request.metric_types:
+            defects = kpi_service.calculate_defects_per_delivery(
+                provider=calculation_request.provider,
+                period_start=calculation_request.period_start,
+                period_end=calculation_request.period_end
+            )
+            results["defectos_entrega"] = defects
+        
+        if calculation_request.metric_types is None or "retrabajo_produccion" in calculation_request.metric_types:
+            rework = kpi_service.calculate_post_production_rework(
+                provider=calculation_request.provider,
+                period_start=calculation_request.period_start,
+                period_end=calculation_request.period_end
+            )
+            results["retrabajo_produccion"] = rework
+        
+        return {
+            "calculation_completed": True,
+            "provider": calculation_request.provider,
+            "period_start": calculation_request.period_start,
+            "period_end": calculation_request.period_end,
+            "calculated_at": datetime.now(),
+            "metrics": results
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error calculando métricas: {str(e)}"
+        )
+
+
+@router.get("/dashboard")
+def get_kpi_dashboard(
+    provider: Optional[str] = None,
+    kpi_service: KPIService = Depends(get_kpi_service)
+):
+    """
+    Dashboard completo de KPIs con datos reales
+    
+    Proporciona vista consolidada de todas las métricas principales
+    """
+    try:
+        # Obtener período actual (últimos 3 meses)
+        end_date = date.today()
+        start_date = end_date - timedelta(days=90)
+        
+        # Calcular métricas principales
+        dashboard_data = {
+            "period": {
+                "start": start_date,
+                "end": end_date,
+                "description": "Últimos 3 meses"
+            },
+            "provider_filter": provider,
+            "updated_at": datetime.now()
+        }
+        
+        # 1. Cumplimiento Global de Fechas
+        compliance = kpi_service.calculate_global_compliance(
+            provider=provider,
+            period_start=start_date,
+            period_end=end_date
+        )
+        dashboard_data["global_compliance"] = compliance
+        
+        # 2. Calidad en Primera Entrega
+        quality = kpi_service.calculate_first_time_quality(
+            provider=provider,
+            period_start=start_date,
+            period_end=end_date
+        )
+        dashboard_data["first_time_quality"] = quality
+        
+        # 3. Tiempo de Respuesta a Fallas
+        response_time = kpi_service.calculate_failure_response_time(
+            provider=provider,
+            period_start=start_date,
+            period_end=end_date
+        )
+        dashboard_data["failure_response_time"] = response_time
+        
+        # 4. Defectos por Entrega
+        defects = kpi_service.calculate_defects_per_delivery(
+            provider=provider,
+            period_start=start_date,
+            period_end=end_date
+        )
+        dashboard_data["defects_per_delivery"] = defects
+        
+        # 5. Retrabajo Post-Producción
+        rework = kpi_service.calculate_post_production_rework(
+            provider=provider,
+            period_start=start_date,
+            period_end=end_date
+        )
+        dashboard_data["post_production_rework"] = rework
+        
+        # 6. Resumen por Proveedores
+        if not provider:
+            providers_summary = kpi_service.get_providers_summary()
+            dashboard_data["providers_summary"] = providers_summary
+        
+        return dashboard_data
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generando dashboard: {str(e)}"
+        )
+
+
+@router.get("/reports")
+def get_kpi_reports(
+    provider: Optional[str] = None,
+    period: Optional[str] = "monthly",  # monthly, quarterly, yearly
+    format: Optional[str] = "json",  # json, csv, excel
+    db: Session = Depends(get_db)
+):
+    """
+    Reportes detallados de rendimiento
+    
+    Genera reportes con análisis histórico y tendencias
+    """
+    try:
+        # Determinar período según parámetro
+        end_date = date.today()
+        
+        if period == "monthly":
+            start_date = end_date.replace(day=1)
+            period_description = "Mes actual"
+        elif period == "quarterly":
+            # Trimestre actual
+            quarter_start_month = ((end_date.month - 1) // 3) * 3 + 1
+            start_date = end_date.replace(month=quarter_start_month, day=1)
+            period_description = "Trimestre actual"
+        elif period == "yearly":
+            start_date = end_date.replace(month=1, day=1)
+            period_description = "Año actual"
+        else:
+            start_date = end_date - timedelta(days=30)
+            period_description = "Últimos 30 días"
+        
+        # Obtener datos históricos
+        query = db.query(models.DevelopmentKpiMetric).filter(
+            models.DevelopmentKpiMetric.period_start >= start_date,
+            models.DevelopmentKpiMetric.period_end <= end_date
+        )
+        
+        if provider:
+            query = query.filter(models.DevelopmentKpiMetric.provider.ilike(f"%{provider}%"))
+        
+        historical_metrics = query.order_by(models.DevelopmentKpiMetric.calculated_at).all()
+        
+        # Agrupar por tipo de métrica
+        metrics_by_type = {}
+        for metric in historical_metrics:
+            if metric.metric_type not in metrics_by_type:
+                metrics_by_type[metric.metric_type] = []
+            metrics_by_type[metric.metric_type].append({
+                "value": float(metric.value) if metric.value else 0,
+                "target_value": float(metric.target_value) if metric.target_value else 0,
+                "provider": metric.provider,
+                "date": metric.calculated_at.date(),
+                "development_id": metric.development_id
+            })
+        
+        # Calcular tendencias
+        trends = {}
+        for metric_type, values in metrics_by_type.items():
+            if len(values) >= 2:
+                recent_avg = sum(v["value"] for v in values[-5:]) / min(len(values), 5)
+                older_avg = sum(v["value"] for v in values[:-5]) / max(len(values) - 5, 1) if len(values) > 5 else recent_avg
+                
+                trend = "improving" if recent_avg > older_avg else "declining" if recent_avg < older_avg else "stable"
+                trends[metric_type] = {
+                    "trend": trend,
+                    "recent_average": round(recent_avg, 2),
+                    "change_percentage": round(((recent_avg - older_avg) / older_avg * 100) if older_avg > 0 else 0, 2)
+                }
+        
+        report_data = {
+            "report_info": {
+                "period": period_description,
+                "start_date": start_date,
+                "end_date": end_date,
+                "provider_filter": provider,
+                "generated_at": datetime.now(),
+                "total_metrics": len(historical_metrics)
+            },
+            "metrics_summary": metrics_by_type,
+            "trends_analysis": trends,
+            "recommendations": _generate_recommendations(trends, metrics_by_type)
+        }
+        
+        # TODO: Implementar exportación a CSV/Excel si se solicita
+        if format in ["csv", "excel"]:
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail=f"Exportación a {format} no implementada aún"
+            )
+        
+        return report_data
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generando reportes: {str(e)}"
+        )
+
+
+@router.get("/functionalities", response_model=List[schemas.DevelopmentFunctionality])
+def get_functionalities(
+    development_id: Optional[str] = None,
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Obtener funcionalidades entregadas por desarrollo"""
+    try:
+        query = db.query(models.DevelopmentFunctionality).options(
+            joinedload(models.DevelopmentFunctionality.development)
+        )
+        
+        if development_id:
+            query = query.filter(models.DevelopmentFunctionality.development_id == development_id)
+        
+        if status:
+            query = query.filter(models.DevelopmentFunctionality.status == status)
+        
+        functionalities = query.offset(skip).limit(limit).all()
+        
+        return functionalities
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo funcionalidades: {str(e)}"
+        )
+
+
+@router.post("/functionalities", response_model=schemas.DevelopmentFunctionality)
+def create_functionality(
+    functionality: schemas.DevelopmentFunctionalityCreate,
+    db: Session = Depends(get_db)
+):
+    """Crear nueva funcionalidad para un desarrollo"""
+    try:
+        # Verificar que el desarrollo existe
+        development = db.query(models.Development).filter(
+            models.Development.id == functionality.development_id
+        ).first()
+        
+        if not development:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Desarrollo {functionality.development_id} no encontrado"
+            )
+        
+        # Crear funcionalidad
+        db_functionality = models.DevelopmentFunctionality(**functionality.dict())
+        
+        db.add(db_functionality)
+        db.commit()
+        db.refresh(db_functionality)
+        
+        return db_functionality
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creando funcionalidad: {str(e)}"
+        )
+
+
+@router.get("/quality-metrics", response_model=List[schemas.DevelopmentQualityMetric])
+def get_quality_metrics(
+    development_id: Optional[str] = None,
+    provider: Optional[str] = None,
+    is_current: bool = True,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Obtener métricas de calidad calculadas"""
+    try:
+        query = db.query(models.DevelopmentQualityMetric).options(
+            joinedload(models.DevelopmentQualityMetric.development)
+        )
+        
+        if development_id:
+            query = query.filter(models.DevelopmentQualityMetric.development_id == development_id)
+        
+        if provider:
+            query = query.filter(models.DevelopmentQualityMetric.provider.ilike(f"%{provider}%"))
+        
+        if is_current:
+            query = query.filter(models.DevelopmentQualityMetric.is_current == True)
+        
+        quality_metrics = query.order_by(
+            models.DevelopmentQualityMetric.calculated_at.desc()
+        ).offset(skip).limit(limit).all()
+        
+        return quality_metrics
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo métricas de calidad: {str(e)}"
+        )
+
+
+def _generate_recommendations(trends: dict, metrics_by_type: dict) -> List[dict]:
+    """
+    Generar recomendaciones basadas en tendencias y métricas
+    """
+    recommendations = []
+    
+    for metric_type, trend_data in trends.items():
+        if trend_data["trend"] == "declining":
+            if metric_type == "cumplimiento_fechas":
+                recommendations.append({
+                    "priority": "high",
+                    "metric": metric_type,
+                    "issue": "Cumplimiento de fechas en declive",
+                    "recommendation": "Revisar estimaciones de tiempo y procesos de planificación",
+                    "impact": "Retrasos en entregas afectan satisfacción del cliente"
+                })
+            elif metric_type == "calidad_primera_entrega":
+                recommendations.append({
+                    "priority": "high",
+                    "metric": metric_type,
+                    "issue": "Calidad en primera entrega disminuyendo",
+                    "recommendation": "Fortalecer procesos de revisión y testing antes de entrega",
+                    "impact": "Incremento en retrabajo y costos"
+                })
+            elif metric_type == "tiempo_respuesta":
+                recommendations.append({
+                    "priority": "medium",
+                    "metric": metric_type,
+                    "issue": "Tiempo de respuesta a fallas incrementando",
+                    "recommendation": "Mejorar procesos de soporte y escalamiento",
+                    "impact": "Afecta disponibilidad del servicio"
+                })
+        elif trend_data["trend"] == "improving":
+            recommendations.append({
+                "priority": "info",
+                "metric": metric_type,
+                "issue": "Mejora continua detectada",
+                "recommendation": "Mantener y documentar las buenas prácticas implementadas",
+                "impact": "Tendencia positiva que debe preservarse"
+            })
+    
+    return recommendations

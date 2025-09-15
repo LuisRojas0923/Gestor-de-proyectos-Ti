@@ -39,6 +39,7 @@ class RequirementBase(BaseModel):
 class RequirementCreate(RequirementBase):
     external_id: Optional[str] = None
     assigned_user_id: Optional[int] = None
+    status: str = 'new'
 
 class RequirementUpdate(BaseModel):
     title: Optional[str] = None
@@ -130,3 +131,63 @@ class PriorityDistribution(BaseModel):
     priority: str
     count: int
     percentage: float
+
+# Development schemas
+class DevelopmentBase(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    module: Optional[str] = None
+    type: Optional[str] = None
+    start_date: Optional[datetime] = None
+    estimated_end_date: Optional[datetime] = None
+    target_closure_date: Optional[datetime] = None
+    estimated_days: Optional[int] = None
+    main_responsible: Optional[str] = None
+    provider: Optional[str] = None
+    requesting_area: Optional[str] = None
+    general_status: Optional[str] = "Pendiente"
+    current_stage: Optional[str] = None
+    observations: Optional[str] = None
+    estimated_cost: Optional[float] = None
+    proposal_number: Optional[str] = None
+    environment: Optional[str] = None
+    remedy_link: Optional[str] = None
+    scheduled_delivery_date: Optional[datetime] = None
+    actual_delivery_date: Optional[datetime] = None
+    returns_count: Optional[int] = 0
+    test_defects_count: Optional[int] = 0
+
+class DevelopmentCreate(DevelopmentBase):
+    pass
+
+class DevelopmentUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    module: Optional[str] = None
+    type: Optional[str] = None
+    start_date: Optional[datetime] = None
+    estimated_end_date: Optional[datetime] = None
+    target_closure_date: Optional[datetime] = None
+    estimated_days: Optional[int] = None
+    main_responsible: Optional[str] = None
+    provider: Optional[str] = None
+    requesting_area: Optional[str] = None
+    general_status: Optional[str] = None
+    current_stage: Optional[str] = None
+    observations: Optional[str] = None
+    estimated_cost: Optional[float] = None
+    proposal_number: Optional[str] = None
+    environment: Optional[str] = None
+    remedy_link: Optional[str] = None
+    scheduled_delivery_date: Optional[datetime] = None
+    actual_delivery_date: Optional[datetime] = None
+    returns_count: Optional[int] = None
+    test_defects_count: Optional[int] = None
+
+class Development(DevelopmentBase):
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True

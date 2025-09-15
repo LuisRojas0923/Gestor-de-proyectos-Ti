@@ -1,12 +1,12 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Layout from './layout/Layout';
-import Dashboard from '../pages/Dashboard';
-import MyDevelopments from '../pages/MyDevelopments';
-import Indicators from '../pages/Indicators';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Chat from '../pages/Chat';
+import Dashboard from '../pages/Dashboard';
+import Indicators from '../pages/Indicators';
+import MyDevelopments from '../pages/MyDevelopments';
 import Reports from '../pages/Reports';
 import Settings from '../pages/Settings';
+import Layout from './layout/Layout';
 
 const AppRouter: React.FC = () => {
   return (

@@ -1,77 +1,34 @@
+"""
+Modelos SQLAlchemy del Sistema de Gestión de Proyectos TI
+
+Este archivo mantiene compatibilidad hacia atrás importando todos los modelos
+de la nueva estructura modular.
+"""
+
+# Importar todos los modelos desde la nueva estructura modular
+from .models.auth import AuthUser, AuthToken, UserSession, Permission, RolePermission
+from .models.development import (
+    DevelopmentPhase, DevelopmentStage, Development, DevelopmentDate,
+    DevelopmentProposal, DevelopmentInstaller, DevelopmentProvider,
+    DevelopmentResponsible, DevelopmentStatusHistory, DevelopmentObservation
+)
+from .models.quality import QualityControlCatalog, DevelopmentQualityControl
+from .models.kpi import (
+    DevelopmentKpiMetric, DevelopmentFunctionality, DevelopmentQualityMetric,
+    DevelopmentTestResult, DevelopmentDeliveryHistory
+)
+from .models.alerts import DevelopmentUpcomingActivity
+from .models.chat import ChatSession, ChatMessage
+from .models.system import SystemSetting, ActivityLog, Incident
+from .models.mcp import AiContextCache, AiAnalysisHistory, AiRecommendation, AiUsageMetric, AiModelConfig
+
+# Mantener compatibilidad con modelos legacy
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Float
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.database import Base
 
-Base = declarative_base()
-
-class Development(Base):
-    __tablename__ = "developments"
-    
-    id = Column(String(50), primary_key=True, index=True)  # No. Remedy
-    name = Column(String(255), nullable=False)
-    description = Column(Text)
-    module = Column(String(100))
-    type = Column(String(50))  # Consulta, Desarrollo, etc.
-    
-    # Timestamps & Schedule
-    start_date = Column(DateTime)
-    estimated_end_date = Column(DateTime)
-    target_closure_date = Column(DateTime)
-    estimated_days = Column(Integer)
-    
-    # Responsibles
-    main_responsible = Column(String(100))
-    provider = Column(String(100))
-    requesting_area = Column(String(100))
-    
-    # Status & Progress
-    general_status = Column(String(50), default='Pendiente')
-    current_stage = Column(String(100)) # e.g., '2. Reunión de entendimiento'
-    observations = Column(Text)
-    
-    # Financial & Technical
-    estimated_cost = Column(Float)
-    proposal_number = Column(String(100))
-    environment = Column(String(100))
-    remedy_link = Column(String(255))
-    
-    # Indicator-specific fields
-    scheduled_delivery_date = Column(DateTime)
-    actual_delivery_date = Column(DateTime)
-    returns_count = Column(Integer, default=0)
-    test_defects_count = Column(Integer, default=0)
-    
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    activity_logs = relationship("ActivityLog", back_populates="development", cascade="all, delete-orphan")
-    incidents = relationship("Incident", back_populates="development", cascade="all, delete-orphan")
-
-class ActivityLog(Base):
-    __tablename__ = "activity_logs"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"))
-    date = Column(DateTime, default=datetime.utcnow)
-    description = Column(Text, nullable=False)
-    category = Column(String(100)) # e.g., 'Pruebas', 'Devolución', 'Reunión'
-    
-    development = relationship("Development", back_populates="activity_logs")
-
-class Incident(Base):
-    __tablename__ = "incidents"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"))
-    report_date = Column(DateTime, default=datetime.utcnow)
-    resolution_date = Column(DateTime)
-    description = Column(Text, nullable=False)
-    
-    development = relationship("Development", back_populates="incidents")
-
-
+# Modelo User legacy (mantener por compatibilidad)
 class User(Base):
     __tablename__ = "users"
     
@@ -82,26 +39,27 @@ class User(Base):
     avatar = Column(String(255))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    requirements = relationship("Requirement", back_populates="assigned_user")
 
-class Requirement(Base):
-    __tablename__ = "requirements"
+# Modelo Communication legacy (mantener por compatibilidad)
+class Communication(Base):
+    __tablename__ = "communications"
     
     id = Column(Integer, primary_key=True, index=True)
-    external_id = Column(String(100), unique=True, index=True)  # ID from external platform
-    title = Column(String(200), nullable=False)
-    description = Column(Text)
-    priority = Column(String(20), default="medium")  # low, medium, high, critical
-    status = Column(String(20), default="pending")  # pending, in_progress, completed, cancelled
-    type = Column(String(50))  # bug, feature, enhancement, etc.
-    category = Column(String(50))
-    assigned_user_id = Column(Integer, ForeignKey("users.id"))
+    development_id = Column(String(50))  # ID del desarrollo
+    message = Column(Text, nullable=False)
+    sender = Column(String(255), nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    sent_at = Column(DateTime, default=datetime.utcnow)  # Para compatibilidad con crud.py
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    due_date = Column(DateTime)
-    sla_hours = Column(Float)
+
+# Modelo Project legacy (mantener por compatibilidad)
+class Project(Base):
+    __tablename__ = "projects"
     
-    # Relationships
-    assigned_user = relationship("User", back_populates="requirements")
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    status = Column(String(50), default="active")  # active, completed, cancelled
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

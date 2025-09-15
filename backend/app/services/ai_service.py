@@ -3,6 +3,9 @@ import google.generativeai as genai
 import logging
 from typing import Dict, List, Optional
 import os
+import random
+import asyncio
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,17 +13,31 @@ load_dotenv()
 class AIService:
     def __init__(self):
         # Configure OpenAI
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
         
         # Configure Google Gemini
-        genai.configure(api_key=os.getenv("GOOGLE_GEMINI_API_KEY"))
-        self.gemini_model = genai.GenerativeModel('gemini-pro')
+        self.gemini_api_key = os.getenv("GOOGLE_GEMINI_API_KEY")
+        
+        # Mock mode - si no hay APIs configuradas, usar respuestas simuladas
+        self.mock_mode = not (self.openai_api_key or self.anthropic_api_key or self.gemini_api_key)
+        
+        if not self.mock_mode:
+            if self.openai_api_key:
+                openai.api_key = self.openai_api_key
+            if self.gemini_api_key:
+                genai.configure(api_key=self.gemini_api_key)
+                self.gemini_model = genai.GenerativeModel('gemini-pro')
         
         logging.basicConfig(level=logging.INFO)
+        logging.info(f"AI Service initialized in {'MOCK' if self.mock_mode else 'LIVE'} mode")
     
     async def analyze_requirement(self, requirement_data: Dict) -> Dict:
         """Analyze a requirement using AI to extract insights and suggestions"""
         try:
+            if self.mock_mode:
+                return await self._mock_analyze_requirement(requirement_data)
+            
             # Create prompt for requirement analysis
             prompt = f"""
             Analiza el siguiente requerimiento de software y proporciona:
@@ -42,7 +59,7 @@ class AIService:
             """
             
             # Use OpenAI for analysis
-            if openai.api_key:
+            if self.openai_api_key:
                 response = await openai.ChatCompletion.acreate(
                     model="gpt-3.5-turbo",
                     messages=[
@@ -56,9 +73,11 @@ class AIService:
                 analysis = response.choices[0].message.content
                 
             # Fallback to Gemini if OpenAI fails
-            else:
+            elif self.gemini_api_key:
                 response = self.gemini_model.generate_content(prompt)
                 analysis = response.text
+            else:
+                return await self._mock_analyze_requirement(requirement_data)
             
             # Parse the analysis into structured format
             structured_analysis = self._parse_ai_response(analysis)
@@ -80,6 +99,9 @@ class AIService:
     async def generate_communication(self, requirement_data: Dict, communication_type: str) -> Dict:
         """Generate communication content using AI"""
         try:
+            if self.mock_mode:
+                return await self._mock_generate_communication(requirement_data, communication_type)
+            
             prompt = f"""
             Genera una comunicación de tipo '{communication_type}' para el siguiente requerimiento:
             
@@ -97,7 +119,7 @@ class AIService:
             """
             
             # Use OpenAI for communication generation
-            if openai.api_key:
+            if self.openai_api_key:
                 response = await openai.ChatCompletion.acreate(
                     model="gpt-3.5-turbo",
                     messages=[
@@ -111,9 +133,11 @@ class AIService:
                 content = response.choices[0].message.content
                 
             # Fallback to Gemini
-            else:
+            elif self.gemini_api_key:
                 response = self.gemini_model.generate_content(prompt)
                 content = response.text
+            else:
+                return await self._mock_generate_communication(requirement_data, communication_type)
             
             # Parse the communication content
             communication = self._parse_communication_response(content, communication_type)
@@ -135,6 +159,9 @@ class AIService:
     async def validate_requirement_format(self, requirement_data: Dict) -> Dict:
         """Validate if requirement follows FD-FT-284 format"""
         try:
+            if self.mock_mode:
+                return await self._mock_validate_requirement(requirement_data)
+            
             prompt = f"""
             Valida si el siguiente requerimiento cumple con el formato estándar FD-FT-284:
             
@@ -158,7 +185,7 @@ class AIService:
             """
             
             # Use OpenAI for validation
-            if openai.api_key:
+            if self.openai_api_key:
                 response = await openai.ChatCompletion.acreate(
                     model="gpt-3.5-turbo",
                     messages=[
@@ -172,9 +199,11 @@ class AIService:
                 validation = response.choices[0].message.content
                 
             # Fallback to Gemini
-            else:
+            elif self.gemini_api_key:
                 response = self.gemini_model.generate_content(prompt)
                 validation = response.text
+            else:
+                return await self._mock_validate_requirement(requirement_data)
             
             # Parse validation response
             validation_result = self._parse_validation_response(validation)
@@ -286,6 +315,173 @@ class AIService:
                 validation["recomendaciones"].append(line)
         
         return validation
+    
+    # =====================================================================================
+    # MOCK METHODS FOR DEVELOPMENT WITHOUT API KEYS
+    # =====================================================================================
+    
+    async def _mock_analyze_requirement(self, requirement_data: Dict) -> Dict:
+        """Mock analysis for development without API keys"""
+        await asyncio.sleep(random.uniform(0.5, 2.0))  # Simulate API delay
+        
+        title = requirement_data.get('title', 'Requerimiento sin título')
+        priority = requirement_data.get('priority', 'media')
+        
+        mock_responses = {
+            "resumen": f"El requerimiento '{title}' requiere análisis detallado para determinar su impacto en el sistema actual.",
+            "clasificacion": random.choice(["Feature", "Enhancement", "Bug Fix", "Integration"]),
+            "prioridad_sugerida": priority.title() if priority else random.choice(["Baja", "Media", "Alta", "Crítica"]),
+            "esfuerzo_estimado": random.choice(["Bajo", "Medio", "Alto"]),
+            "areas_impactadas": random.choice([
+                "Frontend, Backend, Base de datos",
+                "API, Autenticación, Seguridad",
+                "UI/UX, Performance, Integración"
+            ]),
+            "riesgos": random.choice([
+                "Posible impacto en funcionalidades existentes",
+                "Dependencias externas no controladas",
+                "Complejidad técnica subestimada"
+            ]),
+            "recomendaciones": random.choice([
+                "Realizar pruebas exhaustivas antes del despliegue",
+                "Documentar todos los cambios realizados",
+                "Coordinar con el equipo de QA para validación"
+            ])
+        }
+        
+        return {
+            "success": True,
+            "analysis": mock_responses,
+            "raw_response": f"Análisis mock generado para: {title}",
+            "mock_mode": True
+        }
+    
+    async def _mock_generate_communication(self, requirement_data: Dict, communication_type: str) -> Dict:
+        """Mock communication generation"""
+        await asyncio.sleep(random.uniform(0.3, 1.5))
+        
+        title = requirement_data.get('title', 'Requerimiento')
+        
+        mock_communications = {
+            "subject": f"[{communication_type.upper()}] {title}",
+            "content": f"Estimado equipo,\n\nSe requiere atención sobre el requerimiento: {title}\n\nPor favor revisar y proporcionar feedback.\n\nSaludos cordiales.",
+            "key_points": [
+                f"Requerimiento: {title}",
+                f"Tipo de comunicación: {communication_type}",
+                "Se requiere respuesta en 48 horas"
+            ],
+            "call_to_action": "Por favor confirmar recepción y proporcionar timeline estimado."
+        }
+        
+        return {
+            "success": True,
+            "communication": mock_communications,
+            "raw_response": f"Comunicación mock generada para: {title}",
+            "mock_mode": True
+        }
+    
+    async def _mock_validate_requirement(self, requirement_data: Dict) -> Dict:
+        """Mock requirement validation"""
+        await asyncio.sleep(random.uniform(0.2, 1.0))
+        
+        title = requirement_data.get('title', '')
+        description = requirement_data.get('description', '')
+        
+        # Simple validation logic
+        errors = []
+        if not title or len(title) < 5:
+            errors.append("Título muy corto o vacío")
+        if not description or len(description) < 10:
+            errors.append("Descripción insuficiente")
+        
+        passes = len(errors) == 0
+        
+        return {
+            "success": True,
+            "validation": {
+                "pasa": passes,
+                "errores": errors,
+                "recomendaciones": [
+                    "Asegurar que el título sea descriptivo",
+                    "Incluir contexto suficiente en la descripción"
+                ] if not passes else ["Formato correcto"]
+            },
+            "raw_response": f"Validación mock completada: {'PASA' if passes else 'NO PASA'}",
+            "mock_mode": True
+        }
+    
+    async def analyze_development(self, development_id: str, query: str) -> Dict:
+        """Analyze a specific development with context"""
+        if self.mock_mode:
+            await asyncio.sleep(random.uniform(1.0, 3.0))
+            return {
+                "success": True,
+                "analysis": f"Análisis mock del desarrollo {development_id}: {query}",
+                "confidence": random.uniform(0.7, 0.95),
+                "recommendations": [
+                    "Revisar cronograma actual",
+                    "Validar recursos asignados",
+                    "Monitorear indicadores de calidad"
+                ],
+                "risks": [
+                    "Posible retraso en entregables",
+                    "Dependencias externas pendientes"
+                ],
+                "mock_mode": True
+            }
+        # TODO: Implement real AI analysis
+        return {"success": False, "error": "Real AI analysis not implemented yet"}
+    
+    async def get_recommendations(self, development_id: str, context: Dict) -> Dict:
+        """Get AI recommendations for a development"""
+        if self.mock_mode:
+            await asyncio.sleep(random.uniform(0.8, 2.5))
+            return {
+                "success": True,
+                "recommendations": [
+                    {
+                        "title": "Optimizar proceso de testing",
+                        "description": "Implementar pruebas automatizadas para reducir tiempo de validación",
+                        "priority": "high",
+                        "category": "process_improvement",
+                        "confidence": 0.85,
+                        "estimated_impact": "Reducción del 30% en tiempo de testing"
+                    },
+                    {
+                        "title": "Mejorar comunicación con proveedor",
+                        "description": "Establecer reuniones semanales de seguimiento",
+                        "priority": "medium",
+                        "category": "communication",
+                        "confidence": 0.78,
+                        "estimated_impact": "Mejora en alineación de expectativas"
+                    }
+                ],
+                "summary": f"Se generaron 2 recomendaciones para el desarrollo {development_id}",
+                "mock_mode": True
+            }
+        # TODO: Implement real recommendations
+        return {"success": False, "error": "Real recommendations not implemented yet"}
+    
+    async def contextual_chat(self, message: str, context: Dict) -> Dict:
+        """Contextual chat with system knowledge"""
+        if self.mock_mode:
+            await asyncio.sleep(random.uniform(0.5, 2.0))
+            
+            responses = [
+                f"Basándome en el contexto del sistema, puedo ayudarte con: {message}",
+                f"Según los datos disponibles, te sugiero revisar los indicadores de calidad para: {message}",
+                f"Para responder a tu consulta sobre '{message}', necesitaría más información sobre el desarrollo específico.",
+                f"Basándome en el análisis de tendencias, puedo proporcionar insights sobre: {message}"
+            ]
+            
+            return {
+                "success": True,
+                "response": random.choice(responses),
+                "context_used": ["developments", "kpis", "quality_metrics"],
+                "mock_mode": True
+            }
+        # TODO: Implement real contextual chat
+        return {"success": False, "error": "Real contextual chat not implemented yet"}
 
 # Example usage
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, ReactNode, useContext, useReducer } from 'react';
 
 // Types
 interface User {
@@ -56,9 +56,20 @@ type AppAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null };
 
+// Función para obtener el estado inicial del modo oscuro desde localStorage
+const getInitialDarkMode = (): boolean => {
+  try {
+    const savedDarkMode = localStorage.getItem('darkMode');
+    return savedDarkMode ? JSON.parse(savedDarkMode) : false;
+  } catch (error) {
+    console.warn('Error al cargar el modo oscuro desde localStorage:', error);
+    return false;
+  }
+};
+
 const initialState: AppState = {
   user: null,
-  darkMode: false,
+  darkMode: getInitialDarkMode(),
   sidebarOpen: true,
   requirements: [],
   tasks: [],
@@ -70,8 +81,16 @@ function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_USER':
       return { ...state, user: action.payload };
-    case 'TOGGLE_DARK_MODE':
-      return { ...state, darkMode: !state.darkMode };
+    case 'TOGGLE_DARK_MODE': {
+      const newDarkMode = !state.darkMode;
+      // Guardar en localStorage
+      try {
+        localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
+      } catch (error) {
+        console.warn('Error al guardar el modo oscuro en localStorage:', error);
+      }
+      return { ...state, darkMode: newDarkMode };
+    }
     case 'TOGGLE_SIDEBAR':
       return { ...state, sidebarOpen: !state.sidebarOpen };
     case 'SET_REQUIREMENTS':
@@ -128,4 +147,4 @@ export function useAppContext() {
   return context;
 }
 
-export type { User, Requirement, Task, AppState, AppAction };
+export type { AppAction, AppState, Requirement, Task, User };

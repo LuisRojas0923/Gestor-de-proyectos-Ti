@@ -1,29 +1,29 @@
 import {
-  CheckCircle,
-  Clock,
-  Download,
-  FileText,
-  PieChart,
-  TrendingUp,
-  Users,
+    CheckCircle,
+    Clock,
+    Download,
+    FileText,
+    PieChart,
+    TrendingUp,
+    Users,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Pie,
-  PieChart as RechartsPieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
+    Area,
+    AreaChart,
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    Line,
+    LineChart,
+    Pie,
+    PieChart as RechartsPieChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
 } from 'recharts';
 import MetricCard from '../components/common/MetricCard';
 import { useAppContext } from '../context/AppContext';
@@ -418,8 +418,8 @@ const Reports: React.FC = () => {
                     <tr>
                       <td colSpan={8} className="px-4 py-8 text-center text-neutral-500">
                         No hay datos disponibles. Los datos se cargarán desde la API.
-                      </td>
-                    </tr>
+                          </td>
+                        </tr>
                   </tbody>
                 </table>
               </div>
