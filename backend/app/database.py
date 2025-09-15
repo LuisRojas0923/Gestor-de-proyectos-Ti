@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Get database URL from environment variable - PostgreSQL por defecto
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/project_manager")
+# Get database URL from environment variable - SQLite por defecto para desarrollo
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./project_manager.db")
 
 # Create SQLAlchemy engine
 engine = create_engine(

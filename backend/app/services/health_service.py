@@ -124,8 +124,8 @@ class HealthService:
             
             # Verificar tablas críticas
             critical_tables = [
-                'developments', 'phases', 'stages', 'quality_controls',
-                'kpi_metrics', 'alerts', 'chat_sessions', 'chat_messages'
+                'developments', 'development_phases', 'development_stages', 'development_quality_controls',
+                'development_kpi_metrics', 'incidents', 'chat_sessions', 'chat_messages'
             ]
             
             existing_tables = []

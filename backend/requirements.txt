@@ -12,7 +12,8 @@ python-multipart==0.0.9
 requests==2.32.3
 beautifulsoup4==4.12.3
 lxml==5.2.2
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.9; sys_platform != "win32"
+pyodbc==5.0.1; sys_platform == "win32"
 email-validator
 aiohttp==3.9.1
 psutil==5.9.6

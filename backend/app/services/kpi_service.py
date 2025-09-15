@@ -155,7 +155,7 @@ class KPIService:
             if not existing_metric:
                 # Crear nueva métrica
                 new_metric = models.DevelopmentKpiMetric(
-                    development_id=development_id or "GLOBAL",
+                    development_id=development_id,
                     metric_type=metric_type,
                     provider=provider,
                     period_start=period_start,

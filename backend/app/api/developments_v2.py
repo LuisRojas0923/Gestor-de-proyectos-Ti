@@ -4,7 +4,7 @@ Integración completa con sistema de fases y etapas
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
 from .. import models, schemas
@@ -132,17 +132,20 @@ def create_development(
         status_history = models.DevelopmentStatusHistory(
             development_id=db_development.id,
             status=db_development.general_status,
-            progress_stage=db_development.current_stage.stage_name if db_development.current_stage else "Definición",
+            progress_stage="Definición",  # Etapa inicial por defecto
             changed_by="Sistema",
             previous_status=None
         )
         db.add(status_history)
         
         # Crear observación inicial
+        phase_name = "En Ejecución" if db_development.current_phase_id == 1 else "Sin fase"
+        stage_name = "Definición" if db_development.current_stage_id == 1 else "Sin etapa"
+        
         initial_observation = models.DevelopmentObservation(
             development_id=db_development.id,
             observation_type="estado",
-            content=f"Desarrollo creado y asignado a fase '{db_development.current_phase.phase_name}', etapa '{db_development.current_stage.stage_name}'",
+            content=f"Desarrollo creado y asignado a fase '{phase_name}', etapa '{stage_name}'",
             author="Sistema",
             is_current=True
         )
@@ -152,6 +155,12 @@ def create_development(
         
         # Recargar con relaciones
         db.refresh(db_development)
+        
+        # Cargar relaciones explícitamente
+        db_development = db.query(models.Development).options(
+            joinedload(models.Development.current_phase),
+            joinedload(models.Development.current_stage)
+        ).filter(models.Development.id == db_development.id).first()
         
         return db_development
         

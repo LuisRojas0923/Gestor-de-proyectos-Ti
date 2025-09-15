@@ -829,11 +829,11 @@ const MyDevelopments: React.FC = () => {
                       <p className="text-sm text-red-500 dark:text-red-400">Error: {observationsError}</p>
                     </div>
                   ) : observations && observations.length > 0 ? (
-                    observations.map((observation) => (
+                    observations.filter(observation => observation != null).map((observation) => (
                       <div key={observation.id} className={`p-3 rounded-lg text-sm ${darkMode ? 'bg-neutral-800' : 'bg-neutral-100'}`}>
                         <div className="flex justify-between items-start mb-1">
                           <span className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
-                            {observation.observation_type}
+                            {observation?.observation_type || 'Sin tipo'}
                           </span>
                           {observation.author && (
                             <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
@@ -841,9 +841,9 @@ const MyDevelopments: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{observation.content}</p>
+                        <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{observation?.content || 'Sin contenido'}</p>
                         <p className={`text-xs mt-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
-                          {new Date(observation.observation_date).toLocaleDateString()}
+                          {observation?.observation_date ? new Date(observation.observation_date).toLocaleDateString() : 'Sin fecha'}
                         </p>
                       </div>
                     ))

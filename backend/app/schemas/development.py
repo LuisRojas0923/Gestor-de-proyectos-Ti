@@ -487,38 +487,7 @@ class DevelopmentStatusHistory(DevelopmentStatusHistoryBase):
 # =====================================================================================
 # SCHEMAS PARA DEVELOPMENT_OBSERVATIONS
 # =====================================================================================
-
-class DevelopmentObservationBase(BaseModel):
-    """Schema base para observaciones de desarrollo"""
-    development_id: str = Field(..., max_length=50, description="ID del desarrollo")
-    observation_type: str = Field(..., max_length=50, description="Tipo de observación")
-    content: str = Field(..., description="Contenido de la observación")
-    author: Optional[str] = Field(None, max_length=255, description="Autor de la observación")
-    is_current: bool = Field(False, description="Observación actual")
-
-    @validator('observation_type')
-    def validate_observation_type_with_dev_id(cls, v):
-        allowed_types = ['estado', 'seguimiento', 'problema', 'acuerdo']
-        if v not in allowed_types:
-            raise ValueError(f'observation_type debe ser uno de: {allowed_types}')
-        return v
-
-
-class DevelopmentObservationCreate(DevelopmentObservationBase):
-    """Schema para crear observación de desarrollo"""
-    pass
-
-
-class DevelopmentObservation(DevelopmentObservationBase):
-    """Schema completo para observación de desarrollo"""
-    id: int
-    observation_date: datetime
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
-        orm_mode = True
+# Nota: Los schemas de observaciones están definidos arriba en la línea 205
 
 
 # =====================================================================================
