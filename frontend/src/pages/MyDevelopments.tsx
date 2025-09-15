@@ -385,11 +385,32 @@ const MyDevelopments: React.FC = () => {
     if (!editingDevelopment) return;
 
     try {
+      // Mapear el nombre de la etapa al ID correspondiente
+      const stageNameToId: { [key: string]: number } = {
+        '1. Definición': 1,
+        '2. Análisis': 2,
+        '3. Propuesta': 7,
+        '4. Aprobación': 8,
+        '5. Desarrollo': 3,
+        '6. Despliegue (Pruebas)': 4,
+        '7. Plan de Pruebas': 5,
+        '8. Ejecución Pruebas': 6,
+        '9. Aprobación (Pase)': 9,
+        '10. Desplegado': 10,
+        '0. Cancelado': 11
+      };
+
+      const currentStageName = typeof editingDevelopment.current_stage === 'object' 
+        ? editingDevelopment.current_stage?.stage_name || '1. Definición'
+        : editingDevelopment.current_stage || '1. Definición';
+      
+      const currentStageId = stageNameToId[currentStageName] || 1;
+
       const result = await updateDevelopment(editingDevelopment.id, {
         name: editingDevelopment.name,
         description: editingDevelopment.description,
         general_status: editingDevelopment.general_status,
-        // TODO: Mapear current_stage a current_stage_id cuando se implemente
+        current_stage_id: currentStageId
       });
 
       if (result) {
