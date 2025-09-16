@@ -1,5 +1,6 @@
-import { Calendar, Edit, Eye, GitBranch, ListChecks, Search, ShieldCheck, Upload, X } from 'lucide-react';
+import { Calendar, Edit, Eye, GitBranch, ListChecks, Search, ShieldCheck, SquarePen, Upload, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import ExcelImporter from '../components/common/ExcelImporter';
 import { DevelopmentPhases, DevelopmentTimeline } from '../components/development';
 import { useAppContext } from '../context/AppContext';
@@ -7,14 +8,6 @@ import { useApi } from '../hooks/useApi';
 import { useDevelopmentUpdates } from '../hooks/useDevelopmentUpdates';
 import { useObservations } from '../hooks/useObservations';
 import { DevelopmentWithCurrentStatus } from '../types';
-
-type Incident = {
-  id: number;
-  description: string;
-  report_date: string;
-  resolution_date?: string;
-  status: 'Abierta' | 'Cerrada';
-};
 
 // Usar el tipo real del backend
 type Development = DevelopmentWithCurrentStatus;
@@ -61,104 +54,6 @@ const processStages = [
     }
   ];
 
-const sampleDevelopments: Development[] = [
-  {
-    id: 'INC000004924201',
-    name: 'Macro De Saldos',
-    provider: 'TI',
-    requesting_area: 'Tesoreria',
-    main_responsible: 'Bricit S.',
-    start_date: '2025-07-31',
-    estimated_end_date: '2025-09-04',
-    estimated_days: 35,
-    general_status: 'En curso',
-    current_stage: '1. Ajuste de Requerimiento',
-    activities: [
-        { date: '2025-08-01', description: 'Reunión inicial con el equipo de Tesorería.' },
-        { date: '2025-08-02', description: 'Se envía borrador de requerimiento para validación.' },
-    ],
-    incidents: [],
-  },
-  {
-    id: 'INC000004775199',
-    name: 'Vinculación Inmobiliaria',
-    provider: 'Ingesoft',
-    requesting_area: 'Negocios 2',
-    main_responsible: 'Manuel O.',
-    start_date: '2025-02-12',
-    estimated_end_date: '2025-09-12',
-    estimated_days: 204,
-    general_status: 'En curso',
-    current_stage: '5. Entrega Desarrollo',
-    activities: [
-        { date: '2025-07-15', description: 'Proveedor entrega el ejecutable para pruebas.' },
-    ],
-    incidents: [
-      { id: 1, description: 'Error en el cálculo de intereses moratorios.', report_date: '2025-07-20', status: 'Abierta' },
-      { id: 2, description: 'El campo de dirección no acepta caracteres especiales.', report_date: '2025-07-22', resolution_date: '2025-07-25', status: 'Cerrada' },
-    ],
-  },
-  // Add empty activities array to the rest of the sample data
-  {
-    id: 'INC000004884160',
-    name: 'Generación Certificado Patrimonial desde SIFI',
-    provider: 'TI',
-    requesting_area: 'Negocios 1',
-    main_responsible: 'Evelyn M.',
-    start_date: '2025-06-20',
-    estimated_end_date: '2025-09-04',
-    estimated_days: 76,
-    general_status: 'En curso',
-    current_stage: '5. Entrega Desarrollo',
-    activities: [],
-    incidents: [],
-  },
-  {
-    id: 'INC000004931942',
-    name: 'error ORM',
-    provider: 'ORACLE',
-    requesting_area: 'Comercial',
-    main_responsible: 'Adriana C.',
-    start_date: '2025-08-08',
-    estimated_end_date: '2025-09-04',
-    estimated_days: 27,
-    general_status: 'Pendiente',
-    current_stage: '2. Reunión de entendimiento',
-    activities: [],
-    incidents: [],
-  },
-  {
-    id: 'INC000004893354',
-    name: 'Calculo de la perdida esperada',
-    provider: 'Ingesoft',
-    requesting_area: 'Contabilidad',
-    main_responsible: 'Maritza F.',
-    start_date: '2025-07-02',
-    estimated_end_date: '2025-09-03',
-    actual_end_date: '2025-09-10',
-    estimated_days: 64,
-    general_status: 'Completado',
-    current_stage: '8. Certificación Escenarios Prueba',
-    activities: [],
-    incidents: [
-        { id: 3, description: 'Descuadre en centavos en la amortización.', report_date: '2025-08-15', resolution_date: '2025-08-20', status: 'Cerrada' }
-    ],
-  },
-  {
-    id: 'INC000004919670',
-    name: 'Modelo Retiro Express FVP',
-    provider: 'ITC',
-    requesting_area: 'Fondos FVP',
-    main_responsible: 'Jhon H.',
-    start_date: '2025-07-28',
-    estimated_end_date: '2025-09-04',
-    estimated_days: 38,
-    general_status: 'En curso',
-    current_stage: '3. Propuesta Comercial',
-    activities: [],
-    incidents: [],
-  },
-];
 
 // Updated stages with grouping
 const executionStages = [
@@ -182,10 +77,6 @@ const finalStages = [
 ];
 
 const generalStatuses = ['Pendiente', 'En curso', 'Completado', 'Cancelado'];
-
-// Export for use in other components like Reports
-export { sampleDevelopments as initialSampleDevelopments };
-export type { Development };
 
 const MyDevelopments: React.FC = () => {
   const { state } = useAppContext();
@@ -231,20 +122,12 @@ const MyDevelopments: React.FC = () => {
           description: item.description ?? '',
           module: item.module ?? '',
           type: item.type ?? '',
-          observations: item.observations ?? '',
-          estimated_cost: item.estimated_cost ?? null,
-          proposal_number: item.proposal_number ?? '',
           environment: item.environment ?? '',
           remedy_link: item.remedy_link ?? '',
-          target_closure_date: item.target_closure_date ? new Date(item.target_closure_date).toISOString() : null,
-          scheduled_delivery_date: item.scheduled_delivery_date ? new Date(item.scheduled_delivery_date).toISOString() : null,
-          actual_delivery_date: item.actual_delivery_date ? new Date(item.actual_delivery_date).toISOString() : null,
-          returns_count: item.returns_count ?? 0,
-          test_defects_count: item.test_defects_count ?? 0,
         }));
 
       if (validData.length === 0) {
-        alert('No se encontraron datos válidos para importar.');
+        toast.error('No se encontraron datos válidos para importar.');
         return;
       }
 
@@ -259,17 +142,17 @@ const MyDevelopments: React.FC = () => {
 
       if (response.ok) {
         const createdDevelopments = await response.json();
-        alert(`${createdDevelopments.length} desarrollo(s) importado(s) exitosamente.`);
+        toast.success(`${createdDevelopments.length} desarrollo(s) importado(s) exitosamente.`);
         
         // Refresh the developments list
         loadDevelopments();
     } else {
         const errorData = await response.json();
-        alert(`Error al importar: ${errorData.detail || 'Error desconocido'}`);
+        toast.error(`Error al importar: ${errorData.detail || 'Error desconocido'}`);
       }
     } catch (error) {
       console.error('Error importing developments:', error);
-      alert('Error al conectar con el servidor. Verifica que el backend esté ejecutándose.');
+      toast.error('Error al conectar con el servidor. Verifica que el backend esté ejecutándose.');
     }
     
     setImportModalOpen(false);
@@ -288,9 +171,9 @@ const MyDevelopments: React.FC = () => {
         setDevelopments(response);
       } 
       // Si la respuesta tiene el formato esperado (con developments property)
-      else if (response && response.developments) {
-        setDevelopments(response.developments);
-      } 
+      else if (response && typeof response === 'object' && 'developments' in response) {
+        setDevelopments(response.developments as DevelopmentWithCurrentStatus[]);
+      }
       else {
         console.error('Error loading developments from API - unexpected response format');
         // Fallback to localStorage if API fails
@@ -310,11 +193,11 @@ const MyDevelopments: React.FC = () => {
   };
   
   const [selectedDevelopment, setSelectedDevelopment] = useState<Development | null>(null);
-  const [isViewPanelOpen, setViewPanelOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [newActivity, setNewActivity] = useState('');
   const [activeView, setActiveView] = useState<'list' | 'phases' | 'timeline'>('list');
   const [editingDevelopment, setEditingDevelopment] = useState<Development | null>(null);
+  const [activePhaseTab, setActivePhaseTab] = useState<'phases' | 'gantt' | 'controls' | 'activities'>('phases');
 
   // Hooks para observaciones y actualizaciones
   const { 
@@ -327,7 +210,6 @@ const MyDevelopments: React.FC = () => {
   
   const { 
     loading: updateLoading, 
-    error: updateError, 
     updateDevelopment 
   } = useDevelopmentUpdates();
 
@@ -348,7 +230,7 @@ const MyDevelopments: React.FC = () => {
         }
       } catch (error) {
         console.error('Error adding activity:', error);
-        alert('Error al agregar la actividad');
+        toast.error('Error al agregar la actividad');
       }
     }
   };
@@ -356,8 +238,8 @@ const MyDevelopments: React.FC = () => {
   const handleViewDetails = (dev: Development) => {
     console.log('Opening details for:', dev);
     setSelectedDevelopment(dev);
-    setViewPanelOpen(true);
-    console.log('Panel should be open now');
+    setActiveView('phases'); // Cambiar automáticamente a vista de fases
+    console.log('Switching to phases view for:', dev.id);
   };
   
   const handleEdit = (dev: Development) => {
@@ -409,7 +291,6 @@ const MyDevelopments: React.FC = () => {
       const result = await updateDevelopment(editingDevelopment.id, {
         name: editingDevelopment.name,
         description: editingDevelopment.description,
-        general_status: editingDevelopment.general_status,
         current_stage_id: currentStageId
       });
 
@@ -423,11 +304,11 @@ const MyDevelopments: React.FC = () => {
         setEditModalOpen(false);
         setEditingDevelopment(null);
         
-        alert('Desarrollo actualizado exitosamente');
+        toast.success('Desarrollo actualizado exitosamente');
       }
     } catch (error) {
       console.error('Error updating development:', error);
-      alert('Error al actualizar el desarrollo');
+      toast.error('Error al actualizar el desarrollo');
     }
   };
 
@@ -461,7 +342,7 @@ const MyDevelopments: React.FC = () => {
 
   return (
     <div className="flex h-full">
-      <div className={`flex-1 transition-all duration-300 ${isViewPanelOpen ? 'lg:mr-80 xl:mr-96' : ''}`}>
+      <div className="flex-1">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
@@ -503,11 +384,6 @@ const MyDevelopments: React.FC = () => {
                 </button>
               </div>
               
-              {isViewPanelOpen && (
-                <div className="bg-green-500 text-white px-3 py-1 rounded text-sm">
-                  Panel abierto: {selectedDevelopment?.id}
-                </div>
-              )}
               
               <button 
                 onClick={() => setImportModalOpen(true)}
@@ -677,11 +553,246 @@ const MyDevelopments: React.FC = () => {
               </>
             )}
 
-            {/* Vista de Fases */}
+            {/* Vista de Fases - Centro de Control Expandido */}
             {activeView === 'phases' && (
               <div className="space-y-6">
                 {selectedDevelopment ? (
-                  <DevelopmentPhases developmentId={selectedDevelopment.id} />
+              <div className="space-y-6">
+                    {/* Header del Centro de Control */}
+                  <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6`}>
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <span className={`font-semibold ${darkMode ? 'text-primary-400' : 'text-primary-600'}`}>{selectedDevelopment.id}</span>
+                          <h2 className={`text-2xl font-bold mt-1 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{selectedDevelopment.name}</h2>
+                    </div>
+                        <div className="flex items-center space-x-3">
+                          <button 
+                            onClick={() => handleEdit(selectedDevelopment)}
+                            className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+                              darkMode 
+                                ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
+                                : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-900'
+                            }`}
+                          >
+                            <SquarePen size={18} />
+                            <span>Editar</span>
+                          </button>
+                          <button 
+                            onClick={() => setActiveView('list')}
+                            className={`px-4 py-2 rounded-lg transition-colors ${
+                              darkMode 
+                                ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
+                                : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-900'
+                            }`}
+                          >
+                            ← Volver a Lista
+              </button>
+            </div>
+              </div>
+
+              {/* Key Details Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t border-b py-4 border-neutral-200 dark:border-neutral-700">
+                <div>
+                  <label className="text-xs text-neutral-500 dark:text-neutral-400">Estado</label>
+                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.general_status}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-neutral-500 dark:text-neutral-400">Progreso</label>
+                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>
+                    {typeof selectedDevelopment.current_stage === 'object' ? selectedDevelopment.current_stage?.stage_name || 'N/A' : selectedDevelopment.current_stage}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs text-neutral-500 dark:text-neutral-400">Proveedor</label>
+                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.provider || 'N/A'}</p>
+                </div>
+                 <div>
+                  <label className="text-xs text-neutral-500 dark:text-neutral-400">Responsable</label>
+                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.main_responsible || 'N/A'}</p>
+                        </div>
+                </div>
+              </div>
+
+                      {/* Tabs Navigation */}
+                    <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6`}>
+                      <div className="flex flex-wrap items-center gap-1 bg-gray-100 dark:bg-neutral-700 rounded-lg p-1 mb-6">
+                        <button
+                          onClick={() => setActivePhaseTab('phases')}
+                          className={`px-4 py-2 text-sm rounded-md transition-colors ${
+                            activePhaseTab === 'phases'
+                              ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                              : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <GitBranch size={16} className="inline mr-2" />
+                          Fases
+                        </button>
+                        <button
+                          onClick={() => setActivePhaseTab('gantt')}
+                          className={`px-4 py-2 text-sm rounded-md transition-colors ${
+                            activePhaseTab === 'gantt'
+                              ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                              : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <Calendar size={16} className="inline mr-2" />
+                          Gantt
+                        </button>
+                        <button
+                          onClick={() => setActivePhaseTab('controls')}
+                          className={`px-4 py-2 text-sm rounded-md transition-colors ${
+                            activePhaseTab === 'controls'
+                              ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                              : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <ShieldCheck size={16} className="inline mr-2" />
+                          Controles
+                        </button>
+                        <button
+                          onClick={() => setActivePhaseTab('activities')}
+                          className={`px-4 py-2 text-sm rounded-md transition-colors ${
+                            activePhaseTab === 'activities'
+                              ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                              : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <ListChecks size={16} className="inline mr-2" />
+                          Bitácora
+                        </button>
+                </div>
+
+                      {/* Tab Content */}
+                      {activePhaseTab === 'phases' && (
+                        <DevelopmentPhases developmentId={selectedDevelopment.id} />
+                      )}
+                      
+                      {activePhaseTab === 'gantt' && (
+                        <div className="text-center p-8 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
+                          <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                          <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                            Diagrama de Gantt
+                          </h3>
+                          <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            El cronograma interactivo se mostrará aquí cuando se implementen los endpoints correspondientes.
+                          </p>
+              </div>
+                      )}
+                      
+                      {activePhaseTab === 'controls' && (
+                        <div>
+                          <h4 className={`text-lg font-semibold mb-4 flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                            <ShieldCheck size={18} className="mr-2"/>
+                            Controles de Calidad
+                          </h4>
+              {(() => {
+                const currentStageName = typeof selectedDevelopment.current_stage === 'object' 
+                  ? selectedDevelopment.current_stage?.stage_name || '1. Definición'
+                  : selectedDevelopment.current_stage || '1. Definición';
+                const stagePrefix = currentStageName.split('.')[0] || '1';
+                const currentProcessStage = processStages.find(s => s.stagePrefixes.includes(stagePrefix));
+
+                return (
+                  <div>
+                                <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  Etapa actual: <span className="font-medium">{currentProcessStage ? currentProcessStage.name : 'Etapa sin controles'}</span>
+                                </p>
+                    {currentProcessStage && currentProcessStage.controls.length > 0 ? (
+                      <div className="space-y-4">
+                        {currentProcessStage.controls.map((control, index) => (
+                                      <div key={index} className={`p-4 rounded-lg ${darkMode ? 'bg-neutral-700' : 'bg-neutral-100'}`}>
+                            <div className="flex items-start">
+                              <input type="checkbox" className="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                              <div className="ml-3">
+                                <p className={`font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{control.code}</p>
+                                <p className={`text-sm mt-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                                  {control.description}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center p-4 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                          No hay controles de calidad definidos para esta etapa.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+                        </div>
+                      )}
+
+                      {activePhaseTab === 'activities' && (
+              <div>
+                          <h4 className={`text-lg font-semibold mb-4 flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                  <ListChecks size={18} className="mr-2"/>
+                  Bitácora de Actividades
+                </h4>
+                          
+                {/* Activity Input */}
+                          <div className="mb-6">
+                  <textarea
+                    rows={3}
+                    value={newActivity}
+                    onChange={(e) => setNewActivity(e.target.value)}
+                    placeholder="Registrar nueva actividad o seguimiento..."
+                              className={`w-full p-3 rounded-lg text-sm border ${
+                                darkMode 
+                                  ? 'bg-neutral-700 text-white border-neutral-600' 
+                                  : 'bg-white border-neutral-300'
+                              }`}
+                            />
+                            <button 
+                              onClick={handleAddActivity} 
+                              className="w-full mt-3 px-4 py-2 text-sm rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors"
+                            >
+                    Registrar Actividad
+                  </button>
+                </div>
+
+                 {/* Activity List */}
+                <div className="space-y-3">
+                  {observationsLoading ? (
+                    <div className="text-center p-4">
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400">Cargando actividades...</p>
+                    </div>
+                  ) : observationsError ? (
+                    <div className="text-center p-4 border-2 border-dashed rounded-lg border-red-300 dark:border-red-700">
+                      <p className="text-sm text-red-500 dark:text-red-400">Error: {observationsError}</p>
+                    </div>
+                  ) : observations && observations.length > 0 ? (
+                    observations.filter(observation => observation != null).map((observation) => (
+                                <div key={observation.id} className={`p-4 rounded-lg text-sm ${darkMode ? 'bg-neutral-700' : 'bg-neutral-100'}`}>
+                                  <div className="flex justify-between items-start mb-2">
+                          <span className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
+                            {observation?.observation_type || 'Sin tipo'}
+                          </span>
+                          {observation.author && (
+                            <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                              {observation.author}
+                            </span>
+                          )}
+                        </div>
+                        <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{observation?.content || 'Sin contenido'}</p>
+                        <p className={`text-xs mt-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                          {observation?.observation_date ? new Date(observation.observation_date).toLocaleDateString() : 'Sin fecha'}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center p-4 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
+                       <p className="text-sm text-neutral-500 dark:text-neutral-400">No hay actividades registradas.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+                      )}
+                    </div>
+                  </div>
                 ) : (
                   <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6`}>
                     <div className="text-center">
@@ -690,7 +801,7 @@ const MyDevelopments: React.FC = () => {
                         Selecciona un Desarrollo
                       </h3>
                       <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Haz clic en un desarrollo de la lista para ver su sistema de fases y etapas
+                        Haz clic en el botón de ver detalles (👁️) de cualquier desarrollo para acceder al Centro de Control completo
                       </p>
                     </div>
                   </div>
@@ -716,170 +827,16 @@ const MyDevelopments: React.FC = () => {
                       <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         Haz clic en un desarrollo de la lista para ver su timeline
                       </p>
-                    </div>
-                  </div>
+            </div>
+          </div>
                 )}
-              </div>
-            )}
+        </div>
+      )}
           </div>
         </div>
       </div>
     
-    {/* Side Panel for Viewing Details - Responsive */}
-      {isViewPanelOpen && selectedDevelopment && (
-        <div className={`fixed top-0 right-0 h-full shadow-xl z-[9999] transition-transform transform ${isViewPanelOpen ? 'translate-x-0' : 'translate-x-full'} ${darkMode ? 'bg-neutral-900 border-l border-neutral-700' : 'bg-white border-l'} w-full md:w-96 lg:w-80 xl:w-96`}>
-          <div className="p-6 h-full overflow-y-auto bg-blue-100 dark:bg-blue-900">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                Centro de Control - {selectedDevelopment?.id}
-              </h2>
-              <button onClick={() => setViewPanelOpen(false)} className={`p-1 rounded-full transition-colors ${darkMode ? 'hover:bg-neutral-700' : 'hover:bg-neutral-200'}`}>
-                <X size={20} className={darkMode ? 'text-neutral-400' : 'text-neutral-600'}/>
-              </button>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Main Info */}
-              <div>
-                <span className={`font-semibold ${darkMode ? 'text-primary-400' : 'text-primary-600'}`}>{selectedDevelopment.id}</span>
-                <h3 className={`text-2xl font-bold mt-1 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{selectedDevelopment.name}</h3>
-              </div>
-
-              {/* Key Details Grid */}
-              <div className="grid grid-cols-2 gap-4 border-t border-b py-4 border-neutral-200 dark:border-neutral-700">
-                <div>
-                  <label className="text-xs text-neutral-500 dark:text-neutral-400">Estado</label>
-                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.general_status}</p>
-                </div>
-                <div>
-                  <label className="text-xs text-neutral-500 dark:text-neutral-400">Progreso</label>
-                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>
-                    {typeof selectedDevelopment.current_stage === 'object' ? selectedDevelopment.current_stage?.stage_name || 'N/A' : selectedDevelopment.current_stage}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs text-neutral-500 dark:text-neutral-400">Proveedor</label>
-                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.provider || 'N/A'}</p>
-                </div>
-                 <div>
-                  <label className="text-xs text-neutral-500 dark:text-neutral-400">Responsable</label>
-                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.main_responsible || 'N/A'}</p>
-                </div>
-              </div>
-
-              {/* Cronograma de Hitos */}
-              <div>
-                <h4 className={`text-lg font-semibold mb-3 flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                  <Calendar size={18} className="mr-2"/>
-                  Cronograma de Hitos
-                </h4>
-                <div className="text-center p-4 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
-                   <p className="text-sm text-neutral-500 dark:text-neutral-400">El cronograma interactivo (Gantt) se mostrará aquí.</p>
-                </div>
-              </div>
-
-              {/* Quality Controls */}
-              {(() => {
-                const currentStageName = typeof selectedDevelopment.current_stage === 'object' 
-                  ? selectedDevelopment.current_stage?.stage_name || '1. Definición'
-                  : selectedDevelopment.current_stage || '1. Definición';
-                const stagePrefix = currentStageName.split('.')[0] || '1';
-                const currentProcessStage = processStages.find(s => s.stagePrefixes.includes(stagePrefix));
-
-                return (
-                  <div>
-                    <h4 className={`text-lg font-semibold mb-3 flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                      <ShieldCheck size={18} className="mr-2"/>
-                      Controles de Calidad ({currentProcessStage ? currentProcessStage.name : 'Etapa sin controles'})
-                    </h4>
-                    {currentProcessStage && currentProcessStage.controls.length > 0 ? (
-                      <div className="space-y-4">
-                        {currentProcessStage.controls.map((control, index) => (
-                          <div key={index} className={`p-4 rounded-lg ${darkMode ? 'bg-neutral-800' : 'bg-neutral-100'}`}>
-                            <div className="flex items-start">
-                              <input type="checkbox" className="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-                              <div className="ml-3">
-                                <p className={`font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{control.code}</p>
-                                <p className={`text-sm mt-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-                                  {control.description}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center p-4 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                          No hay controles de calidad definidos para esta etapa.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Bitácora de Actividades */}
-              <div>
-                <h4 className={`text-lg font-semibold mb-3 flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                  <ListChecks size={18} className="mr-2"/>
-                  Bitácora de Actividades
-                </h4>
-                {/* Activity Input */}
-                <div className="mb-4">
-                  <textarea
-                    rows={3}
-                    value={newActivity}
-                    onChange={(e) => setNewActivity(e.target.value)}
-                    placeholder="Registrar nueva actividad o seguimiento..."
-                    className={`w-full p-2 rounded text-sm ${darkMode ? 'bg-neutral-800 text-white border-neutral-600' : 'bg-white border-neutral-300'}`}
-                  />
-                  <button onClick={handleAddActivity} className="w-full mt-2 px-4 py-2 text-sm rounded bg-primary-500 text-white hover:bg-primary-600">
-                    Registrar Actividad
-                  </button>
-                </div>
-
-                 {/* Activity List */}
-                <div className="space-y-3">
-                  {observationsLoading ? (
-                    <div className="text-center p-4">
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400">Cargando actividades...</p>
-                    </div>
-                  ) : observationsError ? (
-                    <div className="text-center p-4 border-2 border-dashed rounded-lg border-red-300 dark:border-red-700">
-                      <p className="text-sm text-red-500 dark:text-red-400">Error: {observationsError}</p>
-                    </div>
-                  ) : observations && observations.length > 0 ? (
-                    observations.filter(observation => observation != null).map((observation) => (
-                      <div key={observation.id} className={`p-3 rounded-lg text-sm ${darkMode ? 'bg-neutral-800' : 'bg-neutral-100'}`}>
-                        <div className="flex justify-between items-start mb-1">
-                          <span className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
-                            {observation?.observation_type || 'Sin tipo'}
-                          </span>
-                          {observation.author && (
-                            <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
-                              {observation.author}
-                            </span>
-                          )}
-                        </div>
-                        <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{observation?.content || 'Sin contenido'}</p>
-                        <p className={`text-xs mt-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
-                          {observation?.observation_date ? new Date(observation.observation_date).toLocaleDateString() : 'Sin fecha'}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center p-4 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
-                       <p className="text-sm text-neutral-500 dark:text-neutral-400">No hay actividades registradas.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
+    {/* Panel lateral removido - funcionalidad movida a vista de fases */}
       
       {/* Edit Modal */}
       {isEditModalOpen && editingDevelopment && (
