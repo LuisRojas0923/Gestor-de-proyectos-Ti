@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ExcelImporter from '../components/common/ExcelImporter';
 import { DevelopmentPhases, DevelopmentTimeline } from '../components/development';
+import RequirementsTab from '../components/development/RequirementsTab';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { useDevelopmentUpdates } from '../hooks/useDevelopmentUpdates';
@@ -197,7 +198,7 @@ const MyDevelopments: React.FC = () => {
   const [newActivity, setNewActivity] = useState('');
   const [activeView, setActiveView] = useState<'list' | 'phases' | 'timeline'>('list');
   const [editingDevelopment, setEditingDevelopment] = useState<Development | null>(null);
-  const [activePhaseTab, setActivePhaseTab] = useState<'phases' | 'gantt' | 'controls' | 'activities'>('phases');
+  const [activePhaseTab, setActivePhaseTab] = useState<'phases' | 'gantt' | 'controls' | 'activities' | 'requirements'>('phases');
 
   // Hooks para observaciones y actualizaciones
   const { 
@@ -660,6 +661,17 @@ const MyDevelopments: React.FC = () => {
                           <ListChecks size={16} className="inline mr-2" />
                           Bitácora
                         </button>
+                        <button
+                          onClick={() => setActivePhaseTab('requirements')}
+                          className={`px-4 py-2 text-sm rounded-md transition-colors ${
+                            activePhaseTab === 'requirements'
+                              ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                              : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <Search size={16} className="inline mr-2" />
+                          Requerimientos
+                        </button>
                 </div>
 
                       {/* Tab Content */}
@@ -790,6 +802,13 @@ const MyDevelopments: React.FC = () => {
                   )}
                 </div>
               </div>
+                      )}
+
+                      {activePhaseTab === 'requirements' && (
+                        <RequirementsTab 
+                          developmentId={selectedDevelopment.id} 
+                          darkMode={darkMode} 
+                        />
                       )}
                     </div>
                   </div>

@@ -43,8 +43,8 @@ const Reports: React.FC = () => {
   
   // Load KPI data from API
   const [kpiData, setKpiData] = useState({
-    totalRequirements: 0,
-    completedRequirements: 0,
+    totalDevelopments: 0,
+    completedDevelopments: 0,
     avgCycleTime: 0,
     slaCompliance: 0,
     controlsExecuted: 0,
@@ -150,15 +150,15 @@ const Reports: React.FC = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          title="Total Requerimientos"
-          value={kpiData.totalRequirements}
+          title="Total Desarrollos"
+          value={kpiData.totalDevelopments}
           change={{ value: 12, type: 'increase' }}
           icon={FileText}
           color="blue"
         />
         <MetricCard
           title="Completados"
-          value={kpiData.completedRequirements}
+          value={kpiData.completedDevelopments}
           change={{ value: 8, type: 'increase' }}
           icon={CheckCircle}
           color="green"
@@ -333,7 +333,7 @@ const Reports: React.FC = () => {
           darkMode ? 'text-white' : 'text-neutral-900'
         }`}>
           <TrendingUp className="mr-2" size={20} />
-          Tendencia de Requerimientos
+          Tendencia de Desarrollos
         </h3>
         <ResponsiveContainer width="100%" height={400}>
           <AreaChart data={trendData}>
@@ -369,7 +369,7 @@ const Reports: React.FC = () => {
               stroke="#0066A5"
               fillOpacity={1}
               fill="url(#colorRequerimientos)"
-              name="Requerimientos"
+              name="Desarrollos"
             />
             <Area
               type="monotone"

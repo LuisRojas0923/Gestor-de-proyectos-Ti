@@ -6,7 +6,6 @@ const resources = {
     translation: {
       // Navigation
       dashboard: 'Tablero',
-      requirements: 'Requerimientos',
       testing: 'Pruebas',
       chat: 'Chat IA',
       reports: 'Reportes',
@@ -20,8 +19,7 @@ const resources = {
       weeklyProgress: 'Progreso Semanal',
       upcomingMilestones: 'Hitos Próximos',
       
-      // Requirements
-      requirementId: 'ID Requerimiento',
+      // Common fields (used in multiple components)
       title: 'Título',
       status: 'Estado',
       priority: 'Prioridad',
@@ -64,7 +62,6 @@ const resources = {
     translation: {
       // Navigation
       dashboard: 'Dashboard',
-      requirements: 'Requirements',
       testing: 'Testing',
       chat: 'AI Chat',
       reports: 'Reports',
@@ -78,8 +75,7 @@ const resources = {
       weeklyProgress: 'Weekly Progress',
       upcomingMilestones: 'Upcoming Milestones',
       
-      // Requirements
-      requirementId: 'Requirement ID',
+      // Common fields (used in multiple components)
       title: 'Title',
       status: 'Status',
       priority: 'Priority',

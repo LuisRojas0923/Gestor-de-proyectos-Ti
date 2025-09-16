@@ -1,7 +1,12 @@
 # 📋 Componentes de MyDevelopments.tsx
 
 ## 🎯 Resumen
-Página principal para la gestión de desarrollos con funcionalidades de importación Excel, filtrado, edición y visualización en múltiples formatos.
+Página principal para la gestión de desarrollos con funcionalidades de importación Excel, filtrado, edición y visualización en múltiples formatos. **ACTUALIZADO**: Ahora incluye gestión integrada de requerimientos.
+
+## 🔄 Cambios Recientes
+- **Consolidación**: Funcionalidad de requerimientos integrada como nueva pestaña
+- **Eliminado**: Página independiente Requirements.tsx para reducir redundancia
+- **Mejorado**: MyDevelopments ahora proporciona una experiencia completa de gestión de proyectos
 
 ## 🏗️ Estructura de Componentes
 
@@ -23,6 +28,7 @@ Página principal para la gestión de desarrollos con funcionalidades de importa
 
 #### Vista Fases
 - **DevelopmentPhases**: Componente de sistema de fases
+- **RequirementsTab**: Nueva pestaña para gestión de requerimientos
 
 #### Vista Timeline
 - **DevelopmentTimeline**: Componente de cronograma visual
@@ -82,6 +88,7 @@ statusFilter: string
 - **ExcelImporter**: Importación de archivos Excel
 - **DevelopmentPhases**: Sistema de fases y etapas
 - **DevelopmentTimeline**: Cronograma visual
+- **RequirementsTab**: Gestión de requerimientos integrada
 - **useApi**: Hook para llamadas API
 - **useAppContext**: Contexto de la aplicación
 

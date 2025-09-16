@@ -12,8 +12,7 @@ import {
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FixedSizeList as List } from 'react-window';
-import { useAppContext } from '../context/AppContext';
-import { useApi } from '../hooks/useApi';
+import { useApi } from '../../hooks/useApi';
 
 // Type definition for a requirement
 interface Requirement {
@@ -29,10 +28,13 @@ interface Requirement {
   updated_at: string;
 }
 
-const Requirements: React.FC = () => {
+interface RequirementsTabProps {
+  developmentId: string;
+  darkMode: boolean;
+}
+
+const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMode }) => {
   const { t } = useTranslation();
-  const { state } = useAppContext();
-  const { darkMode } = state;
   const api = useApi();
 
   const [requirements, setRequirements] = useState<Requirement[]>([]);
@@ -41,15 +43,43 @@ const Requirements: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
-  const [selectedRequirement, setSelectedRequirement] = useState<any>(null);
+  const [selectedRequirement, setSelectedRequirement] = useState<Requirement | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const fetchRequirements = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/requirements');
-        setRequirements(response);
+        // TODO: Implementar endpoint específico para requerimientos de un desarrollo
+        // const response = await api.get(`/developments/${developmentId}/requirements`);
+        // Por ahora usamos datos mock
+        const mockRequirements: Requirement[] = [
+          {
+            id: 1,
+            external_id: 'FD-FT-284',
+            title: 'Implementación de validación de datos',
+            description: 'Desarrollar validación de datos de entrada para el módulo de usuarios',
+            status: 'validated',
+            priority: 'high',
+            due_date: '2025-02-15',
+            assigned_user_id: 1,
+            created_at: '2025-01-15T10:00:00Z',
+            updated_at: '2025-01-20T14:30:00Z',
+          },
+          {
+            id: 2,
+            external_id: 'FD-FT-285',
+            title: 'Optimización de consultas SQL',
+            description: 'Mejorar rendimiento de consultas en el módulo de reportes',
+            status: 'testing',
+            priority: 'medium',
+            due_date: '2025-02-20',
+            assigned_user_id: 2,
+            created_at: '2025-01-16T09:00:00Z',
+            updated_at: '2025-01-21T16:45:00Z',
+          },
+        ];
+        setRequirements(mockRequirements);
         setError(null);
       } catch (err) {
         setError('Failed to fetch requirements');
@@ -60,7 +90,7 @@ const Requirements: React.FC = () => {
     };
 
     fetchRequirements();
-  }, [api]);
+  }, [api, developmentId]);
 
   const filteredRequirements = useMemo(() => {
     return requirements.filter((req) => {
@@ -151,9 +181,10 @@ const Requirements: React.FC = () => {
       <div className={`flex-1 ${sidebarOpen ? 'mr-96' : ''} transition-all duration-300`}>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-              {t('requirements')}
-            </h1>
+            <h4 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+              <Search size={18} className="mr-2"/>
+              Requerimientos del Desarrollo
+            </h4>
             <div className="flex items-center space-x-4">
               <button className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
                 <Plus size={20} />
@@ -238,7 +269,7 @@ const Requirements: React.FC = () => {
               darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
             } border rounded-xl overflow-hidden`}>
               <List
-                height={600}
+                height={400}
                 itemCount={filteredRequirements.length}
                 itemSize={120}
               >
@@ -359,7 +390,7 @@ const Requirements: React.FC = () => {
 
               <div className="space-y-3">
                 <button className="w-full bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition-colors">
-                  Validar FD-FT-284
+                  Validar {selectedRequirement.external_id}
                 </button>
                 <button className="w-full bg-secondary-500 hover:bg-secondary-600 text-white px-4 py-2 rounded-lg transition-colors">
                   Generar Correo
@@ -380,4 +411,4 @@ const Requirements: React.FC = () => {
   );
 };
 
-export default Requirements;
+export default RequirementsTab;
