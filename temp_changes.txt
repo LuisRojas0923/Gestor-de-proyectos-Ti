@@ -1,0 +1,31 @@
+// Función helper para parsear fechas con hora (ignorando la hora)
+const parseDateWithTime = (dateString: string): string | null => {
+  if (!dateString) return null;
+  
+  try {
+    // Manejar diferentes formatos de fecha con hora
+    // Formato: "3/06/2025 3:16:01 p. m." o "3/06/2025 3:16:01 PM"
+    const date = new Date(dateString);
+    
+    // Verificar que la fecha es válida
+    if (isNaN(date.getTime())) {
+      console.warn('Fecha inválida:', dateString);
+      return null;
+    }
+    
+    // Retornar solo la fecha en formato YYYY-MM-DD
+    return date.toISOString().split('T')[0];
+  } catch (error) {
+    console.warn('Error parseando fecha:', dateString, error);
+    return null;
+  }
+};
+
+// Cambio en la línea 124-126:
+// ANTES:
+estimated_end_date: item.estimated_end_date 
+  ? new Date(item.estimated_end_date).toISOString().split('T')[0] 
+  : null,
+
+// DESPUÉS:
+estimated_end_date: parseDateWithTime(item.start_date || ''),

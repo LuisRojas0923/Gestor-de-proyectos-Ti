@@ -552,3 +552,47 @@ def update_development_observation(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error actualizando observación: {str(e)}"
         )
+
+
+@router.delete("/{development_id}")
+def delete_development(
+    development_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Eliminar desarrollo
+    
+    Elimina un desarrollo y todas sus observaciones relacionadas.
+    Esta acción no se puede deshacer.
+    """
+    try:
+        # Verificar que el desarrollo existe
+        development = db.query(models.Development).filter(
+            models.Development.id == development_id
+        ).first()
+        
+        if not development:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Desarrollo {development_id} no encontrado"
+            )
+        
+        # Eliminar todas las observaciones relacionadas primero
+        db.query(models.DevelopmentObservation).filter(
+            models.DevelopmentObservation.development_id == development_id
+        ).delete()
+        
+        # Eliminar el desarrollo
+        db.delete(development)
+        db.commit()
+        
+        return {"message": "Desarrollo eliminado exitosamente"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error eliminando desarrollo: {str(e)}"
+        )

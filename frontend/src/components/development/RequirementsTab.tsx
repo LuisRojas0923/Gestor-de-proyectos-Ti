@@ -272,6 +272,7 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
                 height={400}
                 itemCount={filteredRequirements.length}
                 itemSize={120}
+                width="100%"
               >
                 {Row}
               </List>

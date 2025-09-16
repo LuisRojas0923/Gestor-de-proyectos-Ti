@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
-import { Upload, File, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Upload, CheckCircle, AlertTriangle } from 'lucide-react';
 
 interface ExcelImporterProps<T> {
   onImport: (data: T[]) => void;
@@ -29,24 +29,76 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+        // Configurar opciones de lectura para archivos Excel
+        
+        const workbook = XLSX.read(data, { 
+          type: 'binary', 
+          cellDates: true,
+          cellNF: false,
+          cellText: false
+        });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
+        
+        // Extraer hipervínculos de todas las celdas
+        const hyperlinks: { [key: string]: string } = {};
+        Object.keys(worksheet).forEach(key => {
+          if (key.startsWith('!')) return; // Skip metadata
+          const cell = worksheet[key];
+          if (cell && cell.l) { // l = hyperlink property
+            hyperlinks[key] = cell.l.Target || cell.l;
+          }
+        });
+        
+        // Leer todas las filas como array
         const jsonData = XLSX.utils.sheet_to_json<any>(worksheet, { 
-          header: 1, // Use first row as header
+          header: 1, // Use array format
           defval: '', // Default value for empty cells
           blankrows: false // Skip blank rows
         });
         
-        // Skip the first row if it's empty (as mentioned by user)
-        const dataRows = jsonData.length > 0 && Object.keys(jsonData[0]).length === 0 ? jsonData.slice(1) : jsonData;
+        // Los encabezados están en la fila 1 (segunda fila, índice 1)
+        // Los datos empiezan desde la fila 2 (índice 2)
+        if (jsonData.length < 2) {
+          setError('El archivo no tiene suficientes filas. Se esperan encabezados en la segunda fila.');
+          return;
+        }
         
-        const mappedData = dataRows.map(row => {
+        const headers = jsonData[1]; // Fila 1 = segunda fila (encabezados)
+        const dataRows = jsonData.slice(2); // Datos desde la fila 2 en adelante
+        
+        // Crear mapeo de índices de columnas
+        const columnIndexMap: { [key: string]: number } = {};
+        headers.forEach((header: string, index: number) => {
+          if (header && typeof header === 'string') {
+            columnIndexMap[header.trim()] = index;
+          }
+        });
+        
+        // Verificar que tenemos las columnas necesarias
+        const requiredColumns = Object.keys(columnMapping);
+        const missingColumns = requiredColumns.filter(col => !(col in columnIndexMap));
+        
+        if (missingColumns.length > 0) {
+          setError(`Faltan las siguientes columnas requeridas: ${missingColumns.join(', ')}`);
+          return;
+        }
+        
+        const mappedData = dataRows.map((row, rowIndex) => {
           const newRow: any = {};
+          
           for (const excelHeader in columnMapping) {
             const objectKey = columnMapping[excelHeader];
-            if (row[excelHeader] !== undefined && row[excelHeader] !== '') {
-              newRow[objectKey] = row[excelHeader];
+            const colIndex = columnIndexMap[excelHeader];
+            const cellAddress = XLSX.utils.encode_cell({ r: rowIndex + 2, c: colIndex }); // +2 porque los datos empiezan en fila 2
+            
+            if (row[colIndex] !== undefined && row[colIndex] !== '') {
+              newRow[objectKey] = row[colIndex];
+              
+              // Si es la columna 'ID de la incidencia*+' y tiene hipervínculo, extraer remedy_link
+              if (excelHeader === 'ID de la incidencia*+' && hyperlinks[cellAddress]) {
+                newRow['remedy_link'] = hyperlinks[cellAddress];
+              }
             }
           }
           return newRow as T;
@@ -54,7 +106,7 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
 
         setPreviewData(mappedData);
       } catch (err) {
-        setError('Error al procesar el archivo. Asegúrate de que sea un formato de Excel válido y que las columnas coincidan.');
+        setError('Error al procesar el archivo. Asegúrate de que sea un formato de Excel válido (.xls o .xlsx) y que los encabezados estén en la segunda fila.');
         console.error(err);
       }
     };

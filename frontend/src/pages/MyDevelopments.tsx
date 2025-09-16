@@ -1,4 +1,4 @@
-import { Calendar, Edit, Eye, GitBranch, ListChecks, Search, ShieldCheck, SquarePen, Upload, X } from 'lucide-react';
+import { Calendar, Edit, Eye, GitBranch, ListChecks, Search, ShieldCheck, SquarePen, Upload, X, Trash2, MoreVertical } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ExcelImporter from '../components/common/ExcelImporter';
@@ -86,45 +86,68 @@ const MyDevelopments: React.FC = () => {
   
   const [developments, setDevelopments] = useState<Development[]>([]);
   const [isImportModalOpen, setImportModalOpen] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean; development: Development | null }>({
+    isOpen: false,
+    development: null
+  });
 
   // Load developments from API on initial render
   useEffect(() => {
     loadDevelopments();
   }, []);
 
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (openDropdownId) {
+        setOpenDropdownId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdownId]);
+
   // Column mapping for the importer - Updated to match your Excel structure
   const columnMapping = {
-    'No. de la solicitud': 'id',
-    'Cliente Interno': 'name',
-    'Asignado a': 'main_responsible',
-    'Solicitud Interna requerida': 'requesting_area',
-    'Estado': 'general_status',
+    'ID de la incidencia*+': 'id', // El texto será el ID, el hipervínculo será remedy_link
+    'Usuario asignado+': 'name',
     'Fecha de envío': 'start_date',
-    'Fecha de finalización planificada': 'estimated_end_date',
-    // Add more mappings as needed based on your Excel columns
+    // remedy_link se extraerá automáticamente del hipervínculo de 'ID de la incidencia*+'
+    // Todas las demás columnas se ignoran automáticamente
   };
 
   const handleImport = async (importedData: Partial<Development>[]) => {
     try {
-      // Prepare data for API
+      // Prepare data for API - Solo campos que existen en el backend
       const validData = importedData
         .filter(item => item.id) // Only items with ID
         .map(item => ({
+          // Campos requeridos
           id: item.id!,
           name: item.name ?? 'N/A',
-          provider: item.provider ?? 'N/A',
-          requesting_area: item.requesting_area ?? 'N/A',
-          main_responsible: item.main_responsible ?? 'N/A',
-          start_date: item.start_date ? new Date(item.start_date).toISOString() : new Date().toISOString(),
-          estimated_end_date: item.estimated_end_date ? new Date(item.estimated_end_date).toISOString() : new Date().toISOString(),
-          estimated_days: item.estimated_days ?? 0,
-          general_status: item.general_status ?? 'Pendiente',
-          current_stage: item.current_stage ?? '1. Definición',
+          
+          // Campos opcionales válidos
           description: item.description ?? '',
           module: item.module ?? '',
-          type: item.type ?? '',
+          type: item.type ?? 'Desarrollo',
           environment: item.environment ?? '',
-          remedy_link: item.remedy_link ?? '',
+          remedy_link: item.remedy_link ?? '', // Extraído del hipervínculo
+          provider: item.provider ?? 'N/A',
+          general_status: item.general_status ?? 'Pendiente',
+          
+          // Fecha en formato correcto (solo fecha, no datetime)
+          estimated_end_date: item.estimated_end_date 
+            ? new Date(item.estimated_end_date).toISOString().split('T')[0] 
+            : null,
+          
+          // Campos de fase/etapa (opcionales)
+          current_phase_id: null, // Se asignará automáticamente
+          current_stage_id: null, // Se asignará automáticamente
+          stage_progress_percentage: 0,
         }));
 
       if (validData.length === 0) {
@@ -132,8 +155,8 @@ const MyDevelopments: React.FC = () => {
         return;
       }
 
-      // Send to API
-      const response = await fetch('http://localhost:8000/developments/bulk', {
+      // Send to API using the legacy endpoint
+      const response = await fetch('http://localhost:8000/api/legacy/developments/bulk', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +170,7 @@ const MyDevelopments: React.FC = () => {
         
         // Refresh the developments list
         loadDevelopments();
-    } else {
+      } else {
         const errorData = await response.json();
         toast.error(`Error al importar: ${errorData.detail || 'Error desconocido'}`);
       }
@@ -247,6 +270,76 @@ const MyDevelopments: React.FC = () => {
     setSelectedDevelopment(dev);
     setEditingDevelopment(dev); // Keep a copy for the form
     setEditModalOpen(true);
+    setOpenDropdownId(null); // Cerrar dropdown
+  };
+
+  const handleDelete = (dev: Development) => {
+    setDeleteConfirmModal({
+      isOpen: true,
+      development: dev
+    });
+    setOpenDropdownId(null); // Cerrar dropdown
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmModal.development) return;
+    
+    const dev = deleteConfirmModal.development;
+    
+    try {
+      // Solución temporal: marcar como cancelado en lugar de eliminar
+      // Esto evita problemas con endpoints no disponibles
+      const result = await updateDevelopment(dev.id, {
+        name: dev.name,
+        description: dev.description,
+        current_stage_id: 11 // ID para "0. Cancelado"
+      });
+
+      if (result) {
+        toast.success(`Desarrollo "${dev.name}" marcado como cancelado`);
+        
+        // Actualizar la lista local
+        setDevelopments(prev => 
+          prev.map(d => d.id === dev.id ? { 
+            ...d, 
+            general_status: 'Cancelado', 
+            current_stage: { 
+              stage_name: '0. Cancelado', 
+              id: 11,
+              phase_id: 1,
+              stage_code: '0',
+              stage_description: 'Desarrollo cancelado',
+              is_milestone: false,
+              is_active: true,
+              created_at: new Date().toISOString()
+            } 
+          } : d)
+        );
+        
+        // Si el desarrollo cancelado estaba seleccionado, limpiar la selección
+        if (selectedDevelopment?.id === dev.id) {
+          setSelectedDevelopment(null);
+          setActiveView('list');
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error cancelando desarrollo:', error);
+      toast.error('Error al cancelar el desarrollo');
+    }
+    
+    // Cerrar modal de confirmación
+    setDeleteConfirmModal({
+      isOpen: false,
+      development: null
+    });
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmModal({
+      isOpen: false,
+      development: null
+    });
   };
 
   const handleCloseModal = () => {
@@ -496,7 +589,37 @@ const MyDevelopments: React.FC = () => {
                             >
                               <Eye size={18} />
                             </button>
-                            <button onClick={() => handleEdit(dev)} className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300"><Edit size={18} /></button>
+                            
+                            {/* Dropdown Menu */}
+                            <div className="relative">
+                              <button 
+                                onClick={() => setOpenDropdownId(openDropdownId === dev.id ? null : dev.id)}
+                                className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 p-1 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900"
+                              >
+                                <MoreVertical size={18} />
+                              </button>
+                              
+                              {openDropdownId === dev.id && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-lg z-10 border border-neutral-200 dark:border-neutral-700">
+                                  <div className="py-1">
+                                    <button
+                                      onClick={() => handleEdit(dev)}
+                                      className="flex items-center w-full px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                                    >
+                                      <Edit size={16} className="mr-3" />
+                                      Editar
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(dev)}
+                                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    >
+                                      <Trash2 size={16} className="mr-3" />
+                                      Eliminar
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -523,9 +646,37 @@ const MyDevelopments: React.FC = () => {
                       <button onClick={() => handleViewDetails(dev)} className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300">
                         <Eye size={16} />
                       </button>
-                      <button onClick={() => handleEdit(dev)} className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300">
-                        <Edit size={16} />
+                      
+                      {/* Dropdown Menu */}
+                      <div className="relative">
+                        <button 
+                          onClick={() => setOpenDropdownId(openDropdownId === dev.id ? null : dev.id)}
+                          className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 p-1 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        
+                        {openDropdownId === dev.id && (
+                          <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-lg z-10 border border-neutral-200 dark:border-neutral-700">
+                            <div className="py-1">
+                              <button
+                                onClick={() => handleEdit(dev)}
+                                className="flex items-center w-full px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                              >
+                                <Edit size={16} className="mr-3" />
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => handleDelete(dev)}
+                                className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 size={16} className="mr-3" />
+                                Eliminar
                       </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
@@ -935,6 +1086,52 @@ const MyDevelopments: React.FC = () => {
                 identifierKey="id"
                 darkMode={darkMode}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmModal.isOpen && deleteConfirmModal.development && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+          <div className={`rounded-lg shadow-xl w-full max-w-md ${darkMode ? 'bg-neutral-800' : 'bg-white'}`}>
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0 w-10 h-10 mx-auto flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+                  <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                  ¿Cancelar Desarrollo?
+                </h3>
+                <p className={`text-sm mb-4 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                  ¿Estás seguro de que deseas cancelar el desarrollo <strong>"{deleteConfirmModal.development.name}"</strong> ({deleteConfirmModal.development.id})?
+                </p>
+                <p className={`text-xs mb-6 ${darkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                  ⚠️ El desarrollo se marcará como cancelado y no se podrá reactivar fácilmente.
+                </p>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={cancelDelete}
+                  className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    darkMode 
+                      ? 'bg-neutral-600 hover:bg-neutral-500 text-white' 
+                      : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-900'
+                  }`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </div>
         </div>
