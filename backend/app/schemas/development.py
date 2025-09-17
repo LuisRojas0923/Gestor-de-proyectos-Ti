@@ -139,20 +139,117 @@ class DevelopmentBase(BaseModel):
     general_status: Optional[str] = Field("Pendiente", max_length=50, description="Estado general")
     estimated_end_date: Optional[date] = Field(None, description="Fecha estimada de fin")
     provider: Optional[str] = Field(None, max_length=100, description="Proveedor principal")
+    responsible: Optional[str] = Field(None, max_length=255, description="Responsable principal del desarrollo")
 
     @validator('general_status')
     def validate_general_status(cls, v):
         if v is None:
             return "Pendiente"
+        
+        # Mapeo de estados del Excel a estados válidos de la aplicación
+        status_mapping = {
+            'Resuelto': 'Completado',
+            'Resuelta': 'Completado',
+            'Cerrado': 'Completado',
+            'Cerrada': 'Completado',
+            'Finalizado': 'Completado',
+            'Finalizada': 'Completado',
+            'Terminado': 'Completado',
+            'Terminada': 'Completado',
+            'En Progreso': 'En curso',
+            'En Proceso': 'En curso',
+            'En Desarrollo': 'En curso',
+            'Abierto': 'En curso',
+            'Abierta': 'En curso',
+            'Nuevo': 'Pendiente',
+            'Nueva': 'Pendiente',
+            'Asignado': 'Pendiente',
+            'Asignada': 'Pendiente',
+            'Pendiente': 'Pendiente',
+            'Cancelado': 'Cancelado',
+            'Cancelada': 'Cancelado',
+            'Rechazado': 'Cancelado',
+            'Rechazada': 'Cancelado'
+        }
+        
+        # Normalizar el estado (quitar espacios y convertir a título)
+        normalized_status = str(v).strip().title()
+        
+        # Manejar casos especiales con espacios
+        if normalized_status == "En Curso":
+            return "En curso"
+        
+        # Buscar en el mapeo
+        if normalized_status in status_mapping:
+            return status_mapping[normalized_status]
+        
+        # Si no está en el mapeo, verificar si es un estado válido directo
         allowed_statuses = ['Pendiente', 'En curso', 'Completado', 'Cancelado']
-        if v not in allowed_statuses:
-            raise ValueError(f'general_status debe ser uno de: {allowed_statuses}')
+        if normalized_status in allowed_statuses:
+            return normalized_status
+        
+        # Si no se puede mapear, usar 'Pendiente' como valor por defecto
+        print(f"⚠️ Estado no reconocido: '{v}' -> mapeado a 'Pendiente'")
+        return "Pendiente"
+
+    @validator('estimated_end_date', pre=True)
+    def validate_estimated_end_date(cls, v):
+        if v is None or v == '':
+            return None
+        if isinstance(v, str):
+            try:
+                from datetime import datetime
+                return datetime.strptime(v, '%Y-%m-%d').date()
+            except ValueError:
+                raise ValueError('estimated_end_date debe estar en formato YYYY-MM-DD')
+        return v
+
+    @validator('name', pre=True)
+    def validate_name_length(cls, v):
+        if v and len(str(v)) > 255:
+            return str(v)[:255]  # Truncar si es muy largo
+        return v
+
+    @validator('module', pre=True)
+    def validate_module_length(cls, v):
+        if v and len(str(v)) > 100:
+            return str(v)[:100]  # Truncar si es muy largo
+        return v
+
+    @validator('type', pre=True)
+    def validate_type_length(cls, v):
+        if v and len(str(v)) > 50:
+            return str(v)[:50]  # Truncar si es muy largo
+        return v
+
+    @validator('environment', pre=True)
+    def validate_environment_length(cls, v):
+        if v and len(str(v)) > 100:
+            return str(v)[:100]  # Truncar si es muy largo
+        return v
+
+    @validator('provider', pre=True)
+    def validate_provider_length(cls, v):
+        if v and len(str(v)) > 100:
+            return str(v)[:100]  # Truncar si es muy largo
+        return v
+
+    @validator('responsible', pre=True)
+    def validate_responsible_length(cls, v):
+        if v and len(str(v)) > 255:
+            return str(v)[:255]  # Truncar si es muy largo
         return v
 
 
 class DevelopmentCreate(DevelopmentBase):
     """Schema para crear desarrollo"""
     id: str = Field(..., max_length=50, description="ID del desarrollo (No.Remedy)")
+
+    @validator('id', pre=True)
+    def validate_id_length(cls, v):
+        if v and len(str(v)) > 50:
+            return str(v)[:50]  # Truncar si es muy largo
+        return v
 
 
 class DevelopmentUpdate(BaseModel):
@@ -169,6 +266,7 @@ class DevelopmentUpdate(BaseModel):
     general_status: Optional[str] = Field(None, max_length=50, description="Estado general")
     estimated_end_date: Optional[date] = Field(None, description="Fecha estimada de fin")
     provider: Optional[str] = Field(None, max_length=100, description="Proveedor principal")
+    responsible: Optional[str] = Field(None, max_length=255, description="Responsable principal del desarrollo")
 
     @validator('general_status')
     def validate_general_status(cls, v):

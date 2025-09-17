@@ -68,6 +68,7 @@ export interface Development {
   general_status: 'Pendiente' | 'En curso' | 'Completado' | 'Cancelado';
   estimated_end_date?: string;
   provider?: string;
+  responsible?: string;
   
   // Timestamps
   created_at: string;
@@ -106,6 +107,7 @@ export interface DevelopmentCreate {
   remedy_link?: string;
   current_phase_id?: number;
   current_stage_id?: number;
+  responsible?: string;
 }
 
 export interface DevelopmentUpdate {
@@ -118,6 +120,9 @@ export interface DevelopmentUpdate {
   current_phase_id?: number;
   current_stage_id?: number;
   stage_progress_percentage?: number;
+  general_status?: 'Pendiente' | 'En curso' | 'Completado' | 'Cancelado';
+  provider?: string;
+  responsible?: string;
 }
 
 export interface DevelopmentDate {

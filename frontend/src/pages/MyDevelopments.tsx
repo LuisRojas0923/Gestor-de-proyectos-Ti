@@ -1,4 +1,4 @@
-import { Calendar, Edit, Eye, GitBranch, ListChecks, Search, ShieldCheck, SquarePen, Upload, X, Trash2, MoreVertical } from 'lucide-react';
+import { Calendar, Eye, GitBranch, ListChecks, Search, ShieldCheck, SquarePen, Upload, X, Trash2, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ExcelImporter from '../components/common/ExcelImporter';
@@ -86,7 +86,6 @@ const MyDevelopments: React.FC = () => {
   
   const [developments, setDevelopments] = useState<Development[]>([]);
   const [isImportModalOpen, setImportModalOpen] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean; development: Development | null }>({
     isOpen: false,
     development: null
@@ -97,24 +96,13 @@ const MyDevelopments: React.FC = () => {
     loadDevelopments();
   }, []);
 
-  // Cerrar dropdown al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = () => {
-      if (openDropdownId) {
-        setOpenDropdownId(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [openDropdownId]);
 
   // Column mapping for the importer - Updated to match your Excel structure
   const columnMapping = {
     'ID de la incidencia*+': 'id', // El texto será el ID, el hipervínculo será remedy_link
-    'Usuario asignado+': 'name',
+    'Usuario asignado+': 'responsible', // Campo Responsable de la aplicación
+    'Resumen*': 'name', // Nombre del desarrollo
+    'Estado*': 'general_status', // Mapear Estado* del Excel al general_status
     'Fecha de envío': 'start_date',
     // remedy_link se extraerá automáticamente del hipervínculo de 'ID de la incidencia*+'
     // Todas las demás columnas se ignoran automáticamente
@@ -124,11 +112,27 @@ const MyDevelopments: React.FC = () => {
     try {
       // Prepare data for API - Solo campos que existen en el backend
       const validData = importedData
-        .filter(item => item.id) // Only items with ID
+        .filter(item => {
+          // Filtrar filas que no son desarrollos reales
+          if (!item.id) return false;
+          
+          // Filtrar marcas temporales (formato de fecha)
+          const idStr = item.id.toString();
+          if (idStr.match(/^\d{1,2}\s+(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\.?\s+\d{4}\s+\d{1,2}:\d{2}$/i)) {
+            return false;
+          }
+          
+          // Filtrar IDs que no siguen el formato de Remedy (INC + números)
+          if (!idStr.match(/^INC\d+$/)) {
+            return false;
+          }
+          
+          return true;
+        })
         .map(item => ({
           // Campos requeridos
           id: item.id!,
-          name: item.name ?? 'N/A',
+          name: item.name ?? 'N/A', // Ahora viene del campo 'Resumen*'
           
           // Campos opcionales válidos
           description: item.description ?? '',
@@ -137,6 +141,7 @@ const MyDevelopments: React.FC = () => {
           environment: item.environment ?? '',
           remedy_link: item.remedy_link ?? '', // Extraído del hipervínculo
           provider: item.provider ?? 'N/A',
+          responsible: (item as any).responsible ?? 'N/A', // Ahora viene del campo 'Usuario asignado+'
           general_status: item.general_status ?? 'Pendiente',
           
           // Fecha en formato correcto (solo fecha, no datetime)
@@ -151,9 +156,18 @@ const MyDevelopments: React.FC = () => {
         }));
 
       if (validData.length === 0) {
-        toast.error('No se encontraron datos válidos para importar.');
+        const filteredCount = importedData.length - validData.length;
+        if (filteredCount > 0) {
+          toast.error(`No se encontraron datos válidos para importar. Se filtraron ${filteredCount} filas con IDs inválidos o marcas temporales.`);
+        } else {
+          toast.error('No se encontraron datos válidos para importar.');
+        }
         return;
       }
+
+      // Log data being sent
+      console.log('Datos a enviar:', validData);
+      console.log('Primer elemento:', validData[0]);
 
       // Send to API using the legacy endpoint
       const response = await fetch('http://localhost:8000/api/legacy/developments/bulk', {
@@ -165,14 +179,50 @@ const MyDevelopments: React.FC = () => {
       });
 
       if (response.ok) {
-        const createdDevelopments = await response.json();
-        toast.success(`${createdDevelopments.length} desarrollo(s) importado(s) exitosamente.`);
+        const result = await response.json();
+        
+        // Mostrar mensaje detallado basado en la respuesta
+        const summary = result.data.summary;
+        let message = `Importación completada: `;
+        
+        if (summary.created > 0) {
+          message += `${summary.created} creado(s)`;
+        }
+        if (summary.updated > 0) {
+          if (summary.created > 0) message += ', ';
+          message += `${summary.updated} actualizado(s)`;
+        }
+        if (summary.skipped > 0) {
+          if (summary.created > 0 || summary.updated > 0) message += ', ';
+          message += `${summary.skipped} sin cambios`;
+        }
+        
+        toast.success(message);
         
         // Refresh the developments list
         loadDevelopments();
       } else {
         const errorData = await response.json();
-        toast.error(`Error al importar: ${errorData.detail || 'Error desconocido'}`);
+        console.error('Error de importación completo:', errorData);
+        
+        // Mostrar detalles específicos del error
+        if (errorData.detail && Array.isArray(errorData.detail)) {
+          console.error('Errores de validación completos:', errorData.detail);
+          
+          // Mostrar todos los errores en la consola
+          errorData.detail.forEach((error: any, index: number) => {
+            console.error(`Error ${index + 1}:`, error);
+          });
+          
+          const firstError = errorData.detail[0];
+          if (firstError && firstError.loc && firstError.msg) {
+            toast.error(`Error de validación: ${firstError.msg} en ${firstError.loc.join('.')} (${errorData.detail.length} errores total)`);
+          } else {
+            toast.error(`Error de validación: ${JSON.stringify(errorData.detail[0])} (${errorData.detail.length} errores total)`);
+          }
+        } else {
+          toast.error(`Error al importar: ${errorData.detail || 'Error desconocido'}`);
+        }
       }
     } catch (error) {
       console.error('Error importing developments:', error);
@@ -185,6 +235,13 @@ const MyDevelopments: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [providerFilter, setProviderFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [responsibleFilter, setResponsibleFilter] = useState('all');
+  const [groupBy, setGroupBy] = useState<'none' | 'provider' | 'module' | 'responsible'>('none');
+  
+  // Estados para ordenamiento
+  const [sortField, setSortField] = useState<keyof Development | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const loadDevelopments = async () => {
     try {
@@ -270,7 +327,6 @@ const MyDevelopments: React.FC = () => {
     setSelectedDevelopment(dev);
     setEditingDevelopment(dev); // Keep a copy for the form
     setEditModalOpen(true);
-    setOpenDropdownId(null); // Cerrar dropdown
   };
 
   const handleDelete = (dev: Development) => {
@@ -278,7 +334,6 @@ const MyDevelopments: React.FC = () => {
       isOpen: true,
       development: dev
     });
-    setOpenDropdownId(null); // Cerrar dropdown
   };
 
   const confirmDelete = async () => {
@@ -286,47 +341,36 @@ const MyDevelopments: React.FC = () => {
     
     const dev = deleteConfirmModal.development;
     
-    try {
-      // Solución temporal: marcar como cancelado en lugar de eliminar
-      // Esto evita problemas con endpoints no disponibles
-      const result = await updateDevelopment(dev.id, {
-        name: dev.name,
-        description: dev.description,
-        current_stage_id: 11 // ID para "0. Cancelado"
-      });
+      try {
+        // Eliminar realmente el desarrollo de la base de datos
+        const response = await fetch(`http://localhost:8000/api/v1/developments/${dev.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      if (result) {
-        toast.success(`Desarrollo "${dev.name}" marcado como cancelado`);
-        
-        // Actualizar la lista local
-        setDevelopments(prev => 
-          prev.map(d => d.id === dev.id ? { 
-            ...d, 
-            general_status: 'Cancelado', 
-            current_stage: { 
-              stage_name: '0. Cancelado', 
-              id: 11,
-              phase_id: 1,
-              stage_code: '0',
-              stage_description: 'Desarrollo cancelado',
-              is_milestone: false,
-              is_active: true,
-              created_at: new Date().toISOString()
-            } 
-          } : d)
-        );
-        
-        // Si el desarrollo cancelado estaba seleccionado, limpiar la selección
-        if (selectedDevelopment?.id === dev.id) {
-          setSelectedDevelopment(null);
-          setActiveView('list');
+        if (response.ok) {
+          toast.success(`Desarrollo "${dev.name}" eliminado exitosamente`);
+          
+          // Remover el desarrollo de la lista local
+          setDevelopments(prev => prev.filter(d => d.id !== dev.id));
+          
+          // Si el desarrollo eliminado estaba seleccionado, limpiar la selección
+          if (selectedDevelopment?.id === dev.id) {
+            setSelectedDevelopment(null);
+            setActiveView('list');
+          }
+        } else {
+          const errorData = await response.json();
+          console.error('Error eliminando desarrollo:', errorData);
+          toast.error(`Error al eliminar el desarrollo: ${errorData.detail || 'Error desconocido'}`);
         }
+        
+      } catch (error) {
+        console.error('Error eliminando desarrollo:', error);
+        toast.error('Error al conectar con el servidor para eliminar el desarrollo');
       }
-      
-    } catch (error) {
-      console.error('Error cancelando desarrollo:', error);
-      toast.error('Error al cancelar el desarrollo');
-    }
     
     // Cerrar modal de confirmación
     setDeleteConfirmModal({
@@ -385,14 +429,14 @@ const MyDevelopments: React.FC = () => {
       const result = await updateDevelopment(editingDevelopment.id, {
         name: editingDevelopment.name,
         description: editingDevelopment.description,
+        general_status: editingDevelopment.general_status,
+        provider: editingDevelopment.provider,
         current_stage_id: currentStageId
       });
 
       if (result) {
-        // Actualizar la lista de desarrollos
-        setDevelopments(prev => 
-          prev.map(dev => dev.id === editingDevelopment.id ? { ...dev, ...result } : dev)
-        );
+        // Recargar la lista de desarrollos para obtener los datos actualizados
+        await loadDevelopments();
         
         // Cerrar modal
         setEditModalOpen(false);
@@ -406,17 +450,66 @@ const MyDevelopments: React.FC = () => {
     }
   };
 
+  // Función para manejar el ordenamiento
+  const handleSort = (field: keyof Development) => {
+    if (sortField === field) {
+      // Si ya está ordenando por este campo, cambiar la dirección
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Si es un campo nuevo, empezar con ascendente
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Función para obtener el valor de ordenamiento de un desarrollo
+  const getSortValue = (dev: Development, field: keyof Development) => {
+    const value = dev[field];
+    
+    // Manejar casos especiales
+    if (field === 'current_stage') {
+      if (typeof value === 'object' && value !== null && 'stage_name' in value) {
+        return (value as any).stage_name || '';
+      }
+      return String(value || '');
+    }
+    
+    // Para otros campos, convertir a string para comparación
+    return String(value || '').toLowerCase();
+  };
+
 
   const filteredDevelopments = useMemo(() => {
-    return developments.filter((dev) => {
+    let filtered = developments.filter((dev) => {
       const matchesSearch =
         dev.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         dev.id.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesProvider = providerFilter === 'all' || dev.provider === providerFilter;
       const matchesStatus = statusFilter === 'all' || dev.general_status === statusFilter;
-      return matchesSearch && matchesProvider && matchesStatus;
+      const matchesModule = moduleFilter === 'all' || dev.module === moduleFilter;
+      const matchesResponsible = responsibleFilter === 'all' || dev.responsible === responsibleFilter;
+      return matchesSearch && matchesProvider && matchesStatus && matchesModule && matchesResponsible;
     });
-  }, [searchTerm, providerFilter, statusFilter, developments]);
+
+    // Aplicar ordenamiento si hay un campo seleccionado
+    if (sortField) {
+      filtered.sort((a, b) => {
+        const aValue = getSortValue(a, sortField);
+        const bValue = getSortValue(b, sortField);
+        
+        let comparison = 0;
+        if (aValue < bValue) {
+          comparison = -1;
+        } else if (aValue > bValue) {
+          comparison = 1;
+        }
+        
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }, [searchTerm, providerFilter, statusFilter, moduleFilter, responsibleFilter, developments, sortField, sortDirection]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -433,6 +526,26 @@ const MyDevelopments: React.FC = () => {
   
   const uniqueProviders = [...new Set(developments.map(dev => dev.provider))];
   const uniqueStatuses = [...new Set(developments.map(dev => dev.general_status))];
+  const uniqueModules = [...new Set(developments.map(dev => dev.module).filter(Boolean))];
+  const uniqueResponsibles = [...new Set(developments.map(dev => dev.responsible).filter(Boolean))];
+
+  // Función para agrupar desarrollos
+  const groupedDevelopments = useMemo(() => {
+    if (groupBy === 'none') {
+      return { 'Todos': filteredDevelopments };
+    }
+
+    const groups: { [key: string]: Development[] } = {};
+    filteredDevelopments.forEach(dev => {
+      const groupKey = dev[groupBy] || 'Sin especificar';
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(dev);
+    });
+
+    return groups;
+  }, [filteredDevelopments, groupBy]);
 
   return (
     <div className="flex h-full">
@@ -494,54 +607,146 @@ const MyDevelopments: React.FC = () => {
               darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
             } border rounded-xl p-6`}
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="relative sm:col-span-2 lg:col-span-2">
-                <Search
-                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
-                    darkMode ? 'text-neutral-400' : 'text-neutral-500'
-                  }`}
-                  size={20}
-                />
-                <input
-                  type="text"
-                  placeholder="Buscar por ID o nombre..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`pl-10 pr-4 py-2 w-full rounded-lg border transition-colors ${
+            <div className="space-y-4">
+              {/* Fila 1: Búsqueda y Agrupación */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="relative sm:col-span-2 lg:col-span-2">
+                  <Search
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+                      darkMode ? 'text-neutral-400' : 'text-neutral-500'
+                    }`}
+                    size={20}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Buscar por ID o nombre..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className={`pl-10 pr-4 py-2 w-full rounded-lg border transition-colors ${
+                      darkMode
+                        ? 'bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400'
+                        : 'bg-neutral-50 border-neutral-300 text-neutral-900 placeholder-neutral-500'
+                    } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
+                  />
+                </div>
+
+                <select
+                  value={groupBy}
+                  onChange={(e) => setGroupBy(e.target.value as any)}
+                  className={`px-4 py-2 rounded-lg border transition-colors ${
                     darkMode
-                      ? 'bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400'
-                      : 'bg-neutral-50 border-neutral-300 text-neutral-900 placeholder-neutral-500'
+                      ? 'bg-neutral-700 border-neutral-600 text-white'
+                      : 'bg-neutral-50 border-neutral-300 text-neutral-900'
                   } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
-                />
+                >
+                  <option value="none">Sin agrupar</option>
+                  <option value="provider">Agrupar por Proveedor</option>
+                  <option value="module">Agrupar por Módulo</option>
+                  <option value="responsible">Agrupar por Responsable</option>
+                </select>
               </div>
 
-              <select
-                value={providerFilter}
-                onChange={(e) => setProviderFilter(e.target.value)}
-                className={`px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
-                    ? 'bg-neutral-700 border-neutral-600 text-white'
-                    : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
-              >
-                <option value="all">Todos los Proveedores</option>
-                {uniqueProviders.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
+              {/* Fila 2: Filtros de Organización */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <select
+                  value={providerFilter}
+                  onChange={(e) => setProviderFilter(e.target.value)}
+                  className={`px-4 py-2 rounded-lg border transition-colors ${
+                    darkMode
+                      ? 'bg-neutral-700 border-neutral-600 text-white'
+                      : 'bg-neutral-50 border-neutral-300 text-neutral-900'
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
+                >
+                  <option value="all">Todos los Proveedores</option>
+                  {uniqueProviders.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
 
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className={`px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
-                    ? 'bg-neutral-700 border-neutral-600 text-white'
-                    : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
-              >
-                <option value="all">Todos los Estados</option>
-                 {uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+                <select
+                  value={moduleFilter}
+                  onChange={(e) => setModuleFilter(e.target.value)}
+                  className={`px-4 py-2 rounded-lg border transition-colors ${
+                    darkMode
+                      ? 'bg-neutral-700 border-neutral-600 text-white'
+                      : 'bg-neutral-50 border-neutral-300 text-neutral-900'
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
+                >
+                  <option value="all">Todos los Módulos</option>
+                  {uniqueModules.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+
+                <select
+                  value={responsibleFilter}
+                  onChange={(e) => setResponsibleFilter(e.target.value)}
+                  className={`px-4 py-2 rounded-lg border transition-colors ${
+                    darkMode
+                      ? 'bg-neutral-700 border-neutral-600 text-white'
+                      : 'bg-neutral-50 border-neutral-300 text-neutral-900'
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
+                >
+                  <option value="all">Todos los Responsables</option>
+                  {uniqueResponsibles.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className={`px-4 py-2 rounded-lg border transition-colors ${
+                    darkMode
+                      ? 'bg-neutral-700 border-neutral-600 text-white'
+                      : 'bg-neutral-50 border-neutral-300 text-neutral-900'
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
+                >
+                  <option value="all">Todos los Estados</option>
+                   {uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
             </div>
           </div>
+
+          {/* Estadísticas por Organización */}
+          {groupBy !== 'none' && (
+            <div className={`${
+              darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+            } border rounded-xl p-6`}>
+              <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                Estadísticas por {groupBy === 'provider' ? 'Proveedor' : groupBy === 'module' ? 'Módulo' : 'Responsable'}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(groupedDevelopments).map(([groupName, groupDevelopments]) => {
+                  const statusCounts = groupDevelopments.reduce((acc, dev) => {
+                    acc[dev.general_status] = (acc[dev.general_status] || 0) + 1;
+                    return acc;
+                  }, {} as { [key: string]: number });
+
+                  return (
+                    <div key={groupName} className={`${
+                      darkMode ? 'bg-neutral-700' : 'bg-neutral-50'
+                    } rounded-lg p-4`}>
+                      <h4 className={`font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                        {groupName}
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className={darkMode ? 'text-neutral-300' : 'text-neutral-600'}>Total:</span>
+                          <span className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                            {groupDevelopments.length}
+                          </span>
+                        </div>
+                        {Object.entries(statusCounts).map(([status, count]) => (
+                          <div key={status} className="flex justify-between">
+                            <span className={darkMode ? 'text-neutral-300' : 'text-neutral-600'}>{status}:</span>
+                            <span className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                              {count}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Contenido Principal - Vista Condicional */}
           <div className="overflow-hidden">
@@ -549,156 +754,157 @@ const MyDevelopments: React.FC = () => {
             {activeView === 'list' && (
               <>
                 {/* Desktop Table View */}
-                <div className="hidden lg:block">
-              <div className={`${
-                  darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-                } border rounded-xl overflow-hidden`}>
-                <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
-                  <thead className={darkMode ? 'bg-neutral-800' : 'bg-neutral-50'}>
-                    <tr>
-                      {['ID Remedy', 'Nombre Desarrollo', 'Proveedor', 'Responsable', 'Estado', 'Progreso', 'Acciones'].map(header => (
-                         <th key={header} scope="col" className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                           {header}
-                         </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
-                    {filteredDevelopments.map((dev) => (
-                      <tr key={dev.id} className="hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-primary-500 dark:text-primary-400">{dev.id}</td>
-                        <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{dev.name}</td>
-                        <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.provider || 'N/A'}</td>
-                        <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.main_responsible || 'N/A'}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(dev.general_status)}`}>
-                            {dev.general_status}
-                          </span>
-                        </td>
-                        <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-                          {typeof dev.current_stage === 'object' ? dev.current_stage?.stage_name || 'N/A' : dev.current_stage}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
-                            <button 
-                              onClick={() => {
-                                console.log('Button clicked for:', dev.id);
-                                handleViewDetails(dev);
-                              }} 
-                              className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 bg-blue-100 dark:bg-blue-900 p-1 rounded"
-                            >
-                              <Eye size={18} />
-                            </button>
-                            
-                            {/* Dropdown Menu */}
-                            <div className="relative">
-                              <button 
-                                onClick={() => setOpenDropdownId(openDropdownId === dev.id ? null : dev.id)}
-                                className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 p-1 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900"
-                              >
-                                <MoreVertical size={18} />
-                              </button>
-                              
-                              {openDropdownId === dev.id && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-lg z-10 border border-neutral-200 dark:border-neutral-700">
-                                  <div className="py-1">
-                                    <button
-                                      onClick={() => handleEdit(dev)}
-                                      className="flex items-center w-full px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-                                    >
-                                      <Edit size={16} className="mr-3" />
-                                      Editar
-                                    </button>
-                                    <button
-                                      onClick={() => handleDelete(dev)}
-                                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                    >
-                                      <Trash2 size={16} className="mr-3" />
-                                      Eliminar
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Card View for Tablets and Smaller Laptops */}
-            <div className="lg:hidden space-y-4">
-              {filteredDevelopments.map((dev) => (
-                <div key={dev.id} className={`${
-                  darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-                } border rounded-xl p-4 hover:shadow-md transition-shadow`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className={`font-medium text-sm ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                        {dev.name}
-                      </h3>
-                      <p className="text-xs text-primary-500 dark:text-primary-400 mt-1">{dev.id}</p>
-                    </div>
-                    <div className="flex items-center space-x-2 ml-4">
-                      <button onClick={() => handleViewDetails(dev)} className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300">
-                        <Eye size={16} />
-                      </button>
+                <div className="hidden lg:block space-y-6">
+                  {Object.entries(groupedDevelopments).map(([groupName, groupDevelopments]) => (
+                    <div key={groupName} className="space-y-3">
+                      {/* Header del grupo */}
+                      {groupBy !== 'none' && (
+                        <div className={`${darkMode ? 'bg-neutral-700' : 'bg-neutral-100'} rounded-lg p-3`}>
+                          <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                            {groupName} ({groupDevelopments.length} desarrollos)
+                          </h3>
+                        </div>
+                      )}
                       
-                      {/* Dropdown Menu */}
-                      <div className="relative">
-                        <button 
-                          onClick={() => setOpenDropdownId(openDropdownId === dev.id ? null : dev.id)}
-                          className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 p-1 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900"
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-                        
-                        {openDropdownId === dev.id && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-lg z-10 border border-neutral-200 dark:border-neutral-700">
-                            <div className="py-1">
-                              <button
-                                onClick={() => handleEdit(dev)}
-                                className="flex items-center w-full px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-                              >
-                                <Edit size={16} className="mr-3" />
-                                Editar
-                              </button>
-                              <button
-                                onClick={() => handleDelete(dev)}
-                                className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                              >
-                                <Trash2 size={16} className="mr-3" />
-                                Eliminar
-                      </button>
-                            </div>
-                          </div>
-                        )}
+                      <div className={`${
+                        darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+                      } border rounded-xl overflow-hidden`}>
+                        <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
+                          <thead className={darkMode ? 'bg-neutral-800' : 'bg-neutral-50'}>
+                            <tr>
+                              {[
+                                { key: 'id', label: 'ID Remedy' },
+                                { key: 'name', label: 'Nombre Desarrollo' },
+                                { key: 'provider', label: 'Proveedor' },
+                                { key: 'responsible', label: 'Responsable' },
+                                { key: 'general_status', label: 'Estado' },
+                                { key: 'current_stage', label: 'Progreso' },
+                                { key: 'actions', label: 'Acciones' }
+                              ].map(({ key, label }) => (
+                                <th key={key} scope="col" className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                                  {key === 'actions' ? (
+                                    label
+                                  ) : (
+                                    <button
+                                      onClick={() => handleSort(key as keyof Development)}
+                                      className="flex items-center space-x-1 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
+                                    >
+                                      <span>{label}</span>
+                                      <div className="flex flex-col">
+                                        <ChevronUp 
+                                          size={12} 
+                                          className={`${
+                                            sortField === key && sortDirection === 'asc' 
+                                              ? 'text-primary-500' 
+                                              : 'text-neutral-400'
+                                          }`} 
+                                        />
+                                        <ChevronDown 
+                                          size={12} 
+                                          className={`${
+                                            sortField === key && sortDirection === 'desc' 
+                                              ? 'text-primary-500' 
+                                              : 'text-neutral-400'
+                                          }`} 
+                                        />
+                                      </div>
+                                    </button>
+                                  )}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
+                            {groupDevelopments.map((dev) => (
+                              <tr key={dev.id} className="hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-primary-500 dark:text-primary-400">{dev.id}</td>
+                                <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{dev.name}</td>
+                                <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.provider || 'N/A'}</td>
+                                <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.responsible || 'N/A'}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(dev.general_status)}`}>
+                                    {dev.general_status}
+                                  </span>
+                                </td>
+                                <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                                  {typeof dev.current_stage === 'object' ? dev.current_stage?.stage_name || 'N/A' : dev.current_stage}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                                  <div className="flex items-center space-x-2">
+                                    <button 
+                                      onClick={() => {
+                                        console.log('Button clicked for:', dev.id);
+                                        handleViewDetails(dev);
+                                      }} 
+                                      className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 bg-blue-100 dark:bg-blue-900 p-1 rounded"
+                                    >
+                                      <Eye size={18} />
+                                    </button>
+                                    
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className={`font-medium ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>Responsable:</span>
-                      <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mt-1`}>{dev.main_responsible || 'N/A'}</p>
+                  ))}
+                </div>
+
+            {/* Card View for Tablets and Smaller Laptops */}
+            <div className="lg:hidden space-y-6">
+              {Object.entries(groupedDevelopments).map(([groupName, groupDevelopments]) => (
+                <div key={groupName} className="space-y-4">
+                  {/* Header del grupo */}
+                  {groupBy !== 'none' && (
+                    <div className={`${darkMode ? 'bg-neutral-700' : 'bg-neutral-100'} rounded-lg p-3`}>
+                      <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                        {groupName} ({groupDevelopments.length} desarrollos)
+                      </h3>
                     </div>
-                    <div>
-                      <span className={`font-medium ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>Proveedor:</span>
-                      <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mt-1`}>{dev.provider || 'N/A'}</p>
-                    </div>
-                  </div>
+                  )}
                   
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(dev.general_status)}`}>
-                      {dev.general_status}
-                    </span>
-                    <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
-                      {typeof dev.current_stage === 'object' ? dev.current_stage?.stage_name || 'N/A' : dev.current_stage}
-                    </span>
-                  </div>
+                  {groupDevelopments.map((dev) => (
+                    <div key={dev.id} className={`${
+                      darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+                    } border rounded-xl p-4 hover:shadow-md transition-shadow`}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className={`font-medium text-sm ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                            {dev.name}
+                          </h3>
+                          <p className="text-xs text-primary-500 dark:text-primary-400 mt-1">{dev.id}</p>
+                        </div>
+                        <div className="flex items-center space-x-2 ml-4">
+                          <button onClick={() => handleViewDetails(dev)} className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300">
+                            <Eye size={16} />
+                          </button>
+                          
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className={`font-medium ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>Responsable:</span>
+                          <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mt-1`}>{dev.responsible || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <span className={`font-medium ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>Proveedor:</span>
+                          <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mt-1`}>{dev.provider || 'N/A'}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(dev.general_status)}`}>
+                          {dev.general_status}
+                        </span>
+                        <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                          {typeof dev.current_stage === 'object' ? dev.current_stage?.stage_name || 'N/A' : dev.current_stage}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
@@ -728,6 +934,30 @@ const MyDevelopments: React.FC = () => {
                           >
                             <SquarePen size={18} />
                             <span>Editar</span>
+                          </button>
+                          {selectedDevelopment.remedy_link && (
+                            <button 
+                              onClick={() => window.open(selectedDevelopment.remedy_link, '_blank')}
+                              className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+                                darkMode 
+                                  ? 'bg-blue-700 hover:bg-blue-600 text-white' 
+                                  : 'bg-blue-200 hover:bg-blue-300 text-blue-900'
+                              }`}
+                            >
+                              <ExternalLink size={18} />
+                              <span>Remedy</span>
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => handleDelete(selectedDevelopment)}
+                            className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+                              darkMode 
+                                ? 'bg-red-700 hover:bg-red-600 text-white' 
+                                : 'bg-red-200 hover:bg-red-300 text-red-900'
+                            }`}
+                          >
+                            <Trash2 size={18} />
+                            <span>Eliminar</span>
                           </button>
                           <button 
                             onClick={() => setActiveView('list')}
@@ -760,7 +990,7 @@ const MyDevelopments: React.FC = () => {
                 </div>
                  <div>
                   <label className="text-xs text-neutral-500 dark:text-neutral-400">Responsable</label>
-                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.main_responsible || 'N/A'}</p>
+                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{selectedDevelopment.responsible || 'N/A'}</p>
                         </div>
                 </div>
               </div>
@@ -1029,6 +1259,14 @@ const MyDevelopments: React.FC = () => {
                     <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Nombre Desarrollo</label>
                     <input type="text" name="name" value={editingDevelopment.name} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`} />
                   </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Proveedor</label>
+                    <input type="text" name="provider" value={editingDevelopment.provider || ''} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`} placeholder="Ingrese el proveedor" />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Responsable</label>
+                    <input type="text" name="responsible" value={editingDevelopment.responsible || ''} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`} placeholder="Ingrese el responsable" />
+                  </div>
                    <div>
                     <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Estado General</label>
                      <select name="general_status" value={editingDevelopment.general_status} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`}>
@@ -1037,7 +1275,7 @@ const MyDevelopments: React.FC = () => {
                   </div>
                   <div>
                     <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Etapa del Progreso</label>
-                    <select name="current_stage" value={typeof editingDevelopment.current_stage === 'object' ? editingDevelopment.current_stage?.stage_name || '1. Definición' : editingDevelopment.current_stage} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`}>
+                    <select name="current_stage" value={typeof editingDevelopment.current_stage === 'object' ? editingDevelopment.current_stage?.stage_name || '1. Definición' : editingDevelopment.current_stage || '1. Definición'} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`}>
                        <optgroup label="--- EN EJECUCIÓN ---">
                          {executionStages.map(stage => <option key={stage} value={stage}>{stage}</option>)}
                        </optgroup>
@@ -1102,17 +1340,17 @@ const MyDevelopments: React.FC = () => {
                 </div>
               </div>
               
-              <div className="text-center">
-                <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                  ¿Cancelar Desarrollo?
-                </h3>
-                <p className={`text-sm mb-4 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-                  ¿Estás seguro de que deseas cancelar el desarrollo <strong>"{deleteConfirmModal.development.name}"</strong> ({deleteConfirmModal.development.id})?
-                </p>
-                <p className={`text-xs mb-6 ${darkMode ? 'text-orange-400' : 'text-orange-600'}`}>
-                  ⚠️ El desarrollo se marcará como cancelado y no se podrá reactivar fácilmente.
-                </p>
-              </div>
+                <div className="text-center">
+                  <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                    ¿Eliminar Desarrollo?
+                  </h3>
+                  <p className={`text-sm mb-4 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                    ¿Estás seguro de que deseas eliminar el desarrollo <strong>"{deleteConfirmModal.development.name}"</strong> ({deleteConfirmModal.development.id})?
+                  </p>
+                 <p className={`text-xs mb-6 ${darkMode ? 'text-red-400' : 'text-red-600'}`}>
+                   ⚠️ Esta acción no se puede deshacer. El desarrollo será eliminado permanentemente.
+                  </p>
+                </div>
               
               <div className="flex space-x-3">
                 <button
@@ -1127,9 +1365,9 @@ const MyDevelopments: React.FC = () => {
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+                  className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
                 >
-                  Cancelar
+                  Eliminar
                 </button>
               </div>
             </div>

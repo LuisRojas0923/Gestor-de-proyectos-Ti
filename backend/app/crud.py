@@ -2,7 +2,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
 from typing import List, Optional, Dict
 from datetime import datetime, timedelta
-from . import models, schemas
+from . import models
+from . import schemas
+from .schemas import development as dev_schemas
 
 # User CRUD operations (legacy - mantener por compatibilidad)
 def get_user(db: Session, user_id: int):
@@ -88,23 +90,82 @@ def get_development(db: Session, development_id: str):
 def get_developments(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Development).offset(skip).limit(limit).all()
 
-def create_development(db: Session, development: schemas.DevelopmentCreate):
+def create_development(db: Session, development: dev_schemas.DevelopmentCreate):
     db_development = models.Development(**development.dict())
     db.add(db_development)
     db.commit()
     db.refresh(db_development)
     return db_development
 
-def create_developments_bulk(db: Session, developments: List[schemas.DevelopmentCreate]):
-    """Create multiple developments in bulk"""
-    db_developments = [models.Development(**dev.dict()) for dev in developments]
-    db.add_all(db_developments)
-    db.commit()
-    for dev in db_developments:
-        db.refresh(dev)
-    return db_developments
+def create_developments_bulk(db: Session, developments: List[dev_schemas.DevelopmentCreate]):
+    """Create multiple developments in bulk, updating state for existing ones"""
+    created_developments = []
+    updated_developments = []
+    skipped_developments = []
+    
+    for dev_data in developments:
+        # Validar que el ID tenga formato válido de Remedy
+        if not dev_data.id or not dev_data.id.startswith('INC') or not dev_data.id[3:].isdigit():
+            skipped_developments.append({
+                "id": dev_data.id,
+                "reason": "ID inválido - no es formato Remedy"
+            })
+            continue
+        # Verificar si el desarrollo ya existe
+        existing_dev = db.query(models.Development).filter(
+            models.Development.id == dev_data.id
+        ).first()
+        
+        if existing_dev:
+            # Verificar si el estado es diferente
+            if existing_dev.general_status != dev_data.general_status:
+                # Actualizar solo el estado del desarrollo existente
+                existing_dev.general_status = dev_data.general_status
+                existing_dev.updated_at = datetime.utcnow()
+                updated_developments.append({
+                    "id": existing_dev.id,
+                    "old_status": existing_dev.general_status,
+                    "new_status": dev_data.general_status,
+                    "development": existing_dev
+                })
+            else:
+                # Estado igual, no hacer nada
+                skipped_developments.append({
+                    "id": existing_dev.id,
+                    "status": existing_dev.general_status,
+                    "reason": "Estado igual"
+                })
+        else:
+            # Crear nuevo desarrollo
+            new_dev = models.Development(**dev_data.dict())
+            db.add(new_dev)
+            created_developments.append(new_dev)
+    
+    try:
+        db.commit()
+        
+        # Refresh todos los objetos
+        for dev in created_developments:
+            db.refresh(dev)
+        for update_info in updated_developments:
+            db.refresh(update_info["development"])
+        
+        return {
+            "created": created_developments,
+            "updated": updated_developments,
+            "skipped": skipped_developments,
+            "summary": {
+                "total_processed": len(developments),
+                "created": len(created_developments),
+                "updated": len(updated_developments),
+                "skipped": len(skipped_developments)
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        raise e
 
-def update_development(db: Session, development_id: str, development_update: schemas.DevelopmentUpdate):
+def update_development(db: Session, development_id: str, development_update: dev_schemas.DevelopmentUpdate):
     db_development = get_development(db, development_id)
     if db_development:
         update_data = development_update.dict(exclude_unset=True)

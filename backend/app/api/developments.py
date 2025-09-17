@@ -6,13 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
-from .. import crud, models, schemas
+from .. import crud, models
+from ..schemas import development as dev_schemas
 from ..database import get_db
 
 router = APIRouter(prefix="/developments", tags=["developments"])
 
 
-@router.get("/", response_model=List[schemas.Development])
+@router.get("/", response_model=List[dev_schemas.Development])
 def get_developments(
     skip: int = 0,
     limit: int = 100,
@@ -29,16 +30,16 @@ def get_developments(
         return crud.get_developments(db, skip, limit)
 
 
-@router.post("/", response_model=schemas.Development)
+@router.post("/", response_model=dev_schemas.Development)
 def create_development(
-    development: schemas.DevelopmentCreate,
+    development: dev_schemas.DevelopmentCreate,
     db: Session = Depends(get_db)
 ):
     """Crear nuevo desarrollo"""
     return crud.create_development(db, development)
 
 
-@router.get("/{development_id}", response_model=schemas.Development)
+@router.get("/{development_id}", response_model=dev_schemas.Development)
 def get_development(
     development_id: str,
     db: Session = Depends(get_db)
@@ -53,10 +54,10 @@ def get_development(
     return development
 
 
-@router.put("/{development_id}", response_model=schemas.Development)
+@router.put("/{development_id}", response_model=dev_schemas.Development)
 def update_development(
     development_id: str,
-    development_update: schemas.DevelopmentUpdate,
+    development_update: dev_schemas.DevelopmentUpdate,
     db: Session = Depends(get_db)
 ):
     """Actualizar desarrollo existente"""
@@ -110,20 +111,37 @@ def delete_development(
     return {"message": "Development deleted successfully"}
 
 
-@router.post("/bulk", response_model=List[schemas.Development])
+@router.post("/bulk")
 def create_developments_bulk(
-    developments: List[schemas.DevelopmentCreate],
+    developments: List[dev_schemas.DevelopmentCreate],
     db: Session = Depends(get_db)
 ):
-    """Importar múltiples desarrollos"""
-    return crud.create_developments_bulk(db, developments)
+    """Importar múltiples desarrollos, actualizando estados de existentes"""
+    try:
+        print(f"Recibidos {len(developments)} desarrollos para importar")
+        print(f"Primer desarrollo: {developments[0].dict() if developments else 'No hay datos'}")
+        result = crud.create_developments_bulk(db, developments)
+        
+        # Crear mensaje detallado
+        summary = result['summary']
+        message = f"Importación completada: {summary['created']} creados, {summary['updated']} actualizados, {summary['skipped']} sin cambios"
+        
+        return {
+            "message": message,
+            "data": result
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en la importación masiva: {str(e)}"
+        )
 
 
 # Endpoints específicos según arquitectura
 @router.patch("/{development_id}/stage")
 def change_development_stage(
     development_id: str,
-    stage_update: schemas.DevelopmentStageUpdate,
+    stage_update: dev_schemas.DevelopmentStageUpdate,
     db: Session = Depends(get_db)
 ):
     """Cambiar etapa del desarrollo"""
@@ -195,7 +213,7 @@ def change_development_stage(
 @router.patch("/{development_id}/progress")
 def update_stage_progress(
     development_id: str,
-    progress_update: schemas.DevelopmentProgressUpdate,
+    progress_update: dev_schemas.DevelopmentProgressUpdate,
     db: Session = Depends(get_db)
 ):
     """Actualizar progreso de etapa"""
@@ -315,7 +333,7 @@ def get_status_history(
     raise HTTPException(status_code=501, detail="Not implemented yet")
 
 
-@router.get("/{development_id}/observations", response_model=List[schemas.DevelopmentObservation])
+@router.get("/{development_id}/observations", response_model=List[dev_schemas.DevelopmentObservation])
 def get_development_observations(
     development_id: str,
     skip: int = 0,
@@ -353,10 +371,10 @@ def get_development_observations(
         )
 
 
-@router.post("/{development_id}/observations", response_model=schemas.DevelopmentObservation)
+@router.post("/{development_id}/observations", response_model=dev_schemas.DevelopmentObservation)
 def create_development_observation(
     development_id: str,
-    observation: schemas.DevelopmentObservationCreate,
+    observation: dev_schemas.DevelopmentObservationCreate,
     db: Session = Depends(get_db)
 ):
     """Crear nueva observación/actividad en bitácora"""
@@ -394,11 +412,11 @@ def create_development_observation(
         )
 
 
-@router.put("/{development_id}/observations/{observation_id}", response_model=schemas.DevelopmentObservation)
+@router.put("/{development_id}/observations/{observation_id}", response_model=dev_schemas.DevelopmentObservation)
 def update_development_observation(
     development_id: str,
     observation_id: int,
-    observation_update: schemas.DevelopmentObservationUpdate,
+    observation_update: dev_schemas.DevelopmentObservationUpdate,
     db: Session = Depends(get_db)
 ):
     """Actualizar observación existente"""

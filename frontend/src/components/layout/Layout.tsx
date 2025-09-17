@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import { useAppContext } from '../../context/AppContext';
@@ -26,13 +25,6 @@ const Layout: React.FC = () => {
           <Outlet />
         </main>
       </div>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          className: darkMode ? 'bg-neutral-800 text-white' : 'bg-white text-neutral-900',
-          duration: 4000,
-        }}
-      />
     </div>
   );
 };

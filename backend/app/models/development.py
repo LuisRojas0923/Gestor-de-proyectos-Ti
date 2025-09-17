@@ -66,6 +66,7 @@ class Development(Base):
     general_status = Column(String(50), default="Pendiente")  # 'Pendiente', 'En curso', 'Completado'
     estimated_end_date = Column(Date)  # Fecha estimada de finalización
     provider = Column(String(100))  # Proveedor principal
+    responsible = Column(String(255))  # Responsable principal del desarrollo
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
