@@ -27,6 +27,8 @@ export const API_ENDPOINTS = {
   QUALITY_CONTROL_BY_ID: (id: number) => `/quality/controls/${id}`,
   QUALITY_CONTROL_VALIDATE: (id: number) => `/quality/controls/${id}/validate`,
   QUALITY_CONTROL_EVIDENCE: (id: number) => `/quality/controls/${id}/evidence`,
+  QUALITY_CATALOG: '/quality/catalog',
+  QUALITY_GENERATE_CONTROLS: (id: string) => `/quality/developments/${id}/generate-controls`,
   
   // KPIs y métricas
   KPI_METRICS: '/kpi/metrics',

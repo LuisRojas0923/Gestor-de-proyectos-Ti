@@ -9,6 +9,7 @@ import { useApi } from '../hooks/useApi';
 import { useDevelopmentUpdates } from '../hooks/useDevelopmentUpdates';
 import { useObservations } from '../hooks/useObservations';
 import { DevelopmentWithCurrentStatus } from '../types';
+import QualityControlsTab from '../components/development/QualityControlsTab';
 
 // Usar el tipo real del backend
 type Development = DevelopmentWithCurrentStatus;
@@ -1072,51 +1073,15 @@ const MyDevelopments: React.FC = () => {
               </div>
                       )}
                       
-                      {activePhaseTab === 'controls' && (
-                        <div>
-                          <h4 className={`text-lg font-semibold mb-4 flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                            <ShieldCheck size={18} className="mr-2"/>
-                            Controles de Calidad
-                          </h4>
-              {(() => {
-                const currentStageName = typeof selectedDevelopment.current_stage === 'object' 
-                  ? selectedDevelopment.current_stage?.stage_name || '1. Definición'
-                  : selectedDevelopment.current_stage || '1. Definición';
-                const stagePrefix = currentStageName.split('.')[0] || '1';
-                const currentProcessStage = processStages.find(s => s.stagePrefixes.includes(stagePrefix));
-
-                return (
-                  <div>
-                                <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                  Etapa actual: <span className="font-medium">{currentProcessStage ? currentProcessStage.name : 'Etapa sin controles'}</span>
-                                </p>
-                    {currentProcessStage && currentProcessStage.controls.length > 0 ? (
-                      <div className="space-y-4">
-                        {currentProcessStage.controls.map((control, index) => (
-                                      <div key={index} className={`p-4 rounded-lg ${darkMode ? 'bg-neutral-700' : 'bg-neutral-100'}`}>
-                            <div className="flex items-start">
-                              <input type="checkbox" className="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-                              <div className="ml-3">
-                                <p className={`font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{control.code}</p>
-                                <p className={`text-sm mt-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-                                  {control.description}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center p-4 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                          No hay controles de calidad definidos para esta etapa.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-                        </div>
+                      {activePhaseTab === 'controls' && selectedDevelopment && (
+                        <QualityControlsTab
+                          developmentId={selectedDevelopment.id}
+                          developmentName={selectedDevelopment.name}
+                          currentStageName={typeof selectedDevelopment.current_stage === 'object' 
+                            ? selectedDevelopment.current_stage?.stage_name || 'Sin etapa'
+                            : selectedDevelopment.current_stage || 'Sin etapa'}
+                          darkMode={darkMode}
+                        />
                       )}
 
                       {activePhaseTab === 'activities' && (
