@@ -8,8 +8,9 @@ export interface QualityControlCatalog {
   description: string;
   stage_prefix: string;
   stage_description?: string;
-  deliverables?: string;
+  deliverables?: string;  // Lista de entregables separados por comas
   validation_criteria?: string;
+  responsible_party: string;  // 'analista', 'arquitecto', 'equipo_interno'
   is_active: boolean;
   created_at: string;
   updated_at?: string;
@@ -26,7 +27,8 @@ export interface DevelopmentQualityControl {
   completed_at?: string;
   validated_by?: string;
   validated_at?: string;
-  deliverables_provided?: string;
+  deliverables_provided?: string;  // JSON string con entregables completados
+  deliverables_completed?: string;  // JSON array de entregables marcados como completados
   validation_notes?: string;
   rejection_reason?: string;
   evidence_files?: string; // JSON string

@@ -52,6 +52,7 @@ def get_quality_controls(
     development_id: Optional[str] = None,
     control_status: Optional[str] = None,
     validation_status: Optional[str] = None,
+    current_stage_only: bool = False,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
@@ -62,6 +63,7 @@ def get_quality_controls(
     - **development_id**: Filtrar por desarrollo específico
     - **control_status**: Filtrar por estado del control ('Pendiente', 'Completado', 'No Aplica', 'Rechazado')
     - **validation_status**: Filtrar por estado de validación ('Pendiente', 'Validado', 'Rechazado', 'En Revisión')
+    - **current_stage_only**: Solo mostrar controles aplicables a la etapa actual
     - **skip**: Paginación - registros a omitir
     - **limit**: Paginación - máximo de registros
     """
@@ -79,6 +81,20 @@ def get_quality_controls(
         
         if validation_status:
             query = query.filter(models.DevelopmentQualityControl.validation_status == validation_status)
+        
+        # Filtrar por etapa actual si se solicita
+        if current_stage_only and development_id:
+            # Obtener el desarrollo con su etapa actual
+            development = db.query(models.Development).options(
+                joinedload(models.Development.current_stage)
+            ).filter(models.Development.id == development_id).first()
+            
+            if development and development.current_stage:
+                stage_code = development.current_stage.stage_code
+                # Filtrar controles que aplican a la etapa actual
+                query = query.join(models.QualityControlCatalog).filter(
+                    models.QualityControlCatalog.stage_prefix.like(f"%{stage_code}%")
+                )
         
         controls = query.order_by(
             models.DevelopmentQualityControl.created_at.desc()
@@ -198,6 +214,10 @@ def update_quality_control(
         if control_update.status == "Completado" and not control.completed_by:
             control.completed_by = control_update.completed_by or "Sistema"
             control.completed_at = datetime.now()
+        
+        # Manejar entregables completados si se proporcionan
+        if control_update.deliverables_completed:
+            control.deliverables_completed = control_update.deliverables_completed
         
         control.updated_at = datetime.now()
         
@@ -491,6 +511,90 @@ def generate_automatic_controls(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generando controles automáticos: {str(e)}"
+        )
+
+
+@router.get("/developments/{development_id}/can-advance-stage")
+def can_advance_to_next_stage(
+    development_id: str,
+    target_stage_code: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Verificar si un desarrollo puede avanzar a la siguiente etapa
+    
+    Valida que todos los controles requeridos para la etapa objetivo estén completos
+    """
+    try:
+        # Obtener desarrollo
+        development = db.query(models.Development).options(
+            joinedload(models.Development.current_stage),
+            joinedload(models.Development.quality_controls)
+        ).filter(models.Development.id == development_id).first()
+        
+        if not development:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Desarrollo {development_id} no encontrado"
+            )
+        
+        # Obtener controles requeridos para la etapa objetivo
+        required_controls = db.query(models.QualityControlCatalog).filter(
+            models.QualityControlCatalog.stage_prefix.like(f"%{target_stage_code}%"),
+            models.QualityControlCatalog.is_active == True
+        ).all()
+        
+        if not required_controls:
+            return {
+                "can_advance": True,
+                "message": f"No hay controles requeridos para la etapa {target_stage_code}",
+                "missing_controls": [],
+                "incomplete_controls": []
+            }
+        
+        # Verificar que todos los controles requeridos estén completos
+        missing_controls = []
+        incomplete_controls = []
+        
+        for catalog_control in required_controls:
+            # Buscar el control en el desarrollo
+            dev_control = db.query(models.DevelopmentQualityControl).filter(
+                models.DevelopmentQualityControl.development_id == development_id,
+                models.DevelopmentQualityControl.control_catalog_id == catalog_control.id
+            ).first()
+            
+            if not dev_control:
+                missing_controls.append({
+                    "control_code": catalog_control.control_code,
+                    "control_name": catalog_control.control_name,
+                    "responsible_party": catalog_control.responsible_party
+                })
+            elif dev_control.status != "Completado" or dev_control.validation_status != "Validado":
+                incomplete_controls.append({
+                    "control_code": catalog_control.control_code,
+                    "control_name": catalog_control.control_name,
+                    "status": dev_control.status,
+                    "validation_status": dev_control.validation_status,
+                    "responsible_party": catalog_control.responsible_party
+                })
+        
+        can_advance = len(missing_controls) == 0 and len(incomplete_controls) == 0
+        
+        return {
+            "can_advance": can_advance,
+            "message": "Puede avanzar" if can_advance else "No puede avanzar - controles pendientes",
+            "missing_controls": missing_controls,
+            "incomplete_controls": incomplete_controls,
+            "total_required_controls": len(required_controls),
+            "target_stage_code": target_stage_code
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error verificando avance de etapa: {str(e)}"
         )
 
 

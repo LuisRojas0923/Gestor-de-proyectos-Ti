@@ -13,8 +13,9 @@ class QualityControlCatalogBase(BaseModel):
     description: str = Field(..., min_length=1)
     stage_prefix: str = Field(..., max_length=50)
     stage_description: Optional[str] = Field(None, max_length=255)
-    deliverables: Optional[str] = None
+    deliverables: Optional[str] = None  # Lista de entregables separados por comas
     validation_criteria: Optional[str] = None
+    responsible_party: str = Field(..., max_length=50)  # 'analista', 'arquitecto', 'equipo_interno'
     is_active: bool = True
 
 
@@ -40,7 +41,8 @@ class DevelopmentQualityControlBase(BaseModel):
     validation_status: str = Field(default="Pendiente", max_length=50)
     completed_by: Optional[str] = Field(None, max_length=255)
     validated_by: Optional[str] = Field(None, max_length=255)
-    deliverables_provided: Optional[str] = None
+    deliverables_provided: Optional[str] = None  # JSON string con entregables completados
+    deliverables_completed: Optional[str] = None  # JSON array de entregables marcados como completados
     validation_notes: Optional[str] = None
     rejection_reason: Optional[str] = None
     evidence_files: Optional[str] = None  # JSON string
@@ -56,6 +58,7 @@ class DevelopmentQualityControlUpdate(BaseModel):
     completed_by: Optional[str] = Field(None, max_length=255)
     validated_by: Optional[str] = Field(None, max_length=255)
     deliverables_provided: Optional[str] = None
+    deliverables_completed: Optional[str] = None  # JSON array de entregables marcados como completados
     validation_notes: Optional[str] = None
     rejection_reason: Optional[str] = None
     evidence_files: Optional[str] = None
@@ -90,5 +93,6 @@ class QualityControlValidationRequest(BaseModel):
 class QualityControlCompletionRequest(BaseModel):
     """Request para completar un control de calidad"""
     deliverables_provided: str = Field(..., min_length=1)
+    deliverables_completed: Optional[List[str]] = Field(None, description="Lista de entregables marcados como completados")
     evidence_files: Optional[List[str]] = None
     notes: Optional[str] = None

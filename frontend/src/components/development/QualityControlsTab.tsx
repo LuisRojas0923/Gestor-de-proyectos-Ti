@@ -32,6 +32,7 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
   const [showValidateModal, setShowValidateModal] = useState(false);
   const [completionData, setCompletionData] = useState({
     deliverables: '',
+    deliverables_completed: [] as string[],
     completed_by: 'Usuario Actual' // TODO: Obtener del contexto de auth
   });
   const [validationData, setValidationData] = useState({
@@ -75,7 +76,7 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
       if (success) {
         setShowCompleteModal(false);
         setSelectedControl(null);
-        setCompletionData({ deliverables: '', completed_by: 'Usuario Actual' });
+        setCompletionData({ deliverables: '', deliverables_completed: [], completed_by: 'Usuario Actual' });
       }
     }
   };
@@ -190,9 +191,20 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
                     )}
                   </div>
                   
-                  <p className={`text-sm mb-3 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-                    {control.deliverables_provided || 'Descripción del control no disponible'}
+                  <p className={`text-sm mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                    {control.catalog?.description || 'Descripción del control no disponible'}
                   </p>
+                  
+                  {control.catalog?.responsible_party && (
+                    <p className={`text-xs mb-3 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                      <span className="font-medium">Responsable:</span> {
+                        control.catalog.responsible_party === 'analista' ? 'Analista' :
+                        control.catalog.responsible_party === 'arquitecto' ? 'Arquitecto' :
+                        control.catalog.responsible_party === 'equipo_interno' ? 'Equipo Interno' :
+                        control.catalog.responsible_party
+                      }
+                    </p>
+                  )}
                   
                   <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                     <span>Creado: {new Date(control.created_at).toLocaleDateString()}</span>
@@ -254,16 +266,55 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
               Completar Control {selectedControl.control_code}
             </h3>
             
+            {/* Entregables como checkboxes */}
+            {selectedControl.catalog?.deliverables && (
+              <div className="mb-4">
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                  Entregables Requeridos
+                </label>
+                <div className="space-y-2">
+                  {selectedControl.catalog.deliverables.split(',').map((deliverable, index) => {
+                    const trimmedDeliverable = deliverable.trim();
+                    return (
+                      <label key={index} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={completionData.deliverables_completed.includes(trimmedDeliverable)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCompletionData({
+                                ...completionData,
+                                deliverables_completed: [...completionData.deliverables_completed, trimmedDeliverable]
+                              });
+                            } else {
+                              setCompletionData({
+                                ...completionData,
+                                deliverables_completed: completionData.deliverables_completed.filter(d => d !== trimmedDeliverable)
+                              });
+                            }
+                          }}
+                          className="mr-2"
+                        />
+                        <span className={`text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
+                          {trimmedDeliverable}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
             <div className="mb-4">
               <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                Entregables
+                Notas Adicionales
               </label>
               <textarea
                 value={completionData.deliverables}
                 onChange={(e) => setCompletionData({...completionData, deliverables: e.target.value})}
                 className={`w-full p-3 border rounded-lg ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300'}`}
-                rows={4}
-                placeholder="Describe los entregables completados..."
+                rows={3}
+                placeholder="Agrega notas adicionales sobre la completación..."
               />
             </div>
             
@@ -276,7 +327,7 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
               </button>
               <button
                 onClick={handleCompleteControl}
-                disabled={!completionData.deliverables.trim()}
+                disabled={completionData.deliverables_completed.length === 0}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
               >
                 Completar

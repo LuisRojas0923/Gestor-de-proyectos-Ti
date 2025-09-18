@@ -17,8 +17,9 @@ class QualityControlCatalog(Base):
     description = Column(Text, nullable=False)
     stage_prefix = Column(String(50), nullable=False)  # '1-2', '5-7', '8-10'
     stage_description = Column(String(255))
-    deliverables = Column(Text)
+    deliverables = Column(Text)  # Lista de entregables separados por comas
     validation_criteria = Column(Text)
+    responsible_party = Column(String(50), nullable=False)  # 'analista', 'arquitecto', 'equipo_interno'
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -40,7 +41,8 @@ class DevelopmentQualityControl(Base):
     completed_at = Column(DateTime(timezone=True))
     validated_by = Column(String(255))
     validated_at = Column(DateTime(timezone=True))
-    deliverables_provided = Column(Text)
+    deliverables_provided = Column(Text)  # JSON string con entregables completados
+    deliverables_completed = Column(Text)  # JSON array de entregables marcados como completados
     validation_notes = Column(Text)
     rejection_reason = Column(Text)
     evidence_files = Column(Text)  # JSON array de archivos

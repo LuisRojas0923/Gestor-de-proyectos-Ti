@@ -22,12 +22,12 @@ export const useQualityControls = (developmentId?: string): UseQualityControlsRe
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadControls = async (devId: string) => {
+  const loadControls = async (devId: string, currentStageOnly: boolean = true) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await get(`/quality/controls?development_id=${devId}`);
+      const response = await get(`/quality/controls?development_id=${devId}&current_stage_only=${currentStageOnly}`);
       setControls(response || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cargando controles');
@@ -60,6 +60,7 @@ export const useQualityControls = (developmentId?: string): UseQualityControlsRe
       await put(`/quality/controls/${controlId}`, {
         status: 'Completado',
         deliverables_provided: data.deliverables,
+        deliverables_completed: JSON.stringify(data.deliverables_completed),
         completed_by: data.completed_by,
         completed_at: new Date().toISOString()
       });
