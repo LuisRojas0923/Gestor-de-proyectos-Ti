@@ -329,6 +329,83 @@ def get_control_evidence(
         )
 
 
+@router.post("/developments/backfill-controls")
+def backfill_controls_for_all_developments(
+    db: Session = Depends(get_db)
+):
+    """
+    Generar controles automáticos para todos los desarrollos existentes
+    
+    Proceso de backfill para desarrollos que no tienen controles asignados
+    según su etapa actual.
+    """
+    try:
+        from ..services.development_service import DevelopmentService
+        
+        development_service = DevelopmentService(db)
+        
+        # Obtener todos los desarrollos con su etapa actual
+        developments = db.query(models.Development).options(
+            joinedload(models.Development.current_stage)
+        ).filter(models.Development.current_stage_id.isnot(None)).all()
+        
+        results = []
+        total_processed = 0
+        total_controls_created = 0
+        
+        for development in developments:
+            if not development.current_stage:
+                continue
+                
+            # Verificar si ya tiene controles
+            existing_controls = db.query(models.DevelopmentQualityControl).filter(
+                models.DevelopmentQualityControl.development_id == development.id
+            ).count()
+            
+            if existing_controls == 0:
+                # Generar controles para este desarrollo
+                try:
+                    created_controls = development_service.quality_service.generate_automatic_controls(
+                        development_id=development.id,
+                        stage_code=development.current_stage.stage_code
+                    )
+                    
+                    results.append({
+                        "development_id": development.id,
+                        "development_name": development.name,
+                        "current_stage": development.current_stage.stage_name,
+                        "stage_code": development.current_stage.stage_code,
+                        "controls_created": len(created_controls),
+                        "control_codes": [c.control_code for c in created_controls]
+                    })
+                    
+                    total_controls_created += len(created_controls)
+                    
+                except Exception as e:
+                    results.append({
+                        "development_id": development.id,
+                        "development_name": development.name,
+                        "current_stage": development.current_stage.stage_name,
+                        "stage_code": development.current_stage.stage_code,
+                        "error": str(e)
+                    })
+            
+            total_processed += 1
+        
+        return {
+            "message": "Proceso de backfill completado",
+            "total_developments_processed": total_processed,
+            "total_controls_created": total_controls_created,
+            "results": results
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error en proceso de backfill: {str(e)}"
+        )
+
+
 @router.post("/developments/{development_id}/generate-controls")
 def generate_automatic_controls(
     development_id: str,

@@ -144,60 +144,30 @@ def change_development_stage(
     stage_update: dev_schemas.DevelopmentStageUpdate,
     db: Session = Depends(get_db)
 ):
-    """Cambiar etapa del desarrollo"""
+    """Cambiar etapa del desarrollo con generación automática de controles"""
     try:
-        # Obtener desarrollo
-        development = db.query(models.Development).filter(
-            models.Development.id == development_id
-        ).first()
+        from ..services.development_service import DevelopmentService
         
-        if not development:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Desarrollo {development_id} no encontrado"
-            )
+        # Usar DevelopmentService que incluye generación automática de controles
+        development_service = DevelopmentService(db)
         
-        # Verificar que la nueva etapa existe
-        new_stage = db.query(models.DevelopmentStage).filter(
-            models.DevelopmentStage.id == stage_update.stage_id
-        ).first()
-        
-        if not new_stage:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Etapa {stage_update.stage_id} no encontrada"
-            )
-        
-        # Guardar etapa anterior para el historial
-        previous_stage_id = development.current_stage_id
-        
-        # Actualizar etapa
-        development.current_stage_id = stage_update.stage_id
-        if stage_update.progress_percentage is not None:
-            development.stage_progress_percentage = stage_update.progress_percentage
-        
-        development.updated_at = datetime.now()
-        
-        # Crear registro en historial de estados
-        history = models.DevelopmentStatusHistory(
+        # Cambiar etapa usando el servicio
+        updated_development = development_service.change_development_stage(
             development_id=development_id,
-            status=development.general_status,
-            progress_stage=str(stage_update.stage_id),
-            changed_by=stage_update.changed_by,
-            previous_status=str(previous_stage_id) if previous_stage_id else None
+            new_stage_id=stage_update.stage_id,
+            progress_percentage=stage_update.progress_percentage,
+            notes=getattr(stage_update, 'notes', None),
+            changed_by=stage_update.changed_by or "Usuario"
         )
         
-        db.add(history)
-        db.commit()
-        db.refresh(development)
-        
         return {
-            "message": "Etapa actualizada exitosamente",
+            "message": "Etapa actualizada exitosamente con controles generados",
             "development_id": development_id,
-            "previous_stage_id": previous_stage_id,
+            "previous_stage_id": updated_development.current_stage_id,
             "new_stage_id": stage_update.stage_id,
-            "stage_name": new_stage.stage_name,
-            "progress_percentage": development.stage_progress_percentage
+            "stage_name": updated_development.current_stage.stage_name if updated_development.current_stage else "N/A",
+            "progress_percentage": updated_development.stage_progress_percentage,
+            "controls_generated": True
         }
         
     except HTTPException:

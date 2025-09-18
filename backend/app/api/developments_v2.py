@@ -269,69 +269,27 @@ def change_development_stage(
     db: Session = Depends(get_db)
 ):
     """
-    Cambiar etapa del desarrollo
+    Cambiar etapa del desarrollo con generación automática de controles
     
-    Actualiza la etapa actual del desarrollo y registra el cambio
-    en el historial. También actualiza la fase si es necesario.
+    Actualiza la etapa actual del desarrollo, registra el cambio
+    en el historial y genera controles de calidad automáticamente.
     """
     try:
-        # Obtener desarrollo
-        development = db.query(models.Development).filter(
-            models.Development.id == development_id
-        ).first()
+        from ..services.development_service import DevelopmentService
         
-        if not development:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Desarrollo con ID {development_id} no encontrado"
-            )
+        # Usar DevelopmentService que incluye generación automática de controles
+        development_service = DevelopmentService(db)
         
-        # Obtener nueva etapa
-        new_stage = db.query(models.DevelopmentStage).filter(
-            models.DevelopmentStage.id == stage_update.new_stage_id
-        ).first()
-        
-        if not new_stage:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Etapa con ID {stage_update.new_stage_id} no encontrada"
-            )
-        
-        # Guardar estado anterior
-        previous_stage = development.current_stage
-        previous_phase = development.current_phase
-        
-        # Actualizar desarrollo
-        development.current_stage_id = new_stage.id
-        development.current_phase_id = new_stage.phase_id
-        development.stage_progress_percentage = stage_update.progress_percentage or 0.0
-        development.updated_at = datetime.now()
-        
-        # Registrar en historial
-        status_history = models.DevelopmentStatusHistory(
+        # Cambiar etapa usando el servicio
+        updated_development = development_service.change_development_stage(
             development_id=development_id,
-            status=development.general_status,
-            progress_stage=new_stage.stage_name,
-            changed_by=stage_update.changed_by or "Usuario",
-            previous_status=previous_stage.stage_name if previous_stage else None
+            new_stage_id=stage_update.new_stage_id,
+            progress_percentage=stage_update.progress_percentage,
+            notes=getattr(stage_update, 'notes', None),
+            changed_by=stage_update.changed_by or "Usuario"
         )
-        db.add(status_history)
         
-        # Crear observación del cambio
-        if stage_update.notes:
-            observation = models.DevelopmentObservation(
-                development_id=development_id,
-                observation_type="estado",
-                content=f"Cambio de etapa: {previous_stage.stage_name if previous_stage else 'N/A'} → {new_stage.stage_name}. Notas: {stage_update.notes}",
-                author=stage_update.changed_by or "Usuario",
-                is_current=False
-            )
-            db.add(observation)
-        
-        db.commit()
-        db.refresh(development)
-        
-        return development
+        return updated_development
         
     except HTTPException:
         raise
