@@ -10,7 +10,7 @@ import {
 import React, { useEffect, useState } from 'react';
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
 import { useTranslation } from 'react-i18next';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import { Spinner } from '../components/atoms';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 
@@ -211,7 +211,7 @@ const Testing: React.FC = () => {
             disabled={loading}
             className="bg-secondary-500 hover:bg-secondary-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
           >
-            {loading ? <LoadingSpinner size="sm" /> : <Sparkles size={20} />}
+            {loading ? <Spinner size="sm" /> : <Sparkles size={20} />}
             <span>{t('generateAIScenarios')}</span>
           </button>
           <button className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">

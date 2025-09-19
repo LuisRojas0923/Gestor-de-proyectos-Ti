@@ -25,7 +25,7 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
-import MetricCard from '../components/common/MetricCard';
+import { MetricCard } from '../components/molecules';
 import { useAppContext } from '../context/AppContext';
 
 // Load development data from API

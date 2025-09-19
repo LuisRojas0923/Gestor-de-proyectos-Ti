@@ -19,7 +19,7 @@ import {
     YAxis,
 } from 'recharts';
 import { AlertPanel } from '../components/alerts';
-import MetricCard from '../components/common/MetricCard';
+import { MetricCard } from '../components/molecules';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { DevelopmentUpcomingActivity } from '../types';

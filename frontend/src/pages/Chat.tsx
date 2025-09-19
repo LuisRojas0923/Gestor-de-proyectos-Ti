@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import { Spinner } from '../components/atoms';
 
 interface ChatMessage {
   id: string;
@@ -248,7 +248,7 @@ const Chat: React.FC = () => {
               <div className={`px-4 py-3 rounded-2xl ${
                 darkMode ? 'bg-neutral-700' : 'bg-neutral-100'
               }`}>
-                <LoadingSpinner size="sm" />
+                <Spinner size="sm" />
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import TopBar from './TopBar';
+import { TopBar } from '../organisms';
 import { useAppContext } from '../../context/AppContext';
 
 const Layout: React.FC = () => {
