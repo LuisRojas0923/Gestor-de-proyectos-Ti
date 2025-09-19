@@ -2,7 +2,8 @@ import { Calendar, Eye, GitBranch, ListChecks, Search, ShieldCheck, SquarePen, U
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ExcelImporter from '../components/common/ExcelImporter';
-import { DevelopmentPhases, DevelopmentTimeline } from '../components/development';
+import { DevelopmentTimeline } from '../components/development';
+import { DevelopmentTimelineCompact } from '../components/molecules';
 import RequirementsTab from '../components/development/RequirementsTab';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
@@ -14,7 +15,8 @@ import QualityControlsTab from '../components/development/QualityControlsTab';
 // Usar el tipo real del backend
 type Development = DevelopmentWithCurrentStatus;
 
-const processStages = [
+// Constantes para las etapas del proceso (usadas en otros componentes)
+export const processStages = [
     {
       name: 'Solicitud y Análisis de Requerimientos',
       stagePrefixes: ['1', '2'],
@@ -280,6 +282,7 @@ const MyDevelopments: React.FC = () => {
   const [activeView, setActiveView] = useState<'list' | 'phases' | 'timeline'>('list');
   const [editingDevelopment, setEditingDevelopment] = useState<Development | null>(null);
   const [activePhaseTab, setActivePhaseTab] = useState<'phases' | 'gantt' | 'controls' | 'activities' | 'requirements'>('phases');
+  // Removido: ahora solo usamos la vista de timeline
 
   // Hooks para observaciones y actualizaciones
   const { 
@@ -578,7 +581,7 @@ const MyDevelopments: React.FC = () => {
                   }`}
                 >
                   <GitBranch size={16} className="inline mr-1" />
-                  Fases
+                  Gestión
                 </button>
                 <button
                   onClick={() => setActiveView('timeline')}
@@ -998,7 +1001,8 @@ const MyDevelopments: React.FC = () => {
 
                       {/* Tabs Navigation */}
                     <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6`}>
-                      <div className="flex flex-wrap items-center gap-1 bg-gray-100 dark:bg-neutral-700 rounded-lg p-1 mb-6">
+                      <div className="flex flex-wrap items-center justify-between mb-6">
+                        <div className="flex flex-wrap items-center gap-1 bg-gray-100 dark:bg-neutral-700 rounded-lg p-1">
                         <button
                           onClick={() => setActivePhaseTab('phases')}
                           className={`px-4 py-2 text-sm rounded-md transition-colors ${
@@ -1008,7 +1012,7 @@ const MyDevelopments: React.FC = () => {
                           }`}
                         >
                           <GitBranch size={16} className="inline mr-2" />
-                          Fases
+                          Gestión
                         </button>
                         <button
                           onClick={() => setActivePhaseTab('gantt')}
@@ -1054,11 +1058,32 @@ const MyDevelopments: React.FC = () => {
                           <Search size={16} className="inline mr-2" />
                           Requerimientos
                         </button>
-                </div>
+                        </div>
+                      </div>
 
                       {/* Tab Content */}
                       {activePhaseTab === 'phases' && (
-                        <DevelopmentPhases developmentId={selectedDevelopment.id} />
+                        <DevelopmentTimelineCompact 
+                          developmentId={selectedDevelopment.id}
+                          currentStage={typeof selectedDevelopment.current_stage === 'object' 
+                            ? parseInt(selectedDevelopment.current_stage?.stage_name?.split('.')[0] || '1')
+                            : parseInt(String(selectedDevelopment.current_stage || '1').split('.')[0])
+                          }
+                          darkMode={darkMode}
+                          isCancelled={selectedDevelopment.general_status === 'Cancelado'}
+                          onCancel={async () => {
+                            try {
+                              // Aquí puedes implementar la lógica para cancelar el desarrollo
+                              console.log('Cancelando desarrollo:', selectedDevelopment.id);
+                              toast.success('Desarrollo cancelado exitosamente');
+                              // Recargar los desarrollos después de la cancelación
+                              loadDevelopments();
+                            } catch (error) {
+                              console.error('Error al cancelar desarrollo:', error);
+                              toast.error('Error al cancelar el desarrollo');
+                            }
+                          }}
+                        />
                       )}
                       
                       {activePhaseTab === 'gantt' && (
