@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LucideIcon, TrendingUp, Clock, CheckCircle, XCircle, FileText, Code, TestTube, Shield, Rocket } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
+import { useApi } from '../../hooks/useApi';
 
 interface DevelopmentStage {
   id: number;
@@ -11,6 +12,22 @@ interface DevelopmentStage {
   icon: LucideIcon;
   phase: 'execution' | 'waiting' | 'final';
   estimatedDays?: number;
+}
+
+// Interfaz para los datos de la API
+interface CycleFlowStage {
+  stage_id: number;
+  stage_code: string;
+  stage_name: string;
+  stage_description: string;
+  phase_id: number;
+  phase_name: string;
+  phase_color: string;
+  is_milestone: boolean;
+  estimated_days: number;
+  responsible_party: string;
+  responsible_party_name: string;
+  sort_order: number;
 }
 
 interface DevelopmentTimelineCompactProps {
@@ -33,163 +50,162 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
   const { state } = useAppContext();
   const { darkMode: contextDarkMode } = state;
   const isDarkMode = darkMode ?? contextDarkMode;
+  const api = useApi();
 
-  // Definir todas las etapas del desarrollo
-  const stages: DevelopmentStage[] = [
-    {
-      id: 1,
-      name: 'Definición',
-      description: 'Definición de requerimientos',
-      responsible: 'Usuario',
-      status: currentStage >= 1 ? 'completed' : 'pending',
-      icon: FileText,
-      phase: 'execution',
-      estimatedDays: 2
-    },
-    {
-      id: 2,
-      name: 'Análisis',
-      description: 'Análisis técnico',
-      responsible: 'Proveedor',
-      status: currentStage >= 2 ? 'completed' : 'pending',
-      icon: TrendingUp,
-      phase: 'execution',
-      estimatedDays: 3
-    },
-    {
-      id: 3,
-      name: 'Propuesta',
-      description: 'Elaboración de propuesta comercial',
-      responsible: 'Proveedor',
-      status: currentStage >= 3 ? 'completed' : currentStage === 3 ? 'current' : 'pending',
-      icon: Clock,
-      phase: 'waiting',
-      estimatedDays: 5
-    },
-    {
-      id: 4,
-      name: 'Aprobación',
-      description: 'Aprobación de la propuesta',
-      responsible: 'Usuario',
-      status: currentStage >= 4 ? 'completed' : currentStage === 4 ? 'current' : 'pending',
-      icon: Shield,
-      phase: 'waiting',
-      estimatedDays: 2
-    },
-    {
-      id: 5,
-      name: 'Desarrollo',
-      description: 'Implementación del desarrollo',
-      responsible: 'Proveedor',
-      status: currentStage >= 5 ? 'completed' : currentStage === 5 ? 'current' : 'pending',
-      icon: Code,
-      phase: 'execution',
-      estimatedDays: 15
-    },
-    {
-      id: 6,
-      name: 'Despliegue (Pruebas)',
-      description: 'Despliegue en ambiente de pruebas',
-      responsible: 'Proveedor',
-      status: currentStage >= 6 ? 'completed' : currentStage === 6 ? 'current' : 'pending',
-      icon: Rocket,
-      phase: 'execution',
-      estimatedDays: 2
-    },
-    {
-      id: 7,
-      name: 'Plan de Pruebas',
-      description: 'Elaboración del plan de pruebas',
-      responsible: 'Usuario',
-      status: currentStage >= 7 ? 'completed' : currentStage === 7 ? 'current' : 'pending',
-      icon: TestTube,
-      phase: 'execution',
-      estimatedDays: 3
-    },
-    {
-      id: 8,
-      name: 'Ejecución Pruebas',
-      description: 'Ejecución de pruebas funcionales',
-      responsible: 'Usuario',
-      status: currentStage >= 8 ? 'completed' : currentStage === 8 ? 'current' : 'pending',
-      icon: TestTube,
-      phase: 'execution',
-      estimatedDays: 5
-    },
-    {
-      id: 9,
-      name: 'Aprobación (Pase)',
-      description: 'Aprobación para pase a producción',
-      responsible: 'Usuario',
-      status: currentStage >= 9 ? 'completed' : currentStage === 9 ? 'current' : 'pending',
-      icon: Shield,
-      phase: 'waiting',
-      estimatedDays: 1
-    },
-    {
-      id: 10,
-      name: 'Desplegado',
-      description: 'Desplegado en producción',
-      responsible: 'Equipo Interno',
-      status: currentStage >= 10 ? 'completed' : 'pending',
-      icon: CheckCircle,
-      phase: 'final',
-      estimatedDays: 1
-    }
-  ];
+  // Estado para los datos de la API
+  const [cycleFlowData, setCycleFlowData] = useState<CycleFlowStage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Filtrar etapas por fase
-  const executionStages = stages.filter(stage => stage.phase === 'execution');
-  const waitingStages = stages.filter(stage => stage.phase === 'waiting');
-  const finalStages = stages.filter(stage => stage.phase === 'final');
+  // Debug: Log para verificar los valores recibidos (comentado para evitar errores)
+  // console.log('DevelopmentTimelineCompact Debug:', {
+  //   developmentId,
+  //   currentStage,
+  //   isCancelled,
+  //   currentStageType: typeof currentStage,
+  //   cycleFlowDataLength: cycleFlowData.length
+  // });
 
-  // Calcular progreso por fase
-  const getPhaseProgress = (phaseStages: DevelopmentStage[]) => {
-    const completed = phaseStages.filter(stage => stage.status === 'completed').length;
-    const total = phaseStages.length;
-    return { completed, total, percentage: Math.round((completed / total) * 100) };
+  // Cargar datos del ciclo de desarrollo desde la API
+  useEffect(() => {
+    const loadCycleFlow = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const data = await api.get('/stages/cycle-flow');
+        // console.log('Cycle flow data loaded:', data);
+        
+        if (Array.isArray(data)) {
+          setCycleFlowData(data);
+        } else {
+          setError('Formato de datos inválido');
+        }
+      } catch (err) {
+        console.error('Error loading cycle flow:', err);
+        setError('Error cargando datos del ciclo');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCycleFlow();
+  }, [developmentId]); // Cambiar dependencia de api a developmentId
+
+  // Función para mapear iconos según el código de etapa
+  const getStageIcon = (stageCode: string): LucideIcon => {
+    const iconMap: { [key: string]: LucideIcon } = {
+      '1': FileText,      // Definición
+      '2': TrendingUp,    // Análisis
+      '3': Clock,         // Propuesta
+      '4': Shield,        // Aprobación
+      '5': Code,          // Desarrollo
+      '6': Rocket,        // Despliegue (Pruebas)
+      '7': TestTube,      // Plan de Pruebas
+      '8': TestTube,      // Ejecución Pruebas
+      '9': Shield,        // Aprobación (Pase)
+      '10': CheckCircle,  // Desplegado
+      '0': XCircle        // Cancelado
+    };
+    return iconMap[stageCode] || FileText;
   };
 
-  const executionProgress = getPhaseProgress(executionStages);
-  const waitingProgress = getPhaseProgress(waitingStages);
-  const finalProgress = getPhaseProgress(finalStages);
+  // Función para mapear fases
+  const getPhaseType = (phaseName: string): 'execution' | 'waiting' | 'final' => {
+    if (phaseName.includes('Ejecución')) return 'execution';
+    if (phaseName.includes('Espera')) return 'waiting';
+    return 'final';
+  };
+
+  // Función para determinar el estado de cada etapa
+  const getStageStatus = (stageId: number): 'completed' | 'current' | 'pending' | 'cancelled' => {
+    if (isCancelled) return 'cancelled';
+    
+    // Validar que currentStage sea un número válido
+    const validCurrentStage = typeof currentStage === 'number' && !isNaN(currentStage) ? currentStage : 1;
+    
+    // Debug: Log para cada etapa (comentado para evitar errores)
+    const status = stageId < validCurrentStage ? 'completed' : 
+                   stageId === validCurrentStage ? 'current' : 'pending';
+    
+    // console.log(`Stage ${stageId}: currentStage=${validCurrentStage} (original: ${currentStage}), status=${status}`);
+    
+    return status;
+  };
+
+  // Convertir datos de la API a formato del componente
+  const stages: DevelopmentStage[] = cycleFlowData.map((stageData) => ({
+    id: stageData.stage_id,
+    name: stageData.stage_name,
+    description: stageData.stage_description,
+    responsible: stageData.responsible_party_name as 'Usuario' | 'Proveedor' | 'Equipo Interno',
+    status: getStageStatus(stageData.stage_id),
+    icon: getStageIcon(stageData.stage_code),
+    phase: getPhaseType(stageData.phase_name),
+    estimatedDays: stageData.estimated_days
+  }));
+
 
   // Calcular progreso general - corregir el cálculo NaN
-  const totalProgress = isCancelled ? 0 : Math.round(((currentStage - 1) / 10) * 100);
+  const totalProgress = (() => {
+    if (isCancelled) return 0;
+    
+    // Validar que currentStage sea un número válido
+    const validStage = typeof currentStage === 'number' && !isNaN(currentStage) ? currentStage : 1;
+    
+    // Asegurar que esté en el rango correcto (1-11)
+    const clampedStage = Math.max(1, Math.min(11, validStage));
+    
+    // Calcular progreso basado en 10 etapas (0-100%)
+    return Math.round(((clampedStage - 1) / 10) * 100);
+  })();
 
   const getStageStatusColor = (status: string) => {
+    // Debug: Log para verificar qué color se está aplicando (comentado para evitar errores)
+    // console.log(`Getting color for status: ${status}, isDarkMode: ${isDarkMode}`);
+    
+    let colorClass;
     switch (status) {
       case 'completed':
-        return isDarkMode ? 'bg-green-500' : 'bg-green-600';
+        colorClass = isDarkMode ? 'bg-green-500 shadow-green-500/50 shadow-lg' : 'bg-green-600 shadow-green-600/50 shadow-lg';
+        break;
       case 'current':
-        return isDarkMode ? 'bg-blue-500' : 'bg-blue-600';
+        colorClass = isDarkMode ? 'bg-blue-500 shadow-blue-500/50 shadow-lg animate-pulse' : 'bg-blue-600 shadow-blue-600/50 shadow-lg animate-pulse';
+        break;
       case 'pending':
-        return isDarkMode ? 'bg-gray-600' : 'bg-gray-300';
+        colorClass = isDarkMode ? 'bg-gray-600' : 'bg-gray-300';
+        break;
       case 'cancelled':
-        return isDarkMode ? 'bg-red-500' : 'bg-red-600';
+        colorClass = isDarkMode ? 'bg-red-500 shadow-red-500/50 shadow-lg' : 'bg-red-600 shadow-red-600/50 shadow-lg';
+        break;
       default:
-        return isDarkMode ? 'bg-gray-600' : 'bg-gray-300';
+        colorClass = isDarkMode ? 'bg-gray-600' : 'bg-gray-300';
     }
+    
+    // console.log(`Color class for ${status}: ${colorClass}`);
+    return colorClass;
   };
 
   const getStageTextColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'text-green-600 dark:text-green-400';
+        return 'text-green-600 dark:text-green-400 font-semibold';
       case 'current':
-        return 'text-blue-600 dark:text-blue-400';
+        return 'text-blue-600 dark:text-blue-400 font-semibold';
       case 'pending':
         return isDarkMode ? 'text-gray-400' : 'text-gray-500';
       case 'cancelled':
-        return 'text-red-600 dark:text-red-400';
+        return 'text-red-600 dark:text-red-400 font-semibold';
       default:
         return isDarkMode ? 'text-gray-400' : 'text-gray-500';
     }
   };
 
-  const getConnectorColor = (currentStatus: string) => {
+  const getConnectorColor = (currentStatus: string, nextStatus?: string) => {
     if (currentStatus === 'completed') {
       return isDarkMode ? 'bg-green-500' : 'bg-green-600';
+    } else if (currentStatus === 'current') {
+      return isDarkMode ? 'bg-blue-500' : 'bg-blue-600';
     }
     return isDarkMode ? 'bg-gray-600' : 'bg-gray-300';
   };
@@ -200,12 +216,52 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
     }
   };
 
+  // Mostrar estado de carga
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-4"></div>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Cargando etapas del desarrollo...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar estado de error
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <XCircle size={48} className="mx-auto" />
+            </div>
+            <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+              Error: {error}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-md transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header compacto */}
       <div className="flex items-center justify-between">
         <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
-          Sistema de Fases y Etapas
+          Sistema de Etapas
         </h3>
         <div className="flex items-center space-x-4">
           <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -265,7 +321,7 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
                 {/* Conector hacia la derecha */}
                 {!isLast && (
                   <div 
-                    className={`absolute top-8 left-8 w-16 h-1 ${getConnectorColor(stage.status)}`}
+                    className={`absolute top-8 left-8 w-16 h-1 ${getConnectorColor(stage.status, stages[index + 1]?.status)}`}
                     style={{ zIndex: 1 }}
                   />
                 )}
@@ -275,10 +331,17 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
                   className={`relative z-10 w-16 h-16 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 ${getStageStatusColor(stage.status)}`}
                   onClick={() => handleStageClick(stage)}
                 >
-                  <Icon 
-                    size={20} 
-                    className={stage.status === 'completed' ? 'text-white' : stage.status === 'current' ? 'text-white' : isDarkMode ? 'text-gray-300' : 'text-gray-600'} 
-                  />
+                  {stage.status === 'completed' ? (
+                    <CheckCircle 
+                      size={24} 
+                      className="text-white" 
+                    />
+                  ) : (
+                    <Icon 
+                      size={20} 
+                      className={stage.status === 'current' ? 'text-white' : isDarkMode ? 'text-gray-300' : 'text-gray-600'} 
+                    />
+                  )}
                 </div>
 
                 {/* Número de etapa - mejorado posicionamiento */}
@@ -306,68 +369,6 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
         </div>
       </div>
 
-      {/* Resumen por fases compacto */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`${isDarkMode ? 'bg-neutral-700' : 'bg-blue-50'} rounded-lg p-4`}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
-                En Ejecución
-              </span>
-            </div>
-            <span className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
-              {executionProgress.completed}/{executionProgress.total}
-            </span>
-          </div>
-          <div className={`w-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-2`}>
-            <div 
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${executionProgress.percentage}%` }}
-            />
-          </div>
-        </div>
-
-        <div className={`${isDarkMode ? 'bg-neutral-700' : 'bg-yellow-50'} rounded-lg p-4`}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <span className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
-                En Espera
-              </span>
-            </div>
-            <span className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
-              {waitingProgress.completed}/{waitingProgress.total}
-            </span>
-          </div>
-          <div className={`w-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-2`}>
-            <div 
-              className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${waitingProgress.percentage}%` }}
-            />
-          </div>
-        </div>
-
-        <div className={`${isDarkMode ? 'bg-neutral-700' : 'bg-green-50'} rounded-lg p-4`}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
-                Finales
-              </span>
-            </div>
-            <span className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
-              {finalProgress.completed}/{finalProgress.total}
-            </span>
-          </div>
-          <div className={`w-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-2`}>
-            <div 
-              className="bg-green-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${finalProgress.percentage}%` }}
-            />
-          </div>
-        </div>
-      </div>
 
       {/* Estado actual del desarrollo */}
       <div className={`${isDarkMode ? 'bg-neutral-700' : 'bg-neutral-100'} rounded-lg p-4`}>
@@ -378,14 +379,6 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
           <div>
             <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Desarrollo:</span>
             <span className={`ml-2 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>{developmentId}</span>
-          </div>
-          <div>
-            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Fase Actual:</span>
-            <span className={`ml-2 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
-              {isCancelled ? 'Cancelado' : 
-               stages.find(s => s.id === currentStage)?.phase === 'execution' ? 'En Ejecución' :
-               stages.find(s => s.id === currentStage)?.phase === 'waiting' ? 'En Espera' : 'Final'}
-            </span>
           </div>
           <div>
             <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Etapa Actual:</span>

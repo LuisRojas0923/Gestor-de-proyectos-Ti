@@ -10,6 +10,9 @@ export * from './molecules';
 // Organisms - Secciones complejas
 export * from './organisms';
 
+// Design Tokens
+export * from './tokens';
+
 // Legacy components (temporary during migration)
 export { default as LoadingSpinner } from './common/LoadingSpinner';
 export { default as MetricCard } from './common/MetricCard';

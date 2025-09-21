@@ -1065,10 +1065,27 @@ const MyDevelopments: React.FC = () => {
                       {activePhaseTab === 'phases' && (
                         <DevelopmentTimelineCompact 
                           developmentId={selectedDevelopment.id}
-                          currentStage={typeof selectedDevelopment.current_stage === 'object' 
-                            ? parseInt(selectedDevelopment.current_stage?.stage_name?.split('.')[0] || '1')
-                            : parseInt(String(selectedDevelopment.current_stage || '1').split('.')[0])
-                          }
+                          currentStage={(() => {
+                            try {
+                              let stageValue = 1; // Valor por defecto
+                              
+                              if (typeof selectedDevelopment.current_stage === 'object' && selectedDevelopment.current_stage?.stage_name) {
+                                const stageName = selectedDevelopment.current_stage.stage_name;
+                                const parsed = parseInt(stageName.split('.')[0]);
+                                stageValue = isNaN(parsed) ? 1 : parsed;
+                              } else if (selectedDevelopment.current_stage) {
+                                const stageStr = String(selectedDevelopment.current_stage);
+                                const parsed = parseInt(stageStr.split('.')[0]);
+                                stageValue = isNaN(parsed) ? 1 : parsed;
+                              }
+                              
+                              // Asegurar que el valor esté en un rango válido (1-11)
+                              return Math.max(1, Math.min(11, stageValue));
+                            } catch (error) {
+                              console.error('Error parsing current_stage:', error, selectedDevelopment.current_stage);
+                              return 1; // Valor por defecto en caso de error
+                            }
+                          })()}
                           darkMode={darkMode}
                           isCancelled={selectedDevelopment.general_status === 'Cancelado'}
                           onCancel={async () => {
@@ -1220,6 +1237,7 @@ const MyDevelopments: React.FC = () => {
             </div>
           </div>
                 )}
+
         </div>
       )}
           </div>
