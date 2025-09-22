@@ -11,3 +11,4 @@ export { default as Spinner } from './Spinner';
 export { default as MaterialButton } from './MaterialButton';
 export { default as MaterialCard } from './MaterialCard';
 export { default as MaterialTextField } from './MaterialTextField';
+export { default as MaterialSelect } from './MaterialSelect';

@@ -7,6 +7,7 @@ interface MaterialCardProps {
   className?: string;
   onClick?: () => void;
   hoverable?: boolean;
+  darkMode?: boolean;
 }
 
 const MaterialCard: React.FC<MaterialCardProps> = ({
@@ -15,10 +16,13 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   className = '',
   onClick,
   hoverable = false,
+  darkMode = false,
 }) => {
   const tokens = materialDesignTokens;
   
-  const baseClasses = 'bg-white rounded-lg transition-all duration-200';
+  const baseClasses = `rounded-lg transition-all duration-200 ${
+    darkMode ? 'bg-neutral-800' : 'bg-white'
+  }`;
   
   const elevationClasses = {
     0: 'shadow-none',
@@ -54,36 +58,53 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
 };
 
 // Subcomponentes de MaterialCard
-const MaterialCardHeader: React.FC<{ children: React.ReactNode; className?: string }> = ({
+interface MaterialCardSubComponentProps {
+  children: React.ReactNode;
+  className?: string;
+  darkMode?: boolean;
+}
+
+const MaterialCardHeader: React.FC<MaterialCardSubComponentProps> = ({
   children,
-  className = ''
+  className = '',
+  darkMode = false
 }) => (
-  <div className={`px-6 py-4 border-b border-gray-200 ${className}`}>
+  <div className={`px-6 py-4 border-b ${
+    darkMode ? 'border-neutral-700' : 'border-gray-200'
+  } ${className}`}>
     {children}
   </div>
 );
 
-const MaterialCardContent: React.FC<{ children: React.ReactNode; className?: string }> = ({
+const MaterialCardContent: React.FC<MaterialCardSubComponentProps> = ({
   children,
-  className = ''
+  className = '',
+  darkMode = false
 }) => (
-  <div className={`px-6 py-4 ${className}`}>
+  <div className={`px-6 py-4 ${darkMode ? 'text-white' : 'text-gray-900'} ${className}`}>
     {children}
   </div>
 );
 
-const MaterialCardActions: React.FC<{ children: React.ReactNode; className?: string }> = ({
+const MaterialCardActions: React.FC<MaterialCardSubComponentProps> = ({
   children,
-  className = ''
+  className = '',
+  darkMode = false
 }) => (
-  <div className={`px-6 py-4 flex items-center justify-end space-x-2 ${className}`}>
+  <div className={`px-6 py-4 flex items-center justify-end space-x-2 ${darkMode ? 'text-white' : 'text-gray-900'} ${className}`}>
     {children}
   </div>
 );
 
-// Agregar subcomponentes al componente principal
-MaterialCard.Header = MaterialCardHeader;
-MaterialCard.Content = MaterialCardContent;
-MaterialCard.Actions = MaterialCardActions;
+// Crear el componente principal con subcomponentes
+const MaterialCardWithSubcomponents = MaterialCard as typeof MaterialCard & {
+  Header: typeof MaterialCardHeader;
+  Content: typeof MaterialCardContent;
+  Actions: typeof MaterialCardActions;
+};
 
-export default MaterialCard;
+MaterialCardWithSubcomponents.Header = MaterialCardHeader;
+MaterialCardWithSubcomponents.Content = MaterialCardContent;
+MaterialCardWithSubcomponents.Actions = MaterialCardActions;
+
+export default MaterialCardWithSubcomponents;

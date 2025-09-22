@@ -11,6 +11,8 @@ import { useDevelopmentUpdates } from '../hooks/useDevelopmentUpdates';
 import { useObservations } from '../hooks/useObservations';
 import { DevelopmentWithCurrentStatus } from '../types';
 import QualityControlsTab from '../components/development/QualityControlsTab';
+import { MaterialCard, MaterialButton, MaterialTextField, MaterialSelect } from '../components/atoms';
+import { development, phases } from '../utils/logger';
 
 // Usar el tipo real del backend
 type Development = DevelopmentWithCurrentStatus;
@@ -78,6 +80,21 @@ const waitingStages = [
 const finalStages = [
   '10. Desplegado',
   '0. Cancelado',
+];
+
+// Opciones adicionales que pueden venir del API sin prefijo numérico
+const additionalStages = [
+  'Definición',
+  'Análisis', 
+  'Propuesta',
+  'Aprobación',
+  'Desarrollo',
+  'Despliegue (Pruebas)',
+  'Plan de Pruebas',
+  'Ejecución Pruebas',
+  'Aprobación (Pase)',
+  'Desplegado',
+  'Cancelado',
 ];
 
 const generalStatuses = ['Pendiente', 'En curso', 'Completado', 'Cancelado'];
@@ -321,16 +338,27 @@ const MyDevelopments: React.FC = () => {
   };
 
   const handleViewDetails = (dev: Development) => {
-    console.log('Opening details for:', dev);
+    development.debug('Opening details for development', dev);
     setSelectedDevelopment(dev);
     setActiveView('phases'); // Cambiar automáticamente a vista de fases
-    console.log('Switching to phases view for:', dev.id);
+    development.info('Switching to phases view', dev.id);
   };
   
-  const handleEdit = (dev: Development) => {
-    setSelectedDevelopment(dev);
-    setEditingDevelopment(dev); // Keep a copy for the form
-    setEditModalOpen(true);
+  const handleEdit = async (dev: Development) => {
+    try {
+      // Cargar el desarrollo específico con todas sus relaciones
+      const fullDevData = await get(`/developments/${dev.id}`) as DevelopmentWithCurrentStatus;
+      
+      setSelectedDevelopment(fullDevData || dev);
+      setEditingDevelopment(fullDevData || dev);
+      setEditModalOpen(true);
+    } catch (error) {
+      console.error('Error cargando desarrollo completo:', error);
+      // Fallback al desarrollo original si falla la carga
+      setSelectedDevelopment(dev);
+      setEditingDevelopment(dev);
+      setEditModalOpen(true);
+    }
   };
 
   const handleDelete = (dev: Development) => {
@@ -396,7 +424,37 @@ const MyDevelopments: React.FC = () => {
     setEditingDevelopment(null);
   };
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (editingDevelopment) {
+      if (e.target.name === 'current_stage') {
+        // Para current_stage, actualizamos manteniendo la estructura original
+        // Si current_stage es un objeto, mantenemos la estructura pero actualizamos el stage_name
+        if (typeof editingDevelopment.current_stage === 'object' && editingDevelopment.current_stage !== null) {
+          setEditingDevelopment({
+            ...editingDevelopment,
+            current_stage: {
+              ...editingDevelopment.current_stage,
+              stage_name: e.target.value
+            }
+          });
+        } else {
+          // Si current_stage es un string o null, lo convertimos a string
+          setEditingDevelopment({
+            ...editingDevelopment,
+            current_stage: e.target.value as any, // Forzamos el tipo para el formulario
+          });
+        }
+      } else {
+        // Para otros campos, actualizamos normalmente
+        setEditingDevelopment({
+          ...editingDevelopment,
+          [e.target.name]: e.target.value,
+        });
+      }
+    }
+  };
+
+  const handleTextFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (editingDevelopment) {
       setEditingDevelopment({
         ...editingDevelopment,
@@ -1067,22 +1125,31 @@ const MyDevelopments: React.FC = () => {
                           developmentId={selectedDevelopment.id}
                           currentStage={(() => {
                             try {
+                              // Usar current_stage_id directamente si está disponible
+                              if (selectedDevelopment.current_stage_id && typeof selectedDevelopment.current_stage_id === 'number') {
+                                phases.debug('Usando current_stage_id directamente', selectedDevelopment.current_stage_id);
+                                return Math.max(1, Math.min(11, selectedDevelopment.current_stage_id));
+                              }
+                              
+                              // Fallback: intentar parsear desde el nombre de la etapa
                               let stageValue = 1; // Valor por defecto
                               
                               if (typeof selectedDevelopment.current_stage === 'object' && selectedDevelopment.current_stage?.stage_name) {
                                 const stageName = selectedDevelopment.current_stage.stage_name;
                                 const parsed = parseInt(stageName.split('.')[0]);
                                 stageValue = isNaN(parsed) ? 1 : parsed;
+                                phases.debug('Parseando desde stage_name', { stageName, parsed: stageValue });
                               } else if (selectedDevelopment.current_stage) {
                                 const stageStr = String(selectedDevelopment.current_stage);
                                 const parsed = parseInt(stageStr.split('.')[0]);
                                 stageValue = isNaN(parsed) ? 1 : parsed;
+                                phases.debug('Parseando desde current_stage string', { stageStr, parsed: stageValue });
                               }
                               
                               // Asegurar que el valor esté en un rango válido (1-11)
                               return Math.max(1, Math.min(11, stageValue));
                             } catch (error) {
-                              console.error('Error parsing current_stage:', error, selectedDevelopment.current_stage);
+                              phases.error('Error parsing current_stage', { error, currentStage: selectedDevelopment.current_stage });
                               return 1; // Valor por defecto en caso de error
                             }
                           })()}
@@ -1091,12 +1158,12 @@ const MyDevelopments: React.FC = () => {
                           onCancel={async () => {
                             try {
                               // Aquí puedes implementar la lógica para cancelar el desarrollo
-                              console.log('Cancelando desarrollo:', selectedDevelopment.id);
+                              development.info('Cancelando desarrollo', selectedDevelopment.id);
                               toast.success('Desarrollo cancelado exitosamente');
                               // Recargar los desarrollos después de la cancelación
                               loadDevelopments();
                             } catch (error) {
-                              console.error('Error al cancelar desarrollo:', error);
+                              development.error('Error al cancelar desarrollo', error);
                               toast.error('Error al cancelar el desarrollo');
                             }
                           }}
@@ -1246,72 +1313,147 @@ const MyDevelopments: React.FC = () => {
     
     {/* Panel lateral removido - funcionalidad movida a vista de fases */}
       
-      {/* Edit Modal */}
+      {/* Edit Modal - Material Design */}
       {isEditModalOpen && editingDevelopment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-          <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} rounded-lg shadow-xl w-full max-w-2xl`}>
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>Editar Desarrollo</h3>
-                <button onClick={handleCloseModal} className={`p-1 rounded-full transition-colors ${darkMode ? 'hover:bg-neutral-700' : 'hover:bg-neutral-200'}`}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+          <MaterialCard elevation={8} className="w-full max-w-2xl" darkMode={darkMode}>
+            <MaterialCard.Header>
+              <div className="flex justify-between items-center">
+                <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                  Editar Desarrollo
+                </h3>
+                <MaterialButton
+                  variant="text"
+                  size="small"
+                  onClick={handleCloseModal}
+                  className="!p-2"
+                >
                   <X size={20} />
-                </button>
+                </MaterialButton>
               </div>
-              <form onSubmit={(e) => e.preventDefault()}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>ID Remedy</label>
-                    <input type="text" value={editingDevelopment.id} disabled className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-neutral-400' : 'bg-neutral-200 text-neutral-500'}`} />
-                  </div>
-                   <div>
-                    <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Nombre Desarrollo</label>
-                    <input type="text" name="name" value={editingDevelopment.name} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`} />
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Proveedor</label>
-                    <input type="text" name="provider" value={editingDevelopment.provider || ''} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`} placeholder="Ingrese el proveedor" />
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Responsable</label>
-                    <input type="text" name="responsible" value={editingDevelopment.responsible || ''} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`} placeholder="Ingrese el responsable" />
-                  </div>
-                   <div>
-                    <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Estado General</label>
-                     <select name="general_status" value={editingDevelopment.general_status} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`}>
-                       {generalStatuses.map(status => <option key={status} value={status}>{status}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Etapa del Progreso</label>
-                    <select name="current_stage" value={typeof editingDevelopment.current_stage === 'object' ? editingDevelopment.current_stage?.stage_name || '1. Definición' : editingDevelopment.current_stage || '1. Definición'} onChange={handleFormChange} className={`w-full p-2 rounded ${darkMode ? 'bg-neutral-700 text-white' : 'bg-white border'}`}>
-                       <optgroup label="--- EN EJECUCIÓN ---">
-                         {executionStages.map(stage => <option key={stage} value={stage}>{stage}</option>)}
-                       </optgroup>
-                       <optgroup label="--- EN ESPERA ---">
-                         {waitingStages.map(stage => <option key={stage} value={stage}>{stage}</option>)}
-                       </optgroup>
-                       <optgroup label="--- FINALES / OTROS ---">
-                         {finalStages.map(stage => <option key={stage} value={stage}>{stage}</option>)}
-                       </optgroup>
-                    </select>
-                  </div>
-                </div>
-                <div className="mt-6 flex justify-end space-x-3">
-                  <button type="button" onClick={handleCloseModal} className={`px-4 py-2 rounded ${darkMode ? 'bg-neutral-600 hover:bg-neutral-500' : 'bg-neutral-200 hover:bg-neutral-300'}`}>
-                    Cancelar
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={handleSaveDevelopment}
-                    disabled={updateLoading}
-                    className="px-4 py-2 rounded bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {updateLoading ? 'Guardando...' : 'Guardar Cambios'}
-                  </button>
+            </MaterialCard.Header>
+            
+            <MaterialCard.Content>
+              <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* ID Remedy - Read Only */}
+                  <MaterialTextField
+                    label="ID Remedy"
+                    value={editingDevelopment.id}
+                    disabled
+                    darkMode={darkMode}
+                  />
+                  
+                  {/* Nombre Desarrollo */}
+                  <MaterialTextField
+                    label="Nombre Desarrollo"
+                    name="name"
+                    value={editingDevelopment.name}
+                    onChange={handleTextFieldChange}
+                    darkMode={darkMode}
+                    required
+                  />
+                  
+                  {/* Proveedor */}
+                  <MaterialTextField
+                    label="Proveedor"
+                    name="provider"
+                    value={editingDevelopment.provider || ''}
+                    onChange={handleTextFieldChange}
+                    placeholder="Ingrese el proveedor"
+                    darkMode={darkMode}
+                  />
+                  
+                  {/* Responsable */}
+                  <MaterialTextField
+                    label="Responsable"
+                    name="responsible"
+                    value={editingDevelopment.responsible || ''}
+                    onChange={handleTextFieldChange}
+                    placeholder="Ingrese el responsable"
+                    darkMode={darkMode}
+                  />
+                  
+                  {/* Estado General */}
+                  <MaterialSelect
+                    label="Estado General"
+                    name="general_status"
+                    value={editingDevelopment.general_status}
+                    onChange={handleSelectChange}
+                    darkMode={darkMode}
+                    options={generalStatuses.map(status => ({
+                      value: status,
+                      label: status
+                    }))}
+                    required
+                  />
+                  
+                  {/* Etapa del Progreso */}
+                  <MaterialSelect
+                    label="Etapa del Progreso"
+                    name="current_stage"
+                    value={typeof editingDevelopment.current_stage === 'object' 
+                      ? editingDevelopment.current_stage?.stage_name || '1. Definición'
+                      : editingDevelopment.current_stage || '1. Definición'
+                    }
+                    onChange={handleSelectChange}
+                    darkMode={darkMode}
+                    optionGroups={[
+                      {
+                        label: "--- EN EJECUCIÓN ---",
+                        options: executionStages.map(stage => ({
+                          value: stage,
+                          label: stage
+                        }))
+                      },
+                      {
+                        label: "--- EN ESPERA ---",
+                        options: waitingStages.map(stage => ({
+                          value: stage,
+                          label: stage
+                        }))
+                      },
+                      {
+                        label: "--- FINALES / OTROS ---",
+                        options: finalStages.map(stage => ({
+                          value: stage,
+                          label: stage
+                        }))
+                      },
+                      {
+                        label: "--- OPCIONES ADICIONALES ---",
+                        options: additionalStages.map(stage => ({
+                          value: stage,
+                          label: stage
+                        }))
+                      }
+                    ]}
+                    required
+                  />
                 </div>
               </form>
-            </div>
-          </div>
+            </MaterialCard.Content>
+            
+            <MaterialCard.Actions>
+              <MaterialButton
+                variant="outlined"
+                color="inherit"
+                onClick={handleCloseModal}
+                className="mr-3"
+              >
+                Cancelar
+              </MaterialButton>
+              <MaterialButton
+                variant="contained"
+                color="primary"
+                onClick={handleSaveDevelopment}
+                disabled={updateLoading}
+                loading={updateLoading}
+              >
+                {updateLoading ? 'Guardando...' : 'Guardar Cambios'}
+              </MaterialButton>
+            </MaterialCard.Actions>
+          </MaterialCard>
         </div>
       )}
 

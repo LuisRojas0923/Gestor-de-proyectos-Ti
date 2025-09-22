@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { LucideIcon, TrendingUp, Clock, CheckCircle, XCircle, FileText, Code, TestTube, Shield, Rocket } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
+import Badge from '../atoms/Badge';
+import { phases, debug } from '../../utils/logger';
 
 interface DevelopmentStage {
   id: number;
@@ -124,11 +126,11 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
     // Validar que currentStage sea un número válido
     const validCurrentStage = typeof currentStage === 'number' && !isNaN(currentStage) ? currentStage : 1;
     
-    // Debug: Log para cada etapa (comentado para evitar errores)
+    // Debug: Log para cada etapa
     const status = stageId < validCurrentStage ? 'completed' : 
                    stageId === validCurrentStage ? 'current' : 'pending';
     
-    // console.log(`Stage ${stageId}: currentStage=${validCurrentStage} (original: ${currentStage}), status=${status}`);
+    debug.debug(`Etapa ${stageId}`, { currentStage: validCurrentStage, original: currentStage, status });
     
     return status;
   };
@@ -145,7 +147,6 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
     estimatedDays: stageData.estimated_days
   }));
 
-
   // Calcular progreso general - corregir el cálculo NaN
   const totalProgress = (() => {
     if (isCancelled) return 0;
@@ -160,10 +161,29 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
     return Math.round(((clampedStage - 1) / 10) * 100);
   })();
 
+  // Log para validar las fases (después de declarar totalProgress)
+  phases.debug('Validación de Fases', {
+    developmentId,
+    currentStage,
+    isCancelled,
+    totalProgress: totalProgress + '%',
+    cycleFlowDataLength: cycleFlowData.length,
+    stagesCount: stages.length
+  });
+  
+  // Log detallado de cada etapa
+  stages.forEach((stage, index) => {
+    phases.debug(`Etapa ${index + 1}`, {
+      id: stage.id,
+      name: stage.name,
+      status: stage.status,
+      responsible: stage.responsible,
+      estimatedDays: stage.estimatedDays,
+      phase: stage.phase
+    });
+  });
+
   const getStageStatusColor = (status: string) => {
-    // Debug: Log para verificar qué color se está aplicando (comentado para evitar errores)
-    // console.log(`Getting color for status: ${status}, isDarkMode: ${isDarkMode}`);
-    
     let colorClass;
     switch (status) {
       case 'completed':
@@ -181,9 +201,25 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
       default:
         colorClass = isDarkMode ? 'bg-gray-600' : 'bg-gray-300';
     }
-    
-    // console.log(`Color class for ${status}: ${colorClass}`);
     return colorClass;
+  };
+
+  // Función para obtener el Badge de estado apropiado
+  const getStageStatusBadge = (status: string) => {
+    debug.debug('Generando Badge', { status });
+    
+    switch (status) {
+      case 'completed':
+        return <Badge variant="success" size="sm">Completada</Badge>;
+      case 'current':
+        return <Badge variant="info" size="sm">En curso</Badge>;
+      case 'pending':
+        return <Badge variant="default" size="sm">Pendiente</Badge>;
+      case 'cancelled':
+        return <Badge variant="error" size="sm">Cancelada</Badge>;
+      default:
+        return <Badge variant="default" size="sm">Pendiente</Badge>;
+    }
   };
 
   const getStageTextColor = (status: string) => {
@@ -350,7 +386,7 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
                 </div>
 
                 {/* Información de la etapa */}
-                <div className="mt-4 text-center max-w-20">
+                <div className="mt-4 text-center max-w-24">
                   <h4 className={`text-xs font-medium ${getStageTextColor(stage.status)}`}>
                     {stage.name}
                   </h4>
@@ -362,6 +398,10 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
                       {stage.estimatedDays}d
                     </p>
                   )}
+                  {/* Badge de estado */}
+                  <div className="mt-2 flex justify-center">
+                    {getStageStatusBadge(stage.status)}
+                  </div>
                 </div>
               </div>
             );
@@ -372,23 +412,53 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
 
       {/* Estado actual del desarrollo */}
       <div className={`${isDarkMode ? 'bg-neutral-700' : 'bg-neutral-100'} rounded-lg p-4`}>
-        <h5 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
+        <h5 className={`font-medium mb-4 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
           Estado Actual del Desarrollo
         </h5>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Desarrollo:</span>
-            <span className={`ml-2 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>{developmentId}</span>
-          </div>
-          <div>
-            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Etapa Actual:</span>
-            <span className={`ml-2 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
-              {isCancelled ? 'Cancelado' : stages.find(s => s.id === currentStage)?.name || 'Sin etapa'}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="flex flex-col space-y-2">
+            <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Desarrollo
+            </span>
+            <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
+              {developmentId}
             </span>
           </div>
-          <div>
-            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Progreso:</span>
-            <span className={`ml-2 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>{totalProgress}%</span>
+          <div className="flex flex-col space-y-2">
+            <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Etapa Actual
+            </span>
+            <div className="flex items-center space-x-2">
+              <span className={`text-sm ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
+                {isCancelled ? 'Cancelado' : stages.find(s => s.id === currentStage)?.name || 'Sin etapa'}
+              </span>
+              {!isCancelled && stages.find(s => s.id === currentStage) && (
+                getStageStatusBadge(stages.find(s => s.id === currentStage)?.status || 'pending')
+              )}
+              {isCancelled && (
+                getStageStatusBadge('cancelled')
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col space-y-2">
+            <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Progreso General
+            </span>
+            <div className="flex items-center space-x-2">
+              <Badge variant={totalProgress >= 80 ? 'success' : totalProgress >= 50 ? 'info' : 'warning'} size="sm">
+                {totalProgress}%
+              </Badge>
+              <div className={`flex-1 h-2 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    totalProgress >= 80 ? (isDarkMode ? 'bg-green-500' : 'bg-green-600') :
+                    totalProgress >= 50 ? (isDarkMode ? 'bg-blue-500' : 'bg-blue-600') :
+                    (isDarkMode ? 'bg-yellow-500' : 'bg-yellow-600')
+                  }`}
+                  style={{ width: `${totalProgress}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

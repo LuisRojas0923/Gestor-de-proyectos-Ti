@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
-import { LucideIcon } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { materialDesignTokens } from '../tokens';
 
-interface MaterialTextFieldProps {
-  type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'tel' | 'url';
+interface MaterialSelectOption {
+  value: string;
+  label: string;
+}
+
+interface MaterialSelectOptionGroup {
+  label: string;
+  options: MaterialSelectOption[];
+}
+
+interface MaterialSelectProps {
   label?: string;
   placeholder?: string;
   name?: string;
@@ -14,19 +23,16 @@ interface MaterialTextFieldProps {
   error?: boolean;
   errorMessage?: string;
   helperText?: string;
-  icon?: LucideIcon;
-  iconPosition?: 'left' | 'right';
-  multiline?: boolean;
-  rows?: number;
   className?: string;
   darkMode?: boolean;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  onFocus?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  options?: MaterialSelectOption[];
+  optionGroups?: MaterialSelectOptionGroup[];
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onFocus?: (e: React.FocusEvent<HTMLSelectElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
 }
 
-const MaterialTextField: React.FC<MaterialTextFieldProps> = ({
-  type = 'text',
+const MaterialSelect: React.FC<MaterialSelectProps> = ({
   label,
   placeholder,
   name,
@@ -37,12 +43,10 @@ const MaterialTextField: React.FC<MaterialTextFieldProps> = ({
   error = false,
   errorMessage,
   helperText,
-  icon: Icon,
-  iconPosition = 'left',
-  multiline = false,
-  rows = 4,
   className = '',
   darkMode = false,
+  options = [],
+  optionGroups = [],
   onChange,
   onFocus,
   onBlur,
@@ -50,25 +54,25 @@ const MaterialTextField: React.FC<MaterialTextFieldProps> = ({
   const tokens = materialDesignTokens;
   const [focused, setFocused] = useState(false);
 
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleFocus = (e: React.FocusEvent<HTMLSelectElement>) => {
     setFocused(true);
     onFocus?.(e);
   };
 
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleBlur = (e: React.FocusEvent<HTMLSelectElement>) => {
     setFocused(false);
     onBlur?.(e);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     onChange?.(e);
   };
 
   const hasError = error || !!errorMessage;
 
   // Diseño esbelto y moderno
-  const getInputClasses = () => {
-    const baseClasses = 'w-full p-2 rounded transition-colors focus:outline-none';
+  const getSelectClasses = () => {
+    const baseClasses = 'w-full p-2 rounded transition-colors focus:outline-none appearance-none';
     
     if (disabled) {
       return `${baseClasses} opacity-50 cursor-not-allowed ${
@@ -92,8 +96,8 @@ const MaterialTextField: React.FC<MaterialTextFieldProps> = ({
 
     return `${baseClasses} border ${
       darkMode 
-        ? 'bg-neutral-700 text-white border-neutral-600 placeholder-neutral-400' 
-        : 'bg-white text-gray-900 border-gray-300 placeholder-gray-500'
+        ? 'bg-neutral-700 text-white border-neutral-600' 
+        : 'bg-white text-gray-900 border-gray-300'
     }`;
   };
 
@@ -123,7 +127,25 @@ const MaterialTextField: React.FC<MaterialTextFieldProps> = ({
     }`;
   };
 
-  const InputComponent = multiline ? 'textarea' : 'input';
+  const renderOptions = () => {
+    if (optionGroups.length > 0) {
+      return optionGroups.map((group, groupIndex) => (
+        <optgroup key={groupIndex} label={group.label}>
+          {group.options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </optgroup>
+      ));
+    }
+
+    return options.map((option) => (
+      <option key={option.value} value={option.value}>
+        {option.label}
+      </option>
+    ));
+  };
 
   return (
     <div className={className}>
@@ -135,20 +157,8 @@ const MaterialTextField: React.FC<MaterialTextFieldProps> = ({
       )}
       
       <div className="relative">
-        {Icon && iconPosition === 'left' && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Icon className={`w-5 h-5 ${
-              hasError 
-                ? (darkMode ? 'text-red-400' : 'text-red-500') 
-                : (darkMode ? 'text-neutral-400' : 'text-gray-400')
-            }`} />
-          </div>
-        )}
-        
-        <InputComponent
-          type={multiline ? undefined : type}
+        <select
           name={name}
-          placeholder={placeholder}
           value={value}
           defaultValue={defaultValue}
           disabled={disabled}
@@ -156,25 +166,28 @@ const MaterialTextField: React.FC<MaterialTextFieldProps> = ({
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          className={getInputClasses()}
-          rows={multiline ? rows : undefined}
+          className={getSelectClasses()}
           style={{
             fontFamily: tokens.typography.fontFamily.primary,
-            transition: `all ${tokens.transitions.duration.standard} ${tokens.transitions.easing.standard}`,
-            paddingLeft: Icon && iconPosition === 'left' ? '2.5rem' : undefined,
-            paddingRight: Icon && iconPosition === 'right' ? '2.5rem' : undefined,
+            transition: `all ${tokens.transitions.duration.standard} ${tokens.transitions.easing.standard}`
           }}
-        />
+        >
+          {placeholder && (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          )}
+          {renderOptions()}
+        </select>
         
-        {Icon && iconPosition === 'right' && (
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <Icon className={`w-5 h-5 ${
-              hasError 
-                ? (darkMode ? 'text-red-400' : 'text-red-500') 
-                : (darkMode ? 'text-neutral-400' : 'text-gray-400')
-            }`} />
-          </div>
-        )}
+        {/* Icono de dropdown */}
+        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+          <ChevronDown className={`w-5 h-5 ${
+            hasError 
+              ? (darkMode ? 'text-red-400' : 'text-red-500') 
+              : (darkMode ? 'text-neutral-400' : 'text-gray-400')
+          }`} />
+        </div>
       </div>
       
       {(errorMessage || helperText) && (
@@ -190,4 +203,4 @@ const MaterialTextField: React.FC<MaterialTextFieldProps> = ({
   );
 };
 
-export default MaterialTextField;
+export default MaterialSelect;

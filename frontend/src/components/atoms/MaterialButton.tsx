@@ -15,6 +15,7 @@ interface MaterialButtonProps {
   type?: 'button' | 'submit' | 'reset';
   className?: string;
   fullWidth?: boolean;
+  darkMode?: boolean;
 }
 
 const MaterialButton: React.FC<MaterialButtonProps> = ({
@@ -30,87 +31,90 @@ const MaterialButton: React.FC<MaterialButtonProps> = ({
   type = 'button',
   className = '',
   fullWidth = false,
+  darkMode = false,
 }) => {
   const tokens = materialDesignTokens;
   
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
   
-  // Variantes de Material Design
-  const variantClasses = {
-    contained: 'shadow-md hover:shadow-lg active:shadow-sm',
-    outlined: 'border-2 bg-transparent hover:bg-opacity-8',
-    text: 'bg-transparent hover:bg-opacity-8'
-  };
+  // Diseño esbelto y moderno
+  const getButtonClasses = () => {
+    const sizeClasses = {
+      small: 'px-3 py-1.5 text-sm',
+      medium: 'px-4 py-2 text-base',
+      large: 'px-6 py-3 text-lg'
+    };
 
-  // Colores de Material Design
-  const colorClasses = {
-    primary: {
-      contained: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-      outlined: 'text-blue-600 border-blue-600 hover:bg-blue-50 focus:ring-blue-500',
-      text: 'text-blue-600 hover:bg-blue-50 focus:ring-blue-500'
-    },
-    secondary: {
-      contained: 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-500',
-      outlined: 'text-orange-500 border-orange-500 hover:bg-orange-50 focus:ring-orange-500',
-      text: 'text-orange-500 hover:bg-orange-50 focus:ring-orange-500'
-    },
-    inherit: {
-      contained: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
-      outlined: 'text-gray-600 border-gray-600 hover:bg-gray-50 focus:ring-gray-500',
-      text: 'text-gray-600 hover:bg-gray-50 focus:ring-gray-500'
+    const baseButtonClasses = `${baseClasses} ${sizeClasses[size]} ${fullWidth ? 'w-full' : ''}`;
+
+    if (disabled) {
+      return `${baseButtonClasses} ${
+        darkMode ? 'bg-neutral-600 text-white' : 'bg-neutral-600 text-white'
+      }`;
+    }
+
+    if (variant === 'contained') {
+      if (color === 'primary') {
+        return `${baseButtonClasses} bg-primary-500 text-white hover:bg-primary-600`;
+      } else if (color === 'secondary') {
+        return `${baseButtonClasses} ${
+          darkMode ? 'bg-neutral-600 text-white hover:bg-neutral-500' : 'bg-neutral-600 text-white hover:bg-neutral-500'
+        }`;
+      } else {
+        return `${baseButtonClasses} ${
+          darkMode ? 'bg-neutral-600 text-white hover:bg-neutral-500' : 'bg-neutral-600 text-white hover:bg-neutral-500'
+        }`;
+      }
+    } else if (variant === 'outlined') {
+      return `${baseButtonClasses} border bg-transparent ${
+        color === 'primary' 
+          ? 'border-primary-500 text-primary-500 hover:bg-primary-50' 
+          : darkMode
+            ? 'border-neutral-300 text-neutral-300 hover:bg-neutral-700'
+            : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'
+      }`;
+    } else { // text
+      return `${baseButtonClasses} ${
+        color === 'primary' 
+          ? 'text-primary-500 hover:bg-primary-50' 
+          : darkMode
+            ? 'text-neutral-300 hover:bg-neutral-700'
+            : 'text-neutral-700 hover:bg-neutral-50'
+      }`;
     }
   };
 
-  // Tamaños de Material Design
-  const sizeClasses = {
-    small: 'px-3 py-1.5 text-sm min-h-[32px]',
-    medium: 'px-4 py-2 text-sm min-h-[36px]',
-    large: 'px-6 py-3 text-base min-h-[42px]'
-  };
-
-  const iconSizeClasses = {
-    small: 'w-4 h-4',
-    medium: 'w-4 h-4',
-    large: 'w-5 h-5'
-  };
-
-  const fullWidthClass = fullWidth ? 'w-full' : '';
+  const buttonClasses = getButtonClasses();
 
   return (
     <button
       type={type}
+      className={`${buttonClasses} ${className}`}
       onClick={onClick}
       disabled={disabled || loading}
-      className={`
-        ${baseClasses} 
-        ${variantClasses[variant]} 
-        ${colorClasses[color][variant]} 
-        ${sizeClasses[size]} 
-        ${fullWidthClass}
-        ${className}
-      `}
       style={{
         fontFamily: tokens.typography.fontFamily.primary,
         transition: `all ${tokens.transitions.duration.standard} ${tokens.transitions.easing.standard}`
       }}
     >
-      {loading && (
-        <div className={`animate-spin ${iconSizeClasses[size]} mr-2`}>
-          <svg className="w-full h-full" fill="none" viewBox="0 0 24 24">
+      {loading ? (
+        <>
+          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-        </div>
-      )}
-      
-      {!loading && Icon && iconPosition === 'left' && (
-        <Icon className={`${iconSizeClasses[size]} ${children ? 'mr-2' : ''}`} />
-      )}
-      
-      {children}
-      
-      {!loading && Icon && iconPosition === 'right' && (
-        <Icon className={`${iconSizeClasses[size]} ${children ? 'ml-2' : ''}`} />
+          {children}
+        </>
+      ) : (
+        <>
+          {Icon && iconPosition === 'left' && (
+            <Icon className="w-4 h-4 mr-2" />
+          )}
+          {children}
+          {Icon && iconPosition === 'right' && (
+            <Icon className="w-4 h-4 ml-2" />
+          )}
+        </>
       )}
     </button>
   );
