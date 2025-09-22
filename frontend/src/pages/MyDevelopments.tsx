@@ -61,41 +61,21 @@ export const processStages = [
   ];
 
 
-// Updated stages with grouping
-const executionStages = [
+// Updated stages in numerical order (1,2,3,4,5,6,7,8,9,10,0)
+const allStagesInOrder = [
   '1. Definición',
   '2. Análisis',
+  '3. Propuesta',
+  '4. Aprobación',
   '5. Desarrollo',
   '6. Despliegue (Pruebas)',
   '7. Plan de Pruebas',
   '8. Ejecución Pruebas',
-];
-
-const waitingStages = [
-  '3. Propuesta',
-  '4. Aprobación',
   '9. Aprobación (Pase)',
-];
-
-const finalStages = [
   '10. Desplegado',
   '0. Cancelado',
 ];
 
-// Opciones adicionales que pueden venir del API sin prefijo numérico
-const additionalStages = [
-  'Definición',
-  'Análisis', 
-  'Propuesta',
-  'Aprobación',
-  'Desarrollo',
-  'Despliegue (Pruebas)',
-  'Plan de Pruebas',
-  'Ejecución Pruebas',
-  'Aprobación (Pase)',
-  'Desplegado',
-  'Cancelado',
-];
 
 const generalStatuses = ['Pendiente', 'En curso', 'Completado', 'Cancelado'];
 
@@ -1398,36 +1378,10 @@ const MyDevelopments: React.FC = () => {
                     }
                     onChange={handleSelectChange}
                     darkMode={darkMode}
-                    optionGroups={[
-                      {
-                        label: "--- EN EJECUCIÓN ---",
-                        options: executionStages.map(stage => ({
-                          value: stage,
-                          label: stage
-                        }))
-                      },
-                      {
-                        label: "--- EN ESPERA ---",
-                        options: waitingStages.map(stage => ({
-                          value: stage,
-                          label: stage
-                        }))
-                      },
-                      {
-                        label: "--- FINALES / OTROS ---",
-                        options: finalStages.map(stage => ({
-                          value: stage,
-                          label: stage
-                        }))
-                      },
-                      {
-                        label: "--- OPCIONES ADICIONALES ---",
-                        options: additionalStages.map(stage => ({
-                          value: stage,
-                          label: stage
-                        }))
-                      }
-                    ]}
+                    options={allStagesInOrder.map(stage => ({
+                      value: stage,
+                      label: stage
+                    }))}
                     required
                   />
                 </div>

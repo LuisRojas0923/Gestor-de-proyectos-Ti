@@ -135,17 +135,25 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
     return status;
   };
 
-  // Convertir datos de la API a formato del componente
-  const stages: DevelopmentStage[] = cycleFlowData.map((stageData) => ({
-    id: stageData.stage_id,
-    name: stageData.stage_name,
-    description: stageData.stage_description,
-    responsible: stageData.responsible_party_name as 'Usuario' | 'Proveedor' | 'Equipo Interno',
-    status: getStageStatus(stageData.stage_id),
-    icon: getStageIcon(stageData.stage_code),
-    phase: getPhaseType(stageData.phase_name),
-    estimatedDays: stageData.estimated_days
-  }));
+  // Convertir datos de la API a formato del componente y ordenar secuencialmente
+  const stages: DevelopmentStage[] = cycleFlowData
+    .map((stageData) => ({
+      id: stageData.stage_id,
+      name: stageData.stage_name,
+      description: stageData.stage_description,
+      responsible: stageData.responsible_party_name as 'Usuario' | 'Proveedor' | 'Equipo Interno',
+      status: getStageStatus(stageData.stage_id),
+      icon: getStageIcon(stageData.stage_code),
+      phase: getPhaseType(stageData.phase_name),
+      estimatedDays: stageData.estimated_days
+    }))
+    .sort((a, b) => {
+      // Ordenar por ID de etapa en orden secuencial: 1,2,3,4,5,6,7,8,9,10,11 (donde 11 es Cancelado)
+      // Cancelado (ID 11) debe ir al final, así que le damos el valor más alto
+      const aId = a.id === 11 ? 12 : a.id; // Cancelado (ID 11) va al final como 12
+      const bId = b.id === 11 ? 12 : b.id;
+      return aId - bId;
+    });
 
   // Calcular progreso general - corregir el cálculo NaN
   const totalProgress = (() => {
