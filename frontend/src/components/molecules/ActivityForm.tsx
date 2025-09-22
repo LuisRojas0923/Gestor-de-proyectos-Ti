@@ -49,7 +49,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [availableStages, setAvailableStages] = useState<any[]>([]);
-  const [alsoMoveStage, setAlsoMoveStage] = useState<boolean>(false);
+  const [alsoMoveStage, setAlsoMoveStage] = useState<boolean>(true); // Por defecto marcado
 
   // Cargar etapas disponibles
   useEffect(() => {
@@ -108,36 +108,37 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   };
 
   const getFormFieldsForStage = (): FormField[] => {
-    if (!stageConfig?.field_config) return [];
-
-    const config = STAGE_FIELD_CONFIGS[stageConfig.stage_name];
-    if (!config) return [];
+    if (!stageConfig?.has_dynamic_fields) return [];
 
     const fields: FormField[] = [];
 
     // Campos requeridos
-    config.required_fields.forEach(fieldName => {
-      fields.push({
-        name: fieldName,
-        label: getFieldLabel(fieldName),
-        type: getFieldType(fieldName),
-        required: true,
-        placeholder: getFieldPlaceholder(fieldName),
-        description: getFieldDescription(fieldName)
+    if (stageConfig.required_fields) {
+      stageConfig.required_fields.forEach(fieldName => {
+        fields.push({
+          name: fieldName,
+          label: getFieldLabel(fieldName),
+          type: getFieldType(fieldName),
+          required: true,
+          placeholder: getFieldPlaceholder(fieldName),
+          description: getFieldDescription(fieldName)
+        });
       });
-    });
+    }
 
     // Campos opcionales
-    config.optional_fields.forEach(fieldName => {
-      fields.push({
-        name: fieldName,
-        label: getFieldLabel(fieldName),
-        type: getFieldType(fieldName),
-        required: false,
-        placeholder: getFieldPlaceholder(fieldName),
-        description: getFieldDescription(fieldName)
+    if (stageConfig.optional_fields) {
+      stageConfig.optional_fields.forEach(fieldName => {
+        fields.push({
+          name: fieldName,
+          label: getFieldLabel(fieldName),
+          type: getFieldType(fieldName),
+          required: false,
+          placeholder: getFieldPlaceholder(fieldName),
+          description: getFieldDescription(fieldName)
+        });
       });
-    });
+    }
 
     return fields;
   };
@@ -237,7 +238,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           dynamic_payload: {}
         });
         setStageConfig(null);
-        setAlsoMoveStage(false);
+        setAlsoMoveStage(true); // Mantener marcado por defecto
       }
     } catch (err: any) {
       setError(err.message || 'Error creando actividad');
@@ -264,18 +265,25 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
         );
       case 'textarea':
         return (
-          <textarea
-            value={value}
-            onChange={(e) => handleDynamicFieldChange(field.name, e.target.value)}
-            placeholder={field.placeholder}
-            required={field.required}
-            rows={3}
-            className={`w-full px-3 py-2 border rounded-md ${
-              darkMode 
-                ? 'bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400' 
-                : 'bg-white border-neutral-300 text-neutral-900 placeholder-neutral-500'
-            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-          />
+          <div>
+            <label className={`block text-sm font-medium mb-2 ${
+              darkMode ? 'text-neutral-300' : 'text-neutral-700'
+            }`}>
+              {field.label} {field.required && '*'}
+            </label>
+            <textarea
+              value={value}
+              onChange={(e) => handleDynamicFieldChange(field.name, e.target.value)}
+              placeholder={field.placeholder}
+              required={field.required}
+              rows={3}
+              className={`w-full px-3 py-2 border rounded-md ${
+                darkMode 
+                  ? 'bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400' 
+                  : 'bg-white border-neutral-300 text-neutral-900 placeholder-neutral-500'
+              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+          </div>
         );
       default: {
         const inputType = (field.type === 'date' || field.type === 'number' || field.type === 'text')
@@ -284,6 +292,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
         return (
           <Input
             type={inputType}
+            label={`${field.label}${field.required ? ' *' : ''}`}
             value={value}
             onChange={(e) => handleDynamicFieldChange(field.name, e.target.value)}
             placeholder={field.placeholder}
@@ -329,13 +338,8 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
         {/* Campos básicos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className={`block text-sm font-medium mb-2 ${
-              darkMode ? 'text-neutral-300' : 'text-neutral-700'
-            }`}>
-              Etapa *
-            </label>
             <MaterialSelect
-              label="Etapa"
+              label="Etapa *"
               name="stage_id"
               value={formData.stage_id.toString()}
               onChange={(e) => handleInputChange('stage_id', parseInt(e.target.value))}
@@ -349,13 +353,8 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-2 ${
-              darkMode ? 'text-neutral-300' : 'text-neutral-700'
-            }`}>
-              Tipo de Actor *
-            </label>
             <MaterialSelect
-              label="Tipo de Actor"
+              label="Tipo de Actor *"
               name="actor_type"
               value={formData.actor_type}
               onChange={(e) => handleInputChange('actor_type', e.target.value)}
@@ -370,13 +369,9 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-2 ${
-              darkMode ? 'text-neutral-300' : 'text-neutral-700'
-            }`}>
-              Fecha de Inicio *
-            </label>
             <Input
               type="date"
+              label="Fecha de Inicio *"
               value={formData.start_date}
               onChange={(e) => handleInputChange('start_date', e.target.value)}
               required
@@ -384,37 +379,24 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-2 ${
-              darkMode ? 'text-neutral-300' : 'text-neutral-700'
-            }`}>
-              Fecha de Fin
-            </label>
             <Input
               type="date"
+              label="Fecha de Fin"
               value={formData.end_date || ''}
               onChange={(e) => handleInputChange('end_date', e.target.value)}
             />
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-2 ${
-              darkMode ? 'text-neutral-300' : 'text-neutral-700'
-            }`}>
-              Próximo Seguimiento
-            </label>
             <Input
               type="date"
+              label="Próximo Seguimiento"
               value={formData.next_follow_up_at || ''}
               onChange={(e) => handleInputChange('next_follow_up_at', e.target.value)}
             />
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-2 ${
-              darkMode ? 'text-neutral-300' : 'text-neutral-700'
-            }`}>
-              Estado
-            </label>
             <MaterialSelect
               label="Estado"
               name="status"
@@ -444,11 +426,6 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {getFormFieldsForStage().map((field) => (
                 <div key={field.name}>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    darkMode ? 'text-neutral-300' : 'text-neutral-700'
-                  }`}>
-                    {field.label} {field.required && '*'}
-                  </label>
                   {renderDynamicField(field)}
                   {field.description && (
                     <p className={`text-xs mt-1 ${

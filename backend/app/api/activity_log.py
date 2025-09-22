@@ -253,13 +253,21 @@ def get_stage_field_config_endpoint(
         # Obtener configuración de campos
         config = get_stage_field_config(stage.stage_name)
         
-        return {
+        # Preparar respuesta serializable
+        response_data = {
             "stage_id": stage.id,
             "stage_name": stage.stage_name,
             "stage_code": stage.stage_code,
-            "field_config": config,
-            "has_dynamic_fields": config is not None
+            "has_dynamic_fields": config is not None,
+            "required_fields": [],
+            "optional_fields": []
         }
+        
+        if config:
+            response_data["required_fields"] = config.get("required_fields", [])
+            response_data["optional_fields"] = config.get("optional_fields", [])
+        
+        return response_data
         
     except HTTPException:
         raise
@@ -355,4 +363,42 @@ def update_development_activity(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error actualizando actividad: {str(e)}"
+        )
+
+
+@router.delete("/activities/{activity_id}")
+def delete_development_activity(
+    activity_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Eliminar una actividad de la bitácora
+    
+    - **activity_id**: ID de la actividad a eliminar
+    """
+    try:
+        # Buscar la actividad
+        activity = db.query(models.DevelopmentActivityLog).filter(
+            models.DevelopmentActivityLog.id == activity_id
+        ).first()
+        
+        if not activity:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Actividad no encontrada"
+            )
+        
+        # Eliminar la actividad
+        db.delete(activity)
+        db.commit()
+        
+        return {"message": "Actividad eliminada exitosamente", "activity_id": activity_id}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error eliminando actividad: {str(e)}"
         )

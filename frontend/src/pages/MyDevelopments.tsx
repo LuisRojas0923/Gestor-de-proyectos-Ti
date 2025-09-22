@@ -1,4 +1,4 @@
-import { Calendar, Eye, GitBranch, ListChecks, Search, ShieldCheck, SquarePen, Upload, X, Trash2, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react';
+import { Calendar, Eye, GitBranch, ListChecks, Search, ShieldCheck, SquarePen, Upload, X, Trash2, ExternalLink, ChevronUp, ChevronDown, CheckCircle, AlertTriangle } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ExcelImporter from '../components/common/ExcelImporter';
@@ -84,7 +84,7 @@ const generalStatuses = ['Pendiente', 'En curso', 'Completado', 'Cancelado'];
 const MyDevelopments: React.FC = () => {
   const { state } = useAppContext();
   const { darkMode } = state;
-  const { get } = useApi();
+  const { get, put, delete: del } = useApi();
   
   const [developments, setDevelopments] = useState<Development[]>([]);
   const [isImportModalOpen, setImportModalOpen] = useState(false);
@@ -92,6 +92,16 @@ const MyDevelopments: React.FC = () => {
     isOpen: false,
     development: null
   });
+  const [activityDeleteModal, setActivityDeleteModal] = useState<{ 
+    isOpen: boolean; 
+    activityId: number | null;
+    activity: any | null;
+  }>({
+    isOpen: false,
+    activityId: null,
+    activity: null
+  });
+  const [shouldRollbackStage, setShouldRollbackStage] = useState(false);
 
   // Load developments from API on initial render
   useEffect(() => {
@@ -361,6 +371,93 @@ const MyDevelopments: React.FC = () => {
         console.error('Error refrescando desarrollo:', error);
       }
     }
+  };
+
+  // Función para completar una actividad
+  const handleCompleteActivity = async (activityId: number) => {
+    try {
+      const response = await put(API_ENDPOINTS.ACTIVITY_LOG_UPDATE(activityId), {
+        status: 'completada',
+        end_date: new Date().toISOString().split('T')[0]
+      });
+
+      if (response) {
+        // Actualizar la actividad en el estado local
+        setActivities(prev => prev.map(activity => 
+          activity.id === activityId 
+            ? { ...activity, status: 'completada', end_date: new Date().toISOString().split('T')[0] }
+            : activity
+        ));
+        toast.success('Actividad marcada como completada');
+        }
+      } catch (error) {
+      console.error('Error completando actividad:', error);
+      toast.error('Error al completar la actividad');
+    }
+  };
+
+  // Función para eliminar una actividad
+  const openDeleteActivityModal = (activityId: number) => {
+    const activity = activities.find(a => a.id === activityId);
+    setActivityDeleteModal({ isOpen: true, activityId, activity });
+  };
+
+  const confirmDeleteActivity = async () => {
+    const activityId = activityDeleteModal.activityId;
+    const activity = activityDeleteModal.activity;
+    if (!activityId) return;
+
+    try {
+      // 1. Eliminar la actividad
+      const response = await del(API_ENDPOINTS.ACTIVITY_LOG_DELETE(activityId));
+      if (response) {
+        setActivities(prev => prev.filter(activity => activity.id !== activityId));
+        
+        // 2. Si se solicita rollback y la actividad movió una etapa, revertir
+        if (shouldRollbackStage && activity && selectedDevelopment) {
+          try {
+            // Buscar la actividad anterior para determinar la etapa anterior
+            const remainingActivities = activities.filter(a => a.id !== activityId);
+            const previousActivity = remainingActivities
+              .filter(a => a.stage_id !== activity.stage_id)
+              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+            
+            if (previousActivity) {
+              // Mover el desarrollo a la etapa anterior
+              await put(API_ENDPOINTS.DEVELOPMENT_UPDATE(selectedDevelopment.id), {
+                current_stage_id: previousActivity.stage_id
+              });
+              
+              // Refrescar el desarrollo
+              const updatedDev = await get(API_ENDPOINTS.DEVELOPMENT_BY_ID(selectedDevelopment.id));
+              if (updatedDev) {
+                setSelectedDevelopment(updatedDev);
+              }
+              
+              toast.success('Actividad eliminada y etapa revertida exitosamente');
+            } else {
+              toast.success('Actividad eliminada exitosamente');
+            }
+          } catch (rollbackError) {
+            console.error('Error en rollback:', rollbackError);
+            toast.success('Actividad eliminada, pero no se pudo revertir la etapa');
+          }
+        } else {
+          toast.success('Actividad eliminada exitosamente');
+        }
+      }
+    } catch (error) {
+      console.error('Error eliminando actividad:', error);
+      toast.error('Error al eliminar la actividad');
+    } finally {
+      setActivityDeleteModal({ isOpen: false, activityId: null, activity: null });
+      setShouldRollbackStage(false);
+    }
+  };
+
+  const cancelDeleteActivity = () => {
+    setActivityDeleteModal({ isOpen: false, activityId: null, activity: null });
+    setShouldRollbackStage(false);
   };
 
   // Cargar actividades cuando se selecciona un desarrollo
@@ -1290,12 +1387,12 @@ const MyDevelopments: React.FC = () => {
                       )}
 
                       {activePhaseTab === 'activities' && (
-                        <div>
+              <div>
                           <div className="flex items-center justify-between mb-6">
                             <h4 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                              <ListChecks size={18} className="mr-2"/>
+                  <ListChecks size={18} className="mr-2"/>
                               Bitácora Inteligente
-                            </h4>
+                </h4>
                             <button
                               onClick={() => setShowActivityForm(true)}
                               className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
@@ -1306,8 +1403,8 @@ const MyDevelopments: React.FC = () => {
                             >
                               <ListChecks size={16} className="inline mr-2" />
                               Nueva Actividad
-                            </button>
-                          </div>
+                  </button>
+                </div>
 
                           {/* Formulario de Nueva Actividad */}
                           {showActivityForm && (
@@ -1325,8 +1422,8 @@ const MyDevelopments: React.FC = () => {
                             {activitiesLoading ? (
                               <div className="text-center p-6">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                                <p className="text-sm text-neutral-500 dark:text-neutral-400">Cargando actividades...</p>
-                              </div>
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400">Cargando actividades...</p>
+                    </div>
                             ) : activities.length > 0 ? (
                               activities.map((activity) => (
                                 <div key={activity.id} className={`p-4 rounded-lg border ${
@@ -1342,17 +1439,17 @@ const MyDevelopments: React.FC = () => {
                                           : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                                       }`}>
                                         {activity.status}
-                                      </span>
+                          </span>
                                       <span className={`text-xs px-2 py-1 rounded ${
                                         darkMode ? 'bg-neutral-600 text-neutral-300' : 'bg-neutral-100 text-neutral-600'
                                       }`}>
                                         {activity.stage_name}
                                       </span>
                                     </div>
-                                    <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                            <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
                                       {new Date(activity.created_at).toLocaleDateString()}
-                                    </span>
-                                  </div>
+                            </span>
+                        </div>
                                   
                                   <div className="mb-3">
                                     <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
@@ -1400,7 +1497,7 @@ const MyDevelopments: React.FC = () => {
                                     </div>
                                   )}
 
-                                  {/* Fechas */}
+                                  {/* Fechas y Acciones */}
                                   <div className="flex justify-between items-center mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-600">
                                     <div className="text-xs text-neutral-500 dark:text-neutral-400">
                                       <span>Inicio: {new Date(activity.start_date).toLocaleDateString()}</span>
@@ -1408,17 +1505,48 @@ const MyDevelopments: React.FC = () => {
                                         <span className="ml-3">Fin: {new Date(activity.end_date).toLocaleDateString()}</span>
                                       )}
                                     </div>
-                                    {activity.next_follow_up_at && (
-                                      <span className={`text-xs px-2 py-1 rounded ${
-                                        darkMode ? 'bg-orange-900 text-orange-200' : 'bg-orange-100 text-orange-800'
-                                      }`}>
-                                        Seguimiento: {new Date(activity.next_follow_up_at).toLocaleDateString()}
-                                      </span>
-                                    )}
+                                    <div className="flex items-center space-x-2">
+                                      {activity.next_follow_up_at && (
+                                        <span className={`text-xs px-2 py-1 rounded ${
+                                          darkMode ? 'bg-orange-900 text-orange-200' : 'bg-orange-100 text-orange-800'
+                                        }`}>
+                                          Seguimiento: {new Date(activity.next_follow_up_at).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                      
+                                      {/* Botones de acción */}
+                                      {activity.status !== 'completada' && (
+                                        <button
+                                          onClick={() => handleCompleteActivity(activity.id)}
+                                          className={`flex items-center space-x-1 px-2 py-1 text-xs rounded transition-colors ${
+                                            darkMode 
+                                              ? 'bg-green-600 hover:bg-green-700 text-white' 
+                                              : 'bg-green-100 hover:bg-green-200 text-green-800'
+                                          }`}
+                                          title="Marcar como completada"
+                                        >
+                                          <CheckCircle size={12} />
+                                          <span>Completar</span>
+                                        </button>
+                                      )}
+                                      
+                                      <button
+                                        onClick={() => openDeleteActivityModal(activity.id)}
+                                        className={`flex items-center space-x-1 px-2 py-1 text-xs rounded transition-colors ${
+                                          darkMode 
+                                            ? 'bg-red-600 hover:bg-red-700 text-white' 
+                                            : 'bg-red-100 hover:bg-red-200 text-red-800'
+                                        }`}
+                                        title="Eliminar actividad"
+                                      >
+                                        <Trash2 size={12} />
+                                        <span>Eliminar</span>
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
-                              ))
-                            ) : (
+                      </div>
+                    ))
+                  ) : (
                               <div className="text-center p-8 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
                                 <ListChecks size={48} className={`mx-auto mb-4 ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`} />
                                 <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
@@ -1427,10 +1555,86 @@ const MyDevelopments: React.FC = () => {
                                 <p className={`text-sm ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
                                   Crea tu primera actividad usando el botón "Nueva Actividad"
                                 </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                    </div>
+                  )}
+                </div>
+
+      {/* Modal de confirmación de eliminación de actividad */}
+      {activityDeleteModal.isOpen && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center ${darkMode ? 'bg-black/60' : 'bg-black/40'}`}>
+          <div className={`w-full max-w-md rounded-lg shadow-lg border ${
+            darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+          }`}>
+            <div className={`px-5 py-4 border-b ${darkMode ? 'border-neutral-700' : 'border-neutral-200'}`}>
+              <h3 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                <AlertTriangle size={18} className="mr-2 text-red-500" />
+                Confirmar eliminación
+              </h3>
+            </div>
+            <div className="px-5 py-4">
+              <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mb-4`}>
+                ¿Estás seguro de que deseas eliminar esta actividad? Esta acción no se puede deshacer.
+              </p>
+              
+              {activityDeleteModal.activity && (
+                <div className={`p-3 rounded-md mb-4 ${
+                  darkMode ? 'bg-yellow-900/20 border border-yellow-800' : 'bg-yellow-50 border border-yellow-200'
+                }`}>
+                  <div className="flex items-start">
+                    <AlertTriangle size={16} className={`mr-2 mt-0.5 ${
+                      darkMode ? 'text-yellow-400' : 'text-yellow-600'
+                    }`} />
+                    <div>
+                      <p className={`text-sm font-medium ${
+                        darkMode ? 'text-yellow-300' : 'text-yellow-800'
+                      }`}>
+                        Esta actividad está en la etapa: <strong>{activityDeleteModal.activity.stage_name}</strong>
+                      </p>
+                      <p className={`text-xs mt-1 ${
+                        darkMode ? 'text-yellow-400' : 'text-yellow-700'
+                      }`}>
+                        Si eliminas esta actividad, el desarrollo permanecerá en esta etapa.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="rollbackCheckbox"
+                  checked={shouldRollbackStage}
+                  onChange={(e) => setShouldRollbackStage(e.target.checked)}
+                  className={`h-4 w-4 rounded ${
+                    darkMode ? 'bg-neutral-700 border-neutral-600 text-blue-500' : 'border-neutral-300 text-blue-600'
+                  } focus:ring-blue-500`}
+                />
+                <label htmlFor="rollbackCheckbox" className={`ml-2 text-sm ${
+                  darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                }`}>
+                  También revertir el desarrollo a la etapa anterior
+                </label>
+              </div>
+            </div>
+            <div className={`px-5 py-4 flex justify-end space-x-3 border-t ${darkMode ? 'border-neutral-700' : 'border-neutral-200'}`}>
+              <button
+                onClick={cancelDeleteActivity}
+                className={`px-4 py-2 rounded-md ${darkMode ? 'bg-neutral-700 text-neutral-200 hover:bg-neutral-600' : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'}`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeleteActivity}
+                className={`px-4 py-2 rounded-md ${darkMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+              </div>
                       )}
 
                       {activePhaseTab === 'requirements' && (

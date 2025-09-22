@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Activity Form</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .field-list { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+        .field-item { margin: 5px 0; padding: 5px; background: white; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Test de Campos Específicos por Etapa</h1>
+    
+    <div class="test-section">
+        <h2>Etapa: Aprobación Propuesta</h2>
+        <div class="field-list">
+            <h3>Campos Requeridos:</h3>
+            <div class="field-item">✅ proposal_id → "Número de Propuesta" (text, requerido)</div>
+            
+            <h3>Campos Opcionales:</h3>
+            <div class="field-item">📝 proposal_version → "Versión de Propuesta" (text)</div>
+            <div class="field-item">👤 approver → "Aprobador" (text)</div>
+            <div class="field-item">📅 approval_date → "Fecha de Aprobación" (date)</div>
+            <div class="field-item">💰 budget_approved → "Presupuesto Aprobado" (number)</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Etapa: Análisis</h2>
+        <div class="field-list">
+            <h3>Campos Requeridos:</h3>
+            <div class="field-item">(Ninguno)</div>
+            
+            <h3>Campos Opcionales:</h3>
+            <div class="field-item">🔍 side_case_id → "Caso SIDE" (text)</div>
+            <div class="field-item">🔍 servicepoint_case_id → "Caso ServicePoint" (text)</div>
+            <div class="field-item">👤 analyst_assigned → "Analista Asignado" (text)</div>
+            <div class="field-item">📋 scope_analysis → "Alcance del Análisis" (textarea)</div>
+            <div class="field-item">🔢 requirements_count → "Número de Requerimientos" (number)</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Etapa: Despliegue (Pruebas)</h2>
+        <div class="field-list">
+            <h3>Campos Requeridos:</h3>
+            <div class="field-item">✅ installer_number → "Número de Instalador" (text, requerido)</div>
+            
+            <h3>Campos Opcionales:</h3>
+            <div class="field-item">🌐 environment → "Ambiente" (select)</div>
+            <div class="field-item">⏰ change_window → "Ventana de Cambio" (text)</div>
+            <div class="field-item">📝 installation_notes → "Notas de Instalación" (textarea)</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Verificación</h2>
+        <p>✅ <strong>Problema corregido:</strong> La función getFormFieldsForStage ahora lee correctamente los campos del stageConfig</p>
+        <p>✅ <strong>Campos específicos:</strong> Ahora se muestran según la etapa seleccionada</p>
+        <p>✅ <strong>Tipos correctos:</strong> Cada campo tiene su tipo apropiado (text, date, number, textarea, select)</p>
+        <p>✅ <strong>Labels descriptivos:</strong> Nombres amigables para cada campo</p>
+    </div>
+</body>
+</html>

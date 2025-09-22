@@ -68,6 +68,7 @@ export const API_ENDPOINTS = {
   ACTIVITY_LOG_CREATE: (developmentId: string) => `/activity-log/developments/${developmentId}/activities`,
   ACTIVITY_LOG_LIST: (developmentId: string) => `/activity-log/developments/${developmentId}/activities`,
   ACTIVITY_LOG_UPDATE: (activityId: number) => `/activity-log/activities/${activityId}`,
+  ACTIVITY_LOG_DELETE: (activityId: number) => `/activity-log/activities/${activityId}`,
   ACTIVITY_LOG_FIELD_CONFIG: (developmentId: string, stageId: number) => `/activity-log/developments/${developmentId}/stages/${stageId}/field-config`,
 
   // Development stages actions
