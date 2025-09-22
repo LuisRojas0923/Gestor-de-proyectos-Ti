@@ -14,6 +14,7 @@ interface DevelopmentStage {
   icon: LucideIcon;
   phase: 'execution' | 'waiting' | 'final';
   estimatedDays?: number;
+  sort_order?: number;
 }
 
 // Interfaz para los datos de la API
@@ -145,14 +146,30 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
       status: getStageStatus(stageData.stage_id),
       icon: getStageIcon(stageData.stage_code),
       phase: getPhaseType(stageData.phase_name),
-      estimatedDays: stageData.estimated_days
+      estimatedDays: stageData.estimated_days,
+      sort_order: stageData.sort_order
     }))
     .sort((a, b) => {
-      // Ordenar por ID de etapa en orden secuencial: 1,2,3,4,5,6,7,8,9,10,11 (donde 11 es Cancelado)
-      // Cancelado (ID 11) debe ir al final, así que le damos el valor más alto
-      const aId = a.id === 11 ? 12 : a.id; // Cancelado (ID 11) va al final como 12
-      const bId = b.id === 11 ? 12 : b.id;
-      return aId - bId;
+      // Ordenar por stage_id en orden ascendente (1,2,3,4,5,6,7,8,9,10,11)
+      // Mapeo correcto de stage_id a orden visual
+      const stageOrderMap: { [key: number]: number } = {
+        1: 1,   // Definición
+        2: 2,   // Análisis
+        3: 3,   // Propuesta (Elaboración Propuesta)
+        4: 4,   // Aprobación (Aprobación Propuesta)
+        5: 5,   // Desarrollo (Desarrollo del Requerimiento)
+        6: 6,   // Despliegue (Pruebas)
+        7: 7,   // Plan de Pruebas
+        8: 8,   // Ejecución Pruebas
+        9: 9,   // Aprobación (Pase)
+        10: 10, // Desplegado
+        11: 11  // Cancelado
+      };
+      
+      const aOrder = stageOrderMap[a.id] || 999;
+      const bOrder = stageOrderMap[b.id] || 999;
+      
+      return aOrder - bOrder;
     });
 
   // Calcular progreso general - corregir el cálculo NaN

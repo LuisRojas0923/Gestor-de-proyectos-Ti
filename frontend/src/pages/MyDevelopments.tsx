@@ -447,16 +447,16 @@ const MyDevelopments: React.FC = () => {
     if (!editingDevelopment) return;
 
     try {
-      // Mapear el nombre de la etapa al ID correspondiente
+      // Mapear el nombre de la etapa al ID correspondiente (orden correcto)
       const stageNameToId: { [key: string]: number } = {
         '1. Definición': 1,
         '2. Análisis': 2,
-        '3. Propuesta': 7,
-        '4. Aprobación': 8,
-        '5. Desarrollo': 3,
-        '6. Despliegue (Pruebas)': 4,
-        '7. Plan de Pruebas': 5,
-        '8. Ejecución Pruebas': 6,
+        '3. Propuesta': 3,
+        '4. Aprobación': 4,
+        '5. Desarrollo': 5,
+        '6. Despliegue (Pruebas)': 6,
+        '7. Plan de Pruebas': 7,
+        '8. Ejecución Pruebas': 8,
         '9. Aprobación (Pase)': 9,
         '10. Desplegado': 10,
         '0. Cancelado': 11
@@ -468,6 +468,19 @@ const MyDevelopments: React.FC = () => {
       
       const currentStageId = stageNameToId[currentStageName] || 1;
 
+      // Debug: Log para verificar los datos que se están enviando
+      console.log('=== DEBUG: Actualizando desarrollo ===');
+      console.log('ID del desarrollo:', editingDevelopment.id);
+      console.log('Nombre de etapa seleccionada:', currentStageName);
+      console.log('ID de etapa mapeado:', currentStageId);
+      console.log('Datos a enviar:', {
+        name: editingDevelopment.name,
+        description: editingDevelopment.description,
+        general_status: editingDevelopment.general_status,
+        provider: editingDevelopment.provider,
+        current_stage_id: currentStageId
+      });
+
       const result = await updateDevelopment(editingDevelopment.id, {
         name: editingDevelopment.name,
         description: editingDevelopment.description,
@@ -477,6 +490,9 @@ const MyDevelopments: React.FC = () => {
       });
 
       if (result) {
+        console.log('=== DEBUG: Actualización exitosa ===');
+        console.log('Resultado de la actualización:', result);
+        
         // Recargar la lista de desarrollos para obtener los datos actualizados
         await loadDevelopments();
         
@@ -485,6 +501,9 @@ const MyDevelopments: React.FC = () => {
         setEditingDevelopment(null);
         
         toast.success('Desarrollo actualizado exitosamente');
+      } else {
+        console.log('=== DEBUG: Error en la actualización ===');
+        console.log('No se recibió resultado de la actualización');
       }
     } catch (error) {
       console.error('Error updating development:', error);
@@ -563,6 +582,49 @@ const MyDevelopments: React.FC = () => {
         return 'text-green-600 bg-green-100 dark:bg-green-900/20';
       default:
         return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
+    }
+  };
+
+  const getProgressColor = (stageName: string) => {
+    // Mapeo de etapas a colores basado en el progreso del desarrollo
+    // Mejorado para mejor contraste en modo claro y oscuro
+    switch (stageName) {
+      // Etapas iniciales - Azul
+      case 'Definición':
+      case 'Análisis':
+        return 'text-blue-700 bg-blue-100 dark:text-blue-300 dark:bg-blue-900/30';
+      
+      // Etapas de propuesta - Púrpura
+      case 'Elaboración Propuesta':
+      case 'Propuesta':
+      case 'Aprobación Propuesta':
+      case 'Aprobación':
+        return 'text-purple-700 bg-purple-100 dark:text-purple-300 dark:bg-purple-900/30';
+      
+      // Etapas de desarrollo - Naranja
+      case 'Desarrollo del Requerimiento':
+      case 'Desarrollo':
+        return 'text-orange-700 bg-orange-100 dark:text-orange-300 dark:bg-orange-900/30';
+      
+      // Etapas de pruebas - Amarillo (mejorado para legibilidad)
+      case 'Despliegue (Pruebas)':
+      case 'Plan de Pruebas':
+      case 'Ejecución de Pruebas':
+      case 'Ejecución Pruebas':
+        return 'text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30';
+      
+      // Etapas finales - Verde
+      case 'Aprobación (Pase)':
+      case 'Desplegado':
+        return 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30';
+      
+      // Cancelado - Rojo
+      case 'Cancelado':
+        return 'text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-900/30';
+      
+      // Por defecto - Gris
+      default:
+        return 'text-gray-700 bg-gray-100 dark:text-gray-300 dark:bg-gray-900/30';
     }
   };
   
@@ -811,19 +873,19 @@ const MyDevelopments: React.FC = () => {
                       <div className={`${
                         darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
                       } border rounded-xl overflow-hidden`}>
-                        <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
+                        <table className="w-full divide-y divide-neutral-200 dark:divide-neutral-700">
                           <thead className={darkMode ? 'bg-neutral-800' : 'bg-neutral-50'}>
                             <tr>
                               {[
-                                { key: 'id', label: 'ID Remedy' },
-                                { key: 'name', label: 'Nombre Desarrollo' },
-                                { key: 'provider', label: 'Proveedor' },
-                                { key: 'responsible', label: 'Responsable' },
-                                { key: 'general_status', label: 'Estado' },
-                                { key: 'current_stage', label: 'Progreso' },
-                                { key: 'actions', label: 'Acciones' }
-                              ].map(({ key, label }) => (
-                                <th key={key} scope="col" className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                                { key: 'id', label: 'ID Remedy', width: 'w-32' },
+                                { key: 'name', label: 'Nombre Desarrollo', width: 'w-80' },
+                                { key: 'provider', label: 'Proveedor', width: 'w-24' },
+                                { key: 'responsible', label: 'Responsable', width: 'w-40' },
+                                { key: 'general_status', label: 'Estado', width: 'w-24' },
+                                { key: 'current_stage', label: 'Progreso', width: 'w-32' },
+                                { key: 'actions', label: 'Acciones', width: 'w-20' }
+                              ].map(({ key, label, width }) => (
+                                <th key={key} scope="col" className={`${width} px-2 py-2 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider`}>
                                   {key === 'actions' ? (
                                     label
                                   ) : (
@@ -859,20 +921,22 @@ const MyDevelopments: React.FC = () => {
                           <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
                             {groupDevelopments.map((dev) => (
                               <tr key={dev.id} className="hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-primary-500 dark:text-primary-400">{dev.id}</td>
-                                <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{dev.name}</td>
-                                <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.provider || 'N/A'}</td>
-                                <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.responsible || 'N/A'}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(dev.general_status)}`}>
+                                <td className="w-32 px-2 py-2 whitespace-nowrap text-xs font-medium text-primary-500 dark:text-primary-400">{dev.id}</td>
+                                <td className={`w-80 px-2 py-2 text-xs font-medium ${darkMode ? 'text-white' : 'text-neutral-900'} truncate`} title={dev.name}>{dev.name}</td>
+                                <td className={`w-24 px-2 py-2 whitespace-nowrap text-xs ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>{dev.provider || 'N/A'}</td>
+                                <td className={`w-40 px-2 py-2 text-xs ${darkMode ? 'text-neutral-300' : 'text-neutral-600'} truncate`} title={dev.responsible || 'N/A'}>{dev.responsible || 'N/A'}</td>
+                                <td className="w-24 px-2 py-2 whitespace-nowrap text-xs">
+                                  <span className={`px-1.5 py-0.5 inline-flex text-xs leading-4 font-semibold rounded-full ${getStatusColor(dev.general_status)}`}>
                                     {dev.general_status}
                                   </span>
                                 </td>
-                                <td className={`px-4 py-3 whitespace-nowrap text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-                                  {typeof dev.current_stage === 'object' ? dev.current_stage?.stage_name || 'N/A' : dev.current_stage}
+                                <td className="w-32 px-2 py-2 text-xs">
+                                  <span className={`px-1.5 py-0.5 inline-flex text-xs leading-4 font-semibold rounded-full truncate ${getProgressColor(typeof dev.current_stage === 'object' ? dev.current_stage?.stage_name || 'N/A' : dev.current_stage || 'N/A')}`} title={typeof dev.current_stage === 'object' ? dev.current_stage?.stage_name || 'N/A' : dev.current_stage}>
+                                    {typeof dev.current_stage === 'object' ? dev.current_stage?.stage_name || 'N/A' : dev.current_stage}
+                                  </span>
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                                  <div className="flex items-center space-x-2">
+                                <td className="w-20 px-2 py-2 whitespace-nowrap text-xs font-medium">
+                                  <div className="flex items-center justify-center">
                                     <button 
                                       onClick={() => {
                                         console.log('Button clicked for:', dev.id);
@@ -880,9 +944,8 @@ const MyDevelopments: React.FC = () => {
                                       }} 
                                       className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 bg-blue-100 dark:bg-blue-900 p-1 rounded"
                                     >
-                                      <Eye size={18} />
+                                      <Eye size={16} />
                                     </button>
-                                    
                                   </div>
                                 </td>
                               </tr>
@@ -1050,7 +1113,7 @@ const MyDevelopments: React.FC = () => {
                           }`}
                         >
                           <GitBranch size={16} className="inline mr-2" />
-                          Gestión
+                          Fases
                         </button>
                         <button
                           onClick={() => setActivePhaseTab('gantt')}
