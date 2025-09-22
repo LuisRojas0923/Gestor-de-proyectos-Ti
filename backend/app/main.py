@@ -24,7 +24,8 @@ from .api import (
     # chat,  # Comentado temporalmente - requiere openai
     # ai,    # Comentado temporalmente - requiere openai
     phases,
-    stages
+    stages,
+    activity_log
 )
 
 # Importar configuración de base de datos
@@ -284,6 +285,13 @@ app.include_router(developments.router, prefix="/api/legacy")     # Endpoint leg
 app.include_router(quality.router, prefix=API_V1_PREFIX)
 app.include_router(kpi.router, prefix=API_V1_PREFIX)
 app.include_router(alerts.router, prefix=API_V1_PREFIX)
+
+# Importar y registrar el nuevo router de development stages
+from app.api import development_stages
+app.include_router(development_stages.router, prefix=API_V1_PREFIX)
+
+# Registrar router de activity log
+app.include_router(activity_log.router, prefix=API_V1_PREFIX)
 # app.include_router(chat.router, prefix=API_V1_PREFIX)  # Comentado temporalmente
 # app.include_router(ai.router, prefix=API_V1_PREFIX)    # Comentado temporalmente
 

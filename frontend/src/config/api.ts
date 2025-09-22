@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
   
   // KPIs y métricas
   KPI_METRICS: '/kpi/metrics',
+  KPI_DASHBOARD: '/kpi/dashboard',
   KPI_FUNCTIONALITIES: '/kpi/functionalities',
   KPI_TEST_RESULTS: '/kpi/test-results',
   KPI_DELIVERY_HISTORY: '/kpi/delivery-history',
@@ -61,7 +62,16 @@ export const API_ENDPOINTS = {
   DASHBOARD_METRICS: '/dashboard/metrics',
   DASHBOARD_PRIORITY_DISTRIBUTION: '/dashboard/priority-distribution',
   DASHBOARD_WEEKLY_PROGRESS: '/dashboard/weekly-progress',
-  DASHBOARD_UPCOMING_MILESTONES: '/dashboard/upcoming-milestones'
+  DASHBOARD_UPCOMING_MILESTONES: '/dashboard/upcoming-milestones',
+  
+  // Activity Log (Bitácora)
+  ACTIVITY_LOG_CREATE: (developmentId: string) => `/activity-log/developments/${developmentId}/activities`,
+  ACTIVITY_LOG_LIST: (developmentId: string) => `/activity-log/developments/${developmentId}/activities`,
+  ACTIVITY_LOG_UPDATE: (activityId: number) => `/activity-log/activities/${activityId}`,
+  ACTIVITY_LOG_FIELD_CONFIG: (developmentId: string, stageId: number) => `/activity-log/developments/${developmentId}/stages/${stageId}/field-config`,
+
+  // Development stages actions
+  DEVELOPMENT_STAGE_CLOSE: (developmentId: string) => `/development-stages/${developmentId}/close-stage`
 };
 
 export const HTTP_STATUS = {

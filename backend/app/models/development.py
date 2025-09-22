@@ -2,7 +2,7 @@
 Modelos de desarrollos, fases y etapas
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, DECIMAL, Date
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, DECIMAL, Date, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -216,3 +216,26 @@ class DevelopmentObservation(Base):
     
     # Relaciones
     development = relationship("Development", back_populates="observations")
+
+
+class DevelopmentActivityLog(Base):
+    __tablename__ = "development_activity_log"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    stage_id = Column(Integer, ForeignKey("development_stages.id"), nullable=False)
+    activity_type = Column(String(100), nullable=False)  # 'nueva_actividad', 'seguimiento', 'cierre_etapa'
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date)
+    next_follow_up_at = Column(Date)
+    status = Column(String(50), default="pendiente")  # 'pendiente', 'en_curso', 'completada', 'cancelada'
+    actor_type = Column(String(50), nullable=False)  # 'equipo_interno', 'proveedor', 'usuario'
+    notes = Column(Text)
+    dynamic_payload = Column(JSON)  # Campos específicos por etapa
+    created_by = Column(String(255))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relaciones
+    development = relationship("Development")
+    stage = relationship("DevelopmentStage")

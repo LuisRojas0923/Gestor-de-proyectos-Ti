@@ -143,6 +143,9 @@ class KPIService:
         Guardar métrica KPI en la base de datos
         """
         try:
+            # Evitar guardar si no hay development_id (modelo requiere NOT NULL en la columna)
+            if development_id is None:
+                return
             # Verificar si ya existe una métrica similar reciente
             existing_metric = self.db.query(models.DevelopmentKpiMetric).filter(
                 models.DevelopmentKpiMetric.metric_type == metric_type,
@@ -170,6 +173,11 @@ class KPIService:
                 self.db.commit()
                 
         except Exception as e:
+            # Hacer rollback para no dejar la sesión en estado fallido
+            try:
+                self.db.rollback()
+            except Exception:
+                pass
             # No fallar si no se puede guardar la métrica
             print(f"Warning: No se pudo guardar métrica KPI: {e}")
     

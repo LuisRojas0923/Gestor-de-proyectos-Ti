@@ -2,7 +2,7 @@ import React from 'react';
 import { LucideIcon } from 'lucide-react';
 
 interface InputProps {
-  type?: 'text' | 'email' | 'password' | 'number' | 'search';
+  type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'date';
   placeholder?: string;
   value?: string;
   defaultValue?: string;

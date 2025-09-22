@@ -213,7 +213,18 @@ def get_kpi_dashboard(
         )
         dashboard_data["post_production_rework"] = rework
         
-        # 6. Resumen por Proveedores
+        # 6. Calidad por Proveedor
+        provider_quality = kpi_service.get_providers_summary()
+        dashboard_data["provider_quality"] = [
+            {
+                "name": p["provider_name"],
+                "quality": p["first_time_quality"],
+                "color": "#10B981" if p["first_time_quality"] >= 90 else "#F59E0B" if p["first_time_quality"] >= 80 else "#EF4444"
+            }
+            for p in provider_quality
+        ]
+        
+        # 7. Resumen por Proveedores
         if not provider:
             providers_summary = kpi_service.get_providers_summary()
             dashboard_data["providers_summary"] = providers_summary

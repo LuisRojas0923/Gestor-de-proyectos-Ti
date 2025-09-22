@@ -148,6 +148,73 @@ def seed_development_data():
                 "responsible_party": "equipo_interno",
                 "sort_order": 2,
                 "is_active": True
+            },
+            # Etapas adicionales para flujo con proveedor y devoluciones
+            {
+                "phase_id": 1,  # En Ejecución
+                "stage_code": "9",
+                "stage_name": "Devolución a Proveedor",
+                "stage_description": "Entrega rechazada por TI y devuelta al proveedor",
+                "is_milestone": False,
+                "estimated_days": 2,
+                "responsible_party": "proveedor",
+                "sort_order": 5,
+                "is_active": True
+            },
+            {
+                "phase_id": 1,
+                "stage_code": "10",
+                "stage_name": "Corrección en Progreso",
+                "stage_description": "Proveedor trabajando en correcciones tras devolución",
+                "is_milestone": False,
+                "estimated_days": 3,
+                "responsible_party": "proveedor",
+                "sort_order": 6,
+                "is_active": True
+            },
+            {
+                "phase_id": 1,
+                "stage_code": "11",
+                "stage_name": "Re-entrega a TI",
+                "stage_description": "Proveedor reentrega a TI para nueva validación",
+                "is_milestone": True,
+                "estimated_days": 1,
+                "responsible_party": "proveedor",
+                "sort_order": 7,
+                "is_active": True
+            },
+            {
+                "phase_id": 1,
+                "stage_code": "12",
+                "stage_name": "Validación de Correcciones",
+                "stage_description": "TI valida correcciones entregadas por el proveedor",
+                "is_milestone": False,
+                "estimated_days": 1,
+                "responsible_party": "equipo_interno",
+                "sort_order": 8,
+                "is_active": True
+            },
+            {
+                "phase_id": 3,  # Finales / Otros
+                "stage_code": "13",
+                "stage_name": "Entrega a Producción",
+                "stage_description": "Despliegue del desarrollo a ambiente de producción",
+                "is_milestone": True,
+                "estimated_days": 1,
+                "responsible_party": "equipo_interno",
+                "sort_order": 3,
+                "is_active": True
+            },
+            {
+                "phase_id": 3,
+                "stage_code": "14",
+                "stage_name": "Incidente Post-Producción",
+                "stage_description": "Registro de incidentes derivados en producción",
+                "is_milestone": False,
+                "estimated_days": 0,
+                "responsible_party": "equipo_interno",
+                "sort_order": 4,
+                "is_active": True
             }
         ]
 

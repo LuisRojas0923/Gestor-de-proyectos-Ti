@@ -8,10 +8,12 @@ import RequirementsTab from '../components/development/RequirementsTab';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { useDevelopmentUpdates } from '../hooks/useDevelopmentUpdates';
-import { useObservations } from '../hooks/useObservations';
+// import { useObservations } from '../hooks/useObservations'; // Legacy - no usado en nuevo sistema
+import { API_ENDPOINTS } from '../config/api';
 import { DevelopmentWithCurrentStatus } from '../types';
 import QualityControlsTab from '../components/development/QualityControlsTab';
 import { MaterialCard, MaterialButton, MaterialTextField, MaterialSelect } from '../components/atoms';
+import { ActivityForm } from '../components/molecules/ActivityForm';
 import { development, phases } from '../utils/logger';
 
 // Usar el tipo real del backend
@@ -275,47 +277,98 @@ const MyDevelopments: React.FC = () => {
   
   const [selectedDevelopment, setSelectedDevelopment] = useState<Development | null>(null);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
-  const [newActivity, setNewActivity] = useState('');
+  // const [newActivity, setNewActivity] = useState(''); // Legacy - no usado en nuevo sistema
   const [activeView, setActiveView] = useState<'list' | 'phases' | 'timeline'>('list');
   const [editingDevelopment, setEditingDevelopment] = useState<Development | null>(null);
   const [activePhaseTab, setActivePhaseTab] = useState<'phases' | 'gantt' | 'controls' | 'activities' | 'requirements'>('phases');
+  
+  // Estados para el nuevo sistema de bitácora inteligente
+  const [showActivityForm, setShowActivityForm] = useState(false);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
   // Removido: ahora solo usamos la vista de timeline
 
-  // Hooks para observaciones y actualizaciones
-  const { 
-    observations, 
-    loading: observationsLoading, 
-    error: observationsError, 
-    createObservation, 
-    refreshObservations 
-  } = useObservations(selectedDevelopment?.id || null);
+  // Hooks para observaciones y actualizaciones (mantenido para compatibilidad)
+  // const { 
+  //   observations, 
+  //   loading: observationsLoading, 
+  //   error: observationsError, 
+  //   createObservation, 
+  //   refreshObservations 
+  // } = useObservations(selectedDevelopment?.id || null);
   
   const { 
     loading: updateLoading, 
     updateDevelopment 
   } = useDevelopmentUpdates();
 
-  const handleAddActivity = async () => {
-    if (newActivity.trim() && selectedDevelopment) {
-      try {
-        const result = await createObservation({
-          observation_type: 'seguimiento',
-          content: newActivity.trim(),
-          author: 'Usuario Actual', // TODO: Obtener del contexto de auth
-          is_current: true
-        });
+  // Función legacy mantenida para compatibilidad
+  // const handleAddActivity = async () => {
+  //   if (newActivity.trim() && selectedDevelopment) {
+  //     try {
+  //       const result = await createObservation({
+  //         observation_type: 'seguimiento',
+  //         content: newActivity.trim(),
+  //         author: 'Usuario Actual', // TODO: Obtener del contexto de auth
+  //         is_current: true
+  //       });
         
-        if (result) {
-          setNewActivity('');
-          // Recargar observaciones
-          await refreshObservations();
+  //       if (result) {
+  //         setNewActivity('');
+  //         // Recargar observaciones
+  //         await refreshObservations();
+  //       }
+  //     } catch (error) {
+  //       console.error('Error adding activity:', error);
+  //       toast.error('Error al agregar la actividad');
+  //     }
+  //   }
+  // };
+
+  // Funciones para el nuevo sistema de bitácora inteligente
+  const loadActivities = async () => {
+    if (!selectedDevelopment) return;
+    
+    setActivitiesLoading(true);
+    try {
+      const response = await get(API_ENDPOINTS.ACTIVITY_LOG_LIST(selectedDevelopment.id)) as any;
+      if (response && response.activities) {
+        setActivities(response.activities);
+      }
+    } catch (error) {
+      console.error('Error cargando actividades:', error);
+      toast.error('Error cargando actividades');
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
+
+  const handleActivitySuccess = async (activity: any) => {
+    console.log('✅ Actividad creada exitosamente:', activity);
+    setActivities(prev => [activity, ...prev]);
+    setShowActivityForm(false);
+    toast.success('Actividad creada exitosamente');
+    
+    // Refrescar desarrollo seleccionado para actualizar fases/timeline
+    if (selectedDevelopment) {
+      try {
+        const updatedDev = await get(API_ENDPOINTS.DEVELOPMENT_BY_ID(selectedDevelopment.id));
+        if (updatedDev) {
+          setSelectedDevelopment(updatedDev);
+          console.log('✅ Desarrollo refrescado:', updatedDev.current_stage_id);
         }
       } catch (error) {
-        console.error('Error adding activity:', error);
-        toast.error('Error al agregar la actividad');
+        console.error('Error refrescando desarrollo:', error);
       }
     }
   };
+
+  // Cargar actividades cuando se selecciona un desarrollo
+  useEffect(() => {
+    if (selectedDevelopment && activePhaseTab === 'activities') {
+      loadActivities();
+    }
+  }, [selectedDevelopment, activePhaseTab]);
 
   const handleViewDetails = (dev: Development) => {
     development.debug('Opening details for development', dev);
@@ -1237,69 +1290,147 @@ const MyDevelopments: React.FC = () => {
                       )}
 
                       {activePhaseTab === 'activities' && (
-              <div>
-                          <h4 className={`text-lg font-semibold mb-4 flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                  <ListChecks size={18} className="mr-2"/>
-                  Bitácora de Actividades
-                </h4>
-                          
-                {/* Activity Input */}
-                          <div className="mb-6">
-                  <textarea
-                    rows={3}
-                    value={newActivity}
-                    onChange={(e) => setNewActivity(e.target.value)}
-                    placeholder="Registrar nueva actividad o seguimiento..."
-                              className={`w-full p-3 rounded-lg text-sm border ${
+                        <div>
+                          <div className="flex items-center justify-between mb-6">
+                            <h4 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                              <ListChecks size={18} className="mr-2"/>
+                              Bitácora Inteligente
+                            </h4>
+                            <button
+                              onClick={() => setShowActivityForm(true)}
+                              className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
                                 darkMode 
-                                  ? 'bg-neutral-700 text-white border-neutral-600' 
-                                  : 'bg-white border-neutral-300'
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
                               }`}
-                            />
-                            <button 
-                              onClick={handleAddActivity} 
-                              className="w-full mt-3 px-4 py-2 text-sm rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors"
                             >
-                    Registrar Actividad
-                  </button>
-                </div>
+                              <ListChecks size={16} className="inline mr-2" />
+                              Nueva Actividad
+                            </button>
+                          </div>
 
-                 {/* Activity List */}
-                <div className="space-y-3">
-                  {observationsLoading ? (
-                    <div className="text-center p-4">
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400">Cargando actividades...</p>
-                    </div>
-                  ) : observationsError ? (
-                    <div className="text-center p-4 border-2 border-dashed rounded-lg border-red-300 dark:border-red-700">
-                      <p className="text-sm text-red-500 dark:text-red-400">Error: {observationsError}</p>
-                    </div>
-                  ) : observations && observations.length > 0 ? (
-                    observations.filter(observation => observation != null).map((observation) => (
-                                <div key={observation.id} className={`p-4 rounded-lg text-sm ${darkMode ? 'bg-neutral-700' : 'bg-neutral-100'}`}>
-                                  <div className="flex justify-between items-start mb-2">
-                          <span className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
-                            {observation?.observation_type || 'Sin tipo'}
-                          </span>
-                          {observation.author && (
-                            <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
-                              {observation.author}
-                            </span>
+                          {/* Formulario de Nueva Actividad */}
+                          {showActivityForm && (
+                            <div className="mb-6">
+                              <ActivityForm
+                                developmentId={selectedDevelopment.id}
+                                onSuccess={handleActivitySuccess}
+                                onCancel={() => setShowActivityForm(false)}
+                              />
+                            </div>
                           )}
+
+                          {/* Lista de Actividades Inteligentes */}
+                          <div className="space-y-4">
+                            {activitiesLoading ? (
+                              <div className="text-center p-6">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                                <p className="text-sm text-neutral-500 dark:text-neutral-400">Cargando actividades...</p>
+                              </div>
+                            ) : activities.length > 0 ? (
+                              activities.map((activity) => (
+                                <div key={activity.id} className={`p-4 rounded-lg border ${
+                                  darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-white border-neutral-200'
+                                }`}>
+                                  <div className="flex justify-between items-start mb-3">
+                                    <div className="flex items-center space-x-2">
+                                      <span className={`text-xs px-2 py-1 rounded font-medium ${
+                                        activity.status === 'completada' 
+                                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                          : activity.status === 'en_curso'
+                                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                      }`}>
+                                        {activity.status}
+                                      </span>
+                                      <span className={`text-xs px-2 py-1 rounded ${
+                                        darkMode ? 'bg-neutral-600 text-neutral-300' : 'bg-neutral-100 text-neutral-600'
+                                      }`}>
+                                        {activity.stage_name}
+                                      </span>
+                                    </div>
+                                    <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                                      {new Date(activity.created_at).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="mb-3">
+                                    <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                                      {activity.activity_type === 'nueva_actividad' ? 'Nueva Actividad' : 
+                                       activity.activity_type === 'seguimiento' ? 'Seguimiento' : 
+                                       activity.activity_type === 'cierre_etapa' ? 'Cierre de Etapa' : activity.activity_type}
+                                    </p>
+                                    <p className={`text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                                      Actor: {activity.actor_type === 'equipo_interno' ? 'Equipo Interno' :
+                                             activity.actor_type === 'proveedor' ? 'Proveedor' : 'Usuario'}
+                                    </p>
+                                    {activity.notes && (
+                                      <p className={`text-sm mt-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                                        {activity.notes}
+                                      </p>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Campos dinámicos específicos por etapa */}
+                                  {activity.dynamic_payload && Object.keys(activity.dynamic_payload).length > 0 && (
+                                    <div className={`p-3 rounded-md ${
+                                      darkMode ? 'bg-neutral-600' : 'bg-neutral-50'
+                                    }`}>
+                                      <h5 className={`text-sm font-medium mb-2 ${
+                                        darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                                      }`}>
+                                        Detalles específicos:
+                                      </h5>
+                                      <div className="grid grid-cols-2 gap-2 text-sm">
+                                        {Object.entries(activity.dynamic_payload).map(([key, value]) => (
+                                          <div key={key}>
+                                            <span className={`font-medium ${
+                                              darkMode ? 'text-neutral-400' : 'text-neutral-500'
+                                            }`}>
+                                              {key.replace(/_/g, ' ')}:
+                                            </span>
+                                            <span className={`ml-1 ${
+                                              darkMode ? 'text-neutral-300' : 'text-neutral-600'
+                                            }`}>
+                                              {String(value)}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Fechas */}
+                                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-600">
+                                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                                      <span>Inicio: {new Date(activity.start_date).toLocaleDateString()}</span>
+                                      {activity.end_date && (
+                                        <span className="ml-3">Fin: {new Date(activity.end_date).toLocaleDateString()}</span>
+                                      )}
+                                    </div>
+                                    {activity.next_follow_up_at && (
+                                      <span className={`text-xs px-2 py-1 rounded ${
+                                        darkMode ? 'bg-orange-900 text-orange-200' : 'bg-orange-100 text-orange-800'
+                                      }`}>
+                                        Seguimiento: {new Date(activity.next_follow_up_at).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center p-8 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
+                                <ListChecks size={48} className={`mx-auto mb-4 ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`} />
+                                <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                                  No hay actividades registradas
+                                </h3>
+                                <p className={`text-sm ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                                  Crea tu primera actividad usando el botón "Nueva Actividad"
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-800'}`}>{observation?.content || 'Sin contenido'}</p>
-                        <p className={`text-xs mt-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
-                          {observation?.observation_date ? new Date(observation.observation_date).toLocaleDateString() : 'Sin fecha'}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center p-4 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
-                       <p className="text-sm text-neutral-500 dark:text-neutral-400">No hay actividades registradas.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
                       )}
 
                       {activePhaseTab === 'requirements' && (

@@ -9,7 +9,8 @@ from .auth import AuthUser, AuthToken, UserSession, Permission, RolePermission
 from .development import (
     DevelopmentPhase, DevelopmentStage, Development, DevelopmentDate,
     DevelopmentProposal, DevelopmentInstaller, DevelopmentProvider,
-    DevelopmentResponsible, DevelopmentStatusHistory, DevelopmentObservation
+    DevelopmentResponsible, DevelopmentStatusHistory, DevelopmentObservation,
+    DevelopmentActivityLog
 )
 from .quality import QualityControlCatalog, DevelopmentQualityControl
 from .kpi import (
@@ -30,6 +31,7 @@ __all__ = [
     "DevelopmentPhase", "DevelopmentStage", "Development", "DevelopmentDate",
     "DevelopmentProposal", "DevelopmentInstaller", "DevelopmentProvider",
     "DevelopmentResponsible", "DevelopmentStatusHistory", "DevelopmentObservation",
+    "DevelopmentActivityLog",
     # Quality models
     "QualityControlCatalog", "DevelopmentQualityControl",
     # KPI models
