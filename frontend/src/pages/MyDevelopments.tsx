@@ -14,6 +14,7 @@ import { DevelopmentWithCurrentStatus } from '../types';
 import QualityControlsTab from '../components/development/QualityControlsTab';
 import { MaterialCard, MaterialButton, MaterialTextField, MaterialSelect } from '../components/atoms';
 import { ActivityForm } from '../components/molecules/ActivityForm';
+import { HybridGanttChart } from '../components/development/HybridGanttChart';
 import { development, phases } from '../utils/logger';
 
 // Usar el tipo real del backend
@@ -362,7 +363,7 @@ const MyDevelopments: React.FC = () => {
     // Refrescar desarrollo seleccionado para actualizar fases/timeline
     if (selectedDevelopment) {
       try {
-        const updatedDev = await get(API_ENDPOINTS.DEVELOPMENT_BY_ID(selectedDevelopment.id));
+        const updatedDev = await get(API_ENDPOINTS.DEVELOPMENT_BY_ID(selectedDevelopment.id)) as DevelopmentWithCurrentStatus;
         if (updatedDev) {
           setSelectedDevelopment(updatedDev);
           console.log('✅ Desarrollo refrescado:', updatedDev.current_stage_id);
@@ -424,12 +425,12 @@ const MyDevelopments: React.FC = () => {
             
             if (previousActivity) {
               // Mover el desarrollo a la etapa anterior
-              await put(API_ENDPOINTS.DEVELOPMENT_UPDATE(selectedDevelopment.id), {
+              await put(API_ENDPOINTS.DEVELOPMENT_BY_ID(selectedDevelopment.id), {
                 current_stage_id: previousActivity.stage_id
               });
               
               // Refrescar el desarrollo
-              const updatedDev = await get(API_ENDPOINTS.DEVELOPMENT_BY_ID(selectedDevelopment.id));
+              const updatedDev = await get(API_ENDPOINTS.DEVELOPMENT_BY_ID(selectedDevelopment.id)) as DevelopmentWithCurrentStatus;
               if (updatedDev) {
                 setSelectedDevelopment(updatedDev);
               }
@@ -1364,15 +1365,12 @@ const MyDevelopments: React.FC = () => {
                       )}
                       
                       {activePhaseTab === 'gantt' && (
-                        <div className="text-center p-8 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
-                          <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                          <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                            Diagrama de Gantt
-                          </h3>
-                          <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            El cronograma interactivo se mostrará aquí cuando se implementen los endpoints correspondientes.
-                          </p>
-              </div>
+                        <HybridGanttChart
+                          activities={activities}
+                          stages={[]}
+                          currentStageId={selectedDevelopment?.current_stage_id}
+                          darkMode={darkMode}
+                        />
                       )}
                       
                       {activePhaseTab === 'controls' && selectedDevelopment && (
