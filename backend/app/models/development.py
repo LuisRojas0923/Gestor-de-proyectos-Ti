@@ -137,22 +137,6 @@ class DevelopmentProposal(Base):
     development = relationship("Development", back_populates="proposals")
 
 
-class DevelopmentInstaller(Base):
-    __tablename__ = "development_installers"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
-    installer_number = Column(String(100))
-    version = Column(String(50))
-    environment = Column(String(100))
-    installation_date = Column(Date)
-    status = Column(String(50))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    # Relaciones
-    development = relationship("Development", back_populates="installers")
-
-
 class DevelopmentProvider(Base):
     __tablename__ = "development_providers"
     

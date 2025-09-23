@@ -8,7 +8,7 @@ from app.database import Base
 from .auth import AuthUser, AuthToken, UserSession, Permission, RolePermission
 from .development import (
     DevelopmentPhase, DevelopmentStage, Development, DevelopmentDate,
-    DevelopmentProposal, DevelopmentInstaller, DevelopmentProvider,
+    DevelopmentProposal, DevelopmentProvider,
     DevelopmentResponsible, DevelopmentStatusHistory, DevelopmentObservation,
     DevelopmentActivityLog
 )
@@ -29,7 +29,7 @@ __all__ = [
     "AuthUser", "AuthToken", "UserSession", "Permission", "RolePermission",
     # Development models
     "DevelopmentPhase", "DevelopmentStage", "Development", "DevelopmentDate",
-    "DevelopmentProposal", "DevelopmentInstaller", "DevelopmentProvider",
+    "DevelopmentProposal", "DevelopmentProvider",
     "DevelopmentResponsible", "DevelopmentStatusHistory", "DevelopmentObservation",
     "DevelopmentActivityLog",
     # Quality models

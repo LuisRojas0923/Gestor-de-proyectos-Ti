@@ -52,6 +52,23 @@ class InstalacionPruebasFields(BaseModel):
     environment: Optional[str] = Field(None, description="Ambiente de pruebas")
     change_window: Optional[str] = Field(None, description="Ventana de cambio")
     installation_notes: Optional[str] = Field(None, description="Notas de instalación")
+    version: Optional[str] = Field(None, description="Versión del instalador")
+    failure_type: Optional[str] = Field(None, description="Tipo de falla si aplica")
+    resolution_attempts: Optional[str] = Field(None, description="Intentos de resolución")
+    next_actions: Optional[str] = Field(None, description="Próximas acciones")
+
+
+class ValidacionCorreccionesFields(BaseModel):
+    """Campos específicos para etapa de Validación de Correcciones"""
+    installer_number: str = Field(..., description="Número del instalador que se está validando")
+    failure_description: str = Field(..., description="Descripción detallada de la falla encontrada")
+    original_stage_reference: Optional[str] = Field(None, description="Etapa original donde se detectó la falla")
+    correction_requirements: Optional[str] = Field(None, description="Requerimientos específicos de corrección")
+    validation_notes: Optional[str] = Field(None, description="Notas de la validación realizada")
+    provider_response: Optional[str] = Field(None, description="Respuesta del proveedor a las correcciones")
+    correction_status: Optional[str] = Field(None, description="Estado de la corrección (pendiente, en_progreso, completada)")
+    expected_correction_date: Optional[date] = Field(None, description="Fecha esperada de corrección")
+    validation_result: Optional[str] = Field(None, description="Resultado de la validación (aprobada, rechazada, pendiente)")
 
 
 class DevelopmentActivityLogBase(BaseModel):
@@ -120,7 +137,12 @@ STAGE_FIELD_CONFIGS = {
     "Despliegue (Pruebas)": {
         "fields": InstalacionPruebasFields,
         "required_fields": ["installer_number"],
-        "optional_fields": ["environment", "change_window", "installation_notes"]
+        "optional_fields": ["environment", "change_window", "installation_notes", "version", "failure_type", "resolution_attempts", "next_actions"]
+    },
+    "Validación de Correcciones": {
+        "fields": ValidacionCorreccionesFields,
+        "required_fields": ["installer_number", "failure_description"],
+        "optional_fields": ["original_stage_reference", "correction_requirements", "validation_notes", "provider_response", "correction_status", "expected_correction_date", "validation_result"]
     }
 }
 

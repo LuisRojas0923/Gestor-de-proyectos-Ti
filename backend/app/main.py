@@ -25,7 +25,8 @@ from .api import (
     # ai,    # Comentado temporalmente - requiere openai
     phases,
     stages,
-    activity_log
+    activity_log,
+    installers
 )
 
 # Importar configuración de base de datos
@@ -292,6 +293,9 @@ app.include_router(development_stages.router, prefix=API_V1_PREFIX)
 
 # Registrar router de activity log
 app.include_router(activity_log.router, prefix=API_V1_PREFIX)
+
+# Registrar router de instaladores
+app.include_router(installers.router, prefix=API_V1_PREFIX)
 # app.include_router(chat.router, prefix=API_V1_PREFIX)  # Comentado temporalmente
 # app.include_router(ai.router, prefix=API_V1_PREFIX)    # Comentado temporalmente
 

@@ -103,6 +103,42 @@ const MyDevelopments: React.FC = () => {
     activity: null
   });
   const [shouldRollbackStage, setShouldRollbackStage] = useState(false);
+  const [activityEditModal, setActivityEditModal] = useState<{ 
+    isOpen: boolean; 
+    activity: any | null;
+    form: { status: string; notes?: string; next_follow_up_at?: string } | null;
+  }>({ isOpen: false, activity: null, form: null });
+  const [activityEditErrors, setActivityEditErrors] = useState<string[]>([]);
+
+  const validateActivityEditForm = (form: { status: string; notes?: string; next_follow_up_at?: string; start_date?: string; end_date?: string }): string[] => {
+    const errors: string[] = [];
+    const toDate = (v?: string) => (v ? new Date(v + (v.length === 10 ? 'T00:00:00' : '')) : null);
+    const start = toDate(form.start_date);
+    const end = toDate(form.end_date);
+    const next = toDate(form.next_follow_up_at);
+
+    if (start && end && start > end) {
+      errors.push('La fecha de inicio no puede ser mayor que la fecha de fin.');
+    }
+    const today = new Date(); today.setHours(0,0,0,0);
+    if (next) {
+      if (start && next < start) {
+        errors.push('El próximo seguimiento no puede ser anterior a la fecha de inicio.');
+      } else if (!start && next < today) {
+        errors.push('El próximo seguimiento no puede ser en el pasado.');
+      }
+    }
+    return errors;
+  };
+
+  const updateActivityEditForm = (patch: Partial<{ status: string; notes?: string; next_follow_up_at?: string; start_date?: string; end_date?: string }>) => {
+    setActivityEditModal(prev => {
+      if (!prev || !prev.form) return prev;
+      const newForm = { ...prev.form, ...patch } as any;
+      setActivityEditErrors(validateActivityEditForm(newForm));
+      return { ...prev, form: newForm };
+    });
+  };
 
   // Load developments from API on initial render
   useEffect(() => {
@@ -453,6 +489,58 @@ const MyDevelopments: React.FC = () => {
     } finally {
       setActivityDeleteModal({ isOpen: false, activityId: null, activity: null });
       setShouldRollbackStage(false);
+    }
+  };
+
+  // Abrir modal de edición de actividad
+  const openEditActivityModal = (activity: any) => {
+    setActivityEditModal({
+      isOpen: true,
+      activity,
+      form: {
+        status: activity.status || 'pendiente',
+        notes: activity.notes || '',
+        next_follow_up_at: activity.next_follow_up_at || '',
+        start_date: activity.start_date || '',
+        end_date: activity.end_date || ''
+      }
+    });
+    setActivityEditErrors(validateActivityEditForm({
+      status: activity.status || 'pendiente',
+      notes: activity.notes || '',
+      next_follow_up_at: activity.next_follow_up_at || '',
+      start_date: activity.start_date || '',
+      end_date: activity.end_date || ''
+    }));
+  };
+
+  const cancelEditActivity = () => {
+    setActivityEditModal({ isOpen: false, activity: null, form: null });
+  };
+
+  const confirmEditActivity = async () => {
+    if (!activityEditModal.activity || !activityEditModal.form) return;
+    if (activityEditErrors.length > 0) {
+      toast.error('Corrige las validaciones antes de guardar.');
+      return;
+    }
+    const { activity, form } = activityEditModal;
+    try {
+      const response = await put(API_ENDPOINTS.ACTIVITY_LOG_UPDATE(activity.id), {
+        status: form.status,
+        notes: form.notes,
+        next_follow_up_at: form.next_follow_up_at || null,
+        start_date: form.start_date || null,
+        end_date: form.end_date || null
+      });
+      if (response) {
+        setActivities(prev => prev.map(a => a.id === activity.id ? { ...a, ...form } : a));
+        toast.success('Actividad actualizada');
+        cancelEditActivity();
+      }
+    } catch (error) {
+      console.error('Error actualizando actividad:', error);
+      toast.error('Error al actualizar la actividad');
     }
   };
 
@@ -1180,52 +1268,44 @@ const MyDevelopments: React.FC = () => {
                           <h2 className={`text-2xl font-bold mt-1 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{selectedDevelopment.name}</h2>
                     </div>
                         <div className="flex items-center space-x-3">
-                          <button 
+                          <MaterialButton
                             onClick={() => handleEdit(selectedDevelopment)}
-                            className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
-                              darkMode 
-                                ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
-                                : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-900'
-                            }`}
+                            variant="contained"
+                            size="medium"
+                            className={`${darkMode ? '!bg-neutral-700 hover:!bg-neutral-600 text-white' : '!bg-neutral-200 hover:!bg-neutral-300 !text-neutral-900'} flex items-center space-x-2`}
                           >
                             <SquarePen size={18} />
                             <span>Editar</span>
-                          </button>
+                          </MaterialButton>
                           {selectedDevelopment.remedy_link && (
-                            <button 
+                            <MaterialButton
                               onClick={() => window.open(selectedDevelopment.remedy_link, '_blank')}
-                              className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
-                                darkMode 
-                                  ? 'bg-blue-700 hover:bg-blue-600 text-white' 
-                                  : 'bg-blue-200 hover:bg-blue-300 text-blue-900'
-                              }`}
+                              variant="contained"
+                              size="medium"
+                              className={`${darkMode ? '!bg-blue-700 hover:!bg-blue-600 text-white' : '!bg-blue-600 hover:!bg-blue-700 text-white'} flex items-center space-x-2`}
                             >
                               <ExternalLink size={18} />
                               <span>Remedy</span>
-                            </button>
+                            </MaterialButton>
                           )}
-                          <button 
+                          <MaterialButton
                             onClick={() => handleDelete(selectedDevelopment)}
-                            className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
-                              darkMode 
-                                ? 'bg-red-700 hover:bg-red-600 text-white' 
-                                : 'bg-red-200 hover:bg-red-300 text-red-900'
-                            }`}
+                            variant="contained"
+                            size="medium"
+                            className={`${darkMode ? '!bg-red-700 hover:!bg-red-600 text-white' : '!bg-red-600 hover:!bg-red-700 text-white'} flex items-center space-x-2`}
                           >
                             <Trash2 size={18} />
                             <span>Eliminar</span>
-                          </button>
-                          <button 
+                          </MaterialButton>
+                          <MaterialButton
                             onClick={() => setActiveView('list')}
-                            className={`px-4 py-2 rounded-lg transition-colors ${
-                              darkMode 
-                                ? 'bg-neutral-700 hover:bg-neutral-600 text-white' 
-                                : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-900'
-                            }`}
+                            variant="contained"
+                            size="medium"
+                            className={`${darkMode ? '!bg-neutral-700 hover:!bg-neutral-600 text-white' : '!bg-neutral-200 hover:!bg-neutral-300 !text-neutral-900'}`}
                           >
                             ← Volver a Lista
-              </button>
-            </div>
+                          </MaterialButton>
+                        </div>
               </div>
 
               {/* Key Details Grid */}
@@ -1391,17 +1471,15 @@ const MyDevelopments: React.FC = () => {
                   <ListChecks size={18} className="mr-2"/>
                               Bitácora Inteligente
                 </h4>
-                            <button
+                            <MaterialButton
                               onClick={() => setShowActivityForm(true)}
-                              className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors ${
-                                darkMode 
-                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-                              }`}
+                              variant="contained"
+                              size="small"
+                              className={`${darkMode ? '!bg-blue-600 hover:!bg-blue-700 text-white' : '!bg-blue-600 hover:!bg-blue-700 text-white'}`}
                             >
                               <ListChecks size={16} className="inline mr-2" />
                               Nueva Actividad
-                  </button>
+                            </MaterialButton>
                 </div>
 
                           {/* Formulario de Nueva Actividad */}
@@ -1409,6 +1487,20 @@ const MyDevelopments: React.FC = () => {
                             <div className="mb-6">
                               <ActivityForm
                                 developmentId={selectedDevelopment.id}
+                                initialStageId={(() => {
+                                  if (selectedDevelopment.current_stage_id && typeof selectedDevelopment.current_stage_id === 'number') {
+                                    return selectedDevelopment.current_stage_id;
+                                  }
+                                  if (typeof selectedDevelopment.current_stage === 'object' && selectedDevelopment.current_stage?.stage_name) {
+                                    const parsed = parseInt(String(selectedDevelopment.current_stage.stage_name).split('.')[0]);
+                                    return isNaN(parsed) ? 0 : parsed;
+                                  }
+                                  if (selectedDevelopment.current_stage) {
+                                    const parsed = parseInt(String(selectedDevelopment.current_stage).split('.')[0]);
+                                    return isNaN(parsed) ? 0 : parsed;
+                                  }
+                                  return 0;
+                                })()}
                                 onSuccess={handleActivitySuccess}
                                 onCancel={() => setShowActivityForm(false)}
                               />
@@ -1424,126 +1516,130 @@ const MyDevelopments: React.FC = () => {
                     </div>
                             ) : activities.length > 0 ? (
                               activities.map((activity) => (
-                                <div key={activity.id} className={`p-4 rounded-lg border ${
-                                  darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-white border-neutral-200'
-                                }`}>
-                                  <div className="flex justify-between items-start mb-3">
-                                    <div className="flex items-center space-x-2">
-                                      <span className={`text-xs px-2 py-1 rounded font-medium ${
-                                        activity.status === 'completada' 
-                                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                                          : activity.status === 'en_curso'
-                                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                      }`}>
-                                        {activity.status}
-                          </span>
-                                      <span className={`text-xs px-2 py-1 rounded ${
-                                        darkMode ? 'bg-neutral-600 text-neutral-300' : 'bg-neutral-100 text-neutral-600'
-                                      }`}>
-                                        {activity.stage_name}
+                                <MaterialCard key={activity.id} elevation={2} className="p-0" darkMode={darkMode}>
+                                  <MaterialCard.Content>
+                                    <div className="flex justify-between items-start mb-3">
+                                      <div className="flex items-center space-x-2">
+                                        <span className={`text-xs px-2 py-1 rounded font-medium ${
+                                          activity.status === 'completada' 
+                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                            : activity.status === 'en_curso'
+                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                        }`}>
+                                          {activity.status}
+                                        </span>
+                                        <span className={`text-xs px-2 py-1 rounded ${
+                                          darkMode ? 'bg-neutral-600 text-neutral-300' : 'bg-neutral-100 text-neutral-600'
+                                        }`}>
+                                          {activity.stage_name}
+                                        </span>
+                                      </div>
+                                      <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                                        {new Date(activity.created_at).toLocaleDateString()}
                                       </span>
                                     </div>
-                            <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
-                                      {new Date(activity.created_at).toLocaleDateString()}
-                            </span>
-                        </div>
-                                  
-                                  <div className="mb-3">
-                                    <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                                      {activity.activity_type === 'nueva_actividad' ? 'Nueva Actividad' : 
-                                       activity.activity_type === 'seguimiento' ? 'Seguimiento' : 
-                                       activity.activity_type === 'cierre_etapa' ? 'Cierre de Etapa' : activity.activity_type}
-                                    </p>
-                                    <p className={`text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-                                      Actor: {activity.actor_type === 'equipo_interno' ? 'Equipo Interno' :
-                                             activity.actor_type === 'proveedor' ? 'Proveedor' : 'Usuario'}
-                                    </p>
-                                    {activity.notes && (
-                                      <p className={`text-sm mt-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-                                        {activity.notes}
+
+                                    <div className="mb-3">
+                                      <p className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                                        {activity.activity_type === 'nueva_actividad' ? 'Nueva Actividad' : 
+                                         activity.activity_type === 'seguimiento' ? 'Seguimiento' : 
+                                         activity.activity_type === 'cierre_etapa' ? 'Cierre de Etapa' : activity.activity_type}
                                       </p>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Campos dinámicos específicos por etapa */}
-                                  {activity.dynamic_payload && Object.keys(activity.dynamic_payload).length > 0 && (
-                                    <div className={`p-3 rounded-md ${
-                                      darkMode ? 'bg-neutral-600' : 'bg-neutral-50'
-                                    }`}>
-                                      <h5 className={`text-sm font-medium mb-2 ${
-                                        darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                                      <p className={`text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                                        Actor: {activity.actor_type === 'equipo_interno' ? 'Equipo Interno' :
+                                               activity.actor_type === 'proveedor' ? 'Proveedor' : 'Usuario'}
+                                      </p>
+                                      {activity.notes && (
+                                        <p className={`text-sm mt-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                                          {activity.notes}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    {activity.dynamic_payload && Object.keys(activity.dynamic_payload).length > 0 && (
+                                      <div className={`p-3 rounded-md ${
+                                        darkMode ? 'bg-neutral-600' : 'bg-neutral-50'
                                       }`}>
-                                        Detalles específicos:
-                                      </h5>
-                                      <div className="grid grid-cols-2 gap-2 text-sm">
-                                        {Object.entries(activity.dynamic_payload).map(([key, value]) => (
-                                          <div key={key}>
-                                            <span className={`font-medium ${
-                                              darkMode ? 'text-neutral-400' : 'text-neutral-500'
-                                            }`}>
-                                              {key.replace(/_/g, ' ')}:
-                                            </span>
-                                            <span className={`ml-1 ${
-                                              darkMode ? 'text-neutral-300' : 'text-neutral-600'
-                                            }`}>
-                                              {String(value)}
-                                            </span>
-                                          </div>
-                                        ))}
+                                        <h5 className={`text-sm font-medium mb-2 ${
+                                          darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                                        }`}>
+                                          Detalles específicos:
+                                        </h5>
+                                        <div className="grid grid-cols-2 gap-2 text-sm">
+                                          {Object.entries(activity.dynamic_payload).map(([key, value]) => (
+                                            <div key={key}>
+                                              <span className={`font-medium ${
+                                                darkMode ? 'text-neutral-400' : 'text-neutral-500'
+                                              }`}>
+                                                {key.replace(/_/g, ' ')}:
+                                              </span>
+                                              <span className={`ml-1 ${
+                                                darkMode ? 'text-neutral-300' : 'text-neutral-600'
+                                              }`}>
+                                                {String(value)}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-600">
+                                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                                        <span>Inicio: {new Date(activity.start_date).toLocaleDateString()}</span>
+                                        {activity.end_date && (
+                                          <span className="ml-3">Fin: {new Date(activity.end_date).toLocaleDateString()}</span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        {activity.next_follow_up_at && (
+                                          <span className={`text-xs px-2 py-1 rounded ${
+                                            darkMode ? 'bg-orange-900 text-orange-200' : 'bg-orange-100 text-orange-800'
+                                          }`}>
+                                            Seguimiento: {new Date(activity.next_follow_up_at).toLocaleDateString()}
+                                          </span>
+                                        )}
+
+                                        {activity.status !== 'completada' && (
+                                          <MaterialButton
+                                            size="small"
+                                            variant="contained"
+                                            onClick={() => handleCompleteActivity(activity.id)}
+                                            className={`${darkMode ? '!bg-green-600 hover:!bg-green-700 text-white' : '!bg-green-600 hover:!bg-green-700 text-white'}`}
+                                            aria-label="Marcar como completada"
+                                          >
+                                            <CheckCircle size={12} />
+                                            <span className="ml-1">Completar</span>
+                                          </MaterialButton>
+                                        )}
+
+                                        <MaterialButton
+                                          size="small"
+                                          variant="contained"
+                                          onClick={() => openEditActivityModal(activity)}
+                                          className={`${darkMode ? '!bg-neutral-600 hover:!bg-neutral-700 text-white' : '!bg-neutral-600 hover:!bg-neutral-700 text-white'}`}
+                                          aria-label="Editar actividad"
+                                        >
+                                          <SquarePen size={12} />
+                                          <span className="ml-1">Editar</span>
+                                        </MaterialButton>
+
+                                        <MaterialButton
+                                          size="small"
+                                          variant="contained"
+                                          onClick={() => openDeleteActivityModal(activity.id)}
+                                          className={`${darkMode ? '!bg-red-600 hover:!bg-red-700 text-white' : '!bg-red-600 hover:!bg-red-700 text-white'}`}
+                                          aria-label="Eliminar actividad"
+                                        >
+                                          <Trash2 size={12} />
+                                          <span className="ml-1">Eliminar</span>
+                                        </MaterialButton>
                                       </div>
                                     </div>
-                                  )}
-
-                                  {/* Fechas y Acciones */}
-                                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-600">
-                                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                                      <span>Inicio: {new Date(activity.start_date).toLocaleDateString()}</span>
-                                      {activity.end_date && (
-                                        <span className="ml-3">Fin: {new Date(activity.end_date).toLocaleDateString()}</span>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      {activity.next_follow_up_at && (
-                                        <span className={`text-xs px-2 py-1 rounded ${
-                                          darkMode ? 'bg-orange-900 text-orange-200' : 'bg-orange-100 text-orange-800'
-                                        }`}>
-                                          Seguimiento: {new Date(activity.next_follow_up_at).toLocaleDateString()}
-                                        </span>
-                                      )}
-                                      
-                                      {/* Botones de acción */}
-                                      {activity.status !== 'completada' && (
-                                        <button
-                                          onClick={() => handleCompleteActivity(activity.id)}
-                                          className={`flex items-center space-x-1 px-2 py-1 text-xs rounded transition-colors ${
-                                            darkMode 
-                                              ? 'bg-green-600 hover:bg-green-700 text-white' 
-                                              : 'bg-green-100 hover:bg-green-200 text-green-800'
-                                          }`}
-                                          title="Marcar como completada"
-                                        >
-                                          <CheckCircle size={12} />
-                                          <span>Completar</span>
-                                        </button>
-                                      )}
-                                      
-                                      <button
-                                        onClick={() => openDeleteActivityModal(activity.id)}
-                                        className={`flex items-center space-x-1 px-2 py-1 text-xs rounded transition-colors ${
-                                          darkMode 
-                                            ? 'bg-red-600 hover:bg-red-700 text-white' 
-                                            : 'bg-red-100 hover:bg-red-200 text-red-800'
-                                        }`}
-                                        title="Eliminar actividad"
-                                      >
-                                        <Trash2 size={12} />
-                                        <span>Eliminar</span>
-                                      </button>
-                                    </div>
-                                  </div>
-                      </div>
-                    ))
+                                  </MaterialCard.Content>
+                                </MaterialCard>
+                              ))
                   ) : (
                               <div className="text-center p-8 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
                                 <ListChecks size={48} className={`mx-auto mb-4 ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`} />
@@ -1559,77 +1655,144 @@ const MyDevelopments: React.FC = () => {
 
       {/* Modal de confirmación de eliminación de actividad */}
       {activityDeleteModal.isOpen && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center ${darkMode ? 'bg-black/60' : 'bg-black/40'}`}>
-          <div className={`w-full max-w-md rounded-lg shadow-lg border ${
-            darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-          }`}>
-            <div className={`px-5 py-4 border-b ${darkMode ? 'border-neutral-700' : 'border-neutral-200'}`}>
+        <div className={`${darkMode ? 'bg-black/60' : 'bg-black/40'} fixed inset-0 z-50 flex items-center justify-center`}>
+          <MaterialCard elevation={8} className="w-full max-w-md" darkMode={darkMode}>
+            <MaterialCard.Header>
               <h3 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                 <AlertTriangle size={18} className="mr-2 text-red-500" />
                 Confirmar eliminación
               </h3>
-            </div>
-            <div className="px-5 py-4">
+            </MaterialCard.Header>
+            <MaterialCard.Content>
               <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mb-4`}>
                 ¿Estás seguro de que deseas eliminar esta actividad? Esta acción no se puede deshacer.
               </p>
-              
               {activityDeleteModal.activity && (
-                <div className={`p-3 rounded-md mb-4 ${
-                  darkMode ? 'bg-yellow-900/20 border border-yellow-800' : 'bg-yellow-50 border border-yellow-200'
-                }`}>
+                <div className={`p-3 rounded-md mb-4 ${darkMode ? 'bg-yellow-900/20 border border-yellow-800' : 'bg-yellow-50 border border-yellow-200'}`}>
                   <div className="flex items-start">
-                    <AlertTriangle size={16} className={`mr-2 mt-0.5 ${
-                      darkMode ? 'text-yellow-400' : 'text-yellow-600'
-                    }`} />
+                    <AlertTriangle size={16} className={`${darkMode ? 'text-yellow-400' : 'text-yellow-600'} mr-2 mt-0.5`} />
                     <div>
-                      <p className={`text-sm font-medium ${
-                        darkMode ? 'text-yellow-300' : 'text-yellow-800'
-                      }`}>
+                      <p className={`text-sm font-medium ${darkMode ? 'text-yellow-300' : 'text-yellow-800'}`}>
                         Esta actividad está en la etapa: <strong>{activityDeleteModal.activity.stage_name}</strong>
                       </p>
-                      <p className={`text-xs mt-1 ${
-                        darkMode ? 'text-yellow-400' : 'text-yellow-700'
-                      }`}>
+                      <p className={`text-xs mt-1 ${darkMode ? 'text-yellow-400' : 'text-yellow-700'}`}>
                         Si eliminas esta actividad, el desarrollo permanecerá en esta etapa.
                       </p>
                     </div>
                   </div>
                 </div>
               )}
-              
               <div className="flex items-center">
                 <input
                   type="checkbox"
                   id="rollbackCheckbox"
                   checked={shouldRollbackStage}
                   onChange={(e) => setShouldRollbackStage(e.target.checked)}
-                  className={`h-4 w-4 rounded ${
-                    darkMode ? 'bg-neutral-700 border-neutral-600 text-blue-500' : 'border-neutral-300 text-blue-600'
-                  } focus:ring-blue-500`}
+                  className={`h-4 w-4 rounded ${darkMode ? 'bg-neutral-700 border-neutral-600 text-blue-500' : 'border-neutral-300 text-blue-600'} focus:ring-blue-500`}
                 />
-                <label htmlFor="rollbackCheckbox" className={`ml-2 text-sm ${
-                  darkMode ? 'text-neutral-300' : 'text-neutral-700'
-                }`}>
+                <label htmlFor="rollbackCheckbox" className={`ml-2 text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
                   También revertir el desarrollo a la etapa anterior
                 </label>
               </div>
-            </div>
-            <div className={`px-5 py-4 flex justify-end space-x-3 border-t ${darkMode ? 'border-neutral-700' : 'border-neutral-200'}`}>
-              <button
+            </MaterialCard.Content>
+            <MaterialCard.Actions>
+              <MaterialButton
+                variant="outlined"
+                color="inherit"
                 onClick={cancelDeleteActivity}
-                className={`px-4 py-2 rounded-md ${darkMode ? 'bg-neutral-700 text-neutral-200 hover:bg-neutral-600' : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'}`}
               >
                 Cancelar
-              </button>
-              <button
+              </MaterialButton>
+              <MaterialButton
+                variant="contained"
                 onClick={confirmDeleteActivity}
-                className={`px-4 py-2 rounded-md ${darkMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                className={`${darkMode ? '!bg-red-600 hover:!bg-red-700 text-white' : '!bg-red-600 hover:!bg-red-700 text-white'}`}
               >
                 Eliminar
-              </button>
-            </div>
-          </div>
+              </MaterialButton>
+            </MaterialCard.Actions>
+          </MaterialCard>
+        </div>
+      )}
+
+      {/* Modal de edición de actividad */}
+      {activityEditModal.isOpen && activityEditModal.activity && activityEditModal.form && (
+        <div className={`${darkMode ? 'bg-black/60' : 'bg-black/40'} fixed inset-0 z-50 flex items-center justify-center`}>
+          <MaterialCard elevation={8} className="w-full max-w-md" darkMode={darkMode}>
+            <MaterialCard.Header>
+              <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                Editar Actividad
+              </h3>
+            </MaterialCard.Header>
+            <MaterialCard.Content>
+              <div className="space-y-4">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Estado</label>
+                  <select
+                    value={activityEditModal.form.status}
+                    onChange={(e) => updateActivityEditForm({ status: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-md border ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300 text-neutral-900'}`}
+                  >
+                    <option value="pendiente">Pendiente</option>
+                    <option value="en_curso">En Curso</option>
+                    <option value="completada">Completada</option>
+                    <option value="cancelada">Cancelada</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Fecha de inicio</label>
+                    <input
+                      type="date"
+                      value={activityEditModal.form.start_date || ''}
+                      onChange={(e) => updateActivityEditForm({ start_date: e.target.value })}
+                      className={`w-full px-3 py-2 rounded-md border ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300 text-neutral-900'}`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Fecha de fin</label>
+                    <input
+                      type="date"
+                      value={activityEditModal.form.end_date || ''}
+                      onChange={(e) => updateActivityEditForm({ end_date: e.target.value })}
+                      className={`w-full px-3 py-2 rounded-md border ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300 text-neutral-900'}`}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Notas</label>
+                  <textarea
+                    value={activityEditModal.form.notes || ''}
+                    onChange={(e) => updateActivityEditForm({ notes: e.target.value })}
+                    rows={3}
+                    className={`w-full px-3 py-2 rounded-md border ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300 text-neutral-900'}`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Próximo seguimiento</label>
+                  <input
+                    type="date"
+                    value={activityEditModal.form.next_follow_up_at || ''}
+                    onChange={(e) => updateActivityEditForm({ next_follow_up_at: e.target.value })}
+                    className={`w-full px-3 py-2 rounded-md border ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300 text-neutral-900'}`}
+                  />
+                </div>
+                {activityEditErrors.length > 0 && (
+                  <div className={`p-3 rounded-md ${darkMode ? 'bg-red-900/20 border border-red-800 text-red-300' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+                    <ul className="list-disc pl-5 text-sm">
+                      {activityEditErrors.map((err, idx) => (
+                        <li key={idx}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </MaterialCard.Content>
+            <MaterialCard.Actions>
+              <MaterialButton variant="outlined" color="inherit" onClick={cancelEditActivity}>Cancelar</MaterialButton>
+              <MaterialButton variant="contained" onClick={confirmEditActivity} className={`${darkMode ? '!bg-blue-600 hover:!bg-blue-700 text-white' : '!bg-blue-600 hover:!bg-blue-700 text-white'}`}>Guardar</MaterialButton>
+            </MaterialCard.Actions>
+          </MaterialCard>
         </div>
       )}
               </div>

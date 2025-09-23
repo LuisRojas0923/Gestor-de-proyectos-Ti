@@ -205,6 +205,12 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
     setError(null);
 
     try {
+      // Validación de etapa seleccionada
+      if (!formData.stage_id || formData.stage_id <= 0) {
+        setError('Selecciona una etapa válida para la actividad.');
+        setLoading(false);
+        return;
+      }
       const response = await post(
         API_ENDPOINTS.ACTIVITY_LOG_CREATE(developmentId),
         formData

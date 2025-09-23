@@ -263,14 +263,8 @@ def get_development_proposals(
     raise HTTPException(status_code=501, detail="Not implemented yet")
 
 
-@router.get("/{development_id}/installers")
-def get_development_installers(
-    development_id: str,
-    db: Session = Depends(get_db)
-):
-    """Instaladores del desarrollo"""
-    # TODO: Implementar usando DevelopmentInstaller
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+# NOTA: Endpoint de instaladores eliminado
+# Los instaladores ahora se consultan via /api/v1/installers/failed
 
 
 @router.get("/{development_id}/providers")

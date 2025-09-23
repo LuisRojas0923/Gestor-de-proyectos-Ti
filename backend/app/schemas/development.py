@@ -463,28 +463,8 @@ class DevelopmentProposal(DevelopmentProposalBase):
 # SCHEMAS PARA DEVELOPMENT_INSTALLERS
 # =====================================================================================
 
-class DevelopmentInstallerBase(BaseModel):
-    """Schema base para instaladores de desarrollo"""
-    development_id: str = Field(..., max_length=50, description="ID del desarrollo")
-    installer_number: Optional[str] = Field(None, max_length=100, description="Número de instalador")
-    version: Optional[str] = Field(None, max_length=50, description="Versión")
-    environment: Optional[str] = Field(None, max_length=100, description="Ambiente")
-    installation_date: Optional[date] = Field(None, description="Fecha de instalación")
-    status: Optional[str] = Field(None, max_length=50, description="Estado del instalador")
-
-
-class DevelopmentInstallerCreate(DevelopmentInstallerBase):
-    """Schema para crear instalador de desarrollo"""
-    pass
-
-
-class DevelopmentInstaller(DevelopmentInstallerBase):
-    """Schema completo para instalador de desarrollo"""
-    id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
+# NOTA: Los esquemas de DevelopmentInstaller fueron eliminados
+# Los instaladores ahora se manejan via dynamic_payload en development_activity_log
         orm_mode = True
 
 
@@ -645,7 +625,7 @@ class DevelopmentWithFullDetails(DevelopmentWithCurrentStatus):
     """Schema de desarrollo con información completa"""
     dates: List[DevelopmentDate] = []
     proposals: List[DevelopmentProposal] = []
-    installers: List[DevelopmentInstaller] = []
+    # installers: List[DevelopmentInstaller] = []  # ELIMINADO - se usa dynamic_payload
     providers: List[DevelopmentProvider] = []
     responsibles: List[DevelopmentResponsible] = []
 
