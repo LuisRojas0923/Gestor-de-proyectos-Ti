@@ -55,7 +55,7 @@ export function useApi<T>() {
       setState({ data, loading: false, error: null });
       return data;
     } catch (error) {
-      let errorMessage = ERROR_MESSAGES.UNKNOWN_ERROR;
+      let errorMessage: string = ERROR_MESSAGES.UNKNOWN_ERROR;
       
       if (error instanceof TypeError && error.message.includes('fetch')) {
         errorMessage = ERROR_MESSAGES.NETWORK_ERROR;
