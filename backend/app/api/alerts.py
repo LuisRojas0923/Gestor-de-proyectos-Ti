@@ -51,7 +51,7 @@ def get_upcoming_activities(
             query = query.filter(models.DevelopmentUpcomingActivity.development_id == development_id)
         
         if responsible_party:
-            query = query.filter(models.DevelopmentUpcomingActivity.responsible_party == responsible_party)
+            query = query.filter(models.DevelopmentUpcomingActivity.responsible_party.ilike(f"%{responsible_party}%"))
         
         if priority:
             query = query.filter(models.DevelopmentUpcomingActivity.priority == priority)

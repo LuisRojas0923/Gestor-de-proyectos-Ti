@@ -49,8 +49,8 @@ class KPIService:
             
             # Filtrar por proveedor si se especifica
             if provider:
-                query = query.join(models.Development).join(models.DevelopmentProvider).filter(
-                    models.DevelopmentProvider.provider_name.ilike(f"%{provider}%")
+                query = query.join(models.Development).filter(
+                    models.Development.provider == provider
                 )
             
             deliveries = query.all()
@@ -87,8 +87,8 @@ class KPIService:
             )
             
             if provider:
-                prev_query = prev_query.join(models.Development).join(models.DevelopmentProvider).filter(
-                    models.DevelopmentProvider.provider_name.ilike(f"%{provider}%")
+                prev_query = prev_query.join(models.Development).filter(
+                    models.Development.provider == provider
                 )
             
             prev_deliveries = prev_query.all()
@@ -209,8 +209,8 @@ class KPIService:
             
             # Filtrar por proveedor si se especifica
             if provider:
-                query = query.join(models.Development).join(models.DevelopmentProvider).filter(
-                    models.DevelopmentProvider.provider_name.ilike(f"%{provider}%")
+                query = query.join(models.Development).filter(
+                    models.Development.provider == provider
                 )
             
             completed_controls = query.all()
@@ -276,40 +276,91 @@ class KPIService:
         period_end: Optional[date] = None
     ) -> Dict[str, Any]:
         """
-        Calcular tiempo de respuesta a fallos:
-        1. Promedio de horas desde reporte hasta primera respuesta
+        Calcular tiempo de respuesta a fallos REAL usando incidents:
+        1. Promedio de horas de respuesta (Incident.response_time_hours)
         2. Distribución por severidad
-        3. Cumplimiento de SLA
+        3. Cambio vs período anterior
         """
         try:
-            # Por ahora usar datos mock ya que no tenemos tabla de incidentes
-            # TODO: Implementar con tabla de incidentes real
-            
-            base_metrics = crud.get_indicators_kpis(self.db)
-            
-            # Guardar métrica mock
-            self._save_kpi_metric(
-                development_id=None,
-                metric_type="tiempo_respuesta",
-                provider=provider,
-                value=Decimal(str(base_metrics["failureResponseTime"]["value"])),
-                target_value=Decimal("4.0"),  # Target de 4 horas
-                period_start=period_start,
-                period_end=period_end
+            if not period_end:
+                period_end = date.today()
+            if not period_start:
+                period_start = period_end - timedelta(days=90)
+
+            # Seleccionar incidentes del periodo
+            incidents_query = self.db.query(models.Incident).filter(
+                models.Incident.report_date >= datetime.combine(period_start, datetime.min.time()),
+                models.Incident.report_date <= datetime.combine(period_end, datetime.max.time()),
+                models.Incident.response_time_hours.isnot(None)
             )
+            if provider:
+                incidents_query = incidents_query.join(models.Development).filter(
+                    models.Development.provider == provider
+                )
+
+            incidents = incidents_query.all()
+
+            def average(values):
+                return (sum(values) / len(values)) if values else 0.0
+
+            current_avg = float(average([float(i.response_time_hours) for i in incidents]))
+
+            # Distribución por severidad
+            severities = {"critical": 0.0, "high": 0.0, "medium": 0.0, "low": 0.0}
+            sev_groups: Dict[str, list] = {k: [] for k in severities.keys()}
+            for i in incidents:
+                sev = (i.severity_level or "").lower()
+                if sev in sev_groups:
+                    sev_groups[sev].append(float(i.response_time_hours))
+            for k, lst in sev_groups.items():
+                severities[k] = float(round(average(lst), 2))
+
+            # Período anterior
+            prev_start = period_start - (period_end - period_start)
+            prev_end = period_start
+            prev_q = self.db.query(models.Incident).filter(
+                models.Incident.report_date >= datetime.combine(prev_start, datetime.min.time()),
+                models.Incident.report_date < datetime.combine(prev_end, datetime.max.time()),
+                models.Incident.response_time_hours.isnot(None)
+            )
+            if provider:
+                prev_q = prev_q.join(models.Development).join(models.DevelopmentProvider).filter(
+                    models.DevelopmentProvider.provider_name.ilike(f"%{provider}%")
+                )
+            prev_incidents = prev_q.all()
+            prev_avg = float(average([float(i.response_time_hours) for i in prev_incidents]))
+
+            change_value = round(abs(current_avg - prev_avg), 2)
+            change_type = "decrease" if current_avg <= prev_avg else "increase"
+
+            # SLA cumplimiento (porcentaje <= 4h)
+            sla_target_hours = 4.0
+            sla_ok = [1 for i in incidents if float(i.response_time_hours) <= sla_target_hours]
+            sla_compliance = round((sum(sla_ok) / len(incidents) * 100) if incidents else 0.0, 2)
+
+            # Guardar métrica
+            try:
+                any_dev = incidents[0].development_id if incidents else None
+                self._save_kpi_metric(
+                    development_id=any_dev,
+                    metric_type="tiempo_respuesta",
+                    provider=provider,
+                    value=Decimal(str(current_avg)),
+                    target_value=Decimal(str(sla_target_hours)),
+                    period_start=period_start,
+                    period_end=period_end
+                )
+            except Exception:
+                pass
             
             return {
-                "current_value": base_metrics["failureResponseTime"]["value"],
-                "target_value": 4.0,
-                "meets_target": base_metrics["failureResponseTime"]["value"] <= 4.0,
-                "change": base_metrics["failureResponseTime"]["change"],
-                "by_severity": {
-                    "critical": 1.2,
-                    "high": 3.8,
-                    "medium": 8.5,
-                    "low": 24.0
-                },
-                "sla_compliance": 87.3,
+                "current_value": round(current_avg, 2),
+                "target_value": sla_target_hours,
+                "meets_target": current_avg <= sla_target_hours,
+                "change": {"value": change_value, "type": change_type},
+                "by_severity": severities,
+                "sla_compliance": sla_compliance,
+                "total_incidents": len(incidents),
                 "provider_filter": provider,
                 "period": {"start": period_start, "end": period_end}
             }
@@ -324,10 +375,10 @@ class KPIService:
         period_end: Optional[date] = None
     ) -> Dict[str, Any]:
         """
-        Calcular defectos por entrega:
-        1. Promedio de defectos encontrados por funcionalidad
-        2. Tendencia de calidad
-        3. Análisis por tipo de defecto
+        Calcular defectos por entrega basado en instaladores:
+        1. Instaladores entregados: Actividades completadas en "Despliegue (Pruebas)"
+        2. Instaladores devueltos: Instaladores que aparecen en "Validación de Correcciones"
+        3. Fórmula: Instaladores Devueltos / Instaladores Entregados
         """
         try:
             # Establecer período por defecto
@@ -336,70 +387,108 @@ class KPIService:
             if not period_start:
                 period_start = period_end - timedelta(days=90)
             
-            # Obtener funcionalidades entregadas en el período
-            query = self.db.query(models.DevelopmentFunctionality).filter(
-                models.DevelopmentFunctionality.delivery_date >= period_start,
-                models.DevelopmentFunctionality.delivery_date <= period_end,
-                models.DevelopmentFunctionality.status == "delivered"
+            # Obtener IDs de las etapas relevantes
+            despliegue_pruebas_stage = self.db.query(models.DevelopmentStage).filter(
+                models.DevelopmentStage.stage_name == "Despliegue (Pruebas)"
+            ).first()
+            
+            validacion_correcciones_stage = self.db.query(models.DevelopmentStage).filter(
+                models.DevelopmentStage.stage_name == "Validación de Correcciones"
+            ).first()
+            
+            if not despliegue_pruebas_stage or not validacion_correcciones_stage:
+                return {
+                    "current_value": 0.0,
+                    "target_value": 0.1,  # Target de máximo 10% de instaladores devueltos
+                    "total_installers_delivered": 0,
+                    "total_installers_returned": 0,
+                    "provider_filter": provider,
+                    "period": {"start": period_start, "end": period_end},
+                    "message": "No se encontraron las etapas necesarias para el cálculo"
+                }
+            
+            # 1. Obtener instaladores entregados (Despliegue Pruebas completados)
+            delivered_query = self.db.query(models.DevelopmentActivityLog).filter(
+                models.DevelopmentActivityLog.stage_id == despliegue_pruebas_stage.id,
+                models.DevelopmentActivityLog.status.in_(["completed", "completada"]),  # Aceptar ambos idiomas
+                models.DevelopmentActivityLog.created_at >= period_start,
+                models.DevelopmentActivityLog.created_at <= period_end,
+                models.DevelopmentActivityLog.dynamic_payload.isnot(None)
+            )
+            
+            # 2. Obtener instaladores devueltos (Validación de Correcciones)
+            returned_query = self.db.query(models.DevelopmentActivityLog).filter(
+                models.DevelopmentActivityLog.stage_id == validacion_correcciones_stage.id,
+                models.DevelopmentActivityLog.created_at >= period_start,
+                models.DevelopmentActivityLog.created_at <= period_end,
+                models.DevelopmentActivityLog.dynamic_payload.isnot(None)
             )
             
             # Filtrar por proveedor si se especifica
             if provider:
-                query = query.join(models.Development).join(models.DevelopmentProvider).filter(
-                    models.DevelopmentProvider.provider_name.ilike(f"%{provider}%")
+                delivered_query = delivered_query.join(models.Development).filter(
+                    models.Development.provider == provider
+                )
+                returned_query = returned_query.join(models.Development).filter(
+                    models.Development.provider == provider
                 )
             
-            functionalities = query.all()
+            delivered_activities = delivered_query.all()
+            returned_activities = returned_query.all()
             
-            if not functionalities:
-                return {
-                    "current_value": 0.0,
-                    "target_value": 2.0,
-                    "total_functionalities": 0,
-                    "total_defects": 0,
-                    "provider_filter": provider,
-                    "period": {"start": period_start, "end": period_end},
-                    "message": "No hay funcionalidades entregadas en el período"
-                }
+            # 3. Extraer números de instaladores únicos
+            delivered_installers = set()
+            for activity in delivered_activities:
+                payload = activity.dynamic_payload
+                if payload and "installer_number" in payload:
+                    delivered_installers.add(payload["installer_number"])
             
-            # Calcular defectos
-            total_defects = sum(f.defects_count for f in functionalities)
-            total_functionalities = len(functionalities)
-            defects_per_delivery = (total_defects / total_functionalities) if total_functionalities > 0 else 0
+            returned_installers = set()
+            for activity in returned_activities:
+                payload = activity.dynamic_payload
+                if payload and "installer_number" in payload:
+                    returned_installers.add(payload["installer_number"])
             
-            # Análisis por complejidad
-            defects_by_complexity = {}
-            for func in functionalities:
-                complexity = func.complexity_level
-                if complexity not in defects_by_complexity:
-                    defects_by_complexity[complexity] = {"total": 0, "defects": 0}
-                defects_by_complexity[complexity]["total"] += 1
-                defects_by_complexity[complexity]["defects"] += func.defects_count
+            # 4. Calcular métricas
+            total_delivered = len(delivered_installers)
+            total_returned = len(returned_installers)
             
-            # Calcular promedio por complejidad
-            for complexity in defects_by_complexity:
-                total = defects_by_complexity[complexity]["total"]
-                defects = defects_by_complexity[complexity]["defects"]
-                defects_by_complexity[complexity]["average"] = round(defects / total, 2) if total > 0 else 0
+            # 5. Calcular tasa de defectos (instaladores devueltos / instaladores entregados)
+            defects_per_delivery = (total_returned / total_delivered) if total_delivered > 0 else 0
             
-            # Guardar métrica
+            # 6. Análisis detallado de instaladores devueltos
+            returned_details = []
+            for activity in returned_activities:
+                payload = activity.dynamic_payload
+                if payload and "installer_number" in payload:
+                    returned_details.append({
+                        "installer_number": payload["installer_number"],
+                        "failure_description": payload.get("failure_description", "Sin descripción"),
+                        "return_date": activity.created_at.isoformat(),
+                        "development_id": activity.development_id
+                    })
+            
+            # 7. Guardar métrica
             self._save_kpi_metric(
                 development_id=None,
                 metric_type="defectos_entrega",
                 provider=provider,
                 value=Decimal(str(defects_per_delivery)),
-                target_value=Decimal("2.0"),  # Target de máximo 2 defectos por entrega
+                target_value=Decimal("0.1"),  # Target de máximo 10% de instaladores devueltos
                 period_start=period_start,
                 period_end=period_end
             )
             
             return {
-                "current_value": round(defects_per_delivery, 2),
-                "target_value": 2.0,
-                "meets_target": defects_per_delivery <= 2.0,
-                "total_functionalities": total_functionalities,
-                "total_defects": total_defects,
-                "defects_by_complexity": defects_by_complexity,
+                "current_value": round(defects_per_delivery, 3),
+                "target_value": 0.1,
+                "meets_target": defects_per_delivery <= 0.1,
+                "total_installers_delivered": total_delivered,
+                "total_installers_returned": total_returned,
+                "delivered_installers": list(delivered_installers),
+                "returned_installers": list(returned_installers),
+                "returned_details": returned_details,
+                "success_rate": round((1 - defects_per_delivery) * 100, 2) if defects_per_delivery <= 1 else 0,
                 "provider_filter": provider,
                 "period": {"start": period_start, "end": period_end}
             }
@@ -420,31 +509,128 @@ class KPIService:
         3. Impacto en disponibilidad
         """
         try:
-            # Por ahora usar datos mock
-            # TODO: Implementar con datos reales de producción
+            # Establecer período por defecto si no se proporciona
+            if not period_end:
+                period_end = date.today()
+            if not period_start:
+                period_start = period_end - timedelta(days=90)  # 3 meses
             
-            base_metrics = crud.get_indicators_kpis(self.db)
+            # Query base para actividades de entrega (producción)
+            query = self.db.query(models.DevelopmentActivityLog).filter(
+                models.DevelopmentActivityLog.activity_type == 'ENTREGA',
+                models.DevelopmentActivityLog.start_date >= period_start,
+                models.DevelopmentActivityLog.start_date <= period_end
+            )
             
-            # Guardar métrica mock
+            # Filtrar por proveedor si se especifica
+            if provider:
+                query = query.filter(
+                    models.DevelopmentActivityLog.actor_type.ilike(f"%{provider}%")
+                )
+            
+            # Obtener todas las entregas (producciones)
+            productions = query.all()
+            total_productions = len(productions)
+            
+            if total_productions == 0:
+                return {
+                    "current_value": 0.0,
+                    "target_value": 5.0,
+                    "meets_target": True,
+                    "change": {"value": 0.0, "type": "decrease"},
+                    "total_productions": 0,
+                    "rework_required": 0,
+                    "average_correction_time_hours": 0.0,
+                    "availability_impact_minutes": 0,
+                    "provider_filter": provider,
+                    "period": {"start": period_start, "end": period_end},
+                    "message": "No hay producciones en el período especificado"
+                }
+            
+            # Buscar actividades de seguimiento (retrabajo) para las mismas entregas
+            rework_count = 0
+            total_correction_time = 0
+            total_availability_impact = 0
+            
+            for production in productions:
+                # Buscar actividades de seguimiento relacionadas con esta entrega
+                rework_activities = self.db.query(models.DevelopmentActivityLog).filter(
+                    models.DevelopmentActivityLog.development_id == production.development_id,
+                    models.DevelopmentActivityLog.activity_type == 'SEGUIMIENTO',
+                    models.DevelopmentActivityLog.start_date >= production.start_date,
+                    models.DevelopmentActivityLog.start_date <= period_end
+                ).all()
+                
+                if rework_activities:
+                    rework_count += 1
+                    
+                    # Calcular tiempo de corrección (diferencia entre entrega y seguimiento)
+                    for rework in rework_activities:
+                        if rework.start_date and production.start_date:
+                            correction_days = (rework.start_date - production.start_date).days
+                            total_correction_time += correction_days * 24  # Convertir a horas
+                            
+                            # Impacto en disponibilidad (minutos de downtime)
+                            # Asumir 30 minutos de impacto por cada día de corrección
+                            total_availability_impact += correction_days * 30
+            
+            # Calcular métricas
+            rework_percentage = (rework_count / total_productions * 100) if total_productions > 0 else 0
+            average_correction_time = (total_correction_time / rework_count) if rework_count > 0 else 0
+            
+            # Calcular período anterior para comparación
+            prev_period_start = period_start - (period_end - period_start)
+            prev_period_end = period_start
+            
+            prev_query = self.db.query(models.DevelopmentActivityLog).filter(
+                models.DevelopmentActivityLog.activity_type == 'ENTREGA',
+                models.DevelopmentActivityLog.start_date >= prev_period_start,
+                models.DevelopmentActivityLog.start_date < prev_period_end
+            )
+            
+            if provider:
+                prev_query = prev_query.filter(
+                    models.DevelopmentActivityLog.actor_type.ilike(f"%{provider}%")
+                )
+            
+            prev_productions = prev_query.all()
+            prev_rework_count = 0
+            
+            for prev_production in prev_productions:
+                prev_rework = self.db.query(models.DevelopmentActivityLog).filter(
+                    models.DevelopmentActivityLog.development_id == prev_production.development_id,
+                    models.DevelopmentActivityLog.activity_type == 'SEGUIMIENTO',
+                    models.DevelopmentActivityLog.start_date >= prev_production.start_date,
+                    models.DevelopmentActivityLog.start_date < prev_period_end
+                ).first()
+                
+                if prev_rework:
+                    prev_rework_count += 1
+            
+            prev_rework_percentage = (prev_rework_count / len(prev_productions) * 100) if prev_productions else 0
+            change_value = rework_percentage - prev_rework_percentage
+            change_type = 'decrease' if change_value < 0 else 'increase' if change_value > 0 else 'stable'
+            
+            # Guardar métrica en base de datos
             self._save_kpi_metric(
-                development_id=None,
+                development_id=productions[0].development_id if productions else None,
                 metric_type="retrabajo_produccion",
                 provider=provider,
-                value=Decimal(str(base_metrics["postProductionRework"]["value"])),
+                value=Decimal(str(rework_percentage)),
                 target_value=Decimal("5.0"),  # Target de máximo 5%
                 period_start=period_start,
                 period_end=period_end
             )
             
             return {
-                "current_value": base_metrics["postProductionRework"]["value"],
+                "current_value": round(rework_percentage, 2),
                 "target_value": 5.0,
-                "meets_target": base_metrics["postProductionRework"]["value"] <= 5.0,
-                "change": base_metrics["postProductionRework"]["change"],
-                "total_productions": 28,
-                "rework_required": 3,
-                "average_correction_time_hours": 18.5,
-                "availability_impact_minutes": 42,
+                "meets_target": rework_percentage <= 5.0,
+                "change": {"value": round(abs(change_value), 2), "type": change_type},
+                "total_productions": total_productions,
+                "rework_required": rework_count,
+                "average_correction_time_hours": round(average_correction_time, 1),
+                "availability_impact_minutes": total_availability_impact,
                 "provider_filter": provider,
                 "period": {"start": period_start, "end": period_end}
             }
@@ -452,13 +638,255 @@ class KPIService:
         except Exception as e:
             raise Exception(f"Error calculando retrabajo post-producción: {str(e)}")
     
+    def calculate_development_compliance_days(
+        self,
+        provider: Optional[str] = None,
+        period_start: Optional[date] = None,
+        period_end: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Calcular desviación promedio de días entre fecha real y planificada de entrega.
+        Valor positivo indica retraso promedio; negativo indica entrega anticipada.
+        También calcula el cambio respecto al período anterior.
+        """
+        try:
+            if not period_end:
+                period_end = date.today()
+            if not period_start:
+                period_start = period_end - timedelta(days=90)
+
+            # Fechas de entrega en período actual
+            query = self.db.query(models.DevelopmentDate).filter(
+                models.DevelopmentDate.date_type == 'entrega',
+                models.DevelopmentDate.actual_date.isnot(None),
+                models.DevelopmentDate.planned_date.isnot(None),
+                models.DevelopmentDate.actual_date >= period_start,
+                models.DevelopmentDate.actual_date <= period_end
+            )
+            if provider:
+                query = query.join(models.Development).filter(
+                    models.Development.provider == provider
+                )
+            deliveries = query.all()
+
+            def average_deviation(items):
+                if not items:
+                    return 0.0
+                diffs = [(d.actual_date - d.planned_date).days for d in items]
+                return sum(diffs) / len(diffs)
+
+            current_avg = average_deviation(deliveries)
+
+            # Período anterior
+            prev_period_start = period_start - (period_end - period_start)
+            prev_period_end = period_start
+            prev_query = self.db.query(models.DevelopmentDate).filter(
+                models.DevelopmentDate.date_type == 'entrega',
+                models.DevelopmentDate.actual_date.isnot(None),
+                models.DevelopmentDate.planned_date.isnot(None),
+                models.DevelopmentDate.actual_date >= prev_period_start,
+                models.DevelopmentDate.actual_date < prev_period_end
+            )
+            if provider:
+                prev_query = prev_query.join(models.Development).filter(
+                    models.Development.provider == provider
+                )
+            prev_deliveries = prev_query.all()
+            prev_avg = average_deviation(prev_deliveries)
+
+            change_value = round(abs(current_avg - prev_avg), 2)
+            # Para este indicador, una disminución es positiva (menos días de desviación)
+            change_type = 'decrease' if current_avg < prev_avg else 'increase' if current_avg > prev_avg else 'increase'
+
+            # Guardar métrica como referencia (opcional, no crítica)
+            try:
+                first_dev = deliveries[0].development_id if deliveries else None
+                self._save_kpi_metric(
+                    development_id=first_dev,
+                    metric_type="desviacion_fechas_dias",
+                    provider=provider,
+                    value=Decimal(str(current_avg)),
+                    target_value=Decimal("0.0"),
+                    period_start=period_start,
+                    period_end=period_end
+                )
+            except Exception:
+                pass
+
+            return {
+                "current_value": round(current_avg, 2),
+                "change": {"value": change_value, "type": change_type},
+                "total_deliveries": len(deliveries),
+                "provider_filter": provider,
+                "period": {"start": period_start, "end": period_end}
+            }
+
+        except Exception as e:
+            raise Exception(f"Error calculando desviación de días: {str(e)}")
+
+    def calculate_installer_resolution_time(
+        self,
+        provider: Optional[str] = None,
+        period_start: Optional[date] = None,
+        period_end: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Calcular tiempo de resolución de instaladores devueltos:
+        1. Buscar devoluciones en "Validación de Correcciones"
+        2. Buscar siguiente entrega en "Despliegue (Pruebas)" del mismo desarrollo
+        3. Calcular tiempo promedio de resolución
+        """
+        try:
+            if not period_end:
+                period_end = date.today()
+            if not period_start:
+                period_start = period_end - timedelta(days=90)
+
+            # Obtener IDs de las etapas relevantes
+            validacion_stage = self.db.query(models.DevelopmentStage).filter(
+                models.DevelopmentStage.stage_name == "Validación de Correcciones"
+            ).first()
+            
+            despliegue_stage = self.db.query(models.DevelopmentStage).filter(
+                models.DevelopmentStage.stage_name == "Despliegue (Pruebas)"
+            ).first()
+            
+            if not validacion_stage or not despliegue_stage:
+                return {
+                    "current_value": 0.0,
+                    "total_devoluciones": 0,
+                    "total_resueltas": 0,
+                    "unresolved_count": 0,
+                    "provider_filter": provider,
+                    "period": {"start": period_start, "end": period_end},
+                    "message": "No se encontraron las etapas necesarias para el cálculo"
+                }
+
+            # Buscar devoluciones en período
+            devoluciones_query = self.db.query(models.DevelopmentActivityLog).filter(
+                models.DevelopmentActivityLog.stage_id == validacion_stage.id,
+                models.DevelopmentActivityLog.status.in_(['completed', 'completada']),
+                models.DevelopmentActivityLog.dynamic_payload.isnot(None),
+                models.DevelopmentActivityLog.created_at >= datetime.combine(period_start, datetime.min.time()),
+                models.DevelopmentActivityLog.created_at <= datetime.combine(period_end, datetime.max.time())
+            )
+            
+            # Filtrar por proveedor si se especifica
+            if provider:
+                devoluciones_query = devoluciones_query.join(models.Development).filter(
+                    models.Development.provider == provider
+                )
+            
+            devoluciones = devoluciones_query.all()
+            
+            if not devoluciones:
+                return {
+                    "current_value": 0.0,
+                    "total_devoluciones": 0,
+                    "total_resueltas": 0,
+                    "unresolved_count": 0,
+                    "provider_filter": provider,
+                    "period": {"start": period_start, "end": period_end},
+                    "message": "No hay devoluciones en el período especificado"
+                }
+
+            # Para cada devolución, buscar la siguiente entrega
+            resolution_times = []
+            resolved_count = 0
+            
+            for devolucion in devoluciones:
+                # Buscar siguiente entrega en "Despliegue (Pruebas)" del mismo desarrollo
+                siguiente_entrega = self.db.query(models.DevelopmentActivityLog).filter(
+                    models.DevelopmentActivityLog.development_id == devolucion.development_id,
+                    models.DevelopmentActivityLog.stage_id == despliegue_stage.id,
+                    models.DevelopmentActivityLog.status.in_(['completed', 'completada']),
+                    models.DevelopmentActivityLog.created_at > devolucion.created_at
+                ).order_by(models.DevelopmentActivityLog.created_at.asc()).first()
+                
+                if siguiente_entrega:
+                    # Calcular tiempo en horas
+                    tiempo_horas = (siguiente_entrega.created_at - devolucion.created_at).total_seconds() / 3600
+                    resolution_times.append(tiempo_horas)
+                    resolved_count += 1
+
+            # Calcular métricas
+            promedio_horas = sum(resolution_times) / len(resolution_times) if resolution_times else 0
+            unresolved_count = len(devoluciones) - resolved_count
+            
+            # Calcular período anterior para comparación
+            prev_period_start = period_start - (period_end - period_start)
+            prev_period_end = period_start
+            
+            prev_devoluciones_query = self.db.query(models.DevelopmentActivityLog).filter(
+                models.DevelopmentActivityLog.stage_id == validacion_stage.id,
+                models.DevelopmentActivityLog.status.in_(['completed', 'completada']),
+                models.DevelopmentActivityLog.dynamic_payload.isnot(None),
+                models.DevelopmentActivityLog.created_at >= datetime.combine(prev_period_start, datetime.min.time()),
+                models.DevelopmentActivityLog.created_at < datetime.combine(prev_period_end, datetime.max.time())
+            )
+            
+            if provider:
+                prev_devoluciones_query = prev_devoluciones_query.join(models.Development).filter(
+                    models.Development.provider == provider
+                )
+            
+            prev_devoluciones = prev_devoluciones_query.all()
+            prev_resolution_times = []
+            
+            for prev_devolucion in prev_devoluciones:
+                prev_siguiente = self.db.query(models.DevelopmentActivityLog).filter(
+                    models.DevelopmentActivityLog.development_id == prev_devolucion.development_id,
+                    models.DevelopmentActivityLog.stage_id == despliegue_stage.id,
+                    models.DevelopmentActivityLog.status.in_(['completed', 'completada']),
+                    models.DevelopmentActivityLog.created_at > prev_devolucion.created_at
+                ).order_by(models.DevelopmentActivityLog.created_at.asc()).first()
+                
+                if prev_siguiente:
+                    prev_tiempo = (prev_siguiente.created_at - prev_devolucion.created_at).total_seconds() / 3600
+                    prev_resolution_times.append(prev_tiempo)
+            
+            prev_promedio = sum(prev_resolution_times) / len(prev_resolution_times) if prev_resolution_times else 0
+            change_value = round(abs(promedio_horas - prev_promedio), 2)
+            change_type = "decrease" if promedio_horas < prev_promedio else "increase" if promedio_horas > prev_promedio else "stable"
+
+            # Guardar métrica
+            try:
+                first_dev = devoluciones[0].development_id if devoluciones else None
+                self._save_kpi_metric(
+                    development_id=first_dev,
+                    metric_type="tiempo_resolucion_instaladores",
+                    provider=provider,
+                    value=Decimal(str(promedio_horas)),
+                    target_value=Decimal("24.0"),  # Target de 24 horas
+                    period_start=period_start,
+                    period_end=period_end
+                )
+            except Exception:
+                pass
+
+            return {
+                "current_value": round(promedio_horas, 2),
+                "target_value": 24.0,
+                "meets_target": promedio_horas <= 24.0,
+                "change": {"value": change_value, "type": change_type},
+                "total_devoluciones": len(devoluciones),
+                "total_resueltas": resolved_count,
+                "unresolved_count": unresolved_count,
+                "resolution_rate": round((resolved_count / len(devoluciones) * 100), 2) if devoluciones else 0,
+                "provider_filter": provider,
+                "period": {"start": period_start, "end": period_end}
+            }
+            
+        except Exception as e:
+            raise Exception(f"Error calculando tiempo de resolución de instaladores: {str(e)}")
+    
     def get_providers_summary(self) -> List[Dict[str, Any]]:
         """
         Obtener resumen de KPIs por proveedor
         """
         try:
             # Obtener todos los proveedores únicos
-            providers_query = self.db.query(models.DevelopmentProvider.provider_name).distinct()
+            providers_query = self.db.query(models.Development.provider).distinct()
             providers = [p[0] for p in providers_query.all()]
             
             summary = []

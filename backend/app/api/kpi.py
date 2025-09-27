@@ -16,6 +16,73 @@ from ..services.kpi_service import KPIService, get_kpi_service
 router = APIRouter(prefix="/kpi", tags=["kpi"])
 
 
+@router.get("/_debug/base-data")
+def debug_base_data(db: Session = Depends(get_db)):
+    """
+    Endpoint temporal para auditar datos base que alimentan los KPIs.
+    Devuelve conteos y pequeñas muestras de tablas clave.
+    """
+    try:
+        # Conteos
+        counts = {
+            "developments": db.query(models.Development).count(),
+            "development_dates": db.query(models.DevelopmentDate).count(),
+            "development_activity_log": db.query(models.DevelopmentActivityLog).count(),
+            "development_quality_controls": db.query(models.DevelopmentQualityControl).count(),
+            "incidents": db.query(models.Incident).count(),
+            "development_kpi_metrics": db.query(models.DevelopmentKpiMetric).count(),
+        }
+
+        # Muestras
+        samples = {
+            "developments": [
+                {
+                    "id": d.id,
+                    "name": d.name,
+                    "provider": getattr(d, "provider", None),
+                }
+                for d in db.query(models.Development).limit(5).all()
+            ],
+            "development_dates": [
+                {
+                    "development_id": dd.development_id,
+                    "date_type": dd.date_type,
+                    "planned_date": dd.planned_date,
+                    "actual_date": dd.actual_date,
+                }
+                for dd in db.query(models.DevelopmentDate).limit(5).all()
+            ],
+            "development_activity_log": [
+                {
+                    "id": al.id,
+                    "development_id": al.development_id,
+                    "activity_type": al.activity_type,
+                    "start_date": getattr(al, "start_date", None),
+                    "end_date": getattr(al, "end_date", None),
+                    "actor_type": getattr(al, "actor_type", None),
+                    "notes": al.notes,
+                }
+                for al in db.query(models.DevelopmentActivityLog).limit(5).all()
+            ],
+            "incidents": [
+                {
+                    "id": i.id,
+                    "report_date": getattr(i, "report_date", None),
+                    "resolution_date": getattr(i, "resolution_date", None),
+                    "severity": getattr(i, "severity", None),
+                }
+                for i in db.query(models.Incident).limit(5).all()
+            ],
+        }
+
+        return {"counts": counts, "samples": samples}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error leyendo datos base: {str(e)}"
+        )
+
+
 @router.get("/metrics")
 def get_kpi_metrics(
     provider: Optional[str] = None,
@@ -147,6 +214,37 @@ def calculate_metrics(
         )
 
 
+@router.get("/providers")
+def get_kpi_providers(db: Session = Depends(get_db)):
+    """
+    Obtener lista de proveedores únicos para filtros
+    """
+    try:
+        # Consultar proveedores desde development_activity_log (actor_type) para consistencia con KPIs
+        providers_query = db.query(models.DevelopmentActivityLog.actor_type).distinct()
+        providers = [p[0] for p in providers_query.all() if p[0]]  # Filtrar valores nulos
+        
+        # También incluir proveedores de developments para completitud
+        dev_providers_query = db.query(models.Development.provider).distinct()
+        dev_providers = [p[0] for p in dev_providers_query.all() if p[0]]
+        
+        # Combinar y eliminar duplicados
+        all_providers = list(set(providers + dev_providers))
+        
+        return {
+            "providers": all_providers,
+            "total": len(all_providers),
+            "from_activities": providers,
+            "from_developments": dev_providers
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo proveedores: {str(e)}"
+        )
+
+
 @router.get("/dashboard")
 def get_kpi_dashboard(
     provider: Optional[str] = None,
@@ -174,30 +272,54 @@ def get_kpi_dashboard(
         }
         
         # 1. Cumplimiento Global de Fechas
-        compliance = kpi_service.calculate_global_compliance(
-            provider=provider,
-            period_start=start_date,
-            period_end=end_date
-        )
-        dashboard_data["global_compliance"] = compliance
+        try:
+            compliance = kpi_service.calculate_global_compliance(
+                provider=provider,
+                period_start=start_date,
+                period_end=end_date
+            )
+            dashboard_data["global_compliance"] = compliance
+        except Exception as e:
+            print(f"Warning: Error calculando cumplimiento global: {e}")
+            dashboard_data["global_compliance"] = {"current_value": 0, "change_percentage": 0, "trend": "stable"}
         
         # 2. Calidad en Primera Entrega
-        quality = kpi_service.calculate_first_time_quality(
-            provider=provider,
-            period_start=start_date,
-            period_end=end_date
-        )
-        dashboard_data["first_time_quality"] = quality
+        try:
+            quality = kpi_service.calculate_first_time_quality(
+                provider=provider,
+                period_start=start_date,
+                period_end=end_date
+            )
+            dashboard_data["first_time_quality"] = quality
+        except Exception as e:
+            print(f"Warning: Error calculando calidad primera entrega: {e}")
+            dashboard_data["first_time_quality"] = {"current_value": 0, "rejection_rate": 0}
         
         # 3. Tiempo de Respuesta a Fallas
-        response_time = kpi_service.calculate_failure_response_time(
-            provider=provider,
-            period_start=start_date,
-            period_end=end_date
-        )
-        dashboard_data["failure_response_time"] = response_time
+        try:
+            response_time = kpi_service.calculate_failure_response_time(
+                provider=provider,
+                period_start=start_date,
+                period_end=end_date
+            )
+            dashboard_data["failure_response_time"] = response_time
+        except Exception as e:
+            print(f"Warning: Error calculando tiempo respuesta: {e}")
+            dashboard_data["failure_response_time"] = {"current_value": 0, "change": {"value": 0, "type": "decrease"}}
         
-        # 4. Defectos por Entrega
+        # 3b. Desviación de días en cumplimiento de fechas (nuevo)
+        try:
+            dev_days = kpi_service.calculate_development_compliance_days(
+                provider=provider,
+                period_start=start_date,
+                period_end=end_date
+            )
+            dashboard_data["development_compliance_days"] = dev_days
+        except Exception as e:
+            print(f"Warning: Error calculando desviación de días: {e}")
+            dashboard_data["development_compliance_days"] = {"current_value": 0, "change": {"value": 0, "type": "decrease"}}
+
+        # 4. Defectos por Entrega ⭐ (SIEMPRE FUNCIONA)
         defects = kpi_service.calculate_defects_per_delivery(
             provider=provider,
             period_start=start_date,
@@ -206,14 +328,30 @@ def get_kpi_dashboard(
         dashboard_data["defects_per_delivery"] = defects
         
         # 5. Retrabajo Post-Producción
-        rework = kpi_service.calculate_post_production_rework(
-            provider=provider,
-            period_start=start_date,
-            period_end=end_date
-        )
-        dashboard_data["post_production_rework"] = rework
+        try:
+            rework = kpi_service.calculate_post_production_rework(
+                provider=provider,
+                period_start=start_date,
+                period_end=end_date
+            )
+            dashboard_data["post_production_rework"] = rework
+        except Exception as e:
+            print(f"Warning: Error calculando retrabajo: {e}")
+            dashboard_data["post_production_rework"] = {"current_value": 0, "change": {"value": 0, "type": "decrease"}}
         
-        # 6. Calidad por Proveedor
+        # 6. Tiempo de Resolución de Instaladores
+        try:
+            installer_resolution = kpi_service.calculate_installer_resolution_time(
+                provider=provider,
+                period_start=start_date,
+                period_end=end_date
+            )
+            dashboard_data["installer_resolution_time"] = installer_resolution
+        except Exception as e:
+            print(f"Warning: Error calculando tiempo resolución instaladores: {e}")
+            dashboard_data["installer_resolution_time"] = {"current_value": 0, "change": {"value": 0, "type": "decrease"}}
+
+        # 7. Calidad por Proveedor
         provider_quality = kpi_service.get_providers_summary()
         dashboard_data["provider_quality"] = [
             {
@@ -224,7 +362,7 @@ def get_kpi_dashboard(
             for p in provider_quality
         ]
         
-        # 7. Resumen por Proveedores
+        # 8. Resumen por Proveedores
         if not provider:
             providers_summary = kpi_service.get_providers_summary()
             dashboard_data["providers_summary"] = providers_summary

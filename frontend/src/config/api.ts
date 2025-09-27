@@ -72,7 +72,10 @@ export const API_ENDPOINTS = {
   ACTIVITY_LOG_FIELD_CONFIG: (developmentId: string, stageId: number) => `/activity-log/developments/${developmentId}/stages/${stageId}/field-config`,
 
   // Development stages actions
-  DEVELOPMENT_STAGE_CLOSE: (developmentId: string) => `/development-stages/${developmentId}/close-stage`
+  DEVELOPMENT_STAGE_CLOSE: (developmentId: string) => `/development-stages/${developmentId}/close-stage`,
+  
+  // Legacy endpoints
+  LEGACY_DEVELOPMENTS_BULK: '/legacy/developments/bulk'
 };
 
 export const HTTP_STATUS = {

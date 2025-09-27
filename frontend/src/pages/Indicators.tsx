@@ -33,6 +33,7 @@ interface KpiData {
   failureResponseTime: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
   defectsPerDelivery: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
   postProductionRework: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+  installerResolutionTime: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
 }
 
 interface DashboardResponse {
@@ -69,6 +70,20 @@ interface DashboardResponse {
     quality: number;
     color: string;
   }>;
+  // Nuevo: desviación de días de cumplimiento de fechas (backend)
+  development_compliance_days?: {
+    current_value: number;
+    change: { value: number; type: string };
+    total_deliveries?: number;
+  };
+  // Nuevo: tiempo de resolución de instaladores devueltos (backend)
+  installer_resolution_time?: {
+    current_value: number;
+    change: { value: number; type: string };
+    total_devoluciones?: number;
+    total_resueltas?: number;
+    resolution_rate?: number;
+  };
 }
 
 const Indicators: React.FC = () => {
@@ -84,11 +99,32 @@ const Indicators: React.FC = () => {
     failureResponseTime: { value: 0, change: { value: 0, type: 'decrease' } },
     defectsPerDelivery: { value: 0, change: { value: 0, type: 'increase' } },
     postProductionRework: { value: 0, change: { value: 0, type: 'decrease' } },
+    installerResolutionTime: { value: 0, change: { value: 0, type: 'decrease' } },
   });
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [providerQualityData, setProviderQualityData] = useState(defaultProviderQualityData);
+  const [availableProviders, setAvailableProviders] = useState<string[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<string>('all');
+
+  // Cargar proveedores disponibles
+  useEffect(() => {
+    const loadProviders = async () => {
+      try {
+        console.log('🔍 Cargando proveedores disponibles...');
+        const response = await get('/kpi/providers');
+        console.log('📊 Respuesta de proveedores:', response);
+        if (response && response.providers) {
+          setAvailableProviders(response.providers);
+          console.log('✅ Proveedores cargados:', response.providers);
+        }
+      } catch (err) {
+        console.error('❌ Error cargando proveedores:', err);
+      }
+    };
+    loadProviders();
+  }, [get]);
 
   // Cargar datos de KPIs desde el backend
   useEffect(() => {
@@ -97,11 +133,30 @@ const Indicators: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        const response = await get(API_ENDPOINTS.KPI_DASHBOARD);
+        const endpoint = selectedProvider === 'all' 
+          ? API_ENDPOINTS.KPI_DASHBOARD 
+          : `${API_ENDPOINTS.KPI_DASHBOARD}?provider=${encodeURIComponent(selectedProvider)}`;
+        
+        console.log('🔍 Cargando datos de KPIs...');
+        console.log('📡 Endpoint:', endpoint);
+        console.log('🏢 Proveedor seleccionado:', selectedProvider);
+        
+        const response = await get(endpoint);
+        console.log('📊 Respuesta completa del dashboard:', response);
         
         if (response) {
+          console.log('📈 Datos específicos de KPIs:');
+          console.log('  - global_compliance:', response.global_compliance);
+          console.log('  - development_compliance_days:', response.development_compliance_days);
+          console.log('  - first_time_quality:', response.first_time_quality);
+          console.log('  - failure_response_time:', response.failure_response_time);
+          console.log('  - defects_per_delivery:', response.defects_per_delivery);
+          console.log('  - post_production_rework:', response.post_production_rework);
+          console.log('  - installer_resolution_time:', response.installer_resolution_time);
+          console.log('  - provider_quality:', response.provider_quality);
+          
           // Mapear la respuesta del backend al formato esperado por el frontend
-          setKpiData({
+          const mappedKpiData = {
             globalCompliance: {
               value: response.global_compliance?.current_value || 0,
               change: {
@@ -110,8 +165,8 @@ const Indicators: React.FC = () => {
               }
             },
             developmentComplianceDays: {
-              value: 2.3, // TODO: Implementar cálculo real
-              change: { value: 0.5, type: 'decrease' }
+              value: response.development_compliance_days?.current_value ?? 0,
+              change: response.development_compliance_days?.change || { value: 0, type: 'decrease' }
             },
             firstTimeQuality: {
               value: response.first_time_quality?.current_value || 0,
@@ -131,28 +186,37 @@ const Indicators: React.FC = () => {
             postProductionRework: {
               value: response.post_production_rework?.current_value || 0,
               change: response.post_production_rework?.change || { value: 0, type: 'decrease' }
+            },
+            installerResolutionTime: {
+              value: response.installer_resolution_time?.current_value || 0,
+              change: response.installer_resolution_time?.change || { value: 0, type: 'decrease' }
             }
-          });
+          };
+          
+          console.log('🎯 Datos mapeados para el frontend:', mappedKpiData);
+          setKpiData(mappedKpiData);
 
           // Actualizar datos del gráfico de calidad por proveedor
           if (response.provider_quality && response.provider_quality.length > 0) {
+            console.log('📊 Datos de calidad por proveedor del backend:', response.provider_quality);
             setProviderQualityData(response.provider_quality);
           } else {
-            // Si no hay datos del backend, usar datos por defecto
+            console.log('⚠️ No hay datos de calidad por proveedor, usando datos por defecto');
             setProviderQualityData(defaultProviderQualityData);
           }
         }
       } catch (err) {
-        console.error('Error cargando datos de KPIs:', err);
+        console.error('❌ Error cargando datos de KPIs:', err);
         setError('Error al cargar los indicadores. Usando datos por defecto.');
         // Mantener datos por defecto en caso de error
       } finally {
+        console.log('✅ Carga de KPIs completada');
         setLoading(false);
       }
     };
 
     loadKpiData();
-  }, [get]);
+  }, [get, selectedProvider]);
 
   return (
     <div className="space-y-6">
@@ -161,6 +225,30 @@ const Indicators: React.FC = () => {
           Indicadores de Gestión (KPIs)
         </h1>
         <div className="flex items-center space-x-4">
+          {/* Selector de Proveedor */}
+          <div className="flex items-center space-x-2">
+            <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Proveedor:
+            </label>
+            <select
+              value={selectedProvider}
+              onChange={(e) => {
+                console.log('🔄 Cambiando proveedor a:', e.target.value);
+                setSelectedProvider(e.target.value);
+              }}
+              className={`px-3 py-2 rounded-lg border transition-colors ${
+                darkMode
+                  ? 'bg-neutral-700 border-neutral-600 text-white'
+                  : 'bg-white border-neutral-300 text-neutral-900'
+              } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
+            >
+              <option value="all">Todos los Proveedores</option>
+              {availableProviders.map(provider => (
+                <option key={provider} value={provider}>{provider}</option>
+              ))}
+            </select>
+          </div>
+          
           {loading && (
             <div className="flex items-center space-x-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -222,6 +310,13 @@ const Indicators: React.FC = () => {
           change={kpiData.postProductionRework.change}
           icon={Repeat}
           color="yellow"
+        />
+        <MetricCard
+          title="Tiempo Resolución Instaladores"
+          value={`${kpiData.installerResolutionTime.value}h`}
+          change={kpiData.installerResolutionTime.change}
+          icon={Clock}
+          color={kpiData.installerResolutionTime.value <= 24 ? "green" : kpiData.installerResolutionTime.value <= 48 ? "yellow" : "red"}
         />
       </div>
       

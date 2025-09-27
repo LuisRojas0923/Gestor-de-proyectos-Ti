@@ -21,12 +21,6 @@ class ActivityStatus(str, Enum):
     CANCELADA = "cancelada"
 
 
-class ActorType(str, Enum):
-    EQUIPO_INTERNO = "equipo_interno"
-    PROVEEDOR = "proveedor"
-    USUARIO = "usuario"
-
-
 # Campos dinámicos por etapa
 class AprobacionPropuestaFields(BaseModel):
     """Campos específicos para etapa de Aprobación de Propuesta"""
@@ -79,14 +73,14 @@ class DevelopmentActivityLogBase(BaseModel):
     end_date: Optional[date] = Field(None, description="Fecha de fin")
     next_follow_up_at: Optional[date] = Field(None, description="Próximo seguimiento")
     status: ActivityStatus = Field(ActivityStatus.PENDIENTE, description="Estado de la actividad")
-    actor_type: ActorType = Field(..., description="Tipo de actor responsable")
+    actor_type: Optional[str] = Field(None, description="Tipo de actor responsable (proveedor, equipo interno, etc.)")
     notes: Optional[str] = Field(None, description="Notas adicionales")
     dynamic_payload: Optional[Dict[str, Any]] = Field(None, description="Campos específicos por etapa")
 
 
 class DevelopmentActivityLogCreate(DevelopmentActivityLogBase):
     """Esquema para crear una nueva actividad"""
-    pass
+    actor_type: str = Field(..., description="Tipo de actor responsable (proveedor, equipo interno, etc.)")
 
 
 class DevelopmentActivityLogUpdate(BaseModel):
@@ -98,6 +92,15 @@ class DevelopmentActivityLogUpdate(BaseModel):
     dynamic_payload: Optional[Dict[str, Any]] = None
 
 
+class DevelopmentSummary(BaseModel):
+    """Información básica de un desarrollo para anidar en otras respuestas."""
+    id: str
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
 class DevelopmentActivityLogResponse(DevelopmentActivityLogBase):
     """Esquema de respuesta para actividades"""
     id: int
@@ -106,6 +109,9 @@ class DevelopmentActivityLogResponse(DevelopmentActivityLogBase):
     created_at: datetime
     updated_at: Optional[datetime]
     
+    # Información anidada del desarrollo
+    development: Optional[DevelopmentSummary] = None
+
     # Información de la etapa
     stage_name: Optional[str] = None
     stage_code: Optional[str] = None

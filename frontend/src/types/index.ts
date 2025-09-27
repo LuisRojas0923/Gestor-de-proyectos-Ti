@@ -16,6 +16,9 @@ export * from './alerts';
 // Tipos de chat e IA
 export * from './chat';
 
+// Tipos de actividades
+export * from './activity';
+
 // Tipos comunes y utilitarios
 export interface ApiResponse<T> {
   data: T | null;

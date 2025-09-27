@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc, func
+from sqlalchemy import and_, or_, desc, func, asc
 from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 from . import models
@@ -366,3 +366,41 @@ def get_provider_quality(db: Session):
         ]
     
     return provider_quality
+
+def get_pending_and_in_progress_activities(db: Session, limit: int = 10, status: Optional[str] = None):
+    """
+    Get activities from the activity log, filtered by status.
+    Defaults to pending and in-progress activities.
+    """
+    from sqlalchemy.orm import joinedload
+    
+    query = db.query(models.DevelopmentActivityLog).options(
+        joinedload(models.DevelopmentActivityLog.development),
+        joinedload(models.DevelopmentActivityLog.stage)
+    )
+    
+    if status and status != "todas":
+        if status == "pendientes_en_curso":
+            query = query.filter(
+                or_(
+                    models.DevelopmentActivityLog.status == 'pendiente',
+                    models.DevelopmentActivityLog.status == 'en_curso'
+                )
+            )
+        else:
+            query = query.filter(models.DevelopmentActivityLog.status == status)
+    elif not status: # Comportamiento por defecto
+        query = query.filter(
+            or_(
+                models.DevelopmentActivityLog.status == 'pendiente',
+                models.DevelopmentActivityLog.status == 'en_curso'
+            )
+        )
+    # Si status es 'todas', no se aplica ningún filtro de estado.
+
+    activities = query.order_by(
+        asc(models.DevelopmentActivityLog.end_date).nullslast(),
+        desc(models.DevelopmentActivityLog.start_date)
+    ).limit(limit).all()
+    
+    return activities

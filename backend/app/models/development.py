@@ -76,7 +76,7 @@ class Development(Base):
     current_stage = relationship("DevelopmentStage", back_populates="developments")
     dates = relationship("DevelopmentDate", back_populates="development", cascade="all, delete-orphan")
     proposals = relationship("DevelopmentProposal", back_populates="development", cascade="all, delete-orphan")
-    installers = relationship("DevelopmentInstaller", back_populates="development", cascade="all, delete-orphan")
+    # installers = relationship("DevelopmentInstaller", back_populates="development", cascade="all, delete-orphan")  # ELIMINADO
     providers = relationship("DevelopmentProvider", back_populates="development", cascade="all, delete-orphan")
     responsibles = relationship("DevelopmentResponsible", back_populates="development", cascade="all, delete-orphan")
     status_history = relationship("DevelopmentStatusHistory", back_populates="development", cascade="all, delete-orphan")

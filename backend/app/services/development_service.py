@@ -236,7 +236,7 @@ class DevelopmentService:
                 joinedload(models.Development.current_stage),
                 joinedload(models.Development.dates),
                 joinedload(models.Development.proposals),
-                joinedload(models.Development.installers),
+                # joinedload(models.Development.installers),  # ELIMINADO - relación no existe
                 joinedload(models.Development.providers),
                 joinedload(models.Development.responsibles),
                 joinedload(models.Development.quality_controls),

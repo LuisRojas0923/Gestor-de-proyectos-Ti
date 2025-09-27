@@ -17,9 +17,10 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import toast from 'react-hot-toast';
+import { useNotifications } from '../components/notifications/NotificationsContext';
 
 const Settings: React.FC = () => {
+  const { addNotification } = useNotifications();
   const { t, i18n } = useTranslation();
   const { state, dispatch } = useAppContext();
   const { darkMode, user } = state;
@@ -57,17 +58,17 @@ const Settings: React.FC = () => {
 
   const handleProfileUpdate = () => {
     // API call to update profile
-    toast.success('Perfil actualizado correctamente');
+    addNotification('success', 'Perfil actualizado correctamente');
   };
 
   const handleNotificationUpdate = () => {
     // API call to update notification preferences
-    toast.success('Preferencias de notificación actualizadas');
+    addNotification('success', 'Preferencias de notificación actualizadas');
   };
 
   const generateApiToken = () => {
     if (!newToken.name) {
-      toast.error('Ingresa un nombre para el token');
+      addNotification('error', 'Ingresa un nombre para el token');
       return;
     }
 
@@ -83,12 +84,12 @@ const Settings: React.FC = () => {
     setApiTokens(prev => [...prev, token]);
     setNewToken({ name: '', description: '' });
     setShowTokenForm(false);
-    toast.success('Token API generado correctamente');
+    addNotification('success', 'Token API generado correctamente');
   };
 
   const copyToken = (token: string) => {
     navigator.clipboard.writeText(token);
-    toast.success('Token copiado al portapapeles');
+    addNotification('success', 'Token copiado al portapapeles');
   };
 
   const toggleTokenVisibility = (id: string) => {
@@ -99,7 +100,7 @@ const Settings: React.FC = () => {
 
   const deleteToken = (id: string) => {
     setApiTokens(prev => prev.filter(token => token.id !== id));
-    toast.success('Token eliminado');
+    addNotification('success', 'Token eliminado');
   };
 
   const timezones = [

@@ -9,7 +9,7 @@ de la nueva estructura modular.
 from .models.auth import AuthUser, AuthToken, UserSession, Permission, RolePermission
 from .models.development import (
     DevelopmentPhase, DevelopmentStage, Development, DevelopmentDate,
-    DevelopmentProposal, DevelopmentInstaller, DevelopmentProvider,
+    DevelopmentProposal, DevelopmentProvider,
     DevelopmentResponsible, DevelopmentStatusHistory, DevelopmentObservation
 )
 from .models.quality import QualityControlCatalog, DevelopmentQualityControl

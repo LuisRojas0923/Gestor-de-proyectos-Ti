@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import toast from 'react-hot-toast';
+import { useNotifications } from '../components/notifications/NotificationsContext';
 import { API_CONFIG, ERROR_MESSAGES, HTTP_STATUS } from '../config/api';
 
 interface ApiResponse<T> {
@@ -24,6 +24,7 @@ const getErrorMessage = (status: number): string => {
 };
 
 export function useApi<T>() {
+  const { addNotification } = useNotifications();
   const [state, setState] = useState<ApiResponse<T>>({
     data: null,
     loading: false,
@@ -64,9 +65,8 @@ export function useApi<T>() {
       
       setState({ data: null, loading: false, error: errorMessage });
       
-      // Solo mostrar toast para errores de red, no para errores de datos
       if (errorMessage === ERROR_MESSAGES.NETWORK_ERROR) {
-        toast.error(errorMessage);
+        addNotification('error', errorMessage);
       }
       
       return null;

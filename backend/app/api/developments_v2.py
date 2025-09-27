@@ -61,8 +61,20 @@ def get_developments(
         if type:
             query = query.filter(models.Development.type.ilike(f"%{type}%"))
         
-        # Ordenar por fecha de actualización
-        query = query.order_by(models.Development.updated_at.desc())
+        # Ordenamiento por defecto: activos primero, cancelados/completados al final
+        from sqlalchemy import case
+        query = query.order_by(
+            # Prioridad por estado: Pendiente y En curso primero, Completado y Cancelado al final
+            case(
+                (models.Development.general_status == 'Pendiente', 1),
+                (models.Development.general_status == 'En curso', 2),
+                (models.Development.general_status == 'Completado', 3),
+                (models.Development.general_status == 'Cancelado', 4),
+                else_=5  # Cualquier otro estado
+            ),
+            # Dentro del mismo grupo de estado, ordenar por fecha de actualización más reciente
+            models.Development.updated_at.desc()
+        )
         
         developments = query.offset(skip).limit(limit).all()
         
@@ -191,7 +203,7 @@ def get_development(
             joinedload(models.Development.current_stage),
             joinedload(models.Development.dates),
             joinedload(models.Development.proposals),
-            joinedload(models.Development.installers),
+            # joinedload(models.Development.installers),  # ELIMINADO - relación no existe
             joinedload(models.Development.providers),
             joinedload(models.Development.responsibles),
             joinedload(models.Development.quality_controls),
