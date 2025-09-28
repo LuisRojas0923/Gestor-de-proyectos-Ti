@@ -19,6 +19,35 @@ class KPIService:
     def __init__(self, db: Session):
         self.db = db
     
+    def _get_provider_filter(self, provider: str):
+        """
+        Obtener filtro de proveedor homologado para usar en queries
+        """
+        from sqlalchemy import case, func
+        
+        if not provider:
+            return None
+            
+        return case(
+            # Homologaciones específicas
+            (func.lower(models.Development.provider).like('%ingesoft%'), 'Ingesoft'),
+            (func.lower(models.Development.provider).like('%oracle%'), 'ORACLE'),
+            (func.lower(models.Development.provider).like('%itc%'), 'ITC'),
+            (func.lower(models.Development.provider).like('%interno%'), 'TI Interno'),
+            (func.lower(models.Development.provider).like('%ti interno%'), 'TI Interno'),
+            (func.lower(models.Development.provider).like('%coomeva%'), 'Coomeva'),
+            (func.lower(models.Development.provider).like('%softtek%'), 'Softtek'),
+            (func.lower(models.Development.provider).like('%accenture%'), 'Accenture'),
+            (func.lower(models.Development.provider).like('%microsoft%'), 'Microsoft'),
+            (func.lower(models.Development.provider).like('%ibm%'), 'IBM'),
+            (func.lower(models.Development.provider).like('%sap%'), 'SAP'),
+            # Casos especiales
+            (models.Development.provider.is_(None), 'Sin Proveedor'),
+            (models.Development.provider == '', 'Sin Proveedor'),
+            # Mantener original
+            else_=models.Development.provider
+        ) == provider
+    
     def calculate_global_compliance(
         self,
         provider: Optional[str] = None,
@@ -50,7 +79,7 @@ class KPIService:
             # Filtrar por proveedor si se especifica
             if provider:
                 query = query.join(models.Development).filter(
-                    models.Development.provider == provider
+                    self._get_provider_filter(provider)
                 )
             
             deliveries = query.all()
@@ -88,7 +117,7 @@ class KPIService:
             
             if provider:
                 prev_query = prev_query.join(models.Development).filter(
-                    models.Development.provider == provider
+                    self._get_provider_filter(provider)
                 )
             
             prev_deliveries = prev_query.all()
@@ -210,7 +239,7 @@ class KPIService:
             # Filtrar por proveedor si se especifica
             if provider:
                 query = query.join(models.Development).filter(
-                    models.Development.provider == provider
+                    self._get_provider_filter(provider)
                 )
             
             completed_controls = query.all()
@@ -295,7 +324,7 @@ class KPIService:
             )
             if provider:
                 incidents_query = incidents_query.join(models.Development).filter(
-                    models.Development.provider == provider
+                    self._get_provider_filter(provider)
                 )
 
             incidents = incidents_query.all()
@@ -324,8 +353,8 @@ class KPIService:
                 models.Incident.response_time_hours.isnot(None)
             )
             if provider:
-                prev_q = prev_q.join(models.Development).join(models.DevelopmentProvider).filter(
-                    models.DevelopmentProvider.provider_name.ilike(f"%{provider}%")
+                prev_q = prev_q.join(models.Development).filter(
+                    self._get_provider_filter(provider)
                 )
             prev_incidents = prev_q.all()
             prev_avg = float(average([float(i.response_time_hours) for i in prev_incidents]))
@@ -522,10 +551,10 @@ class KPIService:
                 models.DevelopmentActivityLog.start_date <= period_end
             )
             
-            # Filtrar por proveedor si se especifica
+            # Filtrar por proveedor si se especifica usando JOIN
             if provider:
-                query = query.filter(
-                    models.DevelopmentActivityLog.actor_type.ilike(f"%{provider}%")
+                query = query.join(models.Development).filter(
+                    self._get_provider_filter(provider)
                 )
             
             # Obtener todas las entregas (producciones)
@@ -589,8 +618,8 @@ class KPIService:
             )
             
             if provider:
-                prev_query = prev_query.filter(
-                    models.DevelopmentActivityLog.actor_type.ilike(f"%{provider}%")
+                prev_query = prev_query.join(models.Development).filter(
+                    self._get_provider_filter(provider)
                 )
             
             prev_productions = prev_query.all()
@@ -665,7 +694,7 @@ class KPIService:
             )
             if provider:
                 query = query.join(models.Development).filter(
-                    models.Development.provider == provider
+                    self._get_provider_filter(provider)
                 )
             deliveries = query.all()
 
@@ -689,7 +718,7 @@ class KPIService:
             )
             if provider:
                 prev_query = prev_query.join(models.Development).filter(
-                    models.Development.provider == provider
+                    self._get_provider_filter(provider)
                 )
             prev_deliveries = prev_query.all()
             prev_avg = average_deviation(prev_deliveries)

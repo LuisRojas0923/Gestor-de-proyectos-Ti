@@ -17,3 +17,8 @@ export { default as ActivityCard } from './ActivityCard';
 
 // Componentes de desarrollos
 export { default as DevelopmentEditModal } from './DevelopmentEditModal';
+
+// Componentes de indicadores
+export { default as ProviderSelector } from './ProviderSelector';
+export { default as QualityChart } from './QualityChart';
+export { default as IndicatorsHeader } from './IndicatorsHeader';

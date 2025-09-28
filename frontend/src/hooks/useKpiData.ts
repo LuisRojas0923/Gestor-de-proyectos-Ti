@@ -1,0 +1,253 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useApi } from './useApi';
+import { API_ENDPOINTS } from '../config/api';
+
+// Interfaces para los datos de KPIs
+export interface KpiData {
+  globalCompliance: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+  developmentComplianceDays: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+  firstTimeQuality: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+  failureResponseTime: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+  defectsPerDelivery: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+  postProductionRework: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+  installerResolutionTime: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+}
+
+export interface ProviderQualityData {
+  name: string;
+  quality: number;
+  color: string;
+}
+
+export interface DashboardResponse {
+  global_compliance: {
+    current_value: number;
+    change_percentage: number;
+    trend: string;
+  };
+  first_time_quality: {
+    current_value: number;
+    rejection_rate: number;
+  };
+  failure_response_time: {
+    current_value: number;
+    change: { value: number; type: string };
+  };
+  defects_per_delivery: {
+    current_value: number;
+    total_defects: number;
+  };
+  post_production_rework: {
+    current_value: number;
+    change: { value: number; type: string };
+  };
+  period: {
+    start: string;
+    end: string;
+    description: string;
+  };
+  updated_at: string;
+  provider_quality?: ProviderQualityData[];
+  development_compliance_days?: {
+    current_value: number;
+    change: { value: number; type: string };
+    total_deliveries?: number;
+  };
+  installer_resolution_time?: {
+    current_value: number;
+    change: { value: number; type: string };
+    total_devoluciones?: number;
+    total_resueltas?: number;
+    resolution_rate?: number;
+  };
+}
+
+export interface ProvidersResponse {
+  providers: string[];
+}
+
+// Datos por defecto para el gráfico
+const defaultProviderQualityData: ProviderQualityData[] = [
+  { name: 'Ingesoft', quality: 95, color: '#10B981' },
+  { name: 'TI Interno', quality: 88, color: '#0066A5' },
+  { name: 'ORACLE', quality: 72, color: '#EF4444' },
+  { name: 'ITC', quality: 91, color: '#10B981' },
+];
+
+export const useKpiData = (selectedProvider: string = 'all') => {
+  const { get } = useApi<DashboardResponse>();
+  const [kpiData, setKpiData] = useState<KpiData>({
+    globalCompliance: { value: 0, change: { value: 0, type: 'increase' } },
+    developmentComplianceDays: { value: 0, change: { value: 0, type: 'decrease' } },
+    firstTimeQuality: { value: 0, change: { value: 0, type: 'decrease' } },
+    failureResponseTime: { value: 0, change: { value: 0, type: 'decrease' } },
+    defectsPerDelivery: { value: 0, change: { value: 0, type: 'increase' } },
+    postProductionRework: { value: 0, change: { value: 0, type: 'decrease' } },
+    installerResolutionTime: { value: 0, change: { value: 0, type: 'decrease' } },
+  });
+  
+  const [providerQualityData, setProviderQualityData] = useState<ProviderQualityData[]>(defaultProviderQualityData);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Función para mapear datos del backend al formato del frontend
+  const mapBackendDataToFrontend = useCallback((response: DashboardResponse): KpiData => {
+    return {
+      globalCompliance: {
+        value: response.global_compliance?.current_value || 0,
+        change: {
+          value: Math.abs(response.global_compliance?.change_percentage || 0),
+          type: (response.global_compliance?.change_percentage || 0) >= 0 ? 'increase' : 'decrease'
+        }
+      },
+      developmentComplianceDays: {
+        value: response.development_compliance_days?.current_value ?? 0,
+        change: response.development_compliance_days?.change || { value: 0, type: 'decrease' }
+      },
+      firstTimeQuality: {
+        value: response.first_time_quality?.current_value || 0,
+        change: {
+          value: response.first_time_quality?.rejection_rate || 0,
+          type: 'decrease'
+        }
+      },
+      failureResponseTime: {
+        value: response.failure_response_time?.current_value || 0,
+        change: response.failure_response_time?.change || { value: 0, type: 'decrease' }
+      },
+      defectsPerDelivery: {
+        value: response.defects_per_delivery?.current_value || 0,
+        change: { value: 0.3, type: 'increase' } // TODO: Obtener del backend
+      },
+      postProductionRework: {
+        value: response.post_production_rework?.current_value || 0,
+        change: response.post_production_rework?.change || { value: 0, type: 'decrease' }
+      },
+      installerResolutionTime: {
+        value: response.installer_resolution_time?.current_value || 0,
+        change: response.installer_resolution_time?.change || { value: 0, type: 'decrease' }
+      }
+    };
+  }, []);
+
+  // Cargar datos de KPIs
+  const loadKpiData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const endpoint = selectedProvider === 'all' 
+        ? API_ENDPOINTS.KPI_DASHBOARD 
+        : `${API_ENDPOINTS.KPI_DASHBOARD}?provider=${encodeURIComponent(selectedProvider)}`;
+      
+      console.log('🔍 Cargando KPIs desde:', endpoint);
+      console.log('🏢 Proveedor seleccionado:', selectedProvider);
+      
+      const response = await get(endpoint);
+      
+      console.log('📊 Respuesta completa del backend:', response);
+      
+      if (response) {
+        // Log detallado de cada campo
+        console.log('📈 Datos específicos recibidos:');
+        console.log('  - global_compliance:', response.global_compliance);
+        console.log('  - development_compliance_days:', response.development_compliance_days);
+        console.log('  - first_time_quality:', response.first_time_quality);
+        console.log('  - failure_response_time:', response.failure_response_time);
+        console.log('  - defects_per_delivery:', response.defects_per_delivery);
+        console.log('  - post_production_rework:', response.post_production_rework);
+        console.log('  - installer_resolution_time:', response.installer_resolution_time);
+        console.log('  - provider_quality:', response.provider_quality);
+        
+        const mappedData = mapBackendDataToFrontend(response);
+        console.log('🎯 Datos mapeados para el frontend:', mappedData);
+        setKpiData(mappedData);
+
+        // Actualizar datos del gráfico de calidad por proveedor
+        if (response.provider_quality && response.provider_quality.length > 0) {
+          console.log('📊 Usando datos de calidad del backend:', response.provider_quality);
+          setProviderQualityData(response.provider_quality);
+        } else {
+          console.log('⚠️ No hay datos de calidad del backend, usando datos por defecto');
+          setProviderQualityData(defaultProviderQualityData);
+        }
+      } else {
+        console.log('❌ No se recibió respuesta del backend');
+      }
+    } catch (err) {
+      console.error('❌ Error cargando datos de KPIs:', err);
+      setError('Error al cargar los indicadores. Usando datos por defecto.');
+    } finally {
+      setLoading(false);
+    }
+  }, [get, selectedProvider, mapBackendDataToFrontend]);
+
+  // Cargar datos cuando cambia el proveedor seleccionado
+  useEffect(() => {
+    loadKpiData();
+  }, [loadKpiData]);
+
+  return {
+    kpiData,
+    providerQualityData,
+    loading,
+    error,
+    refetch: loadKpiData
+  };
+};
+
+// Hook para manejar proveedores
+export const useProviders = () => {
+  const { get } = useApi<ProvidersResponse>();
+  const [availableProviders, setAvailableProviders] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadProviders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await get('/kpi/providers');
+      if (response && response.providers) {
+        setAvailableProviders(response.providers);
+      }
+    } catch (err) {
+      console.error('Error cargando proveedores:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [get]);
+
+  useEffect(() => {
+    loadProviders();
+  }, [loadProviders]);
+
+  return {
+    availableProviders,
+    loading,
+    refetch: loadProviders
+  };
+};
+
+// Hook para debug de KPIs
+export const useKpiDebug = () => {
+  const { get } = useApi<any>();
+
+  const debugKpiCalculations = useCallback(async (provider?: string) => {
+    try {
+      const endpoint = provider 
+        ? `/kpi/_debug/dashboard-calculation?provider=${encodeURIComponent(provider)}`
+        : '/kpi/_debug/dashboard-calculation';
+      
+      console.log('🔍 Debugging KPI calculations from:', endpoint);
+      const response = await get(endpoint);
+      console.log('🐛 Debug response:', response);
+      return response;
+    } catch (err) {
+      console.error('❌ Error en debug de KPIs:', err);
+      return null;
+    }
+  }, [get]);
+
+  return {
+    debugKpiCalculations
+  };
+};

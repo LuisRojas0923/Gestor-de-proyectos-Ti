@@ -217,32 +217,95 @@ def calculate_metrics(
 @router.get("/providers")
 def get_kpi_providers(db: Session = Depends(get_db)):
     """
-    Obtener lista de proveedores únicos para filtros
+    Obtener lista de proveedores únicos para filtros usando JOIN entre actividades y developments
     """
     try:
-        # Consultar proveedores desde development_activity_log (actor_type) para consistencia con KPIs
-        providers_query = db.query(models.DevelopmentActivityLog.actor_type).distinct()
-        providers = [p[0] for p in providers_query.all() if p[0]]  # Filtrar valores nulos
+        # Ejecutar stored procedure que hace JOIN entre development_activity_log y developments
+        from sqlalchemy import text
         
-        # También incluir proveedores de developments para completitud
-        dev_providers_query = db.query(models.Development.provider).distinct()
-        dev_providers = [p[0] for p in dev_providers_query.all() if p[0]]
+        result = db.execute(text("SELECT * FROM fn_get_providers_from_activities()"))
         
-        # Combinar y eliminar duplicados
-        all_providers = list(set(providers + dev_providers))
+        providers = []
+        for row in result:
+            providers.append({
+                "name": row.provider_homologado,
+                "developments_count": row.cantidad_desarrollos_con_actividades,
+                "activities_count": row.total_actividades
+            })
+        
+        # Extraer solo los nombres para compatibilidad con el frontend
+        provider_names = [p["name"] for p in providers]
         
         return {
-            "providers": all_providers,
-            "total": len(all_providers),
-            "from_activities": providers,
-            "from_developments": dev_providers
+            "providers": provider_names,
+            "total": len(provider_names),
+            "detailed_info": providers,
+            "source": "stored_procedure_with_join"
         }
         
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error obteniendo proveedores: {str(e)}"
-        )
+        # Fallback a consulta directa si el SP no existe aún
+        try:
+            print(f"⚠️ SP no encontrado, usando consulta directa: {e}")
+            
+            # Consulta directa con JOIN
+            from sqlalchemy import func, case
+            
+            query = db.query(
+                case(
+                    # Homologaciones específicas
+                    (func.lower(models.Development.provider).like('%ingesoft%'), 'Ingesoft'),
+                    (func.lower(models.Development.provider).like('%oracle%'), 'ORACLE'),
+                    (func.lower(models.Development.provider).like('%itc%'), 'ITC'),
+                    (func.lower(models.Development.provider).like('%interno%'), 'TI Interno'),
+                    (func.lower(models.Development.provider).like('%ti interno%'), 'TI Interno'),
+                    (func.lower(models.Development.provider).like('%coomeva%'), 'Coomeva'),
+                    (func.lower(models.Development.provider).like('%softtek%'), 'Softtek'),
+                    (func.lower(models.Development.provider).like('%accenture%'), 'Accenture'),
+                    (func.lower(models.Development.provider).like('%microsoft%'), 'Microsoft'),
+                    (func.lower(models.Development.provider).like('%ibm%'), 'IBM'),
+                    (func.lower(models.Development.provider).like('%sap%'), 'SAP'),
+                    # Casos especiales
+                    (models.Development.provider.is_(None), 'Sin Proveedor'),
+                    (models.Development.provider == '', 'Sin Proveedor'),
+                    # Mantener original
+                    else_=models.Development.provider
+                ).label('provider_homologado'),
+                func.count(models.DevelopmentActivityLog.id.distinct()).label('activities_count')
+            ).select_from(
+                models.DevelopmentActivityLog
+            ).join(
+                models.Development, 
+                models.DevelopmentActivityLog.development_id == models.Development.id
+            ).group_by(
+                'provider_homologado'
+            ).order_by(
+                'provider_homologado'
+            )
+            
+            result = query.all()
+            
+            providers = []
+            for row in result:
+                providers.append({
+                    "name": row.provider_homologado,
+                    "activities_count": row.activities_count
+                })
+            
+            provider_names = [p["name"] for p in providers]
+            
+            return {
+                "providers": provider_names,
+                "total": len(provider_names),
+                "detailed_info": providers,
+                "source": "direct_query_with_join"
+            }
+            
+        except Exception as fallback_error:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error obteniendo proveedores (SP y fallback fallaron): {str(e)} | Fallback: {str(fallback_error)}"
+            )
 
 
 @router.get("/dashboard")
@@ -622,3 +685,111 @@ def _generate_recommendations(trends: dict, metrics_by_type: dict) -> List[dict]
             })
     
     return recommendations
+
+
+@router.get("/_debug/dashboard-calculation")
+def debug_dashboard_calculation(
+    provider: Optional[str] = None,
+    kpi_service: KPIService = Depends(get_kpi_service)
+):
+    """
+    Endpoint de debug para ver exactamente qué se está calculando en el dashboard
+    """
+    try:
+        end_date = date.today()
+        start_date = end_date - timedelta(days=90)
+        
+        debug_info = {
+            "period": {
+                "start": str(start_date),
+                "end": str(end_date),
+                "days": (end_date - start_date).days
+            },
+            "provider_filter": provider,
+            "calculations": {}
+        }
+        
+        # Debug de cada cálculo individual
+        try:
+            compliance = kpi_service.calculate_global_compliance(
+                provider=provider,
+                period_start=start_date,
+                period_end=end_date
+            )
+            debug_info["calculations"]["global_compliance"] = {
+                "success": True,
+                "data": compliance
+            }
+        except Exception as e:
+            debug_info["calculations"]["global_compliance"] = {
+                "success": False,
+                "error": str(e)
+            }
+        
+        try:
+            quality = kpi_service.calculate_first_time_quality(
+                provider=provider,
+                period_start=start_date,
+                period_end=end_date
+            )
+            debug_info["calculations"]["first_time_quality"] = {
+                "success": True,
+                "data": quality
+            }
+        except Exception as e:
+            debug_info["calculations"]["first_time_quality"] = {
+                "success": False,
+                "error": str(e)
+            }
+        
+        try:
+            dev_days = kpi_service.calculate_development_compliance_days(
+                provider=provider,
+                period_start=start_date,
+                period_end=end_date
+            )
+            debug_info["calculations"]["development_compliance_days"] = {
+                "success": True,
+                "data": dev_days
+            }
+        except Exception as e:
+            debug_info["calculations"]["development_compliance_days"] = {
+                "success": False,
+                "error": str(e)
+            }
+        
+        try:
+            defects = kpi_service.calculate_defects_per_delivery(
+                provider=provider,
+                period_start=start_date,
+                period_end=end_date
+            )
+            debug_info["calculations"]["defects_per_delivery"] = {
+                "success": True,
+                "data": defects
+            }
+        except Exception as e:
+            debug_info["calculations"]["defects_per_delivery"] = {
+                "success": False,
+                "error": str(e)
+            }
+        
+        try:
+            providers_summary = kpi_service.get_providers_summary()
+            debug_info["calculations"]["providers_summary"] = {
+                "success": True,
+                "data": providers_summary
+            }
+        except Exception as e:
+            debug_info["calculations"]["providers_summary"] = {
+                "success": False,
+                "error": str(e)
+            }
+        
+        return debug_info
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error en debug: {str(e)}"
+        )
