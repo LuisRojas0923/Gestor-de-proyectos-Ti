@@ -32,7 +32,6 @@ from .api import (
 # Importar configuración de base de datos
 from .database import SessionLocal, engine
 from . import models
-from .services.kpi_service import KPIService
 
 # Importar sistema de health checks
 # from .services.health_service import health_service  # Comentado temporalmente - requiere aiohttp
@@ -101,68 +100,6 @@ async def lifespan(app: FastAPI):
         print("⏭️ Health checks deshabilitados o configurados para ejecución bajo demanda")
         app.state.health_report = None
     
-    # KPI Snapshot al inicio (solo informativo)
-    try:
-        print("📊 Calculando KPIs al inicio (snapshot informativo)...")
-        db = SessionLocal()
-        kpi = KPIService(db)
-        
-        # Período por defecto: últimos 90 días
-        from datetime import date, timedelta
-        end_date = date.today()
-        start_date = end_date - timedelta(days=90)
-        
-        # Obtener proveedores disponibles
-        from .api.kpi import get_kpi_providers
-        providers_data = get_kpi_providers(db)
-        providers = providers_data.get('providers', [])
-        
-        print(f"   📋 Proveedores encontrados: {len(providers)} - {providers}")
-        
-        # Calcular KPIs globales (sin filtro)
-        print("   🌐 KPIs GLOBALES:")
-        gc = kpi.calculate_global_compliance(period_start=start_date, period_end=end_date)
-        dcd = kpi.calculate_development_compliance_days(period_start=start_date, period_end=end_date)
-        frt = kpi.calculate_failure_response_time(period_start=start_date, period_end=end_date)
-        dfd = kpi.calculate_defects_per_delivery(period_start=start_date, period_end=end_date)
-        ppr = kpi.calculate_post_production_rework(period_start=start_date, period_end=end_date)
-        irt = kpi.calculate_installer_resolution_time(period_start=start_date, period_end=end_date)
-        
-        print(f"      • Global Compliance: {gc.get('current_value')}% | entregas={gc.get('total_deliveries', 0)}")
-        print(f"      • Development Compliance Days: {dcd.get('current_value')} días | entregas={dcd.get('total_deliveries', 0)}")
-        print(f"      • Failure Response Time: {frt.get('current_value')} h | incidentes={frt.get('total_incidents', 0)}")
-        print(f"      • Defects per Delivery: {dfd.get('current_value')} | entregas={dfd.get('total_installers_delivered', 0)}, devueltos={dfd.get('total_installers_returned', 0)}")
-        print(f"      • Post Production Rework: {ppr.get('current_value')}% | producciones={ppr.get('total_productions', 0)}, retrabajos={ppr.get('rework_required', 0)}")
-        print(f"      • Installer Resolution Time: {irt.get('current_value')} h | devoluciones={irt.get('total_devoluciones', 0)}")
-        
-        # Calcular KPIs por proveedor
-        if providers:
-            print("   🏢 KPIs POR PROVEEDOR:")
-            for provider in providers:
-                print(f"      📊 {provider}:")
-                try:
-                    gc_prov = kpi.calculate_global_compliance(provider=provider, period_start=start_date, period_end=end_date)
-                    dcd_prov = kpi.calculate_development_compliance_days(provider=provider, period_start=start_date, period_end=end_date)
-                    frt_prov = kpi.calculate_failure_response_time(provider=provider, period_start=start_date, period_end=end_date)
-                    dfd_prov = kpi.calculate_defects_per_delivery(provider=provider, period_start=start_date, period_end=end_date)
-                    ppr_prov = kpi.calculate_post_production_rework(provider=provider, period_start=start_date, period_end=end_date)
-                    irt_prov = kpi.calculate_installer_resolution_time(provider=provider, period_start=start_date, period_end=end_date)
-                    
-                    print(f"         • Global Compliance: {gc_prov.get('current_value')}% | entregas={gc_prov.get('total_deliveries', 0)}")
-                    print(f"         • Development Compliance Days: {dcd_prov.get('current_value')} días | entregas={dcd_prov.get('total_deliveries', 0)}")
-                    print(f"         • Failure Response Time: {frt_prov.get('current_value')} h | incidentes={frt_prov.get('total_incidents', 0)}")
-                    print(f"         • Defects per Delivery: {dfd_prov.get('current_value')} | entregas={dfd_prov.get('total_installers_delivered', 0)}, devueltos={dfd_prov.get('total_installers_returned', 0)}")
-                    print(f"         • Post Production Rework: {ppr_prov.get('current_value')}% | producciones={ppr_prov.get('total_productions', 0)}, retrabajos={ppr_prov.get('rework_required', 0)}")
-                    print(f"         • Installer Resolution Time: {irt_prov.get('current_value')} h | devoluciones={irt_prov.get('total_devoluciones', 0)}")
-                except Exception as e:
-                    print(f"         ⚠️ Error calculando KPIs para {provider}: {e}")
-    except Exception as e:
-        print(f"⚠️ No fue posible calcular KPIs en startup: {e}")
-    finally:
-        try:
-            db.close()
-        except Exception:
-            pass
     
     yield
     

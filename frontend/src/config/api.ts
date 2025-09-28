@@ -33,6 +33,10 @@ export const API_ENDPOINTS = {
   // KPIs y métricas
   KPI_METRICS: '/kpi/metrics',
   KPI_DASHBOARD: '/kpi/dashboard',
+  KPI_DEVELOPMENT_COMPLIANCE_DETAILS: '/kpi/development-compliance/details',
+  KPI_ANALYSIS_COMPLIANCE_DETAILS: '/kpi/analysis-compliance/details',
+  KPI_PROPOSAL_COMPLIANCE_DETAILS: '/kpi/proposal-compliance/details',
+  KPI_GLOBAL_COMPLETE_COMPLIANCE_DETAILS: '/kpi/global-complete-compliance/details',
   KPI_FUNCTIONALITIES: '/kpi/functionalities',
   KPI_TEST_RESULTS: '/kpi/test-results',
   KPI_DELIVERY_HISTORY: '/kpi/delivery-history',

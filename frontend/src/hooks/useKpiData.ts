@@ -5,6 +5,9 @@ import { API_ENDPOINTS } from '../config/api';
 // Interfaces para los datos de KPIs
 export interface KpiData {
   globalCompliance: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+  globalCompleteCompliance: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+  analysisCompliance: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+  proposalCompliance: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
   developmentComplianceDays: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
   firstTimeQuality: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
   failureResponseTime: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
@@ -21,6 +24,21 @@ export interface ProviderQualityData {
 
 export interface DashboardResponse {
   global_compliance: {
+    current_value: number;
+    change_percentage: number;
+    trend: string;
+  };
+  global_complete_compliance?: {
+    current_value: number;
+    change_percentage: number;
+    trend: string;
+  };
+  analysis_compliance?: {
+    current_value: number;
+    change_percentage: number;
+    trend: string;
+  };
+  proposal_compliance?: {
     current_value: number;
     change_percentage: number;
     trend: string;
@@ -100,6 +118,27 @@ export const useKpiData = (selectedProvider: string = 'all') => {
           type: (response.global_compliance?.change_percentage || 0) >= 0 ? 'increase' : 'decrease'
         }
       },
+      globalCompleteCompliance: {
+        value: response.global_complete_compliance?.current_value || 0,
+        change: {
+          value: Math.abs(response.global_complete_compliance?.change_percentage || 0),
+          type: (response.global_complete_compliance?.change_percentage || 0) >= 0 ? 'increase' : 'decrease'
+        }
+      },
+      analysisCompliance: {
+        value: response.analysis_compliance?.current_value || 0,
+        change: {
+          value: Math.abs(response.analysis_compliance?.change_percentage || 0),
+          type: (response.analysis_compliance?.change_percentage || 0) >= 0 ? 'increase' : 'decrease'
+        }
+      },
+      proposalCompliance: {
+        value: response.proposal_compliance?.current_value || 0,
+        change: {
+          value: Math.abs(response.proposal_compliance?.change_percentage || 0),
+          type: (response.proposal_compliance?.change_percentage || 0) >= 0 ? 'increase' : 'decrease'
+        }
+      },
       developmentComplianceDays: {
         value: response.development_compliance_days?.current_value ?? 0,
         change: response.development_compliance_days?.change || { value: 0, type: 'decrease' }
@@ -140,35 +179,24 @@ export const useKpiData = (selectedProvider: string = 'all') => {
         ? API_ENDPOINTS.KPI_DASHBOARD 
         : `${API_ENDPOINTS.KPI_DASHBOARD}?provider=${encodeURIComponent(selectedProvider)}`;
       
-      console.log('🔍 Cargando KPIs desde:', endpoint);
-      console.log('🏢 Proveedor seleccionado:', selectedProvider);
+      // console.log('🔍 Cargando KPIs desde:', endpoint);
+      // console.log('🏢 Proveedor seleccionado:', selectedProvider);
       
       const response = await get(endpoint);
       
-      console.log('📊 Respuesta completa del backend:', response);
+      // console.log('📊 Respuesta completa del backend:', response);
       
       if (response) {
-        // Log detallado de cada campo
-        console.log('📈 Datos específicos recibidos:');
-        console.log('  - global_compliance:', response.global_compliance);
-        console.log('  - development_compliance_days:', response.development_compliance_days);
-        console.log('  - first_time_quality:', response.first_time_quality);
-        console.log('  - failure_response_time:', response.failure_response_time);
-        console.log('  - defects_per_delivery:', response.defects_per_delivery);
-        console.log('  - post_production_rework:', response.post_production_rework);
-        console.log('  - installer_resolution_time:', response.installer_resolution_time);
-        console.log('  - provider_quality:', response.provider_quality);
-        
+        // Log detallado removido - funcionando correctamente
         const mappedData = mapBackendDataToFrontend(response);
-        console.log('🎯 Datos mapeados para el frontend:', mappedData);
         setKpiData(mappedData);
 
         // Actualizar datos del gráfico de calidad por proveedor
         if (response.provider_quality && response.provider_quality.length > 0) {
-          console.log('📊 Usando datos de calidad del backend:', response.provider_quality);
+          // console.log('📊 Usando datos de calidad del backend:', response.provider_quality);
           setProviderQualityData(response.provider_quality);
         } else {
-          console.log('⚠️ No hay datos de calidad del backend, usando datos por defecto');
+          // console.log('⚠️ No hay datos de calidad del backend, usando datos por defecto');
           setProviderQualityData(defaultProviderQualityData);
         }
       } else {

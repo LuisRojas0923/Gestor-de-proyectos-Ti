@@ -4,7 +4,7 @@ Implementación completa con datos reales de la base de datos
 """
 
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_, or_
+from sqlalchemy import func, and_, or_, text
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date, timedelta
 from decimal import Decimal
@@ -55,10 +55,7 @@ class KPIService:
         period_end: Optional[date] = None
     ) -> Dict[str, Any]:
         """
-        Calcular cumplimiento global:
-        1. Porcentaje de desarrollos entregados a tiempo
-        2. Comparación con período anterior
-        3. Tendencia de mejora/deterioro
+        Calcular cumplimiento global usando la función de PostgreSQL.
         """
         try:
             # Establecer período por defecto si no se proporciona
@@ -67,96 +64,333 @@ class KPIService:
             if not period_start:
                 period_start = period_end - timedelta(days=90)  # 3 meses
             
-            # Query base para fechas de desarrollo
-            query = self.db.query(models.DevelopmentDate).filter(
-                models.DevelopmentDate.date_type == 'entrega',
-                models.DevelopmentDate.actual_date.isnot(None),
-                models.DevelopmentDate.planned_date.isnot(None),
-                models.DevelopmentDate.actual_date >= period_start,
-                models.DevelopmentDate.actual_date <= period_end
-            )
-            
-            # Filtrar por proveedor si se especifica
-            if provider:
-                query = query.join(models.Development).filter(
-                    self._get_provider_filter(provider)
-                )
-            
-            deliveries = query.all()
-            
-            if not deliveries:
+            result = self.db.execute(text("""
+                SELECT 
+                    total_entregas, 
+                    entregas_a_tiempo, 
+                    entregas_tardias, 
+                    porcentaje_cumplimiento,
+                    provider_filter,
+                    period_start,
+                    period_end,
+                    calculated_at
+                FROM fn_kpi_cumplimiento_fechas_global(:provider, :start, :end)
+            """), {
+                "provider": provider,
+                "start": period_start, 
+                "end": period_end
+            }).fetchone()
+
+            if result:
+                # Calcular período anterior para comparación (mantener lógica de tendencia)
+                prev_period_start = period_start - (period_end - period_start)
+                prev_period_end = period_start
+                
+                prev_result = self.db.execute(text("""
+                    SELECT porcentaje_cumplimiento 
+                    FROM fn_kpi_cumplimiento_fechas_global(:provider, :start, :end)
+                """), {
+                    "provider": provider,
+                    "start": prev_period_start, 
+                    "end": prev_period_end
+                }).fetchone()
+                
+                prev_compliance = prev_result.porcentaje_cumplimiento if prev_result else 0.0
+                change_percentage = result.porcentaje_cumplimiento - prev_compliance
+
+                # Determine if current value meets target (e.g., 85%)
+                target_value = Decimal("85.0")
+                meets_target = result.porcentaje_cumplimiento >= target_value
+
+                return {
+                    "current_value": round(float(result.porcentaje_cumplimiento), 2),
+                    "previous_period_value": round(float(prev_compliance), 2),
+                    "change_percentage": round(float(change_percentage), 2),
+                    "trend": "improving" if change_percentage > 0 else "declining" if change_percentage < 0 else "stable",
+                    "total_deliveries": int(result.total_entregas or 0),
+                    "on_time_deliveries": int(result.entregas_a_tiempo or 0),
+                    "delayed_deliveries": int(result.entregas_tardias or 0),
+                    "target_value": float(target_value),
+                    "meets_target": meets_target,
+                    "provider_filter": result.provider_filter,
+                    "period": {"start": result.period_start, "end": result.period_end}
+                }
+            else:
                 return {
                     "current_value": 0.0,
+                    "previous_period_value": 0.0,
+                    "change_percentage": 0.0,
+                    "trend": "stable",
                     "total_deliveries": 0,
                     "on_time_deliveries": 0,
                     "delayed_deliveries": 0,
+                    "target_value": 85.0,
+                    "meets_target": False,
                     "provider_filter": provider,
                     "period": {"start": period_start, "end": period_end},
-                    "message": "No hay entregas en el período especificado"
+                    "message": "No hay datos de cumplimiento en el período especificado"
                 }
-            
-            # Calcular entregas a tiempo
-            on_time_deliveries = len([d for d in deliveries if d.actual_date <= d.planned_date])
-            total_deliveries = len(deliveries)
-            delayed_deliveries = total_deliveries - on_time_deliveries
-            
-            # Calcular porcentaje
-            compliance_percentage = (on_time_deliveries / total_deliveries * 100) if total_deliveries > 0 else 0
-            
-            # Calcular período anterior para comparación
-            prev_period_start = period_start - (period_end - period_start)
-            prev_period_end = period_start
-            
-            prev_query = self.db.query(models.DevelopmentDate).filter(
-                models.DevelopmentDate.date_type == 'entrega',
-                models.DevelopmentDate.actual_date.isnot(None),
-                models.DevelopmentDate.planned_date.isnot(None),
-                models.DevelopmentDate.actual_date >= prev_period_start,
-                models.DevelopmentDate.actual_date < prev_period_end
-            )
-            
-            if provider:
-                prev_query = prev_query.join(models.Development).filter(
-                    self._get_provider_filter(provider)
-                )
-            
-            prev_deliveries = prev_query.all()
-            
-            if prev_deliveries:
-                prev_on_time = len([d for d in prev_deliveries if d.actual_date <= d.planned_date])
-                prev_compliance = (prev_on_time / len(prev_deliveries) * 100)
-                change_percentage = compliance_percentage - prev_compliance
-            else:
-                prev_compliance = 0
-                change_percentage = 0
-            
-            # Guardar métrica en base de datos
-            self._save_kpi_metric(
-                development_id=deliveries[0].development_id if deliveries else None,
-                metric_type="cumplimiento_fechas",
-                provider=provider,
-                value=Decimal(str(compliance_percentage)),
-                target_value=Decimal("85.0"),  # Target del 85%
-                period_start=period_start,
-                period_end=period_end
-            )
-            
-            return {
-                "current_value": round(compliance_percentage, 2),
-                "previous_period_value": round(prev_compliance, 2),
-                "change_percentage": round(change_percentage, 2),
-                "trend": "improving" if change_percentage > 0 else "declining" if change_percentage < 0 else "stable",
-                "total_deliveries": total_deliveries,
-                "on_time_deliveries": on_time_deliveries,
-                "delayed_deliveries": delayed_deliveries,
-                "target_value": 85.0,
-                "meets_target": compliance_percentage >= 85.0,
-                "provider_filter": provider,
-                "period": {"start": period_start, "end": period_end}
-            }
-            
         except Exception as e:
+            print(f"Error calculando cumplimiento global con SP: {e}")
             raise Exception(f"Error calculando cumplimiento global: {str(e)}")
+
+    def calculate_analysis_compliance(
+        self,
+        provider: Optional[str] = None,
+        period_start: Optional[date] = None,
+        period_end: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Calcular cumplimiento de fechas de análisis (fase 2) usando la función de PostgreSQL.
+        """
+        try:
+            # Establecer período por defecto si no se proporciona
+            if not period_end:
+                period_end = date.today()
+            if not period_start:
+                period_start = period_end - timedelta(days=90)  # 3 meses
+            
+            result = self.db.execute(text("""
+                SELECT 
+                    total_entregas, 
+                    entregas_a_tiempo, 
+                    entregas_tardias, 
+                    porcentaje_cumplimiento,
+                    provider_filter,
+                    period_start,
+                    period_end,
+                    calculated_at
+                FROM fn_kpi_cumplimiento_fechas_analisis(:provider, :start, :end)
+            """), {
+                "provider": provider,
+                "start": period_start, 
+                "end": period_end
+            }).fetchone()
+
+            if result:
+                # Calcular período anterior para comparación
+                prev_period_start = period_start - (period_end - period_start)
+                prev_period_end = period_start
+                
+                prev_result = self.db.execute(text("""
+                    SELECT porcentaje_cumplimiento 
+                    FROM fn_kpi_cumplimiento_fechas_analisis(:provider, :start, :end)
+                """), {
+                    "provider": provider,
+                    "start": prev_period_start, 
+                    "end": prev_period_end
+                }).fetchone()
+                
+                prev_compliance = prev_result.porcentaje_cumplimiento if prev_result else 0.0
+                change_percentage = result.porcentaje_cumplimiento - prev_compliance
+
+                # Determine if current value meets target (e.g., 85%)
+                target_value = Decimal("85.0")
+                meets_target = result.porcentaje_cumplimiento >= target_value
+
+                return {
+                    "current_value": round(float(result.porcentaje_cumplimiento), 2),
+                    "previous_period_value": round(float(prev_compliance), 2),
+                    "change_percentage": round(float(change_percentage), 2),
+                    "trend": "improving" if change_percentage > 0 else "declining" if change_percentage < 0 else "stable",
+                    "total_deliveries": int(result.total_entregas or 0),
+                    "on_time_deliveries": int(result.entregas_a_tiempo or 0),
+                    "delayed_deliveries": int(result.entregas_tardias or 0),
+                    "target_value": float(target_value),
+                    "meets_target": meets_target,
+                    "provider_filter": result.provider_filter,
+                    "period": {"start": result.period_start, "end": result.period_end}
+                }
+            else:
+                return {
+                    "current_value": 0.0,
+                    "previous_period_value": 0.0,
+                    "change_percentage": 0.0,
+                    "trend": "stable",
+                    "total_deliveries": 0,
+                    "on_time_deliveries": 0,
+                    "delayed_deliveries": 0,
+                    "target_value": 85.0,
+                    "meets_target": False,
+                    "provider_filter": provider,
+                    "period": {"start": period_start, "end": period_end},
+                    "message": "No hay datos de cumplimiento de análisis en el período especificado"
+                }
+        except Exception as e:
+            print(f"Error calculando cumplimiento de análisis con SP: {e}")
+            raise Exception(f"Error calculando cumplimiento de análisis: {str(e)}")
+
+    def calculate_proposal_compliance(
+        self,
+        provider: Optional[str] = None,
+        period_start: Optional[date] = None,
+        period_end: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Calcular cumplimiento de fechas de propuesta (fase 3) usando la función de PostgreSQL.
+        """
+        try:
+            # Establecer período por defecto si no se proporciona
+            if not period_end:
+                period_end = date.today()
+            if not period_start:
+                period_start = period_end - timedelta(days=90)  # 3 meses
+            
+            result = self.db.execute(text("""
+                SELECT 
+                    total_entregas, 
+                    entregas_a_tiempo, 
+                    entregas_tardias, 
+                    porcentaje_cumplimiento,
+                    provider_filter,
+                    period_start,
+                    period_end,
+                    calculated_at
+                FROM fn_kpi_cumplimiento_fechas_propuesta(:provider, :start, :end)
+            """), {
+                "provider": provider,
+                "start": period_start, 
+                "end": period_end
+            }).fetchone()
+
+            if result:
+                # Calcular período anterior para comparación
+                prev_period_start = period_start - (period_end - period_start)
+                prev_period_end = period_start
+                
+                prev_result = self.db.execute(text("""
+                    SELECT porcentaje_cumplimiento 
+                    FROM fn_kpi_cumplimiento_fechas_propuesta(:provider, :start, :end)
+                """), {
+                    "provider": provider,
+                    "start": prev_period_start, 
+                    "end": prev_period_end
+                }).fetchone()
+                
+                prev_compliance = prev_result.porcentaje_cumplimiento if prev_result else 0.0
+                change_percentage = result.porcentaje_cumplimiento - prev_compliance
+
+                # Determine if current value meets target (e.g., 85%)
+                target_value = Decimal("85.0")
+                meets_target = result.porcentaje_cumplimiento >= target_value
+
+                return {
+                    "current_value": round(float(result.porcentaje_cumplimiento), 2),
+                    "previous_period_value": round(float(prev_compliance), 2),
+                    "change_percentage": round(float(change_percentage), 2),
+                    "trend": "improving" if change_percentage > 0 else "declining" if change_percentage < 0 else "stable",
+                    "total_deliveries": int(result.total_entregas or 0),
+                    "on_time_deliveries": int(result.entregas_a_tiempo or 0),
+                    "delayed_deliveries": int(result.entregas_tardias or 0),
+                    "target_value": float(target_value),
+                    "meets_target": meets_target,
+                    "provider_filter": result.provider_filter,
+                    "period": {"start": result.period_start, "end": result.period_end}
+                }
+            else:
+                return {
+                    "current_value": 0.0,
+                    "previous_period_value": 0.0,
+                    "change_percentage": 0.0,
+                    "trend": "stable",
+                    "total_deliveries": 0,
+                    "on_time_deliveries": 0,
+                    "delayed_deliveries": 0,
+                    "target_value": 85.0,
+                    "meets_target": False,
+                    "provider_filter": provider,
+                    "period": {"start": period_start, "end": period_end},
+                    "message": "No hay datos de cumplimiento de propuesta en el período especificado"
+                }
+        except Exception as e:
+            print(f"Error calculando cumplimiento de propuesta con SP: {e}")
+            raise Exception(f"Error calculando cumplimiento de propuesta: {str(e)}")
+
+    def calculate_global_complete_compliance(
+        self,
+        provider: Optional[str] = None,
+        period_start: Optional[date] = None,
+        period_end: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Calcular cumplimiento global completo combinando análisis, propuesta y desarrollo.
+        """
+        try:
+            # Establecer período por defecto si no se proporciona
+            if not period_end:
+                period_end = date.today()
+            if not period_start:
+                period_start = period_end - timedelta(days=90)  # 3 meses
+            
+            result = self.db.execute(text("""
+                SELECT 
+                    total_entregas, 
+                    entregas_a_tiempo, 
+                    entregas_tardias, 
+                    porcentaje_cumplimiento,
+                    provider_filter,
+                    period_start,
+                    period_end,
+                    calculated_at
+                FROM fn_kpi_cumplimiento_fechas_global_completo(:provider, :start, :end)
+            """), {
+                "provider": provider,
+                "start": period_start, 
+                "end": period_end
+            }).fetchone()
+
+            if result:
+                # Calcular período anterior para comparación
+                prev_period_start = period_start - (period_end - period_start)
+                prev_period_end = period_start
+                
+                prev_result = self.db.execute(text("""
+                    SELECT porcentaje_cumplimiento 
+                    FROM fn_kpi_cumplimiento_fechas_global_completo(:provider, :start, :end)
+                """), {
+                    "provider": provider,
+                    "start": prev_period_start, 
+                    "end": prev_period_end
+                }).fetchone()
+                
+                prev_compliance = prev_result.porcentaje_cumplimiento if prev_result else 0.0
+                change_percentage = float(result.porcentaje_cumplimiento or 0.0) - float(prev_compliance or 0.0)
+
+                # Determine if current value meets target (e.g., 85%)
+                target_value = Decimal("85.0")
+                meets_target = (result.porcentaje_cumplimiento or 0.0) >= target_value
+
+                return {
+                    "current_value": round(float(result.porcentaje_cumplimiento or 0.0), 2),
+                    "previous_period_value": round(float(prev_compliance or 0.0), 2),
+                    "change_percentage": round(change_percentage, 2),
+                    "trend": "improving" if change_percentage > 0 else "declining" if change_percentage < 0 else "stable",
+                    "total_deliveries": int(result.total_entregas or 0),
+                    "on_time_deliveries": int(result.entregas_a_tiempo or 0),
+                    "delayed_deliveries": int(result.entregas_tardias or 0),
+                    "target_value": float(target_value),
+                    "meets_target": meets_target,
+                    "provider_filter": result.provider_filter,
+                    "period": {"start": result.period_start, "end": result.period_end}
+                }
+            else:
+                return {
+                    "current_value": 0.0,
+                    "previous_period_value": 0.0,
+                    "change_percentage": 0.0,
+                    "trend": "stable",
+                    "total_deliveries": 0,
+                    "on_time_deliveries": 0,
+                    "delayed_deliveries": 0,
+                    "target_value": 85.0,
+                    "meets_target": False,
+                    "provider_filter": provider,
+                    "period": {"start": period_start, "end": period_end},
+                    "message": "No hay datos de cumplimiento global completo en el período especificado"
+                }
+        except Exception as e:
+            print(f"Error calculando cumplimiento global completo con SP: {e}")
+            raise Exception(f"Error calculando cumplimiento global completo: {str(e)}")
     
     def _save_kpi_metric(
         self,

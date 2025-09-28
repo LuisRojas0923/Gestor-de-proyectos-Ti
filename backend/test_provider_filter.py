@@ -20,13 +20,13 @@ def test_provider_endpoint():
         
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Endpoint funcionando")
-            print(f"📊 Total proveedores: {data.get('total', 0)}")
-            print(f"🔧 Fuente: {data.get('source', 'unknown')}")
-            print(f"📋 Proveedores: {data.get('providers', [])}")
+            print(f"Endpoint funcionando")
+            print(f"Total proveedores: {data.get('total', 0)}")
+            print(f"Fuente: {data.get('source', 'unknown')}")
+            print(f"Proveedores: {data.get('providers', [])}")
             
             if 'detailed_info' in data:
-                print("\n📈 Información detallada:")
+                print("\nInformación detallada:")
                 for provider in data['detailed_info']:
                     print(f"  - {provider['name']}: {provider.get('developments_count', 0)} desarrollos, {provider.get('activities_count', 0)} actividades")
             
@@ -48,21 +48,21 @@ def test_dashboard_with_provider(provider):
         
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Dashboard funcionando para {provider}")
+            print(f"Dashboard funcionando para {provider}")
             
             # Mostrar métricas principales
             if 'global_compliance' in data:
                 compliance = data['global_compliance']
-                print(f"📊 Cumplimiento Global: {compliance.get('current_value', 0)}%")
-                print(f"📈 Cambio: {compliance.get('change_percentage', 0)}%")
+                print(f"Cumplimiento Global: {compliance.get('current_value', 0)}%")
+                print(f"Cambio: {compliance.get('change_percentage', 0)}%")
             
             if 'first_time_quality' in data:
                 quality = data['first_time_quality']
-                print(f"🎯 Calidad Primera Entrega: {quality.get('current_value', 0)}%")
+                print(f"Calidad Primera Entrega: {quality.get('current_value', 0)}%")
             
             if 'defects_per_delivery' in data:
                 defects = data['defects_per_delivery']
-                print(f"🐛 Defectos por Entrega: {defects.get('current_value', 0)}")
+                print(f"Defectos por Entrega: {defects.get('current_value', 0)}")
             
             return True
         else:

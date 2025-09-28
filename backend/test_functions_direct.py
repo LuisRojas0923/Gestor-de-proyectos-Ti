@@ -58,14 +58,14 @@ def test_providers_function():
         cursor.execute("SELECT * FROM fn_get_providers_from_activities()")
         results = cursor.fetchall()
         
-        print(f"📊 Total proveedores encontrados: {len(results)}")
+        print(f"Total proveedores encontrados: {len(results)}")
         print()
         
         for row in results:
             provider, developments, activities = row
-            print(f"🏢 {provider}:")
-            print(f"   📁 Desarrollos: {developments}")
-            print(f"   📋 Actividades: {activities}")
+            print(f"{provider}:")
+            print(f"   Desarrollos: {developments}")
+            print(f"   Actividades: {activities}")
             print()
         
         cursor.close()
@@ -139,14 +139,14 @@ def test_join_verification():
         cursor.execute(query)
         results = cursor.fetchall()
         
-        print(f"📊 Top 10 desarrollos con más actividades:")
+        print(f"Top 10 desarrollos con más actividades:")
         print()
         
         for row in results:
             dev_id, dev_name, original, homologado, activities = row
-            print(f"🆔 {dev_id} | {dev_name}")
-            print(f"   📝 Proveedor: '{original}' -> '{homologado}'")
-            print(f"   📋 Actividades: {activities}")
+            print(f"{dev_id} | {dev_name}")
+            print(f"   Proveedor: '{original}' -> '{homologado}'")
+            print(f"   Actividades: {activities}")
             print()
         
         cursor.close()

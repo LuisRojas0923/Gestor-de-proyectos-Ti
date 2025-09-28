@@ -11,11 +11,14 @@ interface MetricCardProps {
   };
   icon: LucideIcon;
   color: 'blue' | 'green' | 'yellow' | 'red';
+  onClick?: () => void;
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, icon: Icon, color }) => {
+const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, icon: Icon, color, onClick }) => {
   const { state } = useAppContext();
   const { darkMode } = state;
+
+  // Debug temporal removido - funcionando correctamente
 
   const colorClasses = {
     blue: 'text-blue-500 bg-blue-100 dark:bg-blue-900/20',
@@ -25,9 +28,14 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, icon: Ico
   };
 
   return (
-    <div className={`${
-      darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-    } border rounded-xl p-6 transition-all hover:shadow-lg`}>
+    <div 
+      className={`${
+        darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+      } border rounded-xl p-6 transition-all hover:shadow-lg ${
+        onClick ? 'cursor-pointer hover:scale-105' : ''
+      }`}
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between">
         <div>
           <p className={`text-sm font-medium ${
