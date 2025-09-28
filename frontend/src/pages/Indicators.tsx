@@ -1,9 +1,9 @@
-import { TrendingUp, FileText, ClipboardList, Target } from 'lucide-react';
+import { TrendingUp, FileText, ClipboardList, Target, CheckCircle } from 'lucide-react';
 import React, { useState } from 'react';
-import { MetricCard, IndicatorsHeader, QualityChart, KpiDetailsModal } from '../components/molecules';
+import { MetricCard, IndicatorsHeader, QualityChart, KpiDetailsModal, CalidadPrimeraEntregaModal } from '../components/molecules';
 import { useAppContext } from '../context/AppContext';
 import { useKpiData, useProviders } from '../hooks/useKpiData';
-import { useKpiDetails, KpiDetailsResponse } from '../hooks/useKpiDetails';
+import { useKpiDetails, KpiDetailsResponse, CalidadPrimeraEntregaResponse } from '../hooks/useKpiDetails';
 
 
 const Indicators: React.FC = () => {
@@ -16,10 +16,14 @@ const Indicators: React.FC = () => {
   const [modalData, setModalData] = useState<KpiDetailsResponse | null>(null);
   const [modalTitle, setModalTitle] = useState<string>('');
   
+  // Estado específico para el modal de calidad en primera entrega
+  const [isCalidadModalOpen, setIsCalidadModalOpen] = useState(false);
+  const [calidadModalData, setCalidadModalData] = useState<CalidadPrimeraEntregaResponse | null>(null);
+  
   // Hooks personalizados para manejar datos
   const { kpiData, providerQualityData, loading, error } = useKpiData(selectedProvider);
   const { availableProviders } = useProviders();
-  const { getDevelopmentComplianceDetails, getAnalysisComplianceDetails, getProposalComplianceDetails, getGlobalCompleteComplianceDetails } = useKpiDetails();
+  const { getDevelopmentComplianceDetails, getAnalysisComplianceDetails, getProposalComplianceDetails, getGlobalCompleteComplianceDetails, getCalidadPrimeraEntregaDetails } = useKpiDetails();
 
   // Función para manejar el cambio de proveedor
   const handleProviderChange = (provider: string) => {
@@ -82,11 +86,30 @@ const Indicators: React.FC = () => {
     }
   };
 
+  // Función para manejar el click en la tarjeta de calidad en primera entrega
+  const handleCalidadPrimeraEntregaClick = async () => {
+    try {
+      const details = await getCalidadPrimeraEntregaDetails(
+        selectedProvider === 'all' ? undefined : selectedProvider
+      );
+      setCalidadModalData(details);
+      setIsCalidadModalOpen(true);
+    } catch (error) {
+      console.error('Error obteniendo detalles del KPI:', error);
+    }
+  };
+
   // Función para cerrar el modal
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setModalData(null);
     setModalTitle('');
+  };
+
+  // Función para cerrar el modal de calidad
+  const handleCloseCalidadModal = () => {
+    setIsCalidadModalOpen(false);
+    setCalidadModalData(null);
   };
 
 
@@ -104,7 +127,7 @@ const Indicators: React.FC = () => {
       </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <MetricCard
                 title="Cumplimiento Global Completo"
                 value={`${kpiData.globalCompleteCompliance?.value || 0}%`}
@@ -137,6 +160,14 @@ const Indicators: React.FC = () => {
                 color="green"
                 onClick={handleDevelopmentComplianceClick}
               />
+              <MetricCard
+                title="Calidad en Primera Entrega"
+                value={`${kpiData.calidadPrimeraEntrega?.value || 0}%`}
+                change={kpiData.calidadPrimeraEntrega?.change || { value: 0, type: 'increase' }}
+                icon={CheckCircle}
+                color="green"
+                onClick={handleCalidadPrimeraEntregaClick}
+              />
             </div>
       
       {/* Gráfico de Calidad por Proveedor */}
@@ -150,6 +181,17 @@ const Indicators: React.FC = () => {
           summary={modalData.summary}
           details={modalData.details}
           title={modalTitle}
+          darkMode={darkMode}
+        />
+      )}
+
+      {/* Modal específico para Calidad en Primera Entrega */}
+      {calidadModalData && (
+        <CalidadPrimeraEntregaModal
+          isOpen={isCalidadModalOpen}
+          onClose={handleCloseCalidadModal}
+          data={calidadModalData}
+          title="Calidad en Primera Entrega"
           darkMode={darkMode}
         />
       )}

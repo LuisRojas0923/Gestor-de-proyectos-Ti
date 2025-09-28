@@ -96,6 +96,49 @@ async def lifespan(app: FastAPI):
                 "checks": [],
                 "recommendations": ["Revisar configuración del sistema y logs de error"]
             }
+    
+    # Logs de KPIs y Stored Procedures al inicio
+    print("📊 Verificando KPIs y Stored Procedures...")
+    try:
+        db = SessionLocal()
+        from sqlalchemy import text
+        
+        # Probar stored procedure de calidad en primera entrega
+        print("🔍 Probando fn_kpi_calidad_primera_entrega...")
+        result = db.execute(text("SELECT * FROM fn_kpi_calidad_primera_entrega()")).fetchone()
+        if result:
+            print(f"✅ Calidad en Primera Entrega: {result.porcentaje_calidad}% ({result.entregas_sin_devoluciones}/{result.total_entregas} entregas)")
+        else:
+            print("⚠️ No hay datos para el indicador de Calidad en Primera Entrega")
+        
+        # Probar stored procedure de detalle
+        print("🔍 Probando fn_kpi_calidad_primera_entrega_detalle...")
+        detail_result = db.execute(text("SELECT COUNT(*) as total FROM fn_kpi_calidad_primera_entrega_detalle()")).fetchone()
+        if detail_result:
+            print(f"✅ Detalles de Calidad en Primera Entrega: {detail_result.total} registros encontrados")
+        
+        # Probar otros stored procedures existentes
+        print("🔍 Probando stored procedures existentes...")
+        try:
+            # Cumplimiento global
+            global_result = db.execute(text("SELECT * FROM fn_kpi_cumplimiento_fechas_global()")).fetchone()
+            if global_result:
+                print(f"✅ Cumplimiento Global: {global_result.porcentaje_cumplimiento}%")
+            
+            # Cumplimiento desarrollo
+            dev_result = db.execute(text("SELECT * FROM fn_kpi_cumplimiento_fechas_desarrollo_detalle() LIMIT 1")).fetchone()
+            if dev_result:
+                print(f"✅ Cumplimiento Desarrollo: Datos disponibles")
+            
+        except Exception as sp_error:
+            print(f"⚠️ Algunos stored procedures no están disponibles: {sp_error}")
+        
+        db.close()
+        print("✅ Verificación de KPIs completada")
+        
+    except Exception as kpi_error:
+        print(f"❌ Error verificando KPIs: {kpi_error}")
+        logging.error(f"KPI verification failed during startup: {kpi_error}")
     else:
         print("⏭️ Health checks deshabilitados o configurados para ejecución bajo demanda")
         app.state.health_report = None

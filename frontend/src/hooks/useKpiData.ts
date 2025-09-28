@@ -8,6 +8,7 @@ export interface KpiData {
   globalCompleteCompliance: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
   analysisCompliance: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
   proposalCompliance: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
+  calidadPrimeraEntrega: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
   developmentComplianceDays: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
   firstTimeQuality: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
   failureResponseTime: { value: number; change: { value: number; type: 'increase' | 'decrease' } };
@@ -39,6 +40,11 @@ export interface DashboardResponse {
     trend: string;
   };
   proposal_compliance?: {
+    current_value: number;
+    change_percentage: number;
+    trend: string;
+  };
+  calidad_primera_entrega?: {
     current_value: number;
     change_percentage: number;
     trend: string;
@@ -137,6 +143,13 @@ export const useKpiData = (selectedProvider: string = 'all') => {
         change: {
           value: Math.abs(response.proposal_compliance?.change_percentage || 0),
           type: (response.proposal_compliance?.change_percentage || 0) >= 0 ? 'increase' : 'decrease'
+        }
+      },
+      calidadPrimeraEntrega: {
+        value: response.calidad_primera_entrega?.current_value || 0,
+        change: {
+          value: Math.abs(response.calidad_primera_entrega?.change_percentage || 0),
+          type: (response.calidad_primera_entrega?.change_percentage || 0) >= 0 ? 'increase' : 'decrease'
         }
       },
       developmentComplianceDays: {

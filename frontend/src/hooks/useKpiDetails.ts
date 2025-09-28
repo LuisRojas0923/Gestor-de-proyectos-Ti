@@ -25,6 +25,18 @@ export interface KpiDetail {
   actividad_aprobacion_id: number | null;
 }
 
+export interface CalidadPrimeraEntregaDetail {
+  development_id: string;
+  development_name: string;
+  provider_original: string;
+  provider_homologado: string;
+  fecha_entrega: string | null;
+  fecha_devolucion: string | null;
+  estado_calidad: string;
+  actividad_entrega_id: number;
+  actividad_devolucion_id: number | null;
+}
+
 export interface KpiSummary {
   total_entregas: number;
   entregas_a_tiempo: number;
@@ -38,6 +50,18 @@ export interface KpiSummary {
 export interface KpiDetailsResponse {
   summary: KpiSummary;
   details: KpiDetail[];
+}
+
+export interface CalidadPrimeraEntregaResponse {
+  summary: {
+    total_entregas: number;
+    entregas_sin_devoluciones: number;
+    entregas_con_devoluciones: number;
+    porcentaje_calidad: number;
+    provider_filter: string | null;
+    period: { start: string | null; end: string | null };
+  };
+  details: CalidadPrimeraEntregaDetail[];
 }
 
 export const useKpiDetails = () => {
@@ -185,11 +209,47 @@ export const useKpiDetails = () => {
     }
   }, [get]);
 
+  const getCalidadPrimeraEntregaDetails = useCallback(async (
+    provider?: string,
+    periodStart?: string,
+    periodEnd?: string
+  ): Promise<CalidadPrimeraEntregaResponse> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params = new URLSearchParams();
+      if (provider) {
+        params.append('provider', provider);
+      }
+      if (periodStart) {
+        params.append('period_start', periodStart);
+      }
+      if (periodEnd) {
+        params.append('period_end', periodEnd);
+      }
+
+      const endpoint = `/kpi/calidad-primera-entrega/details${
+        params.toString() ? `?${params.toString()}` : ''
+      }`;
+
+      const response = await get(endpoint);
+      return response;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [get]);
+
   return {
     getDevelopmentComplianceDetails,
     getAnalysisComplianceDetails,
     getProposalComplianceDetails,
     getGlobalCompleteComplianceDetails,
+    getCalidadPrimeraEntregaDetails,
     loading,
     error
   };

@@ -23,3 +23,4 @@ export { default as ProviderSelector } from './ProviderSelector';
 export { default as QualityChart } from './QualityChart';
 export { default as IndicatorsHeader } from './IndicatorsHeader';
 export { default as KpiDetailsModal } from './KpiDetailsModal';
+export { default as CalidadPrimeraEntregaModal } from './CalidadPrimeraEntregaModal';
