@@ -12,6 +12,7 @@ export interface ToastNotificationProps {
 export const NotificationToast: React.FC<ToastNotificationProps> = ({ id, type, message, onDismiss, darkMode }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showContent, setShowContent] = useState(false);
+  const [showIcon, setShowIcon] = useState(true);
 
   const { icon, iconClasses, cardClasses, progressClasses } = useMemo(() => {
     const baseIconClasses = 'p-1.5 rounded-full text-white';
@@ -31,11 +32,21 @@ export const NotificationToast: React.FC<ToastNotificationProps> = ({ id, type, 
 
   const handleDismiss = useCallback(() => {
     setShowContent(false);
-    setIsExpanded(false);
-    setTimeout(() => onDismiss(id), 700);
+    // Ocultar icono durante la contracción
+    setShowIcon(false);
+    // Delay más largo para ocultar contenido primero
+    setTimeout(() => {
+      setIsExpanded(false);
+      // Mostrar icono al final de la contracción con más tiempo
+      setTimeout(() => {
+        setShowIcon(true);
+        setTimeout(() => onDismiss(id), 400);
+      }, 500);
+    }, 300);
   }, [id, onDismiss]);
 
   useEffect(() => {
+    // Mostrar el icono inmediatamente
     const enteringTimeout = setTimeout(() => {
       setIsExpanded(true);
       setTimeout(() => setShowContent(true), 500);
@@ -43,7 +54,7 @@ export const NotificationToast: React.FC<ToastNotificationProps> = ({ id, type, 
 
     const autoDismissTimeout = setTimeout(() => {
       handleDismiss();
-    }, 5000);
+    }, 2000);
 
     return () => {
       clearTimeout(enteringTimeout);
@@ -51,8 +62,9 @@ export const NotificationToast: React.FC<ToastNotificationProps> = ({ id, type, 
     };
   }, [handleDismiss]);
 
+  // MODIFICACIÓN: Mantener altura del círculo del icono para efecto píldora
   const initialClasses = 'w-14 h-14 rounded-full p-3';
-  const expandedClasses = 'w-full max-w-sm rounded-full p-4';
+  const expandedClasses = 'w-full max-w-sm h-14 rounded-full px-4 py-3';
   const currentShapeClasses = isExpanded ? expandedClasses : initialClasses;
 
   return (
@@ -61,11 +73,18 @@ export const NotificationToast: React.FC<ToastNotificationProps> = ({ id, type, 
       role="alert"
       onClick={() => { if (isExpanded && showContent) handleDismiss(); }}
     >
-      <div className={`flex items-center w-full ${!isExpanded ? 'justify-center' : ''}`}>
-        <div className={iconClasses}>{icon}</div>
-        <div className={`ml-3 text-sm font-medium flex-grow transition-opacity duration-200 ${showContent ? 'opacity-100' : 'opacity-0'} ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-          {message}
-        </div>
+      <div className={`flex items-center w-full h-full ${!isExpanded ? 'justify-center' : ''}`}>
+        {/* Icono que aparece al final de la contracción */}
+        {showIcon && (
+          <div className={iconClasses}>{icon}</div>
+        )}
+        {/* Contenido que aparece después */}
+        {isExpanded && (
+          <div className={`ml-3 text-sm font-medium flex-grow transition-opacity duration-200 ${showContent ? 'opacity-100' : 'opacity-0'} ${darkMode ? 'text-white' : 'text-neutral-900'} truncate`}>
+            {message}
+          </div>
+        )}
+        {/* Botón de cerrar que aparece después */}
         {showContent && (
           <button
             onClick={(e) => { e.stopPropagation(); handleDismiss(); }}
@@ -78,7 +97,7 @@ export const NotificationToast: React.FC<ToastNotificationProps> = ({ id, type, 
       </div>
       {showContent && (
         <div className={`h-1 bg-neutral-200 dark:bg-neutral-600 ${isExpanded ? 'mx-2 rounded-full overflow-hidden' : ''}`}>
-          <div className={`h-full ${progressClasses} animate-progress-bar`} style={{ animationDuration: '5s' }} />
+          <div className={`h-full ${progressClasses} animate-progress-bar`} style={{ animationDuration: '2s' }} />
         </div>
       )}
     </div>
