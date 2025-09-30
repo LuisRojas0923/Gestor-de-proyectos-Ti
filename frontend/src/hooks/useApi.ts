@@ -93,6 +93,15 @@ export function useApi<T>() {
     [request]
   );
 
+  const patch = useCallback(
+    (url: string, data: any) =>
+      request(url, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    [request]
+  );
+
   const del = useCallback(
     (url: string) =>
       request(url, {
@@ -106,6 +115,7 @@ export function useApi<T>() {
     get,
     post,
     put,
+    patch,
     delete: del,
   };
 }
