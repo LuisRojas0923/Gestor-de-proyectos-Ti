@@ -25,6 +25,10 @@ const Indicators: React.FC = () => {
   const { availableProviders } = useProviders();
   const { getDevelopmentComplianceDetails, getAnalysisComplianceDetails, getProposalComplianceDetails, getGlobalCompleteComplianceDetails, getCalidadPrimeraEntregaDetails } = useKpiDetails();
 
+  // Visibilidad conmutable de tarjetas
+  const [showAnalysisCard, setShowAnalysisCard] = useState<boolean>(true);
+  const [showProposalCard, setShowProposalCard] = useState<boolean>(true);
+
   // Función para manejar el cambio de proveedor
   const handleProviderChange = (provider: string) => {
     setSelectedProvider(provider);
@@ -126,6 +130,31 @@ const Indicators: React.FC = () => {
         />
       </div>
 
+      {/* Controles de visibilidad (switches simples) */}
+      <div className="flex flex-wrap items-center gap-4">
+        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showAnalysisCard}
+            onChange={(e) => setShowAnalysisCard(e.target.checked)}
+          />
+          <span className={darkMode ? 'text-neutral-200' : 'text-neutral-700'}>
+            Mostrar "Cumplimiento Fechas Análisis"
+          </span>
+        </label>
+
+        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showProposalCard}
+            onChange={(e) => setShowProposalCard(e.target.checked)}
+          />
+          <span className={darkMode ? 'text-neutral-200' : 'text-neutral-700'}>
+            Mostrar "Cumplimiento Fechas Propuesta"
+          </span>
+        </label>
+      </div>
+
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <MetricCard
@@ -136,22 +165,26 @@ const Indicators: React.FC = () => {
                 color="yellow"
                 onClick={handleGlobalCompleteComplianceClick}
               />
-              <MetricCard
-                title="Cumplimiento Fechas Análisis"
-                value={`${kpiData.analysisCompliance?.value || 0}%`}
-                change={kpiData.analysisCompliance?.change || { value: 0, type: 'increase' }}
-                icon={ClipboardList}
-                color="blue"
-                onClick={handleAnalysisComplianceClick}
-              />
-              <MetricCard
-                title="Cumplimiento Fechas Propuesta"
-                value={`${kpiData.proposalCompliance?.value || 0}%`}
-                change={kpiData.proposalCompliance?.change || { value: 0, type: 'increase' }}
-                icon={FileText}
-                color="blue"
-                onClick={handleProposalComplianceClick}
-              />
+              {showAnalysisCard && (
+                <MetricCard
+                  title="Cumplimiento Fechas Análisis"
+                  value={`${kpiData.analysisCompliance?.value || 0}%`}
+                  change={kpiData.analysisCompliance?.change || { value: 0, type: 'increase' }}
+                  icon={ClipboardList}
+                  color="blue"
+                  onClick={handleAnalysisComplianceClick}
+                />
+              )}
+              {showProposalCard && (
+                <MetricCard
+                  title="Cumplimiento Fechas Propuesta"
+                  value={`${kpiData.proposalCompliance?.value || 0}%`}
+                  change={kpiData.proposalCompliance?.change || { value: 0, type: 'increase' }}
+                  icon={FileText}
+                  color="blue"
+                  onClick={handleProposalComplianceClick}
+                />
+              )}
               <MetricCard
                 title="Cumplimiento Fechas Desarrollo"
                 value={`${kpiData.globalCompliance?.value || 0}%`}
