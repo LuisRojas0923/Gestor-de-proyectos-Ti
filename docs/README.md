@@ -28,6 +28,7 @@ Documentación específica del frontend:
 
 ### `/procesos`
 Documentación de procesos operativos:
+- `INSTRUCTIVO_INDICADORES.md` - **Guía completa de uso de indicadores KPIs**
 - `BACKUP_README.md` - Información sobre el sistema de backups
 - `INSTRUCCIONES_BACKUP.md` - Instrucciones detalladas para realizar backups
 - `FD-PR-072 Gestion de la Demanda 29-08-2025.md` - Proceso de gestión de la demanda
