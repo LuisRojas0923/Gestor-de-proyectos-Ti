@@ -72,9 +72,9 @@ class DocumentManagementBotApp:
         dev_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
 
         self.dev_tree = ttk.Treeview(dev_frame, columns=("remedy", "name", "state"), show="headings", height=8)
-        self.dev_tree.heading("remedy", text="Remedy ID")
-        self.dev_tree.heading("name", text="Nombre")
-        self.dev_tree.heading("state", text="Estado")
+        self.dev_tree.heading("remedy", text="Remedy ID", command=lambda: self._sort_tree(self.dev_tree, 0, as_number=False))
+        self.dev_tree.heading("name", text="Nombre", command=lambda: self._sort_tree(self.dev_tree, 1, as_number=False))
+        self.dev_tree.heading("state", text="Estado", command=lambda: self._sort_tree(self.dev_tree, 2, as_number=False))
         self.dev_tree.column("remedy", width=150)
         self.dev_tree.column("name", width=550)
         self.dev_tree.column("state", width=120)
@@ -93,7 +93,9 @@ class DocumentManagementBotApp:
             ("target", "Destino", 260),
             ("note", "Nota", 200),
         ]:
-            self.actions_tree.heading(col, text=title)
+            idx = ["type","remedy","name","source","target","note"].index(col)
+            # Activar ordenamiento por columna al hacer click en el encabezado
+            self.actions_tree.heading(col, text=title, command=lambda i=idx: self._sort_tree(self.actions_tree, i, as_number=False))
             self.actions_tree.column(col, width=w)
         self.actions_tree.pack(fill=tk.BOTH, expand=True)
 
@@ -237,6 +239,35 @@ class DocumentManagementBotApp:
                 a.target_path,
                 a.note,
             ))
+
+    def _sort_tree(self, tree: ttk.Treeview, col_idx: int, as_number: bool = False) -> None:
+        """Ordena una Treeview por la columna indicada. Alterna asc/desc en clics consecutivos."""
+        data = [(tree.set(k, col_idx), k) for k in tree.get_children("")]
+
+        # Detectar orden actual para alternar
+        sort_dir = tree.heading(tree['columns'][col_idx]).get('sort', 'none')
+        reverse = False if sort_dir in ('none', 'desc') else True
+
+        def to_num(x: str):
+            try:
+                return float(x)
+            except Exception:
+                return float('inf')
+
+        if as_number:
+            data.sort(key=lambda t: to_num(t[0]), reverse=reverse)
+        else:
+            data.sort(key=lambda t: (t[0] or '').lower(), reverse=reverse)
+
+        for index, (_, k) in enumerate(data):
+            tree.move(k, '', index)
+
+        # Actualizar estado de orden en encabezado
+        new_sort = 'asc' if reverse else 'desc'
+        # Limpiar marcas previas
+        for i, c in enumerate(tree['columns']):
+            tree.heading(c, sort='none')
+        tree.heading(tree['columns'][col_idx], sort=new_sort)
 
     # (Ya no se usa, se mantiene por compatibilidad si fuese necesario en el futuro)
     def _index_existing_recursive(self, base: str) -> Dict[str, str]:
