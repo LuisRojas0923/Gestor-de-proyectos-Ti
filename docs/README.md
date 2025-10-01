@@ -19,6 +19,10 @@ Documentación específica del backend:
 - `CAMBIOS_INSTALADORES.md` - Historial de cambios en instaladores
 - `VALIDACION_CORRECCIONES_GUIA.md` - Guía de validaciones y correcciones
 
+### `/backend/sql`
+Artefactos SQL organizados:
+- Ver `backend/sql/README.md` para estructura y cómo ejecutar scripts
+
 ### `/frontend`
 Documentación específica del frontend:
 - `FASE2_IMPLEMENTACION_RESUMEN.md` - Resumen de la segunda fase de implementación
