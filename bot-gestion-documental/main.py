@@ -167,14 +167,26 @@ class DocumentManagementBotApp:
                 return
 
         self._set_status("Analizando estructura local (búsqueda recursiva)...")
-        existing_map = self._index_existing_recursive(base)
+        # Indexar todas las carpetas existentes (nombre y ruta)
+        all_folders: List[Tuple[str, str]] = []  # (nombre, ruta)
+        for current_dir, subdirs, _files in os.walk(base):
+            for sd in subdirs:
+                all_folders.append((sd, os.path.join(current_dir, sd)))
+
         planned: List[PlannedAction] = []
 
         for dev in self.developments:
             target_state_dir = os.path.join(base, dev.state)
             desired_name = f"{dev.remedy_id}_{dev.name}"
 
-            found_path = existing_map.get(dev.remedy_id)
+            # Buscar coincidencia flexible: cualquier carpeta cuyo nombre contenga el ID Remedy (case-insensitive)
+            found_path = None
+            rid = dev.remedy_id.strip().lower()
+            for folder_name, folder_path in all_folders:
+                if rid and rid in folder_name.lower():
+                    # Elegimos la coincidencia más profunda/longitud de ruta mayor
+                    if (found_path is None) or (len(folder_path) > len(found_path)):
+                        found_path = folder_path
             if found_path:
                 # Si ya existe, mover si el padre (estado) no coincide
                 current_parent = os.path.dirname(found_path)
@@ -226,32 +238,9 @@ class DocumentManagementBotApp:
                 a.note,
             ))
 
+    # (Ya no se usa, se mantiene por compatibilidad si fuese necesario en el futuro)
     def _index_existing_recursive(self, base: str) -> Dict[str, str]:
-        """Recorre recursivamente todas las carpetas y mapea cualquier folder
-        cuyo nombre contenga un ID Remedy (prefijo antes de '_') o coincida con
-        el ID exacto provisto por el API en _analyze.
-
-        Retorna un dict que, para cada ID Remedy detectado, guarda la ruta del
-        folder más profundo encontrado (prioriza coincidencias más específicas).
-        """
-        remedy_to_path: Dict[str, str] = {}
-        try:
-            for current_dir, subdirs, _files in os.walk(base):
-                for sd in subdirs:
-                    folder_name = sd
-                    folder_path = os.path.join(current_dir, sd)
-                    # Preferimos patrón <ID>_resto
-                    parts = folder_name.split('_', 1)
-                    if parts and parts[0]:
-                        candidate = parts[0].strip()
-                        if candidate:
-                            # Si ya existe, elegimos el más profundo (ruta más larga)
-                            prev = remedy_to_path.get(candidate)
-                            if prev is None or len(folder_path) > len(prev):
-                                remedy_to_path[candidate] = folder_path
-        except Exception:
-            pass
-        return remedy_to_path
+        return {}
 
     def _execute(self) -> None:
         if not self.planned_actions:
