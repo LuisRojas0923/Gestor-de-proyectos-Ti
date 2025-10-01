@@ -166,8 +166,8 @@ class DocumentManagementBotApp:
             if not messagebox.askyesno("Sin desarrollos", "No hay desarrollos cargados. ¿Analizar solo estructura local?"):
                 return
 
-        self._set_status("Analizando estructura local...")
-        existing_map = self._index_existing_two_levels(base)
+        self._set_status("Analizando estructura local (búsqueda recursiva)...")
+        existing_map = self._index_existing_recursive(base)
         planned: List[PlannedAction] = []
 
         for dev in self.developments:
@@ -226,25 +226,29 @@ class DocumentManagementBotApp:
                 a.note,
             ))
 
-    def _index_existing_two_levels(self, base: str) -> Dict[str, str]:
+    def _index_existing_recursive(self, base: str) -> Dict[str, str]:
+        """Recorre recursivamente todas las carpetas y mapea cualquier folder
+        cuyo nombre contenga un ID Remedy (prefijo antes de '_') o coincida con
+        el ID exacto provisto por el API en _analyze.
+
+        Retorna un dict que, para cada ID Remedy detectado, guarda la ruta del
+        folder más profundo encontrado (prioriza coincidencias más específicas).
+        """
         remedy_to_path: Dict[str, str] = {}
-        # Recorre primer nivel (estados) y segundo nivel (desarrollos)
         try:
-            for lvl1_name in os.listdir(base):
-                lvl1_path = os.path.join(base, lvl1_name)
-                if not os.path.isdir(lvl1_path):
-                    continue
-                for lvl2_name in os.listdir(lvl1_path):
-                    lvl2_path = os.path.join(lvl1_path, lvl2_name)
-                    if not os.path.isdir(lvl2_path):
-                        continue
-                    # Intentar extraer remedy id: prefijo antes del primer '_'
-                    parts = lvl2_name.split('_', 1)
+            for current_dir, subdirs, _files in os.walk(base):
+                for sd in subdirs:
+                    folder_name = sd
+                    folder_path = os.path.join(current_dir, sd)
+                    # Preferimos patrón <ID>_resto
+                    parts = folder_name.split('_', 1)
                     if parts and parts[0]:
-                        remedy_candidate = parts[0].strip()
-                        # Aceptamos si tiene dígitos/letras, no validamos formato
-                        if remedy_candidate:
-                            remedy_to_path[remedy_candidate] = lvl2_path
+                        candidate = parts[0].strip()
+                        if candidate:
+                            # Si ya existe, elegimos el más profundo (ruta más larga)
+                            prev = remedy_to_path.get(candidate)
+                            if prev is None or len(folder_path) > len(prev):
+                                remedy_to_path[candidate] = folder_path
         except Exception:
             pass
         return remedy_to_path
