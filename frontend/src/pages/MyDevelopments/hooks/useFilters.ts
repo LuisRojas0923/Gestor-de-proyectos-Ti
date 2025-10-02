@@ -15,6 +15,12 @@ export interface UseFiltersReturn {
   setResponsibleFilter: (responsible: string) => void;
   groupBy: 'none' | 'provider' | 'module' | 'responsible';
   setGroupBy: (group: 'none' | 'provider' | 'module' | 'responsible') => void;
+  
+  // Estados de ordenamiento
+  sortBy: 'id' | 'name' | 'provider' | 'responsible' | 'status' | 'module';
+  setSortBy: (sort: 'id' | 'name' | 'provider' | 'responsible' | 'status' | 'module') => void;
+  sortOrder: 'asc' | 'desc';
+  setSortOrder: (order: 'asc' | 'desc') => void;
 
   // Datos únicos para los selects
   uniqueProviders: string[];
@@ -34,6 +40,8 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
   const [moduleFilter, setModuleFilter] = useState('all');
   const [responsibleFilter, setResponsibleFilter] = useState('all');
   const [groupBy, setGroupBy] = useState<'none' | 'provider' | 'module' | 'responsible'>('none');
+  const [sortBy, setSortBy] = useState<'id' | 'name' | 'provider' | 'responsible' | 'status' | 'module'>('id');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Extraer valores únicos para los selects
   const uniqueProviders = useMemo(() => {
@@ -68,9 +76,9 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
     return responsibles.sort();
   }, [developments]);
 
-  // Filtrar desarrollos
+  // Filtrar y ordenar desarrollos
   const filteredDevelopments = useMemo(() => {
-    return developments.filter(dev => {
+    const filtered = developments.filter(dev => {
       // Filtro de búsqueda
       const matchesSearch = !searchTerm || 
         dev.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,7 +98,53 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
 
       return matchesSearch && matchesProvider && matchesStatus && matchesModule && matchesResponsible;
     });
-  }, [developments, searchTerm, providerFilter, statusFilter, moduleFilter, responsibleFilter]);
+
+    // Aplicar ordenamiento
+    return filtered.sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortBy) {
+        case 'id':
+          aValue = a.id;
+          bValue = b.id;
+          break;
+        case 'name':
+          aValue = a.name || '';
+          bValue = b.name || '';
+          break;
+        case 'provider':
+          aValue = a.provider || '';
+          bValue = b.provider || '';
+          break;
+        case 'responsible':
+          aValue = a.responsible || '';
+          bValue = b.responsible || '';
+          break;
+        case 'status':
+          aValue = a.general_status || '';
+          bValue = b.general_status || '';
+          break;
+        case 'module':
+          aValue = a.module || '';
+          bValue = b.module || '';
+          break;
+        default:
+          aValue = a.id;
+          bValue = b.id;
+      }
+
+      // Comparación
+      let comparison = 0;
+      if (aValue < bValue) {
+        comparison = -1;
+      } else if (aValue > bValue) {
+        comparison = 1;
+      }
+
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+  }, [developments, searchTerm, providerFilter, statusFilter, moduleFilter, responsibleFilter, sortBy, sortOrder]);
 
   // Agrupar desarrollos
   const groupedDevelopments = useMemo(() => {
@@ -139,6 +193,10 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
     setResponsibleFilter,
     groupBy,
     setGroupBy,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
     uniqueProviders,
     uniqueStatuses,
     uniqueModules,

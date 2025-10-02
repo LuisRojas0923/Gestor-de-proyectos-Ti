@@ -12,3 +12,4 @@ export { default as MaterialButton } from './MaterialButton';
 export { default as MaterialCard } from './MaterialCard';
 export { default as MaterialTextField } from './MaterialTextField';
 export { default as MaterialSelect } from './MaterialSelect';
+export { default as MaterialTypography } from './MaterialTypography';

@@ -1,98 +1,40 @@
 # Bot de Gestión Documental
 
-Bot para sincronizar carpetas de desarrollos basado en datos del API del sistema de gestión de proyectos.
+Bot modular para sincronizar carpetas de desarrollos con API.
 
-## Características
+## Uso Rápido
 
-- **UI Tkinter**: Interfaz clásica con tablas ordenables
-- **UI PySide6**: Interfaz moderna con filtros y sorting nativo
-- **Análisis inteligente**: Detecta carpetas existentes por ID Remedy
-- **Sincronización**: Crea/mueve carpetas según estado del desarrollo
-- **Logging**: Registra todas las operaciones en CSV
+1. **Activar entorno:**
+   ```bash
+   activate.bat
+   ```
 
-## Instalación
+2. **Ejecutar app:**
+   ```bash
+   python bot_main.py
+   ```
 
-### Opción 1: Automática (Windows)
-```bash
-# Ejecutar en la carpeta del bot
-install.bat
-```
+## Funciones
 
-### Opción 2: Manual
-```bash
-# Crear entorno virtual
-python -m venv venv
+- **Cargar desarrollos** desde API
+- **Analizar carpetas** locales  
+- **Filtrar** por ID, nombre o estado
+- **Ejecutar acciones** de creación/movimiento
+- **Ver etapas** de desarrollos
+- **Abrir carpetas** con doble clic
 
-# Activar entorno
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
+## Arquitectura Modular
 
-# Instalar dependencias
-pip install -r requirements.txt
-```
+- `bot_main.py` - Orquestador principal
+- `bot_models.py` - Clases de datos del bot
+- `bot_api_client.py` - Comunicación con API
+- `bot_file_manager.py` - Gestión de archivos
+- `bot_ui_components.py` - Componentes de interfaz
 
-## Uso
+## Archivos
 
-### Activar entorno
-```bash
-# Windows
-activate.bat
-
-# Linux/Mac
-source venv/bin/activate
-```
-
-### Ejecutar aplicaciones
-```bash
-# UI Tkinter (clásica)
-python main.py
-
-# UI PySide6 (moderna)
-python qt_app.py
-```
-
-## Configuración
-
-1. **API Base URL**: `http://localhost:8000/api/v1`
-2. **Ruta base**: `C:\Users\lerv8093\OneDrive - Grupo Coomeva\PROYECTOS DESARROLLOS\Desarrollos`
-3. **Authorization**: Opcional, si el API requiere autenticación
-
-## Funcionamiento
-
-1. **Cargar desarrollos**: Obtiene datos del API
-2. **Analizar carpeta local**: Busca carpetas existentes recursivamente
-3. **Ejecutar acciones**: 
-   - Crea carpetas faltantes con subcarpetas (Correos, Formatos, Documentos)
-   - Mueve carpetas al estado correcto
-   - Genera log CSV de operaciones
-
-## Estructura de carpetas
-
-```
-Desarrollos/
-├── Estado1/
-│   ├── ID123_Nombre del Proyecto/
-│   │   ├── Correos/
-│   │   ├── Formatos/
-│   │   └── Documentos/
-│   └── ID456_Otro Proyecto/
-└── Estado2/
-    └── ID789_Proyecto Final/
-```
-
-## Logs
-
-Los logs se guardan en `logs/bot_log_YYYYMMDD_HHMMSS.csv` con:
-- Fecha y hora
-- Acción realizada
-- ID Remedy
-- Ruta afectada
-- Detalles
-
-## Dependencias
-
-- `requests`: Para consumo del API
-- `PySide6`: Para UI moderna (opcional)
-- `tkinter`: Incluido en Python (UI clásica)
+- `bot_main.py` - App principal
+- `activate.bat` - Activar entorno
+- `install.bat` - Instalar dependencias
+- `requirements.txt` - Dependencias
+- `venv/` - Entorno virtual

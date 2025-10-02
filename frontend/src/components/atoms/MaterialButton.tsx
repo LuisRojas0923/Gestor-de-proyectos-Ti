@@ -35,7 +35,7 @@ const MaterialButton: React.FC<MaterialButtonProps> = ({
 }) => {
   const tokens = materialDesignTokens;
   
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-full transition-all focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
   
   // Diseño esbelto y moderno
   const getButtonClasses = () => {
@@ -55,18 +55,18 @@ const MaterialButton: React.FC<MaterialButtonProps> = ({
 
     if (variant === 'contained') {
       if (color === 'primary') {
-        return `${baseButtonClasses} bg-primary-500 text-white hover:bg-primary-600`;
+        return `${baseButtonClasses} bg-primary-500 text-white hover:bg-primary-600 shadow-lg hover:shadow-xl`;
       } else if (color === 'secondary') {
-        return `${baseButtonClasses} ${
+        return `${baseButtonClasses} shadow-lg hover:shadow-xl ${
           darkMode ? 'bg-neutral-600 text-white hover:bg-neutral-500' : 'bg-neutral-600 text-white hover:bg-neutral-500'
         }`;
       } else {
-        return `${baseButtonClasses} ${
+        return `${baseButtonClasses} shadow-lg hover:shadow-xl ${
           darkMode ? 'bg-neutral-600 text-white hover:bg-neutral-500' : 'bg-neutral-600 text-white hover:bg-neutral-500'
         }`;
       }
     } else if (variant === 'outlined') {
-      return `${baseButtonClasses} border bg-transparent ${
+      return `${baseButtonClasses} border bg-transparent shadow-md hover:shadow-lg ${
         color === 'primary' 
           ? 'border-primary-500 text-primary-500 hover:bg-primary-50' 
           : darkMode

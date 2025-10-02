@@ -26,20 +26,20 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   
   const elevationClasses = {
     0: 'shadow-none',
-    1: 'shadow-sm',
-    2: 'shadow-md',
-    3: 'shadow-lg',
-    4: 'shadow-xl',
-    5: 'shadow-2xl',
-    6: 'shadow-2xl',
-    8: 'shadow-2xl',
-    9: 'shadow-2xl',
-    12: 'shadow-2xl',
-    16: 'shadow-2xl',
-    24: 'shadow-2xl'
+    1: 'shadow-sm hover:shadow-md',
+    2: 'shadow-md hover:shadow-lg',
+    3: 'shadow-lg hover:shadow-xl',
+    4: 'shadow-xl hover:shadow-2xl',
+    5: 'shadow-2xl hover:shadow-2xl',
+    6: 'shadow-2xl hover:shadow-2xl',
+    8: 'shadow-2xl hover:shadow-2xl',
+    9: 'shadow-2xl hover:shadow-2xl',
+    12: 'shadow-2xl hover:shadow-2xl',
+    16: 'shadow-2xl hover:shadow-2xl',
+    24: 'shadow-2xl hover:shadow-2xl'
   };
 
-  const hoverClasses = hoverable ? 'hover:shadow-lg cursor-pointer' : '';
+  const hoverClasses = hoverable ? 'hover:shadow-xl cursor-pointer' : '';
   const clickableClasses = onClick ? 'cursor-pointer' : '';
 
   return (
@@ -69,7 +69,7 @@ const MaterialCardHeader: React.FC<MaterialCardSubComponentProps> = ({
   className = '',
   darkMode = false
 }) => (
-  <div className={`px-6 py-4 border-b ${
+  <div className={`px-6 py-4 border-b transition-colors ${
     darkMode ? 'border-neutral-700' : 'border-gray-200'
   } ${className}`}>
     {children}
@@ -81,7 +81,7 @@ const MaterialCardContent: React.FC<MaterialCardSubComponentProps> = ({
   className = '',
   darkMode = false
 }) => (
-  <div className={`px-6 py-4 ${darkMode ? 'text-white' : 'text-gray-900'} ${className}`}>
+  <div className={`px-6 py-4 transition-colors ${darkMode ? 'text-white' : 'text-gray-900'} ${className}`}>
     {children}
   </div>
 );
@@ -91,7 +91,7 @@ const MaterialCardActions: React.FC<MaterialCardSubComponentProps> = ({
   className = '',
   darkMode = false
 }) => (
-  <div className={`px-6 py-4 flex items-center justify-end space-x-2 ${darkMode ? 'text-white' : 'text-gray-900'} ${className}`}>
+  <div className={`px-6 py-4 flex items-center justify-end space-x-2 transition-colors ${darkMode ? 'text-white' : 'text-gray-900'} ${className}`}>
     {children}
   </div>
 );
