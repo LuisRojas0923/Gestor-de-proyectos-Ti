@@ -79,11 +79,23 @@ export interface DevelopmentWithCurrentStatus extends Development {
   // Relaciones incluidas
   current_phase?: DevelopmentPhase;
   current_stage?: DevelopmentStage;
+  providers?: DevelopmentProvider[];
+  responsibles?: DevelopmentResponsible[];
   // Observaciones/actividades (para compatibilidad con frontend actual)
   activities?: Array<{
     date: string;
     description: string;
   }>;
+  // Última actividad de la bitácora
+  last_activity?: {
+    id: number;
+    activity_type: 'nueva_actividad' | 'seguimiento' | 'cierre_etapa' | 'cambio_etapa' | 'observacion';
+    actor_type: 'equipo_interno' | 'proveedor' | 'usuario' | 'sistema';
+    status: 'pendiente' | 'en_curso' | 'completada' | 'cancelada';
+    stage_name: string;
+    notes?: string;
+    created_at: string;
+  };
   // Campos adicionales del frontend actual
   requesting_area?: string;
   main_responsible?: string;

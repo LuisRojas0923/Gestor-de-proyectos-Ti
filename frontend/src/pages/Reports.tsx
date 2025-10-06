@@ -6,6 +6,7 @@ import {
     PieChart,
     TrendingUp,
     Users,
+    RefreshCw,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,7 +27,17 @@ import {
     YAxis,
 } from 'recharts';
 import { MetricCard } from '../components/molecules';
+import { 
+    MaterialCard, 
+    MaterialButton, 
+    MaterialSelect, 
+    MaterialTextField, 
+    MaterialTypography,
+    Badge,
+    Spinner
+} from '../components/atoms';
 import { useAppContext } from '../context/AppContext';
+import { useRemedyReport } from './Reports/hooks/useRemedyReport';
 
 // Load development data from API
 // import { Development as DevelopmentType } from './MyDevelopments';
@@ -35,6 +46,17 @@ const Reports: React.FC = () => {
   const { t } = useTranslation();
   const { state } = useAppContext();
   const { darkMode } = state;
+  
+  // Hook para el informe de casos Remedy
+  const { 
+    data: remedyReportData, 
+    loading: remedyReportLoading, 
+    error: remedyReportError,
+    filters,
+    updateFilters,
+    clearFilters,
+    refreshReport
+  } = useRemedyReport();
 
   const [dateRange, setDateRange] = useState({
     start: '2025-01-01',
@@ -425,6 +447,383 @@ const Reports: React.FC = () => {
               </div>
             </div>
           </div>
+      </div>
+
+      {/* Informe Detallado de Casos Remedy */}
+      <div className="mt-8">
+        <MaterialCard darkMode={darkMode}>
+          <MaterialCard.Header>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <MaterialTypography variant="h5" darkMode={darkMode}>
+                  📊 Informe Detallado de Casos Remedy
+                </MaterialTypography>
+              </div>
+              <MaterialButton
+                variant="contained"
+                color="primary"
+                startIcon={<Download className="h-4 w-4" />}
+                onClick={() => {/* TODO: Implementar exportación */}}
+                darkMode={darkMode}
+              >
+                Exportar PDF
+              </MaterialButton>
+            </div>
+            <MaterialTypography variant="body2" darkMode={darkMode} className="mt-2">
+              Informe detallado de todos los casos Remedy reportados en la herramienta con análisis completo de estado, progreso y métricas.
+            </MaterialTypography>
+          </MaterialCard.Header>
+
+          <MaterialCard.Content>
+            {/* Filtros del Informe */}
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <MaterialSelect
+                label="Estado"
+                value={filters.status_filter || ''}
+                onChange={(value) => updateFilters({ status_filter: value || undefined })}
+                options={[
+                  { value: '', label: 'Todos los estados' },
+                  { value: 'en_progreso', label: 'En Progreso' },
+                  { value: 'completado', label: 'Completado' },
+                  { value: 'pendiente', label: 'Pendiente' },
+                  { value: 'cancelado', label: 'Cancelado' }
+                ]}
+                darkMode={darkMode}
+              />
+              
+              <MaterialSelect
+                label="Proveedor"
+                value={filters.provider_filter || ''}
+                onChange={(value) => updateFilters({ provider_filter: value || undefined })}
+                options={[
+                  { value: '', label: 'Todos los proveedores' },
+                  ...(remedyReportData ? Object.keys(remedyReportData.summary.provider_distribution)
+                    .filter(provider => provider && provider.trim() !== '') // Filtrar valores vacíos
+                    .map((provider, index) => ({
+                      value: provider,
+                      label: provider || `Proveedor ${index + 1}` // Fallback para valores vacíos
+                    })) : [])
+                ]}
+                darkMode={darkMode}
+              />
+              
+              <MaterialSelect
+                label="Módulo"
+                value={filters.module_filter || ''}
+                onChange={(value) => updateFilters({ module_filter: value || undefined })}
+                options={[
+                  { value: '', label: 'Todos los módulos' },
+                  ...(remedyReportData ? Object.keys(remedyReportData.summary.module_distribution)
+                    .filter(module => module && module.trim() !== '') // Filtrar valores vacíos
+                    .map((module, index) => ({
+                      value: module,
+                      label: module || `Módulo ${index + 1}` // Fallback para valores vacíos
+                    })) : [])
+                ]}
+                darkMode={darkMode}
+              />
+              
+              <MaterialTextField
+                label="Fecha Inicio"
+                type="date"
+                value={filters.start_date || ''}
+                onChange={(e) => updateFilters({ start_date: e.target.value || undefined })}
+                darkMode={darkMode}
+              />
+              
+              <MaterialTextField
+                label="Fecha Fin"
+                type="date"
+                value={filters.end_date || ''}
+                onChange={(e) => updateFilters({ end_date: e.target.value || undefined })}
+                darkMode={darkMode}
+              />
+            </div>
+
+            {/* Resumen Ejecutivo */}
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <MaterialCard darkMode={darkMode} className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                <MaterialCard.Content>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <MaterialTypography variant="body2" darkMode={darkMode} className="text-blue-600 dark:text-blue-400">
+                        Total Casos
+                      </MaterialTypography>
+                      <MaterialTypography variant="h4" darkMode={darkMode} className="text-blue-900 dark:text-blue-100">
+                        {remedyReportLoading ? '...' : remedyReportData?.summary.total_cases || 0}
+                      </MaterialTypography>
+                    </div>
+                    <FileText className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                </MaterialCard.Content>
+              </MaterialCard>
+              
+              <MaterialCard darkMode={darkMode} className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                <MaterialCard.Content>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <MaterialTypography variant="body2" darkMode={darkMode} className="text-green-600 dark:text-green-400">
+                        Completados
+                      </MaterialTypography>
+                      <MaterialTypography variant="h4" darkMode={darkMode} className="text-green-900 dark:text-green-100">
+                        {remedyReportLoading ? '...' : remedyReportData?.summary.status_distribution['completado'] || 0}
+                      </MaterialTypography>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                  </div>
+                </MaterialCard.Content>
+              </MaterialCard>
+              
+              <MaterialCard darkMode={darkMode} className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+                <MaterialCard.Content>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <MaterialTypography variant="body2" darkMode={darkMode} className="text-yellow-600 dark:text-yellow-400">
+                        En Progreso
+                      </MaterialTypography>
+                      <MaterialTypography variant="h4" darkMode={darkMode} className="text-yellow-900 dark:text-yellow-100">
+                        {remedyReportLoading ? '...' : remedyReportData?.summary.status_distribution['en_progreso'] || 0}
+                      </MaterialTypography>
+                    </div>
+                    <Clock className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                </MaterialCard.Content>
+              </MaterialCard>
+              
+              <MaterialCard darkMode={darkMode} className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+                <MaterialCard.Content>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <MaterialTypography variant="body2" darkMode={darkMode} className="text-red-600 dark:text-red-400">
+                        Pendientes
+                      </MaterialTypography>
+                      <MaterialTypography variant="h4" darkMode={darkMode} className="text-red-900 dark:text-red-100">
+                        {remedyReportLoading ? '...' : remedyReportData?.summary.status_distribution['pendiente'] || 0}
+                      </MaterialTypography>
+                    </div>
+                    <Clock className="h-8 w-8 text-red-600 dark:text-red-400" />
+                  </div>
+                </MaterialCard.Content>
+              </MaterialCard>
+            </div>
+
+            {/* Tabla Detallada de Casos */}
+            <MaterialCard darkMode={darkMode}>
+              <MaterialCard.Content>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                      <tr>
+                        {[
+                          'ID Remedy',
+                          'Nombre',
+                          'Módulo',
+                          'Estado Actual',
+                          'Última Actividad',
+                          'Progreso',
+                          'Responsable',
+                          'Proveedor',
+                          'Fecha Creación',
+                          'Incidencias'
+                        ].map(header => (
+                          <th key={header} scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {remedyReportLoading ? (
+                    <tr>
+                      <td colSpan={10} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                        <div className="flex flex-col items-center space-y-2">
+                          <Spinner size="lg" darkMode={darkMode} />
+                          <MaterialTypography variant="h6" darkMode={darkMode}>
+                            Cargando informe detallado...
+                          </MaterialTypography>
+                          <MaterialTypography variant="body2" darkMode={darkMode}>
+                            Los datos se están cargando desde el servidor
+                          </MaterialTypography>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : remedyReportError ? (
+                    <tr>
+                      <td colSpan={10} className="px-4 py-8 text-center text-red-500 dark:text-red-400">
+                        <div className="flex flex-col items-center space-y-2">
+                          <FileText className="h-12 w-12 text-red-400" />
+                          <MaterialTypography variant="h6" darkMode={darkMode} className="text-red-600 dark:text-red-400">
+                            Error al cargar el informe
+                          </MaterialTypography>
+                          <MaterialTypography variant="body2" darkMode={darkMode} className="text-red-500 dark:text-red-400">
+                            {remedyReportError}
+                          </MaterialTypography>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : remedyReportData?.cases && remedyReportData.cases.length > 0 ? (
+                    remedyReportData.cases.map((caseItem) => (
+                      <tr key={caseItem.remedy_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              {caseItem.remedy_id}
+                            </span>
+                            {caseItem.remedy_link && (
+                              <a 
+                                href={caseItem.remedy_link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                🔗
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="max-w-xs">
+                            <p className="font-medium text-gray-900 dark:text-white truncate">
+                              {caseItem.name}
+                            </p>
+                            {caseItem.description && (
+                              <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+                                {caseItem.description}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                          {caseItem.module}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <Badge 
+                            variant={
+                              caseItem.general_status === 'completado' ? 'success' :
+                              caseItem.general_status === 'en_progreso' ? 'warning' :
+                              caseItem.general_status === 'pendiente' ? 'error' : 'default'
+                            }
+                            darkMode={darkMode}
+                          >
+                            {caseItem.general_status}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {caseItem.last_activity ? (
+                            <div className="max-w-xs">
+                              <p className="text-gray-900 dark:text-white truncate">
+                                {caseItem.last_activity.stage_name}
+                              </p>
+                              <p className="text-gray-500 dark:text-gray-400 text-xs">
+                                {caseItem.last_activity.activity_type} - {caseItem.last_activity.status}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 dark:text-gray-400">Sin actividad</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full" 
+                                style={{ width: `${caseItem.progress_percentage}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-gray-900 dark:text-white text-xs">
+                              {caseItem.progress_percentage}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                          {caseItem.main_responsible || 'Sin asignar'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                          {caseItem.provider || 'Sin proveedor'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                          {caseItem.important_dates.created_at 
+                            ? new Date(caseItem.important_dates.created_at).toLocaleDateString()
+                            : 'N/A'
+                          }
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <Badge 
+                            variant={caseItem.post_production_incidents.length > 0 ? 'error' : 'success'}
+                            darkMode={darkMode}
+                          >
+                            {caseItem.post_production_incidents.length}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={10} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                        <div className="flex flex-col items-center space-y-2">
+                          <FileText className="h-12 w-12 text-gray-400" />
+                          <MaterialTypography variant="h6" darkMode={darkMode}>
+                            No hay casos encontrados
+                          </MaterialTypography>
+                          <MaterialTypography variant="body2" darkMode={darkMode}>
+                            No se encontraron casos Remedy con los filtros aplicados
+                          </MaterialTypography>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                  </table>
+                </div>
+              </MaterialCard.Content>
+            </MaterialCard>
+
+            {/* Acciones del Informe */}
+            <div className="mt-6 flex flex-wrap gap-3">
+              <MaterialButton
+                variant="contained"
+                color="success"
+                startIcon={<RefreshCw className={`h-4 w-4 ${remedyReportLoading ? 'animate-spin' : ''}`} />}
+                onClick={refreshReport}
+                disabled={remedyReportLoading}
+                darkMode={darkMode}
+              >
+                Actualizar Informe
+              </MaterialButton>
+              
+              <MaterialButton
+                variant="contained"
+                color="secondary"
+                startIcon={<Download className="h-4 w-4" />}
+                onClick={() => {/* TODO: Implementar exportación Excel */}}
+                darkMode={darkMode}
+              >
+                Exportar Excel
+              </MaterialButton>
+              
+              <MaterialButton
+                variant="contained"
+                color="info"
+                startIcon={<Users className="h-4 w-4" />}
+                onClick={() => {/* TODO: Implementar envío por email */}}
+                darkMode={darkMode}
+              >
+                Enviar por Email
+              </MaterialButton>
+              
+              <MaterialButton
+                variant="contained"
+                color="warning"
+                startIcon={<RefreshCw className="h-4 w-4" />}
+                onClick={clearFilters}
+                darkMode={darkMode}
+              >
+                Limpiar Filtros
+              </MaterialButton>
+            </div>
+          </MaterialCard.Content>
+        </MaterialCard>
       </div>
 
     </div>

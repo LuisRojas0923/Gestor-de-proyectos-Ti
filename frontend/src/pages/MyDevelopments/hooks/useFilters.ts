@@ -13,12 +13,14 @@ export interface UseFiltersReturn {
   setModuleFilter: (module: string) => void;
   responsibleFilter: string;
   setResponsibleFilter: (responsible: string) => void;
-  groupBy: 'none' | 'provider' | 'module' | 'responsible';
-  setGroupBy: (group: 'none' | 'provider' | 'module' | 'responsible') => void;
+  stageFilter: string;
+  setStageFilter: (stage: string) => void;
+  groupBy: 'none' | 'provider' | 'module' | 'responsible' | 'stage';
+  setGroupBy: (group: 'none' | 'provider' | 'module' | 'responsible' | 'stage') => void;
   
   // Estados de ordenamiento
-  sortBy: 'id' | 'name' | 'provider' | 'responsible' | 'status' | 'module';
-  setSortBy: (sort: 'id' | 'name' | 'provider' | 'responsible' | 'status' | 'module') => void;
+  sortBy: 'id' | 'name' | 'provider' | 'responsible' | 'status' | 'module' | 'stage';
+  setSortBy: (sort: 'id' | 'name' | 'provider' | 'responsible' | 'status' | 'module' | 'stage') => void;
   sortOrder: 'asc' | 'desc';
   setSortOrder: (order: 'asc' | 'desc') => void;
 
@@ -27,6 +29,7 @@ export interface UseFiltersReturn {
   uniqueStatuses: string[];
   uniqueModules: string[];
   uniqueResponsibles: string[];
+  uniqueStages: string[];
 
   // Datos filtrados y agrupados
   filteredDevelopments: DevelopmentWithCurrentStatus[];
@@ -39,8 +42,9 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
   const [statusFilter, setStatusFilter] = useState('all');
   const [moduleFilter, setModuleFilter] = useState('all');
   const [responsibleFilter, setResponsibleFilter] = useState('all');
-  const [groupBy, setGroupBy] = useState<'none' | 'provider' | 'module' | 'responsible'>('none');
-  const [sortBy, setSortBy] = useState<'id' | 'name' | 'provider' | 'responsible' | 'status' | 'module'>('id');
+  const [stageFilter, setStageFilter] = useState('all');
+  const [groupBy, setGroupBy] = useState<'none' | 'provider' | 'module' | 'responsible' | 'stage'>('none');
+  const [sortBy, setSortBy] = useState<'id' | 'name' | 'provider' | 'responsible' | 'status' | 'module' | 'stage'>('id');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Extraer valores únicos para los selects
@@ -76,6 +80,42 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
     return responsibles.sort();
   }, [developments]);
 
+  const uniqueStages = useMemo(() => {
+    // Crear array con stage_name y stage_code para poder ordenar por stage_code
+    const stageInfo = developments
+      .map(dev => {
+        // Priorizar last_activity (lo que realmente se muestra)
+        if (dev.last_activity?.stage_name) {
+          return {
+            stage_name: dev.last_activity.stage_name,
+            stage_code: dev.last_activity.stage_code || dev.current_stage?.stage_code || '999'
+          };
+        }
+        // Fallback a current_stage si no hay last_activity
+        if (dev.current_stage?.stage_name) {
+          return {
+            stage_name: dev.current_stage.stage_name,
+            stage_code: dev.current_stage.stage_code || '999'
+          };
+        }
+        return null;
+      })
+      .filter((stage): stage is { stage_name: string; stage_code: string } => Boolean(stage));
+
+    // Eliminar duplicados basándose en stage_name
+    const uniqueStagesMap = new Map();
+    stageInfo.forEach(stage => {
+      if (!uniqueStagesMap.has(stage.stage_name)) {
+        uniqueStagesMap.set(stage.stage_name, stage);
+      }
+    });
+
+    // Ordenar por stage_code y extraer solo los stage_name
+    return Array.from(uniqueStagesMap.values())
+      .sort((a, b) => a.stage_code.localeCompare(b.stage_code, undefined, { numeric: true }))
+      .map(stage => stage.stage_name);
+  }, [developments]);
+
   // Filtrar y ordenar desarrollos
   const filteredDevelopments = useMemo(() => {
     const filtered = developments.filter(dev => {
@@ -96,7 +136,11 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
       // Filtro de responsable
       const matchesResponsible = responsibleFilter === 'all' || dev.responsible === responsibleFilter;
 
-      return matchesSearch && matchesProvider && matchesStatus && matchesModule && matchesResponsible;
+      // Filtro de etapa (usar la misma lógica que se muestra en la columna)
+      const displayedStage = dev.last_activity?.stage_name || dev.current_stage?.stage_name;
+      const matchesStage = stageFilter === 'all' || displayedStage === stageFilter;
+
+      return matchesSearch && matchesProvider && matchesStatus && matchesModule && matchesResponsible && matchesStage;
     });
 
     // Aplicar ordenamiento
@@ -129,6 +173,10 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
           aValue = a.module || '';
           bValue = b.module || '';
           break;
+        case 'stage':
+          aValue = a.last_activity?.stage_name || a.current_stage?.stage_name || '';
+          bValue = b.last_activity?.stage_name || b.current_stage?.stage_name || '';
+          break;
         default:
           aValue = a.id;
           bValue = b.id;
@@ -144,7 +192,7 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
 
       return sortOrder === 'desc' ? -comparison : comparison;
     });
-  }, [developments, searchTerm, providerFilter, statusFilter, moduleFilter, responsibleFilter, sortBy, sortOrder]);
+  }, [developments, searchTerm, providerFilter, statusFilter, moduleFilter, responsibleFilter, stageFilter, sortBy, sortOrder]);
 
   // Agrupar desarrollos
   const groupedDevelopments = useMemo(() => {
@@ -166,6 +214,9 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
           break;
         case 'responsible':
           groupKey = dev.responsible || 'Sin Responsable';
+          break;
+        case 'stage':
+          groupKey = dev.last_activity?.stage_name || dev.current_stage?.stage_name || 'Sin Etapa';
           break;
         default:
           groupKey = 'Todos';
@@ -191,6 +242,8 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
     setModuleFilter,
     responsibleFilter,
     setResponsibleFilter,
+    stageFilter,
+    setStageFilter,
     groupBy,
     setGroupBy,
     sortBy,
@@ -201,6 +254,7 @@ export const useFilters = (developments: DevelopmentWithCurrentStatus[]): UseFil
     uniqueStatuses,
     uniqueModules,
     uniqueResponsibles,
+    uniqueStages,
     filteredDevelopments,
     groupedDevelopments,
   };

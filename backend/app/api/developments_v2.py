@@ -78,6 +78,36 @@ def get_developments(
         
         developments = query.offset(skip).limit(limit).all()
         
+        # Agregar información de última actividad para cada desarrollo
+        for development in developments:
+            # Obtener la última actividad del desarrollo con JOIN a development_stages
+            last_activity_query = db.query(
+                models.DevelopmentActivityLog,
+                models.DevelopmentStage.stage_name
+            ).join(
+                models.DevelopmentStage, 
+                models.DevelopmentActivityLog.stage_id == models.DevelopmentStage.id
+            ).filter(
+                models.DevelopmentActivityLog.development_id == development.id
+            ).order_by(
+                models.DevelopmentActivityLog.created_at.desc()
+            ).first()
+            
+            if last_activity_query:
+                activity_log, stage_name = last_activity_query
+                development.last_activity = {
+                    "id": activity_log.id,
+                    "stage_id": activity_log.stage_id,
+                    "stage_name": stage_name,
+                    "activity_type": activity_log.activity_type,
+                    "status": activity_log.status,
+                    "created_at": activity_log.created_at.isoformat() if activity_log.created_at else None,
+                    "notes": activity_log.notes,
+                    "dynamic_payload": activity_log.dynamic_payload
+                }
+            else:
+                development.last_activity = None
+        
         return developments
         
     except Exception as e:
@@ -565,4 +595,78 @@ def delete_development(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error eliminando desarrollo: {str(e)}"
+        )
+
+
+@router.get("/test-endpoint")
+def test_endpoint():
+    """Endpoint de prueba simple"""
+    return {"message": "Endpoint funcionando correctamente"}
+
+
+@router.get("/remedy-cases-detailed-report")
+def get_remedy_cases_detailed_report(
+    status_filter: Optional[str] = None,
+    provider_filter: Optional[str] = None,
+    module_filter: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Generar informe detallado de todos los casos Remedy
+    """
+    try:
+        # Query base simple para probar
+        developments = db.query(models.Development).limit(10).all()
+        
+        # Procesar cada desarrollo
+        detailed_cases = []
+        
+        for dev in developments:
+            case_detail = {
+                "remedy_id": dev.id,
+                "name": dev.name,
+                "description": dev.description,
+                "module": dev.module,
+                "type": dev.type,
+                "environment": dev.environment,
+                "remedy_link": dev.remedy_link,
+                "general_status": dev.general_status,
+                "provider": dev.provider,
+                "main_responsible": dev.responsible,
+                "progress_percentage": float(dev.stage_progress_percentage or 0),
+                "important_dates": {
+                    "created_at": dev.created_at.isoformat() if dev.created_at else None,
+                    "updated_at": dev.updated_at.isoformat() if dev.updated_at else None,
+                    "estimated_end_date": dev.estimated_end_date.isoformat() if dev.estimated_end_date else None
+                }
+            }
+            detailed_cases.append(case_detail)
+        
+        # Generar resumen ejecutivo
+        summary = {
+            "total_cases": len(detailed_cases),
+            "status_distribution": {},
+            "provider_distribution": {},
+            "module_distribution": {},
+            "generated_at": datetime.now().isoformat(),
+            "filters_applied": {
+                "status_filter": status_filter,
+                "provider_filter": provider_filter,
+                "module_filter": module_filter,
+                "start_date": start_date,
+                "end_date": end_date
+            }
+        }
+        
+        return {
+            "summary": summary,
+            "cases": detailed_cases
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generando informe de casos Remedy: {str(e)}"
         )

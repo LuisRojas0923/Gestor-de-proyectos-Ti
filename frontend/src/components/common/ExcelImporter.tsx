@@ -16,7 +16,8 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
+    if (selectedFile && selectedFile !== file) {
+      console.log('📁 Archivo seleccionado:', selectedFile.name);
       setFile(selectedFile);
       setError(null);
       setPreviewData([]);
@@ -57,6 +58,13 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
           blankrows: false // Skip blank rows
         });
         
+        // DEBUG: Log para ver qué datos tenemos
+        console.log('📊 Excel cargado:', {
+          totalFilas: jsonData.length,
+          primeraFila: jsonData[0],
+          segundaFila: jsonData[1]
+        });
+        
         // Los encabezados están en la fila 1 (segunda fila, índice 1)
         // Los datos empiezan desde la fila 2 (índice 2)
         if (jsonData.length < 2) {
@@ -67,6 +75,9 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
         const headers = jsonData[1]; // Fila 1 = segunda fila (encabezados)
         const dataRows = jsonData.slice(2); // Datos desde la fila 2 en adelante
         
+        console.log('🔍 Procesando encabezados:', headers);
+        console.log('📝 Columnas esperadas:', Object.keys(columnMapping));
+        
         // Crear mapeo de índices de columnas
         const columnIndexMap: { [key: string]: number } = {};
         headers.forEach((header: string, index: number) => {
@@ -75,14 +86,19 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
           }
         });
         
+        console.log('🗺️ Mapeo de columnas encontradas:', Object.keys(columnIndexMap).length, 'columnas');
+        
         // Verificar que tenemos las columnas necesarias
         const requiredColumns = Object.keys(columnMapping);
         const missingColumns = requiredColumns.filter(col => !(col in columnIndexMap));
         
         if (missingColumns.length > 0) {
+          console.error('❌ Columnas faltantes:', missingColumns);
           setError(`Faltan las siguientes columnas requeridas: ${missingColumns.join(', ')}`);
           return;
         }
+        
+        console.log('⚡ Procesando', dataRows.length, 'filas de datos...');
         
         const mappedData = dataRows.map((row, rowIndex) => {
           const newRow: any = {};
@@ -90,20 +106,23 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
           for (const excelHeader in columnMapping) {
             const objectKey = columnMapping[excelHeader];
             const colIndex = columnIndexMap[excelHeader];
-            const cellAddress = XLSX.utils.encode_cell({ r: rowIndex + 2, c: colIndex }); // +2 porque los datos empiezan en fila 2
             
             if (row[colIndex] !== undefined && row[colIndex] !== '') {
               newRow[objectKey] = row[colIndex];
               
               // Si es la columna 'ID de la incidencia*+' y tiene hipervínculo, extraer remedy_link
-              if (excelHeader === 'ID de la incidencia*+' && hyperlinks[cellAddress]) {
-                newRow['remedy_link'] = hyperlinks[cellAddress];
+              if (excelHeader === 'ID de la incidencia*+') {
+                const cellAddress = XLSX.utils.encode_cell({ r: rowIndex + 2, c: colIndex });
+                if (hyperlinks[cellAddress]) {
+                  newRow['remedy_link'] = hyperlinks[cellAddress];
+                }
               }
             }
           }
           return newRow as T;
         }).filter(row => row[identifierKey]); // Ensure the row has the identifier
 
+        console.log('✅ Procesamiento completado:', mappedData.length, 'registros válidos');
         setPreviewData(mappedData);
       } catch (err) {
         setError('Error al procesar el archivo. Asegúrate de que sea un formato de Excel válido (.xls o .xlsx) y que los encabezados estén en la segunda fila.');

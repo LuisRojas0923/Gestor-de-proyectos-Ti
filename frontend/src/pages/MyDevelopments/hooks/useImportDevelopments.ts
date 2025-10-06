@@ -51,7 +51,7 @@ export function useImportDevelopments() {
     }
 
     try {
-      const url = `${API_CONFIG.BASE_URL.replace('/v1', '')}${API_ENDPOINTS.LEGACY_DEVELOPMENTS_BULK}`;
+      const url = `${API_CONFIG.BASE_URL.replace('/api/v1', '/api')}${API_ENDPOINTS.LEGACY_DEVELOPMENTS_BULK}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -29,6 +29,7 @@ const usePersistedFilters = (filters: any) => {
         if (parsed.moduleFilter) filters.setModuleFilter(parsed.moduleFilter);
         if (parsed.responsibleFilter) filters.setResponsibleFilter(parsed.responsibleFilter);
         if (parsed.statusFilter) filters.setStatusFilter(parsed.statusFilter);
+        if (parsed.stageFilter) filters.setStageFilter(parsed.stageFilter);
         if (parsed.groupBy) filters.setGroupBy(parsed.groupBy);
         console.log('Filtros cargados:', parsed); // Debug
         setIsInitialized(true);
@@ -51,6 +52,7 @@ const usePersistedFilters = (filters: any) => {
         moduleFilter: filters.moduleFilter,
         responsibleFilter: filters.responsibleFilter,
         statusFilter: filters.statusFilter,
+        stageFilter: filters.stageFilter,
         groupBy: filters.groupBy,
       };
       
@@ -65,6 +67,7 @@ const usePersistedFilters = (filters: any) => {
     filters.moduleFilter,
     filters.responsibleFilter,
     filters.statusFilter,
+    filters.stageFilter,
     filters.groupBy
   ]);
 };
@@ -89,6 +92,7 @@ const MyDevelopments: React.FC = () => {
     filters.setModuleFilter('all');
     filters.setResponsibleFilter('all');
     filters.setStatusFilter('all');
+    filters.setStageFilter('all');
     filters.setGroupBy('none');
     addNotification('success', 'Filtros limpiados');
   };
@@ -129,6 +133,68 @@ const MyDevelopments: React.FC = () => {
     return colors[status as keyof typeof colors] || 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
   };
 
+  // Sistema de colores tipo semáforo para actividades de bitácora
+  const getActivityColor = (activity: any) => {
+    if (!activity) return 'text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400';
+    
+    const activityType = activity.activity_type?.toLowerCase();
+    const status = activity.status?.toLowerCase();
+    const stageName = activity.stage_name?.toLowerCase();
+    
+    // Actividades completadas - Verde
+    if (status === 'completada' || activityType === 'cierre_etapa') {
+      return 'text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-300';
+    }
+    
+    // Actividades en curso - Azul
+    if (status === 'en_curso') {
+      return 'text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300';
+    }
+    
+    // Actividades pendientes - Amarillo
+    if (status === 'pendiente') {
+      return 'text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-300';
+    }
+    
+    // Actividades canceladas - Rojo
+    if (status === 'cancelada') {
+      return 'text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-300';
+    }
+    
+    // Por tipo de actividad
+    if (activityType === 'nueva_actividad') {
+      return 'text-purple-700 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300';
+    }
+    
+    if (activityType === 'seguimiento') {
+      return 'text-indigo-700 bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300';
+    }
+    
+    if (activityType === 'cambio_etapa') {
+      return 'text-teal-700 bg-teal-100 dark:bg-teal-900/30 dark:text-teal-300';
+    }
+    
+    if (activityType === 'observacion') {
+      return 'text-orange-700 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-300';
+    }
+    
+    // Por etapa específica si no hay status claro
+    if (stageName) {
+      if (stageName.includes('prueba') || stageName.includes('testing')) {
+        return 'text-orange-700 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-300';
+      }
+      if (stageName.includes('entrega') || stageName.includes('producción')) {
+        return 'text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300';
+      }
+      if (stageName.includes('desarrollo') || stageName.includes('construcción')) {
+        return 'text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-300';
+      }
+    }
+    
+    // Por defecto - Gris
+    return 'text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-300';
+  };
+
   const handleColumnSort = (column: string) => {
     filters.setSortBy(column as any);
     filters.setSortOrder('asc');
@@ -140,6 +206,7 @@ const MyDevelopments: React.FC = () => {
     { value: 'name', label: 'Nombre' },
     { value: 'provider', label: 'Proveedor' },
     { value: 'responsible', label: 'Responsable' },
+    { value: 'stage', label: 'Estado Real' },
     { value: 'status', label: 'Estado' },
     { value: 'module', label: 'Módulo' }
   ];
@@ -148,7 +215,8 @@ const MyDevelopments: React.FC = () => {
     { value: 'none', label: 'Sin agrupar' },
     { value: 'provider', label: 'Agrupar por Proveedor' },
     { value: 'module', label: 'Agrupar por Módulo' },
-    { value: 'responsible', label: 'Agrupar por Responsable' }
+    { value: 'responsible', label: 'Agrupar por Responsable' },
+    { value: 'stage', label: 'Agrupar por Estado Real' }
   ];
 
   return (
@@ -203,7 +271,7 @@ const MyDevelopments: React.FC = () => {
 
         <MaterialCard.Content darkMode={darkMode} className="space-y-3">
           {/* Todos los controles en una sola fila */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-7 gap-2">
             <MaterialTextField
               type="search"
               label="Búsqueda"
@@ -261,6 +329,16 @@ const MyDevelopments: React.FC = () => {
                 ...filters.uniqueStatuses.map(s => ({ value: s, label: s }))
               ]}
             />
+            <MaterialSelect
+              label="Estado Real"
+              value={filters.stageFilter}
+              onChange={(e) => filters.setStageFilter(e.target.value)}
+              darkMode={darkMode}
+              options={[
+                { value: 'all', label: 'Todos' },
+                ...filters.uniqueStages.map(s => ({ value: s, label: s }))
+              ]}
+            />
           </div>
 
           {/* Agrupación en su propia fila compacta */}
@@ -276,6 +354,7 @@ const MyDevelopments: React.FC = () => {
           </div>
         </MaterialCard.Content>
       </MaterialCard>
+
 
       {/* Tabla de Desarrollos */}
       <MaterialCard darkMode={darkMode} elevation={1} className="overflow-hidden">
@@ -303,6 +382,7 @@ const MyDevelopments: React.FC = () => {
                       { key: 'name', label: 'Nombre' },
                       { key: 'responsible', label: 'Responsable' },
                       { key: 'provider', label: 'Proveedor' },
+                      { key: 'stage', label: 'Estado Real (Bitácora)' },
                       { key: 'status', label: 'Estado' }
                     ].map(({ key, label }) => (
                       <th
@@ -344,6 +424,34 @@ const MyDevelopments: React.FC = () => {
                         darkMode ? 'text-neutral-300' : 'text-neutral-600'
                       }`}>
                         {dev.provider ?? 'N/A'}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {dev.last_activity ? (
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActivityColor(dev.last_activity)}`}>
+                              {dev.last_activity.stage_name}
+                            </span>
+                            <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                              {dev.last_activity.status === 'completada' ? '✅' :
+                               dev.last_activity.status === 'en_curso' ? '🔄' :
+                               dev.last_activity.status === 'pendiente' ? '⏳' :
+                               dev.last_activity.status === 'cancelada' ? '❌' : '📝'} {dev.last_activity.activity_type?.replace('_', ' ')}
+                            </span>
+                          </div>
+                        ) : dev.current_stage?.stage_name ? (
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActivityColor(null)}`}>
+                              {dev.current_stage.stage_name}
+                            </span>
+                            <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                              ⚪ Sin actividad en bitácora
+                            </span>
+                          </div>
+                        ) : (
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getActivityColor(null)}`}>
+                            N/A
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${

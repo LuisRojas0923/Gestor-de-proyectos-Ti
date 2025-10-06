@@ -615,6 +615,7 @@ class DevelopmentWithCurrentStatus(Development):
     """Schema de desarrollo con información de fase y etapa actual"""
     current_phase: Optional[DevelopmentPhase] = None
     current_stage: Optional[DevelopmentStage] = None
+    last_activity: Optional[dict] = None
 
     class Config:
         from_attributes = True
