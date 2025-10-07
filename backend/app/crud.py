@@ -117,14 +117,17 @@ def create_developments_bulk(db: Session, developments: List[dev_schemas.Develop
             models.Development.id == dev_data.id
         ).first()
         
+        
         # Preparar datos del desarrollo (excluyendo campos de responsable)
         dev_dict = dev_data.dict()
         responsible_firstname = dev_dict.pop('responsible_firstname', None)
         responsible_lastname = dev_dict.pop('responsible_lastname', None)
         
+        
         if existing_dev:
             # Solo actualizar el responsable, NO tocar otros campos del desarrollo
             responsible_updated = False
+            
             
             if responsible_firstname and responsible_lastname:
                 _update_or_create_responsible(
