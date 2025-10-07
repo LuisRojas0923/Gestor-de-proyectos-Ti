@@ -98,7 +98,7 @@ def create_development(db: Session, development: dev_schemas.DevelopmentCreate):
     return db_development
 
 def create_developments_bulk(db: Session, developments: List[dev_schemas.DevelopmentCreate]):
-    """Create multiple developments in bulk, updating state for existing ones"""
+    """Create multiple developments in bulk, updating state for existing ones and managing responsibles"""
     created_developments = []
     updated_developments = []
     skipped_developments = []
@@ -111,34 +111,52 @@ def create_developments_bulk(db: Session, developments: List[dev_schemas.Develop
                 "reason": "ID inválido - no es formato Remedy"
             })
             continue
+            
         # Verificar si el desarrollo ya existe
         existing_dev = db.query(models.Development).filter(
             models.Development.id == dev_data.id
         ).first()
         
+        # Preparar datos del desarrollo (excluyendo campos de responsable)
+        dev_dict = dev_data.dict()
+        responsible_firstname = dev_dict.pop('responsible_firstname', None)
+        responsible_lastname = dev_dict.pop('responsible_lastname', None)
+        
         if existing_dev:
-            # Verificar si el estado es diferente
-            if existing_dev.general_status != dev_data.general_status:
-                # Actualizar solo el estado del desarrollo existente
-                existing_dev.general_status = dev_data.general_status
-                existing_dev.updated_at = datetime.utcnow()
+            # Solo actualizar el responsable, NO tocar otros campos del desarrollo
+            responsible_updated = False
+            
+            if responsible_firstname and responsible_lastname:
+                _update_or_create_responsible(
+                    db, existing_dev.id, 
+                    responsible_firstname, responsible_lastname
+                )
+                responsible_updated = True
+            
+            if responsible_updated:
                 updated_developments.append({
                     "id": existing_dev.id,
-                    "old_status": existing_dev.general_status,
-                    "new_status": dev_data.general_status,
-                    "development": existing_dev
+                    "development": existing_dev,
+                    "responsible_updated": True
                 })
             else:
-                # Estado igual, no hacer nada
                 skipped_developments.append({
                     "id": existing_dev.id,
-                    "status": existing_dev.general_status,
-                    "reason": "Estado igual"
+                    "reason": "Desarrollo existente sin cambios en responsable"
                 })
         else:
             # Crear nuevo desarrollo
-            new_dev = models.Development(**dev_data.dict())
+            new_dev = models.Development(**dev_dict)
             db.add(new_dev)
+            db.flush()  # Para obtener el ID
+            
+            # Crear responsable si hay datos
+            if responsible_firstname and responsible_lastname:
+                _create_responsible(
+                    db, new_dev.id, 
+                    responsible_firstname, responsible_lastname
+                )
+            
             created_developments.append(new_dev)
     
     try:
@@ -404,3 +422,46 @@ def get_pending_and_in_progress_activities(db: Session, limit: int = 10, status:
     ).limit(limit).all()
     
     return activities
+
+
+def _create_responsible(db: Session, development_id: str, firstname: str, lastname: str):
+    """Crear un nuevo responsable para un desarrollo"""
+    user_name = f"{firstname.strip()} {lastname.strip()}".strip()
+    
+    responsible = models.DevelopmentResponsible(
+        development_id=development_id,
+        user_name=user_name,
+        role_type='solicitante',
+        is_primary=True,
+        assigned_date=datetime.utcnow()
+    )
+    db.add(responsible)
+    return responsible
+
+
+def _update_or_create_responsible(db: Session, development_id: str, firstname: str, lastname: str):
+    """Actualizar responsable existente o crear uno nuevo"""
+    user_name = f"{firstname.strip()} {lastname.strip()}".strip()
+    
+    # Buscar responsable principal existente
+    existing_responsible = db.query(models.DevelopmentResponsible).filter(
+        and_(
+            models.DevelopmentResponsible.development_id == development_id,
+            models.DevelopmentResponsible.is_primary == True
+        )
+    ).first()
+    
+    if existing_responsible:
+        # Actualizar responsable existente
+        existing_responsible.user_name = user_name
+        existing_responsible.assigned_date = datetime.utcnow()
+    else:
+        # Crear nuevo responsable
+        responsible = models.DevelopmentResponsible(
+            development_id=development_id,
+            user_name=user_name,
+            role_type='solicitante',
+            is_primary=True,
+            assigned_date=datetime.utcnow()
+        )
+        db.add(responsible)

@@ -14,6 +14,8 @@ interface ImportModalProps {
 const columnMapping = {
   'ID de la incidencia*+': 'id', // El texto será el ID, el hipervínculo será remedy_link
   'Usuario asignado+': 'responsible', // Campo Responsable de la aplicación
+  'Apellidos+': 'responsible_lastname', // Apellidos del responsable
+  'Nombre+': 'responsible_firstname', // Nombre del responsable
   'Resumen*': 'name', // Nombre del desarrollo
   'Estado*': 'general_status', // Mapear Estado* del Excel al general_status
   'Fecha de envío': 'start_date',

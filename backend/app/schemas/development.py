@@ -140,6 +140,10 @@ class DevelopmentBase(BaseModel):
     estimated_end_date: Optional[date] = Field(None, description="Fecha estimada de fin")
     provider: Optional[str] = Field(None, max_length=100, description="Proveedor principal")
     responsible: Optional[str] = Field(None, max_length=255, description="Responsable principal del desarrollo")
+    
+    # Campos para importación de Excel - Información del responsable
+    responsible_lastname: Optional[str] = Field(None, max_length=100, description="Apellidos del responsable")
+    responsible_firstname: Optional[str] = Field(None, max_length=100, description="Nombre del responsable")
 
     @validator('general_status')
     def validate_general_status(cls, v):

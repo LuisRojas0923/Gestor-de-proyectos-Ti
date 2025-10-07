@@ -101,6 +101,9 @@ export interface DevelopmentWithCurrentStatus extends Development {
   main_responsible?: string;
   start_date?: string;
   estimated_days?: number;
+  // Campos para importación de Excel
+  responsible_lastname?: string;
+  responsible_firstname?: string;
   incidents?: Array<{
     id: number;
     description: string;
