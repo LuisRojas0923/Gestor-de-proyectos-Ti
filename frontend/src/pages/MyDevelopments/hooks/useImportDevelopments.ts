@@ -52,19 +52,26 @@ export function useImportDevelopments() {
 
     try {
       const url = `${API_CONFIG.BASE_URL.replace('/api/v1', '/api')}${API_ENDPOINTS.LEGACY_DEVELOPMENTS_BULK}`;
+      console.log('🔍 DEBUG Import: URL:', url);
+      console.log('🔍 DEBUG Import: Data:', validData);
+      
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validData),
       });
 
+      console.log('🔍 DEBUG Import: Response status:', response.status);
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: 'Error desconocido' }));
+        console.log('🔍 DEBUG Import: Error response:', errorData);
         addNotification('error', `Error al importar: ${errorData.detail ?? 'Error desconocido'}`);
         return false;
       }
 
       const result = await response.json();
+      console.log('🔍 DEBUG Import: Success response:', result);
       const summary = result?.data?.summary;
       if (summary) {
         const parts: string[] = [];
