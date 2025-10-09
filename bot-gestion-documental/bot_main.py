@@ -2,9 +2,11 @@ import json
 import os
 import shutil
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
 
 from bot_api_client import APIClient
 from bot_models import map_dev_to_row
@@ -17,30 +19,52 @@ from bot_file_manager import (
 from bot_ui_components import setup_tree_columns, fill_tree
 
 
-class DocumentBotApp(tk.Tk):
+class DocumentBotApp(ttk.Window):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(themename="darkly")  # Usar tema oscuro moderno
         self.title("Bot de Gestión Documental")
         self.geometry("1400x600")
         self._build_ui()
-        # Ejecutar automáticamente acciones al iniciar
-        self.after(150, self._auto_load)
+        # Auto-load deshabilitado - el usuario debe usar "Actualizar Todo" manualmente
+        # self.after(150, self._auto_load)
 
     def _build_ui(self) -> None:
         container = ttk.Frame(self, padding=16)
         container.pack(fill=tk.BOTH, expand=True)
 
+        # Título
         title = ttk.Label(container, text="Bot de Gestión Documental", font=("Segoe UI", 14, "bold"))
-        title.pack(anchor=tk.W, pady=(0, 8))
+        title.pack(anchor=tk.W, pady=(0, 12))
 
-        controls = ttk.Frame(container)
+        # Botones principales en la parte superior
+        actions = ttk.Frame(container)
+        actions.pack(fill=tk.X, pady=(0, 12))
+        
+        # Botón principal "Actualizar" que combina API y carpetas
+        ttk.Button(actions, text="🔄 Actualizar Todo", command=self._on_update_all, bootstyle="primary", width=15).pack(side=tk.LEFT, padx=(0, 8))
+        
+        # Separador visual
+        ttk.Separator(actions, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
+        
+        # Botones de acción específicos
+        ttk.Button(actions, text="Ver etapas", command=self._on_view_stages, bootstyle="success").pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Button(actions, text="Abrir carpeta", command=self._on_open_folder, bootstyle="warning").pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Button(actions, text="Cambiar etapa", command=self._on_change_stage, bootstyle="secondary").pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Button(actions, text="Procesar seleccionados", command=self._on_process_selected, bootstyle="outline-primary").pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Button(actions, text="Validar y Reorganizar", command=self._on_validate_and_reorganize, bootstyle="outline-success").pack(side=tk.LEFT, padx=(0, 8))
+        
+        # Botón salir a la derecha
+        ttk.Button(actions, text="Salir", command=self.destroy, bootstyle="danger").pack(side=tk.RIGHT)
+
+        # Panel de filtros
+        controls = ttk.LabelFrame(container, text="Filtros", padding=8)
         controls.pack(fill=tk.X, pady=(0, 12))
 
         # Filtros básicos
         self.filter_var = tk.StringVar()
-        ttk.Label(controls, text="Filtro:").pack(side=tk.LEFT)
+        ttk.Label(controls, text="Buscar:").pack(side=tk.LEFT)
         ttk.Entry(controls, textvariable=self.filter_var, width=20).pack(side=tk.LEFT, padx=8)
-        ttk.Button(controls, text="Buscar", command=self._on_search).pack(side=tk.LEFT)
+        ttk.Button(controls, text="Buscar", command=self._on_search, bootstyle="outline-info").pack(side=tk.LEFT)
         
         # Filtros avanzados
         ttk.Label(controls, text="Estado:").pack(side=tk.LEFT, padx=(16, 4))
@@ -55,8 +79,9 @@ class DocumentBotApp(tk.Tk):
         provider_entry = ttk.Entry(controls, textvariable=self.provider_var, width=15)
         provider_entry.pack(side=tk.LEFT, padx=4)
         
-        ttk.Button(controls, text="Filtrar", command=self._on_advanced_filter).pack(side=tk.LEFT, padx=8)
+        ttk.Button(controls, text="Filtrar", command=self._on_advanced_filter, bootstyle="outline-secondary").pack(side=tk.LEFT, padx=8)
 
+        # TreeView principal
         self.tree = ttk.Treeview(container)
         setup_tree_columns(self.tree)
         self.tree.pack(fill=tk.BOTH, expand=True)
@@ -64,22 +89,42 @@ class DocumentBotApp(tk.Tk):
         # Doble clic para ver etapas
         self.tree.bind("<Double-1>", self._on_double_click)
 
-        actions = ttk.Frame(container)
-        actions.pack(fill=tk.X, pady=(12, 0))
-        ttk.Button(actions, text="Cargar desde API", command=self._on_load_from_api_fast).pack(side=tk.LEFT)
-        ttk.Button(actions, text="Analizar carpetas", command=self._on_scan_folders).pack(side=tk.LEFT, padx=8)
-        ttk.Button(actions, text="Ver etapas", command=self._on_view_stages).pack(side=tk.LEFT, padx=8)
-        ttk.Button(actions, text="Abrir carpeta", command=self._on_open_folder).pack(side=tk.LEFT, padx=8)
-        ttk.Button(actions, text="Cambiar etapa", command=self._on_change_stage).pack(side=tk.LEFT, padx=8)
-        ttk.Button(actions, text="Procesar seleccionados", command=self._on_process_selected).pack(side=tk.LEFT, padx=8)
-        ttk.Button(actions, text="Validar y Reorganizar", command=self._on_validate_and_reorganize).pack(side=tk.LEFT, padx=8)
-        ttk.Button(actions, text="Salir", command=self.destroy).pack(side=tk.RIGHT)
-
         self._seed_rows()
 
     def _seed_rows(self) -> None:
         # Dejar vacío inicialmente; se poblará desde API
         pass
+
+    def _on_update_all(self) -> None:
+        """Función que combina carga desde API y análisis de carpetas"""
+        try:
+            # Mostrar mensaje de inicio
+            messagebox.showinfo("Actualizando", "🔄 Actualizando datos desde API y analizando carpetas...")
+            
+            # Ejecutar en hilo separado para no bloquear la UI
+            def update_thread():
+                try:
+                    # Primero cargar desde API
+                    self._load_from_api_fast(silent=True)
+                    
+                    # Luego analizar carpetas
+                    self._scan_folders(silent=True)
+                    
+                    # Mostrar mensaje de éxito en el hilo principal
+                    self.after(0, lambda: messagebox.showinfo("Actualización Completada", 
+                        "✅ Datos actualizados exitosamente:\n• Cargados desde API\n• Carpetas analizadas"))
+                        
+                except Exception as e:
+                    # Capturar el mensaje de error para usar en la lambda
+                    error_msg = str(e)
+                    # Mostrar error en el hilo principal
+                    self.after(0, lambda: messagebox.showerror("Error", f"❌ Error durante la actualización: {error_msg}"))
+            
+            # Iniciar hilo de actualización
+            threading.Thread(target=update_thread, daemon=True).start()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo iniciar la actualización: {e}")
 
     def _on_search(self) -> None:
         term = self.filter_var.get().strip().lower()
@@ -148,7 +193,18 @@ class DocumentBotApp(tk.Tk):
                     stage_name, 
                     ruta
                 )
-                rows.append((row.id, row.name, row.general_status or "", stage_name, ruta, action))
+                # Formatear información de última actividad
+                last_activity_info = ""
+                if row.last_activity_stage and row.last_activity_type:
+                    last_activity_info = f"{row.last_activity_stage} ({row.last_activity_type})"
+                elif row.last_activity_stage:
+                    last_activity_info = row.last_activity_stage
+                elif row.last_activity_type:
+                    last_activity_info = row.last_activity_type
+                else:
+                    last_activity_info = "Sin actividad"
+                
+                rows.append((row.id, row.name, row.general_status or "", stage_name, last_activity_info, ruta, action))
             fill_tree(self.tree, rows)
             
             messagebox.showinfo("Filtro aplicado", f"Mostrando {len(rows)} desarrollos con filtros aplicados")
@@ -298,7 +354,18 @@ class DocumentBotApp(tk.Tk):
                     stage_name, 
                     ruta
                 )
-                rows.append((row.id, row.name, row.general_status or "", stage_name, ruta, action))
+                # Formatear información de última actividad
+                last_activity_info = ""
+                if row.last_activity_stage and row.last_activity_type:
+                    last_activity_info = f"{row.last_activity_stage} ({row.last_activity_type})"
+                elif row.last_activity_stage:
+                    last_activity_info = row.last_activity_stage
+                elif row.last_activity_type:
+                    last_activity_info = row.last_activity_type
+                else:
+                    last_activity_info = "Sin actividad"
+                
+                rows.append((row.id, row.name, row.general_status or "", stage_name, last_activity_info, ruta, action))
             
             fill_tree(self.tree, rows)
             
@@ -345,7 +412,18 @@ class DocumentBotApp(tk.Tk):
                     stage_name, 
                     ruta
                 )
-                rows.append((row.id, row.name, row.general_status or "", stage_name, ruta, action))
+                # Formatear información de última actividad
+                last_activity_info = ""
+                if row.last_activity_stage and row.last_activity_type:
+                    last_activity_info = f"{row.last_activity_stage} ({row.last_activity_type})"
+                elif row.last_activity_stage:
+                    last_activity_info = row.last_activity_stage
+                elif row.last_activity_type:
+                    last_activity_info = row.last_activity_type
+                else:
+                    last_activity_info = "Sin actividad"
+                
+                rows.append((row.id, row.name, row.general_status or "", stage_name, last_activity_info, ruta, action))
             fill_tree(self.tree, rows)
             # Silencioso en auto-load para no interrumpir con diálogos
         except Exception as e:
@@ -948,12 +1026,11 @@ class DocumentBotApp(tk.Tk):
         ttk.Button(button_frame, text="Cerrar", command=result_window.destroy).pack(side=tk.RIGHT)
 
     def _auto_load(self) -> None:
-        """Carga automática al iniciar: API + análisis de carpetas"""
+        """Carga automática al iniciar usando la nueva función de actualización"""
         try:
-            # Cargar desde API primero (modo silencioso y rápido)
-            self._on_load_from_api_fast(silent=True)
-            # Luego analizar carpetas
-            self._on_scan_folders()
+            # Usar la nueva función de actualización completa en modo silencioso
+            self._load_from_api_fast(silent=True)
+            self._scan_folders(silent=True)
         except Exception as e:
             print(f"AUTO-LOAD ERROR: {e}")
             # No mostrar diálogos de error en auto-load

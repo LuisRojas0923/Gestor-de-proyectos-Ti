@@ -6,7 +6,7 @@ interface WizardStep1Props {
   actorType: string;
   status: string;
   startDate: string;
-  stages: Array<{ id: number; stage_name: string }>;
+  stages: Array<{ id: number; stage_name: string; stage_code: string }>;
   onStageChange: (stageId: number) => void;
   onActivityTypeChange: (type: string) => void;
   onActorTypeChange: (actor: string) => void;
@@ -42,7 +42,7 @@ export const WizardStep1: React.FC<WizardStep1Props> = ({
         >
           {stages.length === 0 && <option value={stageId}>{`${stageId}`}</option>}
           {stages.map(s => (
-            <option key={s.id} value={s.id}>{`${s.id}. ${s.stage_name}`}</option>
+            <option key={s.id} value={s.id}>{`${s.stage_code} - ${s.stage_name}`}</option>
           ))}
         </select>
       </div>

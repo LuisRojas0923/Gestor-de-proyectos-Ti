@@ -58,7 +58,7 @@ export const ActivityCreateModal: React.FC<ActivityCreateModalProps> = ({
   });
 
   // API state
-  const [stages, setStages] = useState<Array<{ id: number; stage_name: string }>>([]);
+  const [stages, setStages] = useState<Array<{ id: number; stage_name: string; stage_code: string }>>([]);
   const [fieldConfig, setFieldConfig] = useState<StageFieldConfigResponse | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -118,10 +118,18 @@ export const ActivityCreateModal: React.FC<ActivityCreateModalProps> = ({
     const loadStages = async () => {
       const list = await get(API_ENDPOINTS.STAGES);
       if (Array.isArray(list)) {
-        setStages(list.map((s: { id: number; stage_name?: string; name?: string; stage?: string }) => ({ 
+        const mappedStages = list.map((s: { id: number; stage_name?: string; name?: string; stage?: string; stage_code?: string }) => ({ 
           id: s.id, 
-          stage_name: s.stage_name || String(s.name || s.stage || s.id) 
-        })));
+          stage_name: s.stage_name || String(s.name || s.stage || s.id),
+          stage_code: s.stage_code || ''
+        }));
+        
+        // Ordenar por stage_code
+        const sortedStages = mappedStages.sort((a, b) => {
+          return a.stage_code.localeCompare(b.stage_code);
+        });
+        
+        setStages(sortedStages);
       }
     };
     loadStages();

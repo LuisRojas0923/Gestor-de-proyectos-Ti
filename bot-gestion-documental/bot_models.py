@@ -12,6 +12,8 @@ class DevelopmentRow:
     provider: Optional[str] = None
     current_phase: Optional[str] = None
     current_stage: Optional[str] = None
+    last_activity_stage: Optional[str] = None
+    last_activity_type: Optional[str] = None
 
 
 def map_dev_to_row(dev: dict) -> DevelopmentRow:
@@ -24,6 +26,15 @@ def map_dev_to_row(dev: dict) -> DevelopmentRow:
     stage_name = None
     if isinstance(dev.get("current_stage"), dict):
         stage_name = dev["current_stage"].get("stage_name") or dev["current_stage"].get("name")
+    
+    # Extraer información de la última actividad
+    last_activity_stage = None
+    last_activity_type = None
+    if isinstance(dev.get("last_activity"), dict):
+        last_activity = dev["last_activity"]
+        last_activity_stage = last_activity.get("stage_name")
+        last_activity_type = last_activity.get("activity_type")
+    
     return DevelopmentRow(
         id=str(dev.get("id", "N/A")),
         name=str(dev.get("name", "N/A")),
@@ -31,6 +42,8 @@ def map_dev_to_row(dev: dict) -> DevelopmentRow:
         provider=dev.get("provider"),
         current_phase=phase_name,
         current_stage=stage_name,
+        last_activity_stage=last_activity_stage,
+        last_activity_type=last_activity_type,
     )
 
 
