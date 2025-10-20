@@ -105,10 +105,10 @@ class DocumentBotApp(ttk.Window):
             def update_thread():
                 try:
                     # Primero cargar desde API
-                    self._load_from_api_fast(silent=True)
+                    self._on_load_from_api_fast(silent=True)
                     
                     # Luego analizar carpetas
-                    self._scan_folders(silent=True)
+                    self._on_scan_folders()
                     
                     # Mostrar mensaje de éxito en el hilo principal
                     self.after(0, lambda: messagebox.showinfo("Actualización Completada", 

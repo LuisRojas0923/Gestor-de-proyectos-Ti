@@ -681,3 +681,11 @@ $$;
 -- Probar ambos stored procedures corregidos
 SELECT * FROM fn_kpi_calidad_primera_entrega();
 SELECT * FROM fn_kpi_calidad_primera_entrega_detalle();
+
+--@block
+SELECT dr.user_name, d.name  
+FROM developments d
+JOIN development_responsibles dr ON d.id = dr.development_id
+WHERE dr.user_name in  ('Maritza Fernanda Forero Parra' , 'Pedro Castro Llanos')
+AND d.responsible = 'Luis Enrique Rojas Villota';
+

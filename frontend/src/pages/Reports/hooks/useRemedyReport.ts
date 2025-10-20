@@ -140,10 +140,10 @@ export const useRemedyReport = () => {
         queryParams.append('status_filter', currentFilters.status_filter);
       }
       if (currentFilters.provider_filter) {
-        queryParams.append('provider_filter', currentFilters.provider_filter);
+        queryParams.append('provider', currentFilters.provider_filter);
       }
       if (currentFilters.module_filter) {
-        queryParams.append('module_filter', currentFilters.module_filter);
+        queryParams.append('module', currentFilters.module_filter);
       }
       if (currentFilters.start_date) {
         queryParams.append('start_date', currentFilters.start_date);
@@ -152,8 +152,8 @@ export const useRemedyReport = () => {
         queryParams.append('end_date', currentFilters.end_date);
       }
       
-      // Temporal: usar endpoint base mientras se corrige el endpoint específico
-      const url = `${API_CONFIG.BASE_URL}/developments/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      // Usar endpoint legacy que tiene el filtro implementado
+      const url = `http://localhost:8000/api/legacy/developments${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       
       const response = await fetch(url);
       

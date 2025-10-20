@@ -18,109 +18,16 @@ def get_developments(
     skip: int = 0,
     limit: int = 100,
     status: Optional[str] = None,
-    status_filter: Optional[str] = None,
     provider: Optional[str] = None,
-    module: Optional[str] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """Listar desarrollos con filtros opcionales"""
-    try:
-        from sqlalchemy.orm import joinedload
-        from sqlalchemy import and_, or_
-        from datetime import datetime
-        
-        query = db.query(models.Development).options(
-            joinedload(models.Development.current_phase),
-            joinedload(models.Development.current_stage)
-        )
-        
-        # Aplicar filtros
-        if status_filter:
-            if status_filter == 'en_curso_pendiente':
-                # Filtrar por estados "En curso" y "Pendiente" (solo estos dos)
-                query = query.filter(
-                    or_(
-                        models.Development.general_status == 'En curso',
-                        models.Development.general_status == 'Pendiente'
-                    )
-                )
-            else:
-                query = query.filter(models.Development.general_status == status_filter)
-        elif status:
-            query = query.filter(models.Development.general_status == status)
-        
-        if provider:
-            query = query.filter(models.Development.provider.ilike(f"%{provider}%"))
-        
-        if module:
-            query = query.filter(models.Development.module.ilike(f"%{module}%"))
-        
-        if start_date:
-            start_datetime = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-            query = query.filter(models.Development.created_at >= start_datetime)
-        
-        if end_date:
-            end_datetime = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-            query = query.filter(models.Development.created_at <= end_datetime)
-        
-        # Ordenamiento por defecto: activos primero, cancelados/completados al final
-        from sqlalchemy import case
-        query = query.order_by(
-            # Prioridad por estado: Pendiente y En curso primero, Completado y Cancelado al final
-            case(
-                (models.Development.general_status == 'Pendiente', 1),
-                (models.Development.general_status == 'En curso', 2),
-                (models.Development.general_status == 'en_progreso', 2),
-                (models.Development.general_status == 'pendiente', 1),
-                (models.Development.general_status == 'Completado', 3),
-                (models.Development.general_status == 'Cancelado', 4),
-                else_=5  # Cualquier otro estado
-            ),
-            # Dentro del mismo grupo de estado, ordenar por fecha de actualización más reciente
-            models.Development.updated_at.desc()
-        )
-        
-        developments = query.offset(skip).limit(limit).all()
-        
-        # Agregar información de última actividad para cada desarrollo
-        for development in developments:
-            # Obtener la última actividad del desarrollo con JOIN a development_stages
-            last_activity_query = db.query(
-                models.DevelopmentActivityLog,
-                models.DevelopmentStage.stage_name
-            ).join(
-                models.DevelopmentStage, 
-                models.DevelopmentActivityLog.stage_id == models.DevelopmentStage.id
-            ).filter(
-                models.DevelopmentActivityLog.development_id == development.id
-            ).order_by(
-                models.DevelopmentActivityLog.created_at.desc()
-            ).first()
-            
-            if last_activity_query:
-                activity_log, stage_name = last_activity_query
-                development.last_activity = {
-                    "id": activity_log.id,
-                    "stage_id": activity_log.stage_id,
-                    "stage_name": stage_name,
-                    "activity_type": activity_log.activity_type,
-                    "status": activity_log.status,
-                    "created_at": activity_log.created_at.isoformat() if activity_log.created_at else None,
-                    "notes": activity_log.notes,
-                    "dynamic_payload": activity_log.dynamic_payload
-                }
-            else:
-                development.last_activity = None
-        
-        return developments
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error obteniendo desarrollos: {str(e)}"
-        )
+    if status:
+        return crud.get_developments_by_status(db, status, skip, limit)
+    elif provider:
+        return crud.get_developments_by_provider(db, provider, skip, limit)
+    else:
+        return crud.get_developments(db, skip, limit)
 
 
 @router.post("/", response_model=dev_schemas.Development)
