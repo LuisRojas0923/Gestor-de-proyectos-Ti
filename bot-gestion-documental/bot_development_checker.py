@@ -165,7 +165,7 @@ class DevelopmentChecker:
         }
         
         # Verificar cada control TI
-        for control_code in self.ti_manager.ti_controls.keys():
+        for control_code in self.ti_manager.ti_controls:
             control_result = self._check_control_for_development(
                 dev_id, folder_path, control_code
             )
