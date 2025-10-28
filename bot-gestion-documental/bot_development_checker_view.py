@@ -92,7 +92,7 @@ class DevelopmentCheckerView(Toplevel):
         check_frame = ttk.Frame(filter_frame)
         check_frame.pack(fill=X, pady=(5, 0))
         
-        self.filter_with_service_var = ttk.BooleanVar(value=False)
+        self.filter_with_service_var = ttk.BooleanVar(value=True)
         self.service_check = ttk.Checkbutton(
             check_frame, 
             text="Solo desarrollos en BD con carpeta creada",
@@ -253,7 +253,7 @@ class DevelopmentCheckerView(Toplevel):
         """Limpiar todos los filtros"""
         self.search_var.set("")
         self.phase_var.set("Todas las fases")
-        self.filter_with_service_var.set(False)
+        self.filter_with_service_var.set(True)
         self.filtered_results = self.check_results.copy()
         self._populate_tree()
         self._log("🗑️ Filtros limpiados")

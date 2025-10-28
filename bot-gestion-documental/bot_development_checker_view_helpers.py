@@ -35,6 +35,8 @@ def populate_tree(view) -> None:
             status_icon = "⚠️"
         elif status == 'INCOMPLETE':
             status_icon = "❌"
+        elif status == 'NO_FOLDER':
+            status_icon = "📁"
         else:
             status_icon = "❓"
         

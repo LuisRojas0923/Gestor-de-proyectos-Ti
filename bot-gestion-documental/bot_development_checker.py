@@ -8,10 +8,10 @@ según los controles TI aplicables.
 
 import os
 import re
-import requests
 from typing import List, Dict, Any, Callable
 from datetime import datetime
 from bot_ti_controls_manager import TIControlsManager
+from bot_development_checker_service_helpers import DevelopmentCheckerServiceHelpers
 
 
 class DevelopmentChecker:
@@ -21,22 +21,15 @@ class DevelopmentChecker:
         self.base_path = base_path
         self._log = logger
         self.ti_manager = TIControlsManager(base_path, logger)
+        self.service_helpers = DevelopmentCheckerServiceHelpers(logger)
     
     def get_developments_from_service(self) -> List[str]:
         """Obtener IDs de desarrollos desde el servicio"""
-        try:
-            response = requests.get("http://localhost:8000/api/v1/developments", timeout=30)
-            if response.status_code == 200:
-                data = response.json()
-                dev_ids = [dev.get('id', '') for dev in data if dev.get('id')]
-                self._log(f"📊 Obtenidos {len(dev_ids)} desarrollos del servicio")
-                return dev_ids
-            else:
-                self._log(f"❌ Error en servicio: {response.status_code}")
-                return []
-        except Exception as e:
-            self._log(f"❌ Error obteniendo desarrollos del servicio: {e}")
-            return []
+        return self.service_helpers.get_developments_from_service()
+    
+    def get_developments_from_service_with_details(self) -> List[Dict[str, Any]]:
+        """Obtener desarrollos completos desde el servicio"""
+        return self.service_helpers.get_developments_from_service_with_details()
     
     def check_all_developments(self, filter_by_service: bool = False) -> List[Dict[str, Any]]:
         """
@@ -50,31 +43,66 @@ class DevelopmentChecker:
         """
         self._log("🔍 Iniciando verificación de archivos en desarrollos...")
         
-        # Obtener IDs del servicio si es necesario
-        service_dev_ids = set()
-        if filter_by_service:
-            service_dev_ids = set(self.get_developments_from_service())
-            if not service_dev_ids:
-                self._log("⚠️ No se pudieron obtener desarrollos del servicio")
-                return []
+        # Obtener desarrollos del servicio
+        service_developments = self.get_developments_from_service_with_details()
         
-        # Obtener todas las carpetas de desarrollos
+        if filter_by_service and not service_developments:
+            self._log("⚠️ No se pudieron obtener desarrollos del servicio")
+            return []
+        
+        # Obtener todas las carpetas de desarrollos físicas
         development_folders = self._get_development_folders()
-        
-        results = []
+        folder_map = {}
         for folder_path in development_folders:
             folder_name = os.path.basename(folder_path)
             dev_id = self._extract_dev_id_from_folder(folder_name)
-            
-            # Filtrar por servicio si es necesario
-            if filter_by_service and dev_id not in service_dev_ids:
-                continue
-            
-            # Obtener la fase del desarrollo
-            phase = os.path.basename(os.path.dirname(folder_path))
-            
             if dev_id:
-                result = self._check_single_development(dev_id, folder_path, folder_name, phase)
+                folder_map[dev_id] = {
+                    'path': folder_path,
+                    'name': folder_name,
+                    'phase': os.path.basename(os.path.dirname(folder_path))
+                }
+        
+        results = []
+        
+        # Si filtro por servicio, usar solo desarrollos del servicio
+        if filter_by_service:
+            for dev in service_developments:
+                dev_id = dev.get('id', '')
+                if dev_id in folder_map:
+                    # Desarrollo tiene carpeta física
+                    folder_info = folder_map[dev_id]
+                    result = self._check_single_development(
+                        dev_id, folder_info['path'], folder_info['name'], folder_info['phase']
+                    )
+                    results.append(result)
+        else:
+            # Mostrar todos los desarrollos del servicio, con o sin carpeta
+            for dev in service_developments:
+                dev_id = dev.get('id', '')
+                name = dev.get('name', 'N/A')
+                stage = dev.get('current_stage', 'N/A')
+                
+                if dev_id in folder_map:
+                    # Desarrollo tiene carpeta física
+                    folder_info = folder_map[dev_id]
+                    result = self._check_single_development(
+                        dev_id, folder_info['path'], folder_info['name'], folder_info['phase']
+                    )
+                else:
+                    # Desarrollo sin carpeta física
+                    result = {
+                        'dev_id': dev_id,
+                        'folder_name': f"{dev_id}_{name}",
+                        'folder_path': "No encontrada",
+                        'phase': stage,
+                        'controls_status': {},
+                        'overall_status': 'NO_FOLDER',
+                        'total_files_found': 0,
+                        'total_files_required': 0,
+                        'can_copy_any': False
+                    }
+                
                 results.append(result)
         
         self._log(f"✅ Verificación completada: {len(results)} desarrollos procesados")
