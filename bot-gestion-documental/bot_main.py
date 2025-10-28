@@ -17,6 +17,7 @@ from bot_controls_view import ControlsView
 from bot_filter_manager import FilterManager
 from bot_ti_controls_view import TIControlsView
 from bot_docker_view import DockerView
+from bot_main_helpers import BotMainHelpers
 
 
 class SimpleDocumentBot:
@@ -32,6 +33,7 @@ class SimpleDocumentBot:
         self.developments = []
         self.ui_helpers = UIHelpers(self.base_path, self._log)
         self.quality_validator = QualityControlValidator(self.base_path, self._log)
+        self.main_helpers = BotMainHelpers(self._log)
         
         # Crear interfaz
         self._create_ui()
@@ -56,6 +58,7 @@ class SimpleDocumentBot:
         ttk.Button(button_frame, text="📋 Validar Controles", command=self._validate_controls, bootstyle=WARNING).pack(side=LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="📂 Gestionar Controles TI", command=self._open_ti_controls, bootstyle=INFO).pack(side=LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="🐳 Docker", command=self._open_docker_view, bootstyle=SECONDARY).pack(side=LEFT, padx=(0, 5))
+        ttk.Button(button_frame, text="🔍 Verificar Desarrollos", command=self._open_development_checker, bootstyle=INFO).pack(side=LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="❌ Cerrar", command=self._close_bot, bootstyle=DANGER).pack(side=LEFT, padx=(0, 5))
         
         # Filtros
@@ -261,6 +264,10 @@ class SimpleDocumentBot:
         except Exception as e:
             self._log(f"❌ Error abriendo vista de Docker: {e}")
             messagebox.showerror("Error", f"Error abriendo vista de Docker: {e}")
+    
+    def _open_development_checker(self):
+        """Abrir vista de verificación de desarrollos"""
+        self.main_helpers.open_development_checker(self.root, self.base_path)
     
     def _on_double_click(self, event):
         """Manejar doble clic en tree"""
