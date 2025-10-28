@@ -214,7 +214,7 @@ class DevelopmentChecker:
         }
     
     def _search_file_in_folder(self, folder_path: str, filename: str) -> bool:
-        """Buscar archivo en una carpeta específica de desarrollo (búsqueda flexible)"""
+        """Buscar archivo en una carpeta específica de desarrollo (búsqueda inteligente)"""
         try:
             if not os.path.exists(folder_path):
                 return False
@@ -224,13 +224,19 @@ class DevelopmentChecker:
             if os.path.exists(exact_path):
                 return True
             
-            # Buscar archivo con nombre similar (ignorando mayúsculas)
-            # Solo en la carpeta del desarrollo, no recursivamente
+            # Crear patrones de búsqueda más inteligentes
+            search_patterns = self._create_search_patterns(filename)
+            
             try:
                 files = os.listdir(folder_path)
                 for file in files:
-                    if filename.lower() in file.lower():
-                        return True
+                    file_lower = file.lower()
+                    
+                    # Verificar cada patrón de búsqueda
+                    for pattern in search_patterns:
+                        if pattern in file_lower:
+                            return True
+                            
             except Exception:
                 pass
             
@@ -239,6 +245,47 @@ class DevelopmentChecker:
         except Exception as e:
             self._log(f"❌ Error buscando archivo {filename} en {folder_path}: {e}")
             return False
+    
+    def _create_search_patterns(self, filename: str) -> List[str]:
+        """Crear patrones de búsqueda inteligentes basados en el nombre del archivo"""
+        patterns = []
+        filename_lower = filename.lower()
+        
+        # Patrón original completo
+        patterns.append(filename_lower)
+        
+        # Extraer códigos específicos (ej: FD-FT-284, FD-FT-060)
+        import re
+        code_matches = re.findall(r'[a-z]+-[a-z]+-\d+', filename_lower)
+        for code in code_matches:
+            patterns.append(code)
+        
+        # Extraer números (ej: 284, 060)
+        number_matches = re.findall(r'\d+', filename_lower)
+        for number in number_matches:
+            patterns.append(number)
+        
+        # Palabras clave específicas
+        keywords = {
+            'requerimiento': ['requerimiento', 'requerimientos', 'req'],
+            'necesidades': ['necesidades', 'necesidad'],
+            'pruebas': ['pruebas', 'prueba', 'test', 'testing'],
+            'aplicativo': ['aplicativo', 'aplicacion'],
+            'formato': ['formato', 'format'],
+            'correo': ['correo', 'email', 'mail'],
+            'novedad': ['novedad', 'novedades', 'novedades'],
+            'instructivo': ['instructivo', 'instruccion', 'guia'],
+            'funcionamiento': ['funcionamiento', 'funcionalidad', 'funcional']
+        }
+        
+        for keyword, variations in keywords.items():
+            if keyword in filename_lower:
+                patterns.extend(variations)
+        
+        # Eliminar duplicados y patrones muy cortos
+        patterns = list(set([p for p in patterns if len(p) >= 3]))
+        
+        return patterns
     
     def _determine_overall_status(self, controls_status: Dict[str, Any]) -> str:
         """Determinar estado general del desarrollo"""
