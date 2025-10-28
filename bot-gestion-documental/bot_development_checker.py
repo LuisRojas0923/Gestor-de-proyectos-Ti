@@ -144,7 +144,11 @@ class DevelopmentChecker:
         for pattern in patterns:
             match = re.search(pattern, folder_name, re.IGNORECASE)
             if match:
-                return match.group(1) if len(match.groups()) > 0 else match.group(0)
+                if pattern == r'INC(\d+)':
+                    # Para patrón INC, devolver el ID completo con prefijo
+                    return match.group(0)  # INC000004749773
+                else:
+                    return match.group(1) if len(match.groups()) > 0 else match.group(0)
         
         # Si no encuentra patrón, usar el nombre completo
         return folder_name
