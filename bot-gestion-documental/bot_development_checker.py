@@ -8,6 +8,7 @@ según los controles TI aplicables.
 
 import os
 import re
+import requests
 from typing import List, Dict, Any, Callable
 from datetime import datetime
 from bot_ti_controls_manager import TIControlsManager
@@ -21,14 +22,41 @@ class DevelopmentChecker:
         self._log = logger
         self.ti_manager = TIControlsManager(base_path, logger)
     
-    def check_all_developments(self) -> List[Dict[str, Any]]:
+    def get_developments_from_service(self) -> List[str]:
+        """Obtener IDs de desarrollos desde el servicio"""
+        try:
+            response = requests.get("http://localhost:8000/api/v1/developments", timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                dev_ids = [dev.get('id', '') for dev in data if dev.get('id')]
+                self._log(f"📊 Obtenidos {len(dev_ids)} desarrollos del servicio")
+                return dev_ids
+            else:
+                self._log(f"❌ Error en servicio: {response.status_code}")
+                return []
+        except Exception as e:
+            self._log(f"❌ Error obteniendo desarrollos del servicio: {e}")
+            return []
+    
+    def check_all_developments(self, filter_by_service: bool = False) -> List[Dict[str, Any]]:
         """
         Verificar archivos requeridos en todos los desarrollos
+        
+        Args:
+            filter_by_service: Si True, solo verificar desarrollos que estén en el servicio
         
         Returns:
             Lista de resultados de verificación por desarrollo
         """
         self._log("🔍 Iniciando verificación de archivos en desarrollos...")
+        
+        # Obtener IDs del servicio si es necesario
+        service_dev_ids = set()
+        if filter_by_service:
+            service_dev_ids = set(self.get_developments_from_service())
+            if not service_dev_ids:
+                self._log("⚠️ No se pudieron obtener desarrollos del servicio")
+                return []
         
         # Obtener todas las carpetas de desarrollos
         development_folders = self._get_development_folders()
@@ -37,6 +65,10 @@ class DevelopmentChecker:
         for folder_path in development_folders:
             folder_name = os.path.basename(folder_path)
             dev_id = self._extract_dev_id_from_folder(folder_name)
+            
+            # Filtrar por servicio si es necesario
+            if filter_by_service and dev_id not in service_dev_ids:
+                continue
             
             # Obtener la fase del desarrollo
             phase = os.path.basename(os.path.dirname(folder_path))

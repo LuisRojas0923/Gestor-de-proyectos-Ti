@@ -31,6 +31,7 @@ class DevelopmentCheckerView(Toplevel):
         self.checker = DevelopmentChecker(base_path, logger)
         self.check_results: List[Dict[str, Any]] = []
         self.filtered_results: List[Dict[str, Any]] = []
+        self.service_dev_ids: set = set()
         
         self._create_ui()
     
@@ -86,6 +87,20 @@ class DevelopmentCheckerView(Toplevel):
         # Botón limpiar filtros
         ttk.Button(phase_frame, text="🗑️ Limpiar", 
                   command=self._clear_filters, bootstyle=SECONDARY).pack(side=LEFT)
+        
+        # Checkbox para filtrar por servicio
+        check_frame = ttk.Frame(filter_frame)
+        check_frame.pack(fill=X, pady=(5, 0))
+        
+        self.filter_with_service_var = ttk.BooleanVar(value=False)
+        self.service_check = ttk.Checkbutton(
+            check_frame, 
+            text="Solo desarrollos en BD con carpeta creada",
+            variable=self.filter_with_service_var,
+            command=self._on_service_filter_change,
+            bootstyle="primary-round-toggle"
+        )
+        self.service_check.pack(side=LEFT)
         
         # TreeView para resultados
         tree_frame = ttk.Frame(main_frame)
@@ -144,7 +159,16 @@ class DevelopmentCheckerView(Toplevel):
         self._log("🔍 Iniciando verificación de desarrollos...")
         
         try:
-            self.check_results = self.checker.check_all_developments()
+            # Obtener IDs del servicio si el checkbox está marcado
+            filter_by_service = self.filter_with_service_var.get()
+            if filter_by_service:
+                self.service_dev_ids = set(self.checker.get_developments_from_service())
+                if not self.service_dev_ids:
+                    self._log("⚠️ No se pudieron obtener desarrollos del servicio")
+                    messagebox.showwarning("Advertencia", "No se pudieron obtener desarrollos del servicio. Verifique la conexión.")
+                    return
+            
+            self.check_results = self.checker.check_all_developments(filter_by_service)
             self.filtered_results = self.check_results.copy()
             self._populate_phase_combo()
             self._populate_tree()
@@ -213,35 +237,54 @@ class DevelopmentCheckerView(Toplevel):
         """Manejar cambio en filtro de fase"""
         self._apply_filters()
     
+    def _on_service_filter_change(self):
+        """Manejar cambio en filtro de servicio"""
+        if self.filter_with_service_var.get():
+            # Obtener IDs del servicio
+            self.service_dev_ids = set(self.checker.get_developments_from_service())
+            if not self.service_dev_ids:
+                self._log("⚠️ No se pudieron obtener desarrollos del servicio")
+                messagebox.showwarning("Advertencia", "No se pudieron obtener desarrollos del servicio. Verifique la conexión.")
+                self.filter_with_service_var.set(False)
+                return
+        self._apply_filters()
+    
     def _clear_filters(self):
         """Limpiar todos los filtros"""
         self.search_var.set("")
         self.phase_var.set("Todas las fases")
+        self.filter_with_service_var.set(False)
         self.filtered_results = self.check_results.copy()
         self._populate_tree()
         self._log("🗑️ Filtros limpiados")
     
     def _apply_filters(self):
-        """Aplicar filtros de búsqueda y fase"""
+        """Aplicar filtros de búsqueda, fase y servicio"""
         search_text = self.search_var.get().lower()
         selected_phase = self.phase_var.get()
         
         self.filtered_results = []
         
         for result in self.check_results:
-            # Filtro por nombre
+            dev_id = result.get('dev_id', '')
             folder_name = result.get('folder_name', '').lower()
-            dev_id = result.get('dev_id', '').lower()
             
+            # Filtro por nombre
             name_match = (not search_text or 
                          search_text in folder_name or 
-                         search_text in dev_id)
+                         search_text in dev_id.lower())
             
             # Filtro por fase
             phase_match = (selected_phase == 'Todas las fases' or 
                           result.get('phase', '') == selected_phase)
             
-            if name_match and phase_match:
+            # Filtro por servicio (solo si checkbox está marcado)
+            if self.filter_with_service_var.get():
+                service_match = dev_id in self.service_dev_ids
+            else:
+                service_match = True
+            
+            if name_match and phase_match and service_match:
                 self.filtered_results.append(result)
         
         self._populate_tree()
