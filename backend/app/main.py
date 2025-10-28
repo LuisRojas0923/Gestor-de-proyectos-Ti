@@ -28,6 +28,8 @@ from .api import (
     activity_log,
     installers
 )
+from .api.desarrollos_consulta import router as desarrollos_consulta_router
+from .api.informe_remey import router as informe_remey_router
 
 # Importar configuración de base de datos
 from .database import SessionLocal, engine
@@ -340,6 +342,12 @@ app.include_router(development_stages.router, prefix=API_V1_PREFIX)
 
 # Registrar router de activity log
 app.include_router(activity_log.router, prefix=API_V1_PREFIX)
+
+# Registrar router de desarrollos con consulta
+app.include_router(desarrollos_consulta_router, prefix=API_V1_PREFIX)
+
+# Registrar router de informe Remedy
+app.include_router(informe_remey_router, prefix=API_V1_PREFIX)
 
 # Registrar router de instaladores
 app.include_router(installers.router, prefix=API_V1_PREFIX)

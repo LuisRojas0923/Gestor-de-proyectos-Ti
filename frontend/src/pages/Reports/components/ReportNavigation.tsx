@@ -4,7 +4,6 @@ import {
   FileText, 
   Shield, 
   Users,
-  Home,
   LucideIcon
 } from 'lucide-react';
 import { MaterialButton } from '../../../components/atoms';
@@ -28,11 +27,6 @@ const ReportNavigation: React.FC<ReportNavigationProps> = ({
 }) => {
 
   const tabs: ReportTab[] = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard General',
-      icon: Home,
-    },
     {
       id: 'remedy',
       label: 'Casos Remedy',

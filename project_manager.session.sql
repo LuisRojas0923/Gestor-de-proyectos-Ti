@@ -679,8 +679,8 @@ $$;
 
 --@block
 -- Probar ambos stored procedures corregidos
-SELECT * FROM fn_kpi_calidad_primera_entrega();
-SELECT * FROM fn_kpi_calidad_primera_entrega_detalle();
+--SELECT * FROM fn_kpi_calidad_primera_entrega();
+SELECT * FROM sp_get_providers_from_activities();
 
 --@block
 SELECT dr.user_name, d.name  
@@ -689,3 +689,39 @@ JOIN development_responsibles dr ON d.id = dr.development_id
 WHERE dr.user_name in  ('Maritza Fernanda Forero Parra' , 'Pedro Castro Llanos')
 AND d.responsible = 'Luis Enrique Rojas Villota';
 
+--@block
+
+SELECT 
+        d.id as desarrollo_id,
+        d.name as nombre_desarrollo,
+        d.provider as proveedor,
+        dal.activity_type as tipo_actividad,
+        dal.start_date as fecha_inicio_actividad,
+        dal.end_date as fecha_fin_actividad,
+        dal.status as estado_actividad,
+        dal.actor_type as tipo_actor,
+        dal.notes as notas_actividad
+    FROM developments d
+    LEFT JOIN (
+        SELECT * FROM development_activity_log 
+        WHERE id IN (
+            SELECT MAX(id) 
+            FROM development_activity_log 
+            GROUP BY development_id
+        )
+    ) dal ON d.id = dal.development_id
+    WHERE d.general_status IN ('En curso', 'Pendiente')
+      AND d.responsible = 'Luis Enrique Rojas Villota'
+    ORDER BY d.id;
+
+--@block
+   SELECT * FROM development_activity_log 
+        WHERE id IN (
+            SELECT MAX(id) 
+            FROM development_activity_log 
+            GROUP BY development_id
+        )
+--@block
+ select id, stage_name from  development_stages;       
+ --@block
+ SELECT * FROM informe_remey();

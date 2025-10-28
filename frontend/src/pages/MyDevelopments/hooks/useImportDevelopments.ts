@@ -1,3 +1,4 @@
+import React from 'react';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
 import { API_CONFIG, API_ENDPOINTS } from '../../../config/api';
 import { DevelopmentWithCurrentStatus } from '../../../types';
@@ -36,6 +37,7 @@ function mapRow(item: PartialDev) {
 
 export function useImportDevelopments() {
   const { addNotification } = useNotifications();
+  const [isImporting, setIsImporting] = React.useState<boolean>(false);
   const importDevelopments = async (importedData: PartialDev[]): Promise<boolean> => {
     const validData = importedData
       .filter(item => {
@@ -53,6 +55,7 @@ export function useImportDevelopments() {
     }
 
     try {
+      setIsImporting(true);
       const url = `${API_CONFIG.BASE_URL.replace('/api/v1', '/api')}${API_ENDPOINTS.LEGACY_DEVELOPMENTS_BULK}`;
       
       const response = await fetch(url, {
@@ -82,10 +85,12 @@ export function useImportDevelopments() {
     } catch (err) {
       addNotification('error', 'Error de conexión al importar. Verifica el backend.');
       return false;
+    } finally {
+      setIsImporting(false);
     }
   };
 
-  return { importDevelopments };
+  return { importDevelopments, isImporting };
 }
 
 

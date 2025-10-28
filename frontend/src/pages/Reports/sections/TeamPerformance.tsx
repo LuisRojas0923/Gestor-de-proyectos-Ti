@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { Users, TrendingUp, Award, Target } from 'lucide-react';
 import {
   Bar,
@@ -16,7 +15,6 @@ import {
 } from '../../../components/atoms';
 
 const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
-  const { t } = useTranslation();
 
   const teamPerformanceData = [
     { name: 'Ana García', completados: 45, asignados: 52, sla: 92 },

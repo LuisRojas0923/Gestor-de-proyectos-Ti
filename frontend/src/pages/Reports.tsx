@@ -10,10 +10,9 @@ const Reports: React.FC = () => {
   const { state } = useAppContext();
   const { darkMode } = state;
   
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('remedy');
 
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard General' },
     { id: 'remedy', label: 'Casos Remedy' },
     { id: 'executive', label: 'Reporte Ejecutivo' },
     { id: 'quality', label: 'Calidad' },
@@ -64,55 +63,6 @@ const Reports: React.FC = () => {
             {tabs.find(t => t.id === activeTab)?.label}
                       </MaterialTypography>
           
-          {activeTab === 'dashboard' && (
-            <div className="space-y-4">
-              <MaterialTypography variant="body1" darkMode={darkMode}>
-                Dashboard General - Aquí se mostrarán las métricas principales y KPIs del sistema.
-                      </MaterialTypography>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <MaterialCard darkMode={darkMode} className="bg-blue-50 dark:bg-blue-900/20">
-                <MaterialCard.Content>
-                    <MaterialTypography variant="h4" darkMode={darkMode} className="text-blue-600 dark:text-blue-400">
-                      156
-                      </MaterialTypography>
-                    <MaterialTypography variant="body2" darkMode={darkMode}>
-                      Total Desarrollos
-                      </MaterialTypography>
-                </MaterialCard.Content>
-              </MaterialCard>
-                <MaterialCard darkMode={darkMode} className="bg-green-50 dark:bg-green-900/20">
-                <MaterialCard.Content>
-                    <MaterialTypography variant="h4" darkMode={darkMode} className="text-green-600 dark:text-green-400">
-                      89
-                      </MaterialTypography>
-                    <MaterialTypography variant="body2" darkMode={darkMode}>
-                      Completados
-                      </MaterialTypography>
-                </MaterialCard.Content>
-              </MaterialCard>
-                <MaterialCard darkMode={darkMode} className="bg-yellow-50 dark:bg-yellow-900/20">
-              <MaterialCard.Content>
-                    <MaterialTypography variant="h4" darkMode={darkMode} className="text-yellow-600 dark:text-yellow-400">
-                      2.3d
-                          </MaterialTypography>
-                          <MaterialTypography variant="body2" darkMode={darkMode}>
-                      Tiempo Promedio
-                          </MaterialTypography>
-                  </MaterialCard.Content>
-                </MaterialCard>
-                <MaterialCard darkMode={darkMode} className="bg-purple-50 dark:bg-purple-900/20">
-                  <MaterialCard.Content>
-                    <MaterialTypography variant="h4" darkMode={darkMode} className="text-purple-600 dark:text-purple-400">
-                      92%
-                          </MaterialTypography>
-                          <MaterialTypography variant="body2" darkMode={darkMode}>
-                      SLA Cumplido
-                          </MaterialTypography>
-              </MaterialCard.Content>
-            </MaterialCard>
-              </div>
-            </div>
-          )}
 
           {activeTab === 'remedy' && (
             <RemedyReport darkMode={darkMode} />

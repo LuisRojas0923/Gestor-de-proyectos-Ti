@@ -13,6 +13,7 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
   const [file, setFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<T[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isParsing, setIsParsing] = useState<boolean>(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -26,6 +27,7 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
   };
 
   const parseExcel = (file: File) => {
+    setIsParsing(true);
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -128,9 +130,11 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
         setError('Error al procesar el archivo. Asegúrate de que sea un formato de Excel válido (.xls o .xlsx) y que los encabezados estén en la segunda fila.');
         console.error(err);
       }
+      setIsParsing(false);
     };
     reader.onerror = () => {
         setError('No se pudo leer el archivo.');
+        setIsParsing(false);
     }
     reader.readAsBinaryString(file);
   };
@@ -194,14 +198,23 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
           </div>
         )}
 
-        <button
-          onClick={handleImportClick}
-          disabled={previewData.length === 0}
-          className="w-full px-4 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 disabled:bg-neutral-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors"
-        >
-          <CheckCircle size={20} />
-          <span>Importar {previewData.length > 0 ? `${previewData.length} Registros` : ''}</span>
-        </button>
+        <div className="w-full relative">
+          <button
+            onClick={handleImportClick}
+            disabled={previewData.length === 0 || isParsing}
+            className="w-full px-4 py-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600 disabled:bg-neutral-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors"
+          >
+            <CheckCircle size={20} />
+            <span>
+              {isParsing ? 'Procesando Excel…' : `Importar ${previewData.length > 0 ? `${previewData.length} Registros` : ''}`}
+            </span>
+          </button>
+          {isParsing && (
+            <div className={`absolute inset-0 flex items-center justify-center rounded-lg ${darkMode ? 'bg-neutral-900/40' : 'bg-white/40'}`}>
+              <span className={`animate-spin h-5 w-5 rounded-full border-2 border-t-transparent ${darkMode ? 'border-neutral-400' : 'border-neutral-600'}`}></span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

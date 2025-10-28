@@ -30,6 +30,7 @@ interface RemedyCaseDetail {
     status: string;
     created_at: string;
     notes: string;
+    actor_type?: string;
   };
   activity_statistics: {
     total_activities: number;
@@ -134,26 +135,9 @@ export const useRemedyReport = () => {
     
     try {
       const currentFilters = customFilters || filters;
-      const queryParams = new URLSearchParams();
       
-      if (currentFilters.status_filter) {
-        queryParams.append('status_filter', currentFilters.status_filter);
-      }
-      if (currentFilters.provider_filter) {
-        queryParams.append('provider', currentFilters.provider_filter);
-      }
-      if (currentFilters.module_filter) {
-        queryParams.append('module', currentFilters.module_filter);
-      }
-      if (currentFilters.start_date) {
-        queryParams.append('start_date', currentFilters.start_date);
-      }
-      if (currentFilters.end_date) {
-        queryParams.append('end_date', currentFilters.end_date);
-      }
-      
-      // Usar endpoint legacy que tiene el filtro implementado
-      const url = `http://localhost:8000/api/legacy/developments${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      // Usar el nuevo endpoint del stored procedure informe_remey
+      const url = `http://localhost:8000/api/v1/informe-remey/`;
       
       const response = await fetch(url);
       
@@ -161,15 +145,15 @@ export const useRemedyReport = () => {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const developments = await response.json();
+      const reportResponse = await response.json();
       
-      // Convertir datos del endpoint base al formato del informe
+      // Usar los datos del stored procedure directamente
       const reportData: RemedyReportData = {
         summary: {
-          total_cases: developments.length,
-          status_distribution: {},
-          provider_distribution: {},
-          module_distribution: {},
+          total_cases: reportResponse.total_casos || 0,
+          status_distribution: reportResponse.summary?.status_distribution || {},
+          provider_distribution: reportResponse.summary?.provider_distribution || {},
+          module_distribution: {}, // No disponible en el SP
           generated_at: new Date().toISOString(),
           filters_applied: {
             status_filter: currentFilters.status_filter,
@@ -179,65 +163,52 @@ export const useRemedyReport = () => {
             end_date: currentFilters.end_date
           }
         },
-        cases: developments.map((dev: any) => ({
-          remedy_id: dev.id,
-          name: dev.name,
-          description: dev.description || '',
-          module: dev.module || '',
-          type: dev.type || '',
-          environment: dev.environment || '',
-          remedy_link: dev.remedy_link || '',
-          general_status: dev.general_status || '',
-          current_phase: dev.current_phase ? {
-            id: dev.current_phase.id,
-            name: dev.current_phase.phase_name,
-            color: dev.current_phase.phase_color
-          } : undefined,
-          current_stage: dev.current_stage ? {
-            id: dev.current_stage.id,
-            code: dev.current_stage.stage_code,
-            name: dev.current_stage.stage_name,
-            is_milestone: dev.current_stage.is_milestone,
-            responsible_party: dev.current_stage.responsible_party
-          } : undefined,
-          progress_percentage: dev.stage_progress_percentage || 0,
-          last_activity: dev.last_activity,
+        cases: (reportResponse.casos || []).map((caso: any) => ({
+          remedy_id: caso.desarrollo_id,
+          name: caso.nombre_desarrollo,
+          description: caso.notas_actividad || '',
+          module: '', // No disponible en el SP
+          type: caso.tipo_actividad || '',
+          environment: '', // No disponible en el SP
+          remedy_link: '', // No disponible en el SP
+          general_status: caso.estado_actividad || '',
+          current_phase: undefined, // No disponible en el SP
+          current_stage: undefined, // No disponible en el SP
+          progress_percentage: 0, // No disponible en el SP
+          last_activity: {
+            id: 0,
+            stage_name: caso.nombre_etapa || '',
+            activity_type: caso.tipo_actividad || '',
+            status: caso.estado_actividad || '',
+            created_at: caso.fecha_inicio_actividad || '',
+            notes: caso.notas_actividad || '',
+            actor_type: caso.tipo_actor || ''
+          },
           activity_statistics: {
             total_activities: 0,
             completed_activities: 0,
             in_progress_activities: 0,
             pending_activities: 0
           },
-          provider: dev.provider || '',
-          main_responsible: dev.responsible || '',
-          detailed_providers: dev.providers || [],
-          detailed_responsibles: dev.responsibles || [],
+          provider: caso.proveedor || '',
+          main_responsible: 'Luis Enrique Rojas Villota', // Filtro del SP
+          detailed_providers: [],
+          detailed_responsibles: [],
           important_dates: {
-            created_at: dev.created_at,
-            updated_at: dev.updated_at,
-            estimated_end_date: dev.estimated_end_date
+            created_at: caso.fecha_inicio_actividad || '',
+            updated_at: caso.fecha_fin_actividad || '',
+            estimated_end_date: caso.fecha_fin_actividad || ''
           },
-          scheduled_dates: dev.dates || [],
+          scheduled_dates: [],
           quality_metrics: {
-            returns_count: dev.returns_count || 0,
-            test_defects_count: dev.test_defects_count || 0,
-            estimated_cost: dev.estimated_cost || 0
+            returns_count: 0,
+            test_defects_count: 0,
+            estimated_cost: 0
           },
-          post_production_incidents: dev.incidents || [],
-          proposals: dev.proposals || []
+          post_production_incidents: [],
+          proposals: []
         }))
       };
-      
-      // Calcular distribuciones
-      reportData.cases.forEach(caseItem => {
-        const status = caseItem.general_status || 'Sin Estado';
-        const provider = caseItem.provider || 'Sin Proveedor';
-        const module = caseItem.module || 'Sin Módulo';
-        
-        reportData.summary.status_distribution[status] = (reportData.summary.status_distribution[status] || 0) + 1;
-        reportData.summary.provider_distribution[provider] = (reportData.summary.provider_distribution[provider] || 0) + 1;
-        reportData.summary.module_distribution[module] = (reportData.summary.module_distribution[module] || 0) + 1;
-      });
       
       setData(reportData);
       

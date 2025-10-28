@@ -78,7 +78,7 @@ const MyDevelopments: React.FC = () => {
   const { developments, loadDevelopments } = useDevelopments();
   const filters = useFilters(developments);
   const { isImportModalOpen, setImportModalOpen } = useModals();
-  const { importDevelopments } = useImportDevelopments();
+  const { importDevelopments, isImporting } = useImportDevelopments();
   const { addNotification } = useNotifications();
 
   // Persistir filtros en localStorage
@@ -488,6 +488,7 @@ const MyDevelopments: React.FC = () => {
                           darkMode={darkMode}
         onClose={() => setImportModalOpen(false)}
         onImport={handleImport}
+        isImporting={isImporting}
       />
     </div>
   );
