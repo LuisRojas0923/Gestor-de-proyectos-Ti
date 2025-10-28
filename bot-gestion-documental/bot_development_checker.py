@@ -38,22 +38,30 @@ class DevelopmentChecker:
             folder_name = os.path.basename(folder_path)
             dev_id = self._extract_dev_id_from_folder(folder_name)
             
+            # Obtener la fase del desarrollo
+            phase = os.path.basename(os.path.dirname(folder_path))
+            
             if dev_id:
-                result = self._check_single_development(dev_id, folder_path, folder_name)
+                result = self._check_single_development(dev_id, folder_path, folder_name, phase)
                 results.append(result)
         
         self._log(f"✅ Verificación completada: {len(results)} desarrollos procesados")
         return results
     
     def _get_development_folders(self) -> List[str]:
-        """Obtener lista de carpetas de desarrollos"""
+        """Obtener lista de carpetas de desarrollos (buscar en todas las fases)"""
         folders = []
         
         try:
-            for item in os.listdir(self.base_path):
-                item_path = os.path.join(self.base_path, item)
-                if os.path.isdir(item_path):
-                    folders.append(item_path)
+            # Buscar en todas las fases
+            for phase_folder in os.listdir(self.base_path):
+                phase_path = os.path.join(self.base_path, phase_folder)
+                if os.path.isdir(phase_path):
+                    # Buscar desarrollos dentro de cada fase
+                    for dev_folder in os.listdir(phase_path):
+                        dev_path = os.path.join(phase_path, dev_folder)
+                        if os.path.isdir(dev_path):
+                            folders.append(dev_path)
         except Exception as e:
             self._log(f"❌ Error listando carpetas: {e}")
         
@@ -62,10 +70,11 @@ class DevelopmentChecker:
     def _extract_dev_id_from_folder(self, folder_name: str) -> str:
         """
         Extraer ID del desarrollo del nombre de la carpeta
-        Busca patrones como: DEV-001, DEV001, 001, etc.
+        Busca patrones como: INC000004841295_Nombre, DEV-001, etc.
         """
         # Patrones comunes para IDs de desarrollo
         patterns = [
+            r'INC(\d+)',       # INC000004841295_Nombre
             r'DEV[-_]?(\d+)',  # DEV-001, DEV_001, DEV001
             r'^(\d+)[-_]',      # 001-Nombre, 001_Nombre
             r'^(\d+)$',        # Solo números
@@ -80,13 +89,14 @@ class DevelopmentChecker:
         # Si no encuentra patrón, usar el nombre completo
         return folder_name
     
-    def _check_single_development(self, dev_id: str, folder_path: str, folder_name: str) -> Dict[str, Any]:
+    def _check_single_development(self, dev_id: str, folder_path: str, folder_name: str, phase: str) -> Dict[str, Any]:
         """Verificar un desarrollo específico"""
         
         result = {
             'dev_id': dev_id,
             'folder_name': folder_name,
             'folder_path': folder_path,
+            'phase': phase,
             'controls_status': {},
             'overall_status': 'UNKNOWN',
             'total_files_found': 0,
@@ -140,25 +150,30 @@ class DevelopmentChecker:
         }
     
     def _search_file_in_folder(self, folder_path: str, filename: str) -> bool:
-        """Buscar archivo en una carpeta (búsqueda flexible)"""
+        """Buscar archivo en una carpeta específica de desarrollo (búsqueda flexible)"""
         try:
             if not os.path.exists(folder_path):
                 return False
             
             # Buscar archivo exacto
-            if os.path.exists(os.path.join(folder_path, filename)):
+            exact_path = os.path.join(folder_path, filename)
+            if os.path.exists(exact_path):
                 return True
             
             # Buscar archivo con nombre similar (ignorando mayúsculas)
-            for root, dirs, files in os.walk(folder_path):
+            # Solo en la carpeta del desarrollo, no recursivamente
+            try:
+                files = os.listdir(folder_path)
                 for file in files:
                     if filename.lower() in file.lower():
                         return True
+            except Exception:
+                pass
             
             return False
             
         except Exception as e:
-            self._log(f"❌ Error buscando archivo {filename}: {e}")
+            self._log(f"❌ Error buscando archivo {filename} en {folder_path}: {e}")
             return False
     
     def _determine_overall_status(self, controls_status: Dict[str, Any]) -> str:

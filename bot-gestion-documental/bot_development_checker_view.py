@@ -11,6 +11,9 @@ from tkinter import Toplevel, messagebox, scrolledtext
 from typing import List, Dict, Any, Callable
 from datetime import datetime
 from bot_development_checker import DevelopmentChecker
+from bot_development_checker_view_helpers import (
+    populate_tree, get_control_status_icon, show_development_details, export_results
+)
 
 
 class DevelopmentCheckerView(Toplevel):
@@ -60,7 +63,7 @@ class DevelopmentCheckerView(Toplevel):
         tree_frame.pack(fill=BOTH, expand=True, pady=(0, 10))
         
         self.tree = ttk.Treeview(tree_frame, columns=(
-            "dev_id", "folder_name", "status", "total_found", "total_required", 
+            "dev_id", "folder_name", "phase", "status", "total_found", "total_required", 
             "c003_status", "c004_status", "c021_status", "can_copy"
         ), show="headings", height=20)
         self.tree.pack(side=LEFT, fill=BOTH, expand=True)
@@ -68,6 +71,7 @@ class DevelopmentCheckerView(Toplevel):
         # Configurar columnas
         self.tree.heading("dev_id", text="ID")
         self.tree.heading("folder_name", text="Carpeta")
+        self.tree.heading("phase", text="Fase")
         self.tree.heading("status", text="Estado")
         self.tree.heading("total_found", text="Archivos Encontrados")
         self.tree.heading("total_required", text="Archivos Requeridos")
@@ -78,6 +82,7 @@ class DevelopmentCheckerView(Toplevel):
         
         self.tree.column("dev_id", width=100)
         self.tree.column("folder_name", width=200)
+        self.tree.column("phase", width=120)
         self.tree.column("status", width=120)
         self.tree.column("total_found", width=120)
         self.tree.column("total_required", width=120)
@@ -120,62 +125,11 @@ class DevelopmentCheckerView(Toplevel):
     
     def _populate_tree(self):
         """Poblar tree con resultados"""
-        # Limpiar tree
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-        
-        # Llenar con resultados
-        for result in self.check_results:
-            dev_id = result.get('dev_id', 'N/A')
-            folder_name = result.get('folder_name', 'N/A')
-            status = result.get('overall_status', 'UNKNOWN')
-            
-            # Estado visual
-            if status == 'COMPLETE':
-                status_icon = "✅"
-            elif status == 'PARTIAL':
-                status_icon = "⚠️"
-            elif status == 'INCOMPLETE':
-                status_icon = "❌"
-            else:
-                status_icon = "❓"
-            
-            # Archivos
-            total_found = result.get('total_files_found', 0)
-            total_required = result.get('total_files_required', 0)
-            
-            # Estados de controles
-            controls_status = result.get('controls_status', {})
-            c003_status = self._get_control_status_icon(controls_status.get('C003-GT', {}))
-            c004_status = self._get_control_status_icon(controls_status.get('C004-GT', {}))
-            c021_status = self._get_control_status_icon(controls_status.get('C021-GT', {}))
-            
-            # Puede copiar
-            can_copy = result.get('can_copy_any', False)
-            can_copy_text = "✅ Sí" if can_copy else "❌ No"
-            
-            self.tree.insert("", END, values=(
-                dev_id, folder_name, f"{status_icon} {status}",
-                f"{total_found}/{total_required}", total_required,
-                c003_status, c004_status, c021_status, can_copy_text
-            ))
+        populate_tree(self)
     
     def _get_control_status_icon(self, control_status: Dict[str, Any]) -> str:
         """Obtener icono de estado para un control"""
-        if not control_status:
-            return "❓"
-        
-        files_found = len(control_status.get('files_found', []))
-        files_required = len(control_status.get('files_required', []))
-        
-        if files_required == 0:
-            return "⏸️"
-        elif files_found == files_required:
-            return "✅"
-        elif files_found > 0:
-            return "⚠️"
-        else:
-            return "❌"
+        return get_control_status_icon(control_status)
     
     def _on_double_click(self, event):
         """Manejar doble clic en tree"""
@@ -193,60 +147,7 @@ class DevelopmentCheckerView(Toplevel):
     
     def _show_development_details(self, dev_id: str, folder_name: str):
         """Mostrar detalles de un desarrollo específico"""
-        # Buscar resultado del desarrollo
-        result = None
-        for r in self.check_results:
-            if r.get('dev_id') == dev_id and r.get('folder_name') == folder_name:
-                result = r
-                break
-        
-        if not result:
-            messagebox.showwarning("Sin datos", "No se encontraron datos para este desarrollo.")
-            return
-        
-        # Crear ventana de detalles
-        details_window = Toplevel(self)
-        details_window.title(f"Detalles - {dev_id}")
-        details_window.geometry("800x600")
-        details_window.transient(self)
-        
-        # Frame principal
-        main_frame = ttk.Frame(details_window, padding="10")
-        main_frame.pack(fill=BOTH, expand=True)
-        
-        # Información general
-        info_frame = ttk.LabelFrame(main_frame, text="Información General", padding="10")
-        info_frame.pack(fill=X, pady=(0, 10))
-        
-        ttk.Label(info_frame, text=f"ID: {dev_id}").pack(anchor=W)
-        ttk.Label(info_frame, text=f"Carpeta: {folder_name}").pack(anchor=W)
-        ttk.Label(info_frame, text=f"Estado: {result.get('overall_status', 'UNKNOWN')}").pack(anchor=W)
-        ttk.Label(info_frame, text=f"Archivos encontrados: {result.get('total_files_found', 0)}/{result.get('total_files_required', 0)}").pack(anchor=W)
-        
-        # Detalles por control
-        controls_frame = ttk.LabelFrame(main_frame, text="Detalles por Control", padding="10")
-        controls_frame.pack(fill=BOTH, expand=True)
-        
-        controls_status = result.get('controls_status', {})
-        for control_code, status in controls_status.items():
-            control_name = status.get('control_name', 'N/A')
-            files_found = status.get('files_found', [])
-            files_missing = status.get('files_missing', [])
-            
-            # Frame para cada control
-            control_frame = ttk.Frame(controls_frame)
-            control_frame.pack(fill=X, pady=(0, 5))
-            
-            ttk.Label(control_frame, text=f"{control_code}: {control_name}", 
-                     font=("Arial", 10, "bold")).pack(anchor=W)
-            
-            if files_found:
-                ttk.Label(control_frame, text=f"✅ Encontrados: {', '.join(files_found)}", 
-                         foreground="green").pack(anchor=W, padx=(20, 0))
-            
-            if files_missing:
-                ttk.Label(control_frame, text=f"❌ Faltantes: {', '.join(files_missing)}", 
-                         foreground="red").pack(anchor=W, padx=(20, 0))
+        show_development_details(self, dev_id, folder_name)
     
     def _show_summary(self):
         """Mostrar resumen de verificación"""
@@ -259,37 +160,7 @@ class DevelopmentCheckerView(Toplevel):
     
     def _export_results(self):
         """Exportar resultados a archivo"""
-        if not self.check_results:
-            messagebox.showwarning("Sin datos", "No hay resultados para exportar.")
-            return
-        
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"verificacion_desarrollos_{timestamp}.txt"
-        
-        try:
-            with open(filename, 'w', encoding='utf-8') as f:
-                f.write("REPORTE DE VERIFICACIÓN DE DESARROLLOS\n")
-                f.write("=" * 50 + "\n\n")
-                f.write(f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"Total desarrollos: {len(self.check_results)}\n\n")
-                
-                for result in self.check_results:
-                    f.write(f"Desarrollo: {result.get('dev_id')} - {result.get('folder_name')}\n")
-                    f.write(f"Estado: {result.get('overall_status')}\n")
-                    f.write(f"Archivos: {result.get('total_files_found', 0)}/{result.get('total_files_required', 0)}\n")
-                    
-                    controls_status = result.get('controls_status', {})
-                    for control_code, status in controls_status.items():
-                        f.write(f"  {control_code}: {len(status.get('files_found', []))}/{len(status.get('files_required', []))}\n")
-                    
-                    f.write("-" * 30 + "\n")
-            
-            self._log(f"✅ Resultados exportados a: {filename}")
-            messagebox.showinfo("Exportación", f"Resultados exportados a: {filename}")
-            
-        except Exception as e:
-            self._log(f"❌ Error exportando resultados: {e}")
-            messagebox.showerror("Error", f"Error exportando resultados: {e}")
+        export_results(self)
     
     def _log(self, message: str):
         """Agregar mensaje al log"""
