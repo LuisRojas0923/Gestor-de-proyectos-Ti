@@ -30,6 +30,7 @@ class DevelopmentCheckerView(Toplevel):
         self._log = logger
         self.checker = DevelopmentChecker(base_path, logger)
         self.check_results: List[Dict[str, Any]] = []
+        self.filtered_results: List[Dict[str, Any]] = []
         
         self._create_ui()
     
@@ -57,6 +58,34 @@ class DevelopmentCheckerView(Toplevel):
                   command=self._export_results, bootstyle=WARNING).pack(side=LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="❌ Cerrar", 
                   command=self.destroy, bootstyle=DANGER).pack(side=RIGHT)
+        
+        # Filtros de búsqueda
+        filter_frame = ttk.LabelFrame(main_frame, text="Filtros de Búsqueda", padding="10")
+        filter_frame.pack(fill=X, pady=(0, 10))
+        
+        # Búsqueda por nombre
+        search_frame = ttk.Frame(filter_frame)
+        search_frame.pack(fill=X, pady=(0, 5))
+        
+        ttk.Label(search_frame, text="🔍 Buscar por nombre:").pack(side=LEFT, padx=(0, 5))
+        self.search_var = ttk.StringVar()
+        self.search_entry = ttk.Entry(search_frame, textvariable=self.search_var, width=40)
+        self.search_entry.pack(side=LEFT, padx=(0, 10))
+        self.search_entry.bind('<KeyRelease>', self._on_search_change)
+        
+        # Filtro por fase
+        phase_frame = ttk.Frame(filter_frame)
+        phase_frame.pack(fill=X)
+        
+        ttk.Label(phase_frame, text="📁 Filtrar por fase:").pack(side=LEFT, padx=(0, 5))
+        self.phase_var = ttk.StringVar()
+        self.phase_combo = ttk.Combobox(phase_frame, textvariable=self.phase_var, width=30, state="readonly")
+        self.phase_combo.pack(side=LEFT, padx=(0, 10))
+        self.phase_combo.bind('<<ComboboxSelected>>', self._on_phase_change)
+        
+        # Botón limpiar filtros
+        ttk.Button(phase_frame, text="🗑️ Limpiar", 
+                  command=self._clear_filters, bootstyle=SECONDARY).pack(side=LEFT)
         
         # TreeView para resultados
         tree_frame = ttk.Frame(main_frame)
@@ -116,6 +145,8 @@ class DevelopmentCheckerView(Toplevel):
         
         try:
             self.check_results = self.checker.check_all_developments()
+            self.filtered_results = self.check_results.copy()
+            self._populate_phase_combo()
             self._populate_tree()
             self._log("✅ Verificación completada")
             
@@ -161,6 +192,60 @@ class DevelopmentCheckerView(Toplevel):
     def _export_results(self):
         """Exportar resultados a archivo"""
         export_results(self)
+    
+    def _populate_phase_combo(self):
+        """Poblar combo de fases con las fases disponibles"""
+        phases = set()
+        for result in self.check_results:
+            phase = result.get('phase', 'N/A')
+            if phase != 'N/A':
+                phases.add(phase)
+        
+        phase_list = ['Todas las fases'] + sorted(list(phases))
+        self.phase_combo['values'] = phase_list
+        self.phase_combo.set('Todas las fases')
+    
+    def _on_search_change(self, event=None):
+        """Manejar cambio en búsqueda por nombre"""
+        self._apply_filters()
+    
+    def _on_phase_change(self, event=None):
+        """Manejar cambio en filtro de fase"""
+        self._apply_filters()
+    
+    def _clear_filters(self):
+        """Limpiar todos los filtros"""
+        self.search_var.set("")
+        self.phase_var.set("Todas las fases")
+        self.filtered_results = self.check_results.copy()
+        self._populate_tree()
+        self._log("🗑️ Filtros limpiados")
+    
+    def _apply_filters(self):
+        """Aplicar filtros de búsqueda y fase"""
+        search_text = self.search_var.get().lower()
+        selected_phase = self.phase_var.get()
+        
+        self.filtered_results = []
+        
+        for result in self.check_results:
+            # Filtro por nombre
+            folder_name = result.get('folder_name', '').lower()
+            dev_id = result.get('dev_id', '').lower()
+            
+            name_match = (not search_text or 
+                         search_text in folder_name or 
+                         search_text in dev_id)
+            
+            # Filtro por fase
+            phase_match = (selected_phase == 'Todas las fases' or 
+                          result.get('phase', '') == selected_phase)
+            
+            if name_match and phase_match:
+                self.filtered_results.append(result)
+        
+        self._populate_tree()
+        self._log(f"🔍 Filtros aplicados: {len(self.filtered_results)} resultados")
     
     def _log(self, message: str):
         """Agregar mensaje al log"""

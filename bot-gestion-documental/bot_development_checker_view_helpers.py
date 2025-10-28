@@ -18,8 +18,11 @@ def populate_tree(view) -> None:
     for item in view.tree.get_children():
         view.tree.delete(item)
     
+    # Usar resultados filtrados si están disponibles, sino todos los resultados
+    results_to_show = view.filtered_results if hasattr(view, 'filtered_results') and view.filtered_results else view.check_results
+    
     # Llenar con resultados
-    for result in view.check_results:
+    for result in results_to_show:
         dev_id = result.get('dev_id', 'N/A')
         folder_name = result.get('folder_name', 'N/A')
         phase = result.get('phase', 'N/A')
@@ -76,7 +79,7 @@ def get_control_status_icon(control_status: Dict[str, Any]) -> str:
 
 def show_development_details(view, dev_id: str, folder_name: str) -> None:
     """Mostrar detalles de un desarrollo específico"""
-    # Buscar resultado del desarrollo
+    # Buscar resultado del desarrollo en todos los resultados (no filtrados)
     result = None
     for r in view.check_results:
         if r.get('dev_id') == dev_id and r.get('folder_name') == folder_name:
@@ -135,7 +138,10 @@ def show_development_details(view, dev_id: str, folder_name: str) -> None:
 
 def export_results(view) -> None:
     """Exportar resultados a archivo"""
-    if not view.check_results:
+    # Usar resultados filtrados si están disponibles, sino todos los resultados
+    results_to_export = view.filtered_results if hasattr(view, 'filtered_results') and view.filtered_results else view.check_results
+    
+    if not results_to_export:
         messagebox.showwarning("Sin datos", "No hay resultados para exportar.")
         return
     
@@ -147,9 +153,9 @@ def export_results(view) -> None:
             f.write("REPORTE DE VERIFICACIÓN DE DESARROLLOS\n")
             f.write("=" * 50 + "\n\n")
             f.write(f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Total desarrollos: {len(view.check_results)}\n\n")
-            
-            for result in view.check_results:
+        f.write(f"Total desarrollos: {len(results_to_export)}\n\n")
+        
+        for result in results_to_export:
                 f.write(f"Desarrollo: {result.get('dev_id')} - {result.get('folder_name')}\n")
                 f.write(f"Fase: {result.get('phase', 'N/A')}\n")
                 f.write(f"Estado: {result.get('overall_status')}\n")
