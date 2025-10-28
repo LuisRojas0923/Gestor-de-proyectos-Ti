@@ -18,6 +18,7 @@ from bot_filter_manager import FilterManager
 from bot_ti_controls_view import TIControlsView
 from bot_docker_view import DockerView
 from bot_main_helpers import BotMainHelpers
+from bot_other_functions_view import OtherFunctionsView
 
 
 class SimpleDocumentBot:
@@ -52,13 +53,10 @@ class SimpleDocumentBot:
         button_frame.pack(fill=X, pady=(0, 10))
         
         ttk.Button(button_frame, text="🔄 Actualizar", command=self._load_data, bootstyle=SUCCESS).pack(side=LEFT, padx=(0, 5))
-        ttk.Button(button_frame, text="📁 Escanear Carpetas", command=self._scan_folders, bootstyle=INFO).pack(side=LEFT, padx=(0, 5))
-        ttk.Button(button_frame, text="🔍 Comparar y Sugerir", command=self._compare_and_suggest, bootstyle=PRIMARY).pack(side=LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="🎯 Vista de Acciones", command=self._open_actions_view, bootstyle=SECONDARY).pack(side=LEFT, padx=(0, 5))
-        ttk.Button(button_frame, text="📋 Validar Controles", command=self._validate_controls, bootstyle=WARNING).pack(side=LEFT, padx=(0, 5))
-        ttk.Button(button_frame, text="📂 Gestionar Controles TI", command=self._open_ti_controls, bootstyle=INFO).pack(side=LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="🐳 Docker", command=self._open_docker_view, bootstyle=SECONDARY).pack(side=LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="🔍 Verificar Desarrollos", command=self._open_development_checker, bootstyle=INFO).pack(side=LEFT, padx=(0, 5))
+        ttk.Button(button_frame, text="⚙️ Otras Funciones", command=self._open_other_functions, bootstyle=WARNING).pack(side=LEFT, padx=(0, 5))
         ttk.Button(button_frame, text="❌ Cerrar", command=self._close_bot, bootstyle=DANGER).pack(side=LEFT, padx=(0, 5))
         
         # Filtros
@@ -264,6 +262,15 @@ class SimpleDocumentBot:
         except Exception as e:
             self._log(f"❌ Error abriendo vista de Docker: {e}")
             messagebox.showerror("Error", f"Error abriendo vista de Docker: {e}")
+    
+    def _open_other_functions(self):
+        """Abrir ventana de otras funciones"""
+        try:
+            OtherFunctionsView(self.root, self, self._log)
+            self._log("⚙️ Vista de otras funciones abierta")
+        except Exception as e:
+            self._log(f"❌ Error abriendo otras funciones: {e}")
+            messagebox.showerror("Error", f"Error abriendo otras funciones: {e}")
     
     def _open_development_checker(self):
         """Abrir vista de verificación de desarrollos"""
