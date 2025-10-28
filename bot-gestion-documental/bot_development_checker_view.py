@@ -280,6 +280,9 @@ class DevelopmentCheckerView(Toplevel):
             
             # Filtro por servicio (solo si checkbox está marcado)
             if self.filter_with_service_var.get():
+                # Inicializar service_dev_ids si no está inicializado
+                if not hasattr(self, 'service_dev_ids') or not self.service_dev_ids:
+                    self.service_dev_ids = set(self.checker.get_developments_from_service())
                 service_match = dev_id in self.service_dev_ids
             else:
                 service_match = True
