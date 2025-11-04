@@ -36,15 +36,48 @@ class TIControlsHelpers:
             if not os.path.exists(folder_path):
                 return False
             
-            # Buscar archivo exacto
-            if os.path.exists(os.path.join(folder_path, filename)):
+            # Normalizar nombres para comparación
+            filename_lower = filename.lower().strip()
+            
+            # Buscar archivo exacto (sin extensión)
+            file_base = os.path.splitext(filename)[0] if '.' in filename else filename
+            if os.path.exists(os.path.join(folder_path, filename)) or os.path.exists(os.path.join(folder_path, file_base)):
                 return True
+            
+            # Extraer palabras clave importantes (ignorar artículos y preposiciones comunes)
+            ignore_words = {'de', 'del', 'la', 'el', 'en', 'caso', 'novedad', 'para', 'al', 'con', 'y', 'o'}
+            keywords = [w.strip('-') for w in filename_lower.split() if w.strip('-') not in ignore_words and len(w.strip('-')) > 2]
+            
+            # Si no hay suficientes keywords, usar el texto completo pero dividido en partes
+            if len(keywords) < 2:
+                # Dividir por guiones y espacios para obtener partes significativas
+                parts = [p.strip() for p in filename_lower.replace('-', ' ').split() if len(p.strip()) > 2]
+                keywords = parts[:3]  # Tomar las primeras 3 partes más importantes
             
             # Buscar archivo con nombre similar (ignorando mayúsculas)
             for root, dirs, files in os.walk(folder_path):
                 for file in files:
-                    if filename.lower() in file.lower():
+                    file_lower = file.lower()
+                    
+                    # Verificar si el texto completo está contenido
+                    if filename_lower in file_lower:
                         return True
+                    
+                    # Verificar si todas las palabras clave importantes están presentes
+                    if keywords:
+                        found_keywords = sum(1 for kw in keywords if kw in file_lower)
+                        # Si encontramos al menos el 70% de las palabras clave, consideramos coincidencia
+                        if found_keywords >= max(1, len(keywords) * 0.7):
+                            return True
+                    
+                    # Verificar código de formato (ej: FD-FT-284, FD-FT-060)
+                    # Buscar patrones como "FD-FT-XXX" o "FD-FT-XXXX"
+                    import re
+                    format_code_pattern = r'fd-ft-\d+'
+                    if re.search(format_code_pattern, filename_lower):
+                        format_match = re.search(format_code_pattern, filename_lower)
+                        if format_match and format_match.group() in file_lower:
+                            return True
             
             return False
             
@@ -58,18 +91,58 @@ class TIControlsHelpers:
             if not os.path.exists(folder_path):
                 return ""
             
+            # Normalizar nombres para comparación
+            filename_lower = filename.lower().strip()
+            
             # Buscar archivo exacto
             exact_path = os.path.join(folder_path, filename)
             if os.path.exists(exact_path):
                 return exact_path
             
+            file_base = os.path.splitext(filename)[0] if '.' in filename else filename
+            exact_base_path = os.path.join(folder_path, file_base)
+            if os.path.exists(exact_base_path):
+                return exact_base_path
+            
+            # Extraer palabras clave importantes (igual que en search_file_in_folder)
+            ignore_words = {'de', 'del', 'la', 'el', 'en', 'caso', 'novedad', 'para', 'al', 'con', 'y', 'o'}
+            keywords = [w.strip('-') for w in filename_lower.split() if w.strip('-') not in ignore_words and len(w.strip('-')) > 2]
+            
+            if len(keywords) < 2:
+                parts = [p.strip() for p in filename_lower.replace('-', ' ').split() if len(p.strip()) > 2]
+                keywords = parts[:3]
+            
             # Buscar archivo con nombre similar (ignorando mayúsculas)
+            best_match = None
+            best_score = 0
+            
             for root, dirs, files in os.walk(folder_path):
                 for file in files:
-                    if filename.lower() in file.lower():
-                        return os.path.join(root, file)
+                    file_lower = file.lower()
+                    file_path = os.path.join(root, file)
+                    
+                    # Verificar si el texto completo está contenido
+                    if filename_lower in file_lower:
+                        return file_path
+                    
+                    # Calcular score basado en palabras clave
+                    if keywords:
+                        found_keywords = sum(1 for kw in keywords if kw in file_lower)
+                        score = found_keywords / len(keywords) if keywords else 0
+                        
+                        # Verificar código de formato
+                        import re
+                        format_code_pattern = r'fd-ft-\d+'
+                        if re.search(format_code_pattern, filename_lower):
+                            format_match = re.search(format_code_pattern, filename_lower)
+                            if format_match and format_match.group() in file_lower:
+                                score += 0.5  # Bonus por código de formato
+                        
+                        if score > best_score and score >= 0.7:
+                            best_score = score
+                            best_match = file_path
             
-            return ""
+            return best_match if best_match else ""
             
         except Exception as e:
             self._log(f"❌ Error buscando archivo {filename}: {e}")
@@ -146,15 +219,17 @@ class TIControlsValidation:
     def _can_copy_control(self, development: Dict[str, Any], control_code: str) -> bool:
         dev_id = development.get('id', '')
         required_docs = self.manager.ti_controls[control_code]["documents"]
+        optional_docs = self.manager.ti_controls[control_code].get("optional_documents", [])
 
         # Buscar carpeta del desarrollo
         dev_folder = self.manager._find_development_folder(dev_id)
         if not dev_folder:
             return False
 
-        # Verificar que todos los documentos estén presentes
+        # Verificar que todos los documentos requeridos (no opcionales) estén presentes
         for doc in required_docs:
-            if not self.manager._search_file_in_folder(dev_folder, doc):
-                return False
+            if doc not in optional_docs:  # Solo verificar documentos no opcionales
+                if not self.manager._search_file_in_folder(dev_folder, doc):
+                    return False
 
         return True

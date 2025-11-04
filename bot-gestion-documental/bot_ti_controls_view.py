@@ -10,6 +10,7 @@ from ttkbootstrap.constants import *
 from tkinter import messagebox, Toplevel, scrolledtext
 from typing import List, Dict, Any, Callable
 from datetime import datetime
+import sys
 from bot_ti_controls_manager import TIControlsManager
 from bot_ti_controls_view_helpers import (
     populate_main_tab,
@@ -17,6 +18,7 @@ from bot_ti_controls_view_helpers import (
     show_summary,
     export_results,
     open_destination_folder,
+    open_source_folder,
     copy_control_files,
 )
 
@@ -129,6 +131,16 @@ class TIControlsView(Toplevel):
         scrollbar.pack(side=RIGHT, fill=Y)
         self.main_tree.configure(yscrollcommand=scrollbar.set)
         
+        # Configurar tags con colores para los iconos
+        self.main_tree.tag_configure("status_complete", foreground="#22c55e")  # Verde para completo
+        self.main_tree.tag_configure("status_partial", foreground="#f59e0b")  # Amarillo/Naranja para parcial
+        self.main_tree.tag_configure("status_no_copied", foreground="#6b7280")  # Gris para no copiado
+        self.main_tree.tag_configure("status_no_aplica", foreground="#9ca3af")  # Gris claro para no aplica
+        self.main_tree.tag_configure("status_incomplete", foreground="#ef4444")  # Rojo para incompleto
+        
+        self.main_tree.tag_configure("copy_yes", foreground="#22c55e")  # Verde para sí puede copiar
+        self.main_tree.tag_configure("copy_no", foreground="#ef4444")  # Rojo para no puede copiar
+        
         # Eventos
         self.main_tree.bind("<Double-1>", self._on_double_click_main)
         
@@ -138,6 +150,8 @@ class TIControlsView(Toplevel):
         
         ttk.Button(action_frame, text="📋 Copiar Seleccionado", 
                   command=self._copy_selected, bootstyle=PRIMARY).pack(side=LEFT, padx=(0, 5))
+        ttk.Button(action_frame, text="📂 Abrir Carpeta Origen", 
+                  command=self._open_source_folder, bootstyle=INFO).pack(side=LEFT, padx=(0, 5))
         ttk.Button(action_frame, text="📁 Abrir Carpeta Destino", 
                   command=self._open_destination_folder, bootstyle=SECONDARY).pack(side=LEFT, padx=(0, 5))
     
@@ -206,15 +220,24 @@ class TIControlsView(Toplevel):
         populate_summary_tab(self)
     
     def _on_double_click_main(self, event):
-        """Manejar doble clic en tree principal"""
-        item = self.main_tree.selection()[0]
+        """Manejar doble clic en tree principal - abre carpeta origen"""
+        selection = self.main_tree.selection()
+        if not selection:
+            return
+            
+        item = selection[0]
         values = self.main_tree.item(item, "values")
         
         if values:
-            dev_id = values[0]
-            control_code = values[3]
-            self._log(f"🖱️ Doble clic en: {dev_id} - {control_code}")
-            copy_control_files(self, dev_id, control_code)
+            # Si se presiona Ctrl, copiar archivos; si no, abrir carpeta origen
+            if sys.platform == 'win32' and event.state & 0x0004:  # Ctrl presionado en Windows
+                dev_id = values[0]
+                control_code = values[3]
+                self._log(f"🖱️ Ctrl+Doble clic en: {dev_id} - {control_code}")
+                copy_control_files(self, dev_id, control_code)
+            else:
+                # Doble clic normal: abrir carpeta origen
+                open_source_folder(self)
     
     def _copy_selected(self):
         """Copiar archivos del elemento seleccionado"""
@@ -238,6 +261,10 @@ class TIControlsView(Toplevel):
     def _open_destination_folder(self):
         """Abrir carpeta destino del elemento seleccionado"""
         open_destination_folder(self)
+    
+    def _open_source_folder(self):
+        """Abrir carpeta origen del desarrollo seleccionado"""
+        open_source_folder(self)
     
     def _show_summary(self):
         """Mostrar resumen de controles TI"""

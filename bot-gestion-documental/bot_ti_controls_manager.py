@@ -31,6 +31,9 @@ class TIControlsManager:
                 "documents": [
                     "FD-FT-284 Formato de requerimiento de necesidades",
                     "Correo electrónico en caso de novedad"
+                ],
+                "optional_documents": [
+                    "Correo electrónico en caso de novedad"
                 ]
             },
             "C004-GT": {
@@ -39,8 +42,10 @@ class TIControlsManager:
                 "documents": [
                     "Test de pruebas del desarrollo para nuevo desarrollo",
                     "Instructivo de pruebas del desarrollo",
-                    "FD-FT-060 Formato Pruebas Aplicativo"
-                ]
+                    "FD-FT-060 Formato Pruebas Aplicativo",
+                    "Propuesta Comercial"
+                ],
+                "optional_documents": []
             },
             "C021-GT": {
                 "name": "Certificación de la implementación adecuada del desarrollo al usuario solicitante",
@@ -48,6 +53,9 @@ class TIControlsManager:
                 "documents": [
                     "FD-FT-060 FORMATO PRUEBAS APLICATIVO",
                     "Test de Funcionamiento",
+                    "Correo electrónico en caso de novedad"
+                ],
+                "optional_documents": [
                     "Correo electrónico en caso de novedad"
                 ]
             }
@@ -115,6 +123,9 @@ class TIControlsManager:
                 'destination_path': destination_path
             }
         
+        # Obtener documentos opcionales
+        optional_docs = self.ti_controls[control_code].get("optional_documents", [])
+        
         # Buscar documentos en la carpeta destino
         documents_found = []
         documents_missing = []
@@ -135,7 +146,10 @@ class TIControlsManager:
                 'is_complete': False
             }
         
-        is_complete = len(documents_missing) == 0
+        # Considerar completo si todos los documentos requeridos están presentes,
+        # ignorando los documentos opcionales que falten
+        required_missing = [doc for doc in documents_missing if doc not in optional_docs]
+        is_complete = len(required_missing) == 0
         
         return {
             'status': 'COMPLETE' if is_complete else 'PARTIAL',
@@ -248,19 +262,21 @@ class TIControlsManager:
         return current_stage in control_stages.get(control_code, [])
     
     def _can_copy_control(self, development: Dict[str, Any], control_code: str) -> bool:
-        """Verificar si se puede copiar un control (tiene todos los documentos en origen)"""
+        """Verificar si se puede copiar un control (tiene todos los documentos requeridos en origen, ignorando opcionales)"""
         dev_id = development.get('id', '')
         required_docs = self.ti_controls[control_code]["documents"]
+        optional_docs = self.ti_controls[control_code].get("optional_documents", [])
         
         # Buscar carpeta del desarrollo
         dev_folder = self._find_development_folder(dev_id)
         if not dev_folder:
             return False
         
-        # Verificar que todos los documentos estén presentes
+        # Verificar que todos los documentos requeridos (no opcionales) estén presentes
         for doc in required_docs:
-            if not self._search_file_in_folder(dev_folder, doc):
-                return False
+            if doc not in optional_docs:  # Solo verificar documentos no opcionales
+                if not self._search_file_in_folder(dev_folder, doc):
+                    return False
         
         return True
     

@@ -10,9 +10,11 @@ from ttkbootstrap.constants import *
 from tkinter import Toplevel, messagebox, scrolledtext
 from typing import List, Dict, Any, Callable
 from datetime import datetime
+import sys
 from bot_development_checker import DevelopmentChecker
 from bot_development_checker_view_helpers import (
-    populate_tree, get_control_status_icon, show_development_details, export_results
+    populate_tree, get_control_status_icon, show_development_details, export_results,
+    open_development_folder
 )
 
 
@@ -140,8 +142,31 @@ class DevelopmentCheckerView(Toplevel):
         scrollbar.pack(side=RIGHT, fill=Y)
         self.tree.configure(yscrollcommand=scrollbar.set)
         
+        # Configurar tags con colores para los iconos
+        self.tree.tag_configure("status_complete", foreground="#22c55e")  # Verde para completo
+        self.tree.tag_configure("status_incomplete", foreground="#ef4444")  # Rojo para incompleto
+        self.tree.tag_configure("status_partial", foreground="#f59e0b")  # Amarillo/Naranja para parcial
+        self.tree.tag_configure("status_no_folder", foreground="#6b7280")  # Gris para sin carpeta
+        self.tree.tag_configure("status_unknown", foreground="#9ca3af")  # Gris claro para desconocido
+        
+        self.tree.tag_configure("control_complete", foreground="#22c55e")  # Verde para control completo
+        self.tree.tag_configure("control_incomplete", foreground="#ef4444")  # Rojo para control incompleto
+        self.tree.tag_configure("control_partial", foreground="#f59e0b")  # Amarillo/Naranja para parcial
+        self.tree.tag_configure("control_paused", foreground="#6b7280")  # Gris para pausado
+        self.tree.tag_configure("control_unknown", foreground="#9ca3af")  # Gris claro para desconocido
+        
+        self.tree.tag_configure("copy_yes", foreground="#22c55e")  # Verde para sí puede copiar
+        self.tree.tag_configure("copy_no", foreground="#ef4444")  # Rojo para no puede copiar
+        
         # Eventos
         self.tree.bind("<Double-1>", self._on_double_click)
+        
+        # Botones de acción
+        action_frame = ttk.Frame(main_frame)
+        action_frame.pack(fill=X, pady=(10, 0))
+        
+        ttk.Button(action_frame, text="📂 Abrir Carpeta", 
+                  command=self._open_folder, bootstyle=INFO).pack(side=LEFT, padx=(0, 5))
         
         # Log
         log_frame = ttk.LabelFrame(main_frame, text="Registro de Operaciones", padding="10")
@@ -187,7 +212,7 @@ class DevelopmentCheckerView(Toplevel):
         return get_control_status_icon(control_status)
     
     def _on_double_click(self, event):
-        """Manejar doble clic en tree"""
+        """Manejar doble clic en tree - abre carpeta del desarrollo"""
         selection = self.tree.selection()
         if not selection:
             return
@@ -196,9 +221,19 @@ class DevelopmentCheckerView(Toplevel):
         values = self.tree.item(item, "values")
         
         if values:
-            dev_id = values[0]
-            folder_name = values[1]
-            self._show_development_details(dev_id, folder_name)
+            # Si se presiona Ctrl, mostrar detalles; si no, abrir carpeta
+            if sys.platform == 'win32' and event.state & 0x0004:  # Ctrl presionado en Windows
+                dev_id = values[0]
+                folder_name = values[1]
+                self._log(f"🖱️ Ctrl+Doble clic en: {dev_id} - {folder_name}")
+                self._show_development_details(dev_id, folder_name)
+            else:
+                # Doble clic normal: abrir carpeta
+                open_development_folder(self)
+    
+    def _open_folder(self):
+        """Abrir carpeta del desarrollo seleccionado"""
+        open_development_folder(self)
     
     def _show_development_details(self, dev_id: str, folder_name: str):
         """Mostrar detalles de un desarrollo específico"""

@@ -1,5 +1,5 @@
 """
-Bot TI Controls View Helpers - Funciones auxiliares de la vista
+Bot TI Controls View Helpers - Funciones auxiliares de la vista de controles TI
 ================================================================
 
 Funciones auxiliares para reducir el tamaño de `bot_ti_controls_view.py`.
@@ -25,32 +25,41 @@ def populate_main_tab(view) -> None:
         for control_code, status in controls_status.items():
             control_name = view.ti_manager.ti_controls.get(control_code, {}).get('name', 'N/A')
 
-            # Determinar estado visual
+            # Determinar estado visual y tag
             status_text = status.get('status', 'N/A')
             if status_text == 'COMPLETE':
                 status_icon = "✅"
+                status_tag = "status_complete"
             elif status_text == 'PARTIAL':
                 status_icon = "⚠️"
+                status_tag = "status_partial"
             elif status_text == 'NO_COPIED':
                 status_icon = "📁"
+                status_tag = "status_no_copied"
             elif status_text == 'NO_APLICA':
                 status_icon = "⏸️"
+                status_tag = "status_no_aplica"
             else:
                 status_icon = "❌"
+                status_tag = "status_incomplete"
 
-            # Estado de copia
+            # Estado de copia con tag
             can_copy = status.get('can_copy', False)
             can_copy_text = "✅ Sí" if can_copy else "❌ No"
+            copy_tag = "copy_yes" if can_copy else "copy_no"
 
             # Documentos
             docs_found = len(status.get('documents_found', []))
             docs_missing = len(status.get('documents_missing', []))
 
+            # Usar el tag del estado principal
+            tags = [status_tag]
+
             view.main_tree.insert("", view.END, values=(
                 dev_id, dev_name, stage, control_code, control_name,
                 f"{status_icon} {status_text}", can_copy_text,
                 f"{docs_found} docs", f"{docs_missing} docs"
-            ))
+            ), tags=tags)
 
 
 def populate_summary_tab(view) -> None:
@@ -177,6 +186,38 @@ def export_results(view) -> None:
     except Exception as e:
         view._log(f"❌ Error exportando resultados: {e}")
         messagebox.showerror("Error", f"Error exportando resultados: {e}")
+
+
+def open_source_folder(view) -> None:
+    """Abrir carpeta origen del desarrollo seleccionado en el tree principal."""
+    from tkinter import messagebox
+
+    selection = view.main_tree.selection()
+    if not selection:
+        messagebox.showwarning("Sin selección", "Seleccione un elemento para abrir su carpeta origen.")
+        return
+
+    item = selection[0]
+    values = view.main_tree.item(item, "values")
+
+    if values:
+        dev_id = values[0]
+
+        try:
+            # Buscar carpeta origen del desarrollo
+            source_folder = view.ti_manager._find_development_folder(dev_id)
+
+            if source_folder and os.path.exists(source_folder):
+                os.startfile(source_folder)
+                view._log(f"📁 Abriendo carpeta origen: {source_folder}")
+            else:
+                messagebox.showinfo("Carpeta no encontrada",
+                                    f"No se encontró la carpeta origen para el desarrollo:\n{dev_id}\n\n"
+                                    f"Ruta base: {view.ti_manager.base_path}")
+
+        except Exception as e:
+            view._log(f"❌ Error abriendo carpeta origen: {e}")
+            messagebox.showerror("Error", f"Error abriendo carpeta origen: {e}")
 
 
 def open_destination_folder(view) -> None:

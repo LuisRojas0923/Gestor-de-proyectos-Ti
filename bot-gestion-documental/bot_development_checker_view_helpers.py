@@ -10,6 +10,62 @@ from datetime import datetime
 from tkinter import messagebox, Toplevel
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+import os
+import re
+
+
+def open_development_folder(view) -> None:
+    """Abrir carpeta del desarrollo seleccionado en el tree."""
+    from tkinter import messagebox
+
+    selection = view.tree.selection()
+    if not selection:
+        messagebox.showwarning("Sin selección", "Seleccione un desarrollo para abrir su carpeta.")
+        return
+
+    item = selection[0]
+    values = view.tree.item(item, "values")
+
+    if values:
+        dev_id = values[0]
+        folder_name = values[1]
+
+        try:
+            # Buscar carpeta del desarrollo en la ruta base
+            folder_path = find_development_folder_path(view.base_path, dev_id, folder_name)
+
+            if folder_path and os.path.exists(folder_path):
+                os.startfile(folder_path)
+                view._log(f"📁 Abriendo carpeta: {folder_path}")
+            else:
+                messagebox.showinfo("Carpeta no encontrada",
+                                    f"No se encontró la carpeta para el desarrollo:\n{dev_id}\n\n"
+                                    f"Carpeta: {folder_name}\n"
+                                    f"Ruta base: {view.base_path}")
+
+        except Exception as e:
+            view._log(f"❌ Error abriendo carpeta: {e}")
+            messagebox.showerror("Error", f"Error abriendo carpeta: {e}")
+
+
+def find_development_folder_path(base_path: str, dev_id: str, folder_name: str) -> str:
+    """Buscar ruta completa de la carpeta del desarrollo."""
+    if not os.path.exists(base_path):
+        return ""
+    
+    try:
+        # Buscar en todas las fases
+        for root, dirs, files in os.walk(base_path):
+            for dir_name in dirs:
+                # Buscar por ID del desarrollo o por nombre de carpeta
+                if dev_id in dir_name or folder_name in dir_name:
+                    full_path = os.path.join(root, dir_name)
+                    if os.path.isdir(full_path):
+                        return full_path
+    except Exception as e:
+        print(f"❌ Error buscando carpeta para {dev_id}: {e}")
+    
+    return ""
 
 
 def populate_tree(view) -> None:
@@ -28,55 +84,71 @@ def populate_tree(view) -> None:
         phase = result.get('phase', 'N/A')
         status = result.get('overall_status', 'UNKNOWN')
         
-        # Estado visual
+        # Determinar tag según estado principal
         if status == 'COMPLETE':
             status_icon = "✅"
+            status_tag = "status_complete"
         elif status == 'PARTIAL':
             status_icon = "⚠️"
+            status_tag = "status_partial"
         elif status == 'INCOMPLETE':
             status_icon = "❌"
+            status_tag = "status_incomplete"
         elif status == 'NO_FOLDER':
             status_icon = "📁"
+            status_tag = "status_no_folder"
         else:
             status_icon = "❓"
+            status_tag = "status_unknown"
         
         # Archivos
         total_found = result.get('total_files_found', 0)
         total_required = result.get('total_files_required', 0)
         
-        # Estados de controles
+        # Estados de controles con tags
         controls_status = result.get('controls_status', {})
-        c003_status = get_control_status_icon(controls_status.get('C003-GT', {}))
-        c004_status = get_control_status_icon(controls_status.get('C004-GT', {}))
-        c021_status = get_control_status_icon(controls_status.get('C021-GT', {}))
+        c003_status, c003_tag = get_control_status_icon_with_tag(controls_status.get('C003-GT', {}))
+        c004_status, c004_tag = get_control_status_icon_with_tag(controls_status.get('C004-GT', {}))
+        c021_status, c021_tag = get_control_status_icon_with_tag(controls_status.get('C021-GT', {}))
         
-        # Puede copiar
+        # Puede copiar con tag
         can_copy = result.get('can_copy_any', False)
         can_copy_text = "✅ Sí" if can_copy else "❌ No"
+        copy_tag = "copy_yes" if can_copy else "copy_no"
         
-        view.tree.insert("", END, values=(
+        # Combinar tags (usar el tag del estado principal como base)
+        tags = [status_tag]
+        
+        # Insertar con tags
+        item_id = view.tree.insert("", END, values=(
             dev_id, folder_name, phase, f"{status_icon} {status}",
             f"{total_found}/{total_required}", total_required,
             c003_status, c004_status, c021_status, can_copy_text
-        ))
+        ), tags=tags)
 
 
-def get_control_status_icon(control_status: Dict[str, Any]) -> str:
-    """Obtener icono de estado para un control"""
+def get_control_status_icon_with_tag(control_status: Dict[str, Any]) -> tuple:
+    """Obtener icono de estado y tag para un control"""
     if not control_status:
-        return "❓"
+        return "❓", "control_unknown"
     
     files_found = len(control_status.get('files_found', []))
     files_required = len(control_status.get('files_required', []))
     
     if files_required == 0:
-        return "⏸️"
+        return "⏸️", "control_paused"
     elif files_found == files_required:
-        return "✅"
+        return "✅", "control_complete"
     elif files_found > 0:
-        return "⚠️"
+        return "⚠️", "control_partial"
     else:
-        return "❌"
+        return "❌", "control_incomplete"
+
+
+def get_control_status_icon(control_status: Dict[str, Any]) -> str:
+    """Obtener icono de estado para un control (versión legacy, mantiene compatibilidad)"""
+    icon, _ = get_control_status_icon_with_tag(control_status)
+    return icon
 
 
 def show_development_details(view, dev_id: str, folder_name: str) -> None:
@@ -121,6 +193,7 @@ def show_development_details(view, dev_id: str, folder_name: str) -> None:
         control_name = status.get('control_name', 'N/A')
         files_found = status.get('files_found', [])
         files_missing = status.get('files_missing', [])
+        optional_missing = status.get('optional_missing', [])
         
         # Frame para cada control
         control_frame = ttk.Frame(controls_frame)
@@ -136,6 +209,10 @@ def show_development_details(view, dev_id: str, folder_name: str) -> None:
         if files_missing:
             ttk.Label(control_frame, text=f"❌ Faltantes: {', '.join(files_missing)}", 
                      foreground="red").pack(anchor=W, padx=(20, 0))
+        
+        if optional_missing:
+            ttk.Label(control_frame, text=f"⚪ Opcionales (no encontrados): {', '.join(optional_missing)}", 
+                     foreground="gray").pack(anchor=W, padx=(20, 0))
 
 
 def export_results(view) -> None:

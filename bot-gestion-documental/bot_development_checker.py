@@ -175,9 +175,14 @@ class DevelopmentChecker:
             )
             result['controls_status'][control_code] = control_result
             
-            # Contar archivos
-            result['total_files_found'] += len(control_result.get('files_found', []))
-            result['total_files_required'] += len(control_result.get('files_required', []))
+            # Contar archivos (solo requeridos, no opcionales)
+            optional_docs = self.ti_manager.ti_controls[control_code].get("optional_documents", [])
+            required_docs_list = [doc for doc in control_result.get('files_required', []) if doc not in optional_docs]
+            found_required_list = [f for f in control_result.get('files_found', []) 
+                                   if not any(op in f for op in optional_docs)]
+            
+            result['total_files_found'] += len(found_required_list)
+            result['total_files_required'] += len(required_docs_list)
             
             if control_result.get('can_copy', False):
                 result['can_copy_any'] = True
@@ -191,17 +196,33 @@ class DevelopmentChecker:
         """Verificar archivos requeridos para un control específico"""
         
         required_docs = self.ti_manager.ti_controls[control_code]["documents"]
+        optional_docs = self.ti_manager.ti_controls[control_code].get("optional_documents", [])
         files_found = []
         files_missing = []
+        optional_missing = []
         
         # Buscar cada archivo requerido
         for doc in required_docs:
-            if self._search_file_in_folder(folder_path, doc):
-                files_found.append(doc)
+            found_file = self._find_file_in_folder(folder_path, doc)
+            if found_file:
+                # Guardar el nombre real del archivo encontrado
+                files_found.append(os.path.basename(found_file))
+            elif doc in optional_docs:
+                # Separar documentos opcionales de los requeridos
+                optional_missing.append(doc)
             else:
                 files_missing.append(doc)
         
+        # Separar archivos encontrados en requeridos y opcionales
+        found_required = [f for f in files_found if not any(op in f for op in optional_docs)]
+        found_optional = [f for f in files_found if any(op in f for op in optional_docs)]
+        
+        # Considerar completo si solo faltan documentos opcionales
         can_copy = len(files_missing) == 0
+        
+        # Calcular porcentaje basado solo en documentos requeridos (no opcionales)
+        required_count = len(required_docs) - len(optional_docs)
+        completion_percentage = (len(found_required) / required_count * 100) if required_count > 0 else 100
         
         return {
             'control_code': control_code,
@@ -209,45 +230,200 @@ class DevelopmentChecker:
             'files_required': required_docs,
             'files_found': files_found,
             'files_missing': files_missing,
+            'optional_missing': optional_missing,
             'can_copy': can_copy,
-            'completion_percentage': (len(files_found) / len(required_docs) * 100) if required_docs else 0
+            'completion_percentage': completion_percentage
         }
     
-    def _search_file_in_folder(self, folder_path: str, filename: str) -> bool:
-        """Buscar archivo en una carpeta específica de desarrollo (búsqueda inteligente)"""
+    def _find_file_in_folder(self, folder_path: str, filename: str) -> str:
+        """Buscar archivo en una carpeta y retornar ruta completa (versión estricta)"""
         try:
             if not os.path.exists(folder_path):
-                return False
+                return ""
             
-            # Buscar archivo exacto
-            exact_path = os.path.join(folder_path, filename)
-            if os.path.exists(exact_path):
-                return True
+            filename_lower = filename.lower().strip()
             
-            # Crear patrones de búsqueda más inteligentes
-            search_patterns = self._create_search_patterns(filename)
+            # Normalizar texto removiendo acentos para comparación
+            import unicodedata
+            filename_normalized = unicodedata.normalize('NFD', filename_lower).encode('ascii', 'ignore').decode('ascii')
             
-            try:
-                files = os.listdir(folder_path)
+            # Caso especial: correo electrónico
+            if 'correo' in filename_normalized and 'electronico' in filename_normalized:
+                # Buscar archivos de correo (.eml, .msg)
+                email_extensions = ['.eml', '.msg']
+                for root, dirs, files in os.walk(folder_path):
+                    for file in files:
+                        file_ext = os.path.splitext(file)[1].lower()
+                        if file_ext in email_extensions:
+                            # Cualquier archivo de correo cuenta como correo electrónico
+                            return os.path.join(root, file)
+                return ""
+            
+            # Caso especial: Test de pruebas - buscar cualquier archivo que contenga "test"
+            if 'test' in filename_normalized and 'pruebas' in filename_normalized:
+                # Buscar archivos que contengan "test" (o "testing") - solo requiere "test"
+                for root, dirs, files in os.walk(folder_path):
+                    for file in files:
+                        file_lower = file.lower()
+                        file_normalized = unicodedata.normalize('NFD', file_lower).encode('ascii', 'ignore').decode('ascii')
+                        # Verificar que contenga "test" o "testing"
+                        if 'test' in file_normalized or 'testing' in file_normalized:
+                            return os.path.join(root, file)
+                return ""
+            
+            # Extraer código de formato específico si existe
+            import re
+            format_code_pattern = r'fd-ft-\d+'
+            format_match = re.search(format_code_pattern, filename_lower)
+            format_code = format_match.group() if format_match else None
+            
+            # Buscar recursivamente en la carpeta
+            best_match = None
+            best_score = 0
+            
+            for root, dirs, files in os.walk(folder_path):
                 for file in files:
                     file_lower = file.lower()
+                    file_path = os.path.join(root, file)
                     
-                    # Verificar cada patrón de búsqueda
-                    for pattern in search_patterns:
-                        if pattern in file_lower:
-                            return True
-                            
-            except Exception:
-                pass
+                    # Si hay código de formato específico, DEBE estar presente
+                    if format_code:
+                        if format_code not in file_lower:
+                            continue
+                    else:
+                        # Si no hay código, buscar texto completo o palabras clave
+                        if filename_lower not in file_lower:
+                            # Verificar si hay suficientes palabras clave en común
+                            if not self._has_sufficient_keyword_match(filename_lower, file_lower):
+                                continue
+                    
+                    # Verificar coincidencia completa (mejor match)
+                    if filename_lower in file_lower:
+                        return file_path
+                    
+                    # Si hay código de formato y coincide, verificar palabras clave
+                    if format_code and format_code in file_lower:
+                        ignore_words = {'de', 'del', 'la', 'el', 'en', 'caso', 'novedad', 'para', 'al', 'con', 'y', 'o', 'formato', 'format'}
+                        keywords = [w.strip('-') for w in filename_lower.split() 
+                                  if w.strip('-') not in ignore_words and len(w.strip('-')) > 3]
+                        
+                        if keywords:
+                            found_keywords = sum(1 for kw in keywords if kw in file_lower)
+                            score = found_keywords / len(keywords) if keywords else 0
+                            if score >= 0.6:
+                                if score > best_score:
+                                    best_score = score
+                                    best_match = file_path
+                        else:
+                            return file_path
+                    else:
+                        # Sin código de formato, usar búsqueda por palabras clave
+                        score = self._calculate_match_score(filename_lower, file_lower)
+                        if score >= 0.6:
+                            if score > best_score:
+                                best_score = score
+                                best_match = file_path
             
-            return False
+            return best_match if best_match else ""
             
         except Exception as e:
-            self._log(f"❌ Error buscando archivo {filename} en {folder_path}: {e}")
+            self._log(f"❌ Error buscando archivo {filename}: {e}")
+            return ""
+    
+    def _has_sufficient_keyword_match(self, search_text: str, file_text: str) -> bool:
+        """Verificar si hay suficientes palabras clave en común"""
+        import re
+        ignore_words = {'de', 'del', 'la', 'el', 'en', 'caso', 'novedad', 'para', 'al', 'con', 'y', 'o', 'formato', 'format', 'del', 'las', 'los', 'un', 'una', 'el', 'la'}
+        
+        # Remover extensión del nombre de archivo antes de extraer palabras clave
+        file_base = os.path.splitext(file_text)[0] if '.' in file_text else file_text
+        
+        # Extraer palabras clave del texto de búsqueda
+        search_words = [w.strip('-') for w in re.split(r'[\s\-_]+', search_text.lower()) 
+                       if w.strip('-') not in ignore_words and len(w.strip('-')) > 2]
+        
+        # Extraer palabras clave del nombre del archivo (sin extensión)
+        file_words = [w.strip('-') for w in re.split(r'[\s\-_]+', file_base.lower()) 
+                     if w.strip('-') not in ignore_words and len(w.strip('-')) > 2]
+        
+        if not search_words:
             return False
+        
+        # Contar coincidencias (incluyendo variaciones similares)
+        matches = 0
+        for sw in search_words:
+            # Buscar coincidencia exacta o parcial
+            if any(sw in fw or fw in sw for fw in file_words):
+                matches += 1
+            # Buscar variaciones comunes (ej: funcionamiento/funcional, pruebas/prueba)
+            elif self._are_words_similar(sw, file_words):
+                matches += 1
+        
+        # Requerir al menos 60% de coincidencias
+        return matches >= max(1, len(search_words) * 0.6)
+    
+    def _are_words_similar(self, word: str, word_list: list) -> bool:
+        """Verificar si una palabra es similar a alguna en una lista"""
+        variations = {
+            'funcionamiento': ['funcional', 'funcion'],
+            'funcional': ['funcionamiento', 'funcion'],
+            'pruebas': ['prueba', 'test', 'testing'],
+            'prueba': ['pruebas', 'test', 'testing'],
+            'test': ['pruebas', 'prueba', 'testing'],
+            'testing': ['pruebas', 'prueba', 'test'],
+            'desarrollo': ['desarrollos'],
+            'desarrollos': ['desarrollo'],
+            'instructivo': ['instruccion', 'instructivo', 'guia'],
+            'instruccion': ['instructivo', 'guia'],
+            'correo': ['email', 'mail'],
+            'electronico': ['email', 'mail']
+        }
+        
+        if word in variations:
+            return any(v in word_list for v in variations[word])
+        
+        # Verificar si la palabra comienza con las mismas letras (al menos 5 caracteres)
+        if len(word) >= 5:
+            return any(fw.startswith(word[:5]) or word.startswith(fw[:5]) for fw in word_list if len(fw) >= 5)
+            
+            return False
+            
+    def _calculate_match_score(self, search_text: str, file_text: str) -> float:
+        """Calcular score de coincidencia entre texto de búsqueda y nombre de archivo"""
+        import re
+        ignore_words = {'de', 'del', 'la', 'el', 'en', 'caso', 'novedad', 'para', 'al', 'con', 'y', 'o', 'formato', 'format', 'del', 'las', 'los', 'un', 'una', 'el', 'la'}
+        
+        # Remover extensión del nombre de archivo antes de extraer palabras clave
+        file_base = os.path.splitext(file_text)[0] if '.' in file_text else file_text
+        
+        # Extraer palabras clave del texto de búsqueda
+        search_words = [w.strip('-') for w in re.split(r'[\s\-_]+', search_text.lower()) 
+                       if w.strip('-') not in ignore_words and len(w.strip('-')) > 2]
+        
+        # Extraer palabras clave del nombre del archivo (sin extensión)
+        file_words = [w.strip('-') for w in re.split(r'[\s\-_]+', file_base.lower()) 
+                     if w.strip('-') not in ignore_words and len(w.strip('-')) > 2]
+        
+        if not search_words:
+            return 0.0
+        
+        # Contar coincidencias (incluyendo variaciones similares)
+        matches = 0
+        for sw in search_words:
+            if any(sw in fw or fw in sw for fw in file_words):
+                matches += 1
+            elif self._are_words_similar(sw, file_words):
+                matches += 1
+        
+        return matches / len(search_words) if search_words else 0.0
+    
+    def _search_file_in_folder(self, folder_path: str, filename: str) -> bool:
+        """Buscar archivo en una carpeta específica de desarrollo (búsqueda inteligente y estricta)"""
+        found_file = self._find_file_in_folder(folder_path, filename)
+        return bool(found_file)
     
     def _create_search_patterns(self, filename: str) -> List[str]:
-        """Crear patrones de búsqueda inteligentes basados en el nombre del archivo"""
+        """Crear patrones de búsqueda inteligentes basados en el nombre del archivo (DEPRECADO - usar _search_file_in_folder directamente)"""
         patterns = []
         filename_lower = filename.lower()
         
@@ -259,28 +435,6 @@ class DevelopmentChecker:
         code_matches = re.findall(r'[a-z]+-[a-z]+-\d+', filename_lower)
         for code in code_matches:
             patterns.append(code)
-        
-        # Extraer números (ej: 284, 060)
-        number_matches = re.findall(r'\d+', filename_lower)
-        for number in number_matches:
-            patterns.append(number)
-        
-        # Palabras clave específicas
-        keywords = {
-            'requerimiento': ['requerimiento', 'requerimientos', 'req'],
-            'necesidades': ['necesidades', 'necesidad'],
-            'pruebas': ['pruebas', 'prueba', 'test', 'testing'],
-            'aplicativo': ['aplicativo', 'aplicacion'],
-            'formato': ['formato', 'format'],
-            'correo': ['correo', 'email', 'mail'],
-            'novedad': ['novedad', 'novedades', 'novedades'],
-            'instructivo': ['instructivo', 'instruccion', 'guia'],
-            'funcionamiento': ['funcionamiento', 'funcionalidad', 'funcional']
-        }
-        
-        for keyword, variations in keywords.items():
-            if keyword in filename_lower:
-                patterns.extend(variations)
         
         # Eliminar duplicados y patrones muy cortos
         patterns = list(set([p for p in patterns if len(p) >= 3]))
@@ -294,8 +448,16 @@ class DevelopmentChecker:
             return 'NO_CONTROLS'
         
         total_controls = len(controls_status)
-        complete_controls = sum(1 for status in controls_status.values() 
-                               if status.get('can_copy', False))
+        complete_controls = 0
+        
+        for control_code, status in controls_status.items():
+            files_missing = status.get('files_missing', [])
+            optional_missing = status.get('optional_missing', [])
+            
+            # Un control se considera completo si no faltan documentos requeridos
+            # (puede faltar documentos opcionales)
+            if len(files_missing) == 0:
+                complete_controls += 1
         
         if complete_controls == total_controls:
             return 'COMPLETE'
