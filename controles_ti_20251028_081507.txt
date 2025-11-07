@@ -1,0 +1,336 @@
+REPORTE DE CONTROLES TI
+==================================================
+
+Fecha: 2025-10-28 08:15:07
+Total desarrollos: 55
+
+Desarrollo: INC000005009035 - Cargue masivo multicash SIFI
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004999884 - CALCULO Y SUMATORIA DE SOCIOS Y_O ACCIONISTAS Y BENEFICIARIOS FINALES 
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004980665 - Ajuste generación de Extractos del FVP en Finansoft.
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004839045 - Ajuste Campo Formato 084
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004866500 - FT084 Vinculación Asistida
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004837041 - Perseverados 3
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004917413 - Forward Non Delivery
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004874305 - Obligaciones Moneda Nacional. y Moneda Extranjera
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004884160 - Generación Certificado Patrimonial desde SIFI
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004486849 - Listas de Ajustes Cautelares
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004920437 - Marcacion Cliente excento RTE FUENTE
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004841295 - Cargue, valoración y recaudos títulos relacionados a los negocios de titularizac
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004900455 - CER-DRP Oficina Virtual
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004782806 - Ajuste 351 Deterioro Fonmutuales
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004703037 - Ajuste reproceso de operaciones en el portal transacional
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004775199 - Vinculación Inmobiliaria
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004888509 - Ajuste Deterioro al 100
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004480057 - Validaciones en el precargue del módulo Fideicomisos
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004787482 - Formato 397 (Caso FVP, Consolidadora y Opciones)
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004893354 - Calculo de la perdida esperada
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004868672 - Retiros en Cheque para el FVP en Finansoft y Portal Transaccional
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004520448 - Trasmitir encargos del mismo dia 351
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004691353 - Ajuste campo Rentabilidad Extractos FVP y Portal Transaccional
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004678864 - Listado de mejoras portal transaccional
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004990248 - Solicitud nuevos desarrollos y orden de servicios
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004992063 - Soporte
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004996478 - consulta historia de la valoración de títulos alternativos
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004776678 - Servicios Web Portal transaccional
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004956282 - AJUSTES AL REPORTE DE PRODUCTOS OFRECIDOS ARCHIVO 2 NEGOCIOS FIUDICIA
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004939219 - Clientes creados por Fiduexpress sin marcar como asociados
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004970133 - Consulta de Terceros
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004985440 - Solicitud nuevos desarrollos y orden de servicios
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004987879 - Ajuste Facturas
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004987185 - Solicitud nuevos desarrollos y orden de servicios
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004982359 - Solicitud nuevos desarrollos y orden de servicios
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004982341 - Solicitud nuevos desarrollos y orden de servicios
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004979640 - Solicitud nuevos desarrollos y orden de servicios
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004961835 - ORM del PA CREDIVALORES 108217
+Etapa: {'phase_id': 3, 'stage_code': '10', 'stage_name': 'Devuelto', 'stage_description': 'Desarrollo devuelto por correcciones requeridas', 'is_milestone': False, 'estimated_days': None, 'responsible_party': 'proveedor', 'sort_order': 1, 'is_active': True, 'id': 10, 'created_at': '2025-09-15T18:00:37.236873+00:00', 'updated_at': None}
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004919670 - Modelo Retiro Express FVP
+Etapa: {'phase_id': 3, 'stage_code': '0', 'stage_name': 'Cancelado', 'stage_description': 'Desarrollo cancelado', 'is_milestone': False, 'estimated_days': None, 'responsible_party': 'usuario', 'sort_order': 2, 'is_active': True, 'id': 11, 'created_at': '2025-09-15T18:00:37.236873+00:00', 'updated_at': None}
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004816080 - Caso 142072 XBRL
+Etapa: {'phase_id': 3, 'stage_code': '0', 'stage_name': 'Cancelado', 'stage_description': 'Desarrollo cancelado', 'is_milestone': False, 'estimated_days': None, 'responsible_party': 'usuario', 'sort_order': 2, 'is_active': True, 'id': 11, 'created_at': '2025-09-15T18:00:37.236873+00:00', 'updated_at': None}
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000005008124 - Control saldo mínimo en los Fondos de Inversión Colectiva
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004998416 - consulta de los titulos cargados, que permita validar en el modulo de valoracion y en cuenta de orden
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004949269 - Cargue de cuotas vencidas o en mora
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004961791 - Mejora para que de manera automática se ejecuten las operaciones por fuera d
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004820935 - ETL y Homologación Beneficiarios productos activos
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: GLOBAL - Desarrollo Global de Ejemplo
+Etapa: {'phase_id': 1, 'stage_code': '1', 'stage_name': 'Definición', 'stage_description': 'Definición de requerimientos', 'is_milestone': False, 'estimated_days': None, 'responsible_party': 'usuario', 'sort_order': 1, 'is_active': True, 'id': 1, 'created_at': '2025-09-15T18:00:37.236873+00:00', 'updated_at': None}
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004993533 - Solicitud nuevos desarrollos y orden de servicios
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004988553 - Consulta de valoracion
+Etapa: None
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004962132 - DESISTIMIENTO ANTES DEL PUNTO DE EQUILIBRIO
+Etapa: {'phase_id': 3, 'stage_code': '0', 'stage_name': 'Cancelado', 'stage_description': 'Desarrollo cancelado', 'is_milestone': False, 'estimated_days': None, 'responsible_party': 'usuario', 'sort_order': 2, 'is_active': True, 'id': 11, 'created_at': '2025-09-15T18:00:37.236873+00:00', 'updated_at': None}
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004442399 - Prototipo control de tasa variable Ban 100
+Etapa: {'phase_id': 3, 'stage_code': '0', 'stage_name': 'Cancelado', 'stage_description': 'Desarrollo cancelado', 'is_milestone': False, 'estimated_days': None, 'responsible_party': 'usuario', 'sort_order': 2, 'is_active': True, 'id': 11, 'created_at': '2025-09-15T18:00:37.236873+00:00', 'updated_at': None}
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004956888 - Mejora Logs envíos de Certificados tributarios
+Etapa: {'phase_id': 3, 'stage_code': '0', 'stage_name': 'Cancelado', 'stage_description': 'Desarrollo cancelado', 'is_milestone': False, 'estimated_days': None, 'responsible_party': 'usuario', 'sort_order': 2, 'is_active': True, 'id': 11, 'created_at': '2025-09-15T18:00:37.236873+00:00', 'updated_at': None}
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004757900 - Automatización de dirección de correspondencia clientes SIFI
+Etapa: {'phase_id': 3, 'stage_code': '0', 'stage_name': 'Cancelado', 'stage_description': 'Desarrollo cancelado', 'is_milestone': False, 'estimated_days': None, 'responsible_party': 'usuario', 'sort_order': 2, 'is_active': True, 'id': 11, 'created_at': '2025-09-15T18:00:37.236873+00:00', 'updated_at': None}
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004962074 - Mejora en el archivo de control para que se incluya un campo de tipo de retiro en el FVP.
+Etapa: {'phase_id': 3, 'stage_code': '0', 'stage_name': 'Cancelado', 'stage_description': 'Desarrollo cancelado', 'is_milestone': False, 'estimated_days': None, 'responsible_party': 'usuario', 'sort_order': 2, 'is_active': True, 'id': 11, 'created_at': '2025-09-15T18:00:37.236873+00:00', 'updated_at': None}
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004958354 - Formato 524 REPORTE DE INGRESOS PERCIBIDOS POR COMISIONES
+Etapa: {'phase_id': 3, 'stage_code': '0', 'stage_name': 'Cancelado', 'stage_description': 'Desarrollo cancelado', 'is_milestone': False, 'estimated_days': None, 'responsible_party': 'usuario', 'sort_order': 2, 'is_active': True, 'id': 11, 'created_at': '2025-09-15T18:00:37.236873+00:00', 'updated_at': None}
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------
+Desarrollo: INC000004924567 - log de envio de extractos
+Etapa: {'phase_id': 3, 'stage_code': '0', 'stage_name': 'Cancelado', 'stage_description': 'Desarrollo cancelado', 'is_milestone': False, 'estimated_days': None, 'responsible_party': 'usuario', 'sort_order': 2, 'is_active': True, 'id': 11, 'created_at': '2025-09-15T18:00:37.236873+00:00', 'updated_at': None}
+  C003-GT: NO_APLICA
+  C004-GT: NO_APLICA
+  C021-GT: NO_APLICA
+------------------------------

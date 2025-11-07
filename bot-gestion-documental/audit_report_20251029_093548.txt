@@ -1,0 +1,44 @@
+﻿=== AUDITORÃA DE CONTROLES TI ===
+Carpeta: C:\Users\lerv8093\OneDrive - Grupo Coomeva\PROYECTOS DESARROLLOS\Desarrollos\Definición\INC000005009035_Cargue masivo multicash SIFI
+Fecha: 2025-10-29 09:35:49
+
+=== ARCHIVOS ENCONTRADOS EN LA CARPETA ===
+Total de archivos: 
+
+  - FD-FT-284 Formato Requerimiento de Necesidades Conc Bancaria (1).docx
+
+=== ANÃLISIS POR CONTROL TI ===
+
+CONTROL: C003-GT
+Nombre: Documento de entendimiento entre el colaborador y el proveedor
+Documentos requeridos: 2
+
+    âŒ FD-FT-284 Formato de requerimiento de necesidades â†’ NO ENCONTRADO
+    âŒ Correo electrÃ³nico en caso de novedad â†’ NO ENCONTRADO
+  Estado: INCOMPLETO (0/2 archivos encontrados - 0%)
+
+
+CONTROL: C004-GT
+Nombre: Listado de desarrollos en Pruebas
+Documentos requeridos: 3
+
+    âŒ Test de pruebas del desarrollo para nuevo desarrollo â†’ NO ENCONTRADO
+    âŒ Instructivo de pruebas del desarrollo â†’ NO ENCONTRADO
+    âŒ FD-FT-060 Formato Pruebas Aplicativo â†’ NO ENCONTRADO
+  Estado: INCOMPLETO (0/3 archivos encontrados - 0%)
+
+
+CONTROL: C021-GT
+Nombre: CertificaciÃ³n de la implementaciÃ³n adecuada del desarrollo al usuario solicitante
+Documentos requeridos: 3
+
+    âŒ FD-FT-060 FORMATO PRUEBAS APLICATIVO â†’ NO ENCONTRADO
+    âŒ Test de Funcionamiento â†’ NO ENCONTRADO
+    âŒ Correo electrÃ³nico en caso de novedad â†’ NO ENCONTRADO
+  Estado: INCOMPLETO (0/3 archivos encontrados - 0%)
+
+=== RESUMEN GENERAL ===
+Total documentos requeridos: 8
+Total documentos encontrados: 0
+Porcentaje de cumplimiento: 0%
+
