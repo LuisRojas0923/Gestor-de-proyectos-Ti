@@ -9,10 +9,10 @@ from app.database import Base
 
 
 class ChatSession(Base):
-    __tablename__ = "chat_sessions"
+    __tablename__ = "sesiones_chat"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String(50), ForeignKey("auth_users.id"), nullable=False)
+    user_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"), nullable=False)
     title = Column(String(255))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -23,10 +23,10 @@ class ChatSession(Base):
 
 
 class ChatMessage(Base):
-    __tablename__ = "chat_messages"
+    __tablename__ = "mensajes_chat"
     
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False)
+    session_id = Column(Integer, ForeignKey("sesiones_chat.id"), nullable=False)
     content = Column(Text, nullable=False)
     sender = Column(String(50), nullable=False)  # 'user', 'assistant'
     message_type = Column(String(50), default="text")  # 'text', 'file', 'image'

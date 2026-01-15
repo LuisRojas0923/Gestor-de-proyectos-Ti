@@ -9,8 +9,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { 
-  MaterialCard, 
+import {
+  MaterialCard,
   MaterialTypography
 } from '../../../components/atoms';
 
@@ -31,7 +31,7 @@ const QualityReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
           <div className="flex items-center space-x-3">
             <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             <MaterialTypography variant="h5" darkMode={darkMode}>
-              🛡️ Reporte de Calidad y Controles
+              Reporte de Calidad y Controles
             </MaterialTypography>
           </div>
           <MaterialTypography variant="body2" darkMode={darkMode} className="mt-2">
@@ -118,8 +118,8 @@ const QualityReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={controlComplianceData}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis 
-                dataKey="name" 
+              <XAxis
+                dataKey="name"
                 tick={{ fill: darkMode ? '#a3a3a3' : '#525252' }}
               />
               <YAxis tick={{ fill: darkMode ? '#a3a3a3' : '#525252' }} />
@@ -150,9 +150,9 @@ const QualityReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               <thead className={darkMode ? 'bg-neutral-700' : 'bg-neutral-50'}>
                 <tr>
                   {['Control', 'Descripción', 'Cumplimiento', 'Última Ejecución', 'Responsable'].map(header => (
-                     <th key={header} scope="col" className="px-4 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">
-                       {header}
-                     </th>
+                    <th key={header} scope="col" className="px-4 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">
+                      {header}
+                    </th>
                   ))}
                 </tr>
               </thead>

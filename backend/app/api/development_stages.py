@@ -10,10 +10,10 @@ from .. import models, schemas
 from ..database import get_db
 from ..services.kpi_service import KPIService, get_kpi_service
 
-router = APIRouter(prefix="/development-stages", tags=["development-stages"])
+router = APIRouter(prefix="/etapas-desarrollo", tags=["etapas-desarrollo"])
 
 
-@router.post("/{development_id}/close-stage")
+@router.post("/{development_id}/cerrar-etapa")
 def close_development_stage(
     development_id: str,
     request_data: dict,
@@ -188,7 +188,7 @@ def close_development_stage(
         )
 
 
-@router.get("/{development_id}/stages")
+@router.get("/{development_id}/etapas")
 def get_development_stages(
     development_id: str,
     db: Session = Depends(get_db)

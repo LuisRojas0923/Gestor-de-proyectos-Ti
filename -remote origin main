@@ -1,5 +1,0 @@
-[33mc9b64e6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m feat: Agregar archivo de comandos para levantar servicios
-[33m5f54c89[m fix(crud): correct order of operations in get_requirements query
-[33m5fc37bb[m feat(api): create endpoint to get all requirements
-[33m07f342b[m feat: Add Docker support and configuration
-[33m0494672[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat: Implementar funcionalidades clave del sistema

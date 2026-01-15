@@ -20,6 +20,7 @@ from .kpi import (
 from .alerts import DevelopmentUpcomingActivity
 from .chat import ChatSession, ChatMessage
 from .system import SystemSetting, ActivityLog, Incident
+from .tickets import SupportTicket, TicketCategory, TicketComment
 from .mcp import AiContextCache, AiAnalysisHistory, AiRecommendation, AiUsageMetric, AiModelConfig
 
 # Exportar todos los modelos
@@ -43,6 +44,8 @@ __all__ = [
     "ChatSession", "ChatMessage",
     # System models
     "SystemSetting", "ActivityLog", "Incident",
+    # Ticket models
+    "SupportTicket", "TicketCategory", "TicketComment",
     # MCP models (IA)
     "AiContextCache", "AiAnalysisHistory", "AiRecommendation", "AiUsageMetric", "AiModelConfig"
 ]

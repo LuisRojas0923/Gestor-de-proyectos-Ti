@@ -29,7 +29,7 @@ class QualityControlCatalog(QualityControlCatalogBase):
     updated_at: Optional[datetime] = None
     
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -72,7 +72,7 @@ class DevelopmentQualityControl(DevelopmentQualityControlBase):
     updated_at: Optional[datetime] = None
     
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 

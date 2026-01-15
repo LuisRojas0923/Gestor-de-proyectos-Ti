@@ -102,6 +102,10 @@ export const useKpiData = (selectedProvider: string = 'all') => {
   const { get } = useApi<DashboardResponse>();
   const [kpiData, setKpiData] = useState<KpiData>({
     globalCompliance: { value: 0, change: { value: 0, type: 'increase' } },
+    globalCompleteCompliance: { value: 0, change: { value: 0, type: 'increase' } },
+    analysisCompliance: { value: 0, change: { value: 0, type: 'increase' } },
+    proposalCompliance: { value: 0, change: { value: 0, type: 'increase' } },
+    calidadPrimeraEntrega: { value: 0, change: { value: 0, type: 'increase' } },
     developmentComplianceDays: { value: 0, change: { value: 0, type: 'decrease' } },
     firstTimeQuality: { value: 0, change: { value: 0, type: 'decrease' } },
     failureResponseTime: { value: 0, change: { value: 0, type: 'decrease' } },
@@ -109,7 +113,7 @@ export const useKpiData = (selectedProvider: string = 'all') => {
     postProductionRework: { value: 0, change: { value: 0, type: 'decrease' } },
     installerResolutionTime: { value: 0, change: { value: 0, type: 'decrease' } },
   });
-  
+
   const [providerQualityData, setProviderQualityData] = useState<ProviderQualityData[]>(defaultProviderQualityData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +158,7 @@ export const useKpiData = (selectedProvider: string = 'all') => {
       },
       developmentComplianceDays: {
         value: response.development_compliance_days?.current_value ?? 0,
-        change: response.development_compliance_days?.change || { value: 0, type: 'decrease' }
+        change: (response.development_compliance_days?.change as { value: number; type: 'increase' | 'decrease' }) || { value: 0, type: 'decrease' }
       },
       firstTimeQuality: {
         value: response.first_time_quality?.current_value || 0,
@@ -165,7 +169,7 @@ export const useKpiData = (selectedProvider: string = 'all') => {
       },
       failureResponseTime: {
         value: response.failure_response_time?.current_value || 0,
-        change: response.failure_response_time?.change || { value: 0, type: 'decrease' }
+        change: (response.failure_response_time?.change as { value: number; type: 'increase' | 'decrease' }) || { value: 0, type: 'decrease' }
       },
       defectsPerDelivery: {
         value: response.defects_per_delivery?.current_value || 0,
@@ -173,11 +177,11 @@ export const useKpiData = (selectedProvider: string = 'all') => {
       },
       postProductionRework: {
         value: response.post_production_rework?.current_value || 0,
-        change: response.post_production_rework?.change || { value: 0, type: 'decrease' }
+        change: (response.post_production_rework?.change as { value: number; type: 'increase' | 'decrease' }) || { value: 0, type: 'decrease' }
       },
       installerResolutionTime: {
         value: response.installer_resolution_time?.current_value || 0,
-        change: response.installer_resolution_time?.change || { value: 0, type: 'decrease' }
+        change: (response.installer_resolution_time?.change as { value: number; type: 'increase' | 'decrease' }) || { value: 0, type: 'decrease' }
       }
     };
   }, []);
@@ -187,18 +191,18 @@ export const useKpiData = (selectedProvider: string = 'all') => {
     try {
       setLoading(true);
       setError(null);
-      
-      const endpoint = selectedProvider === 'all' 
-        ? API_ENDPOINTS.KPI_DASHBOARD 
+
+      const endpoint = selectedProvider === 'all'
+        ? API_ENDPOINTS.KPI_DASHBOARD
         : `${API_ENDPOINTS.KPI_DASHBOARD}?provider=${encodeURIComponent(selectedProvider)}`;
-      
+
       // console.log('🔍 Cargando KPIs desde:', endpoint);
       // console.log('🏢 Proveedor seleccionado:', selectedProvider);
-      
+
       const response = await get(endpoint);
-      
+
       // console.log('📊 Respuesta completa del backend:', response);
-      
+
       if (response) {
         // Log detallado removido - funcionando correctamente
         const mappedData = mapBackendDataToFrontend(response);
@@ -246,7 +250,7 @@ export const useProviders = () => {
   const loadProviders = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await get('/kpi/providers');
+      const response = await get('/indicadores/providers');
       if (response && response.providers) {
         setAvailableProviders(response.providers);
       }
@@ -274,10 +278,10 @@ export const useKpiDebug = () => {
 
   const debugKpiCalculations = useCallback(async (provider?: string) => {
     try {
-      const endpoint = provider 
-        ? `/kpi/_debug/dashboard-calculation?provider=${encodeURIComponent(provider)}`
-        : '/kpi/_debug/dashboard-calculation';
-      
+      const endpoint = provider
+        ? `/indicadores/_debug/dashboard-calculation?provider=${encodeURIComponent(provider)}`
+        : '/indicadores/_debug/dashboard-calculation';
+
       console.log('🔍 Debugging KPI calculations from:', endpoint);
       const response = await get(endpoint);
       console.log('🐛 Debug response:', response);

@@ -8,7 +8,8 @@ from datetime import datetime
 
 
 class AuthUserBase(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
+    cedula: Optional[str] = Field(None, max_length=50)
     name: str = Field(..., min_length=1, max_length=255)
     role: str = Field(default="user", max_length=50)
     is_active: bool = True
@@ -38,7 +39,7 @@ class AuthUser(AuthUserBase):
     last_login: Optional[datetime] = None
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class AuthTokenBase(BaseModel):
@@ -58,7 +59,7 @@ class AuthToken(AuthTokenBase):
     created_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class UserSessionBase(BaseModel):
@@ -79,7 +80,7 @@ class UserSession(UserSessionBase):
     created_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class PermissionBase(BaseModel):
@@ -98,7 +99,7 @@ class Permission(PermissionBase):
     created_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class LoginRequest(BaseModel):

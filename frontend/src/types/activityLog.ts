@@ -11,17 +11,17 @@ export interface ActivityLogBase {
   status: 'pendiente' | 'en_curso' | 'completada' | 'cancelada';
   actor_type: 'equipo_interno' | 'proveedor' | 'usuario';
   notes?: string;
-  dynamic_payload?: Record<string, any>;
+  dynamic_payload?: Record<string, unknown>;
 }
 
-export interface ActivityLogCreate extends ActivityLogBase {}
+export type ActivityLogCreate = ActivityLogBase;
 
 export interface ActivityLogUpdate {
   end_date?: string;
   next_follow_up_at?: string;
   status?: 'pendiente' | 'en_curso' | 'completada' | 'cancelada';
   notes?: string;
-  dynamic_payload?: Record<string, any>;
+  dynamic_payload?: Record<string, unknown>;
 }
 
 export interface ActivityLogResponse extends ActivityLogBase {
@@ -46,11 +46,13 @@ export interface StageFieldConfig {
   stage_name: string;
   stage_code: string;
   field_config?: {
-    fields: any;
+    fields: unknown;
     required_fields: string[];
     optional_fields: string[];
   };
   has_dynamic_fields: boolean;
+  required_fields?: string[];
+  optional_fields?: string[];
 }
 
 // Campos dinámicos por etapa
@@ -79,7 +81,7 @@ export interface InstalacionPruebasFields {
 
 // Configuración de campos por etapa
 export const STAGE_FIELD_CONFIGS: Record<string, {
-  fields: any;
+  fields: unknown;
   required_fields: string[];
   optional_fields: string[];
   display_name: string;

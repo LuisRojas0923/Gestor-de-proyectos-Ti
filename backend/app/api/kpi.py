@@ -13,7 +13,7 @@ from .. import models, schemas
 from ..database import get_db
 from ..services.kpi_service import KPIService, get_kpi_service
 
-router = APIRouter(prefix="/kpi", tags=["kpi"])
+router = APIRouter(prefix="/indicadores", tags=["indicadores"])
 
 
 @router.get("/_debug/base-data")
@@ -83,7 +83,7 @@ def debug_base_data(db: Session = Depends(get_db)):
         )
 
 
-@router.get("/metrics")
+@router.get("/metricas")
 def get_kpi_metrics(
     provider: Optional[str] = None,
     metric_type: Optional[str] = None,
@@ -144,7 +144,7 @@ def get_kpi_metrics(
         )
 
 
-@router.post("/calculate")
+@router.post("/calcular")
 def calculate_metrics(
     calculation_request: schemas.KPICalculationRequest,
     kpi_service: KPIService = Depends(get_kpi_service)
@@ -214,101 +214,73 @@ def calculate_metrics(
         )
 
 
-@router.get("/providers")
+@router.get("/proveedores")
 def get_kpi_providers(db: Session = Depends(get_db)):
     """
     Obtener lista de proveedores únicos para filtros usando JOIN entre actividades y developments
     """
     try:
-        # Ejecutar stored procedure que hace JOIN entre development_activity_log y developments
-        from sqlalchemy import text
+        # Consulta directa con JOIN (reemplaza SP fn_get_providers_from_activities)
+        from sqlalchemy import func, case
         
-        result = db.execute(text("SELECT * FROM fn_get_providers_from_activities()"))
+        query = db.query(
+            case(
+                # Homologaciones específicas
+                (func.lower(models.Development.provider).like('%ingesoft%'), 'Ingesoft'),
+                (func.lower(models.Development.provider).like('%oracle%'), 'ORACLE'),
+                (func.lower(models.Development.provider).like('%itc%'), 'ITC'),
+                (func.lower(models.Development.provider).like('%interno%'), 'TI Interno'),
+                (func.lower(models.Development.provider).like('%ti interno%'), 'TI Interno'),
+                (func.lower(models.Development.provider).like('%coomeva%'), 'Coomeva'),
+                (func.lower(models.Development.provider).like('%softtek%'), 'Softtek'),
+                (func.lower(models.Development.provider).like('%accenture%'), 'Accenture'),
+                (func.lower(models.Development.provider).like('%microsoft%'), 'Microsoft'),
+                (func.lower(models.Development.provider).like('%ibm%'), 'IBM'),
+                (func.lower(models.Development.provider).like('%sap%'), 'SAP'),
+                # Casos especiales
+                (models.Development.provider.is_(None), 'Sin Proveedor'),
+                (models.Development.provider == '', 'Sin Proveedor'),
+                # Mantener original
+                else_=models.Development.provider
+            ).label('provider_homologado'),
+            func.count(models.DevelopmentActivityLog.id.distinct()).label('activities_count')
+        ).select_from(
+            models.DevelopmentActivityLog
+        ).join(
+            models.Development, 
+            models.DevelopmentActivityLog.development_id == models.Development.id
+        ).group_by(
+            'provider_homologado'
+        ).order_by(
+            'provider_homologado'
+        )
+        
+        result = query.all()
         
         providers = []
         for row in result:
             providers.append({
                 "name": row.provider_homologado,
-                "developments_count": row.cantidad_desarrollos_con_actividades,
-                "activities_count": row.total_actividades
+                "activities_count": row.activities_count
             })
         
-        # Extraer solo los nombres para compatibilidad con el frontend
         provider_names = [p["name"] for p in providers]
         
         return {
             "providers": provider_names,
             "total": len(provider_names),
             "detailed_info": providers,
-            "source": "stored_procedure_with_join"
+            "source": "direct_query_with_join"
         }
-        
+            
     except Exception as e:
-        # Fallback a consulta directa si el SP no existe aún
-        try:
-            print(f"⚠️ SP no encontrado, usando consulta directa: {e}")
-            
-            # Consulta directa con JOIN
-            from sqlalchemy import func, case
-            
-            query = db.query(
-                case(
-                    # Homologaciones específicas
-                    (func.lower(models.Development.provider).like('%ingesoft%'), 'Ingesoft'),
-                    (func.lower(models.Development.provider).like('%oracle%'), 'ORACLE'),
-                    (func.lower(models.Development.provider).like('%itc%'), 'ITC'),
-                    (func.lower(models.Development.provider).like('%interno%'), 'TI Interno'),
-                    (func.lower(models.Development.provider).like('%ti interno%'), 'TI Interno'),
-                    (func.lower(models.Development.provider).like('%coomeva%'), 'Coomeva'),
-                    (func.lower(models.Development.provider).like('%softtek%'), 'Softtek'),
-                    (func.lower(models.Development.provider).like('%accenture%'), 'Accenture'),
-                    (func.lower(models.Development.provider).like('%microsoft%'), 'Microsoft'),
-                    (func.lower(models.Development.provider).like('%ibm%'), 'IBM'),
-                    (func.lower(models.Development.provider).like('%sap%'), 'SAP'),
-                    # Casos especiales
-                    (models.Development.provider.is_(None), 'Sin Proveedor'),
-                    (models.Development.provider == '', 'Sin Proveedor'),
-                    # Mantener original
-                    else_=models.Development.provider
-                ).label('provider_homologado'),
-                func.count(models.DevelopmentActivityLog.id.distinct()).label('activities_count')
-            ).select_from(
-                models.DevelopmentActivityLog
-            ).join(
-                models.Development, 
-                models.DevelopmentActivityLog.development_id == models.Development.id
-            ).group_by(
-                'provider_homologado'
-            ).order_by(
-                'provider_homologado'
-            )
-            
-            result = query.all()
-            
-            providers = []
-            for row in result:
-                providers.append({
-                    "name": row.provider_homologado,
-                    "activities_count": row.activities_count
-                })
-            
-            provider_names = [p["name"] for p in providers]
-            
-            return {
-                "providers": provider_names,
-                "total": len(provider_names),
-                "detailed_info": providers,
-                "source": "direct_query_with_join"
-            }
-            
-        except Exception as fallback_error:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error obteniendo proveedores (SP y fallback fallaron): {str(e)} | Fallback: {str(fallback_error)}"
-            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo proveedores: {str(e)}"
+        )
 
 
-@router.get("/dashboard")
+@router.get("/panel")
 def get_kpi_dashboard(
     provider: Optional[str] = None,
     kpi_service: KPIService = Depends(get_kpi_service)
@@ -406,6 +378,14 @@ def get_kpi_dashboard(
             print(f"Warning: Error calculando tiempo respuesta: {e}")
             dashboard_data["failure_response_time"] = {"current_value": 0, "change": {"value": 0, "type": "decrease"}}
         
+        # Copiar datos a keys legacy para compatibilidad frontend si es necesario
+        if "first_time_quality" in dashboard_data:
+             dashboard_data["calidad_primera_entrega"] = {
+                "current_value": dashboard_data["first_time_quality"].get("current_value", 0),
+                "change_percentage": 0,
+                "trend": "stable"
+            }
+        
         # 3b. Desviación de días en cumplimiento de fechas (nuevo)
         try:
             dev_days = kpi_service.calculate_development_compliance_days(
@@ -438,64 +418,7 @@ def get_kpi_dashboard(
             print(f"Warning: Error calculando retrabajo: {e}")
             dashboard_data["post_production_rework"] = {"current_value": 0, "change": {"value": 0, "type": "decrease"}}
         
-        # 6. Calidad en Primera Entrega (NUEVO KPI)
-        try:
-            print(f"📊 Calculando Calidad en Primera Entrega para dashboard...")
-            
-            # Llamar al endpoint específico que sabemos que funciona
-            from fastapi import Request
-            from fastapi.responses import JSONResponse
-            import httpx
-            
-            # Hacer una llamada interna al endpoint que funciona
-            base_url = "http://localhost:8000"
-            url = f"{base_url}/api/v1/kpi/calidad-primera-entrega"
-            params = {}
-            if provider:
-                params["provider"] = provider
-            if start_date:
-                params["period_start"] = start_date.isoformat()
-            if end_date:
-                params["period_end"] = end_date.isoformat()
-            
-            try:
-                # Usar httpx para hacer la llamada interna
-                import httpx
-                with httpx.Client() as client:
-                    response = client.get(url, params=params, timeout=5.0)
-                    if response.status_code == 200:
-                        kpi_data = response.json()
-                        dashboard_data["calidad_primera_entrega"] = {
-                            "current_value": kpi_data["current_value"],
-                            "change_percentage": 0,  # TODO: Implementar cálculo de cambio
-                            "trend": "stable",
-                            "total_entregas": kpi_data.get("total_entregas", 0),
-                            "entregas_sin_devoluciones": kpi_data.get("entregas_sin_devoluciones", 0),
-                            "entregas_con_devoluciones": kpi_data.get("entregas_con_devoluciones", 0)
-                        }
-                        print(f"✅ Dashboard - Calidad en Primera Entrega: {kpi_data['current_value']}%")
-                    else:
-                        raise Exception(f"Error en llamada interna: {response.status_code}")
-            except Exception as internal_error:
-                print(f"⚠️ Error en llamada interna: {internal_error}")
-                # Fallback: usar datos hardcodeados temporalmente
-                dashboard_data["calidad_primera_entrega"] = {
-                    "current_value": 100.0,  # Valor temporal basado en pruebas
-                    "change_percentage": 0,
-                    "trend": "stable",
-                    "total_entregas": 3,
-                    "entregas_sin_devoluciones": 3,
-                    "entregas_con_devoluciones": 0
-                }
-                print("✅ Dashboard - Calidad en Primera Entrega: 100% (datos temporales)")
-                
-        except Exception as e:
-            print(f"Warning: Error calculando calidad en primera entrega: {e}")
-            dashboard_data["calidad_primera_entrega"] = {
-                "current_value": 0,
-                "change_percentage": 0,
-                "trend": "stable"
-            }
+
 
         # 7. Tiempo de Resolución de Instaladores
         try:
@@ -534,7 +457,7 @@ def get_kpi_dashboard(
         )
 
 
-@router.get("/reports")
+@router.get("/reportes")
 def get_kpi_reports(
     provider: Optional[str] = None,
     period: Optional[str] = "monthly",  # monthly, quarterly, yearly
@@ -633,7 +556,7 @@ def get_kpi_reports(
         )
 
 
-@router.get("/functionalities", response_model=List[schemas.DevelopmentFunctionality])
+@router.get("/funcionalidades", response_model=List[schemas.DevelopmentFunctionality])
 def get_functionalities(
     development_id: Optional[str] = None,
     status: Optional[str] = None,
@@ -664,7 +587,7 @@ def get_functionalities(
         )
 
 
-@router.post("/functionalities", response_model=schemas.DevelopmentFunctionality)
+@router.post("/funcionalidades", response_model=schemas.DevelopmentFunctionality)
 def create_functionality(
     functionality: schemas.DevelopmentFunctionalityCreate,
     db: Session = Depends(get_db)
@@ -701,7 +624,7 @@ def create_functionality(
         )
 
 
-@router.get("/quality-metrics", response_model=List[schemas.DevelopmentQualityMetric])
+@router.get("/metricas-calidad", response_model=List[schemas.DevelopmentQualityMetric])
 def get_quality_metrics(
     development_id: Optional[str] = None,
     provider: Optional[str] = None,
@@ -890,7 +813,7 @@ def debug_dashboard_calculation(
         )
 
 
-@router.get("/development-compliance/details")
+@router.get("/cumplimiento-desarrollo/detalles")
 def get_development_compliance_details(
     provider: Optional[str] = None,
     period_start: Optional[date] = None,
@@ -899,83 +822,30 @@ def get_development_compliance_details(
 ):
     """
     Obtiene el detalle de los cálculos del KPI de cumplimiento de fechas desarrollo.
-    Incluye nombre del desarrollo, fechas, proveedor y estado de cumplimiento.
     """
-    try:
-        # Ejecutar el stored procedure de detalles
-        result = db.execute(text("""
-            SELECT 
-                development_id,
-                development_name,
-                provider_original,
-                provider_homologado,
-                fecha_compromiso_original,
-                fecha_real_entrega,
-                dias_desviacion,
-                estado_entrega,
-                total_entregas_desarrollo,
-                actividad_entrega_id,
-                actividad_despliegue_id
-            FROM fn_kpi_cumplimiento_fechas_desarrollo_detalle(:provider, :start, :end)
-        """), {
-            "provider": provider,
-            "start": period_start, 
-            "end": period_end
-        }).fetchall()
-
-        # Convertir resultados a lista de diccionarios
-        details = []
-        for row in result:
-            details.append({
-                "development_id": row.development_id,
-                "development_name": row.development_name,
-                "provider_original": row.provider_original,
-                "provider_homologado": row.provider_homologado,
-                "fecha_compromiso_original": row.fecha_compromiso_original.isoformat() if row.fecha_compromiso_original else None,
-                "fecha_real_entrega": row.fecha_real_entrega.isoformat() if row.fecha_real_entrega else None,
-                "fecha_analisis_comprometida": None,
-                "fecha_real_propuesta": None,
-                "fecha_propuesta_comprometida": None,
-                "fecha_real_aprobacion": None,
-                "dias_desviacion": row.dias_desviacion,
-                "estado_entrega": row.estado_entrega,
-                "total_entregas_desarrollo": row.total_entregas_desarrollo,
-                "total_entregas_analisis": 0,
-                "total_entregas_propuesta": 0,
-                "actividad_entrega_id": row.actividad_entrega_id,
-                "actividad_despliegue_id": row.actividad_despliegue_id,
-                "actividad_analisis_id": 0,
-                "actividad_propuesta_id": None,
-                "actividad_aprobacion_id": None
-            })
-
-        # Calcular resumen
-        total_entregas = len(details)
-        entregas_a_tiempo = len([d for d in details if d["estado_entrega"] == "A TIEMPO"])
-        entregas_tardias = len([d for d in details if d["estado_entrega"] in ["TARDÍO", "INCUMPLIMIENTO (múltiples entregas)"]])
-        porcentaje_cumplimiento = round((entregas_a_tiempo / total_entregas * 100), 2) if total_entregas > 0 else 0.0
-
-        return {
-            "summary": {
-                "total_entregas": total_entregas,
-                "entregas_a_tiempo": entregas_a_tiempo,
-                "entregas_tardias": entregas_tardias,
-                "porcentaje_cumplimiento": porcentaje_cumplimiento,
-                "provider_filter": provider,
-                "period_start": period_start.isoformat() if period_start else None,
-                "period_end": period_end.isoformat() if period_end else None
-            },
-            "details": details
-        }
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error obteniendo detalles del cumplimiento desarrollo: {str(e)}"
-        )
+    kpi_service = KPIService(db)
+    # Asumiendo 'produccion' como la fecha de entrega de desarrollo
+    details = kpi_service.get_compliance_details('produccion', provider, period_start, period_end)
+    
+    # Calcular resumen
+    total = len(details)
+    a_tiempo = len([d for d in details if d["estado_entrega"] == "A TIEMPO"])
+    
+    return {
+        "summary": {
+            "total_entregas": total,
+            "entregas_a_tiempo": a_tiempo,
+            "entregas_tardias": total - a_tiempo,
+            "porcentaje_cumplimiento": round(a_tiempo / total * 100, 2) if total > 0 else 0,
+            "provider_filter": provider,
+            "period_start": period_start,
+            "period_end": period_end
+        },
+        "details": details
+    }
 
 
-@router.get("/analysis-compliance/details")
+@router.get("/cumplimiento-analisis/detalles")
 def get_analysis_compliance_details(
     provider: Optional[str] = None,
     period_start: Optional[date] = None,
@@ -984,83 +854,29 @@ def get_analysis_compliance_details(
 ):
     """
     Obtiene el detalle de los cálculos del KPI de cumplimiento de fechas de análisis.
-    Incluye nombre del desarrollo, fechas, proveedor y estado de cumplimiento.
     """
-    try:
-        # Ejecutar el stored procedure de detalles
-        result = db.execute(text("""
-            SELECT 
-                development_id,
-                development_name,
-                provider_original,
-                provider_homologado,
-                fecha_analisis_comprometida,
-                fecha_real_propuesta,
-                dias_desviacion,
-                estado_entrega,
-                total_entregas_analisis,
-                actividad_id,
-                siguiente_actividad_id
-            FROM fn_kpi_cumplimiento_fechas_analisis_detalle(:provider, :start, :end)
-        """), {
-            "provider": provider,
-            "start": period_start, 
-            "end": period_end
-        }).fetchall()
-
-        # Convertir resultados a lista de diccionarios
-        details = []
-        for row in result:
-            details.append({
-                "development_id": row.development_id,
-                "development_name": row.development_name,
-                "provider_original": row.provider_original,
-                "provider_homologado": row.provider_homologado,
-                "fecha_compromiso_original": None,
-                "fecha_real_entrega": None,
-                "fecha_analisis_comprometida": row.fecha_analisis_comprometida.isoformat() if row.fecha_analisis_comprometida else None,
-                "fecha_real_propuesta": row.fecha_real_propuesta.isoformat() if row.fecha_real_propuesta else None,
-                "fecha_propuesta_comprometida": None,
-                "fecha_real_aprobacion": None,
-                "dias_desviacion": row.dias_desviacion,
-                "estado_entrega": row.estado_entrega,
-                "total_entregas_desarrollo": 0,
-                "total_entregas_analisis": row.total_entregas_analisis,
-                "total_entregas_propuesta": 0,
-                "actividad_entrega_id": 0,
-                "actividad_despliegue_id": None,
-                "actividad_analisis_id": row.actividad_id,
-                "actividad_propuesta_id": row.siguiente_actividad_id,
-                "actividad_aprobacion_id": None
-            })
-
-        # Calcular resumen
-        total_entregas = len(details)
-        entregas_a_tiempo = len([d for d in details if d["estado_entrega"] == "A TIEMPO"])
-        entregas_tardias = len([d for d in details if d["estado_entrega"] in ["TARDÍO", "INCUMPLIMIENTO (múltiples análisis)"]])
-        porcentaje_cumplimiento = round((entregas_a_tiempo / total_entregas * 100), 2) if total_entregas > 0 else 0.0
-
-        return {
-            "summary": {
-                "total_entregas": total_entregas,
-                "entregas_a_tiempo": entregas_a_tiempo,
-                "entregas_tardias": entregas_tardias,
-                "porcentaje_cumplimiento": porcentaje_cumplimiento,
-                "provider_filter": provider,
-                "period_start": period_start.isoformat() if period_start else None,
-                "period_end": period_end.isoformat() if period_end else None
-            },
-            "details": details
-        }
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error obteniendo detalles del cumplimiento análisis: {str(e)}"
-        )
+    kpi_service = KPIService(db)
+    details = kpi_service.get_compliance_details('analisis_fin', provider, period_start, period_end)
+    
+    # Calcular resumen
+    total = len(details)
+    a_tiempo = len([d for d in details if d["estado_entrega"] == "A TIEMPO"])
+    
+    return {
+        "summary": {
+            "total_entregas": total,
+            "entregas_a_tiempo": a_tiempo,
+            "entregas_tardias": total - a_tiempo,
+            "porcentaje_cumplimiento": round(a_tiempo / total * 100, 2) if total > 0 else 0,
+            "provider_filter": provider,
+            "period_start": period_start,
+            "period_end": period_end
+        },
+        "details": details
+    }
 
 
-@router.get("/proposal-compliance/details")
+@router.get("/cumplimiento-propuesta/detalles")
 def get_proposal_compliance_details(
     provider: Optional[str] = None,
     period_start: Optional[date] = None,
@@ -1069,83 +885,29 @@ def get_proposal_compliance_details(
 ):
     """
     Obtiene el detalle de los cálculos del KPI de cumplimiento de fechas de propuesta.
-    Incluye nombre del desarrollo, fechas, proveedor y estado de cumplimiento.
     """
-    try:
-        # Ejecutar el stored procedure de detalles
-        result = db.execute(text("""
-            SELECT 
-                development_id,
-                development_name,
-                provider_original,
-                provider_homologado,
-                fecha_propuesta_comprometida,
-                fecha_real_aprobacion,
-                dias_desviacion,
-                estado_entrega,
-                total_entregas_propuesta,
-                actividad_id,
-                siguiente_actividad_id
-            FROM fn_kpi_cumplimiento_fechas_propuesta_detalle(:provider, :start, :end)
-        """), {
-            "provider": provider,
-            "start": period_start, 
-            "end": period_end
-        }).fetchall()
-
-        # Convertir resultados a lista de diccionarios
-        details = []
-        for row in result:
-            details.append({
-                "development_id": row.development_id,
-                "development_name": row.development_name,
-                "provider_original": row.provider_original,
-                "provider_homologado": row.provider_homologado,
-                "fecha_compromiso_original": None,
-                "fecha_real_entrega": None,
-                "fecha_analisis_comprometida": None,
-                "fecha_real_propuesta": None,
-                "fecha_propuesta_comprometida": row.fecha_propuesta_comprometida.isoformat() if row.fecha_propuesta_comprometida else None,
-                "fecha_real_aprobacion": row.fecha_real_aprobacion.isoformat() if row.fecha_real_aprobacion else None,
-                "dias_desviacion": row.dias_desviacion,
-                "estado_entrega": row.estado_entrega,
-                "total_entregas_desarrollo": 0,
-                "total_entregas_analisis": 0,
-                "total_entregas_propuesta": row.total_entregas_propuesta,
-                "actividad_entrega_id": 0,
-                "actividad_despliegue_id": None,
-                "actividad_analisis_id": 0,
-                "actividad_propuesta_id": row.actividad_id,
-                "actividad_aprobacion_id": row.siguiente_actividad_id
-            })
-
-        # Calcular resumen
-        total_entregas = len(details)
-        entregas_a_tiempo = len([d for d in details if d["estado_entrega"] == "A TIEMPO"])
-        entregas_tardias = len([d for d in details if d["estado_entrega"] in ["TARDÍO", "INCUMPLIMIENTO (múltiples propuestas)"]])
-        porcentaje_cumplimiento = round((entregas_a_tiempo / total_entregas * 100), 2) if total_entregas > 0 else 0.0
-
-        return {
-            "summary": {
-                "total_entregas": total_entregas,
-                "entregas_a_tiempo": entregas_a_tiempo,
-                "entregas_tardias": entregas_tardias,
-                "porcentaje_cumplimiento": porcentaje_cumplimiento,
-                "provider_filter": provider,
-                "period_start": period_start.isoformat() if period_start else None,
-                "period_end": period_end.isoformat() if period_end else None
-            },
-            "details": details
-        }
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error obteniendo detalles del cumplimiento propuesta: {str(e)}"
-        )
+    kpi_service = KPIService(db)
+    details = kpi_service.get_compliance_details('entrega_propuesta', provider, period_start, period_end)
+    
+    # Calcular resumen
+    total = len(details)
+    a_tiempo = len([d for d in details if d["estado_entrega"] == "A TIEMPO"])
+    
+    return {
+        "summary": {
+            "total_entregas": total,
+            "entregas_a_tiempo": a_tiempo,
+            "entregas_tardias": total - a_tiempo,
+            "porcentaje_cumplimiento": round(a_tiempo / total * 100, 2) if total > 0 else 0,
+            "provider_filter": provider,
+            "period_start": period_start,
+            "period_end": period_end
+        },
+        "details": details
+    }
 
 
-@router.get("/global-complete-compliance/details")
+@router.get("/cumplimiento-global-completo/detalles")
 def get_global_complete_compliance_details(
     provider: Optional[str] = None,
     period_start: Optional[date] = None,
@@ -1154,205 +916,35 @@ def get_global_complete_compliance_details(
 ):
     """
     Obtiene el detalle de los cálculos del KPI de cumplimiento de fechas global completo.
-    Incluye análisis, propuesta y desarrollo con nombre del desarrollo para identificación.
     """
-    try:
-        # Ejecutar el stored procedure de detalles
-        result = db.execute(text("""
-            SELECT 
-                development_id,
-                development_name,
-                provider_original,
-                provider_homologado,
-                fase,
-                fecha_comprometida,
-                fecha_real,
-                dias_desviacion,
-                estado_entrega,
-                total_entregas_fase,
-                actividad_id,
-                siguiente_actividad_id
-            FROM fn_kpi_cumplimiento_fechas_global_completo_detalle(:provider, :start, :end)
-        """), {
-            "provider": provider,
-            "start": period_start, 
-            "end": period_end
-        }).fetchall()
-
-        # Convertir resultados a lista de diccionarios
-        details = []
-        for row in result:
-            details.append({
-                "development_id": row.development_id,
-                "development_name": row.development_name,
-                "provider_original": row.provider_original,
-                "provider_homologado": row.provider_homologado,
-                "fase": row.fase,
-                "fecha_comprometida": row.fecha_comprometida.isoformat() if row.fecha_comprometida else None,
-                "fecha_real": row.fecha_real.isoformat() if row.fecha_real else None,
-                "dias_desviacion": row.dias_desviacion,
-                "estado_entrega": row.estado_entrega,
-                "total_entregas_fase": row.total_entregas_fase,
-                "actividad_id": row.actividad_id,
-                "siguiente_actividad_id": row.siguiente_actividad_id
-            })
-
-        # Calcular resumen
-        total_entregas = len(details)
-        entregas_a_tiempo = len([d for d in details if d["estado_entrega"] == "A TIEMPO"])
-        entregas_tardias = len([d for d in details if d["estado_entrega"] in ["TARDÍO", "INCUMPLIMIENTO (múltiples entregas)"]])
-        porcentaje_cumplimiento = round((entregas_a_tiempo / total_entregas * 100), 2) if total_entregas > 0 else 0.0
-
-        return {
-            "summary": {
-                "total_entregas": total_entregas,
-                "entregas_a_tiempo": entregas_a_tiempo,
-                "entregas_tardias": entregas_tardias,
-                "porcentaje_cumplimiento": porcentaje_cumplimiento,
-                "provider_filter": provider,
-                "period_start": period_start.isoformat() if period_start else None,
-                "period_end": period_end.isoformat() if period_end else None
-            },
-            "details": details
-        }
+    kpi_service = KPIService(db)
+    
+    details_prod = kpi_service.get_compliance_details('produccion', provider, period_start, period_end)
+    for d in details_prod: d['fase'] = 'Producción'
+    
+    details_analysis = kpi_service.get_compliance_details('analisis_fin', provider, period_start, period_end)
+    for d in details_analysis: d['fase'] = 'Análisis'
         
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error obteniendo detalles del cumplimiento global completo: {str(e)}"
-        )
+    details_prop = kpi_service.get_compliance_details('entrega_propuesta', provider, period_start, period_end)
+    for d in details_prop: d['fase'] = 'Propuesta'
+    
+    all_details = details_prod + details_analysis + details_prop
+    
+    # Calcular resumen
+    total = len(all_details)
+    a_tiempo = len([d for d in all_details if d["estado_entrega"] == "A TIEMPO"])
+    
+    return {
+        "summary": {
+            "total_entregas": total,
+            "entregas_a_tiempo": a_tiempo,
+            "entregas_tardias": total - a_tiempo,
+            "porcentaje_cumplimiento": round(a_tiempo / total * 100, 2) if total > 0 else 0,
+            "provider_filter": provider,
+            "period_start": period_start,
+            "period_end": period_end
+        },
+        "details": all_details
+    }
 
 
-@router.get("/calidad-primera-entrega")
-def get_calidad_primera_entrega(
-    provider: Optional[str] = None,
-    period_start: Optional[date] = None,
-    period_end: Optional[date] = None,
-    db: Session = Depends(get_db)
-):
-    """
-    Obtiene el KPI de calidad en primera entrega.
-    Calcula: Entregas aprobadas sin devoluciones ÷ entregas totales × 100%
-    """
-    print(f"📊 API Call: Calidad en Primera Entrega - Provider: {provider}, Period: {period_start} to {period_end}")
-    try:
-        # Ejecutar el stored procedure
-        result = db.execute(text("""
-            SELECT 
-                total_entregas,
-                entregas_sin_devoluciones,
-                entregas_con_devoluciones,
-                porcentaje_calidad,
-                provider_filter,
-                period_start,
-                period_end,
-                calculated_at
-            FROM fn_kpi_calidad_primera_entrega(:provider, :start, :end)
-        """), {
-            "provider": provider,
-            "start": period_start, 
-            "end": period_end
-        }).fetchone()
-
-        if not result:
-            return {
-                "current_value": 0.0,
-                "total_entregas": 0,
-                "entregas_sin_devoluciones": 0,
-                "entregas_con_devoluciones": 0,
-                "provider_filter": provider,
-                "period": {"start": period_start, "end": period_end},
-                "message": "No hay datos para el período especificado"
-            }
-
-        print(f"✅ Resultado: {result.porcentaje_calidad}% ({result.entregas_sin_devoluciones}/{result.total_entregas} entregas)")
-        
-        return {
-            "current_value": float(result.porcentaje_calidad),
-            "total_entregas": result.total_entregas,
-            "entregas_sin_devoluciones": result.entregas_sin_devoluciones,
-            "entregas_con_devoluciones": result.entregas_con_devoluciones,
-            "provider_filter": result.provider_filter,
-            "period": {"start": result.period_start.isoformat(), "end": result.period_end.isoformat()},
-            "calculated_at": result.calculated_at.isoformat()
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error calculando calidad en primera entrega: {str(e)}"
-        )
-
-
-@router.get("/calidad-primera-entrega/details")
-def get_calidad_primera_entrega_details(
-    provider: Optional[str] = None,
-    period_start: Optional[date] = None,
-    period_end: Optional[date] = None,
-    db: Session = Depends(get_db)
-):
-    """
-    Obtiene el detalle de los cálculos del KPI de calidad en primera entrega.
-    Incluye información detallada por desarrollo.
-    """
-    print(f"📊 API Call: Calidad en Primera Entrega - Details - Provider: {provider}, Period: {period_start} to {period_end}")
-    try:
-        # Ejecutar el stored procedure de detalles
-        result = db.execute(text("""
-            SELECT 
-                development_id,
-                development_name,
-                provider_original,
-                provider_homologado,
-                fecha_entrega,
-                fecha_devolucion,
-                estado_calidad,
-                actividad_entrega_id,
-                actividad_devolucion_id
-            FROM fn_kpi_calidad_primera_entrega_detalle(:provider, :start, :end)
-        """), {
-            "provider": provider,
-            "start": period_start, 
-            "end": period_end
-        })
-
-        # Convertir resultados a lista de diccionarios
-        details = []
-        for row in result:
-            details.append({
-                "development_id": row.development_id,
-                "development_name": row.development_name,
-                "provider_original": row.provider_original,
-                "provider_homologado": row.provider_homologado,
-                "fecha_entrega": row.fecha_entrega.isoformat() if row.fecha_entrega else None,
-                "fecha_devolucion": row.fecha_devolucion.isoformat() if row.fecha_devolucion else None,
-                "estado_calidad": row.estado_calidad,
-                "actividad_entrega_id": row.actividad_entrega_id,
-                "actividad_devolucion_id": row.actividad_devolucion_id
-            })
-
-        # Calcular resumen
-        total_entregas = len(details)
-        entregas_sin_devoluciones = len([d for d in details if d["estado_calidad"] == "SIN DEVOLUCIONES"])
-        entregas_con_devoluciones = len([d for d in details if d["estado_calidad"] == "CON DEVOLUCIONES"])
-        porcentaje_calidad = round((entregas_sin_devoluciones / total_entregas * 100), 2) if total_entregas > 0 else 0.0
-
-        print(f"✅ Detalles: {total_entregas} entregas, {entregas_sin_devoluciones} sin devoluciones, {entregas_con_devoluciones} con devoluciones")
-
-        return {
-            "summary": {
-                "total_entregas": total_entregas,
-                "entregas_sin_devoluciones": entregas_sin_devoluciones,
-                "entregas_con_devoluciones": entregas_con_devoluciones,
-                "porcentaje_calidad": porcentaje_calidad,
-                "provider_filter": provider,
-                "period": {"start": period_start, "end": period_end}
-            },
-            "details": details
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error obteniendo detalles de calidad en primera entrega: {str(e)}"
-        )

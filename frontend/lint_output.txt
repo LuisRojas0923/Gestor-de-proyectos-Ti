@@ -1,0 +1,181 @@
+
+> vite-react-typescript-starter@0.0.0 lint
+> eslint .
+
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\alerts\AlertPanel.tsx
+   4:5   error    'CheckCircle' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+   6:5   error    'Filter' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+   7:5   error    'Flag' is defined but never used                                                                                   @typescript-eslint/no-unused-vars
+  15:10  error    'ActivityFilters' is defined but never used                                                                        @typescript-eslint/no-unused-vars
+  15:27  error    'DevelopmentUpcomingActivity' is defined but never used                                                            @typescript-eslint/no-unused-vars
+  24:3   error    'developmentId' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+  25:3   error    'showFilters' is assigned a value but never used                                                                   @typescript-eslint/no-unused-vars
+  33:48  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  40:6   warning  React Hook useEffect has a missing dependency: 'loadActivities'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  81:9   error    'getPriorityIcon' is assigned a value but never used                                                               @typescript-eslint/no-unused-vars
+  81:28  error    'priority' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+  86:9   error    'isOverdue' is assigned a value but never used                                                                     @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\common\ExcelImporter.tsx
+   12:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   57:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\development\DevelopmentPhases.tsx
+  32:10  error  'stages' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\development\QualityControlsTab.tsx
+    4:37   error  'QualityControlCatalog' is defined but never used  @typescript-eslint/no-unused-vars
+   15:3    error  'developmentName' is defined but never used        @typescript-eslint/no-unused-vars
+   21:5    error  'catalog' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  354:109  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\examples\MaterialDesignExample.tsx
+   7:3   error  'Menu' is defined but never used                     @typescript-eslint/no-unused-vars
+   8:3   error  'Notifications' is defined but never used            @typescript-eslint/no-unused-vars
+   9:3   error  'Search' is defined but never used                   @typescript-eslint/no-unused-vars
+  27:10  error  'searchQuery' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  27:23  error  'setSearchQuery' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\molecules\ActivityCard.tsx
+   2:24  error  'Badge' is defined but never used                      @typescript-eslint/no-unused-vars
+  16:36  error  Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+  55:9   error  'getStatusVariant' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  81:9   error  'formatFieldName' is assigned a value but never used   @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\molecules\ActivityForm.tsx
+   17:3    error    'STAGE_FIELD_CONFIGS' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+   23:26   error    Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+   51:58   error    Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+   58:61   error    Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+   76:6    warning  React Hook useEffect has a missing dependency: 'loadStageFieldConfig'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   81:102  error    Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+   93:52   error    Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+  100:59   error    Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+  249:19   error    Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\molecules\ApiDebug.tsx
+   6:36  error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  29:6   warning  React Hook useEffect has a missing dependency: 'testApi'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\molecules\CalidadPrimeraEntregaModal.tsx
+  3:10  error  'CalidadPrimeraEntregaDetail' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\molecules\DevelopmentEditModal.tsx
+  127:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\molecules\DevelopmentTimelineCompact.tsx
+   96:6   warning  React Hook useEffect has a missing dependency: 'api'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  265:53  error    'nextStatus' is defined but never used                                                                  @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\molecules\MaterialSearchBar.tsx
+  34:10  error  'focused' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\components\notifications\NotificationsContext.tsx
+  48:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\context\AppContext.tsx
+  142:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\hooks\useApi.ts
+  74:6   warning  React Hook useCallback has a missing dependency: 'addNotification'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  79:25  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+  88:25  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+  97:25  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\hooks\useKpiData.ts
+  273:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\hooks\useQualityControls.ts
+   12:46  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+   13:46  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+   55:59  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+   83:59  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  141:6   warning  React Hook useEffect has a missing dependency: 'loadControls'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  146:6   warning  React Hook useEffect has a missing dependency: 'loadCatalog'. Either include it or remove the dependency array   react-hooks/exhaustive-deps
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\Chat.tsx
+   31:11  error  't' is assigned a value but never used                                                                      @typescript-eslint/no-unused-vars
+   82:13  error  'response' is assigned a value but never used                                                               @typescript-eslint/no-unused-vars
+  221:27  error  Optional chain expressions can return undefined by design - using a non-null assertion is unsafe and wrong  @typescript-eslint/no-non-null-asserted-optional-chain
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\Dashboard.tsx
+  61:10  error  'upcomingMilestones' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\DevelopmentDetail.tsx
+   32:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   39:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  115:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  126:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  132:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  169:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  201:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  522:65  error  'index' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\MyDevelopments.tsx
+  43:6  warning  React Hook useEffect has a missing dependency: 'filters'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\MyDevelopments\components\modals\ActivityDeleteModal.tsx
+  7:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\MyDevelopments\components\modals\ActivityEditModal.tsx
+  7:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\MyDevelopments\components\modals\components\WizardProgressIndicator.tsx
+  19:44  error  'index' is defined but never used               @typescript-eslint/no-unused-vars
+  22:11  error  'isPending' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\MyDevelopments\components\views\ListView\DevelopmentFilters.tsx
+  64:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\MyDevelopments\components\views\PhasesView\index.tsx
+  8:10  error  'MaterialCard' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\MyDevelopments\hooks\useActivities.ts
+  10:48  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+  17:94  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+  19:14  error    'error' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  24:6   warning  React Hook useCallback has a missing dependency: 'addNotification'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  31:14  error    'error' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  34:6   warning  React Hook useCallback has a missing dependency: 'addNotification'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  36:76  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+  45:14  error    'error' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  49:6   warning  React Hook useCallback has a missing dependency: 'addNotification'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\MyDevelopments\hooks\useDevelopments.ts
+  20:14  error    'error' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  23:6   warning  React Hook useCallback has a missing dependency: 'addNotification'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\pages\MyDevelopments\hooks\useImportDevelopments.ts
+  17:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  23:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  24:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  28:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  85:14  error  'err' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\tests\MyDevelopmentsDelete.test.tsx
+    4:10  error  'useNotifications' is defined but never used  @typescript-eslint/no-unused-vars
+   34:27  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+   42:42  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+   45:49  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+   51:32  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+   89:23  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+   94:16  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  102:31  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  108:25  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\types\activityLog.ts
+  14:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  24:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\frontend\src\types\chat.ts
+  18:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Ô£û 110 problems (96 errors, 14 warnings)
+

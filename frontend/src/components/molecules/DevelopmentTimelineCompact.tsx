@@ -75,10 +75,10 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
       try {
         setLoading(true);
         setError(null);
-        
-        const data = await api.get('/stages/cycle-flow');
+
+        const data = await api.get('/etapas/cycle-flow');
         // console.log('Cycle flow data loaded:', data);
-        
+
         if (Array.isArray(data)) {
           setCycleFlowData(data);
         } else {
@@ -123,16 +123,16 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
   // Función para determinar el estado de cada etapa
   const getStageStatus = (stageId: number): 'completed' | 'current' | 'pending' | 'cancelled' => {
     if (isCancelled) return 'cancelled';
-    
+
     // Validar que currentStage sea un número válido
     const validCurrentStage = typeof currentStage === 'number' && !isNaN(currentStage) ? currentStage : 1;
-    
+
     // Debug: Log para cada etapa
-    const status = stageId < validCurrentStage ? 'completed' : 
-                   stageId === validCurrentStage ? 'current' : 'pending';
-    
+    const status = stageId < validCurrentStage ? 'completed' :
+      stageId === validCurrentStage ? 'current' : 'pending';
+
     debug.debug(`Etapa ${stageId}`, { currentStage: validCurrentStage, original: currentStage, status });
-    
+
     return status;
   };
 
@@ -165,23 +165,23 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
         10: 10, // Desplegado
         11: 11  // Cancelado
       };
-      
+
       const aOrder = stageOrderMap[a.id] || 999;
       const bOrder = stageOrderMap[b.id] || 999;
-      
+
       return aOrder - bOrder;
     });
 
   // Calcular progreso general - corregir el cálculo NaN
   const totalProgress = (() => {
     if (isCancelled) return 0;
-    
+
     // Validar que currentStage sea un número válido
     const validStage = typeof currentStage === 'number' && !isNaN(currentStage) ? currentStage : 1;
-    
+
     // Asegurar que esté en el rango correcto (1-11)
     const clampedStage = Math.max(1, Math.min(11, validStage));
-    
+
     // Calcular progreso basado en 10 etapas (0-100%)
     return Math.round(((clampedStage - 1) / 10) * 100);
   })();
@@ -195,7 +195,7 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
     cycleFlowDataLength: cycleFlowData.length,
     stagesCount: stages.length
   });
-  
+
   // Log detallado de cada etapa
   stages.forEach((stage, index) => {
     phases.debug(`Etapa ${index + 1}`, {
@@ -232,7 +232,7 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
   // Función para obtener el Badge de estado apropiado
   const getStageStatusBadge = (status: string) => {
     debug.debug('Generando Badge', { status });
-    
+
     switch (status) {
       case 'completed':
         return <Badge variant="success" size="sm">Completada</Badge>;
@@ -343,7 +343,7 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
       <div className="relative">
         {/* Línea de progreso principal */}
         <div className={`absolute top-8 left-0 right-0 h-1 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full`}>
-          <div 
+          <div
             className={`h-full ${isCancelled ? (isDarkMode ? 'bg-red-500' : 'bg-red-600') : (isDarkMode ? 'bg-blue-500' : 'bg-blue-600')} rounded-full transition-all duration-500`}
             style={{ width: `${totalProgress}%` }}
           />
@@ -376,31 +376,31 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
           {stages.map((stage, index) => {
             const Icon = stage.icon;
             const isLast = index === stages.length - 1;
-            
+
             return (
               <div key={stage.id} className="flex flex-col items-center relative">
                 {/* Conector hacia la derecha */}
                 {!isLast && (
-                  <div 
+                  <div
                     className={`absolute top-8 left-8 w-16 h-1 ${getConnectorColor(stage.status, stages[index + 1]?.status)}`}
                     style={{ zIndex: 1 }}
                   />
                 )}
 
                 {/* Círculo de la etapa */}
-                <div 
+                <div
                   className={`relative z-10 w-16 h-16 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 ${getStageStatusColor(stage.status)}`}
                   onClick={() => handleStageClick(stage)}
                 >
                   {stage.status === 'completed' ? (
-                    <CheckCircle 
-                      size={24} 
-                      className="text-white" 
+                    <CheckCircle
+                      size={24}
+                      className="text-white"
                     />
                   ) : (
-                    <Icon 
-                      size={20} 
-                      className={stage.status === 'current' ? 'text-white' : isDarkMode ? 'text-gray-300' : 'text-gray-600'} 
+                    <Icon
+                      size={20}
+                      className={stage.status === 'current' ? 'text-white' : isDarkMode ? 'text-gray-300' : 'text-gray-600'}
                     />
                   )}
                 </div>
@@ -474,12 +474,11 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
                 {totalProgress}%
               </Badge>
               <div className={`flex-1 h-2 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
-                <div 
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    totalProgress >= 80 ? (isDarkMode ? 'bg-green-500' : 'bg-green-600') :
-                    totalProgress >= 50 ? (isDarkMode ? 'bg-blue-500' : 'bg-blue-600') :
-                    (isDarkMode ? 'bg-yellow-500' : 'bg-yellow-600')
-                  }`}
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${totalProgress >= 80 ? (isDarkMode ? 'bg-green-500' : 'bg-green-600') :
+                      totalProgress >= 50 ? (isDarkMode ? 'bg-blue-500' : 'bg-blue-600') :
+                        (isDarkMode ? 'bg-yellow-500' : 'bg-yellow-600')
+                    }`}
                   style={{ width: `${totalProgress}%` }}
                 />
               </div>

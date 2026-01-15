@@ -11,11 +11,11 @@ from app.database import Base
 
 class AiContextCache(Base):
     """Cache de contexto para optimizar consultas de IA"""
-    __tablename__ = "ai_context_cache"
+    __tablename__ = "cache_contexto_ia"
     
     id = Column(Integer, primary_key=True, index=True)
     context_key = Column(String(255), unique=True, nullable=False, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"))
+    development_id = Column(String(50), ForeignKey("desarrollos.id"))
     context_type = Column(String(50), nullable=False)  # 'development', 'provider', 'kpi', 'quality'
     context_data = Column(JSON, nullable=False)  # Contexto serializado
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -29,10 +29,10 @@ class AiContextCache(Base):
 
 class AiAnalysisHistory(Base):
     """Historial de análisis realizados por IA"""
-    __tablename__ = "ai_analysis_history"
+    __tablename__ = "historial_analisis_ia"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"))
+    development_id = Column(String(50), ForeignKey("desarrollos.id"))
     analysis_type = Column(String(100), nullable=False)  # 'risk_analysis', 'performance_review', 'prediction'
     query_text = Column(Text, nullable=False)  # Pregunta original del usuario
     context_used = Column(JSON)  # Contexto que se envió a la IA
@@ -40,7 +40,7 @@ class AiAnalysisHistory(Base):
     ai_model = Column(String(50), nullable=False)  # 'claude-3-sonnet', 'gpt-4', etc.
     tokens_used = Column(Integer)  # Tokens consumidos
     response_time_ms = Column(Integer)  # Tiempo de respuesta en ms
-    user_id = Column(String(50), ForeignKey("auth_users.id"))  # Usuario que hizo la consulta
+    user_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"))  # Usuario que hizo la consulta
     confidence_score = Column(DECIMAL(3, 2))  # Confianza de la IA (0-1)
     was_helpful = Column(Boolean)  # Feedback del usuario
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -52,10 +52,10 @@ class AiAnalysisHistory(Base):
 
 class AiRecommendation(Base):
     """Recomendaciones generadas por IA"""
-    __tablename__ = "ai_recommendations"
+    __tablename__ = "recomendaciones_ia"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"))
+    development_id = Column(String(50), ForeignKey("desarrollos.id"))
     recommendation_type = Column(String(100), nullable=False)  # 'process_improvement', 'risk_mitigation', 'timeline_optimization'
     title = Column(String(255), nullable=False)  # Título de la recomendación
     description = Column(Text, nullable=False)  # Descripción detallada
@@ -79,10 +79,10 @@ class AiRecommendation(Base):
 
 class AiUsageMetric(Base):
     """Métricas de uso y costos de IA"""
-    __tablename__ = "ai_usage_metrics"
+    __tablename__ = "metricas_uso_ia"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String(50), ForeignKey("auth_users.id"))  # Usuario (puede ser NULL para métricas del sistema)
+    user_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"))  # Usuario (puede ser NULL para métricas del sistema)
     ai_model = Column(String(50), nullable=False)  # Modelo de IA usado
     operation_type = Column(String(100), nullable=False)  # 'analysis', 'chat', 'recommendation', 'prediction'
     tokens_input = Column(Integer, default=0)  # Tokens de entrada
@@ -101,7 +101,7 @@ class AiUsageMetric(Base):
 
 class AiModelConfig(Base):
     """Configuraciones de modelos de IA disponibles"""
-    __tablename__ = "ai_model_configs"
+    __tablename__ = "configuraciones_modelo_ia"
     
     id = Column(Integer, primary_key=True, index=True)
     model_name = Column(String(50), unique=True, nullable=False)  # 'claude-3-sonnet', 'gpt-4', etc.

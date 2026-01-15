@@ -5,7 +5,7 @@ import { DevelopmentWithCurrentStatus } from '../../../types';
 
 type PartialDev = Partial<DevelopmentWithCurrentStatus>;
 
-function isValidRemedyId(id: string): boolean {
+function isValidPortalId(id: string): boolean {
   return /^INC\d+$/.test(id);
 }
 
@@ -22,7 +22,7 @@ function mapRow(item: PartialDev) {
     module: item.module ?? '',
     type: (item as any).type ?? 'Desarrollo',
     environment: (item as any).environment ?? '',
-    remedy_link: (item as any).remedy_link ?? '',
+    portal_link: (item as any).portal_link ?? '',
     provider: item.provider ?? 'N/A',
     responsible: (item as any).responsible ?? 'N/A',
     responsible_firstname: (item as any).responsible_firstname ?? null,
@@ -44,7 +44,7 @@ export function useImportDevelopments() {
         if (!item.id) return false;
         const idStr = String(item.id);
         if (looksLikeTimestampId(idStr)) return false;
-        if (!isValidRemedyId(idStr)) return false;
+        if (!isValidPortalId(idStr)) return false;
         return true;
       })
       .map(mapRow);
@@ -56,14 +56,14 @@ export function useImportDevelopments() {
 
     try {
       setIsImporting(true);
-      const url = `${API_CONFIG.BASE_URL.replace('/api/v1', '/api')}${API_ENDPOINTS.LEGACY_DEVELOPMENTS_BULK}`;
-      
+      const url = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.DEVELOPMENTS_BULK}`;
+
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validData),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: 'Error desconocido' }));
         addNotification('error', `Error al importar: ${errorData.detail ?? 'Error desconocido'}`);

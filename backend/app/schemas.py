@@ -24,7 +24,7 @@ class User(UserBase):
     updated_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 # Requirement schemas
 class RequirementBase(BaseModel):
@@ -61,7 +61,7 @@ class Requirement(RequirementBase):
     updated_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 # Communication schemas
 class CommunicationBase(BaseModel):
@@ -85,7 +85,7 @@ class Communication(CommunicationBase):
     status: str
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 # Project schemas
 class ProjectBase(BaseModel):
@@ -111,7 +111,7 @@ class Project(ProjectBase):
     updated_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 # Dashboard schemas
 class DashboardMetrics(BaseModel):

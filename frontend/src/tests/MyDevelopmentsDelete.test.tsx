@@ -1,12 +1,11 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useNotifications } from '../components/notifications/NotificationsContext';
+import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
 import MyDevelopments from '../pages/MyDevelopments';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { useDevelopmentUpdates } from '../hooks/useDevelopmentUpdates';
 import { useObservations } from '../hooks/useObservations';
+import { Development } from '../types';
 
 // Mock de las dependencias
 vi.mock('../components/notifications/NotificationsContext', () => ({
@@ -31,7 +30,7 @@ vi.mock('../hooks/useObservations', () => ({
 
 // Mock de los componentes hijos
 vi.mock('../components/common/ExcelImporter', () => ({
-  default: ({ onImport }: any) => (
+  default: ({ onImport }: { onImport: (data: unknown[]) => void }) => (
     <div data-testid="excel-importer">
       <button onClick={() => onImport([])}>Importar</button>
     </div>
@@ -39,16 +38,16 @@ vi.mock('../components/common/ExcelImporter', () => ({
 }));
 
 vi.mock('../components/development', () => ({
-  DevelopmentPhases: ({ developmentId }: any) => (
+  DevelopmentPhases: ({ developmentId }: { developmentId: string }) => (
     <div data-testid="development-phases">Fases para {developmentId}</div>
   ),
-  DevelopmentTimeline: ({ currentDevelopment }: any) => (
+  DevelopmentTimeline: ({ currentDevelopment }: { currentDevelopment: Development | null }) => (
     <div data-testid="development-timeline">Timeline para {currentDevelopment?.id}</div>
   ),
 }));
 
 vi.mock('../components/development/RequirementsTab', () => ({
-  default: ({ developmentId }: any) => (
+  default: ({ developmentId }: { developmentId: string }) => (
     <div data-testid="requirements-tab">Requerimientos para {developmentId}</div>
   ),
 }));
@@ -84,14 +83,14 @@ describe('MyDevelopments - Función de Eliminar', () => {
   beforeEach(() => {
     // Reset de todos los mocks
     vi.clearAllMocks();
-    
+
     // Mock del contexto de la aplicación
-    (useAppContext as any).mockReturnValue({
+    (useAppContext as Mock).mockReturnValue({
       state: { darkMode: false },
     });
 
     // Mock del hook useApi
-    (useApi as any).mockReturnValue({
+    (useApi as Mock).mockReturnValue({
       get: mockGetRequest,
       delete: mockDeleteRequest,
       loading: false,
@@ -99,13 +98,13 @@ describe('MyDevelopments - Función de Eliminar', () => {
     });
 
     // Mock del hook useDevelopmentUpdates
-    (useDevelopmentUpdates as any).mockReturnValue({
+    (useDevelopmentUpdates as Mock).mockReturnValue({
       loading: false,
       updateDevelopment: mockUpdateDevelopment,
     });
 
     // Mock del hook useObservations
-    (useObservations as any).mockReturnValue({
+    (useObservations as Mock).mockReturnValue({
       observations: [],
       loading: false,
       error: null,
@@ -114,7 +113,7 @@ describe('MyDevelopments - Función de Eliminar', () => {
     });
 
     // Mock de fetch global para las peticiones
-    global.fetch = vi.fn();
+    globalThis.fetch = vi.fn() as any;
   });
 
   afterEach(() => {
@@ -167,7 +166,7 @@ describe('MyDevelopments - Función de Eliminar', () => {
 
     // Verificar que el modal se cerró
     expect(screen.queryByText('¿Cancelar Desarrollo?')).not.toBeInTheDocument();
-    
+
     // Verificar que no se llamó a la función de actualizar
     expect(mockUpdateDevelopment).not.toHaveBeenCalled();
   });
@@ -175,10 +174,10 @@ describe('MyDevelopments - Función de Eliminar', () => {
   it('debería cancelar el desarrollo exitosamente', async () => {
     // Configurar mock para cargar desarrollos
     mockGetRequest.mockResolvedValue([mockDevelopment]);
-    
+
     // Configurar mock para la actualización exitosa
-    mockUpdateDevelopment.mockResolvedValue({ 
-      ...mockDevelopment, 
+    mockUpdateDevelopment.mockResolvedValue({
+      ...mockDevelopment,
       general_status: 'Cancelado',
       current_stage: { stage_name: '0. Cancelado', id: 11 }
     });
@@ -208,16 +207,13 @@ describe('MyDevelopments - Función de Eliminar', () => {
       });
     });
 
-    // Verificar que se muestra el mensaje de éxito
-    // Se usa sistema nuevo de notificaciones; verificar cambios en UI en lugar de mocks de toast
-
     // Verificar que el modal se cerró
     expect(screen.queryByText('¿Cancelar Desarrollo?')).not.toBeInTheDocument();
   });
 
   it('debería manejar errores al cancelar desarrollo', async () => {
     mockGetRequest.mockResolvedValue([mockDevelopment]);
-    
+
     // Configurar mock para error en la actualización
     const errorMessage = 'Error al cancelar el desarrollo';
     mockUpdateDevelopment.mockRejectedValue(new Error(errorMessage));
@@ -246,9 +242,6 @@ describe('MyDevelopments - Función de Eliminar', () => {
         current_stage_id: 11
       });
     });
-
-    // Verificar que se muestra el mensaje de error
-    // Se usa sistema nuevo de notificaciones; verificar cambios en UI si aplica
   });
 
   it('debería actualizar la lista local después de cancelar exitosamente', async () => {
@@ -262,8 +255,8 @@ describe('MyDevelopments - Función de Eliminar', () => {
     }];
 
     mockGetRequest.mockResolvedValue(initialDevelopments);
-    mockUpdateDevelopment.mockResolvedValue({ 
-      ...mockDevelopment, 
+    mockUpdateDevelopment.mockResolvedValue({
+      ...mockDevelopment,
       general_status: 'Cancelado',
       current_stage: { stage_name: '0. Cancelado', id: 11 }
     });
@@ -296,8 +289,8 @@ describe('MyDevelopments - Función de Eliminar', () => {
 
   it('debería limpiar la selección si se cancela el desarrollo seleccionado', async () => {
     mockGetRequest.mockResolvedValue([mockDevelopment]);
-    mockUpdateDevelopment.mockResolvedValue({ 
-      ...mockDevelopment, 
+    mockUpdateDevelopment.mockResolvedValue({
+      ...mockDevelopment,
       general_status: 'Cancelado',
       current_stage: { stage_name: '0. Cancelado', id: 11 }
     });
@@ -336,8 +329,8 @@ describe('MyDevelopments - Función de Eliminar', () => {
 
   it('debería usar la función de actualización correcta', async () => {
     mockGetRequest.mockResolvedValue([mockDevelopment]);
-    mockUpdateDevelopment.mockResolvedValue({ 
-      ...mockDevelopment, 
+    mockUpdateDevelopment.mockResolvedValue({
+      ...mockDevelopment,
       general_status: 'Cancelado',
       current_stage: { stage_name: '0. Cancelado', id: 11 }
     });

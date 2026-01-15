@@ -146,7 +146,7 @@ PostgreSQL Database: "gestor_proyectos"
 │   ├── 💰 estimated_cost (DECIMAL)       │
 │   ├── proposal_number (VARCHAR)         │
 │   ├── environment (VARCHAR)             │
-│   ├── remedy_link (VARCHAR)             │
+│   ├── portal_link (VARCHAR)             │
 │   ├── returns_count (INTEGER)           │
 │   ├── test_defects_count (INTEGER)      │
 │   ├── 📅 created_at (TIMESTAMP)         │
@@ -300,7 +300,7 @@ Esta es la tabla central que almacena cada uno de los desarrollos o requerimient
 
 | Columna                   | Tipo           | Descripción                                           |
 | ------------------------- | -------------- | ----------------------------------------------------- |
-| `id`                      | `String` (PK)  | Identificador único (ej. No. Remedy).                 |
+| `id`                      | `String` (PK)  | Identificador único (ej. No. de Solicitud).           |
 | `name`                    | `String`       | Nombre del desarrollo.                                |
 | `description`             | `Text`         | Descripción detallada.                                |
 | `provider`                | `String`       | Proveedor o equipo responsable (TI, Ingesoft, etc.).  |
@@ -313,6 +313,7 @@ Esta es la tabla central que almacena cada uno de los desarrollos o requerimient
 | `test_defects_count`      | `Integer`      | Contador de defectos en pruebas (para KPI de calidad). |
 | `estimated_cost`          | `Float`        | Costo estimado o final del desarrollo.                |
 | `proposal_number`         | `String`       | Identificador de la propuesta comercial asociada.     |
+| `portal_link`             | `String`       | Enlace al ticket en el Portal de Servicios.           |
 
 #### Relaciones
 
@@ -374,7 +375,7 @@ Registra las incidencias o fallos que ocurren después de que un desarrollo pasa
          │               │ estimated_cost   │              │
          │               │ proposal_number  │              │
          │               │ environment      │              │
-         │               │ remedy_link      │              │
+         │               │ portal_link      │              │
          │               │ scheduled_delivery_date │       │
          │               │ actual_delivery_date    │       │
          │               │ returns_count    │              │
@@ -720,7 +721,7 @@ MyDevelopments (Componente Principal)
 │   └── Filtro por Estado (dropdown)
 │
 ├── Tabla de Desarrollos (Vista Desktop > 1024px)
-│   ├── Headers: [ID Remedy, Nombre, Proveedor, Responsable, Estado, Progreso, Acciones]
+│   ├── Headers: [No. Solicitud, Nombre, Proveedor, Responsable, Estado, Progreso, Acciones]
 │   └── Filas de Datos
 │       ├── Botón Ver Detalles (ícono ojo) → Abre Side Panel
 │       └── Botón Editar (ícono lápiz) → Abre Modal de Edición
@@ -761,7 +762,7 @@ MyDevelopments (Componente Principal)
 ├── Modal de Edición (Condicional: isEditModalOpen)
 │   ├── Header con título y botón cerrar
 │   ├── Formulario en Grid
-│   │   ├── ID Remedy (deshabilitado)
+│   │   ├── No. Solicitud (deshabilitado)
 │   │   ├── Nombre del Desarrollo
 │   │   ├── Estado General (dropdown)
 │   │   └── Etapa del Progreso (dropdown con optgroups)

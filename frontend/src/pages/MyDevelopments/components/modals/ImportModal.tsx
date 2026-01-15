@@ -13,14 +13,14 @@ interface ImportModalProps {
 
 // Column mapping for the importer - Updated to match your Excel structure
 const columnMapping = {
-  'ID de la incidencia*+': 'id', // El texto será el ID, el hipervínculo será remedy_link
+  'ID de la incidencia*+': 'id', // El texto será el ID, el hipervínculo será portal_link
   'Usuario asignado+': 'responsible', // Campo Responsable de la aplicación
   'Apellidos+': 'responsible_lastname', // Apellidos del responsable
   'Nombre+': 'responsible_firstname', // Nombre del responsable
   'Resumen*': 'name', // Nombre del desarrollo
   'Estado*': 'general_status', // Mapear Estado* del Excel al general_status
   'Fecha de envío': 'start_date',
-  // remedy_link se extraerá automáticamente del hipervínculo de 'ID de la incidencia*+'
+  // portal_link se extraerá automáticamente del hipervínculo de 'ID de la incidencia*+'
   // Todas las demás columnas se ignoran automáticamente
 };
 
@@ -41,8 +41,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
               Importar Desarrollos desde Excel
             </h3>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               disabled={isImporting}
               className={`p-1 rounded-full transition-colors ${darkMode ? 'hover:bg-neutral-700' : 'hover:bg-neutral-200'} disabled:opacity-50 disabled:cursor-not-allowed`}
             >

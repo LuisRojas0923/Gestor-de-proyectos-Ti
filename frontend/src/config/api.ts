@@ -2,7 +2,7 @@
 // Sistema de Gestión de Proyectos TI
 
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://192.168.40.36:8001/api/v1',
   TIMEOUT: 30000, // 30 segundos
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000, // 1 segundo
@@ -10,76 +10,99 @@ export const API_CONFIG = {
 
 export const API_ENDPOINTS = {
   // Desarrollos
-  DEVELOPMENTS: '/developments/',
-  DEVELOPMENT_BY_ID: (id: string) => `/developments/${id}`,
-  DEVELOPMENT_STAGE: (id: string) => `/developments/${id}/stage`,
-  DEVELOPMENT_PROGRESS: (id: string) => `/developments/${id}/progress`,
-  
+  DEVELOPMENTS: '/desarrollos/',
+  DEVELOPMENT_BY_ID: (id: string) => `/desarrollos/${id}`,
+  DEVELOPMENT_STAGE: (id: string) => `/desarrollos/${id}/etapa`,
+  DEVELOPMENT_OBSERVATIONS: (id: string) => `/desarrollos/${id}/observaciones`,
+  DEVELOPMENT_CURRENT_STATUS: (id: string) => `/desarrollos/${id}/estado-actual`,
+
   // Fases y etapas
-  PHASES: '/phases/',
-  PHASE_BY_ID: (id: number) => `/phases/${id}`,
-  STAGES: '/stages/',
-  STAGE_BY_ID: (id: number) => `/stages/${id}`,
-  CYCLE_FLOW: '/stages/cycle-flow',
-  
+  PHASES: '/fases/',
+  PHASE_BY_ID: (id: number) => `/fases/${id}`,
+  STAGES: '/etapas/',
+  STAGE_BY_ID: (id: number) => `/etapas/${id}`,
+  CYCLE_FLOW: '/etapas/flujo-ciclo',
+
   // Controles de calidad
-  QUALITY_CONTROLS: '/quality/controls',
-  QUALITY_CONTROL_BY_ID: (id: number) => `/quality/controls/${id}`,
-  QUALITY_CONTROL_VALIDATE: (id: number) => `/quality/controls/${id}/validate`,
-  QUALITY_CONTROL_EVIDENCE: (id: number) => `/quality/controls/${id}/evidence`,
-  QUALITY_CATALOG: '/quality/catalog',
-  QUALITY_GENERATE_CONTROLS: (id: string) => `/quality/developments/${id}/generate-controls`,
-  
+  QUALITY_CONTROLS: '/calidad/controles',
+  QUALITY_CONTROL_BY_ID: (id: number) => `/calidad/controles/${id}`,
+  QUALITY_CONTROL_VALIDATE: (id: number) => `/calidad/controles/${id}/validar`,
+  QUALITY_CONTROL_EVIDENCE: (id: number) => `/calidad/controles/${id}/evidencia`,
+  QUALITY_CATALOG: '/calidad/catalogo',
+  QUALITY_GENERATE_CONTROLS: (id: string) => `/calidad/desarrollos/${id}/generar-controles`,
+
   // KPIs y métricas
-  KPI_METRICS: '/kpi/metrics',
-  KPI_DASHBOARD: '/kpi/dashboard',
-  KPI_DEVELOPMENT_COMPLIANCE_DETAILS: '/kpi/development-compliance/details',
-  KPI_ANALYSIS_COMPLIANCE_DETAILS: '/kpi/analysis-compliance/details',
-  KPI_PROPOSAL_COMPLIANCE_DETAILS: '/kpi/proposal-compliance/details',
-  KPI_GLOBAL_COMPLETE_COMPLIANCE_DETAILS: '/kpi/global-complete-compliance/details',
-  KPI_FUNCTIONALITIES: '/kpi/functionalities',
-  KPI_TEST_RESULTS: '/kpi/test-results',
-  KPI_DELIVERY_HISTORY: '/kpi/delivery-history',
-  KPI_QUALITY_METRICS: '/kpi/quality-metrics',
-  
+  KPI_METRICS: '/indicadores/metricas',
+  KPI_DASHBOARD: '/indicadores/panel',
+  KPI_DEVELOPMENT_COMPLIANCE_DETAILS: '/indicadores/cumplimiento-desarrollo/detalles',
+  KPI_ANALYSIS_COMPLIANCE_DETAILS: '/indicadores/cumplimiento-analisis/detalles',
+  KPI_PROPOSAL_COMPLIANCE_DETAILS: '/indicadores/cumplimiento-propuesta/detalles',
+  KPI_GLOBAL_COMPLETE_COMPLIANCE_DETAILS: '/indicadores/cumplimiento-global-completo/detalles',
+  KPI_FUNCTIONALITIES: '/indicadores/funcionalidades',
+  KPI_TEST_RESULTS: '/indicadores/test-results', // No encontrado en kpi.py, dejar así o buscar
+  KPI_DELIVERY_HISTORY: '/indicadores/delivery-history', // No encontrado en kpi.py, dejar así o buscar
+  KPI_QUALITY_METRICS: '/indicadores/metricas-calidad',
+
   // Alertas
-  ALERTS_UPCOMING: '/alerts/upcoming',
-  ALERTS_ACTIVITIES: '/alerts/activities',
-  ALERT_ACTIVITY_BY_ID: (id: number) => `/alerts/activities/${id}`,
-  
+  ALERTS_UPCOMING: '/alertas/proximas',
+  ALERTS_ACTIVITIES: '/alertas/actividades',
+  ALERT_ACTIVITY_BY_ID: (id: number) => `/alertas/actividades/${id}`,
+
   // Chat
-  CHAT_SESSIONS: '/chat/sessions',
-  CHAT_SESSION_BY_ID: (id: number) => `/chat/sessions/${id}`,
-  CHAT_MESSAGES: (sessionId: number) => `/chat/sessions/${sessionId}/messages`,
-  
+  CHAT_SESSIONS: '/chat/sesiones',
+  CHAT_SESSION_BY_ID: (id: number) => `/chat/sesiones/${id}`,
+  CHAT_MESSAGES: (sessionId: number) => `/chat/sesiones/${sessionId}/mensajes`,
+
   // IA
-  AI_ANALYZE_DEVELOPMENT: (id: string) => `/ai/analyze/development/${id}`,
-  AI_ANALYZE_PROVIDER: (name: string) => `/ai/analyze/provider/${name}`,
-  AI_DASHBOARD_INTELLIGENT: '/ai/dashboard/intelligent',
-  AI_RISKS_DETECT: '/ai/risks/detect',
-  AI_RECOMMENDATIONS: (id: string) => `/ai/recommendations/${id}`,
-  AI_CHAT_CONTEXTUAL: '/ai/chat/contextual',
-  AI_INSIGHTS_TRENDS: '/ai/insights/trends',
-  AI_PREDICT_TIMELINE: '/ai/predict/timeline',
-  
+  AI_ANALYZE_DEVELOPMENT: (id: string) => `/ia/analizar/desarrollo/${id}`,
+  AI_ANALYZE_PROVIDER: (name: string) => `/ia/analizar/proveedor/${name}`,
+  AI_DASHBOARD_INTELLIGENT: '/ia/panel/inteligente',
+  AI_RISKS_DETECT: '/ia/riesgos/detectar',
+  AI_RECOMMENDATIONS: (id: string) => `/ia/recomendaciones/${id}`,
+  AI_CHAT_CONTEXTUAL: '/ia/chat/contextual',
+  AI_INSIGHTS_TRENDS: '/ia/insights/tendencias',
+  AI_PREDICT_TIMELINE: '/ia/predecir/cronograma',
+
   // Dashboard
-  DASHBOARD_METRICS: '/dashboard/metrics',
-  DASHBOARD_PRIORITY_DISTRIBUTION: '/dashboard/priority-distribution',
-  DASHBOARD_WEEKLY_PROGRESS: '/dashboard/weekly-progress',
-  DASHBOARD_UPCOMING_MILESTONES: '/dashboard/upcoming-milestones',
-  
+  DASHBOARD_METRICS: '/panel-control/metricas',
+  DASHBOARD_PRIORITY_DISTRIBUTION: '/panel-control/distribucion-prioridad',
+  DASHBOARD_WEEKLY_PROGRESS: '/panel-control/progreso-semanal',
+  DASHBOARD_UPCOMING_MILESTONES: '/panel-control/proximos-hitos',
+  DASHBOARD_PENDING_ACTIVITIES: '/panel-control/actividades-pendientes',
+
   // Activity Log (Bitácora)
-  ACTIVITY_LOG_CREATE: (developmentId: string) => `/activity-log/developments/${developmentId}/activities`,
-  ACTIVITY_LOG_LIST: (developmentId: string) => `/activity-log/developments/${developmentId}/activities`,
-  ACTIVITY_LOG_UPDATE: (activityId: number) => `/activity-log/activities/${activityId}`,
-  ACTIVITY_LOG_DELETE: (activityId: number) => `/activity-log/activities/${activityId}`,
-  ACTIVITY_LOG_FIELD_CONFIG: (developmentId: string, stageId: number) => `/activity-log/developments/${developmentId}/stages/${stageId}/field-config`,
+  ACTIVITY_LOG_CREATE: (developmentId: string) => `/log-actividades/desarrollos/${developmentId}/actividades`,
+  ACTIVITY_LOG_LIST: (developmentId: string) => `/log-actividades/desarrollos/${developmentId}/actividades`,
+  ACTIVITY_LOG_UPDATE: (activityId: number) => `/log-actividades/actividades/${activityId}`,
+  ACTIVITY_LOG_DELETE: (activityId: number) => `/log-actividades/actividades/${activityId}`,
+  ACTIVITY_LOG_FIELD_CONFIG: (developmentId: string, stageId: number) => `/log-actividades/desarrollos/${developmentId}/etapas/${stageId}/configuracion-campos`,
 
   // Development stages actions
-  DEVELOPMENT_STAGE_CLOSE: (developmentId: string) => `/development-stages/${developmentId}/close-stage`,
-  
-  // Legacy endpoints
-  LEGACY_DEVELOPMENTS_BULK: '/legacy/developments/bulk'
+  DEVELOPMENT_STAGE_CLOSE: (developmentId: string) => `/etapas-desarrollo/${developmentId}/cerrar-etapa`,
+
+  DEVELOPMENTS_BULK: '/desarrollos/masivo',
+
+  // Soporte / Tickets
+  TICKET_CATEGORIES: '/soporte/categorias',
+  TICKET_CREATE: '/soporte/',
+  TICKET_MY_TICKETS: (id: string) => `/soporte/mis-tickets/${id}`,
+  TICKET_BY_ID: (id: string) => `/soporte/${id}`,
+  TICKET_UPDATE: (id: string) => `/soporte/${id}`,
+  TICKET_CREATE_COMMENT: (id: string) => `/soporte/${id}/comentarios`,
+  TICKET_GET_COMMENTS: (id: string) => `/soporte/${id}/comentarios`,
+  TICKET_STATS_SUMMARY: '/soporte/estadisticas/resumen',
+  TICKET_STATS_PERFORMANCE: '/soporte/estadisticas/rendimiento',
+
+  // Instaladores
+  INSTALLERS_FAILED: '/instaladores/fallidos',
+  INSTALLERS_SEARCH: (num: string) => `/instaladores/buscar/${num}`,
+  INSTALLERS_PROBLEMS_REPORT: '/instaladores/informe-problemas',
+
+  // Autenticación
+  AUTH_LOGIN: '/auth/login',
+  AUTH_ME: '/auth/yo',
+  // Reportes
+  REPORTS_PORTAL_DETAILED: '/desarrollos/informe-detallado-casos-portal',
 };
 
 export const HTTP_STATUS = {

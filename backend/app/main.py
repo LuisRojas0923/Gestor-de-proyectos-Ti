@@ -15,21 +15,18 @@ import logging
 
 # Importar routers modulares
 from .api import (
-    developments,
     developments_v2,
     dashboard,
     kpi,
     quality,
     alerts,
-    # chat,  # Comentado temporalmente - requiere openai
-    # ai,    # Comentado temporalmente - requiere openai
     phases,
     stages,
     activity_log,
-    installers
+    installers,
+    tickets,
+    auth
 )
-from .api.desarrollos_consulta import router as desarrollos_consulta_router
-from .api.informe_remey import router as informe_remey_router
 
 # Importar configuración de base de datos
 from .database import SessionLocal, engine
@@ -105,19 +102,7 @@ async def lifespan(app: FastAPI):
         db = SessionLocal()
         from sqlalchemy import text
         
-        # Probar stored procedure de calidad en primera entrega
-        print("🔍 Probando fn_kpi_calidad_primera_entrega...")
-        result = db.execute(text("SELECT * FROM fn_kpi_calidad_primera_entrega()")).fetchone()
-        if result:
-            print(f"✅ Calidad en Primera Entrega: {result.porcentaje_calidad}% ({result.entregas_sin_devoluciones}/{result.total_entregas} entregas)")
-        else:
-            print("⚠️ No hay datos para el indicador de Calidad en Primera Entrega")
-        
-        # Probar stored procedure de detalle
-        print("🔍 Probando fn_kpi_calidad_primera_entrega_detalle...")
-        detail_result = db.execute(text("SELECT COUNT(*) as total FROM fn_kpi_calidad_primera_entrega_detalle()")).fetchone()
-        if detail_result:
-            print(f"✅ Detalles de Calidad en Primera Entrega: {detail_result.total} registros encontrados")
+
         
         # Probar otros stored procedures existentes
         print("🔍 Probando stored procedures existentes...")
@@ -182,10 +167,14 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # React dev server
-        "http://localhost:5173",  # Vite dev server
-        "http://localhost:8080",  # Posible frontend alternativo
-        "https://*.vercel.app",   # Despliegues en Vercel
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://192.168.40.36:5173",
+        "http://192.168.40.36:3000",
+        "http://192.168.40.36:8001",
+        "http://192.168.40.36",
+        "http://127.0.0.1:5173",
+        "http://localhost:8080",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -330,11 +319,11 @@ API_V1_PREFIX = "/api/v1"
 # Endpoints principales según arquitectura
 app.include_router(phases.router, prefix=API_V1_PREFIX)
 app.include_router(stages.router, prefix=API_V1_PREFIX)
-app.include_router(developments_v2.router, prefix=API_V1_PREFIX)  # Nuevo endpoint mejorado
-app.include_router(developments.router, prefix="/api/legacy")     # Endpoint legacy
+app.include_router(developments_v2.router, prefix=API_V1_PREFIX)
 app.include_router(quality.router, prefix=API_V1_PREFIX)
 app.include_router(kpi.router, prefix=API_V1_PREFIX)
 app.include_router(alerts.router, prefix=API_V1_PREFIX)
+app.include_router(auth.router, prefix=API_V1_PREFIX)
 
 # Importar y registrar el nuevo router de development stages
 from app.api import development_stages
@@ -343,32 +332,16 @@ app.include_router(development_stages.router, prefix=API_V1_PREFIX)
 # Registrar router de activity log
 app.include_router(activity_log.router, prefix=API_V1_PREFIX)
 
-# Registrar router de desarrollos con consulta
-app.include_router(desarrollos_consulta_router, prefix=API_V1_PREFIX)
-
-# Registrar router de informe Remedy
-app.include_router(informe_remey_router, prefix=API_V1_PREFIX)
+# Registrar router de tickets
+app.include_router(tickets.router, prefix=API_V1_PREFIX)
 
 # Registrar router de instaladores
 app.include_router(installers.router, prefix=API_V1_PREFIX)
-# app.include_router(chat.router, prefix=API_V1_PREFIX)  # Comentado temporalmente
-# app.include_router(ai.router, prefix=API_V1_PREFIX)    # Comentado temporalmente
 
 # Endpoints de dashboard (sin prefijo adicional para compatibilidad)
 app.include_router(dashboard.router, prefix=API_V1_PREFIX)
 
-# Endpoints legacy para compatibilidad (sin prefijo /api/v1)
-@app.get("/indicators/kpis")
-def get_indicators_kpis_legacy():
-    """Endpoint legacy para KPIs (redirige a nueva estructura)"""
-    from fastapi import RedirectResponse
-    return RedirectResponse(url="/api/v1/kpi/dashboard")
 
-@app.get("/indicators/provider-quality")
-def get_provider_quality_legacy():
-    """Endpoint legacy para calidad de proveedores (redirige)"""
-    from fastapi import RedirectResponse
-    return RedirectResponse(url="/api/v1/kpi/provider-quality")
 
 # Manejo de errores global
 

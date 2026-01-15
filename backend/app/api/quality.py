@@ -10,10 +10,10 @@ from datetime import datetime
 from .. import models, schemas
 from ..database import get_db
 
-router = APIRouter(prefix="/quality", tags=["quality"])
+router = APIRouter(prefix="/calidad", tags=["calidad"])
 
 
-@router.get("/catalog", response_model=List[schemas.QualityControlCatalog])
+@router.get("/catalogo", response_model=List[schemas.QualityControlCatalog])
 def get_quality_control_catalog(
     stage_prefix: Optional[str] = None,
     is_active: bool = True,
@@ -47,7 +47,7 @@ def get_quality_control_catalog(
         )
 
 
-@router.get("/controls", response_model=List[schemas.DevelopmentQualityControlWithCatalog])
+@router.get("/controles", response_model=List[schemas.DevelopmentQualityControlWithCatalog])
 def get_quality_controls(
     development_id: Optional[str] = None,
     control_status: Optional[str] = None,
@@ -109,7 +109,7 @@ def get_quality_controls(
         )
 
 
-@router.post("/controls", response_model=schemas.DevelopmentQualityControl)
+@router.post("/controles", response_model=schemas.DevelopmentQualityControl)
 def create_quality_control(
     control: schemas.DevelopmentQualityControlCreate,
     db: Session = Depends(get_db)
@@ -181,7 +181,7 @@ def create_quality_control(
         )
 
 
-@router.put("/controls/{control_id}", response_model=schemas.DevelopmentQualityControl)
+@router.put("/controles/{control_id}", response_model=schemas.DevelopmentQualityControl)
 def update_quality_control(
     control_id: int,
     control_update: schemas.DevelopmentQualityControlUpdate,
@@ -236,7 +236,7 @@ def update_quality_control(
         )
 
 
-@router.post("/controls/{control_id}/validate", response_model=schemas.DevelopmentQualityControl)
+@router.post("/controles/{control_id}/validar", response_model=schemas.DevelopmentQualityControl)
 def validate_quality_control(
     control_id: int,
     validation_data: schemas.QualityControlValidationRequest,
@@ -297,7 +297,7 @@ def validate_quality_control(
         )
 
 
-@router.get("/controls/{control_id}/evidence")
+@router.get("/controles/{control_id}/evidencia")
 def get_control_evidence(
     control_id: int,
     db: Session = Depends(get_db)
@@ -349,7 +349,7 @@ def get_control_evidence(
         )
 
 
-@router.post("/developments/backfill-controls")
+@router.post("/desarrollos/rellenar-controles")
 def backfill_controls_for_all_developments(
     db: Session = Depends(get_db)
 ):
@@ -426,7 +426,7 @@ def backfill_controls_for_all_developments(
         )
 
 
-@router.post("/developments/{development_id}/generate-controls")
+@router.post("/desarrollos/{development_id}/generar-controles")
 def generate_automatic_controls(
     development_id: str,
     db: Session = Depends(get_db)
@@ -514,7 +514,7 @@ def generate_automatic_controls(
         )
 
 
-@router.get("/developments/{development_id}/can-advance-stage")
+@router.get("/desarrollos/{development_id}/puede-avanzar-etapa")
 def can_advance_to_next_stage(
     development_id: str,
     target_stage_code: str,
@@ -598,7 +598,7 @@ def can_advance_to_next_stage(
         )
 
 
-@router.get("/developments/{development_id}/quality-status")
+@router.get("/desarrollos/{development_id}/estado-calidad")
 def get_development_quality_status(
     development_id: str,
     db: Session = Depends(get_db)

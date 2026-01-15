@@ -7,13 +7,17 @@ export interface Activity {
   status: 'pendiente' | 'en_curso' | 'completada' | 'cancelada';
   stage_id: number;
   stage_name: string;
+  stage_code?: string;
   notes?: string;
   start_date?: string;
   end_date?: string;
   next_follow_up_at?: string;
   created_at: string;
-  updated_at: string;
-  dynamic_payload?: Record<string, any>;
+  updated_at?: string;
+  created_by?: string;
+  dynamic_payload?: Record<string, unknown>;
+  follow_up_config?: any;
+  development?: { id: string; name: string };
 }
 
 export interface ActivityFormData {
@@ -24,7 +28,7 @@ export interface ActivityFormData {
   start_date?: string;
   end_date?: string;
   next_follow_up_at?: string;
-  dynamic_payload?: Record<string, any>;
+  dynamic_payload?: Record<string, unknown>;
 }
 
 export interface ActivityEditForm {

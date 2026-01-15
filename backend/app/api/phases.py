@@ -9,7 +9,7 @@ from typing import List, Optional
 from .. import models, schemas
 from ..database import get_db
 
-router = APIRouter(prefix="/phases", tags=["phases"])
+router = APIRouter(prefix="/fases", tags=["fases"])
 
 
 @router.get("/", response_model=List[schemas.DevelopmentPhase])
@@ -75,7 +75,7 @@ def get_development_phase(
         )
 
 
-@router.get("/{phase_id}/stages", response_model=List[schemas.DevelopmentStage])
+@router.get("/{phase_id}/etapas", response_model=List[schemas.DevelopmentStage])
 def get_phase_stages(
     phase_id: int,
     include_inactive: bool = False,

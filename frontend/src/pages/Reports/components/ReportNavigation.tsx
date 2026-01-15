@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  BarChart3, 
-  FileText, 
-  Shield, 
+import {
+  BarChart3,
+  FileText,
+  Shield,
   Users,
   LucideIcon
 } from 'lucide-react';
@@ -28,8 +28,8 @@ const ReportNavigation: React.FC<ReportNavigationProps> = ({
 
   const tabs: ReportTab[] = [
     {
-      id: 'remedy',
-      label: 'Casos Remedy',
+      id: 'portal',
+      label: 'Tickets del Portal',
       icon: FileText,
     },
     {
@@ -50,14 +50,13 @@ const ReportNavigation: React.FC<ReportNavigationProps> = ({
   ];
 
   return (
-    <div className={`${
-      darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-    } border rounded-xl p-2 mb-6`}>
+    <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+      } border rounded-xl p-2 mb-6`}>
       <div className="flex flex-wrap gap-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
-          
+
           return (
             <MaterialButton
               key={tab.id}
@@ -65,11 +64,10 @@ const ReportNavigation: React.FC<ReportNavigationProps> = ({
               color={isActive ? 'primary' : 'secondary'}
               icon={Icon}
               onClick={() => onTabChange(tab.id)}
-              className={`transition-all duration-200 ${
-                isActive 
-                  ? 'shadow-md' 
+              className={`transition-all duration-200 ${isActive
+                  ? 'shadow-md'
                   : 'hover:shadow-sm'
-              }`}
+                }`}
               darkMode={darkMode}
             >
               {tab.label}

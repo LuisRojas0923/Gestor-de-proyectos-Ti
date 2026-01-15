@@ -3,7 +3,7 @@ import { Eye, Search, Upload, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
-import { useFilters } from './MyDevelopments/hooks/useFilters';
+import { useFilters, UseFiltersReturn } from './MyDevelopments/hooks/useFilters';
 import { useModals } from './MyDevelopments/hooks/useModals';
 import { ImportModal } from './MyDevelopments/components/modals/ImportModal';
 import { DevelopmentWithCurrentStatus } from '../types';
@@ -12,7 +12,7 @@ import { useNotifications } from '../components/notifications/NotificationsConte
 import { MaterialCard, MaterialTextField, MaterialSelect, MaterialButton, MaterialTypography } from '../components/atoms';
 
 // Hook personalizado para persistir filtros
-const usePersistedFilters = (filters: any) => {
+const usePersistedFilters = (filters: UseFiltersReturn) => {
   const STORAGE_KEY = 'myDevelopments_filters';
   const [isInitialized, setIsInitialized] = React.useState(false);
 
@@ -55,7 +55,7 @@ const usePersistedFilters = (filters: any) => {
         stageFilter: filters.stageFilter,
         groupBy: filters.groupBy,
       };
-      
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(filtersToSave));
       console.log('Filtros guardados:', filtersToSave); // Debug
     }
@@ -117,7 +117,7 @@ const MyDevelopments: React.FC = () => {
     if (success) {
       addNotification('success', 'Importación completada exitosamente');
       await loadDevelopments();
-        } else {
+    } else {
       addNotification('error', 'Error al importar. Revisa el archivo o el backend.');
     }
     setImportModalOpen(false);
@@ -134,50 +134,50 @@ const MyDevelopments: React.FC = () => {
   };
 
   // Sistema de colores tipo semáforo para actividades de bitácora
-  const getActivityColor = (activity: any) => {
+  const getActivityColor = (activity: DevelopmentWithCurrentStatus['last_activity'] | null) => {
     if (!activity) return 'text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400';
-    
+
     const activityType = activity.activity_type?.toLowerCase();
     const status = activity.status?.toLowerCase();
     const stageName = activity.stage_name?.toLowerCase();
-    
+
     // Actividades completadas - Verde
     if (status === 'completada' || activityType === 'cierre_etapa') {
       return 'text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-300';
     }
-    
+
     // Actividades en curso - Azul
     if (status === 'en_curso') {
       return 'text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300';
     }
-    
+
     // Actividades pendientes - Amarillo
     if (status === 'pendiente') {
       return 'text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-300';
     }
-    
+
     // Actividades canceladas - Rojo
     if (status === 'cancelada') {
       return 'text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-300';
     }
-    
+
     // Por tipo de actividad
     if (activityType === 'nueva_actividad') {
       return 'text-purple-700 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300';
     }
-    
+
     if (activityType === 'seguimiento') {
       return 'text-indigo-700 bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300';
     }
-    
+
     if (activityType === 'cambio_etapa') {
       return 'text-teal-700 bg-teal-100 dark:bg-teal-900/30 dark:text-teal-300';
     }
-    
+
     if (activityType === 'observacion') {
       return 'text-orange-700 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-300';
     }
-    
+
     // Por etapa específica si no hay status claro
     if (stageName) {
       if (stageName.includes('prueba') || stageName.includes('testing')) {
@@ -190,13 +190,13 @@ const MyDevelopments: React.FC = () => {
         return 'text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-300';
       }
     }
-    
+
     // Por defecto - Gris
     return 'text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-300';
   };
 
-  const handleColumnSort = (column: string) => {
-    filters.setSortBy(column as any);
+  const handleColumnSort = (column: UseFiltersReturn['sortBy']) => {
+    filters.setSortBy(column);
     filters.setSortOrder('asc');
   };
 
@@ -223,9 +223,9 @@ const MyDevelopments: React.FC = () => {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex justify-between items-center">
-            <MaterialTypography variant="h3" darkMode={darkMode} className="font-bold">
-              Mis Desarrollos
-            </MaterialTypography>
+        <MaterialTypography variant="h3" darkMode={darkMode} className="font-bold">
+          Mis Desarrollos
+        </MaterialTypography>
         <MaterialButton
           onClick={() => setImportModalOpen(true)}
           variant="contained"
@@ -237,21 +237,20 @@ const MyDevelopments: React.FC = () => {
         >
           Importar
         </MaterialButton>
-              </div>
-              
+      </div>
+
       {/* Panel de Filtros */}
       <MaterialCard darkMode={darkMode} elevation={1}>
         <MaterialCard.Header darkMode={darkMode}>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-             <MaterialTypography variant="h6" darkMode={darkMode} className="font-semibold">
-               Filtros y Ordenamiento
-             </MaterialTypography>
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                darkMode 
-                  ? 'bg-primary-900/20 text-primary-300 border border-primary-700/30' 
-                  : 'bg-primary-100 text-primary-700 border border-primary-200'
-              }`}>
+              <MaterialTypography variant="h6" darkMode={darkMode} className="font-semibold">
+                Filtros y Ordenamiento
+              </MaterialTypography>
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${darkMode
+                ? 'bg-primary-900/20 text-primary-300 border border-primary-700/30'
+                : 'bg-primary-100 text-primary-700 border border-primary-200'
+                }`}>
                 {filters.filteredDevelopments.length} desarrollo{filters.filteredDevelopments.length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -285,7 +284,7 @@ const MyDevelopments: React.FC = () => {
             <MaterialSelect
               label="Ordenar"
               value={filters.sortBy}
-              onChange={(e) => filters.setSortBy(e.target.value as any)}
+              onChange={(e) => filters.setSortBy(e.target.value as UseFiltersReturn['sortBy'])}
               darkMode={darkMode}
               options={sortOptions}
             />
@@ -346,7 +345,7 @@ const MyDevelopments: React.FC = () => {
             <MaterialSelect
               label="Agrupación"
               value={filters.groupBy}
-              onChange={(e) => filters.setGroupBy(e.target.value as any)}
+              onChange={(e) => filters.setGroupBy(e.target.value as UseFiltersReturn['groupBy'])}
               darkMode={darkMode}
               className="max-w-xs"
               options={groupOptions}
@@ -364,17 +363,16 @@ const MyDevelopments: React.FC = () => {
               <MaterialCard.Header darkMode={darkMode}>
                 <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                   {groupName}
-                  <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
-                    darkMode ? 'bg-neutral-700 text-neutral-300' : 'bg-neutral-200 text-neutral-600'
-                  }`}>
+                  <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${darkMode ? 'bg-neutral-700 text-neutral-300' : 'bg-neutral-200 text-neutral-600'
+                    }`}>
                     {groupDevelopments.length} desarrollo{groupDevelopments.length !== 1 ? 's' : ''}
                   </span>
-              </h3>
+                </h3>
               </MaterialCard.Header>
-          )}
-            
+            )}
+
             <div className="overflow-x-auto">
-            <table className="w-full">
+              <table className="w-full">
                 <thead className={darkMode ? 'bg-neutral-800' : 'bg-neutral-50'}>
                   <tr>
                     {[
@@ -387,42 +385,36 @@ const MyDevelopments: React.FC = () => {
                     ].map(({ key, label }) => (
                       <th
                         key={key}
-                        className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors ${
-                          darkMode ? 'text-neutral-300' : 'text-neutral-600'
-                        }`}
-                        onClick={() => handleColumnSort(key)}
+                        className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors ${darkMode ? 'text-neutral-300' : 'text-neutral-600'
+                          }`}
+                        onClick={() => handleColumnSort(key as UseFiltersReturn['sortBy'])}
                       >
                         {label}
                       </th>
                     ))}
-                    <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${
-                      darkMode ? 'text-neutral-300' : 'text-neutral-600'
-                    }`}>
+                    <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${darkMode ? 'text-neutral-300' : 'text-neutral-600'
+                      }`}>
                       Acciones
                     </th>
-                            </tr>
-                          </thead>
+                  </tr>
+                </thead>
                 <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
-                            {groupDevelopments.map((dev) => (
-                    <tr key={dev.id} className={`${
-                      darkMode ? 'hover:bg-neutral-700/50' : 'hover:bg-neutral-50'
-                    } transition-colors`}>
+                  {groupDevelopments.map((dev) => (
+                    <tr key={dev.id} className={`${darkMode ? 'hover:bg-neutral-700/50' : 'hover:bg-neutral-50'
+                      } transition-colors`}>
                       <td className="px-4 py-3 text-sm font-medium text-primary-600 dark:text-primary-400">
                         {dev.id}
                       </td>
-                      <td className={`px-4 py-3 text-sm font-medium ${
-                        darkMode ? 'text-white' : 'text-neutral-900'
-                      }`}>
+                      <td className={`px-4 py-3 text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-900'
+                        }`}>
                         {dev.name}
                       </td>
-                      <td className={`px-4 py-3 text-sm ${
-                        darkMode ? 'text-neutral-300' : 'text-neutral-600'
-                      }`}>
+                      <td className={`px-4 py-3 text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'
+                        }`}>
                         {dev.responsible ?? 'N/A'}
                       </td>
-                      <td className={`px-4 py-3 text-sm ${
-                        darkMode ? 'text-neutral-300' : 'text-neutral-600'
-                      }`}>
+                      <td className={`px-4 py-3 text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'
+                        }`}>
                         {dev.provider ?? 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-sm">
@@ -433,9 +425,9 @@ const MyDevelopments: React.FC = () => {
                             </span>
                             <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
                               {dev.last_activity.status === 'completada' ? '✅' :
-                               dev.last_activity.status === 'en_curso' ? '🔄' :
-                               dev.last_activity.status === 'pendiente' ? '⏳' :
-                               dev.last_activity.status === 'cancelada' ? '❌' : '📝'} {dev.last_activity.activity_type?.replace('_', ' ')}
+                                dev.last_activity.status === 'en_curso' ? '🔄' :
+                                  dev.last_activity.status === 'pendiente' ? '⏳' :
+                                    dev.last_activity.status === 'cancelada' ? '❌' : '📝'} {dev.last_activity.activity_type?.replace('_', ' ')}
                             </span>
                           </div>
                         ) : dev.current_stage?.stage_name ? (
@@ -454,9 +446,8 @@ const MyDevelopments: React.FC = () => {
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          getStatusColor(dev.general_status)
-                        }`}>
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(dev.general_status)
+                          }`}>
                           {dev.general_status}
                         </span>
                       </td>
@@ -474,18 +465,18 @@ const MyDevelopments: React.FC = () => {
                         </MaterialButton>
                       </td>
                     </tr>
-                            ))}
-                          </tbody>
-                        </table>
-            </div>
-                    </div>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
       </MaterialCard>
 
       {/* Modal de Importación */}
       <ImportModal
         isOpen={isImportModalOpen}
-                          darkMode={darkMode}
+        darkMode={darkMode}
         onClose={() => setImportModalOpen(false)}
         onImport={handleImport}
         isImporting={isImporting}

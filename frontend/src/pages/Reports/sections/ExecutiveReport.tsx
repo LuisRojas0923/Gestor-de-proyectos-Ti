@@ -1,8 +1,8 @@
 import React from 'react';
-import { FileText, Download, TrendingUp, Users, AlertTriangle } from 'lucide-react';
-import { 
-  MaterialCard, 
-  MaterialButton, 
+import { FileText, Download, TrendingUp, Users, AlertTriangle, Target } from 'lucide-react';
+import {
+  MaterialCard,
+  MaterialButton,
   MaterialTypography
 } from '../../../components/atoms';
 
@@ -22,7 +22,7 @@ const ExecutiveReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             <div className="flex items-center space-x-3">
               <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               <MaterialTypography variant="h5" darkMode={darkMode}>
-                📈 Reporte Ejecutivo Consolidado
+                Reporte Ejecutivo Consolidado
               </MaterialTypography>
             </div>
             <MaterialButton
@@ -121,9 +121,9 @@ const ExecutiveReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
               <thead className={darkMode ? 'bg-neutral-700' : 'bg-neutral-50'}>
                 <tr>
                   {['Responsable', 'Total', 'Completados', 'En Progreso', 'Retrasos', 'SLA Cumplido'].map(header => (
-                     <th key={header} scope="col" className="px-4 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">
-                       {header}
-                     </th>
+                    <th key={header} scope="col" className="px-4 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">
+                      {header}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -157,8 +157,8 @@ const ExecutiveReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
         <MaterialCard.Content>
           <div className="space-y-4">
             <div className={`p-4 rounded-lg ${darkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} border`}>
-              <MaterialTypography variant="subtitle1" darkMode={darkMode} className="text-blue-900 dark:text-blue-100 mb-2">
-                🎯 Optimización de Procesos
+              <MaterialTypography variant="subtitle1" darkMode={darkMode} className="text-blue-900 dark:text-blue-100 mb-2 flex items-center">
+                <Target size={18} className="mr-2" /> Optimización de Procesos
               </MaterialTypography>
               <MaterialTypography variant="body2" darkMode={darkMode} className="text-blue-800 dark:text-blue-200">
                 Implementar automatización en las etapas de testing para reducir el tiempo de ciclo en un 15%.
@@ -166,8 +166,8 @@ const ExecutiveReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             </div>
 
             <div className={`p-4 rounded-lg ${darkMode ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} border`}>
-              <MaterialTypography variant="subtitle1" darkMode={darkMode} className="text-green-900 dark:text-green-100 mb-2">
-                📈 Expansión de Capacidad
+              <MaterialTypography variant="subtitle1" darkMode={darkMode} className="text-green-900 dark:text-green-100 mb-2 flex items-center">
+                <TrendingUp size={18} className="mr-2" /> Expansión de Capacidad
               </MaterialTypography>
               <MaterialTypography variant="body2" darkMode={darkMode} className="text-green-800 dark:text-green-200">
                 Considerar la contratación de 2 desarrolladores adicionales para el próximo trimestre.
@@ -175,8 +175,8 @@ const ExecutiveReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
             </div>
 
             <div className={`p-4 rounded-lg ${darkMode ? 'bg-yellow-900/20 border-yellow-800' : 'bg-yellow-50 border-yellow-200'} border`}>
-              <MaterialTypography variant="subtitle1" darkMode={darkMode} className="text-yellow-900 dark:text-yellow-100 mb-2">
-                ⚠️ Gestión de Riesgos
+              <MaterialTypography variant="subtitle1" darkMode={darkMode} className="text-yellow-900 dark:text-yellow-100 mb-2 flex items-center">
+                <AlertTriangle size={18} className="mr-2" /> Gestión de Riesgos
               </MaterialTypography>
               <MaterialTypography variant="body2" darkMode={darkMode} className="text-yellow-800 dark:text-yellow-200">
                 Revisar la dependencia de proveedores externos para proyectos críticos.

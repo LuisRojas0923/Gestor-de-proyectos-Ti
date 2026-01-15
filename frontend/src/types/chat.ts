@@ -15,7 +15,7 @@ export interface ChatMessage {
   content: string;
   sender: 'user' | 'assistant' | 'system';
   message_type: 'text' | 'file' | 'image' | 'code' | 'analysis' | 'recommendation';
-  message_metadata?: Record<string, any>;
+  message_metadata?: Record<string, unknown>;
   created_at: string;
 }
 
@@ -33,7 +33,7 @@ export interface ChatMessageCreate {
   content: string;
   sender: 'user' | 'assistant' | 'system';
   message_type?: 'text' | 'file' | 'image' | 'code' | 'analysis' | 'recommendation';
-  message_metadata?: Record<string, any>;
+  message_metadata?: Record<string, unknown>;
 }
 
 export interface ChatSessionsResponse {
@@ -94,11 +94,11 @@ export interface RiskAnalysis {
 }
 
 export interface IntelligentDashboardData {
-  metrics: any;
+  metrics: unknown;
   ai_insights: string;
   recommendations: Recommendation[];
   risk_analysis: RiskAnalysis;
-  trends: any;
+  trends: unknown;
   generated_at: string;
 }
 

@@ -98,7 +98,7 @@ class DevelopmentSummary(BaseModel):
     name: str
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class DevelopmentActivityLogResponse(DevelopmentActivityLogBase):
@@ -117,7 +117,7 @@ class DevelopmentActivityLogResponse(DevelopmentActivityLogBase):
     stage_code: Optional[str] = None
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class ActivityLogListResponse(BaseModel):

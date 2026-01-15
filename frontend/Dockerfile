@@ -1,16 +1,25 @@
-# 1. Base Image: Use a slim and specific Node.js version.
-FROM node:20-slim
+# Stage 1: Build stage
+FROM node:20-slim AS builder
 
-# 2. Set Working Directory.
 WORKDIR /app
 
-# 3. Install Dependencies: Copy package files first to leverage Docker's cache.
-# This layer is only rebuilt when package.json or package-lock.json changes.
 COPY package*.json ./
 RUN npm install
 
-# 4. Copy Application Code.
 COPY . .
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+RUN npm run build
 
-# 5. Expose Port for Vite.
-EXPOSE 5173
+# Stage 2: Production stage
+FROM nginx:alpine
+
+# Copy the build output to replace the default nginx contents.
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy the custom nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

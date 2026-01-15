@@ -9,36 +9,36 @@ from ..database import get_db
 from ..schemas import activity_log as activity_log_schemas
 from typing import Optional
 
-router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+router = APIRouter(prefix="/panel-control", tags=["panel-control"])
 
 
-@router.get("/metrics")
+@router.get("/metricas")
 def get_dashboard_metrics(db: Session = Depends(get_db)):
     """Métricas principales del dashboard"""
     return crud.get_dashboard_metrics(db)
 
 
-@router.get("/priority-distribution")
+@router.get("/distribucion-prioridad")
 def get_priority_distribution(db: Session = Depends(get_db)):
     """Distribución de prioridades"""
     return crud.get_priority_distribution(db)
 
 
-@router.get("/upcoming-milestones")
+@router.get("/proximos-hitos")
 def get_upcoming_milestones(db: Session = Depends(get_db)):
     """Próximos hitos importantes"""
     return crud.get_upcoming_milestones(db)
 
 
-@router.get("/weekly-progress")
+@router.get("/progreso-semanal")
 def get_weekly_progress(db: Session = Depends(get_db)):
     """Progreso semanal"""
     return crud.get_weekly_progress(db)
 
-@router.get("/pending-activities", response_model=list[activity_log_schemas.DevelopmentActivityLogResponse])
-def get_pending_activities(status: Optional[str] = None, db: Session = Depends(get_db)):
+@router.get("/actividades-pendientes", response_model=list[activity_log_schemas.DevelopmentActivityLogResponse])
+def get_pending_activities(limit: int = 5, status: Optional[str] = None, db: Session = Depends(get_db)):
     """Obtener actividades pendientes y en curso para el panel principal"""
-    activities = crud.get_pending_and_in_progress_activities(db, status=status)
+    activities = crud.get_pending_and_in_progress_activities(db, limit=limit, status=status)
     
     # Mapear manualmente para asegurar la estructura de la respuesta
     response_activities = []

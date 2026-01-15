@@ -3,7 +3,7 @@
  * Se adapta según la etapa seleccionada
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X } from 'lucide-react';
 import Input from '../atoms/Input';
 import MaterialSelect from '../atoms/MaterialSelect';
@@ -11,16 +11,15 @@ import Button from '../atoms/Button';
 import { useAppContext } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { API_ENDPOINTS } from '../../config/api';
-import { 
-  ActivityLogCreate, 
-  StageFieldConfig, 
-  STAGE_FIELD_CONFIGS,
+import {
+  ActivityLogCreate,
+  StageFieldConfig,
   FormField
 } from '../../types/activityLog';
 
 interface ActivityFormProps {
   developmentId: string;
-  onSuccess?: (activity: any) => void;
+  onSuccess?: (activity: unknown) => void;
   onCancel?: () => void;
   initialStageId?: number;
 }
@@ -48,16 +47,31 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   const [stageConfig, setStageConfig] = useState<StageFieldConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [availableStages, setAvailableStages] = useState<any[]>([]);
+  const [availableStages, setAvailableStages] = useState<{ id: number, stage_name: string }[]>([]);
   const [alsoMoveStage, setAlsoMoveStage] = useState<boolean>(true); // Por defecto marcado
+
+  const loadStageFieldConfig = useCallback(async (stageId: number) => {
+    try {
+      setLoading(true);
+      const response = await get(API_ENDPOINTS.ACTIVITY_LOG_FIELD_CONFIG(developmentId, stageId));
+      if (response) {
+        setStageConfig(response as StageFieldConfig);
+      }
+    } catch (err) {
+      console.error('Error cargando configuración de campos:', err);
+      setError('Error cargando configuración de campos');
+    } finally {
+      setLoading(false);
+    }
+  }, [developmentId, get]);
 
   // Cargar etapas disponibles
   useEffect(() => {
     const loadStages = async () => {
       try {
-        const response = await get(API_ENDPOINTS.STAGES) as any;
+        const response = await get(API_ENDPOINTS.STAGES);
         if (Array.isArray(response)) {
-          setAvailableStages(response);
+          setAvailableStages(response as { id: number, stage_name: string }[]);
         } else {
           setAvailableStages([]);
         }
@@ -73,74 +87,23 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
     if (formData.stage_id && formData.stage_id > 0) {
       loadStageFieldConfig(formData.stage_id);
     }
-  }, [formData.stage_id]);
+  }, [formData.stage_id, loadStageFieldConfig]);
 
-  const loadStageFieldConfig = async (stageId: number) => {
-    try {
-      setLoading(true);
-      const response = await get(API_ENDPOINTS.ACTIVITY_LOG_FIELD_CONFIG(developmentId, stageId)) as any;
-      if (response) {
-        setStageConfig(response as StageFieldConfig);
-      }
-    } catch (err) {
-      console.error('Error cargando configuración de campos:', err);
-      setError('Error cargando configuración de campos');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleDynamicFieldChange = (field: string, value: any) => {
+  const handleDynamicFieldChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({
       ...prev,
       dynamic_payload: {
-        ...prev.dynamic_payload,
+        ...(prev.dynamic_payload || {}),
         [field]: value
       }
     }));
-  };
-
-  const getFormFieldsForStage = (): FormField[] => {
-    if (!stageConfig?.has_dynamic_fields) return [];
-
-    const fields: FormField[] = [];
-
-    // Campos requeridos
-    if (stageConfig.required_fields) {
-      stageConfig.required_fields.forEach(fieldName => {
-        fields.push({
-          name: fieldName,
-          label: getFieldLabel(fieldName),
-          type: getFieldType(fieldName),
-          required: true,
-          placeholder: getFieldPlaceholder(fieldName),
-          description: getFieldDescription(fieldName)
-        });
-      });
-    }
-
-    // Campos opcionales
-    if (stageConfig.optional_fields) {
-      stageConfig.optional_fields.forEach(fieldName => {
-        fields.push({
-          name: fieldName,
-          label: getFieldLabel(fieldName),
-          type: getFieldType(fieldName),
-          required: false,
-          placeholder: getFieldPlaceholder(fieldName),
-          description: getFieldDescription(fieldName)
-        });
-      });
-    }
-
-    return fields;
   };
 
   const getFieldLabel = (fieldName: string): string => {
@@ -192,6 +155,40 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
     return descriptions[fieldName] || '';
   };
 
+  const getFormFieldsForStage = (): FormField[] => {
+    if (!stageConfig?.has_dynamic_fields) return [];
+
+    const fields: FormField[] = [];
+
+    // Usar la configuración de campos devuelta por el API si existe, sino campos básicos
+    const requiredFields = stageConfig.required_fields || [];
+    const optionalFields = stageConfig.optional_fields || [];
+
+    requiredFields.forEach(fieldName => {
+      fields.push({
+        name: fieldName,
+        label: getFieldLabel(fieldName),
+        type: getFieldType(fieldName),
+        required: true,
+        placeholder: getFieldPlaceholder(fieldName),
+        description: getFieldDescription(fieldName)
+      });
+    });
+
+    optionalFields.forEach(fieldName => {
+      fields.push({
+        name: fieldName,
+        label: getFieldLabel(fieldName),
+        type: getFieldType(fieldName),
+        required: false,
+        placeholder: getFieldPlaceholder(fieldName),
+        description: getFieldDescription(fieldName)
+      });
+    });
+
+    return fields;
+  };
+
   const getEnvironmentOptions = () => [
     { value: 'desarrollo', label: 'Desarrollo' },
     { value: 'pruebas', label: 'Pruebas' },
@@ -232,7 +229,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
             console.error('Error al mover la etapa:', err);
           }
         }
-        
+
         onSuccess?.(response);
         // Reset form
         setFormData({
@@ -246,15 +243,17 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
         setStageConfig(null);
         setAlsoMoveStage(true); // Mantener marcado por defecto
       }
-    } catch (err: any) {
-      setError(err.message || 'Error creando actividad');
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || 'Error creando actividad');
     } finally {
       setLoading(false);
     }
   };
 
   const renderDynamicField = (field: FormField) => {
-    const value = formData.dynamic_payload?.[field.name] || '';
+    const rawValue = formData.dynamic_payload?.[field.name];
+    const value = (typeof rawValue === 'string' || typeof rawValue === 'number') ? String(rawValue) : '';
 
     switch (field.type) {
       case 'select':
@@ -272,9 +271,8 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
       case 'textarea':
         return (
           <div>
-            <label className={`block text-sm font-medium mb-2 ${
-              darkMode ? 'text-neutral-300' : 'text-neutral-700'
-            }`}>
+            <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
+              }`}>
               {field.label} {field.required && '*'}
             </label>
             <textarea
@@ -283,11 +281,10 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
               placeholder={field.placeholder}
               required={field.required}
               rows={3}
-              className={`w-full px-3 py-2 border rounded-md ${
-                darkMode 
-                  ? 'bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400' 
+              className={`w-full px-3 py-2 border rounded-md ${darkMode
+                  ? 'bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400'
                   : 'bg-white border-neutral-300 text-neutral-900 placeholder-neutral-500'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                } focus:outline-none focus:ring-2 focus:ring-blue-500`}
             />
           </div>
         );
@@ -310,13 +307,11 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   };
 
   return (
-    <div className={`${
-      darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-    } border rounded-xl p-6`}>
+    <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+      } border rounded-xl p-6`}>
       <div className="flex items-center justify-between mb-6">
-        <h3 className={`text-lg font-semibold flex items-center ${
-          darkMode ? 'text-white' : 'text-neutral-900'
-        }`}>
+        <h3 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'
+          }`}>
           <Plus className="mr-2" size={20} />
           Nueva Actividad
         </h3>
@@ -333,9 +328,8 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
       </div>
 
       {error && (
-        <div className={`mb-4 p-3 rounded-md ${
-          darkMode ? 'bg-red-900/20 text-red-300 border border-red-800' : 'bg-red-50 text-red-600 border border-red-200'
-        }`}>
+        <div className={`mb-4 p-3 rounded-md ${darkMode ? 'bg-red-900/20 text-red-300 border border-red-800' : 'bg-red-50 text-red-600 border border-red-200'
+          }`}>
           {error}
         </div>
       )}
@@ -421,12 +415,10 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
 
         {/* Campos dinámicos por etapa */}
         {stageConfig?.has_dynamic_fields && (
-          <div className={`${
-            darkMode ? 'bg-neutral-700/50' : 'bg-neutral-50'
-          } rounded-lg p-4`}>
-            <h4 className={`text-md font-medium mb-4 ${
-              darkMode ? 'text-white' : 'text-neutral-900'
-            }`}>
+          <div className={`${darkMode ? 'bg-neutral-700/50' : 'bg-neutral-50'
+            } rounded-lg p-4`}>
+            <h4 className={`text-md font-medium mb-4 ${darkMode ? 'text-white' : 'text-neutral-900'
+              }`}>
               Campos específicos para: {stageConfig.stage_name}
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -434,9 +426,8 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
                 <div key={field.name}>
                   {renderDynamicField(field)}
                   {field.description && (
-                    <p className={`text-xs mt-1 ${
-                      darkMode ? 'text-neutral-400' : 'text-neutral-500'
-                    }`}>
+                    <p className={`text-xs mt-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'
+                      }`}>
                       {field.description}
                     </p>
                   )}
@@ -448,9 +439,8 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
 
         {/* Notas */}
         <div>
-          <label className={`block text-sm font-medium mb-2 ${
-            darkMode ? 'text-neutral-300' : 'text-neutral-700'
-          }`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
+            }`}>
             Notas Adicionales
           </label>
           <textarea
@@ -458,11 +448,10 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
             onChange={(e) => handleInputChange('notes', e.target.value)}
             placeholder="Descripción detallada de la actividad..."
             rows={3}
-            className={`w-full px-3 py-2 border rounded-md ${
-              darkMode 
-                ? 'bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400' 
+            className={`w-full px-3 py-2 border rounded-md ${darkMode
+                ? 'bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400'
                 : 'bg-white border-neutral-300 text-neutral-900 placeholder-neutral-500'
-            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
           />
         </div>
 

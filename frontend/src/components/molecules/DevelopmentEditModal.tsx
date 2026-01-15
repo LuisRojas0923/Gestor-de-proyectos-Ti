@@ -9,7 +9,7 @@ interface DevelopmentData {
   module?: string;
   type?: string;
   environment?: string;
-  remedy_link?: string;
+  portal_link?: string;
   current_phase_id?: number;
   current_stage_id?: number;
   stage_progress_percentage?: number;
@@ -47,7 +47,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
         module: development.module || '',
         type: development.type || '',
         environment: development.environment || '',
-        remedy_link: development.remedy_link || '',
+        portal_link: development.portal_link || '',
         general_status: development.general_status || '',
         estimated_end_date: development.estimated_end_date || '',
         provider: development.provider || '',
@@ -143,7 +143,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <MaterialCard 
+      <MaterialCard
         darkMode={darkMode}
         elevation={3}
         className="w-full max-w-2xl max-h-[90vh] flex flex-col"
@@ -182,7 +182,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
               <h3 className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                 Información Básica
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <MaterialTextField
@@ -194,7 +194,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
                     maxLength={255}
                   />
                 </div>
-                
+
                 <div>
                   <MaterialSelect
                     label="Estado General"
@@ -223,7 +223,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
               <h3 className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                 Información Técnica
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <MaterialTextField
@@ -234,7 +234,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
                     maxLength={100}
                   />
                 </div>
-                
+
                 <div>
                   <MaterialTextField
                     label="Tipo"
@@ -244,7 +244,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
                     maxLength={50}
                   />
                 </div>
-                
+
                 <div>
                   <MaterialTextField
                     label="Ambiente"
@@ -254,12 +254,12 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
                     maxLength={100}
                   />
                 </div>
-                
+
                 <div>
                   <MaterialTextField
-                    label="Link de Remedy"
-                    value={formData.remedy_link || ''}
-                    onChange={(e) => handleFieldChange('remedy_link', e.target.value)}
+                    label="Link del Portal"
+                    value={formData.portal_link || ''}
+                    onChange={(e) => handleFieldChange('portal_link', e.target.value)}
                     darkMode={darkMode}
                     type="url"
                   />
@@ -272,7 +272,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
               <h3 className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                 Información de Gestión
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <MaterialTextField
@@ -283,7 +283,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
                     maxLength={100}
                   />
                 </div>
-                
+
                 <div>
                   <MaterialTextField
                     label="Responsable"

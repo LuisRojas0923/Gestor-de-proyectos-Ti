@@ -132,19 +132,20 @@ const Testing: React.FC = () => {
     setTasks(prev => prev.map(task => {
       if (task.id === taskId) {
         const newTimerState = !task.isTimerActive;
-        
+
         if (newTimerState) {
           setActiveTimers(timers => ({ ...timers, [taskId]: 0 }));
         } else {
           setActiveTimers(timers => {
-            const { [taskId]: removed, ...rest } = timers;
-            return rest;
+            const updated = { ...timers };
+            delete updated[taskId];
+            return updated;
           });
           // Update actual hours
           const additionalMinutes = activeTimers[taskId] || 0;
           return { ...task, actualHours: task.actualHours + (additionalMinutes / 60), isTimerActive: false };
         }
-        
+
         return { ...task, isTimerActive: newTimerState };
       }
       return task;
@@ -153,8 +154,8 @@ const Testing: React.FC = () => {
 
   const generateAIScenarios = async () => {
     try {
-      const response = await post('/test/ai-scenarios', { 
-        requirementIds: tasks.map(t => t.requirementId) 
+      const response = await post('/test/ai-scenarios', {
+        requirementIds: tasks.map(t => t.requirementId)
       });
       if (response) {
         // Add generated scenarios to backlog
@@ -181,7 +182,7 @@ const Testing: React.FC = () => {
     return `${hours}:${mins.toString().padStart(2, '0')}`;
   };
 
-  const filteredTasks = tasks.filter(task => 
+  const filteredTasks = tasks.filter(task =>
     filterPriority === 'all' || task.priority === filterPriority
   );
 
@@ -195,11 +196,10 @@ const Testing: React.FC = () => {
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className={`px-4 py-2 rounded-lg border transition-colors ${
-              darkMode
-                ? 'bg-neutral-700 border-neutral-600 text-white'
-                : 'bg-white border-neutral-300 text-neutral-900'
-            } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+            className={`px-4 py-2 rounded-lg border transition-colors ${darkMode
+              ? 'bg-neutral-700 border-neutral-600 text-white'
+              : 'bg-white border-neutral-300 text-neutral-900'
+              } focus:outline-none focus:ring-2 focus:ring-primary-500`}
           >
             <option value="all">Todas las prioridades</option>
             <option value="high">Alta</option>
@@ -229,9 +229,8 @@ const Testing: React.FC = () => {
                 <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                   {column.title}
                 </h3>
-                <span className={`text-sm px-2 py-1 rounded-full ${
-                  darkMode ? 'bg-neutral-600 text-neutral-300' : 'bg-neutral-200 text-neutral-600'
-                }`}>
+                <span className={`text-sm px-2 py-1 rounded-full ${darkMode ? 'bg-neutral-600 text-neutral-300' : 'bg-neutral-200 text-neutral-600'
+                  }`}>
                   {filteredTasks.filter(task => task.status === column.id).length}
                 </span>
               </div>
@@ -241,9 +240,8 @@ const Testing: React.FC = () => {
                   <div
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    className={`space-y-3 min-h-[200px] transition-colors ${
-                      snapshot.isDraggingOver ? 'bg-primary-50 dark:bg-primary-900/10' : ''
-                    }`}
+                    className={`space-y-3 min-h-[200px] transition-colors ${snapshot.isDraggingOver ? 'bg-primary-50 dark:bg-primary-900/10' : ''
+                      }`}
                   >
                     {filteredTasks
                       .filter(task => task.status === column.id)
@@ -254,28 +252,23 @@ const Testing: React.FC = () => {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              className={`${
-                                darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-                              } border rounded-lg p-4 border-l-4 ${getPriorityColor(task.priority)} transition-all ${
-                                snapshot.isDragging ? 'shadow-lg rotate-2' : 'hover:shadow-md'
-                              }`}
+                              className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+                                } border rounded-lg p-4 border-l-4 ${getPriorityColor(task.priority)} transition-all ${snapshot.isDragging ? 'shadow-lg rotate-2' : 'hover:shadow-md'
+                                }`}
                             >
                               <div className="flex items-start justify-between mb-2">
-                                <h4 className={`font-medium text-sm ${
-                                  darkMode ? 'text-white' : 'text-neutral-900'
-                                }`}>
+                                <h4 className={`font-medium text-sm ${darkMode ? 'text-white' : 'text-neutral-900'
+                                  }`}>
                                   {task.title}
                                 </h4>
-                                <button className={`p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 ${
-                                  darkMode ? 'text-neutral-400' : 'text-neutral-500'
-                                }`}>
+                                <button className={`p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'
+                                  }`}>
                                   <MoreHorizontal size={16} />
                                 </button>
                               </div>
 
-                              <p className={`text-xs mb-3 ${
-                                darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                              }`}>
+                              <p className={`text-xs mb-3 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
+                                }`}>
                                 {task.description}
                               </p>
 
@@ -286,11 +279,10 @@ const Testing: React.FC = () => {
                                     {task.assignedTo}
                                   </span>
                                 </div>
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  task.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
+                                <span className={`px-2 py-1 rounded-full text-xs ${task.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
                                   task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                                  'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                                }`}>
+                                    'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                  }`}>
                                   {task.priority}
                                 </span>
                               </div>
@@ -302,15 +294,14 @@ const Testing: React.FC = () => {
                                     {task.actualHours.toFixed(1)}h / {task.estimatedHours}h
                                   </span>
                                 </div>
-                                
+
                                 {task.status === 'testing' && (
                                   <button
                                     onClick={() => toggleTimer(task.id)}
-                                    className={`p-1 rounded transition-colors ${
-                                      task.isTimerActive 
-                                        ? 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400'
-                                        : 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400'
-                                    }`}
+                                    className={`p-1 rounded transition-colors ${task.isTimerActive
+                                      ? 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400'
+                                      : 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400'
+                                      }`}
                                   >
                                     {task.isTimerActive ? <Pause size={12} /> : <Play size={12} />}
                                   </button>

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-    DevelopmentObservation,
-    DevelopmentObservationCreate,
-    DevelopmentObservationUpdate
+  DevelopmentObservation,
+  DevelopmentObservationCreate,
+  DevelopmentObservationUpdate
 } from '../types/development';
 import { useApi } from './useApi';
 
@@ -31,8 +31,8 @@ export const useObservations = (developmentId: string | null): UseObservationsRe
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await get(`/developments/${developmentId}/observations`) as DevelopmentObservation[];
+
+      const response = await get(`/desarrollos/${developmentId}/observations`) as DevelopmentObservation[];
       setObservations(response || []);
     } catch (err) {
       console.error('Error loading observations:', err);
@@ -51,12 +51,12 @@ export const useObservations = (developmentId: string | null): UseObservationsRe
 
     try {
       setError(null);
-      
-      const response = await post(`/developments/${developmentId}/observations`, data) as DevelopmentObservation;
-      
+
+      const response = await post(`/desarrollos/${developmentId}/observations`, data) as DevelopmentObservation;
+
       // Actualizar la lista local
       setObservations(prev => [response, ...prev]);
-      
+
       return response;
     } catch (err) {
       console.error('Error creating observation:', err);
@@ -73,14 +73,14 @@ export const useObservations = (developmentId: string | null): UseObservationsRe
 
     try {
       setError(null);
-      
-      const response = await put(`/developments/${developmentId}/observations/${id}`, data) as DevelopmentObservation;
-      
+
+      const response = await put(`/desarrollos/${developmentId}/observations/${id}`, data) as DevelopmentObservation;
+
       // Actualizar la lista local
-      setObservations(prev => 
+      setObservations(prev =>
         prev.map(obs => obs.id === id ? response : obs)
       );
-      
+
       return response;
     } catch (err) {
       console.error('Error updating observation:', err);
@@ -97,12 +97,12 @@ export const useObservations = (developmentId: string | null): UseObservationsRe
 
     try {
       setError(null);
-      
-      await deleteRequest(`/developments/${developmentId}/observations/${id}`);
-      
+
+      await deleteRequest(`/desarrollos/${developmentId}/observations/${id}`);
+
       // Actualizar la lista local
       setObservations(prev => prev.filter(obs => obs.id !== id));
-      
+
       return true;
     } catch (err) {
       console.error('Error deleting observation:', err);

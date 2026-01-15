@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { Upload, CheckCircle, AlertTriangle } from 'lucide-react';
 
+function isValidPortalId(id: string): boolean {
+  return /^INC\d+$/.test(id);
+}
+
 interface ExcelImporterProps<T> {
   onImport: (data: T[]) => void;
   columnMapping: { [key: string]: string };
@@ -9,7 +13,7 @@ interface ExcelImporterProps<T> {
   darkMode: boolean;
 }
 
-const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping, identifierKey, darkMode }: ExcelImporterProps<T>) => {
+const ExcelImporter = <T extends Record<string, unknown>>({ onImport, columnMapping, identifierKey, darkMode }: ExcelImporterProps<T>) => {
   const [file, setFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<T[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -32,19 +36,18 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        // Configurar opciones de lectura para archivos Excel
-        
-        const workbook = XLSX.read(data, { 
-          type: 'binary', 
+
+        const workbook = XLSX.read(data, {
+          type: 'binary',
           cellDates: true,
           cellNF: false,
           cellText: false
         });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        
+
         // Extraer hipervínculos de todas las celdas
-        const hyperlinks: { [key: string]: string } = {};
+        const hyperlinks: { [key: string]: any } = {};
         Object.keys(worksheet).forEach(key => {
           if (key.startsWith('!')) return; // Skip metadata
           const cell = worksheet[key];
@@ -52,89 +55,73 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
             hyperlinks[key] = cell.l.Target || cell.l;
           }
         });
-        
+
         // Leer todas las filas como array
-        const jsonData = XLSX.utils.sheet_to_json<any>(worksheet, { 
+        const jsonData = XLSX.utils.sheet_to_json<unknown[]>(worksheet, {
           header: 1, // Use array format
           defval: '', // Default value for empty cells
           blankrows: false // Skip blank rows
         });
-        
-        // DEBUG: Log para ver qué datos tenemos
-        console.log('📊 Excel cargado:', {
-          totalFilas: jsonData.length,
-          primeraFila: jsonData[0],
-          segundaFila: jsonData[1]
-        });
-        
+
         // Los encabezados están en la fila 1 (segunda fila, índice 1)
         // Los datos empiezan desde la fila 2 (índice 2)
         if (jsonData.length < 2) {
           setError('El archivo no tiene suficientes filas. Se esperan encabezados en la segunda fila.');
           return;
         }
-        
-        const headers = jsonData[1]; // Fila 1 = segunda fila (encabezados)
-        const dataRows = jsonData.slice(2); // Datos desde la fila 2 en adelante
-        
-        console.log('🔍 Procesando encabezados:', headers);
-        console.log('📝 Columnas esperadas:', Object.keys(columnMapping));
-        
+
+        const headers = jsonData[1];
+        const dataRows = jsonData.slice(2);
+
         // Crear mapeo de índices de columnas
         const columnIndexMap: { [key: string]: number } = {};
-        headers.forEach((header: string, index: number) => {
+        headers.forEach((header: unknown, index: number) => {
           if (header && typeof header === 'string') {
             columnIndexMap[header.trim()] = index;
           }
         });
-        
-        console.log('🗺️ Mapeo de columnas encontradas:', Object.keys(columnIndexMap).length, 'columnas');
-        
+
         // Verificar que tenemos las columnas necesarias
         const requiredColumns = Object.keys(columnMapping);
         const missingColumns = requiredColumns.filter(col => !(col in columnIndexMap));
-        
+
         if (missingColumns.length > 0) {
-          console.error('❌ Columnas faltantes:', missingColumns);
           setError(`Faltan las siguientes columnas requeridas: ${missingColumns.join(', ')}`);
           return;
         }
-        
-        console.log('⚡ Procesando', dataRows.length, 'filas de datos...');
-        
+
         const mappedData = dataRows.map((row, rowIndex) => {
-          const newRow: any = {};
-          
+          const newRow: Partial<T> = {};
+
           for (const excelHeader in columnMapping) {
             const objectKey = columnMapping[excelHeader];
             const colIndex = columnIndexMap[excelHeader];
-            
-            if (row[colIndex] !== undefined && row[colIndex] !== '') {
-              newRow[objectKey] = row[colIndex];
-              
-              // Si es la columna 'ID de la incidencia*+' y tiene hipervínculo, extraer remedy_link
-              if (excelHeader === 'ID de la incidencia*+') {
+
+            const cellValue = (row as any)[colIndex];
+            if (cellValue !== undefined && cellValue !== '') {
+              (newRow as any)[objectKey] = cellValue;
+
+              if (excelHeader === 'ID de la incidencia*+') { // El texto será el ID, el hipervínculo será portal_link
                 const cellAddress = XLSX.utils.encode_cell({ r: rowIndex + 2, c: colIndex });
                 if (hyperlinks[cellAddress]) {
-                  newRow['remedy_link'] = hyperlinks[cellAddress];
+                  (newRow as any)['portal_link'] = hyperlinks[cellAddress];
                 }
               }
             }
           }
           return newRow as T;
-        }).filter(row => row[identifierKey]); // Ensure the row has the identifier
+        }).filter(row => row[identifierKey]);
 
-        console.log('✅ Procesamiento completado:', mappedData.length, 'registros válidos');
         setPreviewData(mappedData);
       } catch (err) {
-        setError('Error al procesar el archivo. Asegúrate de que sea un formato de Excel válido (.xls o .xlsx) y que los encabezados estén en la segunda fila.');
+        setError('Error al procesar el archivo. Asegúrate de que los encabezados estén en la segunda fila.');
         console.error(err);
       }
       setIsParsing(false);
     };
     reader.onerror = () => {
-        setError('No se pudo leer el archivo.');
-        setIsParsing(false);
+      setError('No se pudo leer el archivo.');
+      setIsParsing(false);
     }
     reader.readAsBinaryString(file);
   };
@@ -165,12 +152,12 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
         </label>
 
         {error && (
-            <div className="w-full text-center p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 flex items-center justify-center">
-                <AlertTriangle size={18} className="mr-2"/>
-                <span>{error}</span>
-            </div>
+          <div className="w-full text-center p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 flex items-center justify-center">
+            <AlertTriangle size={18} className="mr-2" />
+            <span>{error}</span>
+          </div>
         )}
-        
+
         {previewData.length > 0 && (
           <div className="w-full">
             <h4 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>Vista Previa ({previewData.length} registros)</h4>
@@ -187,13 +174,21 @@ const ExcelImporter = <T extends Record<string, any>>({ onImport, columnMapping,
                   {previewData.slice(0, 10).map((row, index) => (
                     <tr key={index} className={darkMode ? 'bg-neutral-800' : 'bg-white'}>
                       {Object.values(columnMapping).map(key => (
-                         <td key={key} className="p-2 whitespace-nowrap">{String(row[key] ?? '')}</td>
+                        <td key={key} className="p-2 whitespace-nowrap">
+                          {key === 'portal_link' ? (
+                            <a href={(row as any).portal_link} target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">
+                              {(row as any).portal_link ? 'Ver en Portal' : ''}
+                            </a>
+                          ) : (
+                            String((row as any)[key] ?? '')
+                          )}
+                        </td>
                       ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
-               {previewData.length > 10 && <p className="text-center text-xs p-2 dark:text-neutral-400 text-neutral-500">... y {previewData.length - 10} más.</p>}
+              {previewData.length > 10 && <p className="text-center text-xs p-2 dark:text-neutral-400 text-neutral-500">... y {previewData.length - 10} más.</p>}
             </div>
           </div>
         )}

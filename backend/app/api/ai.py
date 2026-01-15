@@ -10,12 +10,12 @@ from ..database import get_db
 from ..services.ai_service import AIService
 import logging
 
-router = APIRouter(prefix="/ai", tags=["ai"])
+router = APIRouter(prefix="/ia", tags=["ia"])
 
 # Initialize AI Service
 ai_service = AIService()
 
-@router.post("/analyze/development/{development_id}")
+@router.post("/analizar/desarrollo/{development_id}")
 async def analyze_development(
     development_id: str,
     query: schemas.AnalysisQuery,
@@ -51,7 +51,7 @@ async def analyze_development(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/analyze/provider/{provider_name}")
+@router.post("/analizar/proveedor/{provider_name}")
 async def analyze_provider(
     provider_name: str,
     query: schemas.AnalysisQuery,
@@ -85,7 +85,7 @@ async def analyze_provider(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/dashboard/intelligent")
+@router.get("/panel/inteligente")
 async def get_intelligent_dashboard(
     provider: Optional[str] = None,
     db: Session = Depends(get_db)
@@ -125,7 +125,7 @@ async def get_intelligent_dashboard(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/risks/detect")
+@router.get("/riesgos/detectar")
 async def detect_intelligent_risks(
     db: Session = Depends(get_db)
 ):
@@ -168,7 +168,7 @@ async def detect_intelligent_risks(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/recommendations/{development_id}")
+@router.post("/recomendaciones/{development_id}")
 async def get_recommendations(
     development_id: str,
     request: schemas.RecommendationRequest,
@@ -229,7 +229,7 @@ async def contextual_chat(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/insights/trends")
+@router.get("/insights/tendencias")
 async def get_trend_insights(
     provider: Optional[str] = None,
     period: Optional[str] = None,
@@ -280,7 +280,7 @@ async def get_trend_insights(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/predict/timeline")
+@router.post("/predecir/cronograma")
 async def predict_timeline(
     development_id: str,
     prediction_request: dict,

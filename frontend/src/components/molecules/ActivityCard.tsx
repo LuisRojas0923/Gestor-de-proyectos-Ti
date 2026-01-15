@@ -1,29 +1,14 @@
 import React from 'react';
-import { MaterialCard, Badge, MaterialTypography } from '../atoms';
+import { MaterialCard, MaterialTypography } from '../atoms';
 import { CheckCircle, Edit, Trash2, Clock, Calendar, User } from 'lucide-react';
-
-interface ActivityData {
-  id: number;
-  status: 'pendiente' | 'en_curso' | 'completada' | 'cancelada';
-  stage_code: string;
-  stage_name: string;
-  activity_type: string;
-  actor_type?: string;
-  start_date?: string;
-  end_date?: string;
-  next_follow_up_at?: string;
-  notes?: string;
-  dynamic_payload?: Record<string, any>;
-  created_at: string;
-  created_by?: string;
-}
+import { Activity } from '../../types';
 
 interface ActivityCardProps {
-  activity: ActivityData;
+  activity: Activity;
   darkMode: boolean;
-  onComplete?: (activity: ActivityData) => void;
-  onEdit?: (activity: ActivityData) => void;
-  onDelete?: (activity: ActivityData) => void;
+  onComplete?: (activity: Activity) => void;
+  onEdit?: (activity: Activity) => void;
+  onDelete?: (activity: Activity) => void;
   showCompleteButton?: boolean;
 }
 
@@ -51,16 +36,6 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     }
   };
 
-  // Función para obtener el variant del badge según el estado
-  const getStatusVariant = (status: string): 'success' | 'warning' | 'info' | 'default' => {
-    switch (status) {
-      case 'completada': return 'success';
-      case 'en_curso': return 'info';
-      case 'pendiente': return 'warning';
-      case 'cancelada': return 'default';
-      default: return 'default';
-    }
-  };
 
   // Función para formatear fechas
   const formatDate = (dateString?: string): string => {
@@ -77,10 +52,6 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     };
   };
 
-  // Función para formatear nombres de campos dinámicos
-  const formatFieldName = (key: string): string => {
-    return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
 
   // Componente para mostrar un dato con ícono (del mockup)
   const DataField = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
@@ -96,7 +67,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   );
 
   return (
-    <MaterialCard 
+    <MaterialCard
       darkMode={darkMode}
       elevation={2}
       className={`w-full rounded-xl p-4 space-y-4 ${darkMode ? 'bg-neutral-800 text-white shadow-2xl' : 'bg-white text-neutral-900 shadow-xl border border-neutral-200'}`}
@@ -105,23 +76,23 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
       <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-3 mb-3 ${darkMode ? 'border-neutral-700' : 'border-neutral-200'}`}>
         {/* Tags (Mejorados: Espaciado con gap-2) */}
         <div className="flex flex-wrap gap-2 mb-4 sm:mb-0">
-          <span 
+          <span
             className={`px-3 py-1 text-sm font-bold rounded-full text-white shadow-md transition-colors ${getStatusClasses(activity.status)}`}
           >
             {activity.status.toUpperCase().replace('_', ' ')}
           </span>
-          <span 
+          <span
             className={`px-3 py-1 text-xs font-medium rounded-full ${darkMode ? 'bg-neutral-700 text-neutral-300' : 'bg-neutral-100 text-neutral-800'}`}
           >
-            {activity.stage_code}. {activity.stage_name}
+            {activity.stage_code || 'N/A'}. {activity.stage_name}
           </span>
-          <span 
+          <span
             className={`px-3 py-1 text-xs font-medium rounded-full ${darkMode ? 'bg-blue-900/20 text-blue-400' : 'bg-blue-100 text-blue-800'}`}
           >
             {activity.activity_type}
           </span>
           {activity.actor_type && (
-            <span 
+            <span
               className={`px-3 py-1 text-xs font-medium rounded-full ${darkMode ? 'bg-purple-700 text-purple-200' : 'bg-purple-100 text-purple-800'}`}
             >
               {activity.actor_type}
@@ -137,7 +108,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
 
       {/* 2. SECCIÓN DE ACCIONES (Botones Flotantes Mejorados) */}
       <div className={`flex gap-4 justify-start border-b pb-4 mb-4 ${darkMode ? 'border-neutral-700' : 'border-neutral-200'}`}>
-        
+
         {/* Botón de Éxito (Completar) - Estilo Primario y Flotante */}
         {showCompleteButton && activity.status !== 'completada' && onComplete && (
           <button
@@ -150,14 +121,13 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
             <CheckCircle size={20} /> Completar
           </button>
         )}
-        
+
         {/* Botón de Edición - Estilo Secundario con Icono */}
         {onEdit && (
           <button
             onClick={() => onEdit(activity)}
-            className={`flex items-center gap-2 px-5 py-3 border ${
-              darkMode ? 'border-neutral-500 text-neutral-200 hover:bg-neutral-600' : 'border-neutral-600 text-neutral-700 hover:bg-neutral-50'
-            } font-semibold 
+            className={`flex items-center gap-2 px-5 py-3 border ${darkMode ? 'border-neutral-500 text-neutral-200 hover:bg-neutral-600' : 'border-neutral-600 text-neutral-700 hover:bg-neutral-50'
+              } font-semibold 
                     rounded-full shadow-md
                     transition-all`}
             title="Editar detalles de la actividad"
@@ -179,45 +149,45 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           </button>
         )}
       </div>
-      
+
       {/* 3. SECCIÓN DE METADATOS (Distribución en Columnas) */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* Fecha de Inicio */}
-        <DataField 
+        <DataField
           icon={<Calendar size={20} />}
           label="Fecha de Inicio"
           value={formatDate(activity.start_date)}
         />
-        
+
         {/* Fecha de Fin */}
-        <DataField 
+        <DataField
           icon={<Calendar size={20} />}
           label="Fecha de Fin"
           value={formatDate(activity.end_date)}
         />
-        
+
         {/* Próximo Seguimiento */}
-        <DataField 
+        <DataField
           icon={<Clock size={20} />}
           label="Próximo Seguimiento"
           value={activity.next_follow_up_at ? formatDate(activity.next_follow_up_at) : 'No programado'}
         />
-        
+
         {/* Etapa */}
-        <DataField 
+        <DataField
           icon={<Calendar size={20} />}
           label="Etapa"
           value={`${activity.stage_code}. ${activity.stage_name}`}
         />
-        
+
         {/* Tipo de Actividad */}
-        <DataField 
+        <DataField
           icon={<User size={20} />}
           label="Tipo"
           value={activity.activity_type}
         />
       </div>
-      
+
       {/* 4. SECCIÓN DE NOTAS */}
       {activity.notes && (
         <div className={`pt-3 border-t ${darkMode ? 'border-neutral-700' : 'border-neutral-200'}`}>

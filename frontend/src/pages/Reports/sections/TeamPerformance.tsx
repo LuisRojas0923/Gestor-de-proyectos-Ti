@@ -9,8 +9,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { 
-  MaterialCard, 
+import {
+  MaterialCard,
   MaterialTypography
 } from '../../../components/atoms';
 
@@ -32,7 +32,7 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
           <div className="flex items-center space-x-3">
             <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             <MaterialTypography variant="h5" darkMode={darkMode}>
-              👥 Análisis de Rendimiento del Equipo
+              Análisis de Rendimiento del Equipo
             </MaterialTypography>
           </div>
           <MaterialTypography variant="body2" darkMode={darkMode} className="mt-2">
@@ -119,8 +119,8 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={teamPerformanceData}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis 
-                dataKey="name" 
+              <XAxis
+                dataKey="name"
                 tick={{ fill: darkMode ? '#a3a3a3' : '#525252' }}
               />
               <YAxis tick={{ fill: darkMode ? '#a3a3a3' : '#525252' }} />
@@ -148,20 +148,18 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
         <MaterialCard.Content>
           <div className="space-y-4">
             {teamPerformanceData.map((member, index) => (
-              <div key={index} className={`flex items-center justify-between p-4 rounded-lg ${
-                darkMode ? 'bg-neutral-700' : 'bg-neutral-50'
-              }`}>
+              <div key={index} className={`flex items-center justify-between p-4 rounded-lg ${darkMode ? 'bg-neutral-700' : 'bg-neutral-50'
+                }`}>
                 <div className="flex items-center space-x-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    member.sla >= 90 ? 'bg-green-100 dark:bg-green-900' :
-                    member.sla >= 80 ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-red-100 dark:bg-red-900'
-                  }`}>
-                    <MaterialTypography 
-                      variant="h6" 
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${member.sla >= 90 ? 'bg-green-100 dark:bg-green-900' :
+                      member.sla >= 80 ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-red-100 dark:bg-red-900'
+                    }`}>
+                    <MaterialTypography
+                      variant="h6"
                       darkMode={darkMode}
                       className={
                         member.sla >= 90 ? 'text-green-600 dark:text-green-400' :
-                        member.sla >= 80 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'
+                          member.sla >= 80 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'
                       }
                     >
                       {member.name.split(' ').map(n => n[0]).join('')}
@@ -177,12 +175,12 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <MaterialTypography 
-                    variant="h5" 
+                  <MaterialTypography
+                    variant="h5"
                     darkMode={darkMode}
                     className={
-                      member.sla >= 90 ? 'text-green-500' : 
-                      member.sla >= 80 ? 'text-yellow-500' : 'text-red-500'
+                      member.sla >= 90 ? 'text-green-500' :
+                        member.sla >= 80 ? 'text-yellow-500' : 'text-red-500'
                     }
                   >
                     {member.sla}%

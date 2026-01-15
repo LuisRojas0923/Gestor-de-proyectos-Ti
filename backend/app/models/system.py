@@ -9,10 +9,10 @@ from app.database import Base
 
 
 class SystemSetting(Base):
-    __tablename__ = "system_settings"
+    __tablename__ = "configuraciones_sistema"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String(50), ForeignKey("auth_users.id"), nullable=False)
+    user_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"), nullable=False)
     category = Column(String(100), nullable=False)
     key = Column(String(100), nullable=False)
     value = Column(Text)
@@ -25,10 +25,10 @@ class SystemSetting(Base):
 
 # Modelos existentes (mantener compatibilidad)
 class ActivityLog(Base):
-    __tablename__ = "activity_logs"
+    __tablename__ = "registros_actividad"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     date = Column(DateTime(timezone=True), nullable=False)
     description = Column(Text, nullable=False)
     category = Column(String(100))
@@ -41,10 +41,10 @@ class ActivityLog(Base):
 
 
 class Incident(Base):
-    __tablename__ = "incidents"
+    __tablename__ = "incidentes"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     report_date = Column(DateTime(timezone=True), nullable=False)
     resolution_date = Column(DateTime(timezone=True))
     description = Column(Text, nullable=False)

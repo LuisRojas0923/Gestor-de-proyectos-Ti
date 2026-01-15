@@ -36,15 +36,14 @@ export const DevelopmentTable: React.FC<DevelopmentTableProps> = ({
               </h3>
             </div>
           )}
-          
-          <div className={`${
-            darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-          } border rounded-xl overflow-hidden`}>
+
+          <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+            } border rounded-xl overflow-hidden`}>
             <table className="w-full divide-y divide-neutral-200 dark:divide-neutral-700">
               <thead className={darkMode ? 'bg-neutral-800' : 'bg-neutral-50'}>
                 <tr>
                   {[
-                    { key: 'id', label: 'ID Remedy', width: 'w-32' },
+                    { key: 'id', label: 'No. Solicitud', width: 'w-32' },
                     { key: 'name', label: 'Nombre Desarrollo', width: 'w-80' },
                     { key: 'provider', label: 'Proveedor', width: 'w-24' },
                     { key: 'responsible', label: 'Responsable', width: 'w-40' },
@@ -62,21 +61,19 @@ export const DevelopmentTable: React.FC<DevelopmentTableProps> = ({
                         >
                           <span>{label}</span>
                           <div className="flex flex-col">
-                            <ChevronUp 
-                              size={12} 
-                              className={`${
-                                sortField === key && sortDirection === 'asc' 
-                                  ? 'text-primary-500' 
+                            <ChevronUp
+                              size={12}
+                              className={`${sortField === key && sortDirection === 'asc'
+                                  ? 'text-primary-500'
                                   : 'text-neutral-400'
-                              }`} 
+                                }`}
                             />
-                            <ChevronDown 
-                              size={12} 
-                              className={`${
-                                sortField === key && sortDirection === 'desc' 
-                                  ? 'text-primary-500' 
+                            <ChevronDown
+                              size={12}
+                              className={`${sortField === key && sortDirection === 'desc'
+                                  ? 'text-primary-500'
                                   : 'text-neutral-400'
-                              }`} 
+                                }`}
                             />
                           </div>
                         </button>
@@ -104,11 +101,11 @@ export const DevelopmentTable: React.FC<DevelopmentTableProps> = ({
                     </td>
                     <td className="w-20 px-2 py-2 whitespace-nowrap text-xs font-medium">
                       <div className="flex items-center justify-center">
-                        <button 
+                        <button
                           onClick={() => {
                             console.log('Button clicked for:', dev.id);
                             onViewDetails(dev);
-                          }} 
+                          }}
                           className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 bg-blue-100 dark:bg-blue-900 p-1 rounded"
                         >
                           <Eye size={16} />

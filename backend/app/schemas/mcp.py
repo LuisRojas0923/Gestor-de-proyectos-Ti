@@ -42,7 +42,7 @@ class AiContextCache(AiContextCacheBase):
     last_accessed_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # =====================================================================================
@@ -85,7 +85,7 @@ class AiAnalysisHistory(AiAnalysisHistoryBase):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # =====================================================================================
@@ -158,7 +158,7 @@ class AiRecommendation(AiRecommendationBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # =====================================================================================
@@ -201,7 +201,7 @@ class AiUsageMetric(AiUsageMetricBase):
     date_partition: date
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # =====================================================================================
@@ -254,7 +254,7 @@ class AiModelConfig(AiModelConfigBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # =====================================================================================

@@ -25,7 +25,7 @@ class ChatSession(ChatSessionBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class ChatMessageBase(BaseModel):
@@ -62,7 +62,7 @@ class ChatMessage(ChatMessageBase):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 class ChatSessionWithMessages(ChatSession):

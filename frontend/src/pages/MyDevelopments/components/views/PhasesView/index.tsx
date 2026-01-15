@@ -85,15 +85,15 @@ export const PhasesView: React.FC<PhasesViewProps> = ({
               <SquarePen size={18} />
               <span>Editar</span>
             </MaterialButton>
-            {selectedDevelopment.remedy_link && (
+            {selectedDevelopment.portal_link && (
               <MaterialButton
-                onClick={() => window.open(selectedDevelopment.remedy_link, '_blank')}
+                onClick={() => window.open(selectedDevelopment.portal_link, '_blank')}
                 variant="contained"
                 size="medium"
                 className={`${darkMode ? '!bg-blue-700 hover:!bg-blue-600 text-white' : '!bg-blue-600 hover:!bg-blue-700 text-white'} flex items-center space-x-2`}
               >
                 <ExternalLink size={18} />
-                <span>Remedy</span>
+                <span>Portal</span>
               </MaterialButton>
             )}
             <MaterialButton
@@ -145,55 +145,50 @@ export const PhasesView: React.FC<PhasesViewProps> = ({
           <div className="flex flex-wrap items-center gap-1 bg-gray-100 dark:bg-neutral-700 rounded-lg p-1">
             <button
               onClick={() => setActivePhaseTab('phases')}
-              className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                activePhaseTab === 'phases'
-                  ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
-              }`}
+              className={`px-4 py-2 text-sm rounded-md transition-colors ${activePhaseTab === 'phases'
+                ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                }`}
             >
               <GitBranch size={16} className="inline mr-2" />
               Fases
             </button>
             <button
               onClick={() => setActivePhaseTab('gantt')}
-              className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                activePhaseTab === 'gantt'
-                  ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
-              }`}
+              className={`px-4 py-2 text-sm rounded-md transition-colors ${activePhaseTab === 'gantt'
+                ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                }`}
             >
               <Calendar size={16} className="inline mr-2" />
               Gantt
             </button>
             <button
               onClick={() => setActivePhaseTab('controls')}
-              className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                activePhaseTab === 'controls'
-                  ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
-              }`}
+              className={`px-4 py-2 text-sm rounded-md transition-colors ${activePhaseTab === 'controls'
+                ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                }`}
             >
               <ShieldCheck size={16} className="inline mr-2" />
               Controles
             </button>
             <button
               onClick={() => setActivePhaseTab('activities')}
-              className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                activePhaseTab === 'activities'
-                  ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
-              }`}
+              className={`px-4 py-2 text-sm rounded-md transition-colors ${activePhaseTab === 'activities'
+                ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                }`}
             >
               <ListChecks size={16} className="inline mr-2" />
               Bitácora
             </button>
             <button
               onClick={() => setActivePhaseTab('requirements')}
-              className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                activePhaseTab === 'requirements'
-                  ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
-              }`}
+              className={`px-4 py-2 text-sm rounded-md transition-colors ${activePhaseTab === 'requirements'
+                ? 'bg-white dark:bg-neutral-600 text-neutral-900 dark:text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-neutral-900 dark:hover:text-white'
+                }`}
             >
               <Search size={16} className="inline mr-2" />
               Requerimientos
@@ -203,7 +198,7 @@ export const PhasesView: React.FC<PhasesViewProps> = ({
 
         {/* Tab Content */}
         {activePhaseTab === 'phases' && (
-          <DevelopmentTimelineCompact 
+          <DevelopmentTimelineCompact
             developmentId={selectedDevelopment.id}
             currentStage={(() => {
               try {
@@ -212,10 +207,10 @@ export const PhasesView: React.FC<PhasesViewProps> = ({
                   phases.debug('Usando current_stage_id directamente', selectedDevelopment.current_stage_id);
                   return Math.max(1, Math.min(11, selectedDevelopment.current_stage_id));
                 }
-                
+
                 // Fallback: intentar parsear desde el nombre de la etapa
                 let stageValue = 1; // Valor por defecto
-                
+
                 if (typeof selectedDevelopment.current_stage === 'object' && selectedDevelopment.current_stage?.stage_name) {
                   const stageName = selectedDevelopment.current_stage.stage_name;
                   const parsed = parseInt(stageName.split('.')[0]);
@@ -227,7 +222,7 @@ export const PhasesView: React.FC<PhasesViewProps> = ({
                   stageValue = isNaN(parsed) ? 1 : parsed;
                   phases.debug('Parseando desde current_stage string', { stageStr, parsed: stageValue });
                 }
-                
+
                 // Asegurar que el valor esté en un rango válido (1-11)
                 return Math.max(1, Math.min(11, stageValue));
               } catch (error) {
@@ -249,7 +244,7 @@ export const PhasesView: React.FC<PhasesViewProps> = ({
             }}
           />
         )}
-        
+
         {activePhaseTab === 'gantt' && (
           <HybridGanttChart
             activities={activityList}
@@ -258,12 +253,12 @@ export const PhasesView: React.FC<PhasesViewProps> = ({
             darkMode={darkMode}
           />
         )}
-        
+
         {activePhaseTab === 'controls' && (
           <QualityControlsTab
             developmentId={selectedDevelopment.id}
             developmentName={selectedDevelopment.name}
-            currentStageName={typeof selectedDevelopment.current_stage === 'object' 
+            currentStageName={typeof selectedDevelopment.current_stage === 'object'
               ? selectedDevelopment.current_stage?.stage_name || 'Sin etapa'
               : selectedDevelopment.current_stage || 'Sin etapa'}
             darkMode={darkMode}
@@ -274,7 +269,7 @@ export const PhasesView: React.FC<PhasesViewProps> = ({
           <div>
             <div className="flex items-center justify-between mb-6">
               <h4 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                <ListChecks size={18} className="mr-2"/>
+                <ListChecks size={18} className="mr-2" />
                 Bitácora Inteligente
               </h4>
               <MaterialButton
@@ -307,7 +302,7 @@ export const PhasesView: React.FC<PhasesViewProps> = ({
                     }
                     return 0;
                   })()}
-                  onSuccess={(activity) => handleActivitySuccess(activity, selectedDevelopment, () => {})}
+                  onSuccess={(activity) => handleActivitySuccess(activity, selectedDevelopment, () => { })}
                   onCancel={() => setShowActivityForm(false)}
                 />
               </div>
@@ -340,9 +335,9 @@ export const PhasesView: React.FC<PhasesViewProps> = ({
         )}
 
         {activePhaseTab === 'requirements' && (
-          <RequirementsTab 
-            developmentId={selectedDevelopment.id} 
-            darkMode={darkMode} 
+          <RequirementsTab
+            developmentId={selectedDevelopment.id}
+            darkMode={darkMode}
           />
         )}
       </div>

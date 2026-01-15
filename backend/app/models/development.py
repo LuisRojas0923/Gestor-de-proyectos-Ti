@@ -9,7 +9,7 @@ from app.database import Base
 
 
 class DevelopmentPhase(Base):
-    __tablename__ = "development_phases"
+    __tablename__ = "fases_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
     phase_name = Column(String(100), nullable=False)  # 'En Ejecución', 'En Espera', 'Finales / Otros'
@@ -26,10 +26,10 @@ class DevelopmentPhase(Base):
 
 
 class DevelopmentStage(Base):
-    __tablename__ = "development_stages"
+    __tablename__ = "etapas_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    phase_id = Column(Integer, ForeignKey("development_phases.id"), nullable=False)
+    phase_id = Column(Integer, ForeignKey("fases_desarrollo.id"), nullable=False)
     stage_code = Column(String(20), nullable=False)  # '0', '1', '2', '3', etc.
     stage_name = Column(String(255), nullable=False)  # Nombre amigable de la etapa
     stage_description = Column(Text)
@@ -47,19 +47,19 @@ class DevelopmentStage(Base):
 
 
 class Development(Base):
-    __tablename__ = "developments"
+    __tablename__ = "desarrollos"
     
-    id = Column(String(50), primary_key=True)  # No.Remedy
+    id = Column(String(50), primary_key=True)  # No. de Solicitud (Portal)
     name = Column(String(255), nullable=False)
     description = Column(Text)
     module = Column(String(100))
     type = Column(String(50))  # 'Desarrollo', 'Consulta'
     environment = Column(String(100))
-    remedy_link = Column(Text)
+    portal_link = Column(Text)
     
     # CAMPOS PARA CICLO DE DESARROLLO
-    current_phase_id = Column(Integer, ForeignKey("development_phases.id"))
-    current_stage_id = Column(Integer, ForeignKey("development_stages.id"))
+    current_phase_id = Column(Integer, ForeignKey("fases_desarrollo.id"))
+    current_stage_id = Column(Integer, ForeignKey("etapas_desarrollo.id"))
     stage_progress_percentage = Column(DECIMAL(5, 2), default=0.0)
     
     # CAMPOS LEGACY PARA COMPATIBILIDAD CON CRUD.PY
@@ -98,10 +98,10 @@ class Development(Base):
 
 
 class DevelopmentDate(Base):
-    __tablename__ = "development_dates"
+    __tablename__ = "fechas_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     date_type = Column(String(50), nullable=False)  # 'inicio', 'fin_estimado', 'entrega', 'cierre', 'produccion'
     planned_date = Column(Date)
     actual_date = Column(Date)
@@ -123,10 +123,10 @@ class DevelopmentDate(Base):
 
 
 class DevelopmentProposal(Base):
-    __tablename__ = "development_proposals"
+    __tablename__ = "propuestas_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     proposal_number = Column(String(100), nullable=False)
     cost = Column(DECIMAL(15, 2))
     status = Column(String(50))
@@ -138,10 +138,10 @@ class DevelopmentProposal(Base):
 
 
 class DevelopmentProvider(Base):
-    __tablename__ = "development_providers"
+    __tablename__ = "proveedores_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     provider_name = Column(String(100), nullable=False)  # 'Ingesoft', 'ITC', 'TI'
     side_service_point = Column(String(100))  # SIDE/Service Point
     provider_system = Column(String(100))  # Sistema del proveedor
@@ -154,10 +154,10 @@ class DevelopmentProvider(Base):
 
 
 class DevelopmentResponsible(Base):
-    __tablename__ = "development_responsibles"
+    __tablename__ = "responsables_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     user_name = Column(String(255), nullable=False)
     role_type = Column(String(50), nullable=False)  # 'solicitante', 'tecnico', 'area'
     area = Column(String(100))
@@ -170,10 +170,10 @@ class DevelopmentResponsible(Base):
 
 
 class DevelopmentStatusHistory(Base):
-    __tablename__ = "development_status_history"
+    __tablename__ = "historial_estados_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     status = Column(String(50), nullable=False)
     progress_stage = Column(String(100))
     change_date = Column(DateTime(timezone=True), server_default=func.now())
@@ -186,10 +186,10 @@ class DevelopmentStatusHistory(Base):
 
 
 class DevelopmentObservation(Base):
-    __tablename__ = "development_observations"
+    __tablename__ = "observaciones_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     observation_type = Column(String(50), nullable=False)  # 'estado', 'seguimiento', 'problema', 'acuerdo'
     content = Column(Text, nullable=False)
     author = Column(String(255))
@@ -203,11 +203,11 @@ class DevelopmentObservation(Base):
 
 
 class DevelopmentActivityLog(Base):
-    __tablename__ = "development_activity_log"
+    __tablename__ = "log_actividades_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
-    stage_id = Column(Integer, ForeignKey("development_stages.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
+    stage_id = Column(Integer, ForeignKey("etapas_desarrollo.id"), nullable=False)
     activity_type = Column(String(100), nullable=False)  # 'nueva_actividad', 'seguimiento', 'cierre_etapa'
     start_date = Column(Date, nullable=False)
     end_date = Column(Date)

@@ -7,7 +7,6 @@ import {
   User,
   Sparkles,
   FileText,
-  Image,
   Mic,
   Settings,
 } from 'lucide-react';
@@ -43,7 +42,7 @@ const Chat: React.FC = () => {
       type: 'text',
     }
   ]);
-  
+
   const [inputMessage, setInputMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -106,7 +105,7 @@ const Chat: React.FC = () => {
     if (type === 'validate-requirement') {
       return 'He iniciado la validación del documento FD-FT-284. Análisis completado:\n\n✅ Estructura conforme\n✅ Campos obligatorios presentes\n⚠️ Falta especificación en sección 3.2\n\n¿Deseas que genere un correo automático con los hallazgos?';
     }
-    
+
     if (type === 'generate-report') {
       return 'Generando reporte semanal...\n\n📊 **Resumen Semanal**\n- Requerimientos procesados: 45\n- Tiempo promedio de ciclo: 2.3 días\n- SLA cumplido: 89%\n- Controles ejecutados: 142\n\n¿Necesitas el desglose detallado por analista?';
     }
@@ -165,9 +164,8 @@ const Chat: React.FC = () => {
             </p>
           </div>
         </div>
-        <button className={`p-2 rounded-lg transition-colors ${
-          darkMode ? 'hover:bg-neutral-700 text-neutral-400' : 'hover:bg-neutral-100 text-neutral-600'
-        }`}>
+        <button className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-neutral-700 text-neutral-400' : 'hover:bg-neutral-100 text-neutral-600'
+          }`}>
           <Settings size={20} />
         </button>
       </div>
@@ -179,11 +177,10 @@ const Chat: React.FC = () => {
             <button
               key={index}
               onClick={() => handleSendMessage(action.label, 'action')}
-              className={`px-3 py-2 text-sm rounded-full transition-colors ${
-                darkMode
+              className={`px-3 py-2 text-sm rounded-full transition-colors ${darkMode
                   ? 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
                   : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'
-              }`}
+                }`}
             >
               <Sparkles size={14} className="inline mr-1" />
               {action.label}
@@ -199,25 +196,22 @@ const Chat: React.FC = () => {
             key={message.id}
             className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`flex max-w-xs lg:max-w-md ${
-              message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'
-            } space-x-2`}>
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                message.sender === 'user' 
-                  ? 'bg-primary-500' 
+            <div className={`flex max-w-xs lg:max-w-md ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'
+              } space-x-2`}>
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.sender === 'user'
+                  ? 'bg-primary-500'
                   : 'bg-gradient-to-r from-secondary-500 to-primary-500'
-              }`}>
-                {message.sender === 'user' ? 
-                  <User className="text-white" size={16} /> : 
+                }`}>
+                {message.sender === 'user' ?
+                  <User className="text-white" size={16} /> :
                   <Bot className="text-white" size={16} />
                 }
               </div>
-              
-              <div className={`px-4 py-3 rounded-2xl ${
-                message.sender === 'user'
+
+              <div className={`px-4 py-3 rounded-2xl ${message.sender === 'user'
                   ? 'bg-primary-500 text-white ml-2'
                   : `${darkMode ? 'bg-neutral-700 text-white' : 'bg-neutral-100 text-neutral-900'} mr-2`
-              }`}>
+                }`}>
                 {message.type === 'file' ? (
                   <div className="flex items-center space-x-2">
                     <FileText size={16} />
@@ -238,44 +232,41 @@ const Chat: React.FC = () => {
             </div>
           </div>
         ))}
-        
+
         {loading && (
           <div className="flex justify-start">
             <div className="flex space-x-2 mr-2">
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-secondary-500 to-primary-500 flex items-center justify-center">
                 <Bot className="text-white" size={16} />
               </div>
-              <div className={`px-4 py-3 rounded-2xl ${
-                darkMode ? 'bg-neutral-700' : 'bg-neutral-100'
-              }`}>
+              <div className={`px-4 py-3 rounded-2xl ${darkMode ? 'bg-neutral-700' : 'bg-neutral-100'
+                }`}>
                 <Spinner size="sm" />
               </div>
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
       <div className={`p-4 border-t ${darkMode ? 'border-neutral-700' : 'border-neutral-200'}`}>
         <div className="flex items-center space-x-2">
-          <div className={`flex-1 flex items-center space-x-2 px-4 py-3 rounded-2xl border ${
-            darkMode 
-              ? 'bg-neutral-800 border-neutral-600' 
+          <div className={`flex-1 flex items-center space-x-2 px-4 py-3 rounded-2xl border ${darkMode
+              ? 'bg-neutral-800 border-neutral-600'
               : 'bg-neutral-50 border-neutral-300'
-          }`}>
+            }`}>
             <input
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(inputMessage)}
               placeholder="Escribe tu mensaje..."
-              className={`flex-1 bg-transparent outline-none ${
-                darkMode ? 'text-white placeholder-neutral-400' : 'text-neutral-900 placeholder-neutral-500'
-              }`}
+              className={`flex-1 bg-transparent outline-none ${darkMode ? 'text-white placeholder-neutral-400' : 'text-neutral-900 placeholder-neutral-500'
+                }`}
             />
-            
+
             <input
               ref={fileInputRef}
               type="file"
@@ -283,28 +274,26 @@ const Chat: React.FC = () => {
               className="hidden"
               accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
             />
-            
+
             <button
               onClick={() => fileInputRef.current?.click()}
-              className={`p-1 rounded-lg transition-colors ${
-                darkMode ? 'hover:bg-neutral-700 text-neutral-400' : 'hover:bg-neutral-200 text-neutral-600'
-              }`}
+              className={`p-1 rounded-lg transition-colors ${darkMode ? 'hover:bg-neutral-700 text-neutral-400' : 'hover:bg-neutral-200 text-neutral-600'
+                }`}
             >
               <Paperclip size={18} />
             </button>
-            
+
             <button
               onClick={toggleRecording}
-              className={`p-1 rounded-lg transition-colors ${
-                isRecording 
-                  ? 'bg-red-500 text-white' 
+              className={`p-1 rounded-lg transition-colors ${isRecording
+                  ? 'bg-red-500 text-white'
                   : darkMode ? 'hover:bg-neutral-700 text-neutral-400' : 'hover:bg-neutral-200 text-neutral-600'
-              }`}
+                }`}
             >
               <Mic size={18} />
             </button>
           </div>
-          
+
           <button
             onClick={() => handleSendMessage(inputMessage)}
             disabled={!inputMessage.trim() || loading}

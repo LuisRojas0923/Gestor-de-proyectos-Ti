@@ -9,10 +9,10 @@ from app.database import Base
 
 
 class DevelopmentKpiMetric(Base):
-    __tablename__ = "development_kpi_metrics"
+    __tablename__ = "metricas_kpi_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     metric_type = Column(String(100), nullable=False)  # 'cumplimiento_fechas', 'calidad_primera_entrega', etc.
     provider = Column(String(100))
     period_start = Column(Date)
@@ -28,10 +28,10 @@ class DevelopmentKpiMetric(Base):
 
 
 class DevelopmentFunctionality(Base):
-    __tablename__ = "development_functionalities"
+    __tablename__ = "funcionalidades_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     functionality_name = Column(String(255), nullable=False)
     functionality_code = Column(String(100))
     description = Column(Text)
@@ -51,10 +51,10 @@ class DevelopmentFunctionality(Base):
 
 
 class DevelopmentQualityMetric(Base):
-    __tablename__ = "development_quality_metrics"
+    __tablename__ = "metricas_calidad_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     provider = Column(String(100))
     metric_type = Column(String(100), nullable=False)  # 'first_time_quality', 'defects_per_delivery', etc.
     metric_name = Column(String(255), nullable=False)
@@ -75,11 +75,11 @@ class DevelopmentQualityMetric(Base):
 
 
 class DevelopmentTestResult(Base):
-    __tablename__ = "development_test_results"
+    __tablename__ = "resultados_pruebas_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
-    functionality_id = Column(Integer, ForeignKey("development_functionalities.id"))
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
+    functionality_id = Column(Integer, ForeignKey("funcionalidades_desarrollo.id"))
     test_type = Column(String(50), nullable=False)  # 'unit', 'integration', 'system', 'user_acceptance'
     test_phase = Column(String(50))  # 'development', 'testing', 'pre_production', 'production'
     test_date = Column(Date)
@@ -99,10 +99,10 @@ class DevelopmentTestResult(Base):
 
 
 class DevelopmentDeliveryHistory(Base):
-    __tablename__ = "development_delivery_history"
+    __tablename__ = "historial_entregas_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     delivery_version = Column(String(50))
     delivery_type = Column(String(50))  # 'initial', 'revision', 'fix', 'final'
     delivery_date = Column(Date)

@@ -12,10 +12,10 @@ import json
 from .. import models, schemas
 from ..database import get_db
 
-router = APIRouter(prefix="/installers", tags=["installers"])
+router = APIRouter(prefix="/instaladores", tags=["instaladores"])
 
 
-@router.get("/failed")
+@router.get("/fallidos")
 def get_failed_installers(
     development_id: Optional[str] = Query(None, description="Filtrar por desarrollo"),
     installer_number: Optional[str] = Query(None, description="Filtrar por número de instalador"),
@@ -95,7 +95,7 @@ def get_failed_installers(
         )
 
 
-@router.get("/search/{installer_number}")
+@router.get("/buscar/{installer_number}")
 def search_installer_history(
     installer_number: str,
     db: Session = Depends(get_db)
@@ -151,7 +151,7 @@ def search_installer_history(
         )
 
 
-@router.get("/problems-report")
+@router.get("/informe-problemas")
 def get_installer_problems_report(
     period_days: int = Query(30, description="Días hacia atrás para el reporte"),
     db: Session = Depends(get_db)

@@ -33,7 +33,6 @@ class DevelopmentPhase(DevelopmentPhaseBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
         orm_mode = True
 
 
@@ -75,7 +74,7 @@ class DevelopmentStage(DevelopmentStageBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -84,7 +83,7 @@ class DevelopmentStageWithPhase(DevelopmentStage):
     phase: DevelopmentPhase
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -93,7 +92,7 @@ class DevelopmentPhaseWithStages(DevelopmentPhase):
     stages: List[DevelopmentStage] = []
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -113,7 +112,7 @@ class DevelopmentCycleFlow(BaseModel):
     sort_order: Optional[int]
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -128,7 +127,7 @@ class DevelopmentBase(BaseModel):
     module: Optional[str] = Field(None, max_length=100, description="Módulo")
     type: Optional[str] = Field(None, max_length=50, description="Tipo de desarrollo")
     environment: Optional[str] = Field(None, max_length=100, description="Ambiente")
-    remedy_link: Optional[str] = Field(None, description="Link de Remedy")
+    portal_link: Optional[str] = Field(None, description="Link del Portal")
     
     # Campos para ciclo de desarrollo
     current_phase_id: Optional[int] = Field(None, description="ID de la fase actual")
@@ -247,7 +246,7 @@ class DevelopmentBase(BaseModel):
 
 class DevelopmentCreate(DevelopmentBase):
     """Schema para crear desarrollo"""
-    id: str = Field(..., max_length=50, description="ID del desarrollo (No.Remedy)")
+    id: str = Field(..., max_length=50, description="ID del desarrollo (No. de Solicitud)")
 
     @validator('id', pre=True)
     def validate_id_length(cls, v):
@@ -263,7 +262,7 @@ class DevelopmentUpdate(BaseModel):
     module: Optional[str] = Field(None, max_length=100, description="Módulo")
     type: Optional[str] = Field(None, max_length=50, description="Tipo de desarrollo")
     environment: Optional[str] = Field(None, max_length=100, description="Ambiente")
-    remedy_link: Optional[str] = Field(None, description="Link de Remedy")
+    portal_link: Optional[str] = Field(None, description="Link del Portal")
     current_phase_id: Optional[int] = Field(None, description="ID de la fase actual")
     current_stage_id: Optional[int] = Field(None, description="ID de la etapa actual")
     stage_progress_percentage: Optional[Decimal] = Field(None, ge=0, le=100, description="Progreso de etapa")
@@ -289,7 +288,7 @@ class Development(DevelopmentBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -350,7 +349,7 @@ class DevelopmentObservation(DevelopmentObservationBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -431,7 +430,7 @@ class DevelopmentDate(DevelopmentDateBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -459,7 +458,7 @@ class DevelopmentProposal(DevelopmentProposalBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -497,7 +496,7 @@ class DevelopmentProvider(DevelopmentProviderBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -533,7 +532,7 @@ class DevelopmentResponsible(DevelopmentResponsibleBase):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -562,7 +561,7 @@ class DevelopmentStatusHistory(DevelopmentStatusHistoryBase):
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -587,7 +586,7 @@ class DevelopmentSummary(BaseModel):
     current_stage: Optional[str] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -622,7 +621,7 @@ class DevelopmentWithCurrentStatus(Development):
     last_activity: Optional[dict] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -635,7 +634,7 @@ class DevelopmentWithFullDetails(DevelopmentWithCurrentStatus):
     responsibles: List[DevelopmentResponsible] = []
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -656,5 +655,5 @@ class DevelopmentStageUpdate(BaseModel):
     changed_by: Optional[str] = Field(None, description="Usuario que hace el cambio")
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True

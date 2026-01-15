@@ -65,7 +65,7 @@ export interface CalidadPrimeraEntregaResponse {
 }
 
 export const useKpiDetails = () => {
-  const { get } = useApi<KpiDetailsResponse>();
+  const { get } = useApi<any>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,9 +89,8 @@ export const useKpiDetails = () => {
         params.append('period_end', periodEnd);
       }
 
-      const endpoint = `${API_ENDPOINTS.KPI_DEVELOPMENT_COMPLIANCE_DETAILS}${
-        params.toString() ? `?${params.toString()}` : ''
-      }`;
+      const endpoint = `${API_ENDPOINTS.KPI_DEVELOPMENT_COMPLIANCE_DETAILS}${params.toString() ? `?${params.toString()}` : ''
+        }`;
 
       const response = await get(endpoint);
       return response;
@@ -124,9 +123,8 @@ export const useKpiDetails = () => {
         params.append('period_end', periodEnd);
       }
 
-      const endpoint = `${API_ENDPOINTS.KPI_ANALYSIS_COMPLIANCE_DETAILS}${
-        params.toString() ? `?${params.toString()}` : ''
-      }`;
+      const endpoint = `${API_ENDPOINTS.KPI_ANALYSIS_COMPLIANCE_DETAILS}${params.toString() ? `?${params.toString()}` : ''
+        }`;
 
       const response = await get(endpoint);
       return response;
@@ -159,9 +157,8 @@ export const useKpiDetails = () => {
         params.append('period_end', periodEnd);
       }
 
-      const endpoint = `${API_ENDPOINTS.KPI_PROPOSAL_COMPLIANCE_DETAILS}${
-        params.toString() ? `?${params.toString()}` : ''
-      }`;
+      const endpoint = `${API_ENDPOINTS.KPI_PROPOSAL_COMPLIANCE_DETAILS}${params.toString() ? `?${params.toString()}` : ''
+        }`;
 
       const response = await get(endpoint);
       return response;
@@ -194,9 +191,8 @@ export const useKpiDetails = () => {
         params.append('period_end', periodEnd);
       }
 
-      const endpoint = `${API_ENDPOINTS.KPI_GLOBAL_COMPLETE_COMPLIANCE_DETAILS}${
-        params.toString() ? `?${params.toString()}` : ''
-      }`;
+      const endpoint = `${API_ENDPOINTS.KPI_GLOBAL_COMPLETE_COMPLIANCE_DETAILS}${params.toString() ? `?${params.toString()}` : ''
+        }`;
 
       const response = await get(endpoint);
       return response;
@@ -229,9 +225,8 @@ export const useKpiDetails = () => {
         params.append('period_end', periodEnd);
       }
 
-      const endpoint = `/kpi/calidad-primera-entrega/details${
-        params.toString() ? `?${params.toString()}` : ''
-      }`;
+      const endpoint = `/indicadores/calidad-primera-entrega/details${params.toString() ? `?${params.toString()}` : ''
+        }`;
 
       const response = await get(endpoint);
       return response;

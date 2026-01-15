@@ -9,7 +9,7 @@ from app.database import Base
 
 
 class QualityControlCatalog(Base):
-    __tablename__ = "quality_control_catalog"
+    __tablename__ = "catalogo_control_calidad"
     
     id = Column(Integer, primary_key=True, index=True)
     control_code = Column(String(20), unique=True, nullable=False)  # C003-GT, C021-GT, etc.
@@ -29,11 +29,11 @@ class QualityControlCatalog(Base):
 
 
 class DevelopmentQualityControl(Base):
-    __tablename__ = "development_quality_controls"
+    __tablename__ = "controles_calidad_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
-    control_catalog_id = Column(Integer, ForeignKey("quality_control_catalog.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
+    control_catalog_id = Column(Integer, ForeignKey("catalogo_control_calidad.id"), nullable=False)
     control_code = Column(String(20), nullable=False)
     status = Column(String(50), default="Pendiente")  # 'Pendiente', 'Completado', 'No Aplica', 'Rechazado'
     validation_status = Column(String(50), default="Pendiente")  # 'Pendiente', 'Validado', 'Rechazado', 'En Revisión'

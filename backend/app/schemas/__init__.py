@@ -12,5 +12,4 @@ from .chat import *
 from .ai import *
 from .mcp import *
 
-# Mantener compatibilidad con schemas legacy
-from .legacy import *
+

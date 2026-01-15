@@ -1,18 +1,18 @@
 import {
-    AlertTriangle,
-    CheckCircle,
-    ChevronRight,
-    Clock,
-    TrendingUp
+  AlertTriangle,
+  CheckCircle,
+  ChevronRight,
+  Clock,
+  TrendingUp
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import {
-    DevelopmentCycleFlow,
-    DevelopmentPhase,
-    DevelopmentStage,
-    DevelopmentWithCurrentStatus
+  DevelopmentCycleFlow,
+  DevelopmentPhase,
+  DevelopmentStage,
+  DevelopmentWithCurrentStatus
 } from '../../types';
 
 interface DevelopmentPhasesProps {
@@ -20,9 +20,9 @@ interface DevelopmentPhasesProps {
   showAllPhases?: boolean;
 }
 
-const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({ 
-  developmentId, 
-  showAllPhases = true 
+const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
+  developmentId,
+  showAllPhases = true
 }) => {
   const { state } = useAppContext();
   const { darkMode } = state;
@@ -43,9 +43,9 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
 
         // Cargar datos en paralelo
         const [phasesData, stagesData, cycleFlowData] = await Promise.all([
-          get('/phases') as Promise<DevelopmentPhase[]>,
-          get('/stages') as Promise<DevelopmentStage[]>,
-          get('/stages/cycle-flow') as Promise<DevelopmentCycleFlow[]>
+          get('/fases') as Promise<DevelopmentPhase[]>,
+          get('/etapas') as Promise<DevelopmentStage[]>,
+          get('/etapas/cycle-flow') as Promise<DevelopmentCycleFlow[]>
         ]);
 
         setPhases(phasesData || []);
@@ -97,7 +97,7 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
 
   const getStageStatus = (stageId: number) => {
     if (!currentDevelopment) return 'pending';
-    
+
     if (currentDevelopment.current_stage_id === stageId) {
       return 'current';
     } else if (currentDevelopment.current_stage_id && currentDevelopment.current_stage_id > stageId) {
@@ -168,14 +168,14 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
           {cycleFlow.map((stage, index) => {
             const status = getStageStatus(stage.stage_id);
             const Icon = getPhaseIcon(stage.phase_name);
-            
+
             return (
               <div key={stage.stage_id} className="flex items-center space-x-4">
                 {/* Número de etapa */}
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${getStageStatusColor(status)}`}>
                   {stage.stage_code}
                 </div>
-                
+
                 {/* Información de la etapa */}
                 <div className="flex-1">
                   <div className="flex items-center space-x-2">
@@ -205,12 +205,12 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
                     )}
                   </div>
                 </div>
-                
+
                 {/* Indicador de progreso */}
                 {status === 'current' && currentDevelopment?.stage_progress_percentage && (
                   <div className="w-20">
                     <div className="bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                      <div 
+                      <div
                         className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${currentDevelopment.stage_progress_percentage}%` }}
                       ></div>
@@ -220,7 +220,7 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
                     </div>
                   </div>
                 )}
-                
+
                 {/* Flecha de conexión */}
                 {index < cycleFlow.length - 1 && (
                   <ChevronRight size={16} className={darkMode ? 'text-gray-600' : 'text-gray-400'} />
@@ -243,7 +243,7 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
               const completedStages = phaseStages.filter(stage => getStageStatus(stage.stage_id) === 'completed').length;
               const currentStages = phaseStages.filter(stage => getStageStatus(stage.stage_id) === 'current').length;
               const Icon = getPhaseIcon(phase.phase_name);
-              
+
               return (
                 <div key={phase.id} className={`${darkMode ? 'bg-neutral-700' : 'bg-gray-50'} rounded-lg p-4`}>
                   <div className="flex items-center space-x-3 mb-3">
@@ -253,7 +253,7 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
                       {phase.phase_name}
                     </span>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Etapas:</span>
@@ -261,16 +261,16 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
                         {completedStages + currentStages}/{phaseStages.length}
                       </span>
                     </div>
-                    
+
                     <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-600">
-                      <div 
+                      <div
                         className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${phaseStages.length > 0 ? ((completedStages + currentStages) / phaseStages.length) * 100 : 0}%` 
+                        style={{
+                          width: `${phaseStages.length > 0 ? ((completedStages + currentStages) / phaseStages.length) * 100 : 0}%`
                         }}
                       ></div>
                     </div>
-                    
+
                     {phase.phase_description && (
                       <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                         {phase.phase_description}

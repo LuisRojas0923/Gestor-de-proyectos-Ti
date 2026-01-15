@@ -19,10 +19,10 @@ from ..schemas.activity_log import (
     get_stage_field_config
 )
 
-router = APIRouter(prefix="/activity-log", tags=["activity-log"])
+router = APIRouter(prefix="/log-actividades", tags=["log-actividades"])
 
 
-@router.post("/developments/{development_id}/activities", response_model=DevelopmentActivityLogResponse)
+@router.post("/desarrollos/{development_id}/actividades", response_model=DevelopmentActivityLogResponse)
 def create_development_activity(
     development_id: str,
     activity_data: DevelopmentActivityLogCreate,
@@ -122,7 +122,7 @@ def create_development_activity(
         )
 
 
-@router.get("/developments/{development_id}/activities", response_model=ActivityLogListResponse)
+@router.get("/desarrollos/{development_id}/actividades", response_model=ActivityLogListResponse)
 def get_development_activities(
     development_id: str,
     stage_id: Optional[int] = Query(None, description="Filtrar por etapa"),
@@ -217,7 +217,7 @@ def get_development_activities(
         )
 
 
-@router.get("/developments/{development_id}/stages/{stage_id}/field-config")
+@router.get("/desarrollos/{development_id}/etapas/{stage_id}/configuracion-campos")
 def get_stage_field_config_endpoint(
     development_id: str,
     stage_id: int,
@@ -278,7 +278,7 @@ def get_stage_field_config_endpoint(
         )
 
 
-@router.put("/activities/{activity_id}", response_model=DevelopmentActivityLogResponse)
+@router.put("/actividades/{activity_id}", response_model=DevelopmentActivityLogResponse)
 def update_development_activity(
     activity_id: int,
     activity_update: DevelopmentActivityLogUpdate,
@@ -366,7 +366,7 @@ def update_development_activity(
         )
 
 
-@router.delete("/activities/{activity_id}")
+@router.delete("/actividades/{activity_id}")
 def delete_development_activity(
     activity_id: int,
     db: Session = Depends(get_db)

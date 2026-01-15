@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRemedyReport } from '../hooks/useRemedyReport';
+import { usePortalReport } from '../hooks/usePortalReport';
 
 export interface ReportFilters {
   startDate: string;
@@ -38,8 +38,8 @@ export const useReportData = (filters: ReportFilters) => {
     error: null,
   });
 
-  // Hook existente para Remedy
-  const remedyReport = useRemedyReport();
+  // Hook del Portal
+  const portalReport = usePortalReport();
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,11 +48,11 @@ export const useReportData = (filters: ReportFilters) => {
 
         // TODO: Implementar llamadas reales a la API
         // const kpiResponse = await fetchKPIData(filters);
-        // const remedyResponse = await fetchRemedyData(filters);
+        // const portalResponse = await fetchPortalData(filters);
 
         // Simulación de datos mientras se implementan las APIs
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         setData({
           kpi: {
             totalDevelopments: 156,
@@ -81,10 +81,10 @@ export const useReportData = (filters: ReportFilters) => {
     const loadData = async () => {
       try {
         setData(prev => ({ ...prev, loading: true, error: null }));
-        
+
         // Simulación de refresh
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         setData(prev => ({
           ...prev,
           loading: false,
@@ -104,7 +104,7 @@ export const useReportData = (filters: ReportFilters) => {
 
   return {
     ...data,
-    remedyReport,
+    portalReport,
     refreshData,
   };
 };

@@ -9,10 +9,11 @@ from app.database import Base
 
 
 class AuthUser(Base):
-    __tablename__ = "auth_users"
+    __tablename__ = "usuarios_autenticacion"
     
     id = Column(String(50), primary_key=True)
-    email = Column(String(255), unique=True, nullable=False, index=True)
+    cedula = Column(String(50), unique=True, index=True)
+    email = Column(String(255), unique=True, nullable=True, index=True)
     password_hash = Column(String(255), nullable=False)
     name = Column(String(255), nullable=False)
     role = Column(String(50), nullable=False, default="user")
@@ -36,10 +37,10 @@ class AuthUser(Base):
 
 
 class AuthToken(Base):
-    __tablename__ = "auth_tokens"
+    __tablename__ = "tokens_autenticacion"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String(50), ForeignKey("auth_users.id"), nullable=False)
+    user_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"), nullable=False)
     token_hash = Column(String(255), nullable=False)
     token_type = Column(String(50), nullable=False)  # 'access', 'refresh', 'api'
     name = Column(String(255))
@@ -52,10 +53,10 @@ class AuthToken(Base):
 
 
 class UserSession(Base):
-    __tablename__ = "user_sessions"
+    __tablename__ = "sesiones_usuario"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String(50), ForeignKey("auth_users.id"), nullable=False)
+    user_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"), nullable=False)
     session_token = Column(String(255), unique=True, nullable=False)
     ip_address = Column(String(45))
     user_agent = Column(Text)
@@ -67,7 +68,7 @@ class UserSession(Base):
 
 
 class Permission(Base):
-    __tablename__ = "permissions"
+    __tablename__ = "permisos"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), unique=True, nullable=False)
@@ -78,10 +79,10 @@ class Permission(Base):
 
 
 class RolePermission(Base):
-    __tablename__ = "role_permissions"
+    __tablename__ = "permisos_rol"
     
     role = Column(String(50), primary_key=True)
-    permission_id = Column(Integer, ForeignKey("permissions.id"), primary_key=True)
+    permission_id = Column(Integer, ForeignKey("permisos.id"), primary_key=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relaciones

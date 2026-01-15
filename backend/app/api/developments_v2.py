@@ -7,10 +7,30 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
-from .. import models, schemas
+from .. import models, schemas, crud
 from ..database import get_db
 
-router = APIRouter(prefix="/developments", tags=["developments"])
+router = APIRouter(prefix="/desarrollos", tags=["desarrollos"])
+
+@router.post("/masivo")
+def create_developments_bulk(
+    developments: List[schemas.DevelopmentCreate],
+    db: Session = Depends(get_db)
+):
+    """Importar múltiples desarrollos (Excel/Portal)"""
+    try:
+        result = crud.create_developments_bulk(db, developments)
+        summary = result['summary']
+        message = f"Importación completada: {summary['created']} creados, {summary['updated']} actualizados, {summary['skipped']} sin cambios"
+        return {
+            "message": message,
+            "data": result
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en la importación masiva: {str(e)}"
+        )
 
 
 @router.get("/", response_model=List[schemas.DevelopmentWithCurrentStatus])
@@ -138,7 +158,7 @@ def create_development(
             module=development.module,
             type=development.type,
             environment=development.environment,
-            remedy_link=development.remedy_link,
+            portal_link=development.portal_link,
             provider=development.provider,
             general_status=development.general_status or "En curso",
             estimated_end_date=development.estimated_end_date
@@ -211,6 +231,75 @@ def create_development(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creando desarrollo: {str(e)}"
+        )
+
+
+
+@router.get("/informe-detallado-casos-portal")
+def get_portal_cases_detailed_report(
+    status_filter: Optional[str] = None,
+    provider_filter: Optional[str] = None,
+    module_filter: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Generar informe detallado de todos los casos del Portal
+    """
+    try:
+        # Query base simple para probar
+        developments = db.query(models.Development).limit(10).all()
+        
+        # Procesar cada desarrollo
+        detailed_cases = []
+        
+        for dev in developments:
+            case_detail = {
+                "portal_id": dev.id,
+                "name": dev.name,
+                "description": dev.description,
+                "module": dev.module,
+                "type": dev.type,
+                "environment": dev.environment,
+                "portal_link": dev.portal_link,
+                "general_status": dev.general_status,
+                "provider": dev.provider,
+                "main_responsible": dev.responsible,
+                "progress_percentage": float(dev.stage_progress_percentage or 0),
+                "important_dates": {
+                    "created_at": dev.created_at.isoformat() if dev.created_at else None,
+                    "updated_at": dev.updated_at.isoformat() if dev.updated_at else None,
+                    "estimated_end_date": dev.estimated_end_date.isoformat() if dev.estimated_end_date else None
+                }
+            }
+            detailed_cases.append(case_detail)
+        
+        # Generar resumen ejecutivo
+        summary = {
+            "total_cases": len(detailed_cases),
+            "status_distribution": {},
+            "provider_distribution": {},
+            "module_distribution": {},
+            "generated_at": datetime.now().isoformat(),
+            "filters_applied": {
+                "status_filter": status_filter,
+                "provider_filter": provider_filter,
+                "module_filter": module_filter,
+                "start_date": start_date,
+                "end_date": end_date
+            }
+        }
+        
+        return {
+            "summary": summary,
+            "cases": detailed_cases
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generando informe de casos del Portal: {str(e)}"
         )
 
 
@@ -304,7 +393,7 @@ def update_development(
         )
 
 
-@router.put("/{development_id}/stage", response_model=schemas.DevelopmentWithCurrentStatus)
+@router.put("/{development_id}/etapa", response_model=schemas.DevelopmentWithCurrentStatus)
 def change_development_stage(
     development_id: str,
     stage_update: schemas.DevelopmentStageUpdate,
@@ -343,7 +432,7 @@ def change_development_stage(
         )
 
 
-@router.get("/{development_id}/current-status")
+@router.get("/{development_id}/estado-actual")
 def get_development_current_status(
     development_id: str,
     db: Session = Depends(get_db)
@@ -404,7 +493,7 @@ def get_development_current_status(
         )
 
 
-@router.get("/{development_id}/observations", response_model=List[schemas.DevelopmentObservation])
+@router.get("/{development_id}/observaciones", response_model=List[schemas.DevelopmentObservation])
 def get_development_observations(
     development_id: str,
     skip: int = 0,
@@ -450,7 +539,7 @@ def get_development_observations(
         )
 
 
-@router.post("/{development_id}/observations", response_model=schemas.DevelopmentObservation)
+@router.post("/{development_id}/observaciones", response_model=schemas.DevelopmentObservation)
 def create_development_observation(
     development_id: str,
     observation: schemas.DevelopmentObservationCreate,
@@ -496,7 +585,7 @@ def create_development_observation(
         )
 
 
-@router.put("/{development_id}/observations/{observation_id}", response_model=schemas.DevelopmentObservation)
+@router.put("/{development_id}/observaciones/{observation_id}", response_model=schemas.DevelopmentObservation)
 def update_development_observation(
     development_id: str,
     observation_id: int,
@@ -598,75 +687,8 @@ def delete_development(
         )
 
 
-@router.get("/test-endpoint")
+@router.get("/punto-prueba")
 def test_endpoint():
     """Endpoint de prueba simple"""
     return {"message": "Endpoint funcionando correctamente"}
 
-
-@router.get("/remedy-cases-detailed-report")
-def get_remedy_cases_detailed_report(
-    status_filter: Optional[str] = None,
-    provider_filter: Optional[str] = None,
-    module_filter: Optional[str] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """
-    Generar informe detallado de todos los casos Remedy
-    """
-    try:
-        # Query base simple para probar
-        developments = db.query(models.Development).limit(10).all()
-        
-        # Procesar cada desarrollo
-        detailed_cases = []
-        
-        for dev in developments:
-            case_detail = {
-                "remedy_id": dev.id,
-                "name": dev.name,
-                "description": dev.description,
-                "module": dev.module,
-                "type": dev.type,
-                "environment": dev.environment,
-                "remedy_link": dev.remedy_link,
-                "general_status": dev.general_status,
-                "provider": dev.provider,
-                "main_responsible": dev.responsible,
-                "progress_percentage": float(dev.stage_progress_percentage or 0),
-                "important_dates": {
-                    "created_at": dev.created_at.isoformat() if dev.created_at else None,
-                    "updated_at": dev.updated_at.isoformat() if dev.updated_at else None,
-                    "estimated_end_date": dev.estimated_end_date.isoformat() if dev.estimated_end_date else None
-                }
-            }
-            detailed_cases.append(case_detail)
-        
-        # Generar resumen ejecutivo
-        summary = {
-            "total_cases": len(detailed_cases),
-            "status_distribution": {},
-            "provider_distribution": {},
-            "module_distribution": {},
-            "generated_at": datetime.now().isoformat(),
-            "filters_applied": {
-                "status_filter": status_filter,
-                "provider_filter": provider_filter,
-                "module_filter": module_filter,
-                "start_date": start_date,
-                "end_date": end_date
-            }
-        }
-        
-        return {
-            "summary": summary,
-            "cases": detailed_cases
-        }
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error generando informe de casos Remedy: {str(e)}"
-        )

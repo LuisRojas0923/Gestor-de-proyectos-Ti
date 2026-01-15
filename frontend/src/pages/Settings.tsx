@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import {
   User,
   Bell,
-  Shield,
   Globe,
   Moon,
   Sun,
@@ -12,7 +11,6 @@ import {
   Smartphone,
   Save,
   Copy,
-  RefreshCw,
   Eye,
   EyeOff,
 } from 'lucide-react';
@@ -93,7 +91,7 @@ const Settings: React.FC = () => {
   };
 
   const toggleTokenVisibility = (id: string) => {
-    setApiTokens(prev => prev.map(token => 
+    setApiTokens(prev => prev.map(token =>
       token.id === id ? { ...token, isVisible: !token.isVisible } : token
     ));
   };
@@ -118,9 +116,8 @@ const Settings: React.FC = () => {
       </h1>
 
       {/* Profile Settings */}
-      <div className={`${
-        darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-      } border rounded-xl p-6`}>
+      <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+        } border rounded-xl p-6`}>
         <div className="flex items-center space-x-3 mb-6">
           <User className={darkMode ? 'text-neutral-400' : 'text-neutral-600'} size={24} />
           <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
@@ -131,55 +128,49 @@ const Settings: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                darkMode ? 'text-neutral-300' : 'text-neutral-700'
-              }`}>
+              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                }`}>
                 Nombre Completo
               </label>
               <input
                 type="text"
                 value={profile.name}
                 onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
+                className={`w-full px-4 py-2 rounded-lg border transition-colors ${darkMode
                     ? 'bg-neutral-700 border-neutral-600 text-white'
                     : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
               />
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                darkMode ? 'text-neutral-300' : 'text-neutral-700'
-              }`}>
+              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                }`}>
                 Email
               </label>
               <input
                 type="email"
                 value={profile.email}
                 onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
+                className={`w-full px-4 py-2 rounded-lg border transition-colors ${darkMode
                     ? 'bg-neutral-700 border-neutral-600 text-white'
                     : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
               />
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                darkMode ? 'text-neutral-300' : 'text-neutral-700'
-              }`}>
+              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                }`}>
                 Rol
               </label>
               <select
                 value={profile.role}
                 onChange={(e) => setProfile(prev => ({ ...prev, role: e.target.value }))}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
+                className={`w-full px-4 py-2 rounded-lg border transition-colors ${darkMode
                     ? 'bg-neutral-700 border-neutral-600 text-white'
                     : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
               >
                 <option value="Analista Junior">Analista Junior</option>
                 <option value="Analista Senior">Analista Senior</option>
@@ -191,19 +182,17 @@ const Settings: React.FC = () => {
 
           <div className="space-y-4">
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                darkMode ? 'text-neutral-300' : 'text-neutral-700'
-              }`}>
+              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                }`}>
                 Zona Horaria
               </label>
               <select
                 value={profile.timezone}
                 onChange={(e) => setProfile(prev => ({ ...prev, timezone: e.target.value }))}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
+                className={`w-full px-4 py-2 rounded-lg border transition-colors ${darkMode
                     ? 'bg-neutral-700 border-neutral-600 text-white'
                     : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
               >
                 {timezones.map(tz => (
                   <option key={tz.value} value={tz.value}>{tz.label}</option>
@@ -212,19 +201,17 @@ const Settings: React.FC = () => {
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                darkMode ? 'text-neutral-300' : 'text-neutral-700'
-              }`}>
+              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                }`}>
                 Idioma
               </label>
               <select
                 value={i18n.language}
                 onChange={(e) => i18n.changeLanguage(e.target.value)}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
+                className={`w-full px-4 py-2 rounded-lg border transition-colors ${darkMode
                     ? 'bg-neutral-700 border-neutral-600 text-white'
                     : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
               >
                 <option value="es">Español</option>
                 <option value="en">English</option>
@@ -232,18 +219,16 @@ const Settings: React.FC = () => {
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                darkMode ? 'text-neutral-300' : 'text-neutral-700'
-              }`}>
+              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
+                }`}>
                 Tema
               </label>
               <button
                 onClick={() => dispatch({ type: 'TOGGLE_DARK_MODE' })}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors flex items-center justify-center space-x-2 ${
-                  darkMode
+                className={`w-full px-4 py-2 rounded-lg border transition-colors flex items-center justify-center space-x-2 ${darkMode
                     ? 'bg-neutral-700 border-neutral-600 text-white hover:bg-neutral-600'
                     : 'bg-neutral-50 border-neutral-300 text-neutral-900 hover:bg-neutral-100'
-                }`}
+                  }`}
               >
                 {darkMode ? <Moon size={20} /> : <Sun size={20} />}
                 <span>{darkMode ? 'Modo Oscuro' : 'Modo Claro'}</span>
@@ -264,9 +249,8 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Notifications */}
-      <div className={`${
-        darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-      } border rounded-xl p-6`}>
+      <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+        } border rounded-xl p-6`}>
         <div className="flex items-center space-x-3 mb-6">
           <Bell className={darkMode ? 'text-neutral-400' : 'text-neutral-600'} size={24} />
           <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
@@ -294,9 +278,9 @@ const Settings: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={notifications[key as keyof typeof notifications]}
-                  onChange={(e) => setNotifications(prev => ({ 
-                    ...prev, 
-                    [key]: e.target.checked 
+                  onChange={(e) => setNotifications(prev => ({
+                    ...prev,
+                    [key]: e.target.checked
                   }))}
                   className="sr-only peer"
                 />
@@ -318,9 +302,8 @@ const Settings: React.FC = () => {
       </div>
 
       {/* API Tokens */}
-      <div className={`${
-        darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-      } border rounded-xl p-6`}>
+      <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+        } border rounded-xl p-6`}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <Key className={darkMode ? 'text-neutral-400' : 'text-neutral-600'} size={24} />
@@ -338,31 +321,28 @@ const Settings: React.FC = () => {
         </div>
 
         {showTokenForm && (
-          <div className={`p-4 mb-6 rounded-lg border ${
-            darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-neutral-50 border-neutral-300'
-          }`}>
+          <div className={`p-4 mb-6 rounded-lg border ${darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-neutral-50 border-neutral-300'
+            }`}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <input
                 type="text"
                 placeholder="Nombre del token"
                 value={newToken.name}
                 onChange={(e) => setNewToken(prev => ({ ...prev, name: e.target.value }))}
-                className={`px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
+                className={`px-4 py-2 rounded-lg border transition-colors ${darkMode
                     ? 'bg-neutral-800 border-neutral-600 text-white'
                     : 'bg-white border-neutral-300 text-neutral-900'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
               />
               <input
                 type="text"
                 placeholder="Descripción (opcional)"
                 value={newToken.description}
                 onChange={(e) => setNewToken(prev => ({ ...prev, description: e.target.value }))}
-                className={`px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
+                className={`px-4 py-2 rounded-lg border transition-colors ${darkMode
                     ? 'bg-neutral-800 border-neutral-600 text-white'
                     : 'bg-white border-neutral-300 text-neutral-900'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
               />
             </div>
             <div className="flex space-x-2">
@@ -374,11 +354,10 @@ const Settings: React.FC = () => {
               </button>
               <button
                 onClick={() => setShowTokenForm(false)}
-                className={`px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
+                className={`px-4 py-2 rounded-lg border transition-colors ${darkMode
                     ? 'border-neutral-600 text-neutral-300 hover:bg-neutral-700'
                     : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'
-                }`}
+                  }`}
               >
                 Cancelar
               </button>
@@ -388,9 +367,8 @@ const Settings: React.FC = () => {
 
         <div className="space-y-4">
           {apiTokens.map(token => (
-            <div key={token.id} className={`p-4 rounded-lg border ${
-              darkMode ? 'border-neutral-600 bg-neutral-700' : 'border-neutral-300 bg-neutral-50'
-            }`}>
+            <div key={token.id} className={`p-4 rounded-lg border ${darkMode ? 'border-neutral-600 bg-neutral-700' : 'border-neutral-300 bg-neutral-50'
+              }`}>
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h4 className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
@@ -407,26 +385,23 @@ const Settings: React.FC = () => {
                   Eliminar
                 </button>
               </div>
-              
+
               <div className="flex items-center space-x-2">
-                <code className={`flex-1 px-3 py-2 rounded font-mono text-sm ${
-                  darkMode ? 'bg-neutral-800 text-neutral-300' : 'bg-neutral-100 text-neutral-700'
-                }`}>
+                <code className={`flex-1 px-3 py-2 rounded font-mono text-sm ${darkMode ? 'bg-neutral-800 text-neutral-300' : 'bg-neutral-100 text-neutral-700'
+                  }`}>
                   {token.isVisible ? token.token : '•'.repeat(20) + token.token.slice(-4)}
                 </code>
                 <button
                   onClick={() => toggleTokenVisibility(token.id)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    darkMode ? 'hover:bg-neutral-600 text-neutral-400' : 'hover:bg-neutral-200 text-neutral-600'
-                  }`}
+                  className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-neutral-600 text-neutral-400' : 'hover:bg-neutral-200 text-neutral-600'
+                    }`}
                 >
                   {token.isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
                 <button
                   onClick={() => copyToken(token.token)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    darkMode ? 'hover:bg-neutral-600 text-neutral-400' : 'hover:bg-neutral-200 text-neutral-600'
-                  }`}
+                  className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-neutral-600 text-neutral-400' : 'hover:bg-neutral-200 text-neutral-600'
+                    }`}
                 >
                   <Copy size={16} />
                 </button>

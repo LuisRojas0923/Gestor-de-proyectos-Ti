@@ -57,19 +57,19 @@ export interface Development {
   module?: string;
   type?: string;
   environment?: string;
-  remedy_link?: string;
-  
+  portal_link?: string;
+
   // Sistema de fases y etapas
   current_phase_id?: number;
   current_stage_id?: number;
   stage_progress_percentage?: number; // 0-100
-  
+
   // Campos legacy (mantener compatibilidad)
   general_status: 'Pendiente' | 'En curso' | 'Completado' | 'Cancelado';
   estimated_end_date?: string;
   provider?: string;
   responsible?: string;
-  
+
   // Timestamps
   created_at: string;
   updated_at?: string;
@@ -119,7 +119,7 @@ export interface DevelopmentCreate {
   module?: string;
   type?: string;
   environment?: string;
-  remedy_link?: string;
+  portal_link?: string;
   current_phase_id?: number;
   current_stage_id?: number;
   responsible?: string;
@@ -131,7 +131,7 @@ export interface DevelopmentUpdate {
   module?: string;
   type?: string;
   environment?: string;
-  remedy_link?: string;
+  portal_link?: string;
   current_phase_id?: number;
   current_stage_id?: number;
   stage_progress_percentage?: number;

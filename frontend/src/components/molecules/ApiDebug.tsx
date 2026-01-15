@@ -10,10 +10,10 @@ const ApiDebug: React.FC = () => {
   const testApi = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      console.log('Testing API call to /stages/cycle-flow');
-      const result = await api.get('/stages/cycle-flow');
+      console.log('Testing API call to /etapas/cycle-flow');
+      const result = await api.get('/etapas/cycle-flow');
       console.log('API result:', result);
       setData(result);
     } catch (err) {
@@ -30,10 +30,10 @@ const ApiDebug: React.FC = () => {
 
   return (
     <div className="p-6 bg-gray-100 rounded-lg">
-      <h3 className="text-lg font-bold mb-4">Debug API - /stages/cycle-flow</h3>
-      
+      <h3 className="text-lg font-bold mb-4">Debug API - /etapas/cycle-flow</h3>
+
       <div className="mb-4">
-        <button 
+        <button
           onClick={testApi}
           disabled={loading}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"

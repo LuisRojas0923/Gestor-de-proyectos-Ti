@@ -5,14 +5,12 @@ import { DevelopmentQualityControl, QualityControlCatalog } from '../../types';
 
 interface QualityControlsTabProps {
   developmentId: string;
-  developmentName: string;
   currentStageName: string;
   darkMode: boolean;
 }
 
 const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
   developmentId,
-  developmentName,
   currentStageName,
   darkMode
 }) => {
@@ -136,14 +134,14 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
       <div className="flex items-center justify-between mb-6">
         <div>
           <h4 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-            <ShieldCheck size={18} className="mr-2"/>
+            <ShieldCheck size={18} className="mr-2" />
             Controles de Calidad
           </h4>
           <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             Etapa actual: <span className="font-medium">{currentStageName}</span>
           </p>
         </div>
-        
+
         {controls.length === 0 && (
           <button
             onClick={handleGenerateControls}
@@ -190,22 +188,22 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
                       </span>
                     )}
                   </div>
-                  
+
                   <p className={`text-sm mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
                     {control.catalog?.description || 'Descripción del control no disponible'}
                   </p>
-                  
+
                   {control.catalog?.responsible_party && (
                     <p className={`text-xs mb-3 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
                       <span className="font-medium">Responsable:</span> {
                         control.catalog.responsible_party === 'analista' ? 'Analista' :
-                        control.catalog.responsible_party === 'arquitecto' ? 'Arquitecto' :
-                        control.catalog.responsible_party === 'equipo_interno' ? 'Equipo Interno' :
-                        control.catalog.responsible_party
+                          control.catalog.responsible_party === 'arquitecto' ? 'Arquitecto' :
+                            control.catalog.responsible_party === 'equipo_interno' ? 'Equipo Interno' :
+                              control.catalog.responsible_party
                       }
                     </p>
                   )}
-                  
+
                   <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                     <span>Creado: {new Date(control.created_at).toLocaleDateString()}</span>
                     {control.completed_at && (
@@ -216,7 +214,7 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex space-x-2 ml-4">
                   {control.status === 'Pendiente' && (
                     <button
@@ -229,7 +227,7 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
                       Completar
                     </button>
                   )}
-                  
+
                   {control.status === 'Completado' && control.validation_status === 'Pendiente' && (
                     <button
                       onClick={() => {
@@ -241,7 +239,7 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
                       Validar
                     </button>
                   )}
-                  
+
                   <button
                     onClick={() => {
                       setSelectedControl(control);
@@ -265,7 +263,7 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
             <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
               Completar Control {selectedControl.control_code}
             </h3>
-            
+
             {/* Entregables como checkboxes */}
             {selectedControl.catalog?.deliverables && (
               <div className="mb-4">
@@ -304,20 +302,20 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
                 </div>
               </div>
             )}
-            
+
             <div className="mb-4">
               <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                 Notas Adicionales
               </label>
               <textarea
                 value={completionData.deliverables}
-                onChange={(e) => setCompletionData({...completionData, deliverables: e.target.value})}
+                onChange={(e) => setCompletionData({ ...completionData, deliverables: e.target.value })}
                 className={`w-full p-3 border rounded-lg ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300'}`}
                 rows={3}
                 placeholder="Agrega notas adicionales sobre la completación..."
               />
             </div>
-            
+
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowCompleteModal(false)}
@@ -344,14 +342,14 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
             <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
               Validar Control {selectedControl.control_code}
             </h3>
-            
+
             <div className="mb-4">
               <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                 Estado de Validación
               </label>
               <select
                 value={validationData.validation_status}
-                onChange={(e) => setValidationData({...validationData, validation_status: e.target.value as any})}
+                onChange={(e) => setValidationData({ ...validationData, validation_status: e.target.value as 'Validado' | 'Rechazado' | 'En Revisión' })}
                 className={`w-full p-3 border rounded-lg ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300'}`}
               >
                 <option value="Validado">Validado</option>
@@ -359,20 +357,20 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
                 <option value="En Revisión">En Revisión</option>
               </select>
             </div>
-            
+
             <div className="mb-4">
               <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                 Notas de Validación
               </label>
               <textarea
                 value={validationData.validation_notes}
-                onChange={(e) => setValidationData({...validationData, validation_notes: e.target.value})}
+                onChange={(e) => setValidationData({ ...validationData, validation_notes: e.target.value })}
                 className={`w-full p-3 border rounded-lg ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300'}`}
                 rows={3}
                 placeholder="Agrega notas sobre la validación..."
               />
             </div>
-            
+
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowValidateModal(false)}

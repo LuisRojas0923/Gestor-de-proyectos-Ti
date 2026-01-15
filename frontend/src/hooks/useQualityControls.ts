@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApi } from './useApi';
 import { DevelopmentQualityControl, QualityControlCatalog } from '../types';
+import { API_ENDPOINTS } from '../config/api';
 
 interface UseQualityControlsReturn {
   controls: DevelopmentQualityControl[];
@@ -16,7 +17,7 @@ interface UseQualityControlsReturn {
 }
 
 export const useQualityControls = (developmentId?: string): UseQualityControlsReturn => {
-  const { get, post, put } = useApi();
+  const { get, post, put } = useApi<any>();
   const [controls, setControls] = useState<DevelopmentQualityControl[]>([]);
   const [catalog, setCatalog] = useState<QualityControlCatalog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,8 +27,8 @@ export const useQualityControls = (developmentId?: string): UseQualityControlsRe
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await get(`/quality/controls?development_id=${devId}&current_stage_only=${currentStageOnly}`);
+
+      const response = await get(`${API_ENDPOINTS.QUALITY_CONTROLS}?development_id=${devId}&current_stage_only=${currentStageOnly}`);
       setControls(response || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cargando controles');
@@ -41,8 +42,8 @@ export const useQualityControls = (developmentId?: string): UseQualityControlsRe
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await get('/quality/catalog');
+
+      const response = await get(API_ENDPOINTS.QUALITY_CATALOG);
       setCatalog(response || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cargando catálogo');
@@ -56,20 +57,20 @@ export const useQualityControls = (developmentId?: string): UseQualityControlsRe
     try {
       setLoading(true);
       setError(null);
-      
-      await put(`/quality/controls/${controlId}`, {
+
+      await put(API_ENDPOINTS.QUALITY_CONTROL_BY_ID(controlId), {
         status: 'Completado',
         deliverables_provided: data.deliverables,
         deliverables_completed: JSON.stringify(data.deliverables_completed),
         completed_by: data.completed_by,
         completed_at: new Date().toISOString()
       });
-      
+
       // Recargar controles
       if (developmentId) {
         await loadControls(developmentId);
       }
-      
+
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error completando control');
@@ -84,19 +85,19 @@ export const useQualityControls = (developmentId?: string): UseQualityControlsRe
     try {
       setLoading(true);
       setError(null);
-      
-      await post(`/quality/controls/${controlId}/validate`, {
+
+      await post(API_ENDPOINTS.QUALITY_CONTROL_VALIDATE(controlId), {
         validation_status: data.validation_status,
         validation_notes: data.validation_notes,
         validated_by: data.validated_by,
         validated_at: new Date().toISOString()
       });
-      
+
       // Recargar controles
       if (developmentId) {
         await loadControls(developmentId);
       }
-      
+
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error validando control');
@@ -111,12 +112,12 @@ export const useQualityControls = (developmentId?: string): UseQualityControlsRe
     try {
       setLoading(true);
       setError(null);
-      
-      await post(`/quality/developments/${devId}/generate-controls`);
-      
+
+      await post(API_ENDPOINTS.QUALITY_GENERATE_CONTROLS(devId), {});
+
       // Recargar controles
       await loadControls(devId);
-      
+
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error generando controles');

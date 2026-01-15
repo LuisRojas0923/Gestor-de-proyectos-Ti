@@ -29,7 +29,7 @@ class DevelopmentKpiMetric(DevelopmentKpiMetricBase):
     created_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -57,7 +57,7 @@ class DevelopmentFunctionality(DevelopmentFunctionalityBase):
     updated_at: Optional[datetime] = None
     
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -86,7 +86,7 @@ class DevelopmentTestResult(DevelopmentTestResultBase):
     updated_at: Optional[datetime] = None
     
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -116,7 +116,7 @@ class DevelopmentDeliveryHistory(DevelopmentDeliveryHistoryBase):
     updated_at: Optional[datetime] = None
     
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 
@@ -146,7 +146,7 @@ class DevelopmentQualityMetric(DevelopmentQualityMetricBase):
     updated_at: Optional[datetime] = None
     
     class Config:
-        from_attributes = True
+        orm_mode = True
         orm_mode = True
 
 

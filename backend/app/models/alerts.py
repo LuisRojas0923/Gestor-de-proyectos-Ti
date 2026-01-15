@@ -9,10 +9,10 @@ from app.database import Base
 
 
 class DevelopmentUpcomingActivity(Base):
-    __tablename__ = "development_upcoming_activities"
+    __tablename__ = "proximas_actividades_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("developments.id"), nullable=False)
+    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
     activity_type = Column(String(100), nullable=False)  # 'entrega_proveedor', 'reunion', 'entrega_usuario', 'revision'
     title = Column(String(255), nullable=False)
     description = Column(Text)

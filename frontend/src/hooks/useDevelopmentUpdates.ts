@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
 import {
-    Development,
-    DevelopmentProgressUpdate,
-    DevelopmentStageUpdate,
-    DevelopmentUpdate
+  Development,
+  DevelopmentProgressUpdate,
+  DevelopmentStageUpdate,
+  DevelopmentUpdate
 } from '../types/development';
 import { useApi } from './useApi';
 
@@ -24,9 +24,9 @@ export const useDevelopmentUpdates = (): UseDevelopmentUpdatesReturn => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await put(`/developments/${id}`, data) as Development;
-      
+
+      const response = await put(`/desarrollos/${id}`, data) as Development;
+
       return response;
     } catch (err) {
       console.error('Error updating development:', err);
@@ -41,9 +41,9 @@ export const useDevelopmentUpdates = (): UseDevelopmentUpdatesReturn => {
     try {
       setLoading(true);
       setError(null);
-      
-      await patch(`/developments/${id}/stage`, data);
-      
+
+      await patch(`/desarrollos/${id}/stage`, data);
+
       return true;
     } catch (err) {
       console.error('Error changing stage:', err);
@@ -58,9 +58,9 @@ export const useDevelopmentUpdates = (): UseDevelopmentUpdatesReturn => {
     try {
       setLoading(true);
       setError(null);
-      
-      await patch(`/developments/${id}/progress`, data);
-      
+
+      await patch(`/desarrollos/${id}/progress`, data);
+
       return true;
     } catch (err) {
       console.error('Error updating progress:', err);

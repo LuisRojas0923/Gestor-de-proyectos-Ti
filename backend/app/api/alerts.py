@@ -12,10 +12,10 @@ from .. import models, schemas
 from ..database import get_db
 from ..services.alert_service import AlertService, get_alert_service
 
-router = APIRouter(prefix="/alerts", tags=["alerts"])
+router = APIRouter(prefix="/alertas", tags=["alertas"])
 
 
-@router.get("/upcoming")
+@router.get("/proximas")
 def get_upcoming_activities(
     development_id: Optional[str] = None,
     responsible_party: Optional[str] = None,
@@ -118,7 +118,7 @@ def get_upcoming_activities(
         )
 
 
-@router.post("/activities", response_model=schemas.DevelopmentUpcomingActivity)
+@router.post("/actividades", response_model=schemas.DevelopmentUpcomingActivity)
 def create_activity(
     activity: schemas.DevelopmentUpcomingActivityCreate,
     db: Session = Depends(get_db)
@@ -159,7 +159,7 @@ def create_activity(
         )
 
 
-@router.put("/activities/{activity_id}", response_model=schemas.DevelopmentUpcomingActivity)
+@router.put("/actividades/{activity_id}", response_model=schemas.DevelopmentUpcomingActivity)
 def update_activity(
     activity_id: int,
     activity_update: schemas.DevelopmentUpcomingActivityUpdate,
@@ -205,7 +205,7 @@ def update_activity(
         )
 
 
-@router.post("/activities/{activity_id}/complete")
+@router.post("/actividades/{activity_id}/completar")
 def complete_activity(
     activity_id: int,
     completion_data: schemas.ActivityCompletionRequest,
@@ -262,7 +262,7 @@ def complete_activity(
         )
 
 
-@router.get("/dashboard")
+@router.get("/panel")
 def get_alerts_dashboard(
     alert_service: AlertService = Depends(get_alert_service),
     db: Session = Depends(get_db)
@@ -359,7 +359,7 @@ def get_alerts_dashboard(
         )
 
 
-@router.post("/generate-automatic")
+@router.post("/generar-automaticas")
 def generate_automatic_alerts(
     alert_service: AlertService = Depends(get_alert_service)
 ):
@@ -384,7 +384,7 @@ def generate_automatic_alerts(
         )
 
 
-@router.get("/by-development/{development_id}")
+@router.get("/por-desarrollo/{development_id}")
 def get_development_alerts(
     development_id: str,
     include_completed: bool = False,
@@ -462,7 +462,7 @@ def get_development_alerts(
         )
 
 
-@router.delete("/activities/{activity_id}")
+@router.delete("/actividades/{activity_id}")
 def delete_activity(
     activity_id: int,
     db: Session = Depends(get_db)

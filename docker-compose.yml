@@ -1,29 +1,31 @@
 services:
   backend:
-    image: backend-image-test
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/project_manager
-      - DEBUG=True
+      - ENVIRONMENT=development
     volumes:
       - ./backend:/app
-      - ./data:/app/data
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       - db
 
   frontend:
-    image: frontend-image-test
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     ports:
       - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://192.168.40.36:8001/api/v1
     volumes:
-      # Mapea el código fuente, pero mantiene node_modules aislado en el contenedor
       - ./frontend:/app
       - /app/node_modules
-    environment:
-      - VITE_API_URL=http://localhost:8000/api/v1
-    command: npm run dev -- --host
+    depends_on:
+      - backend
 
   db:
     image: postgres:15-alpine

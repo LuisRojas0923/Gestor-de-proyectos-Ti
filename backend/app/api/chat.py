@@ -21,7 +21,7 @@ ai_service = AIService()
 mock_sessions = {}
 mock_messages = {}
 
-@router.get("/sessions")
+@router.get("/sesiones")
 def get_chat_sessions(
     user_id: str,
     db: Session = Depends(get_db)
@@ -42,7 +42,7 @@ def get_chat_sessions(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/sessions")
+@router.post("/sesiones")
 def create_chat_session(
     session_data: dict,
     db: Session = Depends(get_db)
@@ -74,7 +74,7 @@ def create_chat_session(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/sessions/{session_id}/messages")
+@router.get("/sesiones/{session_id}/mensajes")
 def get_session_messages(
     session_id: str,
     skip: int = 0,
@@ -103,7 +103,7 @@ def get_session_messages(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/sessions/{session_id}/messages")
+@router.post("/sesiones/{session_id}/mensajes")
 async def send_message(
     session_id: str,
     message_data: dict,
@@ -174,7 +174,7 @@ async def send_message(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/sessions/{session_id}")
+@router.delete("/sesiones/{session_id}")
 def delete_chat_session(
     session_id: str,
     db: Session = Depends(get_db)

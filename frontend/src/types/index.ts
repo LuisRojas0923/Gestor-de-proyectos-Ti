@@ -38,10 +38,10 @@ export interface ErrorResponse {
   error: string;
   message: string;
   status_code: number;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
-export interface SuccessResponse<T = any> {
+export interface SuccessResponse<T = unknown> {
   success: boolean;
   message: string;
   data?: T;

@@ -3,7 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
-import { DevelopmentWithCurrentStatus } from '../types';
+import QualityControlsTab from '../components/development/QualityControlsTab';
+import { DevelopmentWithCurrentStatus, Activity } from '../types';
 import { useActivities } from './MyDevelopments/hooks/useActivities';
 import { ActivityEditModal } from './MyDevelopments/components/modals/ActivityEditModal';
 import { ActivityDeleteModal } from './MyDevelopments/components/modals/ActivityDeleteModal';
@@ -16,6 +17,7 @@ const tabs = [
   { key: 'detalle', label: 'Detalle' },
   { key: 'bitacora', label: 'Bitácora' },
   { key: 'fases', label: 'Fases' },
+  { key: 'calidad', label: 'Calidad' },
   { key: 'requerimientos', label: 'Requerimientos' },
 ];
 
@@ -29,14 +31,14 @@ const DevelopmentDetail: React.FC = () => {
 
   const [development, setDevelopment] = useState<DevelopmentWithCurrentStatus | null>(null);
   const [loading, setLoading] = useState(false);
-  const [lastActivity, setLastActivity] = useState<any | null>(null);
+  const [lastActivity, setLastActivity] = useState<Activity | null>(null);
 
   // Modales de actividad
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [developmentEditOpen, setDevelopmentEditOpen] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [editForm, setEditForm] = useState<{ status: string; notes?: string; next_follow_up_at?: string; start_date?: string; end_date?: string; follow_up_config?: FollowUpConfig } | null>(null);
   const [editErrors, setEditErrors] = useState<string[]>([]);
   const [shouldRollback, setShouldRollback] = useState(false);
@@ -66,7 +68,7 @@ const DevelopmentDetail: React.FC = () => {
   useEffect(() => {
     if (activities && activities.length > 0) {
       // Ordenar por fecha de creación descendente y tomar la primera
-      const sortedActivities = [...activities].sort((a, b) => 
+      const sortedActivities = [...activities].sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       setLastActivity(sortedActivities[0]);
@@ -77,42 +79,42 @@ const DevelopmentDetail: React.FC = () => {
   const validate = useMemo(() => (form: Required<typeof editForm>) => {
     if (!form) return [];
     const errs: string[] = [];
-    
+
     // Validar fechas básicas
     if (form.start_date && form.end_date && new Date(form.start_date) > new Date(form.end_date)) {
       errs.push('La fecha de inicio no puede ser mayor que la fecha de fin.');
     }
-    
+
     // Validar configuración de seguimiento si está habilitada
     if (form.follow_up_config?.enabled) {
       const config = form.follow_up_config;
-      
+
       if (!config.type) {
         errs.push('Debe seleccionar el tipo de seguimiento');
       }
-      
+
       if (config.type?.includes('before') && !config.days) {
         errs.push('Debe especificar cuántos días antes del evento');
       }
-      
+
       if (config.type?.includes('after') && !config.interval) {
         errs.push('Debe especificar el intervalo de seguimiento');
       }
-      
+
       // Validar que las fechas base existen según el tipo
       if (config.type?.includes('start') && !form.start_date) {
         errs.push('Necesita una fecha de inicio para este tipo de seguimiento');
       }
-      
+
       if (config.type?.includes('end') && !form.end_date) {
         errs.push('Necesita una fecha de fin para este tipo de seguimiento');
       }
     }
-    
+
     return errs;
   }, []);
 
-  const openEdit = (activity: any) => {
+  const openEdit = (activity: Activity) => {
     setSelectedActivity(activity);
     const form = {
       status: activity.status || 'pendiente',
@@ -123,21 +125,21 @@ const DevelopmentDetail: React.FC = () => {
       follow_up_config: activity.follow_up_config || undefined
     };
     setEditForm(form);
-    setEditErrors(validate(form as any));
+    setEditErrors(validate(form as Required<typeof editForm>));
     setEditOpen(true);
   };
 
   const onEditChange = (patch: Partial<NonNullable<typeof editForm>>) => {
     if (!editForm) return;
-    const newForm = { ...editForm, ...patch } as any;
+    const newForm = { ...editForm, ...patch };
     setEditForm(newForm);
-    setEditErrors(validate(newForm));
+    setEditErrors(validate(newForm as Required<typeof editForm>));
   };
 
   const onEditConfirm = async () => {
     if (!selectedActivity || !editForm) return;
     if (editErrors.length > 0) return;
-    
+
     // Filtrar solo los campos que espera el backend para actualización
     const updateData = {
       status: editForm.status,
@@ -148,12 +150,12 @@ const DevelopmentDetail: React.FC = () => {
       // Nota: follow_up_config no se envía al backend en la actualización
       // El backend solo maneja next_follow_up_at calculado
     };
-    
+
     const ok = await confirmEditActivity(selectedActivity.id, updateData);
     if (ok) setEditOpen(false);
   };
 
-  const openDelete = (activity: any) => {
+  const openDelete = (activity: Activity) => {
     setSelectedActivity(activity);
     setShouldRollback(false);
     setDeleteOpen(true);
@@ -166,9 +168,9 @@ const DevelopmentDetail: React.FC = () => {
     setDeleteOpen(false);
   };
 
-  const completeActivity = async (activity: any) => {
+  const completeActivity = async (activity: Activity) => {
     if (!activity) return;
-    
+
     // Actualizar solo el estado a completada
     const updateData = {
       status: 'completada',
@@ -177,7 +179,7 @@ const DevelopmentDetail: React.FC = () => {
       start_date: activity.start_date || undefined,
       end_date: activity.end_date || undefined,
     };
-    
+
     const ok = await confirmEditActivity(activity.id, updateData);
     if (ok) {
       // La actividad se actualizará automáticamente en la lista
@@ -198,12 +200,12 @@ const DevelopmentDetail: React.FC = () => {
           acc[key] = value;
         }
         return acc;
-      }, {} as any);
+      }, {} as Record<string, unknown>);
 
       // Debug: Log de los datos que se están enviando
       console.log('🚀 Enviando datos de actualización:', cleanedData);
       console.log('🔍 URL del endpoint:', API_ENDPOINTS.DEVELOPMENT_BY_ID(development.id));
-      
+
       const result = await put(API_ENDPOINTS.DEVELOPMENT_BY_ID(development.id), cleanedData);
 
       if (result) {
@@ -211,7 +213,7 @@ const DevelopmentDetail: React.FC = () => {
         setDevelopment(prev => prev ? { ...prev, ...cleanedData } : null);
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Error al actualizar el desarrollo:', error);
@@ -237,22 +239,22 @@ const DevelopmentDetail: React.FC = () => {
           <h1 className={`text-2xl font-bold mt-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{development?.name || (loading ? 'Cargando…' : 'Desarrollo')}</h1>
           <p className={`${darkMode ? 'text-neutral-400' : 'text-neutral-500'} text-sm`}>{development?.id}</p>
         </div>
-        
+
         {/* Botones de acción */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-          {/* Botón de Remedy */}
-          {development?.remedy_link && (
+          {/* Botón del Portal */}
+          {development?.portal_link && (
             <MaterialButton
               variant="contained"
               color="primary"
-              onClick={() => window.open(development.remedy_link, '_blank', 'noopener,noreferrer')}
+              onClick={() => window.open(development.portal_link, '_blank', 'noopener,noreferrer')}
               className="w-full sm:w-auto min-h-[44px] bg-green-600 hover:bg-green-700"
               darkMode={darkMode}
             >
-              🔗 Ir a Remedy
+              🔗 Ir al Portal
             </MaterialButton>
           )}
-          
+
           {/* Botón de editar desarrollo */}
           <MaterialButton
             variant="contained"
@@ -386,8 +388,8 @@ const DevelopmentDetail: React.FC = () => {
                     </MaterialTypography>
                     <div className="flex items-center gap-2">
                       <div className={`w-full bg-neutral-200 rounded-full h-2 ${darkMode ? 'bg-neutral-600' : 'bg-neutral-200'}`}>
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${development?.stage_progress_percentage || 0}%` }}
                         ></div>
                       </div>
@@ -519,7 +521,7 @@ const DevelopmentDetail: React.FC = () => {
                 </MaterialCard.Header>
                 <MaterialCard.Content darkMode={darkMode}>
                   <div className="space-y-4">
-                    {development.responsibles.map((responsible, index) => (
+                    {development.responsibles.map((responsible) => (
                       <div key={responsible.id} className={`${darkMode ? 'bg-neutral-600 border-neutral-500' : 'bg-neutral-50 border-neutral-200'} border rounded-lg p-4`}>
                         <div className="flex justify-between items-start mb-3">
                           <MaterialTypography variant="h6" darkMode={darkMode}>
@@ -649,15 +651,14 @@ const DevelopmentDetail: React.FC = () => {
                             {new Date(lastActivity.created_at).toLocaleString('es-ES')}
                           </MaterialTypography>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          lastActivity.status === 'completada' 
-                            ? 'bg-green-100 text-green-800' 
-                            : lastActivity.status === 'en_curso'
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${lastActivity.status === 'completada'
+                          ? 'bg-green-100 text-green-800'
+                          : lastActivity.status === 'en_curso'
                             ? 'bg-blue-100 text-blue-800'
                             : 'bg-yellow-100 text-yellow-800'
-                        }`}>
+                          }`}>
                           {lastActivity.status === 'completada' ? '✅ Completada' :
-                           lastActivity.status === 'en_curso' ? '🔄 En curso' : '⏳ Pendiente'}
+                            lastActivity.status === 'en_curso' ? '🔄 En curso' : '⏳ Pendiente'}
                         </span>
                       </div>
                       {lastActivity.notes && (
@@ -704,7 +705,7 @@ const DevelopmentDetail: React.FC = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={() => setSearchParams(prev => {
                     const p = new URLSearchParams(prev);
                     p.delete('hideCompleted');
@@ -714,7 +715,7 @@ const DevelopmentDetail: React.FC = () => {
                 >
                   Todas
                 </button>
-                <button 
+                <button
                   onClick={() => setSearchParams(prev => {
                     const p = new URLSearchParams(prev);
                     p.set('hideCompleted', 'true');
@@ -749,6 +750,14 @@ const DevelopmentDetail: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'calidad' && (
+          <QualityControlsTab
+            developmentId={developmentId as string}
+            currentStageName={development?.current_stage?.stage_name || 'Sin etapa'}
+            darkMode={darkMode}
+          />
         )}
 
         {activeTab === 'fases' && (

@@ -1,0 +1,5 @@
+---
+trigger: always_on
+---
+
+"Los elementos de la interfaz (UI) deben implementarse siempre desde el sistema de diseño. Nunca se deben crear directamente en el código; en su lugar, deben importarse los átomos, moléculas o componentes ya existentes en el proyecto."

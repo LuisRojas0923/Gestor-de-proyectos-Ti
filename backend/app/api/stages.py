@@ -9,7 +9,7 @@ from typing import List, Optional
 from .. import models, schemas
 from ..database import get_db
 
-router = APIRouter(prefix="/stages", tags=["stages"])
+router = APIRouter(prefix="/etapas", tags=["etapas"])
 
 
 @router.get("/", response_model=List[schemas.DevelopmentStage])
@@ -46,7 +46,7 @@ def get_development_stages(
         )
 
 
-@router.get("/cycle-flow", response_model=List[schemas.DevelopmentCycleFlow])
+@router.get("/flujo-ciclo", response_model=List[schemas.DevelopmentCycleFlow])
 def get_cycle_flow(
     db: Session = Depends(get_db)
 ):
@@ -169,7 +169,7 @@ def get_stage_by_code(
         )
 
 
-@router.get("/milestones", response_model=List[schemas.DevelopmentStage])
+@router.get("/hitos", response_model=List[schemas.DevelopmentStage])
 def get_milestone_stages(
     db: Session = Depends(get_db)
 ):

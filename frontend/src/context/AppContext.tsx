@@ -33,18 +33,31 @@ interface Task {
   assignedTo: string;
 }
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  timestamp: string;
+  read: boolean;
+  link?: string;
+}
+
 interface AppState {
   user: User | null;
   darkMode: boolean;
   sidebarOpen: boolean;
   requirements: Requirement[];
   tasks: Task[];
+  notifications: Notification[];
   loading: boolean;
   error: string | null;
 }
 
 type AppAction =
-  | { type: 'SET_USER'; payload: User }
+  | { type: 'SET_USER'; payload: User | null }
+  | { type: 'LOGIN'; payload: User }
+  | { type: 'LOGOUT' }
   | { type: 'TOGGLE_DARK_MODE' }
   | { type: 'TOGGLE_SIDEBAR' }
   | { type: 'SET_REQUIREMENTS'; payload: Requirement[] }
@@ -53,6 +66,9 @@ type AppAction =
   | { type: 'SET_TASKS'; payload: Task[] }
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: { id: string; data: Partial<Task> } }
+  | { type: 'ADD_NOTIFICATION'; payload: Notification }
+  | { type: 'MARK_NOTIFICATION_READ'; payload: string }
+  | { type: 'CLEAR_NOTIFICATIONS' }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null };
 
@@ -67,12 +83,24 @@ const getInitialDarkMode = (): boolean => {
   }
 };
 
+// Función para obtener el usuario inicial desde localStorage
+const getInitialUser = (): User | null => {
+  try {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  } catch (error) {
+    console.warn('Error al cargar el usuario desde localStorage:', error);
+    return null;
+  }
+};
+
 const initialState: AppState = {
-  user: null,
+  user: getInitialUser(),
   darkMode: getInitialDarkMode(),
   sidebarOpen: true,
   requirements: [],
   tasks: [],
+  notifications: [],
   loading: false,
   error: null,
 };
@@ -81,6 +109,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_USER':
       return { ...state, user: action.payload };
+    case 'LOGIN':
+      localStorage.setItem('user', JSON.stringify(action.payload));
+      return { ...state, user: action.payload };
+    case 'LOGOUT':
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      return { ...state, user: null };
     case 'TOGGLE_DARK_MODE': {
       const newDarkMode = !state.darkMode;
       // Guardar en localStorage
@@ -115,6 +150,23 @@ function appReducer(state: AppState, action: AppAction): AppState {
           task.id === action.payload.id ? { ...task, ...action.payload.data } : task
         ),
       };
+    case 'ADD_NOTIFICATION':
+      return {
+        ...state,
+        notifications: [action.payload, ...state.notifications].slice(0, 50), // Limit to 50
+      };
+    case 'MARK_NOTIFICATION_READ':
+      return {
+        ...state,
+        notifications: state.notifications.map(n =>
+          n.id === action.payload ? { ...n, read: true } : n
+        ),
+      };
+    case 'CLEAR_NOTIFICATIONS':
+      return {
+        ...state,
+        notifications: [],
+      };
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
     case 'SET_ERROR':
@@ -147,4 +199,4 @@ export function useAppContext() {
   return context;
 }
 
-export type { AppAction, AppState, Requirement, Task, User };
+export type { AppAction, AppState, Requirement, Task, User, Notification };
