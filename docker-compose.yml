@@ -1,15 +1,15 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: ./backend_v2
       dockerfile: Dockerfile
     ports:
-      - "8001:8000"
+      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/project_manager
       - ENVIRONMENT=development
     volumes:
-      - ./backend:/app
+      - ./backend_v2:/app
     depends_on:
       - db
 
@@ -20,7 +20,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_BASE_URL=http://192.168.40.36:8001/api/v1
+      - VITE_API_BASE_URL=http://192.168.40.36:8000/api/v2
     volumes:
       - ./frontend:/app
       - /app/node_modules

@@ -2,7 +2,7 @@
 // Sistema de Gestión de Proyectos TI
 
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v2',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://192.168.40.36:8000/api/v2',
   TIMEOUT: 30000, // 30 segundos
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000, // 1 segundo
