@@ -6,88 +6,88 @@ from decimal import Decimal
 # Category Schemas
 class TicketCategoryBase(BaseModel):
     id: str
-    name: str
-    description: Optional[str] = None
-    icon: Optional[str] = None
-    form_type: str
+    nombre: str
+    descripcion: Optional[str] = None
+    icono: Optional[str] = None
+    tipo_formulario: str
 
 class TicketCategoryCreate(TicketCategoryBase):
     pass
 
 class TicketCategory(TicketCategoryBase):
-    created_at: datetime
+    creado_en: datetime
     
     class Config:
         orm_mode = True
 
 # Ticket Schemas
 class SupportTicketBase(BaseModel):
-    category_id: str
-    subject: str
-    description: str
-    priority: str = "Media"
+    categoria_id: str
+    asunto: str
+    descripcion: str
+    prioridad: str = "Media"
     
     # Datos del Solicitante
-    creator_id: str
-    creator_name: Optional[str] = None
-    creator_email: Optional[EmailStr] = None
-    creator_area: Optional[str] = None
-    creator_cargo: Optional[str] = None
-    creator_sede: Optional[str] = None
+    creador_id: str
+    nombre_creador: Optional[str] = None
+    correo_creador: Optional[EmailStr] = None
+    area_creador: Optional[str] = None
+    cargo_creador: Optional[str] = None
+    sede_creador: Optional[str] = None
     
-    ideal_delivery_date: Optional[datetime] = None
-    extra_data: Optional[Dict[str, Any]] = None
-    development_id: Optional[str] = None
+    fecha_entrega_ideal: Optional[datetime] = None
+    datos_extra: Optional[Dict[str, Any]] = None
+    desarrollo_id: Optional[str] = None
 
 class SupportTicketCreate(SupportTicketBase):
     pass
 
 class SupportTicketUpdate(BaseModel):
-    status: Optional[str] = None
-    priority: Optional[str] = None
-    assigned_to: Optional[str] = None
-    diagnostic: Optional[str] = None
-    resolution: Optional[str] = None
-    notes: Optional[str] = None
-    time_spent_hours: Optional[Decimal] = None
-    close_date: Optional[datetime] = None
-    extra_data: Optional[Dict[str, Any]] = None
-    development_id: Optional[str] = None
+    estado: Optional[str] = None
+    prioridad: Optional[str] = None
+    asignado_a: Optional[str] = None
+    diagnostico: Optional[str] = None
+    resolucion: Optional[str] = None
+    notas: Optional[str] = None
+    horas_tiempo_empleado: Optional[Decimal] = None
+    fecha_cierre: Optional[datetime] = None
+    datos_extra: Optional[Dict[str, Any]] = None
+    desarrollo_id: Optional[str] = None
 
 class SupportTicket(SupportTicketBase):
     id: str
-    status: str
-    assigned_to: Optional[str]
-    diagnostic: Optional[str]
-    resolution: Optional[str]
-    notes: Optional[str]
-    time_spent_hours: Optional[Decimal]
-    development_id: Optional[str]
-    resolved_at: Optional[datetime]
-    creation_date: datetime
-    close_date: Optional[datetime]
-    created_at: datetime
-    updated_at: datetime
+    estado: str
+    asignado_a: Optional[str]
+    diagnostico: Optional[str]
+    resolucion: Optional[str]
+    notas: Optional[str]
+    horas_tiempo_empleado: Optional[Decimal]
+    desarrollo_id: Optional[str]
+    resuelto_en: Optional[datetime]
+    fecha_creacion: datetime
+    fecha_cierre: Optional[datetime]
+    creado_en: datetime
+    actualizado_en: datetime
     
     class Config:
         orm_mode = True
 
 # Comment Schemas
 class TicketCommentBase(BaseModel):
-    comment: str
-    is_internal: bool = False
+    comentario: str
+    es_interno: bool = False
 
 class TicketCommentCreate(TicketCommentBase):
     ticket_id: str
-    user_id: Optional[str] = None
-    user_name: Optional[str] = None
+    usuario_id: Optional[str] = None
+    nombre_usuario: Optional[str] = None
 
 class TicketComment(TicketCommentBase):
     id: int
     ticket_id: str
-    user_id: Optional[str]
-    user_name: Optional[str]
-    created_at: datetime
+    usuario_id: Optional[str]
+    nombre_usuario: Optional[str]
+    creado_en: datetime
     
     class Config:
         orm_mode = True
