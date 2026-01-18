@@ -12,15 +12,15 @@ class SystemSetting(Base):
     __tablename__ = "configuraciones_sistema"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"), nullable=False)
-    category = Column(String(100), nullable=False)
-    key = Column(String(100), nullable=False)
-    value = Column(Text)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    usuario_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"), nullable=False)
+    categoria = Column(String(100), nullable=False)
+    clave = Column(String(100), nullable=False)
+    valor = Column(Text)
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relaciones
-    user = relationship("AuthUser", back_populates="settings")
+    usuario = relationship("AuthUser", back_populates="configuraciones")
 
 
 # Modelos existentes (mantener compatibilidad)
@@ -28,41 +28,41 @@ class ActivityLog(Base):
     __tablename__ = "registros_actividad"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
-    date = Column(DateTime(timezone=True), nullable=False)
-    description = Column(Text, nullable=False)
-    category = Column(String(100))
-    user_id = Column(String(255))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    desarrollo_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
+    fecha = Column(DateTime(timezone=True), nullable=False)
+    descripcion = Column(Text, nullable=False)
+    categoria = Column(String(100))
+    usuario_id = Column(String(255))
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relaciones
-    development = relationship("Development", back_populates="activity_logs")
+    desarrollo = relationship("Development", back_populates="logs_actividad")
 
 
 class Incident(Base):
     __tablename__ = "incidentes"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
-    report_date = Column(DateTime(timezone=True), nullable=False)
-    resolution_date = Column(DateTime(timezone=True))
-    description = Column(Text, nullable=False)
-    severity = Column(String(50))
-    impact = Column(String(50))
-    status = Column(String(50), default="Abierta")
-    assigned_to = Column(String(255))
+    desarrollo_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
+    fecha_reporte = Column(DateTime(timezone=True), nullable=False)
+    fecha_resolucion = Column(DateTime(timezone=True))
+    descripcion = Column(Text, nullable=False)
+    severidad = Column(String(50))
+    impacto = Column(String(50))
+    estado = Column(String(50), default="Abierta")
+    asignado_a = Column(String(255))
     
     # CAMPOS PARA INDICADORES DE CALIDAD
-    is_production_derived = Column(Boolean, default=False)
-    incident_type = Column(String(50))  # 'production', 'development', 'testing', 'deployment'
-    severity_level = Column(String(20))  # 'low', 'medium', 'high', 'critical'
-    response_time_hours = Column(DECIMAL(8, 2))
-    resolution_time_hours = Column(DECIMAL(8, 2))
-    is_rework = Column(Boolean, default=False)
+    es_derivado_produccion = Column(Boolean, default=False)
+    tipo_incidente = Column(String(50))  # 'production', 'development', 'testing', 'deployment'
+    nivel_severidad = Column(String(20))  # 'low', 'medium', 'high', 'critical'
+    horas_tiempo_respuesta = Column(DECIMAL(8, 2))
+    horas_tiempo_resolucion = Column(DECIMAL(8, 2))
+    es_retrabajo = Column(Boolean, default=False)
     
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relaciones
-    development = relationship("Development", back_populates="incidents")
+    desarrollo = relationship("Development", back_populates="incidentes")
