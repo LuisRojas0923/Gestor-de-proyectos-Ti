@@ -28,6 +28,15 @@ services:
     depends_on:
       - backend
 
+  adminer:
+    image: adminer
+    container_name: gestor-de-proyectos-ti-adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
   db:
     image: postgres:15-alpine
     volumes:
