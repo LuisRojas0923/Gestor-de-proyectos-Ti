@@ -14,17 +14,17 @@ class AiContextCache(Base):
     __tablename__ = "cache_contexto_ia"
     
     id = Column(Integer, primary_key=True, index=True)
-    context_key = Column(String(255), unique=True, nullable=False, index=True)
-    development_id = Column(String(50), ForeignKey("desarrollos.id"))
-    context_type = Column(String(50), nullable=False)  # 'development', 'provider', 'kpi', 'quality'
-    context_data = Column(JSON, nullable=False)  # Contexto serializado
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    access_count = Column(Integer, default=0)
-    last_accessed_at = Column(DateTime(timezone=True), server_default=func.now())
+    clave_contexto = Column(String(255), unique=True, nullable=False, index=True)
+    desarrollo_id = Column(String(50), ForeignKey("desarrollos.id"))
+    tipo_contexto = Column(String(50), nullable=False)  # 'development', 'provider', 'kpi', 'quality'
+    datos_contexto = Column(JSON, nullable=False)  # Contexto serializado
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    expira_en = Column(DateTime(timezone=True), nullable=False)
+    conteo_accesos = Column(Integer, default=0)
+    ultimo_acceso_en = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relaciones
-    development = relationship("Development", back_populates="ai_context_cache")
+    desarrollo = relationship("Development", back_populates="cache_contexto_ia")
 
 
 class AiAnalysisHistory(Base):
@@ -32,22 +32,22 @@ class AiAnalysisHistory(Base):
     __tablename__ = "historial_analisis_ia"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("desarrollos.id"))
-    analysis_type = Column(String(100), nullable=False)  # 'risk_analysis', 'performance_review', 'prediction'
-    query_text = Column(Text, nullable=False)  # Pregunta original del usuario
-    context_used = Column(JSON)  # Contexto que se envió a la IA
-    ai_response = Column(Text, nullable=False)  # Respuesta de la IA
-    ai_model = Column(String(50), nullable=False)  # 'claude-3-sonnet', 'gpt-4', etc.
-    tokens_used = Column(Integer)  # Tokens consumidos
-    response_time_ms = Column(Integer)  # Tiempo de respuesta en ms
-    user_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"))  # Usuario que hizo la consulta
-    confidence_score = Column(DECIMAL(3, 2))  # Confianza de la IA (0-1)
-    was_helpful = Column(Boolean)  # Feedback del usuario
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    desarrollo_id = Column(String(50), ForeignKey("desarrollos.id"))
+    tipo_analisis = Column(String(100), nullable=False)  # 'risk_analysis', 'performance_review', 'prediction'
+    texto_consulta = Column(Text, nullable=False)  # Pregunta original del usuario
+    contexto_usado = Column(JSON)  # Contexto que se envió a la IA
+    respuesta_ia = Column(Text, nullable=False)  # Respuesta de la IA
+    modelo_ia = Column(String(50), nullable=False)  # 'claude-3-sonnet', 'gpt-4', etc.
+    tokens_usados = Column(Integer)  # Tokens consumidos
+    tiempo_respuesta_ms = Column(Integer)  # Tiempo de respuesta en ms
+    usuario_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"))  # Usuario que hizo la consulta
+    puntaje_confianza = Column(DECIMAL(3, 2))  # Confianza de la IA (0-1)
+    fue_util = Column(Boolean)  # Feedback del usuario
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relaciones
-    development = relationship("Development", back_populates="ai_analysis_history")
-    user = relationship("AuthUser", back_populates="ai_analysis_history")
+    desarrollo = relationship("Development", back_populates="historial_analisis_ia")
+    usuario = relationship("AuthUser", back_populates="historial_analisis_ia")
 
 
 class AiRecommendation(Base):
@@ -55,26 +55,26 @@ class AiRecommendation(Base):
     __tablename__ = "recomendaciones_ia"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("desarrollos.id"))
-    recommendation_type = Column(String(100), nullable=False)  # 'process_improvement', 'risk_mitigation', 'timeline_optimization'
-    title = Column(String(255), nullable=False)  # Título de la recomendación
-    description = Column(Text, nullable=False)  # Descripción detallada
-    priority = Column(String(20), default="medium")  # 'low', 'medium', 'high', 'critical'
-    impact_score = Column(DECIMAL(3, 2))  # Impacto esperado (0-1)
-    effort_score = Column(DECIMAL(3, 2))  # Esfuerzo requerido (0-1)
-    ai_confidence = Column(DECIMAL(3, 2))  # Confianza de la IA (0-1)
-    status = Column(String(50), default="pending")  # 'pending', 'accepted', 'rejected', 'implemented'
-    implementation_notes = Column(Text)  # Notas de implementación
-    assigned_to = Column(String(255))  # Responsable de implementar
-    due_date = Column(Date)  # Fecha límite sugerida
-    implemented_at = Column(DateTime(timezone=True))  # Fecha de implementación
-    results_feedback = Column(Text)  # Feedback de resultados
-    generated_by = Column(String(50), nullable=False)  # Modelo de IA que generó
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    desarrollo_id = Column(String(50), ForeignKey("desarrollos.id"))
+    tipo_recomendacion = Column(String(100), nullable=False)  # 'process_improvement', 'risk_mitigation', 'timeline_optimization'
+    titulo = Column(String(255), nullable=False)  # Título de la recomendación
+    descripcion = Column(Text, nullable=False)  # Descripción detallada
+    prioridad = Column(String(20), default="medium")  # 'low', 'medium', 'high', 'critical'
+    puntaje_impacto = Column(DECIMAL(3, 2))  # Impacto esperado (0-1)
+    puntaje_esfuerzo = Column(DECIMAL(3, 2))  # Esfuerzo requerido (0-1)
+    confianza_ia = Column(DECIMAL(3, 2))  # Confianza de la IA (0-1)
+    estado = Column(String(50), default="pending")  # 'pending', 'accepted', 'rejected', 'implemented'
+    notas_implementacion = Column(Text)  # Notas de implementación
+    asignado_a = Column(String(255))  # Responsable de implementar
+    fecha_limite = Column(Date)  # Fecha límite sugerida
+    implementado_en = Column(DateTime(timezone=True))  # Fecha de implementación
+    retroalimentacion_resultados = Column(Text)  # Feedback de resultados
+    generado_por = Column(String(50), nullable=False)  # Modelo de IA que generó
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relaciones
-    development = relationship("Development", back_populates="ai_recommendations")
+    desarrollo = relationship("Development", back_populates="recomendaciones_ia")
 
 
 class AiUsageMetric(Base):
@@ -82,21 +82,21 @@ class AiUsageMetric(Base):
     __tablename__ = "metricas_uso_ia"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"))  # Usuario (puede ser NULL para métricas del sistema)
-    ai_model = Column(String(50), nullable=False)  # Modelo de IA usado
-    operation_type = Column(String(100), nullable=False)  # 'analysis', 'chat', 'recommendation', 'prediction'
-    tokens_input = Column(Integer, default=0)  # Tokens de entrada
-    tokens_output = Column(Integer, default=0)  # Tokens de salida
-    cost_estimate = Column(DECIMAL(10, 4))  # Costo estimado en USD
-    response_time_ms = Column(Integer)  # Tiempo de respuesta
-    success = Column(Boolean, default=True)  # Si la operación fue exitosa
-    error_message = Column(Text)  # Mensaje de error si falló
-    context_size = Column(Integer)  # Tamaño del contexto enviado
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    date_partition = Column(Date, server_default=func.current_date())  # Para particionado por fecha
+    usuario_id = Column(String(50), ForeignKey("usuarios_autenticacion.id"))  # Usuario (puede ser NULL para métricas del sistema)
+    modelo_ia = Column(String(50), nullable=False)  # Modelo de IA usado
+    tipo_operacion = Column(String(100), nullable=False)  # 'analysis', 'chat', 'recommendation', 'prediction'
+    tokens_entrada = Column(Integer, default=0)  # Tokens de entrada
+    tokens_salida = Column(Integer, default=0)  # Tokens de salida
+    costo_estimado = Column(DECIMAL(10, 4))  # Costo estimado en USD
+    tiempo_respuesta_ms = Column(Integer)  # Tiempo de respuesta
+    exito = Column(Boolean, default=True)  # Si la operación fue exitosa
+    mensaje_error = Column(Text)  # Mensaje de error si falló
+    tamano_contexto = Column(Integer)  # Tamaño del contexto enviado
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    particion_fecha = Column(Date, server_default=func.current_date())  # Para particionado por fecha
     
     # Relaciones
-    user = relationship("AuthUser", back_populates="ai_usage_metrics")
+    usuario = relationship("AuthUser", back_populates="metricas_uso_ia")
 
 
 class AiModelConfig(Base):
@@ -104,16 +104,16 @@ class AiModelConfig(Base):
     __tablename__ = "configuraciones_modelo_ia"
     
     id = Column(Integer, primary_key=True, index=True)
-    model_name = Column(String(50), unique=True, nullable=False)  # 'claude-3-sonnet', 'gpt-4', etc.
-    provider = Column(String(50), nullable=False)  # 'anthropic', 'openai'
-    is_active = Column(Boolean, default=True)  # Si el modelo está activo
+    nombre_modelo = Column(String(50), unique=True, nullable=False)  # 'claude-3-sonnet', 'gpt-4', etc.
+    proveedor = Column(String(50), nullable=False)  # 'anthropic', 'openai'
+    esta_activo = Column(Boolean, default=True)  # Si el modelo está activo
     max_tokens = Column(Integer, default=4000)  # Máximo de tokens por request
-    temperature = Column(DECIMAL(3, 2), default=0.7)  # Temperatura del modelo
-    cost_per_input_token = Column(DECIMAL(10, 8))  # Costo por token de entrada
-    cost_per_output_token = Column(DECIMAL(10, 8))  # Costo por token de salida
-    rate_limit_per_minute = Column(Integer, default=60)  # Límite de requests por minuto
-    context_window = Column(Integer, default=200000)  # Ventana de contexto del modelo
-    specialization = Column(Text)  # Especialización del modelo
-    configuration = Column(JSON)  # Configuración específica del modelo
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    temperatura = Column(DECIMAL(3, 2), default=0.7)  # Temperatura del modelo
+    costo_por_token_entrada = Column(DECIMAL(10, 8))  # Costo por token de entrada
+    costo_por_token_salida = Column(DECIMAL(10, 8))  # Costo por token de salida
+    limite_tasa_por_minuto = Column(Integer, default=60)  # Límite de requests por minuto
+    ventana_contexto = Column(Integer, default=200000)  # Ventana de contexto del modelo
+    especializacion = Column(Text)  # Especialización del modelo
+    configuracion = Column(JSON)  # Configuración específica del modelo
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
