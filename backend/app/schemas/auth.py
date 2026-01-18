@@ -8,86 +8,86 @@ from datetime import datetime
 
 
 class AuthUserBase(BaseModel):
-    email: Optional[EmailStr] = None
+    correo: Optional[EmailStr] = None
     cedula: Optional[str] = Field(None, max_length=50)
-    name: str = Field(..., min_length=1, max_length=255)
-    role: str = Field(default="user", max_length=50)
-    is_active: bool = True
-    email_verified: bool = False
-    avatar_url: Optional[str] = Field(None, max_length=500)
-    timezone: str = Field(default="UTC", max_length=50)
+    nombre: str = Field(..., min_length=1, max_length=255)
+    rol: str = Field(default="user", max_length=50)
+    esta_activo: bool = True
+    correo_verificado: bool = False
+    url_avatar: Optional[str] = Field(None, max_length=500)
+    zona_horaria: str = Field(default="UTC", max_length=50)
 
 
 class AuthUserCreate(AuthUserBase):
-    password: str = Field(..., min_length=8)
+    contrasena: str = Field(..., min_length=8)
 
 
 class AuthUserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    role: Optional[str] = Field(None, max_length=50)
-    is_active: Optional[bool] = None
-    email_verified: Optional[bool] = None
-    avatar_url: Optional[str] = Field(None, max_length=500)
-    timezone: Optional[str] = Field(None, max_length=50)
+    correo: Optional[EmailStr] = None
+    nombre: Optional[str] = Field(None, min_length=1, max_length=255)
+    rol: Optional[str] = Field(None, max_length=50)
+    esta_activo: Optional[bool] = None
+    correo_verificado: Optional[bool] = None
+    url_avatar: Optional[str] = Field(None, max_length=500)
+    zona_horaria: Optional[str] = Field(None, max_length=50)
 
 
 class AuthUser(AuthUserBase):
     id: str
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    last_login: Optional[datetime] = None
+    creado_en: datetime
+    actualizado_en: Optional[datetime] = None
+    ultimo_login: Optional[datetime] = None
     
     class Config:
         orm_mode = True
 
 
 class AuthTokenBase(BaseModel):
-    token_type: str = Field(..., max_length=50)
-    name: Optional[str] = Field(None, max_length=255)
-    expires_at: datetime
+    tipo_token: str = Field(..., max_length=50)
+    nombre: Optional[str] = Field(None, max_length=255)
+    expira_en: datetime
 
 
 class AuthTokenCreate(AuthTokenBase):
-    user_id: str
+    usuario_id: str
 
 
 class AuthToken(AuthTokenBase):
     id: int
-    user_id: str
-    last_used_at: Optional[datetime] = None
-    created_at: datetime
+    usuario_id: str
+    ultimo_uso_en: Optional[datetime] = None
+    creado_en: datetime
     
     class Config:
         orm_mode = True
 
 
 class UserSessionBase(BaseModel):
-    ip_address: Optional[str] = Field(None, max_length=45)
-    user_agent: Optional[str] = None
-    expires_at: datetime
+    direccion_ip: Optional[str] = Field(None, max_length=45)
+    agente_usuario: Optional[str] = None
+    expira_en: datetime
 
 
 class UserSessionCreate(UserSessionBase):
-    user_id: str
-    session_token: str
+    usuario_id: str
+    token_sesion: str
 
 
 class UserSession(UserSessionBase):
     id: int
-    user_id: str
-    session_token: str
-    created_at: datetime
+    usuario_id: str
+    token_sesion: str
+    creado_en: datetime
     
     class Config:
         orm_mode = True
 
 
 class PermissionBase(BaseModel):
-    name: str = Field(..., max_length=100)
-    description: Optional[str] = None
-    resource: str = Field(..., max_length=100)
-    action: str = Field(..., max_length=50)
+    nombre: str = Field(..., max_length=100)
+    descripcion: Optional[str] = None
+    recurso: str = Field(..., max_length=100)
+    accion: str = Field(..., max_length=50)
 
 
 class PermissionCreate(PermissionBase):
@@ -96,29 +96,29 @@ class PermissionCreate(PermissionBase):
 
 class Permission(PermissionBase):
     id: int
-    created_at: datetime
+    creado_en: datetime
     
     class Config:
         orm_mode = True
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
+    correo: EmailStr
+    contrasena: str
 
 
 class LoginResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int
-    user: AuthUser
+    token_acceso: str
+    token_refresco: str
+    tipo_token: str = "bearer"
+    expira_en: int
+    usuario: AuthUser
 
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str
+    token_refresco: str
 
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str
-    new_password: str = Field(..., min_length=8)
+    contrasena_actual: str
+    nueva_contrasena: str = Field(..., min_length=8)
