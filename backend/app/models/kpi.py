@@ -12,111 +12,111 @@ class DevelopmentKpiMetric(Base):
     __tablename__ = "metricas_kpi_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
-    metric_type = Column(String(100), nullable=False)  # 'cumplimiento_fechas', 'calidad_primera_entrega', etc.
-    provider = Column(String(100))
-    period_start = Column(Date)
-    period_end = Column(Date)
-    value = Column(DECIMAL(10, 2))
-    target_value = Column(DECIMAL(10, 2))
-    calculated_at = Column(DateTime(timezone=True), server_default=func.now())
-    calculated_by = Column(String(255))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    desarrollo_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
+    tipo_metrica = Column(String(100), nullable=False)  # 'cumplimiento_fechas', 'calidad_primera_entrega', etc.
+    proveedor = Column(String(100))
+    periodo_inicio = Column(Date)
+    periodo_fin = Column(Date)
+    valor = Column(DECIMAL(10, 2))
+    valor_objetivo = Column(DECIMAL(10, 2))
+    calculado_en = Column(DateTime(timezone=True), server_default=func.now())
+    calculado_por = Column(String(255))
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relaciones
-    development = relationship("Development", back_populates="kpi_metrics")
+    desarrollo = relationship("Development", back_populates="metricas_kpi")
 
 
 class DevelopmentFunctionality(Base):
     __tablename__ = "funcionalidades_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
-    functionality_name = Column(String(255), nullable=False)
-    functionality_code = Column(String(100))
-    description = Column(Text)
-    status = Column(String(50), default="delivered")  # 'delivered', 'pending', 'rejected', 'in_progress'
-    delivery_date = Column(Date)
-    defects_count = Column(Integer, default=0)
-    test_coverage_percentage = Column(DECIMAL(5, 2))
-    complexity_level = Column(String(20), default="medium")  # 'low', 'medium', 'high', 'critical'
-    estimated_hours = Column(DECIMAL(8, 2))
-    actual_hours = Column(DECIMAL(8, 2))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    desarrollo_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
+    nombre_funcionalidad = Column(String(255), nullable=False)
+    codigo_funcionalidad = Column(String(100))
+    descripcion = Column(Text)
+    estado = Column(String(50), default="delivered")  # 'delivered', 'pending', 'rejected', 'in_progress'
+    fecha_entrega = Column(Date)
+    cantidad_defectos = Column(Integer, default=0)
+    porcentaje_cobertura_pruebas = Column(DECIMAL(5, 2))
+    nivel_complejidad = Column(String(20), default="medium")  # 'low', 'medium', 'high', 'critical'
+    horas_estimadas = Column(DECIMAL(8, 2))
+    horas_reales = Column(DECIMAL(8, 2))
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relaciones
-    development = relationship("Development", back_populates="functionalities")
-    test_results = relationship("DevelopmentTestResult", back_populates="functionality")
+    desarrollo = relationship("Development", back_populates="funcionalidades")
+    resultados_pruebas = relationship("DevelopmentTestResult", back_populates="funcionalidad")
 
 
 class DevelopmentQualityMetric(Base):
     __tablename__ = "metricas_calidad_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
-    provider = Column(String(100))
-    metric_type = Column(String(100), nullable=False)  # 'first_time_quality', 'defects_per_delivery', etc.
-    metric_name = Column(String(255), nullable=False)
-    value = Column(DECIMAL(10, 2))
-    target_value = Column(DECIMAL(10, 2))
-    unit = Column(String(20), default="percentage")  # 'percentage', 'hours', 'count', 'days'
-    calculation_method = Column(String(100))
-    period_start = Column(Date)
-    period_end = Column(Date)
-    calculated_at = Column(DateTime(timezone=True), server_default=func.now())
-    calculated_by = Column(String(255))
-    is_current = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    desarrollo_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
+    proveedor = Column(String(100))
+    tipo_metrica = Column(String(100), nullable=False)  # 'first_time_quality', 'defects_per_delivery', etc.
+    nombre_metrica = Column(String(255), nullable=False)
+    valor = Column(DECIMAL(10, 2))
+    valor_objetivo = Column(DECIMAL(10, 2))
+    unidad = Column(String(20), default="percentage")  # 'percentage', 'hours', 'count', 'days'
+    metodo_calculo = Column(String(100))
+    periodo_inicio = Column(Date)
+    periodo_fin = Column(Date)
+    calculado_en = Column(DateTime(timezone=True), server_default=func.now())
+    calculado_por = Column(String(255))
+    es_actual = Column(Boolean, default=True)
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relaciones
-    development = relationship("Development", back_populates="quality_metrics")
+    desarrollo = relationship("Development", back_populates="metricas_calidad")
 
 
 class DevelopmentTestResult(Base):
     __tablename__ = "resultados_pruebas_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
-    functionality_id = Column(Integer, ForeignKey("funcionalidades_desarrollo.id"))
-    test_type = Column(String(50), nullable=False)  # 'unit', 'integration', 'system', 'user_acceptance'
-    test_phase = Column(String(50))  # 'development', 'testing', 'pre_production', 'production'
-    test_date = Column(Date)
-    test_status = Column(String(50))  # 'passed', 'failed', 'blocked', 'not_executed'
-    defects_found = Column(Integer, default=0)
-    defects_severity = Column(String(50))  # 'low', 'medium', 'high', 'critical'
-    test_coverage = Column(DECIMAL(5, 2))
-    execution_time_hours = Column(DECIMAL(8, 2))
-    tester_name = Column(String(255))
-    notes = Column(Text)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    desarrollo_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
+    funcionalidad_id = Column(Integer, ForeignKey("funcionalidades_desarrollo.id"))
+    tipo_prueba = Column(String(50), nullable=False)  # 'unit', 'integration', 'system', 'user_acceptance'
+    fase_prueba = Column(String(50))  # 'development', 'testing', 'pre_production', 'production'
+    fecha_prueba = Column(Date)
+    estado_prueba = Column(String(50))  # 'passed', 'failed', 'blocked', 'not_executed'
+    defectos_encontrados = Column(Integer, default=0)
+    severidad_defectos = Column(String(50))  # 'low', 'medium', 'high', 'critical'
+    cobertura_pruebas = Column(DECIMAL(5, 2))
+    horas_ejecucion = Column(DECIMAL(8, 2))
+    nombre_tester = Column(String(255))
+    notas = Column(Text)
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relaciones
-    development = relationship("Development", back_populates="test_results")
-    functionality = relationship("DevelopmentFunctionality", back_populates="test_results")
+    desarrollo = relationship("Development", back_populates="resultados_pruebas")
+    funcionalidad = relationship("DevelopmentFunctionality", back_populates="resultados_pruebas")
 
 
 class DevelopmentDeliveryHistory(Base):
     __tablename__ = "historial_entregas_desarrollo"
     
     id = Column(Integer, primary_key=True, index=True)
-    development_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
-    delivery_version = Column(String(50))
-    delivery_type = Column(String(50))  # 'initial', 'revision', 'fix', 'final'
-    delivery_date = Column(Date)
-    delivery_status = Column(String(50))  # 'delivered', 'returned', 'accepted', 'rejected'
-    return_reason = Column(Text)
-    return_count = Column(Integer, default=0)
-    approval_date = Column(Date)
-    approved_by = Column(String(255))
-    quality_score = Column(DECIMAL(5, 2))
-    defects_reported = Column(Integer, default=0)
-    defects_resolved = Column(Integer, default=0)
-    delivery_notes = Column(Text)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    desarrollo_id = Column(String(50), ForeignKey("desarrollos.id"), nullable=False)
+    version_entrega = Column(String(50))
+    tipo_entrega = Column(String(50))  # 'initial', 'revision', 'fix', 'final'
+    fecha_entrega = Column(Date)
+    estado_entrega = Column(String(50))  # 'delivered', 'returned', 'accepted', 'rejected'
+    motivo_devolucion = Column(Text)
+    cantidad_devoluciones = Column(Integer, default=0)
+    fecha_aprobacion = Column(Date)
+    aprobado_por = Column(String(255))
+    puntaje_calidad = Column(DECIMAL(5, 2))
+    defectos_reportados = Column(Integer, default=0)
+    defectos_resueltos = Column(Integer, default=0)
+    notas_entrega = Column(Text)
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relaciones
-    development = relationship("Development", back_populates="delivery_history")
+    desarrollo = relationship("Development", back_populates="historial_entregas")
