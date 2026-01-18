@@ -1,12 +1,9 @@
-import {
-    AlertTriangle,
-    Save,
-    X
-} from 'lucide-react';
 import React, { useState } from 'react';
+import { AlertTriangle, Save, X } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { ActivityCreate } from '../../types';
+import { Button, Input, Select, Textarea, Title, Text, Icon } from '../atoms';
 
 interface ActivityFormProps {
   developmentId: string;
@@ -14,10 +11,10 @@ interface ActivityFormProps {
   onCancel?: () => void;
 }
 
-const ActivityForm: React.FC<ActivityFormProps> = ({ 
-  developmentId, 
-  onSuccess, 
-  onCancel 
+const ActivityForm: React.FC<ActivityFormProps> = ({
+  developmentId,
+  onSuccess,
+  onCancel
 }) => {
   const { state } = useAppContext();
   const { darkMode } = state;
@@ -40,7 +37,7 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim() || !formData.due_date) {
       setError('El título y la fecha son obligatorios');
       return;
@@ -51,7 +48,7 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
       setError(null);
 
       await post('/alerts/activities', formData);
-      
+
       if (onSuccess) {
         onSuccess();
       }
@@ -94,188 +91,104 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
   return (
     <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6`}>
       <div className="flex items-center justify-between mb-6">
-        <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+        <Title variant="h5" weight="bold">
           Crear Nueva Actividad
-        </h3>
+        </Title>
         {onCancel && (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={X}
             onClick={onCancel}
-            className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-neutral-700"
-          >
-            <X size={16} />
-          </button>
+          />
         )}
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <AlertTriangle size={16} />
-            <span>{error}</span>
-          </div>
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center space-x-2">
+          <Icon name={AlertTriangle} size="sm" color="error" />
+          <Text variant="body2" color="error">{error}</Text>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Título */}
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-            Título de la Actividad *
-          </label>
-          <input
-            type="text"
-            value={formData.title}
-            onChange={(e) => handleInputChange('title', e.target.value)}
-            className={`w-full p-3 rounded-lg border ${
-              darkMode 
-                ? 'bg-neutral-700 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-neutral-900'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            placeholder="Ej: Reunión de seguimiento semanal"
-            required
-          />
-        </div>
+        <Input
+          label="Título de la Actividad *"
+          value={formData.title}
+          onChange={(e) => handleInputChange('title', e.target.value)}
+          placeholder="Ej: Reunión de seguimiento semanal"
+          required
+        />
 
         {/* Tipo de Actividad */}
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-            Tipo de Actividad
-          </label>
-          <select
-            value={formData.activity_type}
-            onChange={(e) => handleInputChange('activity_type', e.target.value)}
-            className={`w-full p-3 rounded-lg border ${
-              darkMode 
-                ? 'bg-neutral-700 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-neutral-900'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-          >
-            {activityTypes.map(type => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          label="Tipo de Actividad"
+          value={formData.activity_type}
+          onChange={(e) => handleInputChange('activity_type', e.target.value)}
+          options={activityTypes}
+        />
 
         {/* Descripción */}
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-            Descripción
-          </label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => handleInputChange('description', e.target.value)}
-            rows={3}
-            className={`w-full p-3 rounded-lg border ${
-              darkMode 
-                ? 'bg-neutral-700 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-neutral-900'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            placeholder="Descripción detallada de la actividad..."
-          />
-        </div>
+        <Textarea
+          label="Descripción"
+          value={formData.description}
+          onChange={(e) => handleInputChange('description', e.target.value)}
+          rows={3}
+          placeholder="Descripción detallada de la actividad..."
+        />
 
         {/* Fecha de Vencimiento */}
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-            Fecha de Vencimiento *
-          </label>
-          <input
-            type="date"
-            value={formData.due_date}
-            onChange={(e) => handleInputChange('due_date', e.target.value)}
-            className={`w-full p-3 rounded-lg border ${
-              darkMode 
-                ? 'bg-neutral-700 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-neutral-900'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            required
-          />
-        </div>
+        <Input
+          label="Fecha de Vencimiento *"
+          type="date"
+          value={formData.due_date}
+          onChange={(e) => handleInputChange('due_date', e.target.value)}
+          required
+        />
 
         {/* Responsable */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-              Responsable
-            </label>
-            <select
-              value={formData.responsible_party}
-              onChange={(e) => handleInputChange('responsible_party', e.target.value)}
-              className={`w-full p-3 rounded-lg border ${
-                darkMode 
-                  ? 'bg-neutral-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300 text-neutral-900'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            >
-              {responsibleParties.map(party => (
-                <option key={party.value} value={party.value}>
-                  {party.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Responsable"
+            value={formData.responsible_party}
+            onChange={(e) => handleInputChange('responsible_party', e.target.value)}
+            options={responsibleParties}
+          />
 
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-              Persona Responsable
-            </label>
-            <input
-              type="text"
-              value={formData.responsible_person}
-              onChange={(e) => handleInputChange('responsible_person', e.target.value)}
-              className={`w-full p-3 rounded-lg border ${
-                darkMode 
-                  ? 'bg-neutral-700 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300 text-neutral-900'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-              placeholder="Nombre de la persona responsable"
-            />
-          </div>
+          <Input
+            label="Persona Responsable"
+            value={formData.responsible_person}
+            onChange={(e) => handleInputChange('responsible_person', e.target.value)}
+            placeholder="Nombre de la persona responsable"
+          />
         </div>
 
         {/* Prioridad */}
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-            Prioridad
-          </label>
-          <select
-            value={formData.priority}
-            onChange={(e) => handleInputChange('priority', e.target.value)}
-            className={`w-full p-3 rounded-lg border ${
-              darkMode 
-                ? 'bg-neutral-700 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-neutral-900'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-          >
-            {priorities.map(priority => (
-              <option key={priority.value} value={priority.value}>
-                {priority.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          label="Prioridad"
+          value={formData.priority}
+          onChange={(e) => handleInputChange('priority', e.target.value)}
+          options={priorities}
+        />
 
         {/* Botones */}
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           {onCancel && (
-            <button
-              type="button"
+            <Button
+              variant="outline"
               onClick={onCancel}
-              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
             >
               Cancelar
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            loading={isSubmitting}
+            icon={Save}
           >
-            <Save size={16} />
-            <span>{isSubmitting ? 'Creando...' : 'Crear Actividad'}</span>
-          </button>
+            Crear Actividad
+          </Button>
         </div>
       </form>
     </div>

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useApi } from './useApi';
-import { DevelopmentQualityControl, QualityControlCatalog } from '../types';
+import { QualityControlCatalog, QualityControlWithCatalog } from '../types';
 import { API_ENDPOINTS } from '../config/api';
 
 interface UseQualityControlsReturn {
-  controls: DevelopmentQualityControl[];
+  controls: QualityControlWithCatalog[];
   catalog: QualityControlCatalog[];
   loading: boolean;
   error: string | null;
@@ -18,7 +18,7 @@ interface UseQualityControlsReturn {
 
 export const useQualityControls = (developmentId?: string): UseQualityControlsReturn => {
   const { get, post, put } = useApi<any>();
-  const [controls, setControls] = useState<DevelopmentQualityControl[]>([]);
+  const [controls, setControls] = useState<QualityControlWithCatalog[]>([]);
   const [catalog, setCatalog] = useState<QualityControlCatalog[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

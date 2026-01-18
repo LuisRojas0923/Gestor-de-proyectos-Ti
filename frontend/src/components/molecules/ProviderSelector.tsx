@@ -1,5 +1,5 @@
 import React from 'react';
-import { MaterialSelect } from '../atoms';
+import { Select } from '../atoms';
 
 interface ProviderSelectorProps {
   selectedProvider: string;
@@ -29,10 +29,9 @@ const ProviderSelector: React.FC<ProviderSelectorProps> = ({
       <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
         Proveedor:
       </label>
-      <MaterialSelect
+      <Select
         value={selectedProvider}
         onChange={(e) => onProviderChange(e.target.value)}
-        darkMode={darkMode}
         options={options}
         disabled={loading}
         className="min-w-[180px]"

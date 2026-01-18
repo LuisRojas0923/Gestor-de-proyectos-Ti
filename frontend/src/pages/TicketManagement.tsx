@@ -10,9 +10,9 @@ import {
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
+import { Button, Select, Input, Title, Text, Icon } from '../components/atoms';
 
 interface Ticket {
     id: string;
@@ -25,8 +25,6 @@ interface Ticket {
 }
 
 const TicketManagement: React.FC = () => {
-    const { state } = useAppContext();
-    const { darkMode } = state;
     const { get } = useApi<Ticket[]>();
     const navigate = useNavigate();
 
@@ -101,36 +99,39 @@ const TicketManagement: React.FC = () => {
         <div className="space-y-8 pb-10 font-sans">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className={`text-3xl font-black ${darkMode ? 'text-white' : 'text-gray-900'} mb-1`}>
+                    <Title variant="h3" weight="bold" color="text-primary" className="mb-1">
                         Gestión de Tickets
-                    </h1>
-                    <p className="text-gray-500 font-medium tracking-tight">Administración de solicitudes de soporte técnico</p>
+                    </Title>
+                    <Text variant="body1" color="text-secondary" weight="medium" className="tracking-tight">Administración de solicitudes de soporte técnico</Text>
                 </div>
 
                 <div className="flex items-center space-x-3">
-                    <div className={`relative ${darkMode ? 'bg-neutral-800' : 'bg-white'} rounded-xl border ${darkMode ? 'border-neutral-700' : 'border-gray-200'} shadow-sm`}>
-                        <input
+                    <div className="relative w-64">
+                        <Input
                             type="text"
                             placeholder="Buscar por ID, asunto o cliente..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2.5 bg-transparent outline-none w-64 text-sm"
+                            icon={Search}
+                            className="bg-transparent border-none focus:ring-0"
                         />
-                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     </div>
 
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className={`px-4 py-2.5 rounded-xl border ${darkMode ? 'bg-neutral-800 border-neutral-700 text-white' : 'bg-white border-gray-200'} text-sm font-bold shadow-sm outline-none`}
-                    >
-                        <option value="Todos">Todos los estados</option>
-                        <option value="Abierto">Abierto</option>
-                        <option value="En Proceso">En Proceso</option>
-                        <option value="Pendiente Info">Pendiente Info</option>
-                        <option value="Escalado">Escalado</option>
-                        <option value="Cerrado">Cerrado</option>
-                    </select>
+                    <div className="w-64">
+                        <Select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            options={[
+                                { value: "Todos", label: "Todos los estados" },
+                                { value: "Abierto", label: "Abierto" },
+                                { value: "En Proceso", label: "En Proceso" },
+                                { value: "Pendiente Info", label: "Pendiente Info" },
+                                { value: "Escalado", label: "Escalado" },
+                                { value: "Cerrado", label: "Cerrado" },
+                            ]}
+                            className="bg-[var(--color-surface)]"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -142,14 +143,14 @@ const TicketManagement: React.FC = () => {
                     { label: 'En Proceso', count: statusCounts.enProceso, color: 'yellow', icon: RefreshCw },
                     { label: 'Cerrados', count: statusCounts.cerrado, color: 'green', icon: CheckCircle },
                 ].map((card) => (
-                    <div key={card.label} className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-gray-100'} p-5 rounded-3xl border shadow-sm`}>
+                    <div key={card.label} className="bg-[var(--color-surface)] p-5 rounded-3xl border border-[var(--color-border)] shadow-sm">
                         <div className="flex items-center justify-between mb-2">
                             <div className={`p-2 rounded-xl bg-${card.color}-100 dark:bg-${card.color}-900/20 text-${card.color}-600 dark:text-${card.color}-400`}>
-                                <card.icon size={20} />
+                                <Icon name={card.icon} size="sm" />
                             </div>
-                            <span className={`text-2xl font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{card.count}</span>
+                            <Text variant="h5" weight="bold" color="text-primary">{card.count}</Text>
                         </div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{card.label}</p>
+                        <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-40">{card.label}</Text>
                     </div>
                 ))}
             </div>
@@ -157,19 +158,19 @@ const TicketManagement: React.FC = () => {
             {isLoading ? (
                 <div className="py-20 text-center">
                     <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                    <p className="text-gray-500 font-medium">Cargando tickets...</p>
+                    <Text variant="body2" color="text-secondary" weight="medium">Cargando tickets...</Text>
                 </div>
             ) : filteredTickets.length > 0 ? (
-                <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} rounded-[2.5rem] overflow-hidden border ${darkMode ? 'border-neutral-700' : 'border-gray-100'} shadow-sm shadow-black/5`}>
+                <div className="bg-[var(--color-surface)] rounded-[2.5rem] overflow-hidden border border-[var(--color-border)] shadow-xl shadow-black/5">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className={`border-b ${darkMode ? 'border-neutral-700 bg-neutral-800/50' : 'border-gray-50 bg-gray-50/50'}`}>
-                                <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">ID</th>
-                                <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Asunto / Solicitante</th>
-                                <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Prioridad</th>
-                                <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Estado</th>
-                                <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Acciones Rápidas</th>
-                                <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right"></th>
+                            <tr className="border-b border-[var(--color-border)]/50 bg-[var(--color-surface-variant)]/30">
+                                <th className="px-6 py-5"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">ID</Text></th>
+                                <th className="px-6 py-5"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Asunto / Solicitante</Text></th>
+                                <th className="px-6 py-5 text-center"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Prioridad</Text></th>
+                                <th className="px-6 py-5 text-center"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Estado</Text></th>
+                                <th className="px-6 py-5"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Acciones Rápidas</Text></th>
+                                <th className="px-6 py-5 text-right"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-neutral-700">
@@ -181,39 +182,45 @@ const TicketManagement: React.FC = () => {
                                     <td className="px-6 py-5 font-mono text-xs text-gray-400" onClick={() => navigate(`/tickets/${ticket.id}`)}>{ticket.id}</td>
                                     <td className="px-6 py-5" onClick={() => navigate(`/tickets/${ticket.id}`)}>
                                         <div>
-                                            <p className={`font-black text-sm ${darkMode ? 'text-white' : 'text-gray-900'} group-hover:text-blue-600 transition-colors mb-0.5`}>
+                                            <Text variant="body2" weight="bold" color="text-primary" className="group-hover:text-[var(--color-primary)] transition-colors mb-0.5">
                                                 {ticket.subject}
-                                            </p>
-                                            <p className="text-xs text-gray-500 font-medium">{ticket.creator_name}</p>
+                                            </Text>
+                                            <Text variant="caption" color="text-secondary" weight="medium">{ticket.creator_name}</Text>
                                         </div>
                                     </td>
                                     <td className="px-6 py-5" onClick={() => navigate(`/tickets/${ticket.id}`)}>
                                         <div className="flex items-center justify-center space-x-1.5">
                                             <div className={`w-2 h-2 rounded-full ${getPriorityStyle(ticket.priority).replace('text', 'bg')}`}></div>
-                                            <span className={`text-xs font-black ${getPriorityStyle(ticket.priority)}`}>{ticket.priority}</span>
+                                            <Text as="span" variant="caption" weight="bold" className={getPriorityStyle(ticket.priority)}>{ticket.priority}</Text>
                                         </div>
                                     </td>
                                     <td className="px-6 py-5 text-center" onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                                        <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider ${getStatusStyle(ticket.status)}`}>
+                                        <Text as="span" variant="caption" weight="bold" className={`px-3 py-1.5 rounded-xl tracking-wider text-[10px] ${getStatusStyle(ticket.status)}`}>
                                             {ticket.status.toUpperCase()}
-                                        </span>
+                                        </Text>
                                     </td>
                                     <td className="px-6 py-5">
                                         <div className="flex items-center justify-center space-x-2">
-                                            <button
-                                                className={`p-2 rounded-lg transition-all ${darkMode ? 'hover:bg-neutral-700 text-blue-400' : 'hover:bg-blue-50 text-blue-600'}`}
-                                                title="Asignarme"
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                icon={UserCheck}
                                                 onClick={(e) => { e.stopPropagation(); /* Logic to assign */ }}
+                                                className="text-[var(--color-primary)]"
+                                                title="Asignarme"
                                             >
-                                                <UserCheck size={16} />
-                                            </button>
-                                            <button
-                                                className={`p-2 rounded-lg transition-all ${darkMode ? 'hover:bg-neutral-700 text-green-400' : 'hover:bg-green-50 text-green-600'}`}
-                                                title="Cerrar Ticket"
+                                                {""}
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                icon={CheckCircle}
                                                 onClick={(e) => { e.stopPropagation(); /* Logic to close */ }}
+                                                className="text-green-600 dark:text-green-400"
+                                                title="Cerrar Ticket"
                                             >
-                                                <CheckCircle size={16} />
-                                            </button>
+                                                {""}
+                                            </Button>
                                         </div>
                                     </td>
                                     <td className="px-6 py-5 text-right" onClick={() => navigate(`/tickets/${ticket.id}`)}>
@@ -225,12 +232,12 @@ const TicketManagement: React.FC = () => {
                     </table>
                 </div>
             ) : (
-                <div className={`py-20 text-center ${darkMode ? 'bg-neutral-800' : 'bg-white'} rounded-[2.5rem] border ${darkMode ? 'border-neutral-700' : 'border-gray-100'}`}>
-                    <div className="w-16 h-16 bg-gray-100 dark:bg-neutral-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FilterX size={32} className="text-gray-400" />
+                <div className="py-20 text-center bg-[var(--color-surface)] rounded-[2.5rem] border border-[var(--color-border)] shadow-xl shadow-black/5">
+                    <div className="w-16 h-16 bg-[var(--color-background)] rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Icon name={FilterX} size="lg" className="text-[var(--color-text-secondary)]/30" />
                     </div>
-                    <h3 className="text-xl font-bold mb-2">No se encontraron tickets</h3>
-                    <p className="text-gray-500">Prueba ajustando los filtros o el término de búsqueda.</p>
+                    <Title variant="h6" weight="bold" className="mb-2" color="text-primary">No se encontraron tickets</Title>
+                    <Text variant="body2" color="text-secondary" weight="medium">Prueba ajustando los filtros o el término de búsqueda.</Text>
                 </div>
             )}
         </div>

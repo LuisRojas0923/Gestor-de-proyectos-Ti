@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Filter, X } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { MaterialTextField, MaterialButton } from '../atoms';
+import { Input, Button } from '../atoms';
 import { materialDesignTokens } from '../tokens';
 
 interface MaterialSearchBarProps {
@@ -28,13 +28,12 @@ const MaterialSearchBar: React.FC<MaterialSearchBarProps> = ({
   const { state } = useAppContext();
   const { darkMode } = state;
   const tokens = materialDesignTokens;
-  
+
   const [internalValue, setInternalValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [focused, setFocused] = useState(false);
-  
+
   const value = controlledValue !== undefined ? controlledValue : internalValue;
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     if (controlledValue === undefined) {
@@ -43,18 +42,18 @@ const MaterialSearchBar: React.FC<MaterialSearchBarProps> = ({
     onChange?.(newValue);
     setShowSuggestions(newValue.length > 0 && suggestions.length > 0);
   };
-  
+
   const handleSearch = () => {
     onSearch?.(value);
     setShowSuggestions(false);
   };
-  
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch();
     }
   };
-  
+
   const handleSuggestionClick = (suggestion: string) => {
     if (controlledValue === undefined) {
       setInternalValue(suggestion);
@@ -63,7 +62,7 @@ const MaterialSearchBar: React.FC<MaterialSearchBarProps> = ({
     onSearch?.(suggestion);
     setShowSuggestions(false);
   };
-  
+
   const handleClear = () => {
     if (controlledValue === undefined) {
       setInternalValue('');
@@ -71,7 +70,7 @@ const MaterialSearchBar: React.FC<MaterialSearchBarProps> = ({
     onChange?.('');
     setShowSuggestions(false);
   };
-  
+
   const filteredSuggestions = suggestions.filter(suggestion =>
     suggestion.toLowerCase().includes(value.toLowerCase())
   );
@@ -80,40 +79,35 @@ const MaterialSearchBar: React.FC<MaterialSearchBarProps> = ({
     <div className={`relative ${className}`}>
       <div className="flex items-center space-x-2">
         <div className="flex-1 relative">
-          <MaterialTextField
+          <Input
             type="search"
             placeholder={placeholder}
             value={value}
             onChange={handleInputChange}
             onKeyPress={handleKeyPress}
-            onFocus={() => setFocused(true)}
+            onFocus={() => setShowSuggestions(value.length > 0 && suggestions.length > 0)}
             onBlur={() => {
-              setFocused(false);
               // Delay para permitir clicks en sugerencias
               setTimeout(() => setShowSuggestions(false), 200);
             }}
             icon={Search}
-            iconPosition="left"
-            variant="outlined"
-            size="medium"
             className="w-full"
           />
-          
+
           {value && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleClear}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 transition-colors"
-              style={{
-                color: darkMode ? tokens.colors.text.secondary.dark : tokens.colors.text.secondary.light
-              }}
-            >
-              <X size={16} />
-            </button>
+              icon={X}
+              aria-label="Limpiar búsqueda"
+            />
           )}
-          
+
           {/* Sugerencias */}
           {showSuggestions && filteredSuggestions.length > 0 && (
-            <div 
+            <div
               className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
               style={{
                 backgroundColor: darkMode ? tokens.colors.surface.dark : tokens.colors.surface.light,
@@ -122,43 +116,41 @@ const MaterialSearchBar: React.FC<MaterialSearchBarProps> = ({
               }}
             >
               {filteredSuggestions.map((suggestion, index) => (
-                <button
+                <div
                   key={index}
                   onClick={() => handleSuggestionClick(suggestion)}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors first:rounded-t-lg last:rounded-b-lg cursor-pointer"
                   style={{
                     color: darkMode ? tokens.colors.text.primary.dark : tokens.colors.text.primary.light,
                     fontSize: tokens.typography.fontSize.body2,
                     fontFamily: tokens.typography.fontFamily.primary
                   }}
+                  role="button"
+                  tabIndex={0}
                 >
                   {suggestion}
-                </button>
+                </div>
               ))}
             </div>
           )}
         </div>
-        
-        <MaterialButton
-          variant="contained"
-          color="primary"
-          size="medium"
+
+        <Button
+          variant="primary"
           onClick={handleSearch}
           disabled={!value.trim()}
         >
           Buscar
-        </MaterialButton>
-        
+        </Button>
+
         {showFilters && (
-          <MaterialButton
-            variant="outlined"
-            color="primary"
-            size="medium"
+          <Button
+            variant="outline"
             icon={Filter}
             onClick={onFilter}
           >
             Filtros
-          </MaterialButton>
+          </Button>
         )}
       </div>
     </div>

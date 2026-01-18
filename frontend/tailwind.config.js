@@ -11,11 +11,11 @@ export default {
           200: '#bfe2fe',
           300: '#93d1fd',
           400: '#60b7fa',
-          500: '#3b9df6',
+          500: 'var(--color-primary-500)',
           600: '#0066A5',
           700: '#1d5f8a',
           800: '#1e5071',
-          900: '#1e445e',
+          900: 'var(--color-primary-900)',
         },
         secondary: {
           50: '#ecfdf5',

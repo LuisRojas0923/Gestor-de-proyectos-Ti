@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useApi } from '../../hooks/useApi';
+import { Button } from '../atoms';
 
 const ApiDebug: React.FC = () => {
   const api = useApi();
@@ -33,13 +34,13 @@ const ApiDebug: React.FC = () => {
       <h3 className="text-lg font-bold mb-4">Debug API - /etapas/cycle-flow</h3>
 
       <div className="mb-4">
-        <button
+        <Button
           onClick={testApi}
-          disabled={loading}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+          loading={loading}
+          variant="primary"
         >
-          {loading ? 'Cargando...' : 'Probar API'}
-        </button>
+          Probar API
+        </Button>
       </div>
 
       {loading && (

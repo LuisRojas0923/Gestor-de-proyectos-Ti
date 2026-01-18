@@ -10,7 +10,7 @@ import {
 import React, { useEffect, useState } from 'react';
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
 import { useTranslation } from 'react-i18next';
-import { Spinner } from '../components/atoms';
+import { Button, Select } from '../components/atoms';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 
@@ -193,31 +193,34 @@ const Testing: React.FC = () => {
           {t('testing')}
         </h1>
         <div className="flex items-center space-x-4">
-          <select
-            value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-            className={`px-4 py-2 rounded-lg border transition-colors ${darkMode
-              ? 'bg-neutral-700 border-neutral-600 text-white'
-              : 'bg-white border-neutral-300 text-neutral-900'
-              } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-          >
-            <option value="all">Todas las prioridades</option>
-            <option value="high">Alta</option>
-            <option value="medium">Media</option>
-            <option value="low">Baja</option>
-          </select>
-          <button
+          <div className="w-48">
+            <Select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value)}
+              options={[
+                { value: "all", label: "Todas las prioridades" },
+                { value: "high", label: "Alta" },
+                { value: "medium", label: "Media" },
+                { value: "low", label: "Baja" },
+              ]}
+              className={darkMode ? 'bg-neutral-700' : 'bg-white'}
+            />
+          </div>
+          <Button
+            variant="secondary"
             onClick={generateAIScenarios}
             disabled={loading}
-            className="bg-secondary-500 hover:bg-secondary-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            loading={loading}
+            icon={Sparkles}
           >
-            {loading ? <Spinner size="sm" /> : <Sparkles size={20} />}
-            <span>{t('generateAIScenarios')}</span>
-          </button>
-          <button className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-            <Plus size={20} />
-            <span>Nueva Tarea</span>
-          </button>
+            {t('generateAIScenarios')}
+          </Button>
+          <Button
+            variant="primary"
+            icon={Plus}
+          >
+            Nueva Tarea
+          </Button>
         </div>
       </div>
 
@@ -261,10 +264,14 @@ const Testing: React.FC = () => {
                                   }`}>
                                   {task.title}
                                 </h4>
-                                <button className={`p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'
-                                  }`}>
-                                  <MoreHorizontal size={16} />
-                                </button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  icon={MoreHorizontal}
+                                  className={`p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}
+                                >
+                                  {""}
+                                </Button>
                               </div>
 
                               <p className={`text-xs mb-3 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
@@ -296,15 +303,18 @@ const Testing: React.FC = () => {
                                 </div>
 
                                 {task.status === 'testing' && (
-                                  <button
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => toggleTimer(task.id)}
+                                    icon={task.isTimerActive ? Pause : Play}
                                     className={`p-1 rounded transition-colors ${task.isTimerActive
                                       ? 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400'
                                       : 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400'
                                       }`}
                                   >
-                                    {task.isTimerActive ? <Pause size={12} /> : <Play size={12} />}
-                                  </button>
+                                    {""}
+                                  </Button>
                                 )}
                               </div>
 

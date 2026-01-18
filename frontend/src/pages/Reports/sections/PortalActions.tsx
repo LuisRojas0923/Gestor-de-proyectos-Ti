@@ -1,52 +1,45 @@
 import React from 'react';
 import { Download, RefreshCw, Users } from 'lucide-react';
-import { MaterialButton } from '../../../components/atoms';
+import { Button } from '../../../components/atoms';
 
 interface PortalActionsProps {
-  darkMode: boolean;
   loading: boolean;
   onRefresh: () => void;
   onExport: (format: 'pdf' | 'excel') => void;
 }
 
 const PortalActions: React.FC<PortalActionsProps> = ({
-  darkMode,
   loading,
   onRefresh,
   onExport
 }) => {
   return (
     <div className="flex flex-wrap gap-3">
-      <MaterialButton
-        variant="contained"
-        color="primary"
+      <Button
+        variant="primary"
         icon={RefreshCw}
         onClick={onRefresh}
         disabled={loading}
-        darkMode={darkMode}
+        loading={loading}
       >
         Actualizar Informe
-      </MaterialButton>
+      </Button>
 
-      <MaterialButton
-        variant="contained"
-        color="secondary"
+      <Button
+        variant="outline"
         icon={Download}
         onClick={() => onExport('excel')}
-        darkMode={darkMode}
       >
         Exportar Excel
-      </MaterialButton>
+      </Button>
 
-      <MaterialButton
-        variant="contained"
-        color="secondary"
+      <Button
+        variant="outline"
         icon={Users}
         onClick={() => {/* TODO: Implementar envío por email */ }}
-        darkMode={darkMode}
       >
         Enviar por Email
-      </MaterialButton>
+      </Button>
     </div>
   );
 };

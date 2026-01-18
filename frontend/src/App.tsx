@@ -7,8 +7,14 @@ import './i18n';
 
 function App() {
   useEffect(() => {
-    // Initialize app - user data will come from authentication
-    // dispatch({ type: 'SET_USER', payload: userFromAuth });
+    // Inicializar tema desde localStorage o preferencia del sistema
+    const savedTheme = localStorage.getItem('theme');
+    const root = window.document.documentElement;
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
   }, []);
 
   return (

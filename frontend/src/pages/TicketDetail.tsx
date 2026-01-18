@@ -17,6 +17,7 @@ import {
 import { API_CONFIG } from '../config/api';
 import { useAppContext } from '../context/AppContext';
 import { DevelopmentWithCurrentStatus } from '../types/development';
+import { Button, Select, Textarea } from '../components/atoms';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -183,17 +184,23 @@ const TicketDetail: React.FC = () => {
             <div className="max-w-6xl mx-auto space-y-8">
                 {/* Header Acciones */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <button onClick={() => navigate(-1)} className="flex items-center text-gray-500 font-bold hover:text-black dark:hover:text-white transition-colors">
-                        <ArrowLeft size={20} className="mr-2" /> Volver a la gestión
-                    </button>
+                    <Button
+                        variant="ghost"
+                        onClick={() => navigate(-1)}
+                        icon={ArrowLeft}
+                        className="font-bold p-0"
+                    >
+                        Volver a la gestión
+                    </Button>
                     <div className="flex items-center space-x-3">
                         {ticket.status === 'RESUELTO' && (
-                            <button
+                            <Button
+                                variant="danger"
+                                size="sm"
                                 onClick={() => handleRejectSolution()}
-                                className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm font-black border border-red-100 dark:bg-red-900/10 dark:border-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/20 transition-all"
                             >
                                 Rechazar Solución
-                            </button>
+                            </Button>
                         )}
                         <span className={`px-5 py-2 rounded-full text-xs font-black border tracking-widest ${getContentStatusStyle(ticket.status)}`}>
                             {ticket.status.toUpperCase()}
@@ -280,32 +287,40 @@ const TicketDetail: React.FC = () => {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Estado de la Solicitud</label>
-                                    <select name="status" defaultValue={ticket.status} className="w-full px-5 py-4 rounded-2xl border-2 border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50 text-neutral-900 dark:text-white font-bold focus:bg-white dark:focus:bg-neutral-800 focus:border-blue-500/50 transition-all outline-none appearance-none cursor-pointer">
-                                        {stages.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Nivel de Prioridad</label>
-                                    <select name="priority" defaultValue={ticket.priority} className="w-full px-5 py-4 rounded-2xl border-2 border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50 text-neutral-900 dark:text-white font-bold focus:bg-white dark:focus:bg-neutral-800 focus:border-blue-500/50 transition-all outline-none appearance-none cursor-pointer">
-                                        <option>Baja</option>
-                                        <option>Media</option>
-                                        <option>Alta</option>
-                                        <option>Crítica</option>
-                                    </select>
-                                </div>
+                                <Select
+                                    label="Estado de la Solicitud"
+                                    name="status"
+                                    defaultValue={ticket.status}
+                                    options={stages.map(s => ({ value: s, label: s.replace('_', ' ') }))}
+                                />
+                                <Select
+                                    label="Nivel de Prioridad"
+                                    name="priority"
+                                    defaultValue={ticket.priority}
+                                    options={[
+                                        { value: 'Baja', label: 'Baja' },
+                                        { value: 'Media', label: 'Media' },
+                                        { value: 'Alta', label: 'Alta' },
+                                        { value: 'Crítica', label: 'Crítica' },
+                                    ]}
+                                />
                             </div>
 
                             <div className="space-y-8">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Respuesta / Diagnóstico</label>
-                                    <textarea name="diagnostic" defaultValue={ticket.diagnostic || ''} rows={4} className="w-full px-6 py-5 rounded-3xl border-2 border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50 text-neutral-900 dark:text-white font-medium focus:bg-white dark:focus:bg-neutral-800 focus:border-blue-500/50 transition-all outline-none resize-none" placeholder="Ingresa los detalles técnicos o respuesta inicial..."></textarea>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">Solución Definitiva</label>
-                                    <textarea name="resolution" defaultValue={ticket.resolution || ''} rows={5} className="w-full px-6 py-5 rounded-3xl border-2 border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50 text-neutral-900 dark:text-white font-medium focus:bg-white dark:focus:bg-neutral-800 focus:border-blue-500/50 transition-all outline-none resize-none" placeholder="Describe los pasos finales para la resolución..."></textarea>
-                                </div>
+                                <Textarea
+                                    label="Respuesta / Diagnóstico"
+                                    name="diagnostic"
+                                    defaultValue={ticket.diagnostic || ''}
+                                    rows={4}
+                                    placeholder="Ingresa los detalles técnicos o respuesta inicial..."
+                                />
+                                <Textarea
+                                    label="Solución Definitiva"
+                                    name="resolution"
+                                    defaultValue={ticket.resolution || ''}
+                                    rows={5}
+                                    placeholder="Describe los pasos finales para la resolución..."
+                                />
                             </div>
 
                             <div className="pt-8 border-t border-neutral-50 dark:border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -319,22 +334,25 @@ const TicketDetail: React.FC = () => {
                                             <div className="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-xl border border-blue-100 dark:border-blue-800">
                                                 <LinkIcon size={12} className="text-blue-500" />
                                                 <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{ticket.development_id}</span>
-                                                <button
-                                                    type="button"
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() => setIsLinking(true)}
                                                     className="text-[10px] font-black text-neutral-400 hover:text-blue-500 ml-2"
                                                 >
                                                     CAMBIAR
-                                                </button>
+                                                </Button>
                                             </div>
                                         ) : (
-                                            <button
-                                                type="button"
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
                                                 onClick={() => setIsLinking(true)}
-                                                className="text-[10px] font-black text-blue-500 hover:text-blue-600 transition-colors uppercase tracking-widest flex items-center"
+                                                icon={Plus}
+                                                className="text-[10px] font-black text-blue-500 hover:text-blue-600 transition-colors uppercase tracking-widest"
                                             >
-                                                <Plus size={14} className="mr-1" /> Seleccionar Desarrollo
-                                            </button>
+                                                Seleccionar Desarrollo
+                                            </Button>
                                         )}
                                     </div>
 
@@ -342,31 +360,44 @@ const TicketDetail: React.FC = () => {
                                         <div className="bg-neutral-50 dark:bg-neutral-800/50 p-6 rounded-3xl border-2 border-dashed border-neutral-200 dark:border-neutral-700 animate-in fade-in slide-in-from-top-4 duration-300">
                                             <div className="flex items-center justify-between mb-4">
                                                 <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Seleccionar Desarrollo</h4>
-                                                <button type="button" onClick={() => setIsLinking(false)} className="text-[10px] font-black text-neutral-400 hover:text-red-500 transition-colors">CANCELAR</button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setIsLinking(false)}
+                                                    className="text-[10px] font-black text-neutral-400 hover:text-red-500 transition-colors"
+                                                >
+                                                    CANCELAR
+                                                </Button>
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                                 {developments.map(dev => (
-                                                    <button
+                                                    <Button
                                                         key={dev.id}
-                                                        type="button"
                                                         onClick={() => handleLinkDevelopment(dev.id)}
-                                                        className={`flex flex-col p-4 rounded-2xl border-2 text-left transition-all ${ticket.development_id === dev.id
+                                                        variant="ghost"
+                                                        className={`flex flex-col p-4 h-auto items-start rounded-2xl border-2 text-left transition-all ${ticket.development_id === dev.id
                                                             ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
                                                             : 'border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-blue-200 dark:hover:border-blue-900/50'
                                                             }`}
                                                     >
                                                         <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">{dev.id}</span>
                                                         <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200 line-clamp-1">{dev.name}</span>
-                                                    </button>
+                                                    </Button>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
                                 </div>
-                                <button type="submit" disabled={isSaving} className="w-full sm:w-auto bg-neutral-900 dark:bg-blue-600 hover:bg-black dark:hover:bg-blue-700 text-white px-12 py-5 rounded-2xl font-black shadow-xl shadow-blue-500/10 flex items-center justify-center disabled:opacity-50 transition-all transform active:scale-95">
-                                    <Save className="mr-3" size={24} />
+                                <Button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    variant="primary"
+                                    size="lg"
+                                    icon={Save}
+                                    className="w-full sm:w-auto"
+                                >
                                     {isSaving ? 'PROCESANDO...' : 'GUARDAR AVANCES'}
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     </div>

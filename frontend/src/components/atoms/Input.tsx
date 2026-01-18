@@ -1,8 +1,9 @@
-import React from 'react';
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon, Eye, EyeOff } from 'lucide-react';
+import React, { useState } from 'react';
+import { Text, Icon, Button } from './index';
 
 interface InputProps {
-  type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'date';
+  type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'date' | 'url' | 'range' | 'file';
   placeholder?: string;
   value?: string;
   defaultValue?: string;
@@ -16,12 +17,19 @@ interface InputProps {
   iconPosition?: 'left' | 'right';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  name?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyPress?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  maxLength?: number;
+  fullWidth?: boolean;
+  id?: string;
+  accept?: string;
 }
 
-const Input: React.FC<InputProps> = ({
+const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   type = 'text',
   placeholder,
   value,
@@ -32,16 +40,31 @@ const Input: React.FC<InputProps> = ({
   errorMessage,
   label,
   helperText,
-  icon: Icon,
+  icon: IconComponent,
   iconPosition = 'left',
   size = 'md',
   className = '',
+  name,
   onChange,
   onFocus,
   onBlur,
-}) => {
+  onKeyDown,
+  onKeyPress,
+  maxLength,
+  fullWidth = true,
+  id,
+  accept,
+}, ref) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPasswordType = type === 'password';
+  const inputType = isPasswordType ? (showPassword ? 'text' : 'password') : type;
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   const baseClasses = 'w-full border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed';
-  
+
   const sizeClasses = {
     sm: 'px-3 py-1.5 text-sm',
     md: 'px-4 py-2 text-sm',
@@ -54,63 +77,88 @@ const Input: React.FC<InputProps> = ({
 
   const backgroundClasses = 'bg-white text-neutral-900 placeholder-neutral-500 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-400';
 
-  const iconSizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-5 h-5',
-    lg: 'w-5 h-5',
-  };
-
   const iconPaddingClasses = {
-    sm: Icon && iconPosition === 'left' ? 'pl-10' : Icon && iconPosition === 'right' ? 'pr-10' : '',
-    md: Icon && iconPosition === 'left' ? 'pl-10' : Icon && iconPosition === 'right' ? 'pr-10' : '',
-    lg: Icon && iconPosition === 'left' ? 'pl-12' : Icon && iconPosition === 'right' ? 'pr-12' : '',
+    sm: IconComponent && iconPosition === 'left' ? 'pl-10' : (IconComponent && iconPosition === 'right') || isPasswordType ? 'pr-10' : '',
+    md: IconComponent && iconPosition === 'left' ? 'pl-10' : (IconComponent && iconPosition === 'right') || isPasswordType ? 'pr-10' : '',
+    lg: IconComponent && iconPosition === 'left' ? 'pl-12' : (IconComponent && iconPosition === 'right') || isPasswordType ? 'pr-12' : '',
   };
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`${fullWidth ? 'w-full' : ''} ${className}`}>
       {label && (
-        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+        <Text as="label" variant="body2" weight="medium" color="text-primary" className="mb-1 block">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
-        </label>
+          {required && <Text as="span" color="error" className="ml-1">*</Text>}
+        </Text>
       )}
-      
+
       <div className="relative">
-        {Icon && iconPosition === 'left' && (
+        {IconComponent && iconPosition === 'left' && (
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Icon className={`${iconSizeClasses[size]} text-neutral-400`} />
+            <Icon
+              name={IconComponent}
+              size={size}
+              color="text-secondary"
+            />
           </div>
         )}
-        
+
         <input
-          type={type}
+          ref={ref}
+          id={id}
+          type={inputType}
           placeholder={placeholder}
           value={value}
           defaultValue={defaultValue}
           disabled={disabled}
           required={required}
+          name={name}
           onChange={onChange}
           onFocus={onFocus}
           onBlur={onBlur}
+          onKeyDown={onKeyDown}
+          onKeyPress={onKeyPress}
+          maxLength={maxLength}
+          accept={accept}
           className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]}`}
         />
-        
-        {Icon && iconPosition === 'right' && (
+
+        {IconComponent && iconPosition === 'right' && (
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <Icon className={`${iconSizeClasses[size]} text-neutral-400`} />
+            <Icon
+              name={IconComponent}
+              size={size}
+              color="text-secondary"
+            />
+          </div>
+        )}
+
+        {isPasswordType && (
+          <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={togglePasswordVisibility}
+              className="!p-1.5 min-w-0 h-auto text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300"
+              tabIndex={-1}
+              icon={showPassword ? EyeOff : Eye}
+            />
           </div>
         )}
       </div>
-      
+
       {error && errorMessage && (
-        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+        <Text variant="caption" color="error" className="mt-1">{errorMessage}</Text>
       )}
-      
+
       {!error && helperText && (
-        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{helperText}</p>
+        <Text variant="caption" color="text-secondary" className="mt-1">{helperText}</Text>
       )}
     </div>
   );
-};
+});
+
+Input.displayName = 'Input';
 
 export default Input;

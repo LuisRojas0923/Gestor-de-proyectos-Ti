@@ -13,9 +13,13 @@ import {
   Copy,
   Eye,
   EyeOff,
+  Type,
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useNotifications } from '../components/notifications/NotificationsContext';
+import { MaterialTypography, MaterialCard, Input, Button, Select, Switch } from '../components/atoms';
+import { materialDesignTokens } from '../components/tokens';
+import DesignSystemCatalog from './DesignSystemCatalog';
 
 const Settings: React.FC = () => {
   const { addNotification } = useNotifications();
@@ -25,9 +29,9 @@ const Settings: React.FC = () => {
 
   const [profile, setProfile] = useState({
     name: user?.name || 'Usuario Demo',
-    email: user?.email || 'usuario@empresa.com',
+    email: user?.email || 'usuario@refridcol.com',
     role: user?.role || 'Analista Senior',
-    timezone: 'America/Mexico_City',
+    timezone: 'America//Bogota',
     avatar: '',
   });
 
@@ -53,6 +57,23 @@ const Settings: React.FC = () => {
 
   const [newToken, setNewToken] = useState({ name: '', description: '' });
   const [showTokenForm, setShowTokenForm] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(false);
+
+  // Si estamos viendo el catálogo, renderizarlo directamente
+  if (showCatalog) {
+    return (
+      <div className="space-y-4">
+        <Button
+          variant="ghost"
+          onClick={() => setShowCatalog(false)}
+          className="mb-4"
+        >
+          ← Volver a Configuración
+        </Button>
+        <DesignSystemCatalog />
+      </div>
+    );
+  }
 
   const handleProfileUpdate = () => {
     // API call to update profile
@@ -104,6 +125,7 @@ const Settings: React.FC = () => {
   const timezones = [
     { value: 'America/Mexico_City', label: 'Ciudad de México (GMT-6)' },
     { value: 'America/New_York', label: 'Nueva York (GMT-5)' },
+    { value: 'America/Bogota', label: 'Bogota (GMT-5)' },
     { value: 'America/Los_Angeles', label: 'Los Ángeles (GMT-8)' },
     { value: 'Europe/Madrid', label: 'Madrid (GMT+1)' },
     { value: 'Asia/Tokyo', label: 'Tokio (GMT+9)' },
@@ -111,149 +133,174 @@ const Settings: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-        {t('settings')}
-      </h1>
+      <div className="flex justify-between items-center">
+        <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+          {t('settings')}
+        </h1>
+        <Button
+          variant="outline"
+          onClick={() => setShowCatalog(true)}
+          title="Ver todos los componentes del sistema de diseño"
+        >
+          📖 Catálogo de Diseño
+        </Button>
+      </div>
+
+      {/* Typography Settings */}
+      <MaterialCard className="bg-[var(--color-surface)] border-[var(--color-border)]">
+        <div className="p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <Type className="text-[var(--color-text-secondary)]" size={24} />
+            <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
+              Configuración de Tipografía
+            </h2>
+          </div>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Typeface Preview */}
+              <div>
+                <MaterialTypography variant="subtitle2" className="mb-4 text-[var(--color-text-secondary)]">
+                  Fuente Principal
+                </MaterialTypography>
+                <div className="p-4 rounded-lg bg-[var(--color-surface-variant)] border border-[var(--color-border)]">
+                  <p className="text-4xl mb-2" style={{ fontFamily: materialDesignTokens.typography.fontFamily.primary }}>
+                    Aa
+                  </p>
+                  <p className="text-sm text-[var(--color-text-secondary)]">
+                    {materialDesignTokens.typography.fontFamily.primary}
+                  </p>
+                </div>
+              </div>
+
+              {/* Scale Preview */}
+              <div className="space-y-4">
+                <MaterialTypography variant="subtitle2" className="mb-4 text-[var(--color-text-secondary)]">
+                  Escala Tipográfica
+                </MaterialTypography>
+                <div className="space-y-2">
+                  <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
+                    <MaterialTypography variant="h4">H4 Heading</MaterialTypography>
+                    <span className="text-xs text-[var(--color-text-secondary)]">34px</span>
+                  </div>
+                  <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
+                    <MaterialTypography variant="h5">H5 Heading</MaterialTypography>
+                    <span className="text-xs text-[var(--color-text-secondary)]">24px</span>
+                  </div>
+                  <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
+                    <MaterialTypography variant="h6">H6 Heading</MaterialTypography>
+                    <span className="text-xs text-[var(--color-text-secondary)]">20px</span>
+                  </div>
+                  <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
+                    <MaterialTypography variant="body1">Body 1</MaterialTypography>
+                    <span className="text-xs text-[var(--color-text-secondary)]">16px</span>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <MaterialTypography variant="caption">Caption</MaterialTypography>
+                    <span className="text-xs text-[var(--color-text-secondary)]">12px</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-[var(--color-border)]">
+              <MaterialTypography variant="body2" className="text-[var(--color-text-secondary)] text-center">
+                El sistema de tipografía está centralizado. Cualquier cambio en los tokens se reflejará automáticamente en toda la aplicación.
+              </MaterialTypography>
+            </div>
+          </div>
+        </div>
+      </MaterialCard>
 
       {/* Profile Settings */}
-      <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-        } border rounded-xl p-6`}>
+      <MaterialCard className="p-6">
         <div className="flex items-center space-x-3 mb-6">
-          <User className={darkMode ? 'text-neutral-400' : 'text-neutral-600'} size={24} />
-          <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+          <User className="text-[var(--color-text-secondary)]" size={24} />
+          <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
             Perfil de Usuario
           </h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
-                }`}>
-                Nombre Completo
-              </label>
-              <input
-                type="text"
-                value={profile.name}
-                onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors ${darkMode
-                    ? 'bg-neutral-700 border-neutral-600 text-white'
-                    : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-              />
-            </div>
+            <Input
+              label="Nombre Completo"
+              value={profile.name}
+              onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Ingresa tu nombre"
+            />
 
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
-                }`}>
-                Email
-              </label>
-              <input
-                type="email"
-                value={profile.email}
-                onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors ${darkMode
-                    ? 'bg-neutral-700 border-neutral-600 text-white'
-                    : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-              />
-            </div>
+            <Input
+              type="email"
+              label="Email"
+              value={profile.email}
+              onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="usuario@ejemplo.com"
+            />
 
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
-                }`}>
-                Rol
-              </label>
-              <select
-                value={profile.role}
-                onChange={(e) => setProfile(prev => ({ ...prev, role: e.target.value }))}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors ${darkMode
-                    ? 'bg-neutral-700 border-neutral-600 text-white'
-                    : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-              >
-                <option value="Analista Junior">Analista Junior</option>
-                <option value="Analista Senior">Analista Senior</option>
-                <option value="Líder Técnico">Líder Técnico</option>
-                <option value="Gerente de Proyecto">Gerente de Proyecto</option>
-              </select>
-            </div>
+            <Select
+              label="Rol"
+              value={profile.role}
+              onChange={(e) => setProfile(prev => ({ ...prev, role: e.target.value }))}
+              options={[
+                { value: "Analista de sistemas", label: "Analista Junior" },
+                { value: "Analista de mejoramiento", label: "Analista Senior" },
+                { value: "Líder Técnico", label: "Líder Técnico" },
+                { value: "Director", label: "Gerente de Proyecto" },
+              ]}
+            />
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
-                }`}>
-                Zona Horaria
-              </label>
-              <select
-                value={profile.timezone}
-                onChange={(e) => setProfile(prev => ({ ...prev, timezone: e.target.value }))}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors ${darkMode
-                    ? 'bg-neutral-700 border-neutral-600 text-white'
-                    : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-              >
-                {timezones.map(tz => (
-                  <option key={tz.value} value={tz.value}>{tz.label}</option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Zona Horaria"
+              value={profile.timezone}
+              onChange={(e) => setProfile(prev => ({ ...prev, timezone: e.target.value }))}
+              options={timezones}
+            />
+
+            <Select
+              label="Idioma"
+              value={i18n.language}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              options={[
+                { value: "es", label: "Español" },
+                { value: "en", label: "English" },
+              ]}
+            />
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
-                }`}>
-                Idioma
-              </label>
-              <select
-                value={i18n.language}
-                onChange={(e) => i18n.changeLanguage(e.target.value)}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors ${darkMode
-                    ? 'bg-neutral-700 border-neutral-600 text-white'
-                    : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
-              >
-                <option value="es">Español</option>
-                <option value="en">English</option>
-              </select>
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
-                }`}>
+              <label className="block text-sm font-medium mb-2 text-[var(--color-text-secondary)]">
                 Tema
               </label>
-              <button
+              <Button
+                variant="outline"
+                className="w-full justify-center"
                 onClick={() => dispatch({ type: 'TOGGLE_DARK_MODE' })}
-                className={`w-full px-4 py-2 rounded-lg border transition-colors flex items-center justify-center space-x-2 ${darkMode
-                    ? 'bg-neutral-700 border-neutral-600 text-white hover:bg-neutral-600'
-                    : 'bg-neutral-50 border-neutral-300 text-neutral-900 hover:bg-neutral-100'
-                  }`}
+                icon={darkMode ? Moon : Sun}
               >
-                {darkMode ? <Moon size={20} /> : <Sun size={20} />}
-                <span>{darkMode ? 'Modo Oscuro' : 'Modo Claro'}</span>
-              </button>
+                {darkMode ? 'Modo Oscuro' : 'Modo Claro'}
+              </Button>
             </div>
           </div>
         </div>
 
         <div className="flex justify-end mt-6">
-          <button
+          <Button
             onClick={handleProfileUpdate}
-            className="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            variant="primary"
+            icon={Save}
           >
-            <Save size={20} />
-            <span>Guardar Cambios</span>
-          </button>
+            Guardar Cambios
+          </Button>
         </div>
-      </div>
+      </MaterialCard>
 
       {/* Notifications */}
-      <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-        } border rounded-xl p-6`}>
+      <MaterialCard className="p-6">
         <div className="flex items-center space-x-3 mb-6">
-          <Bell className={darkMode ? 'text-neutral-400' : 'text-neutral-600'} size={24} />
-          <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+          <Bell className="text-[var(--color-text-secondary)]" size={24} />
+          <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
             Notificaciones
           </h2>
         </div>
@@ -267,149 +314,125 @@ const Settings: React.FC = () => {
             { key: 'sla_alerts', label: 'Alertas de SLA', icon: Bell },
             { key: 'daily_summary', label: 'Resumen Diario', icon: Mail },
           ].map(({ key, label, icon: Icon }) => (
-            <div key={key} className="flex items-center justify-between p-4 rounded-lg bg-neutral-50 dark:bg-neutral-700">
+            <div key={key} className="flex items-center justify-between p-4 rounded-lg bg-[var(--color-surface-variant)] border border-[var(--color-border)]">
               <div className="flex items-center space-x-3">
-                <Icon className={darkMode ? 'text-neutral-400' : 'text-neutral-600'} size={20} />
-                <span className={darkMode ? 'text-white' : 'text-neutral-900'}>
+                <Icon className="text-[var(--color-text-secondary)]" size={20} />
+                <span className="text-[var(--color-text-primary)]">
                   {label}
                 </span>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={notifications[key as keyof typeof notifications]}
-                  onChange={(e) => setNotifications(prev => ({
-                    ...prev,
-                    [key]: e.target.checked
-                  }))}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-neutral-600 peer-checked:bg-primary-500"></div>
-              </label>
+              <Switch
+                checked={notifications[key as keyof typeof notifications]}
+                onChange={(checked) => setNotifications(prev => ({
+                  ...prev,
+                  [key]: checked
+                }))}
+              />
             </div>
           ))}
         </div>
 
         <div className="flex justify-end mt-6">
-          <button
+          <Button
             onClick={handleNotificationUpdate}
-            className="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            variant="primary"
+            icon={Save}
           >
-            <Save size={20} />
-            <span>Guardar Preferencias</span>
-          </button>
+            Guardar Preferencias
+          </Button>
         </div>
-      </div>
+      </MaterialCard>
 
       {/* API Tokens */}
-      <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-        } border rounded-xl p-6`}>
+      <MaterialCard className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <Key className={darkMode ? 'text-neutral-400' : 'text-neutral-600'} size={24} />
-            <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+            <Key className="text-[var(--color-text-secondary)]" size={24} />
+            <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
               Tokens API
             </h2>
           </div>
-          <button
+          <Button
             onClick={() => setShowTokenForm(!showTokenForm)}
-            className="bg-secondary-500 hover:bg-secondary-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            variant="secondary"
+            icon={Key}
           >
-            <Key size={20} />
-            <span>Nuevo Token</span>
-          </button>
+            Nuevo Token
+          </Button>
         </div>
 
         {showTokenForm && (
-          <div className={`p-4 mb-6 rounded-lg border ${darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-neutral-50 border-neutral-300'
-            }`}>
+          <div className="p-4 mb-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-variant)]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <input
-                type="text"
+              <Input
                 placeholder="Nombre del token"
                 value={newToken.name}
                 onChange={(e) => setNewToken(prev => ({ ...prev, name: e.target.value }))}
-                className={`px-4 py-2 rounded-lg border transition-colors ${darkMode
-                    ? 'bg-neutral-800 border-neutral-600 text-white'
-                    : 'bg-white border-neutral-300 text-neutral-900'
-                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
               />
-              <input
-                type="text"
+              <Input
                 placeholder="Descripción (opcional)"
                 value={newToken.description}
                 onChange={(e) => setNewToken(prev => ({ ...prev, description: e.target.value }))}
-                className={`px-4 py-2 rounded-lg border transition-colors ${darkMode
-                    ? 'bg-neutral-800 border-neutral-600 text-white'
-                    : 'bg-white border-neutral-300 text-neutral-900'
-                  } focus:outline-none focus:ring-2 focus:ring-primary-500`}
               />
             </div>
             <div className="flex space-x-2">
-              <button
-                onClick={generateApiToken}
-                className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition-colors"
-              >
+              <Button onClick={generateApiToken} variant="primary">
                 Generar Token
-              </button>
-              <button
-                onClick={() => setShowTokenForm(false)}
-                className={`px-4 py-2 rounded-lg border transition-colors ${darkMode
-                    ? 'border-neutral-600 text-neutral-300 hover:bg-neutral-700'
-                    : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'
-                  }`}
-              >
+              </Button>
+              <Button onClick={() => setShowTokenForm(false)} variant="outline">
                 Cancelar
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
         <div className="space-y-4">
           {apiTokens.map(token => (
-            <div key={token.id} className={`p-4 rounded-lg border ${darkMode ? 'border-neutral-600 bg-neutral-700' : 'border-neutral-300 bg-neutral-50'
-              }`}>
+            <div key={token.id} className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-variant)]">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h4 className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                  <h4 className="font-medium text-[var(--color-text-primary)]">
                     {token.name}
                   </h4>
-                  <p className={`text-sm ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                  <p className="text-sm text-[var(--color-text-secondary)]">
                     Creado: {token.created} • Último uso: {token.lastUsed}
                   </p>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => deleteToken(token.id)}
                   className="text-red-500 hover:text-red-700 transition-colors"
                 >
                   Eliminar
-                </button>
+                </Button>
               </div>
 
               <div className="flex items-center space-x-2">
-                <code className={`flex-1 px-3 py-2 rounded font-mono text-sm ${darkMode ? 'bg-neutral-800 text-neutral-300' : 'bg-neutral-100 text-neutral-700'
-                  }`}>
+                <code className="flex-1 px-3 py-2 rounded font-mono text-sm bg-[var(--color-surface)] text-[var(--color-text-primary)] border border-[var(--color-border)]">
                   {token.isVisible ? token.token : '•'.repeat(20) + token.token.slice(-4)}
                 </code>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => toggleTokenVisibility(token.id)}
-                  className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-neutral-600 text-neutral-400' : 'hover:bg-neutral-200 text-neutral-600'
-                    }`}
+                  icon={token.isVisible ? EyeOff : Eye}
                 >
-                  {token.isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-                <button
+                  {token.isVisible ? 'Ocultar' : 'Mostrar'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => copyToken(token.token)}
-                  className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-neutral-600 text-neutral-400' : 'hover:bg-neutral-200 text-neutral-600'
-                    }`}
+                  icon={Copy}
                 >
-                  <Copy size={16} />
-                </button>
+                  Copiar
+                </Button>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </MaterialCard>
     </div>
   );
 };

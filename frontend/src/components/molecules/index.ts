@@ -3,10 +3,14 @@
 
 // Componentes base
 export { default as MetricCard } from './MetricCard';
+export { default as Modal } from './Modal';
+export { DeleteConfirmModal } from './DeleteConfirmModal';
 
 // Componentes de Material Design
 export { default as MaterialMetricCard } from './MaterialMetricCard';
 export { default as MaterialSearchBar } from './MaterialSearchBar';
+export { default as ServiceCard } from './ServiceCard';
+export { default as ActionCard } from './ActionCard';
 
 // Componentes de desarrollo
 export { default as DevelopmentFlowCompact } from './DevelopmentFlowCompact';

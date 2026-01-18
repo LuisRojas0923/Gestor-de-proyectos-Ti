@@ -14,7 +14,7 @@ import {
   MaterialTypography
 } from '../../../components/atoms';
 
-const QualityReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
+const QualityReport: React.FC<{ darkMode?: boolean }> = ({ darkMode }) => {
 
   const controlComplianceData = [
     { name: 'C003-GT', cumplido: 95, total: 100 },
@@ -26,15 +26,15 @@ const QualityReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <MaterialCard darkMode={darkMode}>
+      <MaterialCard>
         <MaterialCard.Header>
           <div className="flex items-center space-x-3">
-            <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            <MaterialTypography variant="h5" darkMode={darkMode}>
+            <Shield className="h-6 w-6 text-[var(--color-primary)]" />
+            <MaterialTypography variant="h5">
               Reporte de Calidad y Controles
             </MaterialTypography>
           </div>
-          <MaterialTypography variant="body2" darkMode={darkMode} className="mt-2">
+          <MaterialTypography variant="body2" className="mt-2 text-[var(--color-text-secondary)]">
             Análisis de cumplimiento de controles de calidad y métricas de calidad del software.
           </MaterialTypography>
         </MaterialCard.Header>
@@ -42,75 +42,75 @@ const QualityReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
       {/* Métricas de Calidad */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MaterialCard darkMode={darkMode} className="bg-green-50 dark:bg-green-900/20">
+        <MaterialCard className="bg-[var(--color-surface-variant)]">
           <MaterialCard.Content>
             <div className="flex items-center justify-between">
               <div>
-                <MaterialTypography variant="body2" darkMode={darkMode} className="text-green-600 dark:text-green-400">
+                <MaterialTypography variant="body2" className="text-[var(--color-primary)]">
                   Controles Ejecutados
                 </MaterialTypography>
-                <MaterialTypography variant="h4" darkMode={darkMode} className="text-green-900 dark:text-green-100">
+                <MaterialTypography variant="h4" className="text-[var(--color-text-primary)]">
                   45
                 </MaterialTypography>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <CheckCircle className="h-8 w-8 text-[var(--color-primary)]" />
             </div>
           </MaterialCard.Content>
         </MaterialCard>
 
-        <MaterialCard darkMode={darkMode} className="bg-blue-50 dark:bg-blue-900/20">
+        <MaterialCard className="bg-[var(--color-surface-variant)]">
           <MaterialCard.Content>
             <div className="flex items-center justify-between">
               <div>
-                <MaterialTypography variant="body2" darkMode={darkMode} className="text-blue-600 dark:text-blue-400">
+                <MaterialTypography variant="body2" className="text-[var(--color-primary)]">
                   Cumplimiento Promedio
                 </MaterialTypography>
-                <MaterialTypography variant="h4" darkMode={darkMode} className="text-blue-900 dark:text-blue-100">
+                <MaterialTypography variant="h4" className="text-[var(--color-text-primary)]">
                   90%
                 </MaterialTypography>
               </div>
-              <TrendingUp className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              <TrendingUp className="h-8 w-8 text-[var(--color-primary)]" />
             </div>
           </MaterialCard.Content>
         </MaterialCard>
 
-        <MaterialCard darkMode={darkMode} className="bg-yellow-50 dark:bg-yellow-900/20">
+        <MaterialCard className="bg-[var(--color-surface-variant)]">
           <MaterialCard.Content>
             <div className="flex items-center justify-between">
               <div>
-                <MaterialTypography variant="body2" darkMode={darkMode} className="text-yellow-600 dark:text-yellow-400">
+                <MaterialTypography variant="body2" className="text-[var(--color-tertiary)]">
                   No Conformidades
                 </MaterialTypography>
-                <MaterialTypography variant="h4" darkMode={darkMode} className="text-yellow-900 dark:text-yellow-100">
+                <MaterialTypography variant="h4" className="text-[var(--color-text-primary)]">
                   3
                 </MaterialTypography>
               </div>
-              <AlertTriangle className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+              <AlertTriangle className="h-8 w-8 text-[var(--color-tertiary)]" />
             </div>
           </MaterialCard.Content>
         </MaterialCard>
 
-        <MaterialCard darkMode={darkMode} className="bg-purple-50 dark:bg-purple-900/20">
+        <MaterialCard className="bg-[var(--color-surface-variant)]">
           <MaterialCard.Content>
             <div className="flex items-center justify-between">
               <div>
-                <MaterialTypography variant="body2" darkMode={darkMode} className="text-purple-600 dark:text-purple-400">
+                <MaterialTypography variant="body2" className="text-[var(--color-secondary)]">
                   Tiempo Promedio QA
                 </MaterialTypography>
-                <MaterialTypography variant="h4" darkMode={darkMode} className="text-purple-900 dark:text-purple-100">
+                <MaterialTypography variant="h4" className="text-[var(--color-text-primary)]">
                   1.2d
                 </MaterialTypography>
               </div>
-              <Shield className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+              <Shield className="h-8 w-8 text-[var(--color-secondary)]" />
             </div>
           </MaterialCard.Content>
         </MaterialCard>
       </div>
 
       {/* Gráfico de Cumplimiento de Controles */}
-      <MaterialCard darkMode={darkMode}>
+      <MaterialCard>
         <MaterialCard.Header>
-          <MaterialTypography variant="h6" darkMode={darkMode}>
+          <MaterialTypography variant="h6">
             Cumplimiento de Controles por Tipo
           </MaterialTypography>
         </MaterialCard.Header>
@@ -138,9 +138,9 @@ const QualityReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
       </MaterialCard>
 
       {/* Detalle de Controles */}
-      <MaterialCard darkMode={darkMode}>
+      <MaterialCard>
         <MaterialCard.Header>
-          <MaterialTypography variant="h6" darkMode={darkMode}>
+          <MaterialTypography variant="h6">
             Detalle de Controles de Calidad
           </MaterialTypography>
         </MaterialCard.Header>
@@ -161,10 +161,10 @@ const QualityReport: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
                     <div className="flex flex-col items-center space-y-2">
                       <Shield className="h-12 w-12 text-neutral-400" />
-                      <MaterialTypography variant="h6" darkMode={darkMode}>
+                      <MaterialTypography variant="h6">
                         Implementando integración con API
                       </MaterialTypography>
-                      <MaterialTypography variant="body2" darkMode={darkMode}>
+                      <MaterialTypography variant="body2" className="text-[var(--color-text-secondary)]">
                         Los datos de controles se cargarán desde el backend
                       </MaterialTypography>
                     </div>

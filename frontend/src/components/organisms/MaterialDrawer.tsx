@@ -1,7 +1,6 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { materialDesignTokens } from '../tokens';
+import { Text } from '../atoms';
 
 interface NavigationItem {
   id: string;
@@ -43,10 +42,6 @@ const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
   variant = 'temporary',
   width = 280
 }) => {
-  const { state } = useAppContext();
-  const { darkMode } = state;
-  const tokens = materialDesignTokens;
-
   const handleItemClick = (item: NavigationItem) => {
     if (item.onClick) {
       item.onClick();
@@ -58,54 +53,41 @@ const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
   const renderNavigationItem = (item: NavigationItem, level = 0) => {
     const isActive = activeItem === item.id;
     const hasChildren = item.children && item.children.length > 0;
-    
+
     return (
       <div key={item.id}>
-        <button
+        <div
           onClick={() => handleItemClick(item)}
-          className={`w-full flex items-center px-4 py-3 text-left transition-all duration-200 hover:bg-opacity-8 ${
-            isActive ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'
-          } ${level > 0 ? 'pl-8' : ''}`}
-          style={{
-            backgroundColor: isActive 
-              ? (darkMode ? 'rgba(33, 150, 243, 0.12)' : 'rgba(33, 150, 243, 0.08)')
-              : 'transparent',
-            color: isActive 
-              ? tokens.colors.primary[600]
-              : (darkMode ? tokens.colors.text.primary.dark : tokens.colors.text.primary.light),
-            fontFamily: tokens.typography.fontFamily.primary,
-            fontSize: tokens.typography.fontSize.body2,
-            fontWeight: isActive ? tokens.typography.fontWeight.medium : tokens.typography.fontWeight.regular
-          }}
+          className={`w-full flex items-center px-4 py-3 text-left transition-all duration-200 cursor-pointer rounded-r-full mr-4 group ${isActive
+              ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-medium'
+              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)]'
+            } ${level > 0 ? 'pl-8' : ''}`}
+          role="button"
+          tabIndex={0}
         >
-          <item.icon 
-            size={20} 
-            className="mr-3 flex-shrink-0"
-            style={{
-              color: isActive 
-                ? tokens.colors.primary[600]
-                : (darkMode ? tokens.colors.text.secondary.dark : tokens.colors.text.secondary.light)
-            }}
+          <item.icon
+            size={20}
+            className={`mr-3 flex-shrink-0 ${isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'}`}
           />
-          
-          <span className="flex-1 truncate">{item.label}</span>
-          
+
+          <Text
+            variant="body2"
+            weight={isActive ? 'medium' : 'normal'}
+            color="inherit"
+            className="flex-1 truncate"
+          >
+            {item.label}
+          </Text>
+
           {item.badge && (
-            <span 
-              className="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-600"
-              style={{
-                fontSize: tokens.typography.fontSize.caption,
-                backgroundColor: tokens.colors.primary[100],
-                color: tokens.colors.primary[600]
-              }}
-            >
+            <span className="ml-2 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--color-primary)] text-white">
               {item.badge}
             </span>
           )}
-        </button>
-        
+        </div>
+
         {hasChildren && (
-          <div className="ml-4">
+          <div className="mt-1">
             {item.children!.map(child => renderNavigationItem(child, level + 1))}
           </div>
         )}
@@ -115,113 +97,84 @@ const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
 
   const drawerClasses = `
     fixed left-0 top-0 h-full z-50 transform transition-transform duration-300 ease-in-out
+    bg-[var(--color-surface)] border-r border-[var(--color-border)]
     ${open ? 'translate-x-0' : '-translate-x-full'}
     ${variant === 'permanent' ? 'relative translate-x-0' : ''}
+    ${variant === 'temporary' ? 'shadow-2xl' : 'shadow-sm'}
   `;
 
   return (
     <>
       {/* Overlay para drawer temporal */}
       {variant === 'temporary' && open && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity"
           onClick={onClose}
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.5)'
-          }}
         />
       )}
-      
+
       {/* Drawer */}
-      <div 
+      <div
         className={drawerClasses}
-        style={{
-          width: `${width}px`,
-          backgroundColor: darkMode ? tokens.colors.surface.dark : tokens.colors.surface.light,
-          boxShadow: variant === 'temporary' ? tokens.elevation[16] : tokens.elevation[1]
-        }}
+        style={{ width: `${width}px` }}
       >
         {/* Header */}
-        <div 
-          className="px-4 py-6 border-b"
-          style={{
-            borderColor: darkMode ? tokens.colors.surface.variant.dark : tokens.colors.surface.variant.light
-          }}
-        >
-          <h2 
-            className="text-lg font-medium"
-            style={{
-              color: darkMode ? tokens.colors.text.primary.dark : tokens.colors.text.primary.light,
-              fontSize: tokens.typography.fontSize.h6,
-              fontWeight: tokens.typography.fontWeight.medium,
-              fontFamily: tokens.typography.fontFamily.primary
-            }}
+        <div className="px-6 py-8 border-b border-[var(--color-border)]/50">
+          <Text
+            as="h2"
+            variant="h6"
+            weight="bold"
+            color="text-primary"
           >
             {title}
-          </h2>
-          
+          </Text>
+
           {user && (
-            <div className="mt-4 flex items-center space-x-3">
+            <div className="mt-6 flex items-center space-x-3 p-3 rounded-2xl bg-[var(--color-surface-variant)]/50 border border-[var(--color-border)]/30">
               {user.avatar ? (
-                <img 
-                  src={user.avatar} 
+                <img
+                  src={user.avatar}
                   alt={user.name}
-                  className="w-10 h-10 rounded-full"
+                  className="w-12 h-12 rounded-full border-2 border-white dark:border-neutral-700 shadow-sm"
                 />
               ) : (
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{
-                    backgroundColor: tokens.colors.primary[100],
-                    color: tokens.colors.primary[600]
-                  }}
-                >
-                  <span className="text-sm font-medium">
-                    {user.name.charAt(0).toUpperCase()}
-                  </span>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--color-primary)] text-white text-lg font-bold shadow-sm">
+                  {user.name.charAt(0).toUpperCase()}
                 </div>
               )}
-              
-              <div>
-                <p 
-                  className="text-sm font-medium"
-                  style={{
-                    color: darkMode ? tokens.colors.text.primary.dark : tokens.colors.text.primary.light,
-                    fontSize: tokens.typography.fontSize.body2,
-                    fontWeight: tokens.typography.fontWeight.medium
-                  }}
+
+              <div className="overflow-hidden">
+                <Text
+                  variant="body2"
+                  weight="bold"
+                  className="truncate"
                 >
                   {user.name}
-                </p>
+                </Text>
                 {user.role && (
-                  <p 
-                    className="text-xs"
-                    style={{
-                      color: darkMode ? tokens.colors.text.secondary.dark : tokens.colors.text.secondary.light,
-                      fontSize: tokens.typography.fontSize.caption
-                    }}
+                  <Text
+                    variant="caption"
+                    color="text-secondary"
+                    className="truncate block"
                   >
                     {user.role}
-                  </p>
+                  </Text>
                 )}
               </div>
             </div>
           )}
         </div>
-        
+
         {/* Navigation */}
-        <nav className="flex-1 py-4 overflow-y-auto">
-          {items.map(item => renderNavigationItem(item))}
+        <nav className="flex-1 py-6 overflow-y-auto custom-scrollbar">
+          <div className="px-2 space-y-1">
+            {items.map(item => renderNavigationItem(item))}
+          </div>
         </nav>
-        
+
         {/* Footer */}
         {footer && (
-          <div 
-            className="px-4 py-4 border-t"
-            style={{
-              borderColor: darkMode ? tokens.colors.surface.variant.dark : tokens.colors.surface.variant.light
-            }}
-          >
+          <div className="p-4 border-t border-[var(--color-border)]/50 bg-[var(--color-surface-variant)]/20">
             {footer}
           </div>
         )}

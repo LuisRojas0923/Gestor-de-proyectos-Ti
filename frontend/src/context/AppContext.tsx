@@ -7,6 +7,9 @@ interface User {
   email: string;
   role: string;
   avatar?: string;
+  area?: string;
+  cargo?: string;
+  sede?: string;
 }
 
 interface Requirement {

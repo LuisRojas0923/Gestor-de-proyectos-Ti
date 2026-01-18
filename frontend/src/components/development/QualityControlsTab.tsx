@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ShieldCheck, CheckCircle, XCircle, Clock, AlertCircle, Plus, FileText } from 'lucide-react';
 import { useQualityControls } from '../../hooks/useQualityControls';
-import { DevelopmentQualityControl, QualityControlCatalog } from '../../types';
+import { QualityControlWithCatalog } from '../../types';
+import { Button, Select, Textarea, Checkbox } from '../atoms';
 
 interface QualityControlsTabProps {
   developmentId: string;
@@ -16,7 +17,6 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
 }) => {
   const {
     controls,
-    catalog,
     loading,
     error,
     completeControl,
@@ -25,7 +25,7 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
     refreshControls
   } = useQualityControls(developmentId);
 
-  const [selectedControl, setSelectedControl] = useState<DevelopmentQualityControl | null>(null);
+  const [selectedControl, setSelectedControl] = useState<QualityControlWithCatalog | null>(null);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showValidateModal, setShowValidateModal] = useState(false);
   const [completionData, setCompletionData] = useState({
@@ -119,12 +119,13 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
           <XCircle className="w-5 h-5 text-red-500 mr-2" />
           <span className="text-red-700 dark:text-red-300">Error: {error}</span>
         </div>
-        <button
+        <Button
+          variant="danger"
+          size="sm"
           onClick={refreshControls}
-          className="mt-2 px-3 py-1 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-300 rounded text-sm hover:bg-red-200 dark:hover:bg-red-700"
         >
           Reintentar
-        </button>
+        </Button>
       </div>
     );
   }
@@ -143,14 +144,13 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
         </div>
 
         {controls.length === 0 && (
-          <button
+          <Button
             onClick={handleGenerateControls}
-            disabled={loading}
-            className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center"
+            loading={loading}
+            icon={Plus}
           >
-            <Plus size={16} className="mr-2" />
             Generar Controles
-          </button>
+          </Button>
         )}
       </div>
 
@@ -160,13 +160,12 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
           <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
             No hay controles de calidad asignados para esta etapa.
           </p>
-          <button
+          <Button
             onClick={handleGenerateControls}
-            disabled={loading}
-            className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+            loading={loading}
           >
             {loading ? 'Generando...' : 'Generar Controles Automáticamente'}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -217,38 +216,40 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
 
                 <div className="flex space-x-2 ml-4">
                   {control.status === 'Pendiente' && (
-                    <button
+                    <Button
+                      size="sm"
                       onClick={() => {
                         setSelectedControl(control);
                         setShowCompleteModal(true);
                       }}
-                      className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
                     >
                       Completar
-                    </button>
+                    </Button>
                   )}
 
                   {control.status === 'Completado' && control.validation_status === 'Pendiente' && (
-                    <button
+                    <Button
+                      variant="primary" // En el original era bg-green-500, pero primary suele ser azul. Usaré primary o crearé variant success si existiera.
+                      size="sm"         // Button.tsx no tiene variant success, pero tiene primary. 
+                      className="bg-green-600 hover:bg-green-700" // Sobrescribo para mantener el verde de validación
                       onClick={() => {
                         setSelectedControl(control);
                         setShowValidateModal(true);
                       }}
-                      className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
                     >
                       Validar
-                    </button>
+                    </Button>
                   )}
 
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={FileText}
                     onClick={() => {
                       setSelectedControl(control);
                       // TODO: Implementar modal de detalles
                     }}
-                    className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
-                  >
-                    <FileText size={14} />
-                  </button>
+                  />
                 </div>
               </div>
             </div>
@@ -270,66 +271,55 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                   Entregables Requeridos
                 </label>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {selectedControl.catalog.deliverables.split(',').map((deliverable, index) => {
                     const trimmedDeliverable = deliverable.trim();
                     return (
-                      <label key={index} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={completionData.deliverables_completed.includes(trimmedDeliverable)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setCompletionData({
-                                ...completionData,
-                                deliverables_completed: [...completionData.deliverables_completed, trimmedDeliverable]
-                              });
-                            } else {
-                              setCompletionData({
-                                ...completionData,
-                                deliverables_completed: completionData.deliverables_completed.filter(d => d !== trimmedDeliverable)
-                              });
-                            }
-                          }}
-                          className="mr-2"
-                        />
-                        <span className={`text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
-                          {trimmedDeliverable}
-                        </span>
-                      </label>
+                      <Checkbox
+                        key={index}
+                        label={trimmedDeliverable}
+                        checked={completionData.deliverables_completed.includes(trimmedDeliverable)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setCompletionData({
+                              ...completionData,
+                              deliverables_completed: [...completionData.deliverables_completed, trimmedDeliverable]
+                            });
+                          } else {
+                            setCompletionData({
+                              ...completionData,
+                              deliverables_completed: completionData.deliverables_completed.filter(d => d !== trimmedDeliverable)
+                            });
+                          }
+                        }}
+                      />
                     );
                   })}
                 </div>
               </div>
             )}
 
-            <div className="mb-4">
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                Notas Adicionales
-              </label>
-              <textarea
-                value={completionData.deliverables}
-                onChange={(e) => setCompletionData({ ...completionData, deliverables: e.target.value })}
-                className={`w-full p-3 border rounded-lg ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300'}`}
-                rows={3}
-                placeholder="Agrega notas adicionales sobre la completación..."
-              />
-            </div>
+            <Textarea
+              label="Notas Adicionales"
+              value={completionData.deliverables}
+              onChange={(e) => setCompletionData({ ...completionData, deliverables: e.target.value })}
+              rows={3}
+              placeholder="Agrega notas adicionales sobre la completación..."
+            />
 
-            <div className="flex justify-end space-x-3">
-              <button
+            <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+              <Button
+                variant="ghost"
                 onClick={() => setShowCompleteModal(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
               >
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleCompleteControl}
                 disabled={completionData.deliverables_completed.length === 0}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
               >
                 Completar
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -343,47 +333,38 @@ const QualityControlsTab: React.FC<QualityControlsTabProps> = ({
               Validar Control {selectedControl.control_code}
             </h3>
 
-            <div className="mb-4">
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                Estado de Validación
-              </label>
-              <select
-                value={validationData.validation_status}
-                onChange={(e) => setValidationData({ ...validationData, validation_status: e.target.value as 'Validado' | 'Rechazado' | 'En Revisión' })}
-                className={`w-full p-3 border rounded-lg ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300'}`}
-              >
-                <option value="Validado">Validado</option>
-                <option value="Rechazado">Rechazado</option>
-                <option value="En Revisión">En Revisión</option>
-              </select>
-            </div>
+            <Select
+              label="Estado de Validación"
+              value={validationData.validation_status}
+              onChange={(e) => setValidationData({ ...validationData, validation_status: e.target.value as 'Validado' | 'Rechazado' | 'En Revisión' })}
+              options={[
+                { value: 'Validado', label: 'Validado' },
+                { value: 'Rechazado', label: 'Rechazado' },
+                { value: 'En Revisión', label: 'En Revisión' }
+              ]}
+            />
 
-            <div className="mb-4">
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                Notas de Validación
-              </label>
-              <textarea
-                value={validationData.validation_notes}
-                onChange={(e) => setValidationData({ ...validationData, validation_notes: e.target.value })}
-                className={`w-full p-3 border rounded-lg ${darkMode ? 'bg-neutral-700 border-neutral-600 text-white' : 'bg-white border-neutral-300'}`}
-                rows={3}
-                placeholder="Agrega notas sobre la validación..."
-              />
-            </div>
+            <Textarea
+              label="Notas de Validación"
+              value={validationData.validation_notes}
+              onChange={(e) => setValidationData({ ...validationData, validation_notes: e.target.value })}
+              rows={3}
+              placeholder="Agrega notas sobre la validación..."
+            />
 
-            <div className="flex justify-end space-x-3">
-              <button
+            <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+              <Button
+                variant="ghost"
                 onClick={() => setShowValidateModal(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
               >
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
+                className="bg-green-600 hover:bg-green-700"
                 onClick={handleValidateControl}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
               >
                 Validar
-              </button>
+              </Button>
             </div>
           </div>
         </div>

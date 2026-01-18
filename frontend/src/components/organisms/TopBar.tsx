@@ -9,7 +9,7 @@ import {
   User,
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { Input } from '../atoms';
+import { Button, Input } from '../atoms';
 
 const TopBar: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -26,9 +26,8 @@ const TopBar: React.FC = () => {
   };
 
   return (
-    <header className={`${
-      darkMode ? 'bg-neutral-900 border-neutral-700' : 'bg-white border-neutral-200'
-    } border-b px-6 py-4 flex items-center justify-between`}>
+    <header className={`${darkMode ? 'bg-neutral-900 border-neutral-700' : 'bg-white border-neutral-200'
+      } border-b px-6 py-4 flex items-center justify-between`}>
       <div className="flex items-center space-x-4">
         <div className="relative">
           <Input
@@ -42,38 +41,39 @@ const TopBar: React.FC = () => {
       </div>
 
       <div className="flex items-center space-x-4">
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={Globe}
           onClick={toggleLanguage}
-          className={`p-2 rounded-lg transition-colors ${
-            darkMode
-              ? 'hover:bg-neutral-800 text-neutral-400 hover:text-white'
-              : 'hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900'
-          }`}
-        >
-          <Globe size={20} />
-        </button>
+          className={`${darkMode
+              ? 'text-neutral-400 hover:text-white'
+              : 'text-neutral-600 hover:text-neutral-900'
+            }`}
+        />
 
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={darkMode ? Sun : Moon}
           onClick={toggleDarkMode}
-          className={`p-2 rounded-lg transition-colors ${
-            darkMode
-              ? 'hover:bg-neutral-800 text-neutral-400 hover:text-white'
-              : 'hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900'
-          }`}
-        >
-          {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
+          className={`${darkMode
+              ? 'text-neutral-400 hover:text-white'
+              : 'text-neutral-600 hover:text-neutral-900'
+            }`}
+        />
 
-        <button
-          className={`p-2 rounded-lg transition-colors relative ${
-            darkMode
-              ? 'hover:bg-neutral-800 text-neutral-400 hover:text-white'
-              : 'hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900'
-          }`}
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={Bell}
+          className={`${darkMode
+              ? 'text-neutral-400 hover:text-white'
+              : 'text-neutral-600 hover:text-neutral-900'
+            } relative`}
         >
-          <Bell size={20} />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-        </button>
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-neutral-900"></span>
+        </Button>
 
         <div className="flex items-center space-x-3 pl-4 border-l border-neutral-200 dark:border-neutral-700">
           <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">

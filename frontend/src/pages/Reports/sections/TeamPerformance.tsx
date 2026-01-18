@@ -14,7 +14,7 @@ import {
   MaterialTypography
 } from '../../../components/atoms';
 
-const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
+const TeamPerformance: React.FC<{ darkMode?: boolean }> = ({ darkMode }) => {
 
   const teamPerformanceData = [
     { name: 'Ana García', completados: 45, asignados: 52, sla: 92 },
@@ -27,15 +27,15 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <MaterialCard darkMode={darkMode}>
+      <MaterialCard>
         <MaterialCard.Header>
           <div className="flex items-center space-x-3">
-            <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            <MaterialTypography variant="h5" darkMode={darkMode}>
+            <Users className="h-6 w-6 text-[var(--color-primary)]" />
+            <MaterialTypography variant="h5">
               Análisis de Rendimiento del Equipo
             </MaterialTypography>
           </div>
-          <MaterialTypography variant="body2" darkMode={darkMode} className="mt-2">
+          <MaterialTypography variant="body2" className="mt-2 text-[var(--color-text-secondary)]">
             Métricas de productividad, cumplimiento de SLA y análisis de rendimiento individual.
           </MaterialTypography>
         </MaterialCard.Header>
@@ -43,30 +43,30 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
 
       {/* Métricas del Equipo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MaterialCard darkMode={darkMode} className="bg-blue-50 dark:bg-blue-900/20">
+        <MaterialCard className="bg-[var(--color-surface-variant)]">
           <MaterialCard.Content>
             <div className="flex items-center justify-between">
               <div>
-                <MaterialTypography variant="body2" darkMode={darkMode} className="text-blue-600 dark:text-blue-400">
+                <MaterialTypography variant="body2" className="text-[var(--color-primary)]">
                   Productividad Promedio
                 </MaterialTypography>
-                <MaterialTypography variant="h4" darkMode={darkMode} className="text-blue-900 dark:text-blue-100">
+                <MaterialTypography variant="h4" className="text-[var(--color-text-primary)]">
                   87%
                 </MaterialTypography>
               </div>
-              <TrendingUp className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              <TrendingUp className="h-8 w-8 text-[var(--color-primary)]" />
             </div>
           </MaterialCard.Content>
         </MaterialCard>
 
-        <MaterialCard darkMode={darkMode} className="bg-green-50 dark:bg-green-900/20">
+        <MaterialCard className="bg-[var(--color-surface-variant)]">
           <MaterialCard.Content>
             <div className="flex items-center justify-between">
               <div>
-                <MaterialTypography variant="body2" darkMode={darkMode} className="text-green-600 dark:text-green-400">
+                <MaterialTypography variant="body2" className="text-green-600 dark:text-green-400">
                   SLA Promedio
                 </MaterialTypography>
-                <MaterialTypography variant="h4" darkMode={darkMode} className="text-green-900 dark:text-green-100">
+                <MaterialTypography variant="h4" className="text-green-900 dark:text-green-100">
                   90%
                 </MaterialTypography>
               </div>
@@ -75,14 +75,14 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
           </MaterialCard.Content>
         </MaterialCard>
 
-        <MaterialCard darkMode={darkMode} className="bg-yellow-50 dark:bg-yellow-900/20">
+        <MaterialCard className="bg-yellow-50 dark:bg-yellow-900/20">
           <MaterialCard.Content>
             <div className="flex items-center justify-between">
               <div>
-                <MaterialTypography variant="body2" darkMode={darkMode} className="text-yellow-600 dark:text-yellow-400">
+                <MaterialTypography variant="body2" className="text-yellow-600 dark:text-yellow-400">
                   Desarrollos Completados
                 </MaterialTypography>
-                <MaterialTypography variant="h4" darkMode={darkMode} className="text-yellow-900 dark:text-yellow-100">
+                <MaterialTypography variant="h4" className="text-yellow-900 dark:text-yellow-100">
                   189
                 </MaterialTypography>
               </div>
@@ -91,14 +91,14 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
           </MaterialCard.Content>
         </MaterialCard>
 
-        <MaterialCard darkMode={darkMode} className="bg-purple-50 dark:bg-purple-900/20">
+        <MaterialCard className="bg-purple-50 dark:bg-purple-900/20">
           <MaterialCard.Content>
             <div className="flex items-center justify-between">
               <div>
-                <MaterialTypography variant="body2" darkMode={darkMode} className="text-purple-600 dark:text-purple-400">
+                <MaterialTypography variant="body2" className="text-purple-600 dark:text-purple-400">
                   Tiempo Promedio
                 </MaterialTypography>
-                <MaterialTypography variant="h4" darkMode={darkMode} className="text-purple-900 dark:text-purple-100">
+                <MaterialTypography variant="h4" className="text-purple-900 dark:text-purple-100">
                   2.1d
                 </MaterialTypography>
               </div>
@@ -109,9 +109,9 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
       </div>
 
       {/* Gráfico de Rendimiento */}
-      <MaterialCard darkMode={darkMode}>
+      <MaterialCard>
         <MaterialCard.Header>
-          <MaterialTypography variant="h6" darkMode={darkMode}>
+          <MaterialTypography variant="h6">
             Rendimiento por Miembro del Equipo
           </MaterialTypography>
         </MaterialCard.Header>
@@ -139,9 +139,9 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
       </MaterialCard>
 
       {/* Detalle del Equipo */}
-      <MaterialCard darkMode={darkMode}>
+      <MaterialCard>
         <MaterialCard.Header>
-          <MaterialTypography variant="h6" darkMode={darkMode}>
+          <MaterialTypography variant="h6">
             Detalle de Rendimiento Individual
           </MaterialTypography>
         </MaterialCard.Header>
@@ -152,11 +152,10 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 }`}>
                 <div className="flex items-center space-x-4">
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center ${member.sla >= 90 ? 'bg-green-100 dark:bg-green-900' :
-                      member.sla >= 80 ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-red-100 dark:bg-red-900'
+                    member.sla >= 80 ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-red-100 dark:bg-red-900'
                     }`}>
                     <MaterialTypography
                       variant="h6"
-                      darkMode={darkMode}
                       className={
                         member.sla >= 90 ? 'text-green-600 dark:text-green-400' :
                           member.sla >= 80 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'
@@ -166,10 +165,10 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                     </MaterialTypography>
                   </div>
                   <div>
-                    <MaterialTypography variant="subtitle1" darkMode={darkMode}>
+                    <MaterialTypography variant="subtitle1">
                       {member.name}
                     </MaterialTypography>
-                    <MaterialTypography variant="body2" darkMode={darkMode} className="text-neutral-600 dark:text-neutral-400">
+                    <MaterialTypography variant="body2" className="text-[var(--color-text-secondary)]">
                       {member.completados}/{member.asignados} desarrollos completados
                     </MaterialTypography>
                   </div>
@@ -177,7 +176,6 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                 <div className="text-right">
                   <MaterialTypography
                     variant="h5"
-                    darkMode={darkMode}
                     className={
                       member.sla >= 90 ? 'text-green-500' :
                         member.sla >= 80 ? 'text-yellow-500' : 'text-red-500'
@@ -185,7 +183,7 @@ const TeamPerformance: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
                   >
                     {member.sla}%
                   </MaterialTypography>
-                  <MaterialTypography variant="caption" darkMode={darkMode} className="text-neutral-600 dark:text-neutral-400">
+                  <MaterialTypography variant="caption" className="text-neutral-600 dark:text-neutral-400">
                     SLA Cumplido
                   </MaterialTypography>
                 </div>

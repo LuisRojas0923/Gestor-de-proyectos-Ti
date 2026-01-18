@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
 
-export type NotificationType = 'success' | 'info' | 'error';
+export type NotificationType = 'success' | 'info' | 'error' | 'warning';
 
 export interface NotificationItem {
   id: string;

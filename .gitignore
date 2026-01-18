@@ -1,6 +1,7 @@
 # Dependencies
 /node_modules
 /backend/venv
+/backend_v2/venv
 /frontend/node_modules
 
 # Build artifacts
@@ -26,6 +27,11 @@ yarn-debug.log*
 yarn-error.log*
 /backend/app/__pycache__
 /backend/alembic/__pycache__
+/backend_v2/app/__pycache__
+/backend_v2/app/models/__pycache__
+/backend_v2/app/schemas/__pycache__
+/backend_v2/app/api/__pycache__
+/backend_v2/app/services/__pycache__
 *.pyc
 
 # SQLite database

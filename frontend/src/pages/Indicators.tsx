@@ -6,10 +6,9 @@ import {
   TrendingUp
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useApi } from '../hooks/useApi';
 import { MetricCard } from '../components/molecules';
-import { useAppContext } from '../context/AppContext';
-import { API_CONFIG, API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '../config/api';
 import {
   BarChart,
   Bar,
@@ -23,7 +22,6 @@ import {
   Pie
 } from 'recharts';
 
-const API_BASE_URL = API_CONFIG.BASE_URL;
 
 interface AnalystPerformance {
   name: string;
@@ -33,9 +31,9 @@ interface AnalystPerformance {
   performance_score: number;
 }
 
+
 const Indicators: React.FC = () => {
-  const { state } = useAppContext();
-  const { darkMode } = state;
+  const { get } = useApi<any>();
 
   const [summary, setSummary] = useState({
     total: 0,
@@ -50,12 +48,12 @@ const Indicators: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [summaryRes, performanceRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.TICKET_STATS_SUMMARY}`),
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.TICKET_STATS_PERFORMANCE}`)
+        const [summaryData, performanceData] = await Promise.all([
+          get(API_ENDPOINTS.TICKET_STATS_SUMMARY),
+          get(API_ENDPOINTS.TICKET_STATS_PERFORMANCE)
         ]);
-        setSummary(summaryRes.data);
-        setAnalysts(performanceRes.data);
+        if (summaryData) setSummary(summaryData);
+        if (performanceData) setAnalysts(performanceData);
       } catch (error) {
         console.error("Error cargando indicadores:", error);
       } finally {
@@ -63,7 +61,7 @@ const Indicators: React.FC = () => {
       }
     };
     fetchStats();
-  }, []);
+  }, [get]);
 
   if (isLoading) return <div className="p-10 text-center">Cargando indicadores de gestión...</div>;
 
@@ -71,10 +69,10 @@ const Indicators: React.FC = () => {
     <div className="space-y-10 pb-20">
       {/* Header */}
       <div>
-        <h1 className={`text-4xl font-black ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+        <h1 className="text-4xl font-black text-[var(--color-text-primary)] mb-2">
           Indicadores de Gestión TI
         </h1>
-        <p className="text-gray-500">Métricas de desempeño de analistas y estado de la cola de soporte</p>
+        <p className="text-[var(--color-text-secondary)] font-medium">Métricas de desempeño de analistas y estado de la cola de soporte</p>
       </div>
 
       {/* Top Cards */}
@@ -111,28 +109,29 @@ const Indicators: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Ranking de Analistas */}
-        <div className={`lg:col-span-2 ${darkMode ? 'bg-neutral-800' : 'bg-white'} rounded-[2.5rem] p-8 shadow-sm border border-gray-100`}>
+        <div className="lg:col-span-2 bg-[var(--color-surface)] rounded-[2.5rem] p-8 shadow-xl border border-[var(--color-border)]">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-3">
-              <Activity className="text-blue-500" />
-              <h2 className="text-xl font-bold">Desempeño por Analista</h2>
+              <Activity className="text-[var(--color-primary)]" />
+              <h2 className="text-xl font-black text-[var(--color-text-primary)]">Desempeño por Analista</h2>
             </div>
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Efficiency Ranking</span>
+            <span className="text-xs font-bold text-[var(--color-text-secondary)]/40 uppercase tracking-widest">Efficiency Ranking</span>
           </div>
 
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analysts}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={darkMode ? '#444' : '#f0f0f0'} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#888' : '#666', fontSize: 12 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: darkMode ? '#888' : '#666', fontSize: 12 }} />
+              <BarChart data={analysts as any[]}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }} />
                 <Tooltip
-                  contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                  cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
+                  contentStyle={{ borderRadius: '1.5rem', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}
+                  itemStyle={{ color: 'var(--color-text-primary)', fontWeight: 'bold' }}
+                  cursor={{ fill: 'var(--color-primary)', opacity: 0.05 }}
                 />
                 <Bar dataKey="performance_score" radius={[8, 8, 0, 0]} barSize={40}>
                   {analysts.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : '#94a3b8'} />
+                    <Cell key={`cell-${index}`} fill={index === 0 ? 'var(--color-primary)' : 'var(--color-primary-light)'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -141,13 +140,13 @@ const Indicators: React.FC = () => {
         </div>
 
         {/* Distribución de Carga */}
-        <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} rounded-[2.5rem] p-8 shadow-sm border border-gray-100`}>
-          <h2 className="text-xl font-bold mb-6">Distribución de Carga</h2>
+        <div className="bg-[var(--color-surface)] rounded-[2.5rem] p-8 shadow-xl border border-[var(--color-border)]">
+          <h2 className="text-xl font-black text-[var(--color-text-primary)] mb-6">Distribución de Carga</h2>
           <div className="h-[250px] w-full relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={analysts}
+                  data={analysts as any[]}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -156,15 +155,17 @@ const Indicators: React.FC = () => {
                   dataKey="total"
                 >
                   {analysts.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={['#3B82F6', '#818CF8', '#A5B4FC', '#C7D2FE'][index % 4]} />
+                    <Cell key={`cell-${index}`} fill={['var(--color-primary)', 'var(--color-primary-light)', 'var(--powder-blue)', 'var(--lavender)'][index % 4]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  contentStyle={{ borderRadius: '1.2rem', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+                />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-3xl font-black">{summary.total}</span>
-              <span className="text-[10px] font-bold text-gray-400 uppercase">Total Tickets</span>
+              <span className="text-3xl font-black text-[var(--color-text-primary)]">{summary.total}</span>
+              <span className="text-[10px] font-bold text-[var(--color-text-secondary)]/40 uppercase">Total Tickets</span>
             </div>
           </div>
 
@@ -172,10 +173,10 @@ const Indicators: React.FC = () => {
             {analysts.slice(0, 3).map((analyst, i) => (
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${['bg-blue-500', 'bg-indigo-400', 'bg-indigo-200'][i % 3]}`}></div>
-                  <span className="text-sm font-bold text-gray-700">{analyst.name}</span>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ['var(--color-primary)', 'var(--color-primary-light)', 'var(--powder-blue)'][i % 3] }}></div>
+                  <span className="text-sm font-bold text-[var(--color-text-secondary)]">{analyst.name}</span>
                 </div>
-                <span className="text-sm font-mono text-gray-400">{analyst.total} tks</span>
+                <span className="text-sm font-mono text-[var(--color-text-secondary)]/60 font-black">{analyst.total} tks</span>
               </div>
             ))}
           </div>
@@ -183,47 +184,49 @@ const Indicators: React.FC = () => {
       </div>
 
       {/* Listado Detallado (Tabla Premium) */}
-      <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} rounded-[2.5rem] p-4 shadow-sm border border-gray-100 overflow-hidden`}>
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b border-gray-50">
-              <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Analista</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Asignados</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Resueltos</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Eficiencia (%)</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Prom. Atención</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {analysts.map((analyst, i) => (
-              <tr key={i} className="hover:bg-gray-50/50 transition-colors group">
-                <td className="px-6 py-5">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                      {analyst.name[0]}
-                    </div>
-                    <span className="font-bold text-gray-900">{analyst.name}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-5 font-mono text-gray-600">{analyst.total}</td>
-                <td className="px-6 py-5 font-mono text-gray-600">{analyst.cerrados}</td>
-                <td className="px-6 py-5">
-                  <div className="flex items-center space-x-2">
-                    <div className="flex-grow bg-gray-100 h-1.5 rounded-full overflow-hidden max-w-[60px]">
-                      <div className="bg-blue-500 h-full" style={{ width: `${analyst.performance_score}%` }}></div>
-                    </div>
-                    <span className="text-xs font-bold">{analyst.performance_score.toFixed(0)}%</span>
-                  </div>
-                </td>
-                <td className="px-6 py-5">
-                  <span className="text-xs font-bold px-3 py-1 bg-gray-100 rounded-lg text-gray-500">
-                    {analyst.avg_time.toFixed(1)}h
-                  </span>
-                </td>
+      <div className="bg-[var(--color-surface)] rounded-[2.5rem] p-6 shadow-xl border border-[var(--color-border)] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-[var(--color-border)]/50">
+                <th className="px-6 py-4 text-xs font-black text-[var(--color-text-secondary)]/50 uppercase tracking-widest">Analista</th>
+                <th className="px-6 py-4 text-xs font-black text-[var(--color-text-secondary)]/50 uppercase tracking-widest">Asignados</th>
+                <th className="px-6 py-4 text-xs font-black text-[var(--color-text-secondary)]/50 uppercase tracking-widest">Resueltos</th>
+                <th className="px-6 py-4 text-xs font-black text-[var(--color-text-secondary)]/50 uppercase tracking-widest">Eficiencia (%)</th>
+                <th className="px-6 py-4 text-xs font-black text-[var(--color-text-secondary)]/50 uppercase tracking-widest">Prom. Atención</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-[var(--color-border)]/30">
+              {analysts.map((analyst, i) => (
+                <tr key={i} className="hover:bg-[var(--color-surface-variant)]/30 transition-colors group">
+                  <td className="px-6 py-5">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center font-black shadow-md shadow-[var(--color-primary)]/20">
+                        {analyst.name[0]}
+                      </div>
+                      <span className="font-black text-[var(--color-text-primary)]">{analyst.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5 font-mono font-bold text-[var(--color-text-secondary)]">{analyst.total}</td>
+                  <td className="px-6 py-5 font-mono font-bold text-[var(--color-text-secondary)]">{analyst.cerrados}</td>
+                  <td className="px-6 py-5">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-grow bg-[var(--color-surface-variant)] h-2 rounded-full overflow-hidden max-w-[80px]">
+                        <div className="bg-[var(--color-primary)] h-full rounded-full" style={{ width: `${analyst.performance_score}%` }}></div>
+                      </div>
+                      <span className="text-xs font-black text-[var(--color-text-primary)]">{analyst.performance_score.toFixed(0)}%</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5">
+                    <span className="text-xs font-black px-4 py-1.5 bg-[var(--color-surface-variant)] rounded-full text-[var(--color-text-secondary)] border border-[var(--color-border)]/50">
+                      {analyst.avg_time.toFixed(1)}h
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

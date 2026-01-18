@@ -5,9 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X } from 'lucide-react';
-import Input from '../atoms/Input';
-import MaterialSelect from '../atoms/MaterialSelect';
-import Button from '../atoms/Button';
+import { Button, Input, Select, Textarea, Checkbox } from '../atoms';
 import { useAppContext } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { API_ENDPOINTS } from '../../config/api';
@@ -16,10 +14,11 @@ import {
   StageFieldConfig,
   FormField
 } from '../../types/activityLog';
+import { Activity } from '../../types/activity';
 
 interface ActivityFormProps {
   developmentId: string;
-  onSuccess?: (activity: unknown) => void;
+  onSuccess?: (activity: Activity) => void;
   onCancel?: () => void;
   initialStageId?: number;
 }
@@ -230,7 +229,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           }
         }
 
-        onSuccess?.(response);
+        onSuccess?.(response as Activity);
         // Reset form
         setFormData({
           stage_id: 0,
@@ -258,35 +257,24 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
     switch (field.type) {
       case 'select':
         return (
-          <MaterialSelect
+          <Select
             label={field.label}
-            name={field.name}
             value={value}
             onChange={(e) => handleDynamicFieldChange(field.name, e.target.value)}
-            darkMode={darkMode}
             options={field.name === 'environment' ? getEnvironmentOptions() : []}
             required={field.required}
           />
         );
       case 'textarea':
         return (
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
-              }`}>
-              {field.label} {field.required && '*'}
-            </label>
-            <textarea
-              value={value}
-              onChange={(e) => handleDynamicFieldChange(field.name, e.target.value)}
-              placeholder={field.placeholder}
-              required={field.required}
-              rows={3}
-              className={`w-full px-3 py-2 border rounded-md ${darkMode
-                  ? 'bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400'
-                  : 'bg-white border-neutral-300 text-neutral-900 placeholder-neutral-500'
-                } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            />
-          </div>
+          <Textarea
+            label={field.label}
+            value={value}
+            onChange={(e) => handleDynamicFieldChange(field.name, e.target.value)}
+            placeholder={field.placeholder}
+            required={field.required}
+            rows={3}
+          />
         );
       default: {
         const inputType = (field.type === 'date' || field.type === 'number' || field.type === 'text')
@@ -338,12 +326,10 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
         {/* Campos básicos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <MaterialSelect
+            <Select
               label="Etapa *"
-              name="stage_id"
               value={formData.stage_id.toString()}
               onChange={(e) => handleInputChange('stage_id', parseInt(e.target.value))}
-              darkMode={darkMode}
               options={availableStages.map(stage => ({
                 value: stage.id.toString(),
                 label: stage.stage_name
@@ -353,12 +339,10 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           </div>
 
           <div>
-            <MaterialSelect
+            <Select
               label="Tipo de Actor *"
-              name="actor_type"
               value={formData.actor_type}
               onChange={(e) => handleInputChange('actor_type', e.target.value)}
-              darkMode={darkMode}
               options={[
                 { value: 'equipo_interno', label: 'Equipo Interno' },
                 { value: 'proveedor', label: 'Proveedor' },
@@ -397,12 +381,10 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           </div>
 
           <div>
-            <MaterialSelect
+            <Select
               label="Estado"
-              name="status"
               value={formData.status}
               onChange={(e) => handleInputChange('status', e.target.value)}
-              darkMode={darkMode}
               options={[
                 { value: 'pendiente', label: 'Pendiente' },
                 { value: 'en_curso', label: 'En Curso' },
@@ -439,34 +421,23 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
 
         {/* Notas */}
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-700'
-            }`}>
-            Notas Adicionales
-          </label>
-          <textarea
+          <Textarea
+            label="Notas Adicionales"
             value={formData.notes || ''}
             onChange={(e) => handleInputChange('notes', e.target.value)}
             placeholder="Descripción detallada de la actividad..."
             rows={3}
-            className={`w-full px-3 py-2 border rounded-md ${darkMode
-                ? 'bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400'
-                : 'bg-white border-neutral-300 text-neutral-900 placeholder-neutral-500'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
           />
         </div>
 
         {/* Acción: también mover la etapa */}
         <div className="flex items-center">
-          <input
+          <Checkbox
             id="alsoMoveStage"
-            type="checkbox"
             checked={alsoMoveStage}
             onChange={(e) => setAlsoMoveStage(e.target.checked)}
-            className="mr-2"
+            label="También mover el desarrollo a esta etapa"
           />
-          <label htmlFor="alsoMoveStage" className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} text-sm`}>
-            También mover el desarrollo a esta etapa
-          </label>
         </div>
 
         {/* Botones */}
@@ -482,20 +453,10 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           )}
           <Button
             type="submit"
-            disabled={loading}
-            className="flex items-center"
+            loading={loading}
+            icon={Plus}
           >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Creando...
-              </>
-            ) : (
-              <>
-                <Plus size={16} className="mr-2" />
-                Crear Actividad
-              </>
-            )}
+            {loading ? 'Creando...' : 'Crear Actividad'}
           </Button>
         </div>
       </form>

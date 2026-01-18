@@ -1,0 +1,169 @@
+import _frozen_importlib # frozen
+import _imp # builtin
+import '_thread' # <class '_frozen_importlib.BuiltinImporter'>
+import '_warnings' # <class '_frozen_importlib.BuiltinImporter'>
+import '_weakref' # <class '_frozen_importlib.BuiltinImporter'>
+import 'winreg' # <class '_frozen_importlib.BuiltinImporter'>
+import '_io' # <class '_frozen_importlib.BuiltinImporter'>
+import 'marshal' # <class '_frozen_importlib.BuiltinImporter'>
+import 'nt' # <class '_frozen_importlib.BuiltinImporter'>
+import '_frozen_importlib_external' # <class '_frozen_importlib.FrozenImporter'>
+# installing zipimport hook
+import 'time' # <class '_frozen_importlib.BuiltinImporter'>
+import 'zipimport' # <class '_frozen_importlib.FrozenImporter'>
+# installed zipimport hook
+# C:\Users\amejoramiento6\AppData\Local\Programs\Python\Python311\Lib\encodings\__pycache__\__init__.cpython-311.pyc matches C:\Users\amejoramiento6\AppData\Local\Programs\Python\Python311\Lib\encodings\__init__.py
+# code object from 'C:\\Users\\amejoramiento6\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\encodings\\__pycache__\\__init__.cpython-311.pyc'
+import '_codecs' # <class '_frozen_importlib.BuiltinImporter'>
+import 'codecs' # <class '_frozen_importlib.FrozenImporter'>
+# C:\Users\amejoramiento6\AppData\Local\Programs\Python\Python311\Lib\encodings\__pycache__\aliases.cpython-311.pyc matches C:\Users\amejoramiento6\AppData\Local\Programs\Python\Python311\Lib\encodings\aliases.py
+# code object from 'C:\\Users\\amejoramiento6\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\encodings\\__pycache__\\aliases.cpython-311.pyc'
+import 'encodings.aliases' # <_frozen_importlib_external.SourceFileLoader object at 0x0000015CCD73EED0>
+import 'encodings' # <_frozen_importlib_external.SourceFileLoader object at 0x0000015CCD737750>
+# C:\Users\amejoramiento6\AppData\Local\Programs\Python\Python311\Lib\encodings\__pycache__\utf_8.cpython-311.pyc matches C:\Users\amejoramiento6\AppData\Local\Programs\Python\Python311\Lib\encodings\utf_8.py
+# code object from 'C:\\Users\\amejoramiento6\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\encodings\\__pycache__\\utf_8.cpython-311.pyc'
+import 'encodings.utf_8' # <_frozen_importlib_external.SourceFileLoader object at 0x0000015CCD762B90>
+import '_signal' # <class '_frozen_importlib.BuiltinImporter'>
+import '_abc' # <class '_frozen_importlib.BuiltinImporter'>
+import 'abc' # <class '_frozen_importlib.FrozenImporter'>
+import 'io' # <class '_frozen_importlib.FrozenImporter'>
+import '_stat' # <class '_frozen_importlib.BuiltinImporter'>
+import 'stat' # <class '_frozen_importlib.FrozenImporter'>
+import '_collections_abc' # <class '_frozen_importlib.FrozenImporter'>
+import 'genericpath' # <class '_frozen_importlib.FrozenImporter'>
+import '_winapi' # <class '_frozen_importlib.BuiltinImporter'>
+import 'ntpath' # <class '_frozen_importlib.FrozenImporter'>
+import 'os' # <class '_frozen_importlib.FrozenImporter'>
+import '_sitebuiltins' # <class '_frozen_importlib.FrozenImporter'>
+Processing user site-packages
+Processing global site-packages
+Adding directory: 'C:\\Users\\amejoramiento6\\AppData\\Local\\Programs\\Python\\Python311'
+Adding directory: 'C:\\Users\\amejoramiento6\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages'
+Processing .pth file: 'C:\\Users\\amejoramiento6\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\distutils-precedence.pth'
+# C:\Users\amejoramiento6\AppData\Local\Programs\Python\Python311\Lib\encodings\__pycache__\cp1252.cpython-311.pyc matches C:\Users\amejoramiento6\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1252.py
+# code object from 'C:\\Users\\amejoramiento6\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\encodings\\__pycache__\\cp1252.cpython-311.pyc'
+import 'encodings.cp1252' # <_frozen_importlib_external.SourceFileLoader object at 0x0000015CCD997710>
+# C:\Users\amejoramiento6\AppData\Local\Programs\Python\Python311\Lib\site-packages\_distutils_hack\__pycache__\__init__.cpython-311.pyc matches C:\Users\amejoramiento6\AppData\Local\Programs\Python\Python311\Lib\site-packages\_distutils_hack\__init__.py
+# code object from 'C:\\Users\\amejoramiento6\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_distutils_hack\\__pycache__\\__init__.cpython-311.pyc'
+import '_distutils_hack' # <_frozen_importlib_external.SourceFileLoader object at 0x0000015CCD9AD410>
+import 'site' # <class '_frozen_importlib.FrozenImporter'>
+Python 3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+Iniciando prueba minima...
+Verificando tablas...
+Traceback (most recent call last):
+  File "C:\Users\amejoramiento6\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\backend_v2\seed.py", line 53, in <module>
+    Base.metadata.create_all(bind=engine)
+    ^^^^
+NameError: name 'Base' is not defined. Did you mean: 'False'?
+# clear builtins._
+# clear sys.path
+# clear sys.argv
+# clear sys.ps1
+# clear sys.ps2
+# clear sys.last_type
+# clear sys.last_value
+# clear sys.last_traceback
+# clear sys.path_hooks
+# clear sys.path_importer_cache
+# clear sys.meta_path
+# clear sys.__interactivehook__
+# restore sys.stdin
+# restore sys.stdout
+# restore sys.stderr
+# cleanup[2] removing sys
+# cleanup[2] removing builtins
+# cleanup[2] removing _frozen_importlib
+# cleanup[2] removing _imp
+# cleanup[2] removing _thread
+# cleanup[2] removing _warnings
+# cleanup[2] removing _weakref
+# cleanup[2] removing winreg
+# cleanup[2] removing _io
+# cleanup[2] removing marshal
+# cleanup[2] removing nt
+# cleanup[2] removing _frozen_importlib_external
+# cleanup[2] removing time
+# cleanup[2] removing zipimport
+# destroy zipimport
+# cleanup[2] removing _codecs
+# cleanup[2] removing codecs
+# cleanup[2] removing encodings.aliases
+# cleanup[2] removing encodings
+# destroy encodings
+# cleanup[2] removing encodings.utf_8
+# cleanup[2] removing _signal
+# cleanup[2] removing _abc
+# cleanup[2] removing abc
+# cleanup[2] removing io
+# cleanup[2] removing __main__
+# destroy __main__
+# cleanup[2] removing _stat
+# cleanup[2] removing stat
+# cleanup[2] removing _collections_abc
+# destroy _collections_abc
+# cleanup[2] removing genericpath
+# cleanup[2] removing _winapi
+# cleanup[2] removing ntpath
+# cleanup[2] removing os.path
+# cleanup[2] removing os
+# cleanup[2] removing _sitebuiltins
+# cleanup[2] removing encodings.cp1252
+# cleanup[2] removing _distutils_hack
+# destroy _distutils_hack
+# cleanup[2] removing site
+# destroy site
+# destroy _signal
+# destroy _sitebuiltins
+# destroy io
+# cleanup[3] wiping encodings.cp1252
+# cleanup[3] wiping os
+# destroy abc
+# destroy ntpath
+# cleanup[3] wiping _winapi
+# cleanup[3] wiping genericpath
+# cleanup[3] wiping stat
+# cleanup[3] wiping _stat
+# destroy _stat
+# cleanup[3] wiping _abc
+# cleanup[3] wiping encodings.utf_8
+# cleanup[3] wiping encodings.aliases
+# cleanup[3] wiping codecs
+# cleanup[3] wiping _codecs
+# cleanup[3] wiping time
+# cleanup[3] wiping _frozen_importlib_external
+# cleanup[3] wiping nt
+# cleanup[3] wiping marshal
+# cleanup[3] wiping _io
+# cleanup[3] wiping winreg
+# cleanup[3] wiping _weakref
+# cleanup[3] wiping _warnings
+# cleanup[3] wiping _thread
+# cleanup[3] wiping _imp
+# cleanup[3] wiping _frozen_importlib
+# destroy _weakref
+# cleanup[3] wiping sys
+# cleanup[3] wiping builtins
+# destroy winreg
+# destroy _thread
+# destroy _frozen_importlib_external
+# destroy _imp
+# destroy io
+# destroy marshal
+# destroy time
+# destroy _warnings
+# destroy os
+# destroy stat
+# destroy genericpath
+# destroy nt
+# destroy _abc
+# destroy _winapi
+# destroy _frozen_importlib
+# destroy codecs
+# destroy sys
+# destroy encodings.aliases
+# destroy encodings.utf_8
+# destroy encodings.cp1252
+# destroy _codecs
+# destroy builtins
+# clear sys.audit hooks

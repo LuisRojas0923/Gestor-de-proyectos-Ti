@@ -2,74 +2,72 @@
 // Basado en las especificaciones oficiales de Google Material Design
 
 export const materialDesignTokens = {
-  // Colores principales de Material Design
+  // Colores principales vinculados a variables CSS dinámicas
   colors: {
-    // Colores primarios
     primary: {
       50: '#e3f2fd',
       100: '#bbdefb',
       200: '#90caf9',
       300: '#64b5f6',
       400: '#42a5f5',
-      500: '#2196f3',    // Material Blue principal
+      500: 'var(--color-primary)',    // Dinámico
       600: '#1e88e5',
       700: '#1976d2',
       800: '#1565c0',
       900: '#0d47a1'
     },
-    
-    // Colores secundarios
+
     secondary: {
       50: '#fff3e0',
       100: '#ffe0b2',
       200: '#ffcc80',
       300: '#ffb74d',
       400: '#ffa726',
-      500: '#ff9800',    // Material Orange
+      500: 'var(--color-secondary)', // Dinámico
       600: '#fb8c00',
       700: '#f57c00',
       800: '#ef6c00',
       900: '#e65100'
     },
-    
+
     // Colores semánticos
     semantic: {
       success: '#4caf50',
       warning: '#ff9800',
       error: '#f44336',
-      info: '#2196f3'
+      info: 'var(--color-primary-light)'
     },
-    
+
     // Colores de superficie
     surface: {
-      light: '#ffffff',
-      dark: '#121212',
+      light: 'var(--color-surface)',
+      dark: 'var(--color-surface)',
       variant: {
-        light: '#f5f5f5',
-        dark: '#1e1e1e'
+        light: 'var(--color-surface-variant)',
+        dark: 'var(--color-surface-variant)'
       }
     },
-    
+
     // Colores de texto
     text: {
       primary: {
-        light: 'rgba(0, 0, 0, 0.87)',
-        dark: 'rgba(255, 255, 255, 0.87)'
+        light: 'var(--color-text-primary)',
+        dark: 'var(--color-text-primary)'
       },
       secondary: {
-        light: 'rgba(0, 0, 0, 0.6)',
-        dark: 'rgba(255, 255, 255, 0.6)'
+        light: 'var(--color-text-secondary)',
+        dark: 'var(--color-text-secondary)'
       },
       disabled: {
         light: 'rgba(0, 0, 0, 0.38)',
         dark: 'rgba(255, 255, 255, 0.38)'
       }
     },
-    
+
     // Colores de fondo
     background: {
-      light: '#fafafa',
-      dark: '#121212'
+      light: 'var(--color-background)',
+      dark: 'var(--color-background)'
     }
   },
 
@@ -80,7 +78,7 @@ export const materialDesignTokens = {
       secondary: 'Roboto, sans-serif',
       mono: 'Roboto Mono, monospace'
     },
-    
+
     fontSize: {
       // Material Design typography scale
       caption: '0.75rem',    // 12px
@@ -95,20 +93,20 @@ export const materialDesignTokens = {
       h2: '3.75rem',         // 60px
       h1: '6rem'             // 96px
     },
-    
+
     fontWeight: {
       light: '300',
       regular: '400',
       medium: '500',
       bold: '700'
     },
-    
+
     lineHeight: {
       tight: '1.25',
       normal: '1.5',
       relaxed: '1.75'
     },
-    
+
     letterSpacing: {
       tight: '-0.025em',
       normal: '0',
@@ -160,7 +158,7 @@ export const materialDesignTokens = {
       xl: '16px',
       full: '50%'
     },
-    
+
     width: {
       thin: '1px',
       medium: '2px',
@@ -188,7 +186,7 @@ export const materialDesignTokens = {
       enteringScreen: '225ms',
       leavingScreen: '195ms'
     },
-    
+
     easing: {
       standard: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
       decelerate: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
@@ -207,6 +205,18 @@ export const materialDesignTokens = {
     modal: 1300,
     snackbar: 1400,
     tooltip: 1500
+  },
+
+  // Escala de tamaños de iconos
+  icon: {
+    size: {
+      xs: 12,
+      sm: 16,
+      md: 20,
+      lg: 24,
+      xl: 32,
+      xxl: 48
+    }
   }
 };
 

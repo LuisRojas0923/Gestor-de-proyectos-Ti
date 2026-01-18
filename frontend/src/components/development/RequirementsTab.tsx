@@ -13,6 +13,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FixedSizeList as List } from 'react-window';
 import { useApi } from '../../hooks/useApi';
+import { Button, Input, Select } from '../atoms';
 
 // Type definition for a requirement
 interface Requirement {
@@ -95,10 +96,10 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
   const filteredRequirements = useMemo(() => {
     return requirements.filter((req) => {
       const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           req.external_id.toLowerCase().includes(searchTerm.toLowerCase());
+        req.external_id.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
       const matchesPriority = priorityFilter === 'all' || req.priority === priorityFilter;
-      
+
       return matchesSearch && matchesStatus && matchesPriority;
     });
   }, [searchTerm, statusFilter, priorityFilter, requirements]);
@@ -125,16 +126,15 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
 
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const requirement = filteredRequirements[index];
-    
+
     return (
       <div style={style} className="px-4">
-        <div className={`${
-          darkMode ? 'bg-neutral-800 border-neutral-700 hover:bg-neutral-750' : 'bg-white border-neutral-200 hover:bg-neutral-50'
-        } border rounded-lg p-4 mb-2 transition-all cursor-pointer`}
-        onClick={() => {
-          setSelectedRequirement(requirement);
-          setSidebarOpen(true);
-        }}>
+        <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700 hover:bg-neutral-750' : 'bg-white border-neutral-200 hover:bg-neutral-50'
+          } border rounded-lg p-4 mb-2 transition-all cursor-pointer`}
+          onClick={() => {
+            setSelectedRequirement(requirement);
+            setSidebarOpen(true);
+          }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 flex-1">
               {getStatusIcon(requirement.status)}
@@ -158,16 +158,25 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button className={`p-2 rounded-lg transition-colors ${
-                darkMode ? 'hover:bg-neutral-700 text-neutral-400' : 'hover:bg-neutral-100 text-neutral-600'
-              }`}>
-                <Eye size={16} />
-              </button>
-              <button className={`p-2 rounded-lg transition-colors ${
-                darkMode ? 'hover:bg-neutral-700 text-neutral-400' : 'hover:bg-neutral-100 text-neutral-600'
-              }`}>
-                <Edit size={16} />
-              </button>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={Eye}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedRequirement(requirement);
+                  setSidebarOpen(true);
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={Edit}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // TODO: Implementar edición
+                }}
+              />
             </div>
           </div>
         </div>
@@ -182,79 +191,61 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h4 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-              <Search size={18} className="mr-2"/>
+              <Search size={18} className="mr-2" />
               Requerimientos del Desarrollo
             </h4>
             <div className="flex items-center space-x-4">
-              <button className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-                <Plus size={20} />
-                <span>Nuevo Requerimiento</span>
-              </button>
-              <button className={`p-2 rounded-lg transition-colors ${
-                darkMode ? 'hover:bg-neutral-700 text-neutral-400' : 'hover:bg-neutral-100 text-neutral-600'
-              }`}>
-                <Download size={20} />
-              </button>
+              <Button
+                icon={Plus}
+                onClick={() => { }} // TODO
+              >
+                Nuevo Requerimiento
+              </Button>
+              <Button
+                variant="outline"
+                icon={Download}
+                onClick={() => { }} // TODO
+              />
             </div>
           </div>
 
           {/* Filters */}
-          <div className={`${
-            darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-          } border rounded-xl p-6`}>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative">
-                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
-                  darkMode ? 'text-neutral-400' : 'text-neutral-500'
-                }`} size={20} />
-                <input
-                  type="text"
-                  placeholder={t('search')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`pl-10 pr-4 py-2 w-full rounded-lg border transition-colors ${
-                    darkMode
-                      ? 'bg-neutral-700 border-neutral-600 text-white placeholder-neutral-400'
-                      : 'bg-neutral-50 border-neutral-300 text-neutral-900 placeholder-neutral-500'
-                  } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
-                />
-              </div>
+          <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+            } border rounded-xl p-6`}>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <Input
+                placeholder={t('search')}
+                icon={Search}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
 
-              <select
+              <Select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className={`px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
-                    ? 'bg-neutral-700 border-neutral-600 text-white'
-                    : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
-              >
-                <option value="all">{t('allStatuses')}</option>
-                <option value="new">{t('new')}</option>
-                <option value="validated">{t('validated')}</option>
-                <option value="testing">{t('testing')}</option>
-                <option value="completed">{t('completed')}</option>
-                <option value="rejected">{t('rejected')}</option>
-              </select>
+                options={[
+                  { value: 'all', label: t('allStatuses') },
+                  { value: 'new', label: t('new') },
+                  { value: 'validated', label: t('validated') },
+                  { value: 'testing', label: t('testing') },
+                  { value: 'completed', label: t('completed') },
+                  { value: 'rejected', label: t('rejected') }
+                ]}
+              />
 
-              <select
+              <Select
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
-                className={`px-4 py-2 rounded-lg border transition-colors ${
-                  darkMode
-                    ? 'bg-neutral-700 border-neutral-600 text-white'
-                    : 'bg-neutral-50 border-neutral-300 text-neutral-900'
-                } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20`}
-              >
-                <option value="all">{t('allPriorities')}</option>
-                <option value="high">{t('high')}</option>
-                <option value="medium">{t('medium')}</option>
-                <option value="low">{t('low')}</option>
-              </select>
+                options={[
+                  { value: 'all', label: t('allPriorities') },
+                  { value: 'high', label: t('high') },
+                  { value: 'medium', label: t('medium') },
+                  { value: 'low', label: t('low') }
+                ]}
+              />
 
-              <div className={`text-sm flex items-center ${
-                darkMode ? 'text-neutral-400' : 'text-neutral-600'
-              }`}>
+              <div className={`text-sm flex items-center h-10 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
+                }`}>
                 <Filter size={16} className="mr-2" />
                 {filteredRequirements.length} de {requirements.length} requerimientos
               </div>
@@ -265,9 +256,8 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
           {loading && <p>Loading...</p>}
           {error && <p className="text-red-500">{error}</p>}
           {!loading && !error && (
-            <div className={`${
-              darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-            } border rounded-xl overflow-hidden`}>
+            <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+              } border rounded-xl overflow-hidden`}>
               <List
                 height={400}
                 itemCount={filteredRequirements.length}
@@ -283,22 +273,20 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
 
       {/* Sidebar Detail Panel */}
       {sidebarOpen && selectedRequirement && (
-        <div className={`fixed right-0 top-0 h-full w-96 ${
-          darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-        } border-l shadow-xl z-50 overflow-y-auto transition-transform`}>
+        <div className={`fixed right-0 top-0 h-full w-96 ${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
+          } border-l shadow-xl z-50 overflow-y-auto transition-transform`}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
                 Detalle del Requerimiento
               </h2>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setSidebarOpen(false)}
-                className={`p-2 rounded-lg transition-colors ${
-                  darkMode ? 'hover:bg-neutral-700 text-neutral-400' : 'hover:bg-neutral-100 text-neutral-600'
-                }`}
               >
                 ×
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-6">
@@ -313,9 +301,8 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${
-                    darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                  }`}>
+                  <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
+                    }`}>
                     Estado
                   </label>
                   <div className="flex items-center space-x-2">
@@ -327,9 +314,8 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${
-                    darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                  }`}>
+                  <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
+                    }`}>
                     Prioridad
                   </label>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(selectedRequirement.priority)}`}>
@@ -339,9 +325,8 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-1 ${
-                  darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                }`}>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
+                  }`}>
                   Descripción
                 </label>
                 <p className={`${darkMode ? 'text-white' : 'text-neutral-900'}`}>
@@ -351,9 +336,8 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${
-                    darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                  }`}>
+                  <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
+                    }`}>
                     Asignado a
                   </label>
                   <span className={darkMode ? 'text-white' : 'text-neutral-900'}>
@@ -362,9 +346,8 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${
-                    darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                  }`}>
+                  <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
+                    }`}>
                     Fecha límite
                   </label>
                   <span className={darkMode ? 'text-white' : 'text-neutral-900'}>
@@ -374,35 +357,40 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                }`}>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
+                  }`}>
                   Controles Aplicables
                 </label>
                 <div className="flex flex-wrap gap-2">
-                    {/* Placeholder for controls */}
-                    <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                      darkMode ? 'bg-neutral-700 text-neutral-300' : 'bg-neutral-100 text-neutral-700'
+                  {/* Placeholder for controls */}
+                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${darkMode ? 'bg-neutral-700 text-neutral-300' : 'bg-neutral-100 text-neutral-700'
                     }`}>
-                      N/A
-                    </span>
+                    N/A
+                  </span>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <button className="w-full bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition-colors">
+              <div className="space-y-3 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                <Button
+                  fullWidth
+                  onClick={() => { }}
+                >
                   Validar {selectedRequirement.external_id}
-                </button>
-                <button className="w-full bg-secondary-500 hover:bg-secondary-600 text-white px-4 py-2 rounded-lg transition-colors">
+                </Button>
+                <Button
+                  fullWidth
+                  variant="secondary"
+                  onClick={() => { }}
+                >
                   Generar Correo
-                </button>
-                <button className={`w-full border px-4 py-2 rounded-lg transition-colors ${
-                  darkMode
-                    ? 'border-neutral-600 text-neutral-300 hover:bg-neutral-700'
-                    : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'
-                }`}>
+                </Button>
+                <Button
+                  fullWidth
+                  variant="outline"
+                  onClick={() => { }}
+                >
                   Ejecutar Controles IA
-                </button>
+                </Button>
               </div>
             </div>
           </div>

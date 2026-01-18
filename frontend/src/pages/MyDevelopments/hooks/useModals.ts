@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react';
-import { Activity, Development } from '../../types';
+import { Activity, Development } from '../../../types';
 
 export const useModals = () => {
-  const [isImportModalOpen, setImportModalOpen] = useState(false);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean; development: Development | null }>({ isOpen: false, development: null });
   const [activityDeleteModal, setActivityDeleteModal] = useState<{ isOpen: boolean; activity: Activity | null }>({ isOpen: false, activity: null });
   const [shouldRollbackStage, setShouldRollbackStage] = useState(false);
@@ -28,7 +27,6 @@ export const useModals = () => {
   }, [validateActivityEditForm]);
 
   return {
-    isImportModalOpen, setImportModalOpen,
     deleteConfirmModal, setDeleteConfirmModal,
     activityDeleteModal, setActivityDeleteModal,
     shouldRollbackStage, setShouldRollbackStage,

@@ -1,5 +1,4 @@
 import React from 'react';
-import { materialDesignTokens } from '../tokens';
 
 interface MaterialCardProps {
   children: React.ReactNode;
@@ -7,7 +6,6 @@ interface MaterialCardProps {
   className?: string;
   onClick?: () => void;
   hoverable?: boolean;
-  darkMode?: boolean;
 }
 
 const MaterialCard: React.FC<MaterialCardProps> = ({
@@ -16,14 +14,10 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   className = '',
   onClick,
   hoverable = false,
-  darkMode = false,
 }) => {
-  const tokens = materialDesignTokens;
-  
-  const baseClasses = `rounded-lg transition-all duration-200 ${
-    darkMode ? 'bg-neutral-800' : 'bg-white'
-  }`;
-  
+
+  const baseClasses = `rounded-[1.5rem] transition-all bg-[var(--color-surface)] border border-[var(--color-border)]`;
+
   const elevationClasses = {
     0: 'shadow-none',
     1: 'shadow-sm hover:shadow-md',
@@ -39,18 +33,13 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
     24: 'shadow-2xl hover:shadow-2xl'
   };
 
-  const hoverClasses = hoverable ? 'hover:shadow-xl cursor-pointer' : '';
-  const clickableClasses = onClick ? 'cursor-pointer' : '';
+  const hoverClasses = hoverable ? 'hover:shadow-xl cursor-pointer hover:-translate-y-1' : '';
+  const clickableClasses = onClick ? 'cursor-pointer active:scale-95' : '';
 
   return (
     <div
-      className={`${baseClasses} ${elevationClasses[elevation]} ${hoverClasses} ${clickableClasses} ${className}`}
+      className={`${baseClasses} ${elevationClasses[elevation]} ${hoverClasses} ${clickableClasses} ${className} font-sans duration-300 ease-in-out`}
       onClick={onClick}
-      style={{
-        fontFamily: tokens.typography.fontFamily.primary,
-        transition: `all ${tokens.transitions.duration.standard} ${tokens.transitions.easing.standard}`,
-        boxShadow: elevation > 0 ? tokens.elevation[elevation] : 'none'
-      }}
     >
       {children}
     </div>
@@ -61,17 +50,13 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
 interface MaterialCardSubComponentProps {
   children: React.ReactNode;
   className?: string;
-  darkMode?: boolean;
 }
 
 const MaterialCardHeader: React.FC<MaterialCardSubComponentProps> = ({
   children,
   className = '',
-  darkMode = false
 }) => (
-  <div className={`px-6 py-4 border-b transition-colors ${
-    darkMode ? 'border-neutral-700' : 'border-gray-200'
-  } ${className}`}>
+  <div className={`px-6 py-4 border-b border-neutral-200 dark:border-neutral-700 transition-colors ${className}`}>
     {children}
   </div>
 );
@@ -79,9 +64,8 @@ const MaterialCardHeader: React.FC<MaterialCardSubComponentProps> = ({
 const MaterialCardContent: React.FC<MaterialCardSubComponentProps> = ({
   children,
   className = '',
-  darkMode = false
 }) => (
-  <div className={`px-6 py-4 transition-colors ${darkMode ? 'text-white' : 'text-gray-900'} ${className}`}>
+  <div className={`px-6 py-4 transition-colors text-neutral-900 dark:text-white ${className}`}>
     {children}
   </div>
 );
@@ -89,9 +73,8 @@ const MaterialCardContent: React.FC<MaterialCardSubComponentProps> = ({
 const MaterialCardActions: React.FC<MaterialCardSubComponentProps> = ({
   children,
   className = '',
-  darkMode = false
 }) => (
-  <div className={`px-6 py-4 flex items-center justify-end space-x-2 transition-colors ${darkMode ? 'text-white' : 'text-gray-900'} ${className}`}>
+  <div className={`px-6 py-4 flex items-center justify-end space-x-2 transition-colors ${className}`}>
     {children}
   </div>
 );

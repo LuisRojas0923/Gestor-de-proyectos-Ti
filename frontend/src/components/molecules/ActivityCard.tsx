@@ -1,5 +1,5 @@
 import React from 'react';
-import { MaterialCard, MaterialTypography } from '../atoms';
+import { Button } from '../atoms';
 import { CheckCircle, Edit, Trash2, Clock, Calendar, User } from 'lucide-react';
 import { Activity } from '../../types';
 
@@ -20,20 +20,12 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   onDelete,
   showCompleteButton = true,
 }) => {
-  // Función para obtener las clases de estado según el mockup
-  const getStatusClasses = (status: string): string => {
-    switch (status) {
-      case 'en_curso':
-        return 'bg-blue-600 hover:bg-blue-700';
-      case 'completada':
-        return 'bg-green-600 hover:bg-green-700';
-      case 'pendiente':
-        return 'bg-red-600 hover:bg-red-700';
-      case 'cancelada':
-        return 'bg-gray-600 hover:bg-gray-700';
-      default:
-        return 'bg-gray-600 hover:bg-gray-700';
-    }
+  const statusColors: Record<string, string> = {
+    en_curso: 'bg-blue-600',
+    completada: 'bg-green-600',
+    pendiente: 'bg-red-600',
+    cancelada: 'bg-gray-600',
+    default: 'bg-gray-600',
   };
 
 
@@ -67,9 +59,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
   );
 
   return (
-    <MaterialCard
-      darkMode={darkMode}
-      elevation={2}
+    <div
       className={`w-full rounded-xl p-4 space-y-4 ${darkMode ? 'bg-neutral-800 text-white shadow-2xl' : 'bg-white text-neutral-900 shadow-xl border border-neutral-200'}`}
     >
       {/* 1. SECCIÓN DE ETIQUETAS Y TÍTULO */}
@@ -77,7 +67,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
         {/* Tags (Mejorados: Espaciado con gap-2) */}
         <div className="flex flex-wrap gap-2 mb-4 sm:mb-0">
           <span
-            className={`px-3 py-1 text-sm font-bold rounded-full text-white shadow-md transition-colors ${getStatusClasses(activity.status)}`}
+            className={`px-3 py-1 text-sm font-bold rounded-full text-white shadow-md transition-colors ${statusColors[activity.status] || statusColors.default}`}
           >
             {activity.status.toUpperCase().replace('_', ' ')}
           </span>
@@ -101,9 +91,9 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
         </div>
 
         {/* Título de la nota/referencia */}
-        <MaterialTypography variant="h5" darkMode={darkMode} className="font-extrabold">
+        <h5 className={`text-xl font-extrabold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
           {activity.notes || `Actividad ${activity.id}`}
-        </MaterialTypography>
+        </h5>
       </div>
 
       {/* 2. SECCIÓN DE ACCIONES (Botones Flotantes Mejorados) */}
@@ -111,42 +101,37 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
 
         {/* Botón de Éxito (Completar) - Estilo Primario y Flotante */}
         {showCompleteButton && activity.status !== 'completada' && onComplete && (
-          <button
+          <Button
             onClick={() => onComplete(activity)}
-            className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white font-semibold 
-                    rounded-full shadow-lg hover:bg-green-600 
-                    transition-all"
-            title="Marcar como completada"
+            icon={CheckCircle}
+            className="bg-green-600 hover:bg-green-700 text-white rounded-full px-6"
+            size="lg"
           >
-            <CheckCircle size={20} /> Completar
-          </button>
+            Completar
+          </Button>
         )}
 
         {/* Botón de Edición - Estilo Secundario con Icono */}
         {onEdit && (
-          <button
+          <Button
+            variant="outline"
             onClick={() => onEdit(activity)}
-            className={`flex items-center gap-2 px-5 py-3 border ${darkMode ? 'border-neutral-500 text-neutral-200 hover:bg-neutral-600' : 'border-neutral-600 text-neutral-700 hover:bg-neutral-50'
-              } font-semibold 
-                    rounded-full shadow-md
-                    transition-all`}
-            title="Editar detalles de la actividad"
+            icon={Edit}
+            className="rounded-full px-6"
+            size="lg"
           >
-            <Edit size={20} /> Editar
-          </button>
+            Editar
+          </Button>
         )}
 
         {/* Botón de Peligro (Eliminar) - Icono Flotante Pequeño */}
         {onDelete && (
-          <button
+          <Button
+            variant="danger"
             onClick={() => onDelete(activity)}
-            className="p-3 bg-red-500 text-white 
-                    rounded-full shadow-lg hover:bg-red-600 
-                    transition-all"
-            title="Eliminar actividad"
-          >
-            <Trash2 size={20} />
-          </button>
+            icon={Trash2}
+            className="rounded-full p-4"
+          />
         )}
       </div>
 
@@ -191,9 +176,9 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
       {/* 4. SECCIÓN DE NOTAS */}
       {activity.notes && (
         <div className={`pt-3 border-t ${darkMode ? 'border-neutral-700' : 'border-neutral-200'}`}>
-          <MaterialTypography variant="h6" darkMode={darkMode} className="font-semibold mb-1">
+          <h6 className={`text-base font-semibold mb-1 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
             Notas Adicionales
-          </MaterialTypography>
+          </h6>
           <p className={`italic ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
             {activity.notes}
           </p>
@@ -210,7 +195,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
           por <User size={16} className="ml-1 mr-1" /> {activity.created_by || 'system'}
         </div>
       </div>
-    </MaterialCard>
+    </div>
   );
 };
 

@@ -1,4 +1,0 @@
----
-description: Siempre que tengas que ejecutar un cambio en el proyecto, realiza un plan, ejecutalo, valida, y haz testing de lo que cambias, y valida los problemas.
-alwaysApply: false
----

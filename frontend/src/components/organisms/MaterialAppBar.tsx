@@ -1,9 +1,7 @@
 import React from 'react';
 import { Menu, Bell, User } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { MaterialButton } from '../atoms';
+import { Button, Text } from '../atoms';
 import { MaterialSearchBar } from '../molecules';
-import { materialDesignTokens } from '../tokens';
 
 interface MaterialAppBarProps {
   title?: string;
@@ -36,44 +34,29 @@ const MaterialAppBar: React.FC<MaterialAppBarProps> = ({
   user,
   actions
 }) => {
-  const { state } = useAppContext();
-  const { darkMode } = state;
-  const tokens = materialDesignTokens;
-
   return (
-    <header 
-      className="sticky top-0 z-50 shadow-md"
-      style={{
-        backgroundColor: darkMode ? tokens.colors.surface.dark : tokens.colors.primary[600],
-        color: darkMode ? tokens.colors.text.primary.dark : 'white',
-        boxShadow: tokens.elevation[4],
-        fontFamily: tokens.typography.fontFamily.primary
-      }}
-    >
+    <header className="sticky top-0 z-50 bg-[var(--color-primary)] text-white dark:bg-[var(--color-surface)] dark:text-[var(--color-text-primary)] shadow-lg transition-colors duration-300">
       <div className="px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Lado izquierdo */}
           <div className="flex items-center space-x-4">
             {onMenuClick && (
-              <MaterialButton
-                variant="text"
-                color="inherit"
+              <Button
+                variant="ghost"
                 icon={Menu}
                 onClick={onMenuClick}
-                className="text-white hover:bg-white hover:bg-opacity-10"
+                className="text-inherit hover:bg-white/10 dark:hover:bg-neutral-800"
               />
             )}
-            
-            <h1 
-              className="text-xl font-medium"
-              style={{
-                fontSize: tokens.typography.fontSize.h6,
-                fontWeight: tokens.typography.fontWeight.medium,
-                color: 'white'
-              }}
+
+            <Text
+              as="h1"
+              variant="h6"
+              weight="medium"
+              color="inherit"
             >
               {title}
-            </h1>
+            </Text>
           </div>
 
           {/* Centro - Barra de búsqueda */}
@@ -90,72 +73,59 @@ const MaterialAppBar: React.FC<MaterialAppBarProps> = ({
           {/* Lado derecho */}
           <div className="flex items-center space-x-2">
             {actions}
-            
+
             {showNotifications && (
               <div className="relative">
-                <MaterialButton
-                  variant="text"
-                  color="inherit"
+                <Button
+                  variant="ghost"
                   icon={Bell}
                   onClick={onNotificationsClick}
-                  className="text-white hover:bg-white hover:bg-opacity-10 relative"
+                  className="text-inherit hover:bg-white/10 dark:hover:bg-neutral-800 relative"
                 />
                 {notificationsCount > 0 && (
-                  <span 
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center"
-                    style={{
-                      fontSize: tokens.typography.fontSize.caption,
-                      fontWeight: tokens.typography.fontWeight.medium
-                    }}
-                  >
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
                     {notificationsCount > 99 ? '99+' : notificationsCount}
                   </span>
                 )}
               </div>
             )}
-            
+
             {showProfile && user && (
               <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p 
-                    className="text-sm font-medium"
-                    style={{
-                      fontSize: tokens.typography.fontSize.body2,
-                      fontWeight: tokens.typography.fontWeight.medium,
-                      color: 'white'
-                    }}
+                <div className="text-right hidden sm:block">
+                  <Text
+                    variant="body2"
+                    weight="medium"
+                    color="inherit"
                   >
                     {user.name}
-                  </p>
+                  </Text>
                   {user.role && (
-                    <p 
-                      className="text-xs opacity-80"
-                      style={{
-                        fontSize: tokens.typography.fontSize.caption,
-                        color: 'white'
-                      }}
+                    <Text
+                      variant="caption"
+                      color="inherit"
+                      className="opacity-80"
                     >
                       {user.role}
-                    </p>
+                    </Text>
                   )}
                 </div>
-                
-                <MaterialButton
-                  variant="text"
-                  color="inherit"
+
+                <Button
+                  variant="ghost"
                   onClick={onProfileClick}
-                  className="text-white hover:bg-white hover:bg-opacity-10 p-2"
+                  className="text-inherit hover:bg-white/10 dark:hover:bg-neutral-800 p-2"
                 >
                   {user.avatar ? (
-                    <img 
-                      src={user.avatar} 
+                    <img
+                      src={user.avatar}
                       alt={user.name}
-                      className="w-8 h-8 rounded-full"
+                      className="w-8 h-8 rounded-full border border-neutral-200 dark:border-neutral-700"
                     />
                   ) : (
-                    <User size={32} />
+                    <User size={24} />
                   )}
-                </MaterialButton>
+                </Button>
               </div>
             )}
           </div>

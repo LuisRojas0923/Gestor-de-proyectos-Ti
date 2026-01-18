@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from './Text';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -14,7 +15,7 @@ const Badge: React.FC<BadgeProps> = ({
   className = '',
 }) => {
   const baseClasses = 'inline-flex items-center font-medium rounded-full transition-all';
-  
+
   const variantClasses = {
     default: 'bg-neutral-100 text-neutral-800 dark:bg-neutral-700 dark:text-neutral-300 shadow-md hover:shadow-lg',
     success: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 shadow-md hover:shadow-lg',
@@ -30,9 +31,15 @@ const Badge: React.FC<BadgeProps> = ({
   };
 
   return (
-    <span className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}>
+    <Text
+      as="span"
+      variant={size === 'sm' ? 'caption' : 'body2'}
+      weight="medium"
+      color="inherit"
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+    >
       {children}
-    </span>
+    </Text>
   );
 };
 

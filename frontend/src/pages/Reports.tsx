@@ -4,6 +4,7 @@ import PortalReport from './Reports/sections/PortalReport';
 import ExecutiveReport from './Reports/sections/ExecutiveReport';
 import QualityReport from './Reports/sections/QualityReport';
 import TeamPerformance from './Reports/sections/TeamPerformance';
+import { Button, Text } from '../components/atoms';
 import {
   BarChart3,
   FileText,
@@ -31,60 +32,69 @@ const Reports: React.FC = () => {
       {/* Header Premium */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className={`text-4xl font-black ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+          <Text as="h1" variant="h1" weight="bold" color="text-primary" className="mb-2">
             Centro de Reportes
-          </h1>
-          <p className="text-gray-500 font-medium">Análisis avanzado de desarrollos y gestión de ANS</p>
+          </Text>
+          <Text as="p" variant="body1" weight="medium" color="gray">
+            Análisis avanzado de desarrollos y gestión de ANS
+          </Text>
         </div>
         <div className="flex items-center space-x-3">
-          <button className={`flex items-center space-x-2 px-4 py-2 rounded-xl border ${darkMode ? 'border-neutral-700 hover:bg-neutral-800' : 'border-gray-200 hover:bg-gray-50'} transition-all text-sm font-bold`}>
-            <Download size={18} />
-            <span>Exportar Todo</span>
-          </button>
+          <Button
+            variant="outline"
+            icon={Download}
+            onClick={() => console.log('Exportando todo...')}
+          >
+            Exportar Todo
+          </Button>
         </div>
       </div>
 
       {/* Tabs Navigation (Glassmorphism inspired) */}
-      <div className={`${darkMode ? 'bg-neutral-800/50' : 'bg-white/50'} backdrop-blur-md p-1.5 rounded-2xl border ${darkMode ? 'border-neutral-700' : 'border-gray-100'} inline-flex`}>
+      <div className="bg-[var(--color-surface-variant)]/50 backdrop-blur-md p-1.5 rounded-2xl border border-[var(--color-border)] inline-flex">
         {tabs.map((tab) => {
-          const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
-            <button
+            <Button
               key={tab.id}
+              variant={isActive ? 'primary' : 'ghost'}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-300 ${isActive
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
-                }`}
+              icon={tab.icon}
+              className={`px-6 py-3 rounded-xl transition-all duration-300 ${!isActive ? 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]' : ''}`}
             >
-              <Icon size={18} />
-              <span className="font-bold text-sm">{tab.label}</span>
-            </button>
+              {tab.label}
+            </Button>
           );
         })}
       </div>
 
       {/* Content Area */}
-      <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} rounded-[2.5rem] p-8 shadow-sm border ${darkMode ? 'border-neutral-700' : 'border-gray-100'} transition-all animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+      <div className="bg-[var(--color-surface)] rounded-[2.5rem] p-8 shadow-sm border border-[var(--color-border)] transition-all animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-variant)] flex items-center justify-center text-[var(--color-primary)]">
               {React.createElement(tabs.find(t => t.id === activeTab)?.icon || FileText, { size: 20 })}
             </div>
             <div>
-              <h2 className="text-xl font-bold">{tabs.find(t => t.id === activeTab)?.label}</h2>
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-widest">Dataset: Production 2024</p>
+              <Text as="h2" variant="h5" weight="bold">
+                {tabs.find(t => t.id === activeTab)?.label}
+              </Text>
+              <Text as="p" variant="caption" weight="medium" color="gray" className="uppercase tracking-widest">
+                Dataset: Production 2024
+              </Text>
             </div>
           </div>
-          <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+          <Button
+            variant="ghost"
+            className="p-2 text-gray-400 hover:text-[var(--color-primary)] transition-colors"
+          >
             <Filter size={20} />
-          </button>
+          </Button>
         </div>
 
         <div className="min-h-[500px]">
-          {activeTab === 'portal' && <PortalReport darkMode={darkMode} />}
-          {activeTab === 'executive' && <ExecutiveReport darkMode={darkMode} />}
+          {activeTab === 'portal' && <PortalReport />}
+          {activeTab === 'executive' && <ExecutiveReport />}
           {activeTab === 'quality' && <QualityReport darkMode={darkMode} />}
           {activeTab === 'performance' && <TeamPerformance darkMode={darkMode} />}
         </div>

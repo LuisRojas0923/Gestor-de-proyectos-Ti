@@ -21,9 +21,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { Title, Text, Icon } from '../components/atoms';
 import { AlertPanel } from '../components/alerts';
 import { MetricCard } from '../components/molecules';
-import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
 
@@ -48,8 +48,6 @@ interface PriorityData {
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
-  const { state } = useAppContext();
-  const { darkMode } = state;
   const { get } = useApi<any>();
   const navigate = useNavigate();
 
@@ -111,30 +109,31 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+        <Title variant="h3" weight="bold" color="text-primary">
           {t('dashboard')}
-        </h1>
-        <div className={`text-sm ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+        </Title>
+        <Text variant="caption" weight="bold" className="text-[var(--color-text-secondary)]/50 uppercase tracking-widest">
           Última actualización: {new Date().toLocaleString()}
-        </div>
+        </Text>
       </div>
 
       {/* Acceso Directo a Portal de Servicios */}
       <div
         onClick={() => navigate('/service-portal')}
-        className="cursor-pointer bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 shadow-lg shadow-blue-500/20 text-white flex items-center justify-between group transition-all hover:scale-[1.01]"
+        className="cursor-pointer bg-gradient-to-r from-[var(--deep-navy)] to-[var(--color-primary)] rounded-[2.5rem] p-8 shadow-xl shadow-[var(--color-primary)]/20 text-white flex items-center justify-between group transition-all hover:-translate-y-1 hover:shadow-2xl overflow-hidden relative"
       >
-        <div className="flex items-center space-x-6">
-          <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md">
-            <LifeBuoy size={32} />
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
+        <div className="flex items-center space-x-6 relative z-10">
+          <div className="bg-white/10 p-5 rounded-[2rem] backdrop-blur-xl border border-white/10 shadow-inner">
+            <Icon name={LifeBuoy} size="xl" className="animate-pulse" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold">Portal de Servicios</h2>
-            <p className="text-blue-100 italic">"Crea reportes de soporte y solicitudes de desarrollo aquí"</p>
+            <Title variant="h3" weight="bold" className="tracking-tight">Portal de Servicios</Title>
+            <Text variant="body1" className="text-[var(--powder-blue)] font-medium italic mt-1 opacity-90">"Crea reportes de soporte y solicitudes de desarrollo aquí"</Text>
           </div>
         </div>
-        <div className="bg-white/10 p-2 rounded-xl group-hover:bg-white/20 transition-colors">
-          <ArrowRight />
+        <div className="bg-white/10 p-4 rounded-2xl group-hover:bg-[var(--color-primary-light)] group-hover:text-[var(--color-primary)] transition-all shadow-lg relative z-10">
+          <Icon name={ArrowRight} size="md" />
         </div>
       </div>
 
@@ -173,56 +172,69 @@ const Dashboard: React.FC = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Weekly Progress Chart */}
-        <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'} border rounded-xl p-6`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2.5rem] p-8 shadow-xl">
+          <Title variant="h6" weight="bold" className="mb-6" color="text-primary">
             {t('weeklyProgress')}
-          </h3>
+          </Title>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
               <XAxis
                 dataKey="name"
-                tick={{ fill: darkMode ? '#a3a3a3' : '#525252' }}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
               />
-              <YAxis tick={{ fill: darkMode ? '#a3a3a3' : '#525252' }} />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
+              />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: darkMode ? '#262626' : '#ffffff',
-                  border: darkMode ? '1px solid #404040' : '1px solid #e5e5e5',
-                  borderRadius: '8px',
-                  color: darkMode ? '#ffffff' : '#000000',
+                  backgroundColor: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '1.5rem',
+                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
                 }}
+                itemStyle={{ color: 'var(--color-text-primary)' }}
               />
-              <Bar dataKey="completed" fill="#0066A5" name="Completados" />
-              <Bar dataKey="created" fill="#00B388" name="Creados" />
+              <Bar dataKey="completed" fill="var(--color-primary)" name="Completados" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="created" fill="var(--color-primary-light)" name="Creados" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Priority Distribution */}
-        <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'} border rounded-xl p-6`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2.5rem] p-8 shadow-xl">
+          <Title variant="h6" weight="bold" className="mb-6" color="text-primary">
             Distribución por Prioridad
-          </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={priorityData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}% `}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {priorityData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          </Title>
+          <div className="h-[300px] w-full relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={priorityData as any[]}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}% `}
+                  innerRadius={60}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                  paddingAngle={5}
+                >
+                  {priorityData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ borderRadius: '1.2rem', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 

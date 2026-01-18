@@ -1,24 +1,25 @@
 import {
-    AlertTriangle,
-    CheckCircle,
-    ChevronLeft,
-    ChevronRight,
-    Clock,
-    Save
+  AlertTriangle,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Save
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { DevelopmentWithCurrentStatus } from '../../types';
+import { Button, Select, Input } from '../atoms';
 
 interface DevelopmentStageProgressProps {
   development: DevelopmentWithCurrentStatus;
   onUpdate?: (updatedDevelopment: DevelopmentWithCurrentStatus) => void;
 }
 
-const DevelopmentStageProgress: React.FC<DevelopmentStageProgressProps> = ({ 
-  development, 
-  onUpdate 
+const DevelopmentStageProgress: React.FC<DevelopmentStageProgressProps> = ({
+  development,
+  onUpdate
 }) => {
   const { state } = useAppContext();
   const { darkMode } = state;
@@ -45,7 +46,7 @@ const DevelopmentStageProgress: React.FC<DevelopmentStageProgressProps> = ({
       if (response) {
         setSelectedStageId(newStageId);
         setProgressPercentage(0); // Reset progress when changing stage
-        
+
         // Notify parent component
         if (onUpdate) {
           onUpdate({
@@ -110,10 +111,10 @@ const DevelopmentStageProgress: React.FC<DevelopmentStageProgressProps> = ({
           Progreso de Etapa
         </h3>
         <div className="flex items-center space-x-2">
-          {getProgressIcon(progressPercentage)({ 
-            size: 20, 
-            className: progressPercentage >= 100 ? 'text-green-500' : 
-                      progressPercentage >= 50 ? 'text-yellow-500' : 'text-red-500' 
+          {getProgressIcon(progressPercentage)({
+            size: 20,
+            className: progressPercentage >= 100 ? 'text-green-500' :
+              progressPercentage >= 50 ? 'text-yellow-500' : 'text-red-500'
           })}
           <span className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
             {progressPercentage}%
@@ -157,39 +158,35 @@ const DevelopmentStageProgress: React.FC<DevelopmentStageProgressProps> = ({
           Cambiar Etapa
         </label>
         <div className="flex items-center space-x-2">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={ChevronLeft}
             onClick={() => selectedStageId && handleStageChange(selectedStageId - 1)}
             disabled={!selectedStageId || selectedStageId <= 1 || isUpdating}
-            className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          
-          <select
-            value={selectedStageId || ''}
+          />
+
+          <Select
+            value={selectedStageId?.toString() || ''}
             onChange={(e) => setSelectedStageId(Number(e.target.value))}
             disabled={isUpdating}
-            className={`flex-1 p-2 rounded-lg border ${
-              darkMode 
-                ? 'bg-neutral-700 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-neutral-900'
-            } disabled:opacity-50`}
-          >
-            <option value="">Seleccionar etapa...</option>
-            {Array.from({ length: 11 }, (_, i) => (
-              <option key={i} value={i}>
-                Etapa {i} - {getStageName(i)}
-              </option>
-            ))}
-          </select>
-          
-          <button
+            className="flex-1"
+            options={[
+              { value: '', label: 'Seleccionar etapa...' },
+              ...Array.from({ length: 11 }, (_, i) => ({
+                value: i.toString(),
+                label: `Etapa ${i} - ${getStageName(i)}`
+              }))
+            ]}
+          />
+
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={ChevronRight}
             onClick={() => selectedStageId && handleStageChange(selectedStageId + 1)}
             disabled={!selectedStageId || selectedStageId >= 10 || isUpdating}
-            className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronRight size={16} />
-          </button>
+          />
         </div>
       </div>
 
@@ -198,47 +195,42 @@ const DevelopmentStageProgress: React.FC<DevelopmentStageProgressProps> = ({
         <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
           Progreso de la Etapa Actual
         </label>
-        
+
         <div className="space-y-4">
           {/* Barra de progreso visual */}
           <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
-            <div 
+            <div
               className={`h-3 rounded-full transition-all duration-300 ${getProgressColor(progressPercentage)}`}
               style={{ width: `${progressPercentage}%` }}
             ></div>
           </div>
-          
+
           {/* Control deslizante */}
           <div className="flex items-center space-x-4">
-            <input
+            <Input
               type="range"
-              min="0"
-              max="100"
-              value={progressPercentage}
+              value={progressPercentage.toString()}
               onChange={(e) => setProgressPercentage(Number(e.target.value))}
               disabled={isUpdating}
-              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+              className="flex-1"
             />
             <span className={`text-sm font-medium w-12 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
               {progressPercentage}%
             </span>
           </div>
-          
+
           {/* Botones de progreso rápido */}
           <div className="flex space-x-2">
             {[0, 25, 50, 75, 100].map((value) => (
-              <button
+              <Button
                 key={value}
+                variant={progressPercentage === value ? 'primary' : 'outline'}
+                size="xs"
                 onClick={() => setProgressPercentage(value)}
                 disabled={isUpdating}
-                className={`px-3 py-1 text-xs rounded-lg border ${
-                  progressPercentage === value
-                    ? 'bg-blue-500 text-white border-blue-500'
-                    : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-neutral-700'
-                } disabled:opacity-50`}
               >
                 {value}%
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -246,14 +238,13 @@ const DevelopmentStageProgress: React.FC<DevelopmentStageProgressProps> = ({
 
       {/* Botón de Guardar */}
       <div className="flex justify-end space-x-3">
-        <button
+        <Button
           onClick={handleProgressUpdate}
-          disabled={isUpdating}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          loading={isUpdating}
+          icon={Save}
         >
-          <Save size={16} />
-          <span>{isUpdating ? 'Guardando...' : 'Guardar Progreso'}</span>
-        </button>
+          Guardar Progreso
+        </Button>
       </div>
 
       {/* Información de la Etapa Actual */}

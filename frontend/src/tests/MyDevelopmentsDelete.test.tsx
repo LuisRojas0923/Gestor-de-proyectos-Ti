@@ -32,7 +32,7 @@ vi.mock('../hooks/useObservations', () => ({
 vi.mock('../components/common/ExcelImporter', () => ({
   default: ({ onImport }: { onImport: (data: unknown[]) => void }) => (
     <div data-testid="excel-importer">
-      <button onClick={() => onImport([])}>Importar</button>
+      <div onClick={() => onImport([])}>Importar</div>
     </div>
   ),
 }));

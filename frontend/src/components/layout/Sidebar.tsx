@@ -14,10 +14,11 @@ import {
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
+import { Button } from '../atoms';
 
 const Sidebar: React.FC = () => {
   const { state, dispatch } = useAppContext();
-  const { sidebarOpen, darkMode, user } = state;
+  const { sidebarOpen, user } = state;
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const handleLogout = () => {
@@ -45,35 +46,31 @@ const Sidebar: React.FC = () => {
 
   return (
     <div
-      className={`${sidebarOpen ? 'w-64' : 'w-16'
-        } ${darkMode ? 'bg-neutral-900 border-neutral-700' : 'bg-white border-neutral-200'
-        } border-r transition-all duration-300 ease-in-out flex flex-col h-full`}
+      className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[var(--color-surface)] border-r border-[var(--color-border)] transition-all duration-300 ease-in-out flex flex-col h-full`}
     >
       {/* Header */}
-      <div className={`flex items-center ${sidebarOpen ? 'justify-between' : 'justify-center'} p-4 border-b border-neutral-200 dark:border-neutral-700`}>
+      <div className={`flex items-center ${sidebarOpen ? 'justify-between' : 'justify-center'} p-4 border-b border-[var(--color-border)]`}>
         {sidebarOpen ? (
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-[var(--deep-navy)] rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">GT</span>
             </div>
-            <span className={`font-black text-xs uppercase tracking-tighter ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+            <span className="font-black text-xs uppercase tracking-tighter text-[var(--color-text-primary)]">
               Gestor Proyectos
             </span>
           </div>
         ) : (
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-[var(--deep-navy)] rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">GT</span>
           </div>
         )}
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={sidebarOpen ? ChevronLeft : ChevronRight}
           onClick={toggleSidebar}
-          className={`p-2 rounded-lg transition-colors ${darkMode
-            ? 'hover:bg-neutral-800 text-neutral-400 hover:text-white'
-            : 'hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900'
-            }`}
-        >
-          {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-        </button>
+          className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+        />
       </div>
 
       {/* Navigation */}
@@ -86,11 +83,9 @@ const Sidebar: React.FC = () => {
                 <NavLink
                   to={item.href}
                   className={({ isActive }) =>
-                    `flex items-center ${sidebarOpen ? 'px-3' : 'px-2 justify-center'} py-2 rounded-lg transition-colors group relative ${isActive
-                      ? 'bg-blue-600 text-white'
-                      : darkMode
-                        ? 'text-neutral-300 hover:bg-neutral-800 hover:text-white'
-                        : 'text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900'
+                    `flex items-center ${sidebarOpen ? 'px-3' : 'px-2 justify-center'} py-2.5 rounded-xl transition-all group relative ${isActive
+                      ? 'bg-[var(--color-primary)] text-white shadow-md'
+                      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] hover:text-[var(--color-text-primary)]'
                     }`
                   }
                   onMouseEnter={() => !sidebarOpen && setHoveredItem(item.name)}
@@ -98,15 +93,11 @@ const Sidebar: React.FC = () => {
                 >
                   <Icon size={20} className="flex-shrink-0" />
                   {sidebarOpen && (
-                    <span className="ml-3 text-sm font-medium">{item.name}</span>
+                    <span className="ml-3 text-sm font-bold">{item.name}</span>
                   )}
 
-                  {/* Tooltip para estado contraído */}
                   {!sidebarOpen && hoveredItem === item.name && (
-                    <div className={`absolute left-full ml-4 px-3 py-2 rounded-xl shadow-2xl z-50 whitespace-nowrap ${darkMode
-                      ? 'bg-neutral-800 text-white border border-neutral-700'
-                      : 'bg-white text-neutral-900 border border-neutral-200'
-                      }`}>
+                    <div className="absolute left-full ml-4 px-3 py-2 rounded-xl shadow-2xl z-50 whitespace-nowrap bg-[var(--color-surface)] text-[var(--color-text-primary)] border border-[var(--color-border)]">
                       <span className="text-xs font-bold">{item.name}</span>
                     </div>
                   )}
@@ -118,22 +109,24 @@ const Sidebar: React.FC = () => {
       </nav>
 
       {/* Footer / Logout */}
-      <div className="p-4 border-t border-neutral-200 dark:border-neutral-700">
-        <button
+      <div className="p-4 border-t border-[var(--color-border)]">
+        <Button
+          variant="ghost"
           onClick={handleLogout}
-          className={`w-full flex items-center ${sidebarOpen ? 'px-3' : 'px-2 justify-center'} py-2 rounded-lg transition-colors text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10`}
+          icon={LogOut}
+          fullWidth
+          className={`text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 font-bold ${sidebarOpen ? 'px-3 justify-start' : 'px-2 justify-center'}`}
         >
-          <LogOut size={20} />
-          {sidebarOpen && <span className="ml-3 text-sm font-bold">Cerrar Sesión</span>}
-        </button>
+          {sidebarOpen && <span className="ml-3 text-sm">Cerrar Sesión</span>}
+        </Button>
         {sidebarOpen && user && (
-          <div className="mt-4 flex items-center px-3">
-            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-neutral-800 flex items-center justify-center text-blue-600 font-bold text-xs uppercase">
+          <div className="mt-4 flex items-center px-3 pt-4 border-t border-[var(--color-border)]/50">
+            <div className="w-8 h-8 rounded-full bg-[var(--color-primary-light)]/20 flex items-center justify-center text-[var(--color-primary)] font-black text-xs uppercase border border-[var(--color-primary)]/10">
               {user.name.charAt(0)}
             </div>
             <div className="ml-3 overflow-hidden">
-              <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{user.name}</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-widest">{user.role}</p>
+              <p className="text-xs font-black truncate text-[var(--color-text-primary)]">{user.name}</p>
+              <p className="text-[10px] text-[var(--color-text-secondary)] uppercase tracking-widest font-bold">{user.role}</p>
             </div>
           </div>
         )}

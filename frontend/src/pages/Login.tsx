@@ -1,40 +1,93 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogIn, Shield, User as UserIcon, Loader2 } from 'lucide-react';
+import { Lock, LogIn, User as UserIcon, ArrowRight } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { useApi } from '../hooks/useApi';
 import { API_CONFIG } from '../config/api';
+import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
+import axios from 'axios';
+import imgUserLogin from '../assets/images/categories/Usuario Inicio Sesion.png';
+import imgAdminLogin from '../assets/images/categories/icons8-usuario-administrador-96.png';
 
 const Login: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { darkMode } = state;
     const navigate = useNavigate();
-    // The 'post' variable from useApi is not used in this component.
-    // The handleLogin function uses a direct fetch call instead.
-    const { } = useApi();
 
-    const [cedula, setCedula] = useState('');
-    const [password, setPassword] = useState('');
+    // 'portal' = Login de usuario final (solo cédula)
+    // 'admin' = Login de analista (usuario + contraseña)
+    const [loginMode, setLoginMode] = useState<'portal' | 'admin'>('portal');
+
+    const [formData, setFormData] = useState({
+        username: '', // Cédula o usuario
+        password: ''
+    });
+
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleInputChange = (field: string, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        setError(null);
+    };
+
+    const handlePortalLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (formData.username.length < 5) {
+            setError("Identificación inválida");
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // Consulta al endpoint ERP para validar empleado
+            const response = await axios.get(`${API_CONFIG.BASE_URL}/erp/empleado/${formData.username}`);
+            const employeeData = response.data;
+
+            // Mapeo de datos del ERP al formato de usuario interno
+            const userData = {
+                id: employeeData.nrocedula,
+                name: employeeData.nombre,
+                email: 'usuario@dominio.com',
+                role: 'user', // Asignar rol de usuario explícitamente
+                area: employeeData.area || 'Sin Área',
+                cargo: employeeData.cargo || 'Sin Cargo',
+                sede: employeeData.ciudadcontratacion || 'Principal'
+            };
+
+            // Guardar en contexto global
+            dispatch({ type: 'LOGIN', payload: userData });
+            navigate('/service-portal');
+
+        } catch (err: any) {
+            console.error('Login error:', err);
+            if (err.response && err.response.status === 404) {
+                setError("Usuario no encontrado o inactivo en Solid ERP. Verifica tu cédula.");
+            } else {
+                setError("Error de conexión con el servidor.");
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleAdminLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError(null);
 
         try {
-            // Usar OAuth2PasswordRequestForm style (x-www-form-urlencoded)
-            const formData = new URLSearchParams();
-            formData.append('username', cedula);
-            formData.append('password', password || 'skip_password_check');
+            const params = new URLSearchParams();
+            params.append('username', formData.username);
+            params.append('password', formData.password);
 
             const response = await fetch(`${API_CONFIG.BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: formData,
+                body: params,
             });
 
             if (!response.ok) {
@@ -43,124 +96,132 @@ const Login: React.FC = () => {
 
             const data = await response.json();
 
-            // Guardar token
             localStorage.setItem('token', data.access_token);
-
-            // Actualizar estado global
             dispatch({ type: 'LOGIN', payload: data.user });
 
-            // Redirigir según rol
             if (data.user.role === 'analyst') {
                 navigate('/');
             } else {
                 navigate('/service-portal');
             }
         } catch (err) {
-            setError('Cédula o contraseña incorrectos');
+            setError('Usuario o contraseña incorrectos');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const quickLogin = (role: 'analyst' | 'user') => {
-        setCedula(role === 'analyst' ? '12345678' : '87654321');
-        setPassword('');
+    const toggleMode = () => {
+        setLoginMode(prev => prev === 'portal' ? 'admin' : 'portal');
+        setFormData({ username: '', password: '' });
+        setError(null);
     };
 
+    // Estilos basados en LoginView.tsx para modo portal, pero adaptados para soportar ambos
+    // Usaremos un diseño unificado visualmente atractivo
+
     return (
-        <div className={`min-h-screen flex items-center justify-center p-4 ${darkMode ? 'bg-neutral-950' : 'bg-gray-50'}`}>
-            <div className="max-w-md w-full">
-                {/* Logo / Header */}
+        <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-500 
+            ${loginMode === 'portal'
+                ? 'bg-gradient-to-br from-[var(--deep-navy)] to-[var(--color-primary)]'
+                : (darkMode ? 'bg-gradient-to-br from-gray-900 to-black' : 'bg-gradient-to-br from-gray-100 to-gray-300')
+            }`}>
+
+            <MaterialCard
+                elevation={5}
+                className="w-full max-w-md p-8 transform transition-all !rounded-[2.5rem]"
+            >
+
+                {/* Header */}
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white mb-4 shadow-xl shadow-blue-500/20">
-                        <Shield size={32} />
+                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 
+                        ${loginMode === 'portal'
+                            ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                            : 'bg-blue-600/10 text-blue-600 shadow-xl shadow-blue-500/10' // Cambié bg admin para que se vea la img si es transparente, o dejar blanco. 
+                        // Si las imagenes tienen fondo transparente, un bg suave queda bien.
+                        }`}>
+                        <img
+                            src={loginMode === 'portal' ? imgUserLogin : imgAdminLogin}
+                            alt={loginMode === 'portal' ? "Login Usuario" : "Login Admin"}
+                            className="w-12 h-12 object-contain"
+                        />
                     </div>
-                    <h1 className={`text-3xl font-black ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
-                        Gestor TI
-                    </h1>
-                    <p className="text-gray-500 font-medium tracking-tight">Accede a tu panel administrativo o portal</p>
+
+                    <Title variant="h4" weight="bold" color={loginMode === 'portal' || !darkMode ? 'text-primary' : 'text-primary'}>
+                        {loginMode === 'portal' ? 'Portal de Servicios' : 'Gestión Administrativa'}
+                    </Title>
+
+                    <Text variant="body1" className={`mt-2 ${loginMode === 'portal' ? 'text-[var(--color-text-secondary)]' : 'text-gray-500'}`} weight="medium">
+                        {loginMode === 'portal'
+                            ? 'Ingrese su identificación para continuar'
+                            : 'Ingrese sus credenciales de administrador'}
+                    </Text>
                 </div>
 
-                {/* Login Card */}
-                <div className={`${darkMode ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-gray-100'} p-8 rounded-[2.5rem] border shadow-2xl shadow-black/5`}>
-                    <form onSubmit={handleLogin} className="space-y-6">
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Cédula</label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    value={cedula}
-                                    onChange={(e) => setCedula(e.target.value)}
-                                    className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border outline-none transition-all ${darkMode
-                                        ? 'bg-neutral-800 border-neutral-700 text-white focus:border-blue-500'
-                                        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500 focus:bg-white'
-                                        }`}
-                                    placeholder="Número de identificación"
-                                    required
-                                />
-                                <UserIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                            </div>
+                {/* Form */}
+                <form onSubmit={loginMode === 'portal' ? handlePortalLogin : handleAdminLogin} className="space-y-6">
+
+                    <Input
+                        type="text" // Cambiado a text para soportar IDs arbitrarios
+                        name="username"
+                        label={loginMode === 'portal' ? 'Número de Identificación' : 'Usuario'}
+                        placeholder={loginMode === 'portal' ? 'Ej: 123456789' : 'usuario.admin'}
+                        value={formData.username}
+                        onChange={(e) => handleInputChange('username', e.target.value)}
+                        icon={UserIcon}
+                        required
+                        size="lg"
+                    />
+
+                    {loginMode === 'admin' && (
+                        <Input
+                            type="password"
+                            name="password"
+                            label="Contraseña"
+                            placeholder="••••••••"
+                            value={formData.password}
+                            onChange={(e) => handleInputChange('password', e.target.value)}
+                            icon={Lock}
+                            required
+                            size="lg"
+                        />
+                    )}
+
+                    {error && (
+                        <div className={`p-4 rounded-xl text-sm font-bold flex items-center space-x-2
+                            ${loginMode === 'portal'
+                                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 border border-red-100'
+                                : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                            }`}>
+                            <span>{error}</span>
                         </div>
+                    )}
 
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Contraseña</label>
-                            <div className="relative">
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border outline-none transition-all ${darkMode
-                                        ? 'bg-neutral-800 border-neutral-700 text-white focus:border-blue-500'
-                                        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500 focus:bg-white'
-                                        }`}
-                                    placeholder="•••••••• (Opcional)"
-                                // Eliminamos el required para permitir "cédula no más"
-                                />
-                                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                            </div>
-                        </div>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        size="lg"
+                        className="w-full"
+                        loading={isLoading}
+                        icon={loginMode === 'portal' ? ArrowRight : LogIn}
+                    >
+                        {loginMode === 'portal' ? 'Acceder al Portal' : 'Iniciar Sesión'}
+                    </Button>
+                </form>
 
-                        {error && (
-                            <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-bold flex items-center space-x-2">
-                                <Shield size={16} />
-                                <span>{error}</span>
-                            </div>
-                        )}
-
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-                        >
-                            {isLoading ? <Loader2 className="animate-spin" /> : <LogIn size={20} />}
-                            <span>{isLoading ? 'Autenticando...' : 'Iniciar Sesión'}</span>
-                        </button>
-                    </form>
-
-                    {/* Quick Login for Testing */}
-                    <div className="mt-10 pt-8 border-t border-gray-50 dark:border-neutral-800">
-                        <p className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Acceso Rápido (Pruebas)</p>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                onClick={() => quickLogin('analyst')}
-                                className={`flex items-center justify-center space-x-2 p-3 rounded-xl border transition-all ${darkMode ? 'border-neutral-800 hover:bg-neutral-800' : 'border-gray-100 hover:bg-gray-50'
-                                    }`}
-                            >
-                                <Shield size={16} className="text-blue-500" />
-                                <span className="text-xs font-bold">Analista</span>
-                            </button>
-                            <button
-                                onClick={() => quickLogin('user')}
-                                className={`flex items-center justify-center space-x-2 p-3 rounded-xl border transition-all ${darkMode ? 'border-neutral-800 hover:bg-neutral-800' : 'border-gray-100 hover:bg-gray-50'
-                                    }`}
-                            >
-                                <UserIcon size={16} className="text-purple-500" />
-                                <span className="text-xs font-bold">Cliente</span>
-                            </button>
-                        </div>
-                    </div>
+                {/* Switch Mode Link */}
+                <div className="mt-8 text-center border-t border-gray-100 dark:border-neutral-800 pt-6">
+                    <button
+                        onClick={toggleMode}
+                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors focus:outline-none"
+                    >
+                        {loginMode === 'portal'
+                            ? '¿Eres administrador? Ingresa aquí'
+                            : '¿Eres usuario? Ir al Portal de Servicios'}
+                    </button>
                 </div>
-            </div>
+
+            </MaterialCard>
         </div>
     );
 };

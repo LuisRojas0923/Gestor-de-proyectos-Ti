@@ -1,15 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { Eye, Search, Upload, X } from 'lucide-react';
+import { Eye, Search, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
 import { useFilters, UseFiltersReturn } from './MyDevelopments/hooks/useFilters';
-import { useModals } from './MyDevelopments/hooks/useModals';
-import { ImportModal } from './MyDevelopments/components/modals/ImportModal';
 import { DevelopmentWithCurrentStatus } from '../types';
-import { useImportDevelopments } from './MyDevelopments/hooks/useImportDevelopments';
 import { useNotifications } from '../components/notifications/NotificationsContext';
-import { MaterialCard, MaterialTextField, MaterialSelect, MaterialButton, MaterialTypography } from '../components/atoms';
+import { MaterialCard, Input, Select, Button, Title, Text } from '../components/atoms';
 
 // Hook personalizado para persistir filtros
 const usePersistedFilters = (filters: UseFiltersReturn) => {
@@ -74,11 +70,8 @@ const usePersistedFilters = (filters: UseFiltersReturn) => {
 
 const MyDevelopments: React.FC = () => {
   const navigate = useNavigate();
-  const { darkMode } = useAppContext().state;
   const { developments, loadDevelopments } = useDevelopments();
   const filters = useFilters(developments);
-  const { isImportModalOpen, setImportModalOpen } = useModals();
-  const { importDevelopments, isImporting } = useImportDevelopments();
   const { addNotification } = useNotifications();
 
   // Persistir filtros en localStorage
@@ -111,17 +104,6 @@ const MyDevelopments: React.FC = () => {
     }
   }, [developments, addNotification]);
 
-  // Manejar importación
-  const handleImport = async (importedData: Partial<DevelopmentWithCurrentStatus>[]) => {
-    const success = await importDevelopments(importedData);
-    if (success) {
-      addNotification('success', 'Importación completada exitosamente');
-      await loadDevelopments();
-    } else {
-      addNotification('error', 'Error al importar. Revisa el archivo o el backend.');
-    }
-    setImportModalOpen(false);
-  };
 
   // Utilidades
   const getStatusColor = (status: string) => {
@@ -201,16 +183,6 @@ const MyDevelopments: React.FC = () => {
   };
 
   // Opciones para los selects
-  const sortOptions = [
-    { value: 'id', label: 'ID' },
-    { value: 'name', label: 'Nombre' },
-    { value: 'provider', label: 'Proveedor' },
-    { value: 'responsible', label: 'Responsable' },
-    { value: 'stage', label: 'Estado Real' },
-    { value: 'status', label: 'Estado' },
-    { value: 'module', label: 'Módulo' }
-  ];
-
   const groupOptions = [
     { value: 'none', label: 'Sin agrupar' },
     { value: 'provider', label: 'Agrupar por Proveedor' },
@@ -223,130 +195,50 @@ const MyDevelopments: React.FC = () => {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <MaterialTypography variant="h3" darkMode={darkMode} className="font-bold">
-          Mis Desarrollos
-        </MaterialTypography>
-        <MaterialButton
-          onClick={() => setImportModalOpen(true)}
-          variant="contained"
-          color="primary"
-          size="medium"
-          icon={Upload}
-          iconPosition="left"
-          darkMode={darkMode}
-        >
-          Importar
-        </MaterialButton>
+        <Title variant="h1">
+          Desarrollos
+        </Title>
       </div>
 
       {/* Panel de Filtros */}
-      <MaterialCard darkMode={darkMode} elevation={1}>
-        <MaterialCard.Header darkMode={darkMode}>
+      <MaterialCard elevation={1}>
+        <MaterialCard.Header>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <MaterialTypography variant="h6" darkMode={darkMode} className="font-semibold">
+              <Title variant="h6">
                 Filtros y Ordenamiento
-              </MaterialTypography>
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${darkMode
-                ? 'bg-primary-900/20 text-primary-300 border border-primary-700/30'
-                : 'bg-primary-100 text-primary-700 border border-primary-200'
-                }`}>
+              </Title>
+              <Text as="span" variant="caption" weight="medium" className="px-2 py-1 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
                 {filters.filteredDevelopments.length} desarrollo{filters.filteredDevelopments.length !== 1 ? 's' : ''}
-              </span>
+              </Text>
             </div>
-            <MaterialButton
+            <Button
               onClick={clearAllFilters}
-              variant="text"
-              size="small"
+              variant="ghost"
+              size="sm"
               icon={X}
-              iconPosition="left"
-              darkMode={darkMode}
               className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
             >
               Limpiar
-            </MaterialButton>
+            </Button>
           </div>
         </MaterialCard.Header>
 
-        <MaterialCard.Content darkMode={darkMode} className="space-y-3">
+        <MaterialCard.Content className="space-y-3">
           {/* Todos los controles en una sola fila */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-7 gap-2">
-            <MaterialTextField
+            <Input
               type="search"
               label="Búsqueda"
               placeholder="Buscar..."
               value={filters.searchTerm}
               onChange={(e) => filters.setSearchTerm(e.target.value)}
               icon={Search}
-              iconPosition="left"
-              darkMode={darkMode}
             />
-            <MaterialSelect
-              label="Ordenar"
-              value={filters.sortBy}
-              onChange={(e) => filters.setSortBy(e.target.value as UseFiltersReturn['sortBy'])}
-              darkMode={darkMode}
-              options={sortOptions}
-            />
-            <MaterialSelect
-              label="Proveedor"
-              value={filters.providerFilter}
-              onChange={(e) => filters.setProviderFilter(e.target.value)}
-              darkMode={darkMode}
-              options={[
-                { value: 'all', label: 'Todos' },
-                ...filters.uniqueProviders.map(p => ({ value: p, label: p }))
-              ]}
-            />
-            <MaterialSelect
-              label="Módulo"
-              value={filters.moduleFilter}
-              onChange={(e) => filters.setModuleFilter(e.target.value)}
-              darkMode={darkMode}
-              options={[
-                { value: 'all', label: 'Todos' },
-                ...filters.uniqueModules.map(m => ({ value: m, label: m }))
-              ]}
-            />
-            <MaterialSelect
-              label="Responsable"
-              value={filters.responsibleFilter}
-              onChange={(e) => filters.setResponsibleFilter(e.target.value)}
-              darkMode={darkMode}
-              options={[
-                { value: 'all', label: 'Todos' },
-                ...filters.uniqueResponsibles.map(r => ({ value: r, label: r }))
-              ]}
-            />
-            <MaterialSelect
-              label="Estado"
-              value={filters.statusFilter}
-              onChange={(e) => filters.setStatusFilter(e.target.value)}
-              darkMode={darkMode}
-              options={[
-                { value: 'all', label: 'Todos' },
-                ...filters.uniqueStatuses.map(s => ({ value: s, label: s }))
-              ]}
-            />
-            <MaterialSelect
-              label="Estado Real"
-              value={filters.stageFilter}
-              onChange={(e) => filters.setStageFilter(e.target.value)}
-              darkMode={darkMode}
-              options={[
-                { value: 'all', label: 'Todos' },
-                ...filters.uniqueStages.map(s => ({ value: s, label: s }))
-              ]}
-            />
-          </div>
-
-          {/* Agrupación en su propia fila compacta */}
-          <div className="flex justify-start">
-            <MaterialSelect
+            <Select
               label="Agrupación"
               value={filters.groupBy}
               onChange={(e) => filters.setGroupBy(e.target.value as UseFiltersReturn['groupBy'])}
-              darkMode={darkMode}
               className="max-w-xs"
               options={groupOptions}
             />
@@ -356,24 +248,23 @@ const MyDevelopments: React.FC = () => {
 
 
       {/* Tabla de Desarrollos */}
-      <MaterialCard darkMode={darkMode} elevation={1} className="overflow-hidden">
+      <MaterialCard elevation={1} className="overflow-hidden">
         {Object.entries(filters.groupedDevelopments).map(([groupName, groupDevelopments]) => (
           <div key={groupName}>
             {filters.groupBy !== 'none' && (
-              <MaterialCard.Header darkMode={darkMode}>
-                <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+              <MaterialCard.Header>
+                <Title variant="h5" as="h3">
                   {groupName}
-                  <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${darkMode ? 'bg-neutral-700 text-neutral-300' : 'bg-neutral-200 text-neutral-600'
-                    }`}>
+                  <Text as="span" variant="caption" weight="medium" className="ml-2 px-2 py-1 rounded-full bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
                     {groupDevelopments.length} desarrollo{groupDevelopments.length !== 1 ? 's' : ''}
-                  </span>
-                </h3>
+                  </Text>
+                </Title>
               </MaterialCard.Header>
             )}
 
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className={darkMode ? 'bg-neutral-800' : 'bg-neutral-50'}>
+                <thead className="bg-[var(--color-surface-variant)]">
                   <tr>
                     {[
                       { key: 'id', label: 'ID' },
@@ -385,36 +276,30 @@ const MyDevelopments: React.FC = () => {
                     ].map(({ key, label }) => (
                       <th
                         key={key}
-                        className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors ${darkMode ? 'text-neutral-300' : 'text-neutral-600'
-                          }`}
+                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[var(--color-surface-variant)]/50 transition-colors text-[var(--color-text-secondary)]"
                         onClick={() => handleColumnSort(key as UseFiltersReturn['sortBy'])}
                       >
                         {label}
                       </th>
                     ))}
-                    <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${darkMode ? 'text-neutral-300' : 'text-neutral-600'
-                      }`}>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
                       Acciones
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
+                <tbody className="divide-y divide-[var(--color-border)]">
                   {groupDevelopments.map((dev) => (
-                    <tr key={dev.id} className={`${darkMode ? 'hover:bg-neutral-700/50' : 'hover:bg-neutral-50'
-                      } transition-colors`}>
-                      <td className="px-4 py-3 text-sm font-medium text-primary-600 dark:text-primary-400">
+                    <tr key={dev.id} className="hover:bg-[var(--color-surface-variant)]/50 transition-colors">
+                      <td className="px-4 py-3 text-sm font-bold text-[var(--color-primary)]">
                         {dev.id}
                       </td>
-                      <td className={`px-4 py-3 text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-900'
-                        }`}>
+                      <td className="px-4 py-3 text-sm font-bold text-[var(--color-text-primary)]">
                         {dev.name}
                       </td>
-                      <td className={`px-4 py-3 text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'
-                        }`}>
+                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
                         {dev.responsible ?? 'N/A'}
                       </td>
-                      <td className={`px-4 py-3 text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'
-                        }`}>
+                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
                         {dev.provider ?? 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-sm">
@@ -423,7 +308,7 @@ const MyDevelopments: React.FC = () => {
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActivityColor(dev.last_activity)}`}>
                               {dev.last_activity.stage_name}
                             </span>
-                            <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                            <span className="text-xs text-[var(--color-text-secondary)]">
                               {dev.last_activity.status === 'completada' ? '✅' :
                                 dev.last_activity.status === 'en_curso' ? '🔄' :
                                   dev.last_activity.status === 'pendiente' ? '⏳' :
@@ -435,7 +320,7 @@ const MyDevelopments: React.FC = () => {
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActivityColor(null)}`}>
                               {dev.current_stage.stage_name}
                             </span>
-                            <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                            <span className="text-xs text-[var(--color-text-secondary)]">
                               ⚪ Sin actividad en bitácora
                             </span>
                           </div>
@@ -452,17 +337,14 @@ const MyDevelopments: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <MaterialButton
+                        <Button
                           onClick={() => navigate(`/developments/${dev.id}?tab=bitacora`)}
-                          variant="text"
-                          color="primary"
-                          size="small"
+                          variant="ghost"
+                          size="sm"
                           icon={Eye}
-                          iconPosition="left"
-                          darkMode={darkMode}
                         >
                           Ver
-                        </MaterialButton>
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -474,13 +356,6 @@ const MyDevelopments: React.FC = () => {
       </MaterialCard>
 
       {/* Modal de Importación */}
-      <ImportModal
-        isOpen={isImportModalOpen}
-        darkMode={darkMode}
-        onClose={() => setImportModalOpen(false)}
-        onImport={handleImport}
-        isImporting={isImporting}
-      />
     </div>
   );
 };

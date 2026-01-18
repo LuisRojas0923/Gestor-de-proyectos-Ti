@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MaterialCard, MaterialButton, MaterialTextField } from '../atoms';
-import { MaterialSelect } from '../atoms';
+import { Button, Input, Select } from '../atoms';
+import Modal from './Modal';
 
 interface DevelopmentData {
   id: string;
@@ -48,7 +48,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
         type: development.type || '',
         environment: development.environment || '',
         portal_link: development.portal_link || '',
-        general_status: development.general_status || '',
+        general_status: development.general_status || undefined,
         estimated_end_date: development.estimated_end_date || '',
         provider: development.provider || '',
         responsible: development.responsible || '',
@@ -142,29 +142,16 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
   if (!isOpen || !development) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <MaterialCard
-        darkMode={darkMode}
-        elevation={3}
-        className="w-full max-w-2xl max-h-[90vh] flex flex-col"
-      >
-        {/* Header */}
-        <MaterialCard.Header darkMode={darkMode}>
-          <div className="flex items-center justify-between">
-            <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-              Editar Desarrollo
-            </h2>
-            <button
-              onClick={onClose}
-              className={`p-2 rounded-full hover:bg-opacity-10 hover:bg-gray-500 ${darkMode ? 'text-neutral-400 hover:text-white' : 'text-neutral-600 hover:text-neutral-900'}`}
-            >
-              ✕
-            </button>
-          </div>
-        </MaterialCard.Header>
-
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Editar Desarrollo"
+      size="xl"
+      showCloseButton={true}
+    >
+      <div className="max-h-[70vh] flex flex-col">
         {/* Content */}
-        <MaterialCard.Content darkMode={darkMode} className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
             {/* Errores */}
             {errors.length > 0 && (
@@ -185,35 +172,31 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <MaterialTextField
+                  <Input
                     label="Nombre *"
                     value={formData.name || ''}
                     onChange={(e) => handleFieldChange('name', e.target.value)}
-                    darkMode={darkMode}
                     required
                     maxLength={255}
                   />
                 </div>
 
                 <div>
-                  <MaterialSelect
+                  <Select
                     label="Estado General"
                     value={formData.general_status || ''}
                     onChange={(e) => handleFieldChange('general_status', e.target.value)}
-                    darkMode={darkMode}
                     options={statusOptions}
                   />
                 </div>
               </div>
 
               <div>
-                <MaterialTextField
+                <Input
                   label="Descripción"
                   value={formData.description || ''}
                   onChange={(e) => handleFieldChange('description', e.target.value)}
-                  darkMode={darkMode}
-                  multiline
-                  rows={3}
+                  className="w-full"
                 />
               </div>
             </div>
@@ -226,41 +209,37 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <MaterialTextField
+                  <Input
                     label="Módulo"
                     value={formData.module || ''}
                     onChange={(e) => handleFieldChange('module', e.target.value)}
-                    darkMode={darkMode}
                     maxLength={100}
                   />
                 </div>
 
                 <div>
-                  <MaterialTextField
+                  <Input
                     label="Tipo"
                     value={formData.type || ''}
                     onChange={(e) => handleFieldChange('type', e.target.value)}
-                    darkMode={darkMode}
                     maxLength={50}
                   />
                 </div>
 
                 <div>
-                  <MaterialTextField
+                  <Input
                     label="Ambiente"
                     value={formData.environment || ''}
                     onChange={(e) => handleFieldChange('environment', e.target.value)}
-                    darkMode={darkMode}
                     maxLength={100}
                   />
                 </div>
 
                 <div>
-                  <MaterialTextField
+                  <Input
                     label="Link del Portal"
                     value={formData.portal_link || ''}
                     onChange={(e) => handleFieldChange('portal_link', e.target.value)}
-                    darkMode={darkMode}
                     type="url"
                   />
                 </div>
@@ -275,62 +254,58 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <MaterialTextField
+                  <Input
                     label="Proveedor"
                     value={formData.provider || ''}
                     onChange={(e) => handleFieldChange('provider', e.target.value)}
-                    darkMode={darkMode}
                     maxLength={100}
                   />
                 </div>
 
                 <div>
-                  <MaterialTextField
+                  <Input
                     label="Responsable"
                     value={formData.responsible || ''}
                     onChange={(e) => handleFieldChange('responsible', e.target.value)}
-                    darkMode={darkMode}
                     maxLength={255}
                   />
                 </div>
               </div>
 
               <div>
-                <MaterialTextField
+                <Input
                   label="Fecha Estimada de Fin"
                   value={formData.estimated_end_date || ''}
                   onChange={(e) => handleFieldChange('estimated_end_date', e.target.value)}
-                  darkMode={darkMode}
                   type="date"
                 />
               </div>
             </div>
           </div>
-        </MaterialCard.Content>
-
+        </div>
         {/* Actions */}
-        <MaterialCard.Actions darkMode={darkMode} className="flex-shrink-0 border-t border-neutral-200 dark:border-neutral-700">
+        <div className="flex-shrink-0 border-t border-neutral-200 dark:border-neutral-700 p-6">
           <div className="flex gap-3 w-full">
-            <MaterialButton
-              variant="outlined"
+            <Button
+              variant="outline"
               onClick={onClose}
               disabled={loading}
               className="flex-1"
             >
               Cancelar
-            </MaterialButton>
-            <MaterialButton
-              variant="contained"
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleSubmit}
               disabled={loading}
               className="flex-1"
             >
               {loading ? 'Guardando...' : 'Guardar Cambios'}
-            </MaterialButton>
+            </Button>
           </div>
-        </MaterialCard.Actions>
-      </MaterialCard>
-    </div>
+        </div>
+      </div>
+    </Modal>
   );
 };
 
