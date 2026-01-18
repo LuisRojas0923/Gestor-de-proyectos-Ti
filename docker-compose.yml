@@ -33,7 +33,7 @@ services:
     container_name: gestor-de-proyectos-ti-adminer
     restart: always
     ports:
-      - "8080:8080"
+      - "8085:8080"
     depends_on:
       - db
 
