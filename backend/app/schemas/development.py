@@ -122,29 +122,29 @@ class DevelopmentCycleFlow(BaseModel):
 
 class DevelopmentBase(BaseModel):
     """Schema base para desarrollo"""
-    name: str = Field(..., max_length=255, description="Nombre del desarrollo")
-    description: Optional[str] = Field(None, description="Descripción del desarrollo")
-    module: Optional[str] = Field(None, max_length=100, description="Módulo")
-    type: Optional[str] = Field(None, max_length=50, description="Tipo de desarrollo")
-    environment: Optional[str] = Field(None, max_length=100, description="Ambiente")
-    portal_link: Optional[str] = Field(None, description="Link del Portal")
+    nombre: str = Field(..., max_length=255, description="Nombre del desarrollo")
+    descripcion: Optional[str] = Field(None, description="Descripción del desarrollo")
+    modulo: Optional[str] = Field(None, max_length=100, description="Módulo")
+    tipo: Optional[str] = Field(None, max_length=50, description="Tipo de desarrollo")
+    ambiente: Optional[str] = Field(None, max_length=100, description="Ambiente")
+    enlace_portal: Optional[str] = Field(None, description="Link del Portal")
     
     # Campos para ciclo de desarrollo
-    current_phase_id: Optional[int] = Field(None, description="ID de la fase actual")
-    current_stage_id: Optional[int] = Field(None, description="ID de la etapa actual")
-    stage_progress_percentage: Optional[Decimal] = Field(None, ge=0, le=100, description="Progreso de etapa")
+    fase_actual_id: Optional[int] = Field(None, description="ID de la fase actual")
+    etapa_actual_id: Optional[int] = Field(None, description="ID de la etapa actual")
+    porcentaje_progreso_etapa: Optional[Decimal] = Field(None, ge=0, le=100, description="Progreso de etapa")
     
     # Campos legacy para compatibilidad
-    general_status: Optional[str] = Field("Pendiente", max_length=50, description="Estado general")
-    estimated_end_date: Optional[date] = Field(None, description="Fecha estimada de fin")
-    provider: Optional[str] = Field(None, max_length=100, description="Proveedor principal")
-    responsible: Optional[str] = Field(None, max_length=255, description="Responsable principal del desarrollo")
+    estado_general: Optional[str] = Field("Pendiente", max_length=50, description="Estado general")
+    fecha_estimada_fin: Optional[date] = Field(None, description="Fecha estimada de fin")
+    proveedor: Optional[str] = Field(None, max_length=100, description="Proveedor principal")
+    responsable: Optional[str] = Field(None, max_length=255, description="Responsable principal del desarrollo")
     
     # Campos para importación de Excel - Información del responsable
-    responsible_lastname: Optional[str] = Field(None, max_length=100, description="Apellidos del responsable")
-    responsible_firstname: Optional[str] = Field(None, max_length=100, description="Nombre del responsable")
+    apellido_responsable: Optional[str] = Field(None, max_length=100, description="Apellidos del responsable")
+    nombre_responsable: Optional[str] = Field(None, max_length=100, description="Nombre del responsable")
 
-    @validator('general_status')
+    @validator('estado_general')
     def validate_general_status(cls, v):
         if v is None:
             return "Pendiente"
@@ -195,7 +195,7 @@ class DevelopmentBase(BaseModel):
         print(f"⚠️ Estado no reconocido: '{v}' -> mapeado a 'Pendiente'")
         return "Pendiente"
 
-    @validator('estimated_end_date', pre=True)
+    @validator('fecha_estimada_fin', pre=True)
     def validate_estimated_end_date(cls, v):
         if v is None or v == '':
             return None
@@ -207,37 +207,37 @@ class DevelopmentBase(BaseModel):
                 raise ValueError('estimated_end_date debe estar en formato YYYY-MM-DD')
         return v
 
-    @validator('name', pre=True)
+    @validator('nombre', pre=True)
     def validate_name_length(cls, v):
         if v and len(str(v)) > 255:
             return str(v)[:255]  # Truncar si es muy largo
         return v
 
-    @validator('module', pre=True)
+    @validator('modulo', pre=True)
     def validate_module_length(cls, v):
         if v and len(str(v)) > 100:
             return str(v)[:100]  # Truncar si es muy largo
         return v
 
-    @validator('type', pre=True)
+    @validator('tipo', pre=True)
     def validate_type_length(cls, v):
         if v and len(str(v)) > 50:
             return str(v)[:50]  # Truncar si es muy largo
         return v
 
-    @validator('environment', pre=True)
+    @validator('ambiente', pre=True)
     def validate_environment_length(cls, v):
         if v and len(str(v)) > 100:
             return str(v)[:100]  # Truncar si es muy largo
         return v
 
-    @validator('provider', pre=True)
+    @validator('proveedor', pre=True)
     def validate_provider_length(cls, v):
         if v and len(str(v)) > 100:
             return str(v)[:100]  # Truncar si es muy largo
         return v
 
-    @validator('responsible', pre=True)
+    @validator('responsable', pre=True)
     def validate_responsible_length(cls, v):
         if v and len(str(v)) > 255:
             return str(v)[:255]  # Truncar si es muy largo

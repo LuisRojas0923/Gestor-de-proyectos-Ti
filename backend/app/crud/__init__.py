@@ -47,8 +47,8 @@ def create_developments_bulk(db: Session, developments: List[dev_schemas.Develop
         
         # Preparar datos del desarrollo (excluyendo campos de responsable)
         dev_dict = dev_data.dict()
-        responsible_firstname = dev_dict.pop('responsible_firstname', None)
-        responsible_lastname = dev_dict.pop('responsible_lastname', None)
+        nombre_responsable = dev_dict.pop('nombre_responsable', None)
+        apellido_responsable = dev_dict.pop('apellido_responsable', None)
         
         
         if existing_dev:
@@ -56,10 +56,10 @@ def create_developments_bulk(db: Session, developments: List[dev_schemas.Develop
             responsible_updated = False
             
             
-            if responsible_firstname and responsible_lastname:
+            if nombre_responsable and apellido_responsable:
                 _update_or_create_responsible(
                     db, existing_dev.id, 
-                    responsible_firstname, responsible_lastname
+                    nombre_responsable, apellido_responsable
                 )
                 responsible_updated = True
             
@@ -81,10 +81,10 @@ def create_developments_bulk(db: Session, developments: List[dev_schemas.Develop
             db.flush()  # Para obtener el ID
             
             # Crear responsable si hay datos
-            if responsible_firstname and responsible_lastname:
+            if nombre_responsable and apellido_responsable:
                 _create_responsible(
                     db, new_dev.id, 
-                    responsible_firstname, responsible_lastname
+                    nombre_responsable, apellido_responsable
                 )
             
             created_developments.append(new_dev)
