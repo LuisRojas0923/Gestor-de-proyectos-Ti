@@ -103,6 +103,11 @@ export const API_ENDPOINTS = {
   AUTH_ME: '/auth/yo',
   // Reportes
   REPORTS_PORTAL_DETAILED: '/desarrollos/informe-detallado-casos-portal',
+
+  // ERP
+  ERP_SOLICITUDES: '/erp/solicitudes',
+  ERP_EMPLEADO: (id: string) => `/erp/empleado/${id}`,
+  ERP_SINCRONIZAR: '/erp/sincronizar',
 };
 
 export const HTTP_STATUS = {

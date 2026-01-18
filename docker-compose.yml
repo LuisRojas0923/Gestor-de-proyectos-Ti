@@ -7,6 +7,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/project_manager
+      - ERP_DATABASE_URL=${ERP_DATABASE_URL:-postgresql://postgres:AdminSolid2025@192.168.0.21:5432/solid}
       - ENVIRONMENT=development
     volumes:
       - ./backend_v2:/app

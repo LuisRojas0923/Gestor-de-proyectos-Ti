@@ -11,6 +11,9 @@ class Configuracion(BaseSettings):
     # Base de datos
     database_url: str = "postgresql://user:password@localhost:5432/project_manager"
     
+    # ERP Externo
+    erp_database_url: str = "postgresql://user:password@localhost:5432/erp_db"
+    
     # Seguridad JWT
     secret_key: str = "clave-secreta-cambiar-en-produccion"
     algorithm: str = "HS256"

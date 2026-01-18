@@ -6,9 +6,40 @@ from sqlalchemy.orm import Session
 import httpx
 
 
+from sqlalchemy import text
+
+
 class ServicioErp:
     """Lgica para la integracin con el sistema ERP externo"""
     
+    @staticmethod
+    async def obtener_empleado_por_cedula(db_erp: Session, cedula: str) -> Optional[Dict]:
+        """
+        Consulta un empleado en la base de datos del ERP por su cedula
+        """
+        query = text("""
+            SELECT nrocedula, nombre, cargo, area, estado, ciudadcontratacion 
+            FROM establecimiento 
+            WHERE nrocedula = :cedula AND estado = 'A'
+        """)
+        
+        try:
+            resultado = db_erp.execute(query, {"cedula": cedula}).first()
+            if resultado:
+                # Convertir Row a dict
+                return {
+                    "nrocedula": resultado.nrocedula,
+                    "nombre": resultado.nombre,
+                    "cargo": resultado.cargo,
+                    "area": resultado.area,
+                    "estado": resultado.estado,
+                    "ciudadcontratacion": resultado.ciudadcontratacion
+                }
+            return None
+        except Exception as e:
+            print(f"Error consultando empleado en ERP: {e}")
+            raise e
+
     @staticmethod
     async def consultar_solicitudes_externas(empresa: Optional[str] = None) -> List[Dict]:
         """Consulta directa al API del ERP"""

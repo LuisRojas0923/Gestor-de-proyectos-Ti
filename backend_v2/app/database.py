@@ -23,10 +23,29 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base para modelos
 Base = declarative_base()
 
+# --- Configuración ERP Externo ---
+ERP_DATABASE_URL = config.erp_database_url
+erp_engine = create_engine(
+    ERP_DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10
+)
+SessionErp = sessionmaker(autocommit=False, autoflush=False, bind=erp_engine)
+
 
 def obtener_db():
     """Generador de sesion de base de datos para inyeccion de dependencias"""
     db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def obtener_erp_db():
+    """Generador de sesion para la base de datos del ERP"""
+    db = SessionErp()
     try:
         yield db
     finally:

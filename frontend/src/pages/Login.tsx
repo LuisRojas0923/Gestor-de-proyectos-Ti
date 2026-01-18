@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, LogIn, User as UserIcon, ArrowRight } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
 import axios from 'axios';
 import imgUserLogin from '../assets/images/categories/Usuario Inicio Sesion.png';
@@ -42,7 +42,7 @@ const Login: React.FC = () => {
 
         try {
             // Consulta al endpoint ERP para validar empleado
-            const response = await axios.get(`${API_CONFIG.BASE_URL}/erp/empleado/${formData.username}`);
+            const response = await axios.get(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.ERP_EMPLEADO(formData.username)}`);
             const employeeData = response.data;
 
             // Mapeo de datos del ERP al formato de usuario interno
