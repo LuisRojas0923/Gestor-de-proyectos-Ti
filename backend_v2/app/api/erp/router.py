@@ -3,7 +3,8 @@ API de Endpoint ERP - Backend V2
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database import obtener_db
+from app.database import obtener_db, obtener_erp_db
+from app.services.erp.servicio import ServicioErp
 from typing import Any, Dict, List, Optional
 
 router = APIRouter()
@@ -17,15 +18,10 @@ async def consultar_solicitudes_erp(
     """
     Consulta solicitudes de desarrollo desde el sistema ERP
     """
-    # Lgica de integracin ERP (se completar con el servicio)
+    # Logica de integracion ERP (se completara con el servicio)
     return {"mensaje": "Consultando ERP...", "solicitudes": []}
 
 
-# Ambiente
-ENVIRONMENT=development
-
-# ERP Externo
-ERP_DATABASE_URL=postgresql://user:password@localhost:5432/erp_db
 @router.get("/empleado/{identificacion}")
 async def obtener_empleado_erp(
     identificacion: str, 
@@ -50,5 +46,5 @@ async def sincronizar_erp(db: Session = Depends(obtener_db)):
     """
     Sincroniza datos del ERP con la base de datos local
     """
-    # Lgica de sincronizacin
-    return {"mensaje": "Sincronizacin iniciada"}
+    # Logica de sincronizacion
+    return {"mensaje": "Sincronizacion iniciada"}

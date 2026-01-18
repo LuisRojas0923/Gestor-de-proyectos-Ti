@@ -82,7 +82,7 @@ const Login: React.FC = () => {
             params.append('username', formData.username);
             params.append('password', formData.password);
 
-            const response = await fetch(`${API_CONFIG.BASE_URL}/auth/login`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_LOGIN}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',

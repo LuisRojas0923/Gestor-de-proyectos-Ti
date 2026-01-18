@@ -17,6 +17,7 @@ class ServicioErp:
         """
         Consulta un empleado en la base de datos del ERP por su cedula
         """
+        print(f"DEBUG: Consultando empleado cedula={cedula} en ERP...")
         query = text("""
             SELECT nrocedula, nombre, cargo, area, estado, ciudadcontratacion 
             FROM establecimiento 
@@ -26,18 +27,20 @@ class ServicioErp:
         try:
             resultado = db_erp.execute(query, {"cedula": cedula}).first()
             if resultado:
+                print(f"DEBUG: Empleado encontrado: {resultado.nombre}")
                 # Convertir Row a dict
                 return {
-                    "nrocedula": resultado.nrocedula,
+                    "nrocedula": str(resultado.nrocedula),
                     "nombre": resultado.nombre,
                     "cargo": resultado.cargo,
                     "area": resultado.area,
                     "estado": resultado.estado,
                     "ciudadcontratacion": resultado.ciudadcontratacion
                 }
+            print(f"DEBUG: No se encontro empleado activo con cedula={cedula}")
             return None
         except Exception as e:
-            print(f"Error consultando empleado en ERP: {e}")
+            print(f"DEBUG: ERROR en consulta ERP: {str(e)}")
             raise e
 
     @staticmethod
