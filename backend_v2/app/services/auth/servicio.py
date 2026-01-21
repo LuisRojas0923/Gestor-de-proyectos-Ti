@@ -1,28 +1,31 @@
 """
-Servicio de Autenticacin - Backend V2
+Servicio de Autenticacion - Backend V2
 """
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import jwt
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy.orm import Session
 from app.config import config
 from app.models.auth import Usuario
 
-# Configuracin de hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 class ServicioAuth:
-    """Clase principal para lgica de autenticacin"""
+    """Clase principal para logica de autenticacion"""
     
     @staticmethod
-    def verificar_contrasena(contrasena_plana, contrasena_hasheada):
-        return pwd_context.verify(contrasena_plana, contrasena_hasheada)
+    def verificar_contrasena(contrasena_plana: str, contrasena_hasheada: str) -> bool:
+        """Verifica si la contrasena plana coincide con el hash."""
+        return bcrypt.checkpw(
+            contrasena_plana.encode('utf-8'), 
+            contrasena_hasheada.encode('utf-8')
+        )
 
     @staticmethod
-    def obtener_hash_contrasena(contrasena):
-        return pwd_context.hash(contrasena)
+    def obtener_hash_contrasena(contrasena: str) -> str:
+        """Genera un hash bcrypt para la contrasena dada."""
+        salt = bcrypt.gensalt()
+        return bcrypt.hashpw(contrasena.encode('utf-8'), salt).decode('utf-8')
 
     @staticmethod
     def crear_token_acceso(datos: dict, tiempo_expiracion: Optional[timedelta] = None):

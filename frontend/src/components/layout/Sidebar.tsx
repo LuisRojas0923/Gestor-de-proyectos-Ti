@@ -14,7 +14,7 @@ import {
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
-import { Button } from '../atoms';
+import { Button, Text } from '../atoms';
 
 const Sidebar: React.FC = () => {
   const { state, dispatch } = useAppContext();
@@ -26,14 +26,14 @@ const Sidebar: React.FC = () => {
   };
 
   const navigation = [
-    { name: 'Tablero', href: '/', icon: LayoutDashboard, role: ['analyst'] },
-    { name: 'Mis Desarrollos', href: '/developments', icon: Briefcase, role: ['analyst'] },
-    { name: 'Indicadores', href: '/indicators', icon: BarChart3, role: ['analyst'] },
-    { name: 'Gestión de Tickets', href: '/ticket-management', icon: Ticket, role: ['analyst'] },
-    { name: 'Reportes', href: '/reports', icon: ClipboardList, role: ['analyst'] },
-    { name: 'Chat IA', href: '/chat', icon: MessageSquare, role: ['analyst'] },
-    { name: 'Portal de Servicios', href: '/service-portal', icon: Share2, role: ['user', 'analyst'] },
-    { name: 'Configuración', href: '/settings', icon: Settings, role: ['analyst'] },
+    { name: 'Tablero', href: '/', icon: LayoutDashboard, role: ['analyst', 'admin'] },
+    { name: 'Mis Desarrollos', href: '/developments', icon: Briefcase, role: ['analyst', 'admin'] },
+    { name: 'Indicadores', href: '/indicators', icon: BarChart3, role: ['analyst', 'admin'] },
+    { name: 'Gestión de Tickets', href: '/ticket-management', icon: Ticket, role: ['analyst', 'admin'] },
+    { name: 'Reportes', href: '/reports', icon: ClipboardList, role: ['analyst', 'admin'] },
+    { name: 'Chat IA', href: '/chat', icon: MessageSquare, role: ['analyst', 'admin'] },
+    { name: 'Portal de Servicios', href: '/service-portal', icon: Share2, role: ['user', 'analyst', 'admin'] },
+    { name: 'Configuración', href: '/settings', icon: Settings, role: ['analyst', 'admin'] },
   ];
 
   const filteredNavigation = navigation.filter(item =>
@@ -53,15 +53,15 @@ const Sidebar: React.FC = () => {
         {sidebarOpen ? (
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-[var(--deep-navy)] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">GT</span>
+              <Text weight="bold" variant="body2" className="text-white">GT</Text>
             </div>
-            <span className="font-black text-xs uppercase tracking-tighter text-[var(--color-text-primary)]">
+            <Text weight="bold" variant="caption" className="uppercase tracking-tighter text-[var(--color-text-primary)]">
               Gestor Proyectos
-            </span>
+            </Text>
           </div>
         ) : (
           <div className="w-8 h-8 bg-[var(--deep-navy)] rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">GT</span>
+            <Text weight="bold" variant="body2" className="text-white">GT</Text>
           </div>
         )}
         <Button
@@ -93,12 +93,14 @@ const Sidebar: React.FC = () => {
                 >
                   <Icon size={20} className="flex-shrink-0" />
                   {sidebarOpen && (
-                    <span className="ml-3 text-sm font-bold">{item.name}</span>
+                    <Text variant="body2" weight="bold" className="ml-3">
+                      {item.name}
+                    </Text>
                   )}
 
                   {!sidebarOpen && hoveredItem === item.name && (
                     <div className="absolute left-full ml-4 px-3 py-2 rounded-xl shadow-2xl z-50 whitespace-nowrap bg-[var(--color-surface)] text-[var(--color-text-primary)] border border-[var(--color-border)]">
-                      <span className="text-xs font-bold">{item.name}</span>
+                      <Text variant="caption" weight="bold">{item.name}</Text>
                     </div>
                   )}
                 </NavLink>
@@ -117,16 +119,20 @@ const Sidebar: React.FC = () => {
           fullWidth
           className={`text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 font-bold ${sidebarOpen ? 'px-3 justify-start' : 'px-2 justify-center'}`}
         >
-          {sidebarOpen && <span className="ml-3 text-sm">Cerrar Sesión</span>}
+          {sidebarOpen && <Text variant="body2" className="ml-3">Cerrar Sesión</Text>}
         </Button>
         {sidebarOpen && user && (
           <div className="mt-4 flex items-center px-3 pt-4 border-t border-[var(--color-border)]/50">
             <div className="w-8 h-8 rounded-full bg-[var(--color-primary-light)]/20 flex items-center justify-center text-[var(--color-primary)] font-black text-xs uppercase border border-[var(--color-primary)]/10">
-              {user.name.charAt(0)}
+              {user.name?.charAt(0) || 'U'}
             </div>
             <div className="ml-3 overflow-hidden">
-              <p className="text-xs font-black truncate text-[var(--color-text-primary)]">{user.name}</p>
-              <p className="text-[10px] text-[var(--color-text-secondary)] uppercase tracking-widest font-bold">{user.role}</p>
+              <Text variant="caption" weight="bold" className="truncate">
+                {user.name}
+              </Text>
+              <Text variant="caption" weight="bold" className="uppercase tracking-widest text-[var(--color-text-secondary)] text-[10px]">
+                {user.role}
+              </Text>
             </div>
           </div>
         )}

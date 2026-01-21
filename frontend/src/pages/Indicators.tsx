@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
+import { Title, Text } from '../components/atoms';
 import { MetricCard } from '../components/molecules';
 import { API_ENDPOINTS } from '../config/api';
 import {
@@ -69,38 +70,38 @@ const Indicators: React.FC = () => {
     <div className="space-y-10 pb-20">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-black text-[var(--color-text-primary)] mb-2">
+        <Title variant="h1" weight="bold" color="text-primary" className="mb-2">
           Indicadores de Gestión TI
-        </h1>
-        <p className="text-[var(--color-text-secondary)] font-medium">Métricas de desempeño de analistas y estado de la cola de soporte</p>
+        </Title>
+        <Text variant="body1" color="text-secondary" weight="medium">Métricas de desempeño de analistas y estado de la cola de soporte</Text>
       </div>
 
       {/* Top Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Actividades Pendientes"
-          value={summary.pendientes.toString()}
+          value={(summary?.pendientes || 0).toString()}
           change={{ value: 12, type: 'increase' }}
           icon={Clock}
           color="blue"
         />
         <MetricCard
           title="Tickets Resueltos"
-          value={summary.cerrados.toString()}
+          value={(summary?.cerrados || 0).toString()}
           change={{ value: 5, type: 'increase' }}
           icon={CheckCircle}
           color="green"
         />
         <MetricCard
           title="Tasa de Cierre"
-          value={`${summary.completion_rate.toFixed(1)}%`}
+          value={`${(summary?.completion_rate || 0).toFixed(1)}%`}
           change={{ value: 3, type: 'increase' }}
           icon={TrendingUp}
           color="blue"
         />
         <MetricCard
           title="Tickets Escalados"
-          value={summary.escalados.toString()}
+          value={(summary?.escalados || 0).toString()}
           change={{ value: 0, type: 'decrease' }}
           icon={AlertCircle}
           color="red"
@@ -113,13 +114,13 @@ const Indicators: React.FC = () => {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-3">
               <Activity className="text-[var(--color-primary)]" />
-              <h2 className="text-xl font-black text-[var(--color-text-primary)]">Desempeño por Analista</h2>
+              <Title variant="h4" weight="bold" color="text-primary">Desempeño por Analista</Title>
             </div>
-            <span className="text-xs font-bold text-[var(--color-text-secondary)]/40 uppercase tracking-widest">Efficiency Ranking</span>
+            <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-40">Efficiency Ranking</Text>
           </div>
 
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart data={analysts as any[]}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }} />
@@ -141,9 +142,9 @@ const Indicators: React.FC = () => {
 
         {/* Distribución de Carga */}
         <div className="bg-[var(--color-surface)] rounded-[2.5rem] p-8 shadow-xl border border-[var(--color-border)]">
-          <h2 className="text-xl font-black text-[var(--color-text-primary)] mb-6">Distribución de Carga</h2>
+          <Title variant="h4" weight="bold" color="text-primary" className="mb-6">Distribución de Carga</Title>
           <div className="h-[250px] w-full relative">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <PieChart>
                 <Pie
                   data={analysts as any[]}
@@ -164,21 +165,25 @@ const Indicators: React.FC = () => {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-3xl font-black text-[var(--color-text-primary)]">{summary.total}</span>
-              <span className="text-[10px] font-bold text-[var(--color-text-secondary)]/40 uppercase">Total Tickets</span>
+              <Text variant="h3" weight="bold" color="text-primary">{(summary?.total || 0).toString()}</Text>
+              <Text variant="caption" weight="bold" color="text-secondary" className="uppercase opacity-40">Total Tickets</Text>
             </div>
           </div>
 
           <div className="mt-8 space-y-4">
-            {analysts.slice(0, 3).map((analyst, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ['var(--color-primary)', 'var(--color-primary-light)', 'var(--powder-blue)'][i % 3] }}></div>
-                  <span className="text-sm font-bold text-[var(--color-text-secondary)]">{analyst.name}</span>
+            {analysts.slice(0, 3).map((analyst, i) => {
+              const dotColor = ['var(--color-primary)', 'var(--color-primary-light)', 'var(--powder-blue)'][i % 3];
+              const dotStyle = { backgroundColor: dotColor };
+              return (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-3 h-3 rounded-full" style={dotStyle}></div>
+                    <Text variant="body2" weight="bold" color="text-secondary">{analyst.name}</Text>
+                  </div>
+                  <Text variant="body2" weight="bold" color="text-secondary" className="opacity-60 font-mono">{analyst.total} tks</Text>
                 </div>
-                <span className="text-sm font-mono text-[var(--color-text-secondary)]/60 font-black">{analyst.total} tks</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -204,23 +209,28 @@ const Indicators: React.FC = () => {
                       <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center font-black shadow-md shadow-[var(--color-primary)]/20">
                         {analyst.name[0]}
                       </div>
-                      <span className="font-black text-[var(--color-text-primary)]">{analyst.name}</span>
+                      <Text weight="bold" color="text-primary">{analyst.name}</Text>
                     </div>
                   </td>
                   <td className="px-6 py-5 font-mono font-bold text-[var(--color-text-secondary)]">{analyst.total}</td>
                   <td className="px-6 py-5 font-mono font-bold text-[var(--color-text-secondary)]">{analyst.cerrados}</td>
                   <td className="px-6 py-5">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex-grow bg-[var(--color-surface-variant)] h-2 rounded-full overflow-hidden max-w-[80px]">
-                        <div className="bg-[var(--color-primary)] h-full rounded-full" style={{ width: `${analyst.performance_score}%` }}></div>
-                      </div>
-                      <span className="text-xs font-black text-[var(--color-text-primary)]">{analyst.performance_score.toFixed(0)}%</span>
-                    </div>
+                    {(() => {
+                      const barWidthStyle = { width: `${analyst.performance_score}%` };
+                      return (
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-grow bg-[var(--color-surface-variant)] h-2 rounded-full overflow-hidden max-w-[80px]">
+                            <div className="bg-[var(--color-primary)] h-full rounded-full" style={barWidthStyle}></div>
+                          </div>
+                          <Text variant="caption" weight="bold" color="text-primary">{analyst.performance_score.toFixed(0)}%</Text>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-5">
-                    <span className="text-xs font-black px-4 py-1.5 bg-[var(--color-surface-variant)] rounded-full text-[var(--color-text-secondary)] border border-[var(--color-border)]/50">
+                    <Text variant="caption" weight="bold" className="px-4 py-1.5 bg-[var(--color-surface-variant)] rounded-full text-[var(--color-text-secondary)] border border-[var(--color-border)]/50">
                       {analyst.avg_time.toFixed(1)}h
-                    </span>
+                    </Text>
                   </td>
                 </tr>
               ))}

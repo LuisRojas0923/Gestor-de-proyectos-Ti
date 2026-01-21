@@ -7,7 +7,7 @@ import {
     LogOut
 } from 'lucide-react';
 import { API_CONFIG } from '../config/api';
-import { Button } from '../components/atoms';
+import { Button, Text } from '../components/atoms';
 import DashboardView from './ServicePortal/DashboardView';
 import CategoryView, { Category } from './ServicePortal/CategoryView';
 import TicketFormView from './ServicePortal/TicketFormView';
@@ -96,7 +96,10 @@ const ServicePortal: React.FC = () => {
             try {
                 const res = await axios.get(`${API_BASE_URL}/soporte/categorias`);
                 const mapped = res.data.map((cat: any) => ({
-                    ...cat,
+                    id: cat.id,
+                    name: cat.nombre || cat.name || '',
+                    description: cat.descripcion || cat.description || '',
+                    form_type: cat.tipo_formulario || cat.form_type || 'support',
                     icon: defaultCategories.find(d => d.id === cat.id)?.icon || <Plus />
                 }));
                 setCategories(mapped.length > 0 ? mapped : defaultCategories);
@@ -116,10 +119,46 @@ const ServicePortal: React.FC = () => {
         setIsLoading(true);
         const fd = new FormData(e.currentTarget);
         try {
-            const res = await axios.post(`${API_BASE_URL}/soporte/`, {
-                category_id: selectedCategory.id, subject: fd.get('asunto') || selectedCategory.name,
-                description: fd.get('descripcion_detallada'), creator_id: user.id
-            });
+            // Generate unique ticket ID: TKT-{timestamp}-{random}
+            const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
+            let descripcionFinal = fd.get('descripcion_detallada') || 'Sin descripción';
+            let queNecesitaFinal = fd.get('que_necesita') || null;
+            let asuntoFinal = fd.get('asunto') || selectedCategory.name;
+
+            if (selectedCategory.form_type === 'development') {
+                const nombreProceso = fd.get('nombre_proceso');
+                asuntoFinal = nombreProceso ? `Nuevo Desarrollo: ${nombreProceso}` : selectedCategory.name;
+
+                // Empaquetar el formulario de 6 secciones en un formato legible para el backend
+                const seccion1 = `=== 1. IDENTIFICACIÓN ===\nProceso: ${nombreProceso}\nÁrea: ${fd.get('area_solicitante')}\nLíder: ${fd.get('lider_requerimiento')}`;
+                const seccion2 = `=== 2. DIAGNÓSTICO ===\nHerramienta Excel: ${fd.get('existe_herramienta')}\nRutas: ${fd.get('ruta_archivos')}\nLimitaciones: ${fd.get('limitaciones_actuales')}`;
+                const seccion3 = `=== 3. DINÁMICA ===\nEvento: ${fd.get('evento_iniciador')}\nCampos: ${fd.get('campos_obligatorios')}\nValidaciones: ${fd.get('validaciones_seguridad')}`;
+                const seccion4 = `=== 4. WORKFLOW ===\nCiclo: ${fd.get('ciclo_vida')}\nActores: ${fd.get('actores_permisos')}\nRechazos: ${fd.get('gestion_rechazos')}`;
+                const seccion5 = `=== 5. REGLAS ===\nCálculos: ${fd.get('calculos_automaticos')}\nRestricciones: ${fd.get('reglas_restriccion')}\nInmutabilidad: ${fd.get('inmutabilidad')}`;
+                const seccion6 = `=== 6. INTEGRACIÓN ===\nImpacto: ${fd.get('impacto_modulos')}\nNotificaciones: ${fd.get('notificaciones_docs')}\nKPIs: ${fd.get('reportabilidad')}`;
+
+                descripcionFinal = `${seccion1}\n\n${seccion2}\n\n${seccion3}`;
+                queNecesitaFinal = `${seccion4}\n\n${seccion5}\n\n${seccion6}`;
+            }
+
+            const payload: any = {
+                id: ticketId,
+                categoria_id: selectedCategory.id,
+                asunto: asuntoFinal,
+                descripcion: descripcionFinal,
+                creador_id: user.id,
+                nombre_creador: user.name,
+                correo_creador: user.email,
+                prioridad: 'Media',
+                // Optional fields for development requests
+                que_necesita: queNecesitaFinal,
+                porque: fd.get('porque') || null,
+                paraque: fd.get('paraque') || null,
+                justificacion_ia: null
+            };
+
+            const res = await axios.post(`${API_BASE_URL}/soporte/`, payload);
             setNewTicketId(res.data.id); setView('success'); fetchTickets(user.id);
         } catch { addNotification('error', "Error al enviar ticket"); } finally { setIsLoading(false); }
     };
@@ -145,14 +184,14 @@ const ServicePortal: React.FC = () => {
                 <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('dashboard')}>
                         <div className="bg-[var(--color-primary)] p-2 rounded-xl text-[var(--color-background)] transition-colors"><Plus size={20} /></div>
-                        <span className="font-bold text-xl tracking-tight text-[var(--color-primary)]">Portal TI</span>
+                        <Text as="span" weight="bold" className="text-xl tracking-tight text-[var(--color-primary)]">Portal TI</Text>
                     </div>
 
                     <div className="flex items-center space-x-4">
                         <ThemeToggle />
                         <div className="text-right hidden sm:block border-l border-[var(--color-border)] pl-4">
-                            <p className="text-sm font-bold text-[var(--color-text-primary)]">{user.name}</p>
-                            <p className="text-xs text-[var(--color-text-secondary)]">{user.area || 'Usuario'}</p>
+                            <Text variant="body2" weight="bold" color="text-primary">{user.name}</Text>
+                            <Text variant="caption" color="text-secondary">{user.area || 'Usuario'}</Text>
                         </div>
                         <Button
                             variant="ghost"

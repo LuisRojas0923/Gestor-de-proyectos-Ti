@@ -59,8 +59,8 @@ const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
         <div
           onClick={() => handleItemClick(item)}
           className={`w-full flex items-center px-4 py-3 text-left transition-all duration-200 cursor-pointer rounded-r-full mr-4 group ${isActive
-              ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-medium'
-              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)]'
+            ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-medium'
+            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)]'
             } ${level > 0 ? 'pl-8' : ''}`}
           role="button"
           tabIndex={0}
@@ -80,9 +80,12 @@ const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
           </Text>
 
           {item.badge && (
-            <span className="ml-2 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--color-primary)] text-white">
+            <Text
+              as="span"
+              className="ml-2 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--color-primary)] text-white"
+            >
               {item.badge}
-            </span>
+            </Text>
           )}
         </div>
 
@@ -103,6 +106,8 @@ const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
     ${variant === 'temporary' ? 'shadow-2xl' : 'shadow-sm'}
   `;
 
+  const drawerStyle = { width: `${width}px` };
+
   return (
     <>
       {/* Overlay para drawer temporal */}
@@ -116,7 +121,7 @@ const MaterialDrawer: React.FC<MaterialDrawerProps> = ({
       {/* Drawer */}
       <div
         className={drawerClasses}
-        style={{ width: `${width}px` }}
+        style={drawerStyle}
       >
         {/* Header */}
         <div className="px-6 py-8 border-b border-[var(--color-border)]/50">

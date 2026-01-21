@@ -4,8 +4,7 @@
 // Tipos de desarrollo
 export * from './development';
 
-// Tipos de calidad
-export * from './quality';
+
 
 // Tipos de KPIs
 export * from './kpi';

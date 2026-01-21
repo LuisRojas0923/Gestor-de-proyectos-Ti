@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Calendar, Clock, User, CheckCircle, AlertCircle, Play } from 'lucide-react';
+import { Title, Text, MaterialCard } from '../atoms';
 
 interface Activity {
   id: number;
@@ -59,7 +60,7 @@ export const HybridGanttChart: React.FC<HybridGanttChartProps> = ({
     activities.forEach(activity => {
       const startDate = new Date(activity.start_date);
       const endDate = activity.end_date ? new Date(activity.end_date) : new Date(activity.start_date);
-      
+
       // Si no hay fecha de fin, asumir 1 día de duración
       if (!activity.end_date) {
         endDate.setDate(startDate.getDate() + 1);
@@ -86,7 +87,7 @@ export const HybridGanttChart: React.FC<HybridGanttChartProps> = ({
 
     // 2. Agregar etapas planificadas (solo las que no tienen actividades)
     const stagesWithActivities = new Set(activities.map(a => a.stage_name));
-    
+
     stages.forEach(stage => {
       if (!stagesWithActivities.has(stage.stage_name)) {
         const startDate = new Date();
@@ -120,15 +121,15 @@ export const HybridGanttChart: React.FC<HybridGanttChartProps> = ({
   // Calcular rango de fechas
   const dateRange = useMemo(() => {
     if (ganttData.length === 0) return { start: new Date(), end: new Date() };
-    
-    const dates = ganttData.flatMap(item => [item.startDate, item.endDate]);
-    const start = new Date(Math.min(...dates.map(d => d.getTime())));
-    const end = new Date(Math.max(...dates.map(d => d.getTime())));
-    
+
+    const dates = ganttData.flatMap((item: GanttItem) => [item.startDate, item.endDate]);
+    const start = new Date(Math.min(...dates.map((d: Date) => d.getTime())));
+    const end = new Date(Math.max(...dates.map((d: Date) => d.getTime())));
+
     // Agregar margen de 7 días
     start.setDate(start.getDate() - 7);
     end.setDate(end.getDate() + 7);
-    
+
     return { start, end };
   }, [ganttData]);
 
@@ -136,12 +137,12 @@ export const HybridGanttChart: React.FC<HybridGanttChartProps> = ({
   const timelineDays = useMemo(() => {
     const days = [];
     const current = new Date(dateRange.start);
-    
+
     while (current <= dateRange.end) {
       days.push(new Date(current));
       current.setDate(current.getDate() + 1);
     }
-    
+
     return days;
   }, [dateRange]);
 
@@ -150,10 +151,10 @@ export const HybridGanttChart: React.FC<HybridGanttChartProps> = ({
     const totalDays = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
     const itemStart = Math.ceil((item.startDate.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
     const itemDuration = Math.ceil((item.endDate.getTime() - item.startDate.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     const leftPercent = (itemStart / totalDays) * 100;
     const widthPercent = (itemDuration / totalDays) * 100;
-    
+
     return {
       left: `${leftPercent}%`,
       width: `${Math.max(widthPercent, 2)}%` // Mínimo 2% de ancho
@@ -198,59 +199,59 @@ export const HybridGanttChart: React.FC<HybridGanttChartProps> = ({
 
   if (ganttData.length === 0) {
     return (
-      <div className="text-center p-8 border-2 border-dashed rounded-lg border-neutral-300 dark:border-neutral-700">
+      <MaterialCard className="text-center p-8 border-2 border-dashed">
         <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`} />
-        <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+        <Title variant="h3" weight="medium" className="mb-2">
           No hay datos para mostrar
-        </h3>
-        <p className={`text-sm ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+        </Title>
+        <Text variant="body2">
           Crea actividades en la bitácora para ver el cronograma
-        </p>
-      </div>
+        </Text>
+      </MaterialCard>
     );
   }
 
   return (
     <div className="space-y-4">
       {/* Header con información */}
-      <div className={`p-4 rounded-lg ${darkMode ? 'bg-neutral-700' : 'bg-neutral-100'}`}>
+      <MaterialCard className="!p-4">
         <div className="flex items-center justify-between mb-2">
-          <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+          <Title variant="h3" weight="semibold">
             Cronograma Híbrido
-          </h3>
-          <div className="text-sm text-neutral-500">
+          </Title>
+          <Text variant="body2" color="secondary">
             {ganttData.length} elementos • {activities.length} actividades • {stages.length} etapas
-          </div>
+          </Text>
         </div>
-        <p className={`text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+        <Text variant="body2" color="secondary">
           Combina actividades reales de la bitácora con etapas planificadas del desarrollo
-        </p>
-      </div>
+        </Text>
+      </MaterialCard>
 
       {/* Leyenda */}
-      <div className={`p-3 rounded-lg ${darkMode ? 'bg-neutral-800' : 'bg-neutral-50'}`}>
-        <h4 className={`text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+      <MaterialCard className="!p-3">
+        <Title variant="h4" weight="medium" className="mb-2">
           Leyenda:
-        </h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        </Title>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded ${darkMode ? 'bg-green-600' : 'bg-green-500'}`}></div>
-            <span className={darkMode ? 'text-neutral-300' : 'text-neutral-600'}>Completada</span>
+            <Text variant="caption" color="secondary">Completada</Text>
           </div>
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded ${darkMode ? 'bg-blue-600' : 'bg-blue-500'}`}></div>
-            <span className={darkMode ? 'text-neutral-300' : 'text-neutral-600'}>En Progreso</span>
+            <Text variant="caption" color="secondary">En Progreso</Text>
           </div>
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded ${darkMode ? 'bg-yellow-600' : 'bg-yellow-500'}`}></div>
-            <span className={darkMode ? 'text-neutral-300' : 'text-neutral-600'}>Pendiente</span>
+            <Text variant="caption" color="secondary">Pendiente</Text>
           </div>
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
-            <span className={darkMode ? 'text-neutral-300' : 'text-neutral-600'}>Planificada</span>
+            <Text variant="caption" color="secondary">Planificada</Text>
           </div>
         </div>
-      </div>
+      </MaterialCard>
 
       {/* Timeline */}
       <div className="overflow-x-auto">
@@ -259,24 +260,23 @@ export const HybridGanttChart: React.FC<HybridGanttChartProps> = ({
           <div className={`sticky top-0 z-10 ${darkMode ? 'bg-neutral-800' : 'bg-white'} border-b border-neutral-200 dark:border-neutral-700`}>
             <div className="flex">
               <div className="w-64 p-3 border-r border-neutral-200 dark:border-neutral-700">
-                <span className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                <Text variant="body2" weight="medium">
                   Actividad / Etapa
-                </span>
+                </Text>
               </div>
               <div className="flex-1 overflow-x-auto">
                 <div className="flex min-w-max">
                   {timelineDays.map((day, index) => (
                     <div
                       key={index}
-                      className={`w-16 p-2 text-center border-r border-neutral-200 dark:border-neutral-700 ${
-                        day.getDay() === 0 || day.getDay() === 6 
-                          ? darkMode ? 'bg-neutral-700' : 'bg-neutral-50'
-                          : ''
-                      }`}
+                      className={`w-16 p-2 text-center border-r border-neutral-200 dark:border-neutral-700 ${day.getDay() === 0 || day.getDay() === 6
+                        ? darkMode ? 'bg-neutral-700' : 'bg-neutral-50'
+                        : ''
+                        }`}
                     >
-                      <div className={`text-xs ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                      <Text variant="caption" color="secondary">
                         {day.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
-                      </div>
+                      </Text>
                     </div>
                   ))}
                 </div>
@@ -300,29 +300,36 @@ export const HybridGanttChart: React.FC<HybridGanttChartProps> = ({
                       {getResponsibleIcon(item.responsible)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className={`text-sm font-medium truncate ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                      <Text variant="body2" weight="medium" className="truncate">
                         {item.name}
-                      </div>
-                      <div className={`text-xs truncate ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                      </Text>
+                      <Text variant="caption" color="secondary" className="truncate">
                         {item.type === 'activity' ? 'Actividad' : 'Etapa'} • {item.phase}
-                      </div>
+                      </Text>
                     </div>
                   </div>
 
                   {/* Barra del Gantt */}
                   <div className="flex-1 relative h-full">
-                    <div
-                      className={`absolute top-1 bottom-1 rounded ${getStatusColor(item.status, item.type)} flex items-center justify-center text-white text-xs font-medium`}
-                      style={{
+                    {(() => {
+                      const ganttBarStyle = {
                         left: position.left,
                         width: position.width,
-                        minWidth: '20px'
-                      }}
-                    >
-                      {item.isMilestone && (
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      )}
-                    </div>
+                        minWidth: '20px',
+                        fontSize: '10px'
+                      };
+                      return (
+                        <Text
+                          as="div"
+                          className={`absolute top-1 bottom-1 rounded ${getStatusColor(item.status, item.type)} flex items-center justify-center text-white font-medium`}
+                          style={ganttBarStyle}
+                        >
+                          {item.isMilestone && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          )}
+                        </Text>
+                      );
+                    })()}
                   </div>
                 </div>
               );
@@ -332,34 +339,34 @@ export const HybridGanttChart: React.FC<HybridGanttChartProps> = ({
       </div>
 
       {/* Información adicional */}
-      <div className={`p-3 rounded-lg ${darkMode ? 'bg-neutral-800' : 'bg-neutral-50'}`}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div>
-            <span className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+      <MaterialCard className="!p-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex items-center">
+            <Text weight="medium">
               Actividades Completadas:
-            </span>
-            <span className={`ml-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-              {ganttData.filter(item => item.status === 'completed').length}
-            </span>
+            </Text>
+            <Text className="ml-2" color="secondary">
+              {ganttData.filter((item: GanttItem) => item.status === 'completed').length}
+            </Text>
           </div>
-          <div>
-            <span className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+          <div className="flex items-center">
+            <Text weight="medium">
               En Progreso:
-            </span>
-            <span className={`ml-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-              {ganttData.filter(item => item.status === 'in_progress').length}
-            </span>
+            </Text>
+            <Text className="ml-2" color="secondary">
+              {ganttData.filter((item: GanttItem) => item.status === 'in_progress').length}
+            </Text>
           </div>
-          <div>
-            <span className={`font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+          <div className="flex items-center">
+            <Text weight="medium">
               Pendientes:
-            </span>
-            <span className={`ml-2 ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
-              {ganttData.filter(item => item.status === 'pending').length}
-            </span>
+            </Text>
+            <Text className="ml-2" color="secondary">
+              {ganttData.filter((item: GanttItem) => item.status === 'pending').length}
+            </Text>
           </div>
         </div>
-      </div>
+      </MaterialCard>
     </div>
   );
 };

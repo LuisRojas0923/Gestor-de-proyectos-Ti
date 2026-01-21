@@ -22,7 +22,7 @@ const AppRouter: React.FC = () => {
 
         {/* Rutas Administrativas (Analistas) */}
         <Route path="/" element={
-          <ProtectedRoute allowedRoles={['analyst']}>
+          <ProtectedRoute allowedRoles={['analyst', 'admin']}>
             <Layout />
           </ProtectedRoute>
         }>
@@ -38,12 +38,12 @@ const AppRouter: React.FC = () => {
 
         {/* Rutas del Portal (Usuarios Finales) */}
         <Route path="/service-portal" element={
-          <ProtectedRoute allowedRoles={['user', 'analyst']}>
+          <ProtectedRoute allowedRoles={['user', 'analyst', 'admin']}>
             <ServicePortal />
           </ProtectedRoute>
         } />
         <Route path="/tickets/:ticketId" element={
-          <ProtectedRoute allowedRoles={['user', 'analyst']}>
+          <ProtectedRoute allowedRoles={['user', 'analyst', 'admin']}>
             <TicketDetail />
           </ProtectedRoute>
         } />

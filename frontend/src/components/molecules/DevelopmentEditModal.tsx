@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Select } from '../atoms';
+import { Button, Input, Select, Title, Text } from '../atoms';
 import Modal from './Modal';
 
 interface DevelopmentData {
@@ -22,7 +22,6 @@ interface DevelopmentData {
 interface DevelopmentEditModalProps {
   isOpen: boolean;
   development: DevelopmentData | null;
-  darkMode: boolean;
   onClose: () => void;
   onSave: (updatedData: Partial<DevelopmentData>) => Promise<boolean>;
 }
@@ -30,7 +29,6 @@ interface DevelopmentEditModalProps {
 const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
   isOpen,
   development,
-  darkMode,
   onClose,
   onSave,
 }) => {
@@ -156,19 +154,19 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
             {/* Errores */}
             {errors.length > 0 && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
-                <ul className="text-sm text-red-600 dark:text-red-400 space-y-1">
+                <div className="space-y-1">
                   {errors.map((error, index) => (
-                    <li key={index}>• {error}</li>
+                    <Text key={index} variant="caption" color="error" className="block">• {error}</Text>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
 
             {/* Información básica */}
             <div className="space-y-4">
-              <h3 className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+              <Title variant="h4" weight="medium">
                 Información Básica
-              </h3>
+              </Title>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -203,9 +201,9 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
 
             {/* Información técnica */}
             <div className="space-y-4">
-              <h3 className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+              <Title variant="h4" weight="medium">
                 Información Técnica
-              </h3>
+              </Title>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -248,9 +246,9 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
 
             {/* Información de gestión */}
             <div className="space-y-4">
-              <h3 className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+              <Title variant="h4" weight="medium">
                 Información de Gestión
-              </h3>
+              </Title>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

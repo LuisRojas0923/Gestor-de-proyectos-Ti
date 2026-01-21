@@ -17,34 +17,34 @@ import {
 import { API_CONFIG } from '../config/api';
 import { useAppContext } from '../context/AppContext';
 import { DevelopmentWithCurrentStatus } from '../types/development';
-import { Button, Select, Textarea } from '../components/atoms';
+import { Button, Select, Textarea, Title, Text } from '../components/atoms';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
-type TicketStatus = 'NUEVO' | 'ASIGNADO' | 'EN_ANALISIS' | 'ESPERA_CLIENTE' | 'RESUELTO' | 'CERRADO';
+type TicketStatus = 'Nuevo' | 'Abierto' | 'En Proceso' | 'Pendiente Info' | 'Escalado' | 'Resuelto' | 'Cerrado';
 
 interface Ticket {
     id: string;
-    category_id: string;
-    subject: string;
-    description: string;
-    status: TicketStatus;
-    priority: string;
-    creator_id: string;
-    creator_name: string;
-    creator_email: string;
-    creator_area: string;
-    creator_cargo: string;
-    creator_sede: string;
-    assigned_to?: string;
-    diagnostic?: string;
-    resolution?: string;
-    notes?: string;
-    time_spent_hours?: number;
-    creation_date: string;
-    close_date?: string;
-    extra_data?: Record<string, unknown>;
-    development_id?: string;
+    categoria_id: string;
+    asunto: string;
+    descripcion: string;
+    estado: string;
+    prioridad: string;
+    creador_id: string;
+    nombre_creador: string;
+    correo_creador: string;
+    area_creador: string;
+    cargo_creador: string;
+    sede_creador: string;
+    asignado_a?: string;
+    diagnosis?: string;
+    resolucion?: string;
+    notas?: string;
+    tiempo_horas?: number;
+    fecha_creacion: string;
+    fecha_cierre?: string;
+    datos_extra?: Record<string, unknown>;
+    desarrollo_id?: string;
 }
 
 const TicketDetail: React.FC = () => {
@@ -58,7 +58,7 @@ const TicketDetail: React.FC = () => {
     const [isLinking, setIsLinking] = useState(false);
     const { dispatch } = useAppContext();
 
-    const stages: TicketStatus[] = ['NUEVO', 'ASIGNADO', 'EN_ANALISIS', 'ESPERA_CLIENTE', 'RESUELTO', 'CERRADO'];
+    const stages: TicketStatus[] = ['Nuevo', 'Abierto', 'En Proceso', 'Pendiente Info', 'Escalado', 'Resuelto', 'Cerrado'];
 
     useEffect(() => {
         const fetchTicket = async () => {
@@ -93,13 +93,13 @@ const TicketDetail: React.FC = () => {
         const formData = new FormData(e.currentTarget);
 
         const updateData = {
-            status: formData.get('status'),
-            priority: formData.get('priority'),
-            assigned_to: formData.get('assigned_to'),
-            diagnostic: formData.get('diagnostic'),
-            resolution: formData.get('resolution'),
-            notes: formData.get('notes'),
-            time_spent_hours: formData.get('time_spent_hours') ? parseFloat(formData.get('time_spent_hours') as string) : undefined
+            estado: formData.get('estado'),
+            prioridad: formData.get('prioridad'),
+            asignado_a: formData.get('asignado_a'),
+            diagnosis: formData.get('diagnosis'),
+            resolucion: formData.get('resolucion'),
+            notas: formData.get('notas'),
+            tiempo_horas: formData.get('tiempo_horas') ? parseFloat(formData.get('tiempo_horas') as string) : undefined
         };
 
         try {
@@ -118,7 +118,7 @@ const TicketDetail: React.FC = () => {
         if (!ticket) return;
         setIsSaving(true);
         try {
-            await axios.patch(`${API_BASE_URL}/soporte/${ticketId}`, { development_id: devId });
+            await axios.patch(`${API_BASE_URL}/soporte/${ticketId}`, { desarrollo_id: devId });
             const response = await axios.get(`${API_BASE_URL}/soporte/${ticketId}`);
             setTicket(response.data);
             setIsLinking(false);
@@ -148,8 +148,8 @@ const TicketDetail: React.FC = () => {
         setIsSaving(true);
         try {
             await axios.patch(`${API_BASE_URL}/soporte/${ticketId}`, {
-                status: 'EN_ANALISIS',
-                notes: (ticket.notes || '') + '\n\n[SISTEMA] El usuario ha rechazado la solución propuesta.'
+                estado: 'En Proceso',
+                notas: (ticket.notas || '') + '\n\n[SISTEMA] El usuario ha rechazado la solución propuesta.'
             });
             const response = await axios.get(`${API_BASE_URL}/soporte/${ticketId}`);
             setTicket(response.data);
@@ -160,7 +160,7 @@ const TicketDetail: React.FC = () => {
                 payload: {
                     id: Math.random().toString(36).substr(2, 9),
                     title: 'Solución Rechazada',
-                    message: `El ticket ${ticketId} ha vuelto a estado EN ANÁLISIS.`,
+                    message: `El ticket ${ticketId} ha vuelto a estado EN PROCESO.`,
                     type: 'warning',
                     timestamp: new Date().toISOString(),
                     read: false
@@ -177,7 +177,7 @@ const TicketDetail: React.FC = () => {
     if (isLoading) return <div className="p-10 text-center font-sans">Cargando ticket...</div>;
     if (error || !ticket) return <div className="p-10 text-center text-red-500 font-bold font-sans">{error || "Error"}</div>;
 
-    const currentStageIndex = stages.indexOf(ticket.status as TicketStatus);
+    const currentStageIndex = stages.indexOf(ticket.estado as any);
 
     return (
         <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 p-4 sm:p-8 font-sans">
@@ -193,7 +193,7 @@ const TicketDetail: React.FC = () => {
                         Volver a la gestión
                     </Button>
                     <div className="flex items-center space-x-3">
-                        {ticket.status === 'RESUELTO' && (
+                        {ticket.estado === 'Resuelto' && (
                             <Button
                                 variant="danger"
                                 size="sm"
@@ -202,22 +202,28 @@ const TicketDetail: React.FC = () => {
                                 Rechazar Solución
                             </Button>
                         )}
-                        <span className={`px-5 py-2 rounded-full text-xs font-black border tracking-widest ${getContentStatusStyle(ticket.status)}`}>
-                            {ticket.status.toUpperCase()}
-                        </span>
+                        <Text variant="caption" weight="bold" className={`px-5 py-2 rounded-full border tracking-widest ${getContentStatusStyle(ticket.estado)}`}>
+                            {(ticket.estado || 'NUEVO').toUpperCase()}
+                        </Text>
                     </div>
                 </div>
 
                 {/* Horizontal Timeline */}
                 <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] p-8 shadow-sm border border-neutral-100 dark:border-neutral-800">
                     <div className="flex items-center justify-between mb-8">
-                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Ciclo de Vida del Ticket</h3>
-                        <span className="text-[10px] font-bold text-blue-500 uppercase">Tiempo transcurrido: 4.2h</span>
+                        <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-[0.2em] opacity-40">Ciclo de Vida del Ticket</Text>
+                        <Text variant="caption" weight="bold" color="primary" className="uppercase">Tiempo transcurrido: 4.2h</Text>
                     </div>
 
                     <div className="relative flex items-center justify-between px-4">
                         <div className="absolute left-10 right-10 h-0.5 bg-neutral-100 dark:bg-neutral-800 top-1/2 -translate-y-1/2 -z-0"></div>
-                        <div className="absolute left-10 h-0.5 bg-blue-500 top-1/2 -translate-y-1/2 -z-0 transition-all duration-700" style={{ width: `${(currentStageIndex / (stages.length - 1)) * 80}%` }}></div>
+                        {(() => {
+                            const progressWidth = `${(currentStageIndex >= 0 ? (currentStageIndex / (stages.length - 1)) * 80 : 0)}%`;
+                            const progressBarStyle = { width: progressWidth };
+                            return (
+                                <div className="absolute left-10 h-0.5 bg-blue-500 top-1/2 -translate-y-1/2 -z-0 transition-all duration-700" style={progressBarStyle}></div>
+                            );
+                        })()}
 
                         {stages.map((stage, idx) => (
                             <div key={stage} className="relative z-10 flex flex-col items-center group">
@@ -228,13 +234,13 @@ const TicketDetail: React.FC = () => {
                                     {idx < currentStageIndex ? (
                                         <CheckCircle size={16} className="text-white" />
                                     ) : (
-                                        <span className={`text-xs font-black ${idx <= currentStageIndex ? 'text-white' : 'text-neutral-400'}`}>0{idx + 1}</span>
+                                        <Text variant="caption" weight="bold" color="white" className={`${idx <= currentStageIndex ? '' : 'text-neutral-400'}`}>0{idx + 1}</Text>
                                     )}
                                 </div>
-                                <span className={`absolute -bottom-8 whitespace-nowrap text-[10px] font-black tracking-widest ${idx <= currentStageIndex ? 'text-neutral-900 dark:text-white' : 'text-neutral-400'
+                                <Text variant="caption" weight="bold" className={`absolute -bottom-8 whitespace-nowrap tracking-widest ${idx <= currentStageIndex ? 'text-neutral-900 dark:text-white' : 'text-neutral-400'
                                     }`}>
                                     {stage.replace('_', ' ')}
-                                </span>
+                                </Text>
                             </div>
                         ))}
                     </div>
@@ -247,24 +253,24 @@ const TicketDetail: React.FC = () => {
                         {/* Info Ticket */}
                         <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] p-8 lg:p-10 shadow-sm border border-neutral-100 dark:border-neutral-800">
                             <div className="flex items-center space-x-3 mb-6">
-                                <span className="text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-lg font-mono text-xs font-bold tracking-widest leading-none">{ticket.id}</span>
-                                <span className="w-1.5 h-1.5 rounded-full bg-neutral-200 dark:bg-neutral-700"></span>
-                                <span className="text-neutral-400 text-[10px] font-black uppercase tracking-widest">{new Date(ticket.creation_date).toLocaleString()}</span>
+                                <Text variant="caption" weight="bold" color="primary" className="bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-lg font-mono tracking-widest leading-none">{ticket.id}</Text>
+                                <Text as="span" className="w-1.5 h-1.5 rounded-full bg-neutral-200 dark:bg-neutral-700">{''}</Text>
+                                <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-40">{new Date(ticket.fecha_creacion).toLocaleString()}</Text>
                             </div>
-                            <h1 className="text-4xl font-black text-neutral-900 dark:text-white mb-8 leading-tight">{ticket.subject}</h1>
+                            <Title variant="h2" weight="bold" color="text-primary" className="mb-8 leading-tight">{ticket.asunto}</Title>
 
                             <div className="p-8 bg-neutral-50 dark:bg-neutral-800/50 rounded-3xl border border-neutral-100 dark:border-neutral-700/50 italic text-neutral-700 dark:text-neutral-300 text-lg leading-relaxed shadow-inner">
-                                "{ticket.description}"
+                                "{ticket.descripcion}"
                             </div>
 
-                            {ticket.extra_data && (
+                            {ticket.datos_extra && (
                                 <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {Object.entries(ticket.extra_data).map(([key, value]) => {
+                                    {Object.entries(ticket.datos_extra).map(([key, value]) => {
                                         if (typeof value === 'string' && value.length > 0 && !['nombre', 'email', 'asunto', 'descripcion_detallada'].includes(key)) {
                                             return (
                                                 <div key={key} className="p-5 border border-neutral-100 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow-sm transition-all hover:shadow-md">
-                                                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">{key.replace(/_/g, ' ')}</p>
-                                                    <p className="text-sm text-neutral-800 dark:text-neutral-200 font-bold line-clamp-3 leading-relaxed">{value}</p>
+                                                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-40 mb-2">{key.replace(/_/g, ' ')}</Text>
+                                                    <Text variant="body2" weight="bold" color="text-primary" className="line-clamp-3 leading-relaxed">{value}</Text>
                                                 </div>
                                             );
                                         }
@@ -281,22 +287,30 @@ const TicketDetail: React.FC = () => {
                                     <Activity size={24} />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-black text-neutral-900 dark:text-white">Gestión del Analista</h2>
-                                    <p className="text-sm text-neutral-400 font-medium">Actualiza el progreso de la solicitud</p>
+                                    <Title variant="h5" weight="bold" color="text-primary">Gestión del Analista</Title>
+                                    <Text variant="body2" color="text-secondary" weight="medium">Actualiza el progreso de la solicitud</Text>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <Select
                                     label="Estado de la Solicitud"
-                                    name="status"
-                                    defaultValue={ticket.status}
-                                    options={stages.map(s => ({ value: s, label: s.replace('_', ' ') }))}
+                                    name="estado"
+                                    defaultValue={ticket.estado}
+                                    options={[
+                                        { value: "Nuevo", label: "Nuevo" },
+                                        { value: "Abierto", label: "Abierto" },
+                                        { value: "En Proceso", label: "En Proceso" },
+                                        { value: "Pendiente Info", label: "Pendiente Info" },
+                                        { value: "Escalado", label: "Escalado" },
+                                        { value: "Resuelto", label: "Resuelto" },
+                                        { value: "Cerrado", label: "Cerrado" },
+                                    ]}
                                 />
                                 <Select
                                     label="Nivel de Prioridad"
-                                    name="priority"
-                                    defaultValue={ticket.priority}
+                                    name="prioridad"
+                                    defaultValue={ticket.prioridad}
                                     options={[
                                         { value: 'Baja', label: 'Baja' },
                                         { value: 'Media', label: 'Media' },
@@ -309,15 +323,15 @@ const TicketDetail: React.FC = () => {
                             <div className="space-y-8">
                                 <Textarea
                                     label="Respuesta / Diagnóstico"
-                                    name="diagnostic"
-                                    defaultValue={ticket.diagnostic || ''}
+                                    name="diagnosis"
+                                    defaultValue={ticket.diagnosis || ''}
                                     rows={4}
                                     placeholder="Ingresa los detalles técnicos o respuesta inicial..."
                                 />
                                 <Textarea
                                     label="Solución Definitiva"
-                                    name="resolution"
-                                    defaultValue={ticket.resolution || ''}
+                                    name="resolucion"
+                                    defaultValue={ticket.resolucion || ''}
                                     rows={5}
                                     placeholder="Describe los pasos finales para la resolución..."
                                 />
@@ -326,14 +340,14 @@ const TicketDetail: React.FC = () => {
                             <div className="pt-8 border-t border-neutral-50 dark:border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                                 <div className="flex flex-col space-y-4 w-full">
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-2 text-neutral-400">
-                                            <Briefcase size={16} />
-                                            <span className="text-xs font-bold">Vincular a Desarrollo Existente</span>
+                                        <div className="flex items-center space-x-2">
+                                            <Briefcase size={16} className="text-[var(--color-text-secondary)]" />
+                                            <Text variant="caption" weight="bold" color="text-secondary">Vincular a Desarrollo Existente</Text>
                                         </div>
-                                        {ticket.development_id ? (
+                                        {ticket.desarrollo_id ? (
                                             <div className="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-xl border border-blue-100 dark:border-blue-800">
                                                 <LinkIcon size={12} className="text-blue-500" />
-                                                <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{ticket.development_id}</span>
+                                                <Text variant="caption" weight="bold" color="primary" className="uppercase tracking-widest">{ticket.desarrollo_id}</Text>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -359,7 +373,7 @@ const TicketDetail: React.FC = () => {
                                     {isLinking && (
                                         <div className="bg-neutral-50 dark:bg-neutral-800/50 p-6 rounded-3xl border-2 border-dashed border-neutral-200 dark:border-neutral-700 animate-in fade-in slide-in-from-top-4 duration-300">
                                             <div className="flex items-center justify-between mb-4">
-                                                <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Seleccionar Desarrollo</h4>
+                                                <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-[0.2em] opacity-40">Seleccionar Desarrollo</Text>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -375,13 +389,13 @@ const TicketDetail: React.FC = () => {
                                                         key={dev.id}
                                                         onClick={() => handleLinkDevelopment(dev.id)}
                                                         variant="ghost"
-                                                        className={`flex flex-col p-4 h-auto items-start rounded-2xl border-2 text-left transition-all ${ticket.development_id === dev.id
+                                                        className={`flex flex-col p-4 h-auto items-start rounded-2xl border-2 text-left transition-all ${ticket.desarrollo_id === dev.id
                                                             ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
                                                             : 'border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-blue-200 dark:hover:border-blue-900/50'
                                                             }`}
                                                     >
-                                                        <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">{dev.id}</span>
-                                                        <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200 line-clamp-1">{dev.name}</span>
+                                                        <Text variant="caption" weight="bold" color="primary" className="uppercase tracking-widest mb-1">{dev.id}</Text>
+                                                        <Text variant="caption" weight="bold" color="text-primary" className="line-clamp-1">{dev.name}</Text>
                                                     </Button>
                                                 ))}
                                             </div>
@@ -406,29 +420,29 @@ const TicketDetail: React.FC = () => {
                     <div className="space-y-8">
                         <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] p-8 shadow-sm border border-neutral-100 dark:border-neutral-800 space-y-8">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3 text-neutral-400">
-                                    <User size={20} />
-                                    <h3 className="font-black text-xs uppercase tracking-widest">Solicitante</h3>
+                                <div className="flex items-center space-x-3">
+                                    <User size={20} className="text-[var(--color-text-secondary)]" />
+                                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-40">Solicitante</Text>
                                 </div>
                                 <Mail size={16} className="text-blue-500 cursor-pointer" />
                             </div>
                             <div className="space-y-6">
                                 <div className="flex items-center space-x-5">
                                     <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-neutral-800 dark:to-neutral-700 rounded-[1.5rem] flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-2xl shadow-inner">
-                                        {ticket.creator_name[0]}
+                                        {ticket.nombre_creador ? ticket.nombre_creador[0] : 'U'}
                                     </div>
                                     <div>
-                                        <p className="font-black text-xl text-neutral-900 dark:text-white leading-tight">{ticket.creator_name}</p>
-                                        <p className="text-xs text-neutral-400 font-bold uppercase tracking-tighter mt-1">ID: {ticket.creator_id}</p>
+                                        <Title variant="h5" weight="bold" color="text-primary" className="leading-tight">{ticket.nombre_creador}</Title>
+                                        <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-tighter mt-1">ID: {ticket.creador_id}</Text>
                                     </div>
                                 </div>
                                 <div className="space-y-4 pt-6 border-t border-neutral-50 dark:border-neutral-800">
-                                    <InfoItem icon={<Briefcase size={16} />} label="Área" value={ticket.creator_area} />
-                                    <InfoItem icon={<HistoryIcon size={16} />} label="Cargo" value={ticket.creator_cargo} />
-                                    <InfoItem icon={<MapPin size={16} />} label="Sede" value={ticket.creator_sede} />
+                                    <InfoItem icon={<Briefcase size={16} />} label="Área" value={ticket.area_creador} />
+                                    <InfoItem icon={<HistoryIcon size={16} />} label="Cargo" value={ticket.cargo_creador} />
+                                    <InfoItem icon={<MapPin size={16} />} label="Sede" value={ticket.sede_creador} />
                                     <div className="pt-2">
-                                        <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">Contacto</p>
-                                        <p className="text-sm font-bold text-blue-500 truncate">{ticket.creator_email}</p>
+                                        <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-40 mb-1">Contacto</Text>
+                                        <Text variant="body2" weight="bold" color="primary" className="truncate">{ticket.correo_creador}</Text>
                                     </div>
                                 </div>
                             </div>
@@ -439,12 +453,12 @@ const TicketDetail: React.FC = () => {
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                             <div className="flex items-center space-x-3 relative z-10">
                                 <HistoryIcon size={20} className="text-blue-400" />
-                                <h3 className="font-black text-xs uppercase tracking-widest">Actividad</h3>
+                                <Text variant="caption" weight="bold" className="text-blue-300 uppercase tracking-widest">Actividad</Text>
                             </div>
                             <div className="space-y-8 relative z-10">
                                 <ActivityNode date="Ahora mismo" label="Analista está editando" status="info" />
                                 <ActivityNode date="Hace 2 horas" label="Cambio de estado a EN ANALISIS" status="success" />
-                                <ActivityNode date={new Date(ticket.creation_date).toLocaleTimeString()} label="Apertura del ticket" status="success" />
+                                <ActivityNode date={new Date(ticket.fecha_creacion).toLocaleTimeString()} label="Apertura del ticket" status="success" />
                             </div>
                         </div>
                     </div>
@@ -456,10 +470,10 @@ const TicketDetail: React.FC = () => {
 
 const InfoItem: React.FC<{ icon: React.ReactNode, label: string, value: string }> = ({ icon, label, value }) => (
     <div className="flex items-center justify-between text-sm group">
-        <span className="text-neutral-400 group-hover:text-blue-500 flex items-center transition-colors">
-            {icon} <span className="ml-3 font-bold text-[10px] uppercase tracking-wider">{label}</span>
-        </span>
-        <span className="font-black text-neutral-700 dark:text-neutral-300">{value}</span>
+        <Text variant="caption" weight="bold" color="text-secondary" className="group-hover:text-[var(--color-primary)] flex items-center transition-colors">
+            {icon} <Text as="span" className="ml-3 uppercase tracking-wider">{label}</Text>
+        </Text>
+        <Text variant="body2" weight="bold" color="text-primary">{value}</Text>
     </div>
 );
 
@@ -467,8 +481,8 @@ const ActivityNode: React.FC<{ date: string, label: string, status: string }> = 
     <div className="flex items-start space-x-4 border-l-2 border-neutral-800 pl-6 relative">
         <div className={`absolute -left-[5px] top-1.5 w-2 h-2 rounded-full ${status === 'success' ? 'bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]' : 'bg-neutral-600'}`}></div>
         <div className="space-y-1">
-            <p className="text-xs font-black text-neutral-100">{label}</p>
-            <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-tighter">{date}</p>
+            <Text variant="body2" weight="bold" className="text-neutral-100">{label}</Text>
+            <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-tighter">{date}</Text>
         </div>
     </div>
 );
@@ -476,12 +490,13 @@ const ActivityNode: React.FC<{ date: string, label: string, status: string }> = 
 
 const getContentStatusStyle = (status: string) => {
     switch (status) {
-        case 'NUEVO': return 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-900/20';
-        case 'ASIGNADO': return 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/10 dark:text-indigo-400 dark:border-indigo-900/20';
-        case 'EN_ANALISIS': return 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/10 dark:text-amber-400 dark:border-amber-900/20';
-        case 'ESPERA_CLIENTE': return 'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/10 dark:text-purple-400 dark:border-purple-900/20';
-        case 'RESUELTO': return 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/10 dark:text-emerald-400 dark:border-emerald-900/20';
-        case 'CERRADO': return 'bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+        case 'Nuevo':
+        case 'Abierto': return 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-900/20';
+        case 'En Proceso': return 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/10 dark:text-amber-400 dark:border-amber-900/20';
+        case 'Pendiente Info': return 'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/10 dark:text-purple-400 dark:border-purple-900/20';
+        case 'Escalado': return 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/10 dark:text-red-400 dark:border-red-900/20';
+        case 'Resuelto': return 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/10 dark:text-emerald-400 dark:border-emerald-900/20';
+        case 'Cerrado': return 'bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
         default: return 'bg-white text-neutral-400 border-neutral-100 dark:bg-neutral-900 dark:border-neutral-800';
     }
 };

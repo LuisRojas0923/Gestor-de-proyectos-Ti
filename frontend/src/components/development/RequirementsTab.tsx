@@ -13,7 +13,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FixedSizeList as List } from 'react-window';
 import { useApi } from '../../hooks/useApi';
-import { Button, Input, Select } from '../atoms';
+import { Button, Input, Select, Title, Text, MaterialCard } from '../atoms';
 
 // Type definition for a requirement
 interface Requirement {
@@ -140,20 +140,20 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
               {getStatusIcon(requirement.status)}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
-                  <span className={`font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                  <Text weight="medium" color="primary">
                     {requirement.external_id}
-                  </span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(requirement.priority)}`}>
+                  </Text>
+                  <Text variant="caption" weight="medium" className={`px-2 py-1 rounded-full ${getPriorityColor(requirement.priority)}`}>
                     {t(requirement.priority)}
-                  </span>
+                  </Text>
                 </div>
-                <h3 className={`font-medium mt-1 truncate ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                <Title variant="h4" weight="medium" className="mt-1 truncate">
                   {requirement.title}
-                </h3>
-                <div className={`flex items-center space-x-4 text-sm mt-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
-                  <span>Asignado a: {requirement.assigned_user_id || 'N/A'}</span>
-                  <span>Vence: {requirement.due_date ? new Date(requirement.due_date).toLocaleDateString() : 'N/A'}</span>
-                  <span>Controles: N/A</span>
+                </Title>
+                <div className="flex items-center space-x-4 mt-2">
+                  <Text variant="body2" color="secondary">Asignado a: {requirement.assigned_user_id || 'N/A'}</Text>
+                  <Text variant="body2" color="secondary">Vence: {requirement.due_date ? new Date(requirement.due_date).toLocaleDateString() : 'N/A'}</Text>
+                  <Text variant="body2" color="secondary">Controles: N/A</Text>
                 </div>
               </div>
             </div>
@@ -190,10 +190,10 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
       <div className={`flex-1 ${sidebarOpen ? 'mr-96' : ''} transition-all duration-300`}>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h4 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+            <Title variant="h3" weight="semibold" className="flex items-center">
               <Search size={18} className="mr-2" />
               Requerimientos del Desarrollo
-            </h4>
+            </Title>
             <div className="flex items-center space-x-4">
               <Button
                 icon={Plus}
@@ -210,8 +210,7 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
           </div>
 
           {/* Filters */}
-          <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-            } border rounded-xl p-6`}>
+          <MaterialCard className="!p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
               <Input
                 placeholder={t('search')}
@@ -244,20 +243,20 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
                 ]}
               />
 
-              <div className={`text-sm flex items-center h-10 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                }`}>
-                <Filter size={16} className="mr-2" />
-                {filteredRequirements.length} de {requirements.length} requerimientos
+              <div className="flex items-center h-10">
+                <Filter size={16} className="mr-2 text-gray-400" />
+                <Text variant="body2" color="secondary">
+                  {filteredRequirements.length} de {requirements.length} requerimientos
+                </Text>
               </div>
             </div>
-          </div>
+          </MaterialCard>
 
           {/* Virtualized List */}
-          {loading && <p>Loading...</p>}
-          {error && <p className="text-red-500">{error}</p>}
+          {loading && <Text>Loading...</Text>}
+          {error && <Text color="error">{error}</Text>}
           {!loading && !error && (
-            <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-              } border rounded-xl overflow-hidden`}>
+            <MaterialCard className="overflow-hidden !p-0">
               <List
                 height={400}
                 itemCount={filteredRequirements.length}
@@ -266,7 +265,7 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
               >
                 {Row}
               </List>
-            </div>
+            </MaterialCard>
           )}
         </div>
       </div>
@@ -277,9 +276,9 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
           } border-l shadow-xl z-50 overflow-y-auto transition-transform`}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+              <Title variant="h3" weight="bold">
                 Detalle del Requerimiento
-              </h2>
+              </Title>
               <Button
                 variant="ghost"
                 size="sm"
@@ -291,82 +290,75 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
 
             <div className="space-y-6">
               <div>
-                <span className={`text-lg font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                <Text variant="subtitle1" weight="medium" color="primary">
                   {selectedRequirement.external_id}
-                </span>
-                <h3 className={`text-xl font-bold mt-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                </Text>
+                <Title variant="h3" weight="bold" className="mt-2">
                   {selectedRequirement.title}
-                </h3>
+                </Title>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                    }`}>
+                  <Text variant="body2" weight="medium" color="secondary" className="block mb-1">
                     Estado
-                  </label>
+                  </Text>
                   <div className="flex items-center space-x-2">
                     {getStatusIcon(selectedRequirement.status)}
-                    <span className={darkMode ? 'text-white' : 'text-neutral-900'}>
+                    <Text>
                       {t(selectedRequirement.status)}
-                    </span>
+                    </Text>
                   </div>
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                    }`}>
+                  <Text variant="body2" weight="medium" color="secondary" className="block mb-1">
                     Prioridad
-                  </label>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(selectedRequirement.priority)}`}>
+                  </Text>
+                  <Text variant="caption" weight="medium" className={`px-2 py-1 rounded-full ${getPriorityColor(selectedRequirement.priority)}`}>
                     {t(selectedRequirement.priority)}
-                  </span>
+                  </Text>
                 </div>
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                  }`}>
+                <Text variant="body2" weight="medium" color="secondary" className="block mb-1">
                   Descripción
-                </label>
-                <p className={`${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                </Text>
+                <Text>
                   {selectedRequirement.description}
-                </p>
+                </Text>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                    }`}>
+                  <Text variant="body2" weight="medium" color="secondary" className="block mb-1">
                     Asignado a
-                  </label>
-                  <span className={darkMode ? 'text-white' : 'text-neutral-900'}>
+                  </Text>
+                  <Text>
                     {selectedRequirement.assigned_user_id || 'N/A'}
-                  </span>
+                  </Text>
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                    }`}>
+                  <Text variant="body2" weight="medium" color="secondary" className="block mb-1">
                     Fecha límite
-                  </label>
-                  <span className={darkMode ? 'text-white' : 'text-neutral-900'}>
+                  </Text>
+                  <Text>
                     {selectedRequirement.due_date ? new Date(selectedRequirement.due_date).toLocaleDateString() : 'N/A'}
-                  </span>
+                  </Text>
                 </div>
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-600'
-                  }`}>
+                <Text variant="body2" weight="medium" color="secondary" className="block mb-2">
                   Controles Aplicables
-                </label>
+                </Text>
                 <div className="flex flex-wrap gap-2">
                   {/* Placeholder for controls */}
-                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${darkMode ? 'bg-neutral-700 text-neutral-300' : 'bg-neutral-100 text-neutral-700'
-                    }`}>
+                  <Text variant="caption" weight="medium" className={`px-3 py-1 rounded-full ${darkMode ? 'bg-neutral-700' : 'bg-neutral-100'}`}>
                     N/A
-                  </span>
+                  </Text>
                 </div>
               </div>
 

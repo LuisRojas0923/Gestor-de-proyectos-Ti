@@ -13,7 +13,7 @@ import {
 import { useAppContext } from '../../context/AppContext';
 import { useState } from 'react';
 import ThemeToggle from '../atoms/ThemeToggle';
-import { Button, Input } from '../atoms';
+import { Button, Input, Title, Text } from '../atoms';
 
 const TopBar: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -65,16 +65,22 @@ const TopBar: React.FC = () => {
             className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-2.5 rounded-xl relative"
           >
             {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center border-2 border-[var(--color-surface)]">
+              <Text
+                variant="caption"
+                weight="bold"
+                className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full text-white flex items-center justify-center border-2 border-[var(--color-surface)] text-[10px]"
+              >
                 {unreadCount}
-              </span>
+              </Text>
             )}
           </Button>
 
           {showNotifications && (
             <div className="absolute right-0 mt-4 w-96 rounded-[2rem] shadow-2xl border border-[var(--color-border)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 bg-[var(--color-surface)]">
               <div className="p-5 border-b border-[var(--color-border)] flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-widest text-[var(--color-text-secondary)]">Notificaciones</h3>
+                <Title variant="h6" weight="bold" className="uppercase tracking-widest text-[var(--color-text-secondary)] text-xs">
+                  Notificaciones
+                </Title>
                 <Button
                   variant="ghost"
                   size="xs"
@@ -90,7 +96,9 @@ const TopBar: React.FC = () => {
                     <div className="bg-[var(--color-surface-variant)] w-16 h-16 rounded-3xl flex items-center justify-center mx-auto text-[var(--color-text-secondary)]/30">
                       <Bell size={32} />
                     </div>
-                    <p className="text-sm font-bold text-[var(--color-text-secondary)]">No hay notificaciones</p>
+                    <Text variant="body2" weight="bold" color="secondary">
+                      No hay notificaciones
+                    </Text>
                   </div>
                 ) : (
                   notifications.map(n => (
@@ -110,9 +118,15 @@ const TopBar: React.FC = () => {
                               n.type === 'warning' ? <AlertTriangle size={14} /> : <Info size={14} />}
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-black text-[var(--color-text-primary)] mb-1">{n.title}</p>
-                          <p className="text-xs font-medium text-[var(--color-text-secondary)] leading-relaxed">{n.message}</p>
-                          <p className="text-[10px] font-black text-[var(--color-text-secondary)]/40 mt-3 uppercase tracking-tighter">{new Date(n.timestamp).toLocaleTimeString()}</p>
+                          <Text weight="bold" className="mb-1">
+                            {n.title}
+                          </Text>
+                          <Text variant="caption" weight="medium" color="secondary" className="leading-relaxed">
+                            {n.message}
+                          </Text>
+                          <Text variant="caption" weight="bold" className="mt-3 uppercase tracking-tighter opacity-40">
+                            {new Date(n.timestamp).toLocaleTimeString()}
+                          </Text>
                         </div>
                         {!n.read && <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full mt-2"></div>}
                       </div>
@@ -135,12 +149,12 @@ const TopBar: React.FC = () => {
             </div>
           </div>
           <div className="text-sm hidden sm:block">
-            <p className="font-black text-[var(--color-text-primary)] leading-tight">
+            <Text weight="bold" className="leading-tight">
               {user?.name || 'Usuario'}
-            </p>
-            <p className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-widest text-[10px]">
+            </Text>
+            <Text variant="caption" weight="bold" className="uppercase tracking-widest text-[10px]">
               {user?.role || 'Analista'}
-            </p>
+            </Text>
           </div>
         </div>
       </div>

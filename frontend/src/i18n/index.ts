@@ -6,11 +6,10 @@ const resources = {
     translation: {
       // Navigation
       dashboard: 'Tablero',
-      testing: 'Pruebas',
       chat: 'Chat IA',
       reports: 'Reportes',
       settings: 'Configuración',
-      
+
       // Dashboard
       pending: 'Pendientes',
       inProgress: 'En Progreso',
@@ -18,7 +17,7 @@ const resources = {
       avgSLA: 'SLA Promedio',
       weeklyProgress: 'Progreso Semanal',
       upcomingMilestones: 'Hitos Próximos',
-      
+
       // Common fields (used in multiple components)
       title: 'Título',
       status: 'Estado',
@@ -28,14 +27,9 @@ const resources = {
       filterBy: 'Filtrar por',
       allStatuses: 'Todos los estados',
       allPriorities: 'Todas las prioridades',
-      
-      // Testing
-      backlog: 'Backlog',
-      testing_status: 'En Prueba',
-      blocked: 'Bloqueado',
-      approved: 'Aprobado',
-      generateAIScenarios: 'Generar Escenarios IA',
-      
+
+
+
       // Common
       search: 'Buscar',
       save: 'Guardar',
@@ -44,12 +38,12 @@ const resources = {
       error: 'Error',
       success: 'Éxito',
       export: 'Exportar',
-      
+
       // Priorities
       high: 'Alta',
       medium: 'Media',
       low: 'Baja',
-      
+
       // Statuses
       new: 'Nuevo',
       validated: 'Validado',
@@ -62,11 +56,10 @@ const resources = {
     translation: {
       // Navigation
       dashboard: 'Dashboard',
-      testing: 'Testing',
       chat: 'AI Chat',
       reports: 'Reports',
       settings: 'Settings',
-      
+
       // Dashboard
       pending: 'Pending',
       inProgress: 'In Progress',
@@ -74,7 +67,7 @@ const resources = {
       avgSLA: 'Avg SLA',
       weeklyProgress: 'Weekly Progress',
       upcomingMilestones: 'Upcoming Milestones',
-      
+
       // Common fields (used in multiple components)
       title: 'Title',
       status: 'Status',
@@ -84,14 +77,9 @@ const resources = {
       filterBy: 'Filter by',
       allStatuses: 'All statuses',
       allPriorities: 'All priorities',
-      
-      // Testing
-      backlog: 'Backlog',
-      testing_status: 'Testing',
-      blocked: 'Blocked',
-      approved: 'Approved',
-      generateAIScenarios: 'Generate AI Scenarios',
-      
+
+
+
       // Common
       search: 'Search',
       save: 'Save',
@@ -100,12 +88,12 @@ const resources = {
       error: 'Error',
       success: 'Success',
       export: 'Export',
-      
+
       // Priorities
       high: 'High',
       medium: 'Medium',
       low: 'Low',
-      
+
       // Statuses
       new: 'New',
       validated: 'Validated',

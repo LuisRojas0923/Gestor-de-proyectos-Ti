@@ -28,21 +28,25 @@ import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
 
 interface DashboardMetrics {
-  pending: number;
-  inProgress: number;
-  completed: number;
-  avgSLA: string;
+  total_desarrollos: number;
+  desarrollos_activos: number;
+  total_tickets: number;
+  tickets_pendientes: number;
+  porcentaje_completado: number;
+  desarrollos_completados: number;
 }
 
 interface WeeklyProgressData {
-  name: string;
-  completed: number;
-  created: number;
+  semana: string;
+  nombre: string;
+  completados: number;
+  creados: number;
+  pendientes: number;
 }
 
 interface PriorityData {
-  name: string;
-  value: number;
+  prioridad: string;
+  cantidad: number;
   color: string;
 }
 
@@ -53,27 +57,17 @@ const Dashboard: React.FC = () => {
 
   // Load metrics from API
   const [metrics, setMetrics] = useState<DashboardMetrics>({
-    pending: 0,
-    inProgress: 0,
-    completed: 0,
-    avgSLA: '0d',
+    total_desarrollos: 0,
+    desarrollos_activos: 0,
+    total_tickets: 0,
+    tickets_pendientes: 0,
+    porcentaje_completado: 0,
+    desarrollos_completados: 0
   });
 
-  const [weeklyData, setWeeklyData] = useState<WeeklyProgressData[]>([
-    { name: 'Lun', completed: 0, created: 0 },
-    { name: 'Mar', completed: 0, created: 0 },
-    { name: 'Mié', completed: 0, created: 0 },
-    { name: 'Jue', completed: 0, created: 0 },
-    { name: 'Vie', completed: 0, created: 0 },
-    { name: 'Sáb', completed: 0, created: 0 },
-    { name: 'Dom', completed: 0, created: 0 },
-  ]);
+  const [weeklyData, setWeeklyData] = useState<WeeklyProgressData[]>([]);
 
-  const [priorityData, setPriorityData] = useState<PriorityData[]>([
-    { name: 'Alta', value: 30, color: '#EF4444' },
-    { name: 'Media', value: 45, color: '#F59E0B' },
-    { name: 'Baja', value: 25, color: '#10B981' },
-  ]);
+  const [priorityData, setPriorityData] = useState<PriorityData[]>([]);
 
 
   useEffect(() => {
@@ -140,29 +134,29 @@ const Dashboard: React.FC = () => {
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          title={t('pending')}
-          value={metrics.pending}
+          title="Tickets Pendientes"
+          value={metrics.tickets_pendientes}
           change={{ value: 12, type: 'increase' }}
           icon={Clock}
           color="yellow"
         />
         <MetricCard
-          title={t('inProgress')}
-          value={metrics.inProgress}
+          title="Desarrollos Activos"
+          value={metrics.desarrollos_activos}
           change={{ value: 8, type: 'decrease' }}
           icon={TrendingUp}
           color="blue"
         />
         <MetricCard
-          title={t('completed')}
-          value={metrics.completed}
+          title="Desarrollos Terminados"
+          value={metrics.desarrollos_completados}
           change={{ value: 15, type: 'increase' }}
           icon={CheckCircle}
           color="green"
         />
         <MetricCard
-          title={t('avgSLA')}
-          value={metrics.avgSLA}
+          title="Eficiencia Global"
+          value={`${metrics.porcentaje_completado}%`}
           change={{ value: 5, type: 'decrease' }}
           icon={AlertTriangle}
           color="red"
@@ -172,61 +166,63 @@ const Dashboard: React.FC = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Weekly Progress Chart */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2.5rem] p-8 shadow-xl">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2.5rem] p-8 shadow-xl min-h-[400px]">
           <Title variant="h6" weight="bold" className="mb-6" color="text-primary">
             {t('weeklyProgress')}
           </Title>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
-              <XAxis
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'var(--color-surface)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '1.5rem',
-                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                }}
-                itemStyle={{ color: 'var(--color-text-primary)' }}
-              />
-              <Bar dataKey="completed" fill="var(--color-primary)" name="Completados" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="created" fill="var(--color-primary-light)" name="Creados" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <BarChart data={weeklyData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
+                <XAxis
+                  dataKey="nombre"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '1.5rem',
+                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                  }}
+                  itemStyle={{ color: 'var(--color-text-primary)' }}
+                />
+                <Bar dataKey="completados" fill="var(--color-primary)" name="Completados" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="creados" fill="var(--color-primary-light)" name="Creados" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Priority Distribution */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2.5rem] p-8 shadow-xl">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2.5rem] p-8 shadow-xl min-h-[400px]">
           <Title variant="h6" weight="bold" className="mb-6" color="text-primary">
             Distribución por Prioridad
           </Title>
           <div className="h-[300px] w-full relative">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <PieChart>
                 <Pie
                   data={priorityData as any[]}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}% `}
+                  label={({ prioridad, percent }: any) => `${prioridad || 'N/A'} ${((percent || 0) * 100).toFixed(0)}% `}
                   innerRadius={60}
                   outerRadius={100}
                   fill="#8884d8"
-                  dataKey="value"
+                  dataKey="cantidad"
                   paddingAngle={5}
                 >
-                  {priorityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  {priorityData?.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={entry.color || '#6b7280'} />
                   ))}
                 </Pie>
                 <Tooltip

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Button } from '../atoms';
+import { Button, Title, MaterialCard } from '../atoms';
 
 export interface ModalProps {
     isOpen: boolean;
@@ -54,14 +54,12 @@ const Modal: React.FC<ModalProps> = ({
             />
 
             {/* Modal Container */}
-            <div
+            <MaterialCard
+                elevation={4}
                 className={`
           relative w-full ${sizeClasses[size]} 
-          bg-white dark:bg-gray-800 
-          rounded-xl shadow-2xl 
-          flex flex-col
+          !flex flex-col
           transform transition-all animate-fade-in
-          border border-gray-200 dark:border-gray-700
           ${className}
         `}
                 role="dialog"
@@ -69,11 +67,11 @@ const Modal: React.FC<ModalProps> = ({
             >
                 {/* Header (Optional) */}
                 {(title || showCloseButton) && (
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                    <MaterialCard.Header className="flex items-center justify-between !py-4">
                         {title && (
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            <Title variant="h4" weight="semibold">
                                 {title}
-                            </h3>
+                            </Title>
                         )}
                         {showCloseButton && (
                             <Button
@@ -85,14 +83,14 @@ const Modal: React.FC<ModalProps> = ({
                                 className="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-1"
                             />
                         )}
-                    </div>
+                    </MaterialCard.Header>
                 )}
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto">
+                <MaterialCard.Content className="!p-6 overflow-y-auto">
                     {children}
-                </div>
-            </div>
+                </MaterialCard.Content>
+            </MaterialCard>
         </div>
     );
 

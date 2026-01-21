@@ -45,6 +45,12 @@ class TicketBase(BaseModel):
 class TicketCrear(TicketBase):
     """Schema para crear un ticket"""
     id: str = Field(..., max_length=50)
+    
+    # Campos para solicitudes de desarrollo (opcionales)
+    que_necesita: Optional[str] = None
+    porque: Optional[str] = None
+    paraque: Optional[str] = None
+    justificacion_ia: Optional[str] = None
 
 
 class TicketActualizar(BaseModel):
@@ -68,7 +74,7 @@ class Ticket(TicketBase):
     resolucion: Optional[str] = None
     notas: Optional[str] = None
     horas_tiempo_empleado: Optional[Decimal] = None
-    fecha_creacion: datetime
+    fecha_creacion: Optional[datetime] = None
     fecha_cierre: Optional[datetime] = None
     resuelto_en: Optional[datetime] = None
     creado_en: datetime

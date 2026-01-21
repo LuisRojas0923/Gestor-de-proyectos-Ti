@@ -83,9 +83,12 @@ const MaterialAppBar: React.FC<MaterialAppBarProps> = ({
                   className="text-inherit hover:bg-white/10 dark:hover:bg-neutral-800 relative"
                 />
                 {notificationsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                  <Text
+                    as="span"
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold"
+                  >
                     {notificationsCount > 99 ? '99+' : notificationsCount}
-                  </span>
+                  </Text>
                 )}
               </div>
             )}

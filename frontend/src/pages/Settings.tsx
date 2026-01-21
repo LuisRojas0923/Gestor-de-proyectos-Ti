@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useNotifications } from '../components/notifications/NotificationsContext';
-import { MaterialTypography, MaterialCard, Input, Button, Select, Switch } from '../components/atoms';
+import { Title, Text, MaterialCard, Input, Button, Select, Switch } from '../components/atoms';
 import { materialDesignTokens } from '../components/tokens';
 import DesignSystemCatalog from './DesignSystemCatalog';
 
@@ -134,9 +134,9 @@ const Settings: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+        <Title variant="h3" weight="bold" color="text-primary">
           {t('settings')}
-        </h1>
+        </Title>
         <Button
           variant="outline"
           onClick={() => setShowCatalog(true)}
@@ -150,63 +150,70 @@ const Settings: React.FC = () => {
       <MaterialCard className="bg-[var(--color-surface)] border-[var(--color-border)]">
         <div className="p-6">
           <div className="flex items-center space-x-3 mb-6">
-            <Type className="text-[var(--color-text-secondary)]" size={24} />
-            <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
+            <Title variant="h6" weight="bold" color="text-secondary">
+              <Type size={24} />
+            </Title>
+            <Title variant="h4" weight="bold" color="text-primary">
               Configuración de Tipografía
-            </h2>
+            </Title>
           </div>
 
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Typeface Preview */}
               <div>
-                <MaterialTypography variant="subtitle2" className="mb-4 text-[var(--color-text-secondary)]">
+                <Text variant="subtitle2" weight="bold" color="text-secondary" className="mb-4">
                   Fuente Principal
-                </MaterialTypography>
+                </Text>
                 <div className="p-4 rounded-lg bg-[var(--color-surface-variant)] border border-[var(--color-border)]">
-                  <p className="text-4xl mb-2" style={{ fontFamily: materialDesignTokens.typography.fontFamily.primary }}>
-                    Aa
-                  </p>
-                  <p className="text-sm text-[var(--color-text-secondary)]">
+                  {(() => {
+                    const fontStyle = { fontFamily: 'var(--font-family-primary)' };
+                    return (
+                      <Text variant="h1" className="mb-2" style={fontStyle}>
+                        Aa
+                      </Text>
+                    );
+                  })()}
+                  <Text variant="body2" color="text-secondary">
                     {materialDesignTokens.typography.fontFamily.primary}
-                  </p>
+                  </Text>
                 </div>
               </div>
 
               {/* Scale Preview */}
               <div className="space-y-4">
-                <MaterialTypography variant="subtitle2" className="mb-4 text-[var(--color-text-secondary)]">
+                <Text variant="subtitle2" weight="bold" color="text-secondary" className="mb-4">
                   Escala Tipográfica
-                </MaterialTypography>
+                </Text>
                 <div className="space-y-2">
                   <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
-                    <MaterialTypography variant="h4">H4 Heading</MaterialTypography>
-                    <span className="text-xs text-[var(--color-text-secondary)]">34px</span>
+                    <Title variant="h4">H4 Heading</Title>
+                    <Text variant="caption" color="text-secondary">34px</Text>
                   </div>
                   <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
-                    <MaterialTypography variant="h5">H5 Heading</MaterialTypography>
-                    <span className="text-xs text-[var(--color-text-secondary)]">24px</span>
+                    <Title variant="h5">H5 Heading</Title>
+                    <Text variant="caption" color="text-secondary">24px</Text>
                   </div>
                   <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
-                    <MaterialTypography variant="h6">H6 Heading</MaterialTypography>
-                    <span className="text-xs text-[var(--color-text-secondary)]">20px</span>
+                    <Title variant="h6">H6 Heading</Title>
+                    <Text variant="caption" color="text-secondary">20px</Text>
                   </div>
                   <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
-                    <MaterialTypography variant="body1">Body 1</MaterialTypography>
-                    <span className="text-xs text-[var(--color-text-secondary)]">16px</span>
+                    <Text variant="body1">Body 1</Text>
+                    <Text variant="caption" color="text-secondary">16px</Text>
                   </div>
                   <div className="flex items-baseline justify-between">
-                    <MaterialTypography variant="caption">Caption</MaterialTypography>
-                    <span className="text-xs text-[var(--color-text-secondary)]">12px</span>
+                    <Text variant="caption">Caption</Text>
+                    <Text variant="caption" color="text-secondary">12px</Text>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="pt-6 border-t border-[var(--color-border)]">
-              <MaterialTypography variant="body2" className="text-[var(--color-text-secondary)] text-center">
+              <Text variant="body2" color="text-secondary" align="center">
                 El sistema de tipografía está centralizado. Cualquier cambio en los tokens se reflejará automáticamente en toda la aplicación.
-              </MaterialTypography>
+              </Text>
             </div>
           </div>
         </div>
@@ -216,9 +223,9 @@ const Settings: React.FC = () => {
       <MaterialCard className="p-6">
         <div className="flex items-center space-x-3 mb-6">
           <User className="text-[var(--color-text-secondary)]" size={24} />
-          <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
+          <Title variant="h5" weight="semibold" color="text-primary">
             Perfil de Usuario
-          </h2>
+          </Title>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -270,9 +277,9 @@ const Settings: React.FC = () => {
             />
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-[var(--color-text-secondary)]">
+              <Text as="label" variant="body2" weight="medium" color="text-secondary" className="block mb-2">
                 Tema
-              </label>
+              </Text>
               <Button
                 variant="outline"
                 className="w-full justify-center"
@@ -300,9 +307,9 @@ const Settings: React.FC = () => {
       <MaterialCard className="p-6">
         <div className="flex items-center space-x-3 mb-6">
           <Bell className="text-[var(--color-text-secondary)]" size={24} />
-          <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
+          <Title variant="h5" weight="semibold" color="text-primary">
             Notificaciones
-          </h2>
+          </Title>
         </div>
 
         <div className="space-y-4">
@@ -317,9 +324,9 @@ const Settings: React.FC = () => {
             <div key={key} className="flex items-center justify-between p-4 rounded-lg bg-[var(--color-surface-variant)] border border-[var(--color-border)]">
               <div className="flex items-center space-x-3">
                 <Icon className="text-[var(--color-text-secondary)]" size={20} />
-                <span className="text-[var(--color-text-primary)]">
+                <Text color="text-primary">
                   {label}
-                </span>
+                </Text>
               </div>
               <Switch
                 checked={notifications[key as keyof typeof notifications]}
@@ -348,9 +355,9 @@ const Settings: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <Key className="text-[var(--color-text-secondary)]" size={24} />
-            <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
+            <Title variant="h5" weight="semibold" color="text-primary">
               Tokens API
-            </h2>
+            </Title>
           </div>
           <Button
             onClick={() => setShowTokenForm(!showTokenForm)}
@@ -391,12 +398,12 @@ const Settings: React.FC = () => {
             <div key={token.id} className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-variant)]">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h4 className="font-medium text-[var(--color-text-primary)]">
+                  <Title variant="h6" weight="medium" color="text-primary">
                     {token.name}
-                  </h4>
-                  <p className="text-sm text-[var(--color-text-secondary)]">
+                  </Title>
+                  <Text variant="body2" color="text-secondary">
                     Creado: {token.created} • Último uso: {token.lastUsed}
-                  </p>
+                  </Text>
                 </div>
                 <Button
                   variant="ghost"

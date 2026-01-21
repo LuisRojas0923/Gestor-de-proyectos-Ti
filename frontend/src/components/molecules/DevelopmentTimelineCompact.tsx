@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { LucideIcon, TrendingUp, Clock, CheckCircle, XCircle, FileText, Code, TestTube, Shield, Rocket } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
-import Badge from '../atoms/Badge';
-import { phases, debug } from '../../utils/logger';
-import { Button } from '../atoms';
+
+import { debug } from '../../utils/logger';
+import { Button, Title, Text } from '../atoms';
 
 interface DevelopmentStage {
   id: number;
@@ -165,15 +165,7 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
     }
   };
 
-  const getStageStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed': return <Badge variant="success" size="sm">Completada</Badge>;
-      case 'current': return <Badge variant="info" size="sm">En curso</Badge>;
-      case 'pending': return <Badge variant="default" size="sm">Pendiente</Badge>;
-      case 'cancelled': return <Badge variant="error" size="sm">Cancelada</Badge>;
-      default: return <Badge variant="default" size="sm">Pendiente</Badge>;
-    }
-  };
+
 
   const getStageTextColor = (status: string) => {
     switch (status) {
@@ -196,7 +188,7 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-4" />
-          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Cargando etapas...</p>
+          <Text variant="body2" color="secondary">Cargando etapas...</Text>
         </div>
       </div>
     );
@@ -207,19 +199,21 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
       <div className="flex items-center justify-center p-8 text-center">
         <div>
           <XCircle size={48} className="mx-auto text-red-500 mb-4" />
-          <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{error}</p>
+          <Text color="error">{error}</Text>
           <Button variant="primary" onClick={() => window.location.reload()} className="mt-4">Reintentar</Button>
         </div>
       </div>
     );
   }
 
+  const progressStyle = { width: `${totalProgress}%` };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>Sistema de Etapas</h3>
+        <Title variant="h3" weight="semibold">Sistema de Etapas</Title>
         <div className="flex items-center space-x-4">
-          <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Progreso: {totalProgress}%</span>
+          <Text variant="body2" color="secondary">Progreso: {totalProgress}%</Text>
           {!isCancelled && onCancel && (
             <Button variant="danger" size="sm" onClick={onCancel}>Cancelar</Button>
           )}
@@ -230,7 +224,7 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
         <div className={`absolute top-8 left-0 right-0 h-1 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full`}>
           <div
             className={`h-full ${isCancelled ? 'bg-red-500' : 'bg-blue-500'} rounded-full transition-all duration-500`}
-            style={{ width: `${totalProgress}%` }}
+            style={progressStyle}
           />
         </div>
 
@@ -241,7 +235,7 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
             return (
               <div key={stage.id} className="flex flex-col items-center relative">
                 {!isLast && (
-                  <div className={`absolute top-8 left-8 w-16 h-1 ${getConnectorColor(stage.status)}`} style={{ zIndex: 1 }} />
+                  <div className={`absolute top-8 left-8 w-16 h-1 z-0 ${getConnectorColor(stage.status)}`} />
                 )}
                 <div
                   className={`relative z-10 w-16 h-16 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 ${getStageStatusColor(stage.status)}`}
@@ -253,8 +247,8 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
                   {stage.id}
                 </div>
                 <div className="mt-4 text-center max-w-24">
-                  <h4 className={`text-xs font-medium ${getStageTextColor(stage.status)}`}>{stage.name}</h4>
-                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{stage.responsible}</p>
+                  <Title variant="h6" weight="medium" className={getStageTextColor(stage.status)}>{stage.name}</Title>
+                  <Text variant="caption" color="secondary" className="mt-1">{stage.responsible}</Text>
                 </div>
               </div>
             );

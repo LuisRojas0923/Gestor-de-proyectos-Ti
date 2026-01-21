@@ -11,17 +11,16 @@ import {
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
-import { API_ENDPOINTS } from '../config/api';
 import { Button, Select, Input, Title, Text, Icon } from '../components/atoms';
 
 interface Ticket {
     id: string;
-    subject: string;
-    status: string;
-    priority: string;
-    creator_name: string;
-    creation_date: string;
-    assigned_to?: string;
+    asunto: string;
+    estado: string;
+    prioridad: string;
+    nombre_creador: string;
+    fecha_creacion: string;
+    asignado_a?: string;
 }
 
 const TicketManagement: React.FC = () => {
@@ -37,7 +36,7 @@ const TicketManagement: React.FC = () => {
     useEffect(() => {
         const fetchTickets = async () => {
             try {
-                const data = await get(API_ENDPOINTS.DEVELOPMENTS_BULK.includes('soporte') ? '/soporte/' : '/soporte/'); // Use /soporte/ endpoint
+                const data = await get('/soporte/');
                 if (data) {
                     setTickets(data);
                     setFilteredTickets(data);
@@ -55,15 +54,16 @@ const TicketManagement: React.FC = () => {
         let result = tickets;
 
         if (searchTerm) {
+            const search = searchTerm.toLowerCase();
             result = result.filter(t =>
-                t.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                t.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                t.creator_name.toLowerCase().includes(searchTerm.toLowerCase())
+                (t.asunto?.toLowerCase() || '').includes(search) ||
+                (t.id?.toLowerCase() || '').includes(search) ||
+                (t.nombre_creador?.toLowerCase() || '').includes(search)
             );
         }
 
         if (statusFilter !== 'Todos') {
-            result = result.filter(t => t.status === statusFilter);
+            result = result.filter(t => t.estado === statusFilter);
         }
 
         setFilteredTickets(result);
@@ -71,6 +71,7 @@ const TicketManagement: React.FC = () => {
 
     const getStatusStyle = (status: string) => {
         switch (status) {
+            case 'Nuevo':
             case 'Abierto': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
             case 'En Proceso': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
             case 'Cerrado': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
@@ -90,9 +91,9 @@ const TicketManagement: React.FC = () => {
 
     const statusCounts = {
         total: filteredTickets.length,
-        abierto: filteredTickets.filter(t => t.status === 'Abierto').length,
-        enProceso: filteredTickets.filter(t => t.status === 'En Proceso').length,
-        cerrado: filteredTickets.filter(t => t.status === 'Cerrado').length,
+        abierto: filteredTickets.filter(t => t.estado === 'Abierto' || t.estado === 'Nuevo').length,
+        enProceso: filteredTickets.filter(t => t.estado === 'En Proceso').length,
+        cerrado: filteredTickets.filter(t => t.estado === 'Cerrado').length,
     };
 
     return (
@@ -123,6 +124,7 @@ const TicketManagement: React.FC = () => {
                             onChange={(e) => setStatusFilter(e.target.value)}
                             options={[
                                 { value: "Todos", label: "Todos los estados" },
+                                { value: "Nuevo", label: "Nuevo" },
                                 { value: "Abierto", label: "Abierto" },
                                 { value: "En Proceso", label: "En Proceso" },
                                 { value: "Pendiente Info", label: "Pendiente Info" },
@@ -139,7 +141,7 @@ const TicketManagement: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                     { label: 'Total Tickets', count: statusCounts.total, color: 'blue', icon: Inbox },
-                    { label: 'Abiertos', count: statusCounts.abierto, color: 'blue', icon: AlertCircle },
+                    { label: 'Abiertos / Nuevos', count: statusCounts.abierto, color: 'blue', icon: AlertCircle },
                     { label: 'En Proceso', count: statusCounts.enProceso, color: 'yellow', icon: RefreshCw },
                     { label: 'Cerrados', count: statusCounts.cerrado, color: 'green', icon: CheckCircle },
                 ].map((card) => (
@@ -183,20 +185,20 @@ const TicketManagement: React.FC = () => {
                                     <td className="px-6 py-5" onClick={() => navigate(`/tickets/${ticket.id}`)}>
                                         <div>
                                             <Text variant="body2" weight="bold" color="text-primary" className="group-hover:text-[var(--color-primary)] transition-colors mb-0.5">
-                                                {ticket.subject}
+                                                {ticket.asunto}
                                             </Text>
-                                            <Text variant="caption" color="text-secondary" weight="medium">{ticket.creator_name}</Text>
+                                            <Text variant="caption" color="text-secondary" weight="medium">{ticket.nombre_creador}</Text>
                                         </div>
                                     </td>
                                     <td className="px-6 py-5" onClick={() => navigate(`/tickets/${ticket.id}`)}>
                                         <div className="flex items-center justify-center space-x-1.5">
-                                            <div className={`w-2 h-2 rounded-full ${getPriorityStyle(ticket.priority).replace('text', 'bg')}`}></div>
-                                            <Text as="span" variant="caption" weight="bold" className={getPriorityStyle(ticket.priority)}>{ticket.priority}</Text>
+                                            <div className={`w-2 h-2 rounded-full ${getPriorityStyle(ticket.prioridad).replace('text', 'bg')}`}></div>
+                                            <Text as="span" variant="caption" weight="bold" className={getPriorityStyle(ticket.prioridad)}>{ticket.prioridad}</Text>
                                         </div>
                                     </td>
                                     <td className="px-6 py-5 text-center" onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                                        <Text as="span" variant="caption" weight="bold" className={`px-3 py-1.5 rounded-xl tracking-wider text-[10px] ${getStatusStyle(ticket.status)}`}>
-                                            {ticket.status.toUpperCase()}
+                                        <Text as="span" variant="caption" weight="bold" className={`px-3 py-1.5 rounded-xl tracking-wider text-[10px] ${getStatusStyle(ticket.estado)}`}>
+                                            {(ticket.estado || 'NUEVO').toUpperCase()}
                                         </Text>
                                     </td>
                                     <td className="px-6 py-5">

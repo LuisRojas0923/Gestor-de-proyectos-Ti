@@ -1,6 +1,7 @@
 import React from 'react';
 import { KpiDetail, KpiSummary } from '../../hooks/useKpiDetails';
 import Modal from './Modal';
+import { Title, Text, MaterialCard } from '../atoms';
 
 interface KpiDetailsModalProps {
   isOpen: boolean;
@@ -48,70 +49,54 @@ const KpiDetailsModal: React.FC<KpiDetailsModalProps> = ({
       showCloseButton={true}
     >
       <div className="overflow-y-auto max-h-[70vh]">
-        <p className={`text-sm mb-4 ${darkMode ? 'text-neutral-400' : 'text-gray-600'
-          }`}>
+        <Text variant="body2" color="secondary" className="mb-4">
           Detalle de cálculos y origen de datos
-        </p>
+        </Text>
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className={`${darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-blue-50 border-blue-200'
-            } border rounded-lg p-4`}>
-            <p className={`text-sm font-medium ${darkMode ? 'text-neutral-400' : 'text-blue-600'
-              }`}>
+          <MaterialCard className={`${darkMode ? 'bg-neutral-700' : 'bg-blue-50'} !p-4`}>
+            <Text variant="caption" weight="medium" color={darkMode ? 'secondary' : 'primary'}>
               Total Entregas
-            </p>
-            <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-blue-900'
-              }`}>
+            </Text>
+            <Title variant="h3" weight="bold">
               {summary.total_entregas}
-            </p>
-          </div>
+            </Title>
+          </MaterialCard>
 
-          <div className={`${darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-green-50 border-green-200'
-            } border rounded-lg p-4`}>
-            <p className={`text-sm font-medium ${darkMode ? 'text-neutral-400' : 'text-green-600'
-              }`}>
+          <MaterialCard className={`${darkMode ? 'bg-neutral-700' : 'bg-green-50'} !p-4`}>
+            <Text variant="caption" weight="medium" color={darkMode ? 'secondary' : 'primary'}>
               A Tiempo
-            </p>
-            <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-green-900'
-              }`}>
+            </Text>
+            <Title variant="h3" weight="bold">
               {summary.entregas_a_tiempo}
-            </p>
-          </div>
+            </Title>
+          </MaterialCard>
 
-          <div className={`${darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-red-50 border-red-200'
-            } border rounded-lg p-4`}>
-            <p className={`text-sm font-medium ${darkMode ? 'text-neutral-400' : 'text-red-600'
-              }`}>
+          <MaterialCard className={`${darkMode ? 'bg-neutral-700' : 'bg-red-50'} !p-4`}>
+            <Text variant="caption" weight="medium" color={darkMode ? 'secondary' : 'primary'}>
               Tardías
-            </p>
-            <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-red-900'
-              }`}>
+            </Text>
+            <Title variant="h3" weight="bold">
               {summary.entregas_tardias}
-            </p>
-          </div>
+            </Title>
+          </MaterialCard>
 
-          <div className={`${darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-purple-50 border-purple-200'
-            } border rounded-lg p-4`}>
-            <p className={`text-sm font-medium ${darkMode ? 'text-neutral-400' : 'text-purple-600'
-              }`}>
+          <MaterialCard className={`${darkMode ? 'bg-neutral-700' : 'bg-purple-50'} !p-4`}>
+            <Text variant="caption" weight="medium" color={darkMode ? 'secondary' : 'primary'}>
               Cumplimiento
-            </p>
-            <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-purple-900'
-              }`}>
+            </Text>
+            <Title variant="h3" weight="bold">
               {summary.porcentaje_cumplimiento}%
-            </p>
-          </div>
+            </Title>
+          </MaterialCard>
         </div>
 
         {/* Details Table */}
-        <div className={`${darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-white border-gray-200'
-          } border rounded-lg overflow-hidden`}>
-          <div className={`${darkMode ? 'bg-neutral-600' : 'bg-gray-50'
-            } px-6 py-3 border-b`}>
-            <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'
-              }`}>
+        <MaterialCard className="!p-0 overflow-hidden">
+          <div className={`${darkMode ? 'bg-neutral-600' : 'bg-gray-50'} px-6 py-3 border-b border-neutral-200 dark:border-neutral-700`}>
+            <Title variant="h4" weight="semibold">
               Detalle por Desarrollo
-            </h3>
+            </Title>
           </div>
 
           <div className="overflow-x-auto">
@@ -119,29 +104,35 @@ const KpiDetailsModal: React.FC<KpiDetailsModalProps> = ({
               <thead className={`${darkMode ? 'bg-neutral-600' : 'bg-gray-50'
                 }`}>
                 <tr>
-                  <th className={`px-4 py-3 text-left text-xs font-medium ${darkMode ? 'text-neutral-300' : 'text-gray-500'
-                    } uppercase tracking-wider`}>
-                    Desarrollo
+                  <th className="px-4 py-3 text-left">
+                    <Text variant="caption" weight="medium" color="secondary" className="uppercase tracking-wider">
+                      Desarrollo
+                    </Text>
                   </th>
-                  <th className={`px-4 py-3 text-left text-xs font-medium ${darkMode ? 'text-neutral-300' : 'text-gray-500'
-                    } uppercase tracking-wider`}>
-                    Proveedor
+                  <th className="px-4 py-3 text-left">
+                    <Text variant="caption" weight="medium" color="secondary" className="uppercase tracking-wider">
+                      Proveedor
+                    </Text>
                   </th>
-                  <th className={`px-4 py-3 text-left text-xs font-medium ${darkMode ? 'text-neutral-300' : 'text-gray-500'
-                    } uppercase tracking-wider`}>
-                    Fecha Compromiso
+                  <th className="px-4 py-3 text-left">
+                    <Text variant="caption" weight="medium" color="secondary" className="uppercase tracking-wider">
+                      Fecha Compromiso
+                    </Text>
                   </th>
-                  <th className={`px-4 py-3 text-left text-xs font-medium ${darkMode ? 'text-neutral-300' : 'text-gray-500'
-                    } uppercase tracking-wider`}>
-                    Fecha Real
+                  <th className="px-4 py-3 text-left">
+                    <Text variant="caption" weight="medium" color="secondary" className="uppercase tracking-wider">
+                      Fecha Real
+                    </Text>
                   </th>
-                  <th className={`px-4 py-3 text-left text-xs font-medium ${darkMode ? 'text-neutral-300' : 'text-gray-500'
-                    } uppercase tracking-wider`}>
-                    Desviación
+                  <th className="px-4 py-3 text-left">
+                    <Text variant="caption" weight="medium" color="secondary" className="uppercase tracking-wider">
+                      Desviación
+                    </Text>
                   </th>
-                  <th className={`px-4 py-3 text-left text-xs font-medium ${darkMode ? 'text-neutral-300' : 'text-gray-500'
-                    } uppercase tracking-wider`}>
-                    Estado
+                  <th className="px-4 py-3 text-left">
+                    <Text variant="caption" weight="medium" color="secondary" className="uppercase tracking-wider">
+                      Estado
+                    </Text>
                   </th>
                 </tr>
               </thead>
@@ -151,78 +142,75 @@ const KpiDetailsModal: React.FC<KpiDetailsModalProps> = ({
                 {details.map((detail, index) => (
                   <tr key={`${detail.development_id}-${index}`}>
                     <td className="px-4 py-4">
-                      <div>
-                        <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'
-                          }`}>
+                      <div className="flex flex-col">
+                        <Text weight="medium">
                           {detail.development_name}
-                        </p>
-                        <p className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-gray-500'
-                          }`}>
+                        </Text>
+                        <Text variant="caption" color="secondary">
                           {detail.development_id}
-                        </p>
+                        </Text>
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <div>
-                        <p className={`text-sm ${darkMode ? 'text-white' : 'text-gray-900'
-                          }`}>
+                      <div className="flex flex-col">
+                        <Text>
                           {detail.provider_homologado}
-                        </p>
-                        <p className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-gray-500'
-                          }`}>
+                        </Text>
+                        <Text variant="caption" color="secondary">
                           {detail.provider_original}
-                        </p>
+                        </Text>
                       </div>
                     </td>
-                    <td className={`px-4 py-4 text-sm ${darkMode ? 'text-white' : 'text-gray-900'
-                      }`}>
-                      {formatDate(
-                        detail.fecha_compromiso_original ||
-                        detail.fecha_analisis_comprometida ||
-                        detail.fecha_propuesta_comprometida
-                      )}
-                    </td>
-                    <td className={`px-4 py-4 text-sm ${darkMode ? 'text-white' : 'text-gray-900'
-                      }`}>
-                      {formatDate(
-                        detail.fecha_real_entrega ||
-                        detail.fecha_real_propuesta ||
-                        detail.fecha_real_aprobacion
-                      )}
-                    </td>
-                    <td className={`px-4 py-4 text-sm ${darkMode ? 'text-white' : 'text-gray-900'
-                      }`}>
-                      {detail.dias_desviacion > 0 ? `+${detail.dias_desviacion}` : detail.dias_desviacion} días
+                    <td className="px-4 py-4">
+                      <Text>
+                        {formatDate(
+                          detail.fecha_compromiso_original ||
+                          detail.fecha_analisis_comprometida ||
+                          detail.fecha_propuesta_comprometida
+                        )}
+                      </Text>
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`inline-flex px-2 py-1 text-[10px] font-semibold uppercase rounded-full ${getStatusColor(detail.estado_entrega)}`}>
+                      <Text>
+                        {formatDate(
+                          detail.fecha_real_entrega ||
+                          detail.fecha_real_propuesta ||
+                          detail.fecha_real_aprobacion
+                        )}
+                      </Text>
+                    </td>
+                    <td className="px-4 py-4">
+                      <Text>
+                        {detail.dias_desviacion > 0 ? `+${detail.dias_desviacion}` : detail.dias_desviacion} días
+                      </Text>
+                    </td>
+                    <td className="px-4 py-4">
+                      <Text as="span" variant="caption" weight="semibold" className={`inline-flex px-2 py-1 uppercase rounded-full ${getStatusColor(detail.estado_entrega)}`}>
                         {detail.estado_entrega}
-                      </span>
+                      </Text>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </MaterialCard>
 
         {/* Period Info */}
-        <div className={`mt-4 p-4 rounded-lg ${darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-gray-50 border-gray-200'
-          } border`}>
-          <p className={`text-sm ${darkMode ? 'text-neutral-400' : 'text-gray-600'
-            }`}>
+        <MaterialCard className="mt-4 !p-4">
+          <Text variant="body2" color="secondary">
             <strong>Período analizado:</strong> {
               summary.period_start && summary.period_end
                 ? `${formatDate(summary.period_start)} - ${formatDate(summary.period_end)}`
                 : 'Últimos 90 días'
             }
             {summary.provider_filter && (
-              <span> | <strong>Proveedor:</strong> {summary.provider_filter}</span>
+              <Text as="span" variant="body2" color="secondary"> | <strong>Proveedor:</strong> {summary.provider_filter}</Text>
             )}
-          </p>
-        </div>
+          </Text>
+        </MaterialCard>
       </div>
-    </Modal>
+    </Modal >
   );
 };
 

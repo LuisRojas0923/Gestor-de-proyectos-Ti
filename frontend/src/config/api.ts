@@ -23,13 +23,7 @@ export const API_ENDPOINTS = {
   STAGE_BY_ID: (id: number) => `/etapas/${id}`,
   CYCLE_FLOW: '/etapas/flujo-ciclo',
 
-  // Controles de calidad
-  QUALITY_CONTROLS: '/calidad/controles',
-  QUALITY_CONTROL_BY_ID: (id: number) => `/calidad/controles/${id}`,
-  QUALITY_CONTROL_VALIDATE: (id: number) => `/calidad/controles/${id}/validar`,
-  QUALITY_CONTROL_EVIDENCE: (id: number) => `/calidad/controles/${id}/evidencia`,
-  QUALITY_CATALOG: '/calidad/catalogo',
-  QUALITY_GENERATE_CONTROLS: (id: string) => `/calidad/desarrollos/${id}/generar-controles`,
+
 
   // KPIs y métricas
   KPI_METRICS: '/indicadores/metricas',
@@ -41,7 +35,7 @@ export const API_ENDPOINTS = {
   KPI_FUNCTIONALITIES: '/indicadores/funcionalidades',
   KPI_TEST_RESULTS: '/indicadores/test-results', // No encontrado en kpi.py, dejar así o buscar
   KPI_DELIVERY_HISTORY: '/indicadores/delivery-history', // No encontrado en kpi.py, dejar así o buscar
-  KPI_QUALITY_METRICS: '/indicadores/metricas-calidad',
+
 
   // Alertas
   ALERTS_UPCOMING: '/alertas/proximas',

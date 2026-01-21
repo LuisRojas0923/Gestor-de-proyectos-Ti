@@ -1,4 +1,5 @@
 import { LucideIcon } from 'lucide-react';
+import { Text, MaterialCard } from '../atoms';
 
 interface MetricCardProps {
   title: string;
@@ -24,28 +25,28 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, icon: Ico
   };
 
   return (
-    <div
-      className={`bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2rem] p-6 transition-all hover:shadow-xl hover:border-[var(--color-primary)]/30 group ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''
+    <MaterialCard
+      className={`!rounded-[2rem] p-6 transition-all hover:shadow-xl hover:border-[var(--color-primary)]/30 group ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''
         } shadow-sm`}
       onClick={onClick}
     >
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <p className="text-xs font-black uppercase tracking-widest text-[var(--color-text-secondary)]/60">
+          <Text variant="caption" weight="bold" className="uppercase tracking-widest !text-[var(--color-text-secondary)]/60">
             {title}
-          </p>
-          <p className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">
+          </Text>
+          <Text variant="h3" weight="bold" className="!text-[var(--color-text-primary)] tracking-tight">
             {value}
-          </p>
+          </Text>
           {change && (
             <div className="flex items-center pt-2">
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${change.type === 'increase' ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400'
+              <Text as="span" variant="caption" weight="bold" className={`px-2 py-0.5 rounded-full ${change.type === 'increase' ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400'
                 }`}>
                 {change.type === 'increase' ? '↑' : '↓'} {Math.abs(change.value)}%
-              </span>
-              <span className="text-[10px] ml-2 font-bold text-[var(--color-text-secondary)]/40 uppercase tracking-tighter">
+              </Text>
+              <Text as="span" className="!text-[10px] ml-2 font-bold !text-[var(--color-text-secondary)]/40 uppercase tracking-tighter">
                 vs. mes anterior
-              </span>
+              </Text>
             </div>
           )}
         </div>
@@ -53,7 +54,7 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, icon: Ico
           <Icon size={24} />
         </div>
       </div>
-    </div>
+    </MaterialCard>
   );
 };
 

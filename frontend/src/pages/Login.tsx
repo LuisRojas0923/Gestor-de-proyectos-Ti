@@ -99,7 +99,7 @@ const Login: React.FC = () => {
             localStorage.setItem('token', data.access_token);
             dispatch({ type: 'LOGIN', payload: data.user });
 
-            if (data.user.role === 'analyst') {
+            if (data.user.role === 'analyst' || data.user.role === 'admin') {
                 navigate('/');
             } else {
                 navigate('/service-portal');
@@ -193,7 +193,7 @@ const Login: React.FC = () => {
                                 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 border border-red-100'
                                 : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
                             }`}>
-                            <span>{error}</span>
+                            <Text color="inherit" weight="bold">{error}</Text>
                         </div>
                     )}
 
@@ -211,14 +211,15 @@ const Login: React.FC = () => {
 
                 {/* Switch Mode Link */}
                 <div className="mt-8 text-center border-t border-gray-100 dark:border-neutral-800 pt-6">
-                    <button
+                    <Button
+                        variant="ghost"
                         onClick={toggleMode}
-                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors focus:outline-none"
+                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                     >
                         {loginMode === 'portal'
                             ? '¿Eres administrador? Ingresa aquí'
                             : '¿Eres usuario? Ir al Portal de Servicios'}
-                    </button>
+                    </Button>
                 </div>
 
             </MaterialCard>

@@ -305,36 +305,36 @@ const MyDevelopments: React.FC = () => {
                       <td className="px-4 py-3 text-sm">
                         {dev.last_activity ? (
                           <div className="flex flex-col gap-1">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActivityColor(dev.last_activity)}`}>
+                            <Text as="span" className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActivityColor(dev.last_activity)}`}>
                               {dev.last_activity.stage_name}
-                            </span>
-                            <span className="text-xs text-[var(--color-text-secondary)]">
+                            </Text>
+                            <Text as="span" variant="caption" className="text-[var(--color-text-secondary)]">
                               {dev.last_activity.status === 'completada' ? '✅' :
                                 dev.last_activity.status === 'en_curso' ? '🔄' :
                                   dev.last_activity.status === 'pendiente' ? '⏳' :
                                     dev.last_activity.status === 'cancelada' ? '❌' : '📝'} {dev.last_activity.activity_type?.replace('_', ' ')}
-                            </span>
+                            </Text>
                           </div>
                         ) : dev.current_stage?.stage_name ? (
                           <div className="flex flex-col gap-1">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActivityColor(null)}`}>
+                            <Text as="span" className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActivityColor(null)}`}>
                               {dev.current_stage.stage_name}
-                            </span>
-                            <span className="text-xs text-[var(--color-text-secondary)]">
+                            </Text>
+                            <Text as="span" variant="caption" className="text-[var(--color-text-secondary)]">
                               ⚪ Sin actividad en bitácora
-                            </span>
+                            </Text>
                           </div>
                         ) : (
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getActivityColor(null)}`}>
+                          <Text as="span" className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getActivityColor(null)}`}>
                             N/A
-                          </span>
+                          </Text>
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(dev.general_status)
+                        <Text as="span" className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(dev.general_status)
                           }`}>
                           {dev.general_status}
-                        </span>
+                        </Text>
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <Button

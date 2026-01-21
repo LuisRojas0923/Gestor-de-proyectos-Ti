@@ -15,8 +15,6 @@ export * from './tokens';
 
 // Legacy components (temporary during migration)
 export { default as LoadingSpinner } from './common/LoadingSpinner';
-export { default as MetricCard } from './common/MetricCard';
-export { default as ExcelImporter } from './common/ExcelImporter';
 
 // Layout components
 export { default as Layout } from './layout/Layout';

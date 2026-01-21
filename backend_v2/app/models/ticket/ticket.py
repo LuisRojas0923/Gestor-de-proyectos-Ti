@@ -64,6 +64,22 @@ class Ticket(Base):
     # Relaciones
     categoria = relationship("CategoriaTicket", back_populates="tickets")
     comentarios = relationship("ComentarioTicket", back_populates="ticket")
+    solicitud_desarrollo = relationship("SolicitudDesarrollo", back_populates="ticket", uselist=False)
+
+
+class SolicitudDesarrollo(Base):
+    """Detalle para solicitudes de desarrollo"""
+    __tablename__ = "solicitudes_desarrollo"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(String(50), ForeignKey("tickets.id"), nullable=False)
+    que_necesita = Column(Text)
+    porque = Column(Text)
+    paraque = Column(Text)
+    justificacion_ia = Column(Text)
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    
+    ticket = relationship("Ticket", back_populates="solicitud_desarrollo")
 
 
 class ComentarioTicket(Base):

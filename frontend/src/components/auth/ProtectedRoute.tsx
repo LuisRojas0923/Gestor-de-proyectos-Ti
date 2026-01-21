@@ -19,7 +19,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
         // Si tiene un rol no permitido, redirigir según su rol
-        if (user.role === 'analyst') {
+        if (user.role === 'analyst' || user.role === 'admin') {
             return <Navigate to="/" replace />;
         } else {
             return <Navigate to="/service-portal" replace />;

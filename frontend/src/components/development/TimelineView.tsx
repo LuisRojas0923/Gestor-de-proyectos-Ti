@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar } from 'lucide-react';
 import DevelopmentTimeline from './DevelopmentTimeline';
 import { DevelopmentWithCurrentStatus } from '../../types';
+import { Title, Text, MaterialCard } from '../atoms';
 
 interface TimelineViewProps {
   selectedDevelopment: DevelopmentWithCurrentStatus | null;
@@ -14,17 +15,17 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 }) => {
   if (!selectedDevelopment) {
     return (
-      <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6`}>
+      <MaterialCard className="p-6">
         <div className="text-center">
           <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-          <h3 className={`text-lg font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+          <Title variant="h3" weight="medium" className="mb-2">
             Selecciona un Desarrollo
-          </h3>
-          <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          </Title>
+          <Text color="secondary">
             Haz clic en un desarrollo de la lista para ver su timeline
-          </p>
+          </Text>
         </div>
-      </div>
+      </MaterialCard>
     );
   }
 

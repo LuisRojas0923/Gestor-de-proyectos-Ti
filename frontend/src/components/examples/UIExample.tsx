@@ -4,29 +4,21 @@ import {
     Users,
     FileText,
     AlertTriangle,
-    LayoutDashboard,
-    Settings,
-    LogOut,
-    Search,
-    Filter
+    Settings
 } from 'lucide-react';
 import {
     Button,
     Input,
     Select,
-    Checkbox,
     Switch,
     Textarea,
-    Badge,
-    MaterialCard
+    MaterialCard,
+    Title,
+    Text
 } from '../atoms';
 import {
-    Modal,
-    ProviderSelector,
-    MaterialSearchBar,
-    DevelopmentTimelineCompact
+    MaterialSearchBar
 } from '../molecules';
-import { materialDesignTokens } from '../tokens';
 
 const UIExample: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -47,12 +39,12 @@ const UIExample: React.FC = () => {
             <div className="max-w-7xl mx-auto space-y-8">
                 {/* Título */}
                 <div>
-                    <h1 className="text-3xl font-bold mb-2 text-neutral-900 dark:text-white">
+                    <Title variant="h1" className="mb-2">
                         Sistema de Diseño Atómico
-                    </h1>
-                    <p className="text-neutral-600 dark:text-neutral-400">
+                    </Title>
+                    <Text color="secondary">
                         Demostración de los componentes unificados del proyecto.
-                    </p>
+                    </Text>
                 </div>
 
                 {/* Métricas con MaterialCard */}
@@ -66,8 +58,8 @@ const UIExample: React.FC = () => {
                         <MaterialCard key={i} elevation={1} className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">{item.title}</p>
-                                    <p className="text-2xl font-bold text-neutral-900 dark:text-white">{item.value}</p>
+                                    <Text variant="caption" weight="medium" color="secondary">{item.title}</Text>
+                                    <Text variant="h3" weight="bold">{item.value}</Text>
                                 </div>
                                 <item.icon className={`w-8 h-8 ${item.color}`} />
                             </div>
@@ -77,7 +69,7 @@ const UIExample: React.FC = () => {
 
                 {/* Búsqueda */}
                 <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">Búsqueda y Filtros</h2>
+                    <Title variant="h4">Búsqueda y Filtros</Title>
                     <div className="flex items-center space-x-4">
                         <MaterialSearchBar
                             className="flex-1"
@@ -89,7 +81,7 @@ const UIExample: React.FC = () => {
 
                 {/* Formulario */}
                 <MaterialCard elevation={1} className="p-6">
-                    <h2 className="text-xl font-semibold mb-6 text-neutral-900 dark:text-white">Formulario Unificado</h2>
+                    <Title variant="h4" className="mb-6">Formulario Unificado</Title>
                     <form onSubmit={handleFormSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <Input
@@ -150,14 +142,14 @@ const UIExample: React.FC = () => {
 
                 {/* Variantes de Botones */}
                 <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">Variantes de Botones</h2>
+                    <Title variant="h4">Variantes de Botones</Title>
                     <div className="flex flex-wrap gap-4">
                         <Button variant="primary">Primary</Button>
                         <Button variant="outline">Outline</Button>
                         <Button variant="ghost">Ghost</Button>
                         <Button variant="danger">Danger</Button>
-                        <Button variant="success">Success</Button>
-                        <Button variant="warning">Warning</Button>
+                        <Button variant="custom" className="bg-green-600 text-white hover:bg-green-700">Success</Button>
+                        <Button variant="custom" className="bg-yellow-500 text-white hover:bg-yellow-600">Warning</Button>
                     </div>
                     <div className="flex flex-wrap gap-4">
                         <Button variant="primary" size="sm">Small</Button>

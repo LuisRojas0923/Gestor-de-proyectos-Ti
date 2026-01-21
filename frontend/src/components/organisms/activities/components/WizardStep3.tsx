@@ -1,5 +1,5 @@
 import React from 'react';
-import { Input, Textarea } from '../../../atoms';
+import { Input, Textarea, Title, Text } from '../../../atoms';
 
 interface StageFieldConfigResponse {
   stage_id: number;
@@ -17,7 +17,6 @@ interface WizardStep3Props {
   requiredFields: string[];
   onNotesChange: (notes: string) => void;
   onDynamicFieldChange: (key: string, value: string) => void;
-  darkMode: boolean;
 }
 
 export const WizardStep3: React.FC<WizardStep3Props> = ({
@@ -27,7 +26,6 @@ export const WizardStep3: React.FC<WizardStep3Props> = ({
   requiredFields,
   onNotesChange,
   onDynamicFieldChange,
-  darkMode,
 }) => {
   return (
     <div className="space-y-4">
@@ -44,9 +42,9 @@ export const WizardStep3: React.FC<WizardStep3Props> = ({
       {/* Campos dinámicos específicos de la etapa */}
       {fieldConfig && requiredFields.length > 0 && (
         <div>
-          <h4 className={`text-sm font-semibold mb-3 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+          <Title variant="h6" weight="semibold" className="mb-3">
             Campos específicos de la etapa "{fieldConfig.stage_name}"
-          </h4>
+          </Title>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {requiredFields.map((field) => (
               <div key={`req-${field}`}>
@@ -63,10 +61,10 @@ export const WizardStep3: React.FC<WizardStep3Props> = ({
       )}
 
       {fieldConfig && requiredFields.length === 0 && (
-        <div className={`p-3 rounded-md ${darkMode ? 'bg-green-900/20 border border-green-800' : 'bg-green-50 border border-green-200'}`}>
-          <p className={`text-sm ${darkMode ? 'text-green-300' : 'text-green-700'}`}>
+        <div className="p-3 rounded-md bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800">
+          <Text variant="body2" color="success">
             ✅ Esta etapa no requiere campos adicionales específicos.
-          </p>
+          </Text>
         </div>
       )}
     </div>

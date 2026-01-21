@@ -1,12 +1,11 @@
 import React from 'react';
-import { Select } from '../atoms';
+import { Select, Text } from '../atoms';
 
 interface ProviderSelectorProps {
   selectedProvider: string;
   availableProviders: string[];
   loading: boolean;
   onProviderChange: (provider: string) => void;
-  darkMode: boolean;
 }
 
 const ProviderSelector: React.FC<ProviderSelectorProps> = ({
@@ -14,7 +13,6 @@ const ProviderSelector: React.FC<ProviderSelectorProps> = ({
   availableProviders,
   loading,
   onProviderChange,
-  darkMode
 }) => {
   const options = [
     { value: 'all', label: 'Todos los Proveedores' },
@@ -26,9 +24,9 @@ const ProviderSelector: React.FC<ProviderSelectorProps> = ({
 
   return (
     <div className="flex items-center space-x-2">
-      <label className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+      <Text variant="body2" weight="medium" color="secondary">
         Proveedor:
-      </label>
+      </Text>
       <Select
         value={selectedProvider}
         onChange={(e) => onProviderChange(e.target.value)}

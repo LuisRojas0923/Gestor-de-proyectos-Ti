@@ -10,6 +10,7 @@ export interface TextProps {
     className?: string;
     onClick?: () => void;
     htmlFor?: string; // Para labels
+    style?: React.CSSProperties;
 }
 
 export const Text: React.FC<TextProps> = ({
@@ -22,6 +23,7 @@ export const Text: React.FC<TextProps> = ({
     className = '',
     onClick,
     htmlFor,
+    style,
 }) => {
 
     // Mapping variants to base styles
@@ -86,6 +88,7 @@ export const Text: React.FC<TextProps> = ({
         ${onClick ? 'cursor-pointer hover:opacity-80' : ''}
         ${className}
       `}
+            style={style}
             onClick={onClick}
             htmlFor={htmlFor}
         >

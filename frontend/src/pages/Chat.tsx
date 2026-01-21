@@ -264,17 +264,23 @@ const Chat: React.FC = () => {
             ? 'bg-neutral-800 border-neutral-700 focus-within:border-primary-500'
             : 'bg-neutral-50 border-neutral-300 focus-within:border-primary-500'
             }`}>
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(inputMessage)}
-              placeholder="Escribe tu mensaje..."
-              className={`flex-1 bg-transparent border-none focus:ring-0 py-2 ${darkMode ? 'text-white placeholder-neutral-500' : 'text-neutral-900 placeholder-neutral-400'
-                }`}
-            />
+            {(() => {
+              const inputInlineStyle = { background: 'transparent', border: 'none', padding: '0 8px' };
+              return (
+                <Input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(inputMessage)}
+                  placeholder="Escribe tu mensaje..."
+                  fullWidth={false}
+                  className={`flex-1 ${darkMode ? 'text-white' : 'text-neutral-900'}`}
+                  style={inputInlineStyle}
+                />
+              );
+            })()}
 
-            <input
+            <Input
               ref={fileInputRef}
               type="file"
               onChange={handleFileUpload}

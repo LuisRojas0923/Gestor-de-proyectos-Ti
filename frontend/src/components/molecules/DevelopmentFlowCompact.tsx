@@ -1,7 +1,6 @@
-import React from 'react';
 import { LucideIcon, TrendingUp, Clock, CheckCircle, XCircle, FileText, Code, TestTube, Shield, Rocket } from 'lucide-react';
 import MaterialMetricCard from './MaterialMetricCard';
-import { useAppContext } from '../../context/AppContext';
+import { Title, Text, MaterialCard } from '../atoms';
 
 interface DevelopmentStage {
   id: number;
@@ -25,12 +24,8 @@ interface DevelopmentFlowCompactProps {
 const DevelopmentFlowCompact: React.FC<DevelopmentFlowCompactProps> = ({
   developmentId,
   currentStage = 1,
-  darkMode = false,
   onStageClick
 }) => {
-  const { state } = useAppContext();
-  const { darkMode: contextDarkMode } = state;
-  const isDarkMode = darkMode ?? contextDarkMode;
 
   // Definir todas las etapas del desarrollo
   const stages: DevelopmentStage[] = [
@@ -186,19 +181,19 @@ const DevelopmentFlowCompact: React.FC<DevelopmentFlowCompactProps> = ({
     <div className="space-y-6">
       {/* Header compacto */}
       <div className="flex items-center justify-between">
-        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
+        <Title variant="h3" weight="semibold">
           Sistema de Fases y Etapas
-        </h3>
-        <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+        </Title>
+        <Text variant="body2" color="secondary">
           Progreso: {totalProgress}%
-        </div>
+        </Text>
       </div>
 
       {/* Grid de etapas usando MaterialMetricCard */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {stages.filter(stage => stage.id !== 0).map((stage) => (
-          <div 
-            key={stage.id} 
+          <div
+            key={stage.id}
             onClick={() => handleStageClick(stage)}
             className="cursor-pointer transition-transform hover:scale-105"
           >
@@ -242,34 +237,34 @@ const DevelopmentFlowCompact: React.FC<DevelopmentFlowCompactProps> = ({
       </div>
 
       {/* Estado actual del desarrollo */}
-      <div className={`${isDarkMode ? 'bg-neutral-700' : 'bg-neutral-100'} rounded-lg p-4`}>
-        <h5 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
+      <MaterialCard className="!p-4 bg-neutral-100 dark:bg-neutral-800">
+        <Title variant="h6" weight="medium" className="mb-3">
           Estado Actual del Desarrollo
-        </h5>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Desarrollo:</span>
-            <span className={`ml-2 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>{developmentId}</span>
+        </Title>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center">
+            <Text variant="caption" color="secondary" className="mr-2">Desarrollo:</Text>
+            <Text variant="body2" weight="medium">{developmentId}</Text>
           </div>
-          <div>
-            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Fase Actual:</span>
-            <span className={`ml-2 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
+          <div className="flex items-center">
+            <Text variant="caption" color="secondary" className="mr-2">Fase Actual:</Text>
+            <Text variant="body2" weight="medium">
               {stages.find(s => s.id === currentStage)?.phase === 'execution' ? 'En Ejecución' :
-               stages.find(s => s.id === currentStage)?.phase === 'waiting' ? 'En Espera' : 'Final'}
-            </span>
+                stages.find(s => s.id === currentStage)?.phase === 'waiting' ? 'En Espera' : 'Final'}
+            </Text>
           </div>
-          <div>
-            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Etapa Actual:</span>
-            <span className={`ml-2 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
+          <div className="flex items-center">
+            <Text variant="caption" color="secondary" className="mr-2">Etapa Actual:</Text>
+            <Text variant="body2" weight="medium">
               {stages.find(s => s.id === currentStage)?.name || 'Sin etapa'}
-            </span>
+            </Text>
           </div>
-          <div>
-            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Progreso:</span>
-            <span className={`ml-2 ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>{totalProgress}%</span>
+          <div className="flex items-center">
+            <Text variant="caption" color="secondary" className="mr-2">Progreso:</Text>
+            <Text variant="body2" weight="medium">{totalProgress}%</Text>
           </div>
         </div>
-      </div>
+      </MaterialCard>
     </div>
   );
 };

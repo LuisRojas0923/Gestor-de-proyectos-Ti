@@ -128,6 +128,8 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
     );
   }
 
+  const progressStyle = currentDevelopment ? { width: `${currentDevelopment.stage_progress_percentage}%` } : {};
+
   return (
     <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 shadow-sm transition-colors duration-300">
       <div className="flex items-center justify-between mb-8">
@@ -197,7 +199,7 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
                     <div className="bg-gray-200 rounded-full h-1.5 dark:bg-gray-700 overflow-hidden">
                       <div
                         className="bg-blue-500 h-full rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${currentDevelopment.stage_progress_percentage}%` }}
+                        style={progressStyle}
                       ></div>
                     </div>
                     <Text variant="caption" align="center" weight="bold" className="mt-1 block">
@@ -231,6 +233,7 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
               const currentStages = phaseStages.filter(stage => getStageStatus(stage.stage_id) === 'current').length;
               const Icon = getPhaseIcon(phase.phase_name);
               const percentage = phaseStages.length > 0 ? ((completedStages + currentStages) / phaseStages.length) * 100 : 0;
+              const phaseStyle = { width: `${percentage}%` };
 
               return (
                 <div key={phase.id} className="bg-[var(--color-surface-variant)]/30 border border-[var(--color-border)]/30 rounded-2xl p-5 hover:border-[var(--color-primary)]/30 transition-colors duration-300">
@@ -253,7 +256,7 @@ const DevelopmentPhases: React.FC<DevelopmentPhasesProps> = ({
                     <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700 overflow-hidden">
                       <div
                         className="bg-blue-500 h-full rounded-full transition-all duration-700 ease-in-out"
-                        style={{ width: `${percentage}%` }}
+                        style={phaseStyle}
                       ></div>
                     </div>
 

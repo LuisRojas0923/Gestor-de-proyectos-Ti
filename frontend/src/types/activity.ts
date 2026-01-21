@@ -18,6 +18,14 @@ export interface Activity {
   dynamic_payload?: Record<string, unknown>;
   follow_up_config?: any;
   development?: { id: string; name: string };
+  // Campos de compatibilidad para dashboard/tickets
+  tipo?: 'ticket' | 'proyecto' | 'actividad';
+  titulo?: string;
+  subject?: string;
+  estado?: string;
+  fecha?: string;
+  creator_name?: string;
+  descripcion?: string;
 }
 
 export interface ActivityFormData {

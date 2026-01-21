@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { ArrowLeft, User, Briefcase, MapPin, Mail, FileText, Clock, ChevronRight, Sparkles } from 'lucide-react';
+import React from 'react';
+import { ArrowLeft, User, Briefcase, MapPin, Mail, FileText, Clock, ChevronRight } from 'lucide-react';
 import { FormField, TextAreaField } from './Common';
 import { Button, Select, Title, Text, Icon } from '../../components/atoms';
-import { callGeminiAPI } from '../../services/GeminiService';
 
 interface Category {
     id: string; name: string; icon: React.ReactNode; form_type: 'support' | 'development' | 'asset';
@@ -21,33 +20,7 @@ interface TicketFormViewProps {
 }
 
 const TicketFormView: React.FC<TicketFormViewProps> = ({ selectedCategory, user, onSubmit, onBack, isLoading }) => {
-    const [interpretationText, setInterpretationText] = useState<string>('');
-    const [isInterpreting, setIsInterpreting] = useState<boolean>(false);
 
-    const handleGenerateJustification = async () => {
-        const form = document.getElementById('ticket-form') as HTMLFormElement;
-        const pq = (form.elements.namedItem('porque') as HTMLTextAreaElement)?.value || '';
-        const paq = (form.elements.namedItem('paraque') as HTMLTextAreaElement)?.value || '';
-        const qn = (form.elements.namedItem('que_necesita') as HTMLTextAreaElement)?.value || '';
-
-        if (!pq.trim() || !paq.trim() || !qn.trim()) {
-            setInterpretationText('Por favor complete: "¿Qué necesita?", "¿Por qué?" y "¿Para qué?"');
-            return;
-        }
-
-        setIsInterpreting(true);
-        const query = `Contexto: ${pq}\nRequerimiento: ${qn}\nObjetivo: ${paq}`;
-        const prompt = `Actúa como Asistente de Proyectos. Sintetiza la información en un párrafo profesional (máx 80 palabras) para una Justificación de Solicitud técnica convincente.`;
-
-        try {
-            const result = await callGeminiAPI(query, prompt);
-            setInterpretationText(result);
-        } catch {
-            setInterpretationText("Error al conectar con la IA.");
-        } finally {
-            setIsInterpreting(false);
-        }
-    };
 
     return (
         <div className="space-y-8 py-4">
@@ -66,7 +39,7 @@ const TicketFormView: React.FC<TicketFormViewProps> = ({ selectedCategory, user,
                         <Text variant="caption" className="text-[var(--powder-blue)] font-bold uppercase tracking-widest mb-1">Nueva Solicitud</Text>
                         <Title variant="h3" weight="bold">{selectedCategory.name}</Title>
                     </div>
-                    <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-md">{selectedCategory.icon}</div>
+                    <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md h-24 w-24 flex items-center justify-center">{selectedCategory.icon}</div>
                 </div>
 
                 <form id="ticket-form" onSubmit={onSubmit} className="p-8 space-y-10">
@@ -89,28 +62,62 @@ const TicketFormView: React.FC<TicketFormViewProps> = ({ selectedCategory, user,
                             <div className="flex-grow border-t border-[var(--color-border)]"></div>
                         </div>
 
-                        <TextAreaField label="Descripción General" name="descripcion_detallada" placeholder="Describa su requerimiento..." rows={4} />
+                        {selectedCategory.form_type !== 'development' && (
+                            <>
+                                <FormField label="Asunto / Título de la Solicitud" name="asunto" placeholder="Ej: Error al imprimir, Nuevo acceso..." isRequired icon={FileText} />
+                                <TextAreaField label="Descripción General" name="descripcion_detallada" placeholder="Describa su requerimiento..." rows={4} />
+                            </>
+                        )}
 
                         {selectedCategory.form_type === 'development' && (
-                            <div className="space-y-6 bg-[var(--color-surface-variant)]/30 p-6 rounded-3xl border border-[var(--color-border)]">
-                                <TextAreaField label="¿Qué necesita específicamente? (El QUÉ)" name="que_necesita" placeholder="Funcionalidades clave..." />
-                                <TextAreaField label="¿Por qué lo necesita? (El POR QUÉ)" name="porque" placeholder="Problema actual..." />
-                                <TextAreaField label="¿Para qué se usará? (El PARA QUÉ)" name="paraque" placeholder="Impacto esperado..." />
+                            <div className="space-y-8 bg-[var(--color-surface-variant)]/30 p-8 rounded-3xl border border-[var(--color-border)]">
+                                <div className="space-y-4">
+                                    <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">1. Identificación del Proceso</Title>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField label="Nombre del Proceso" name="nombre_proceso" placeholder="Ej: Gestión de Activos" />
+                                        <FormField label="Área Solicitante" name="area_solicitante" defaultValue={user.area} />
+                                        <FormField label="Usuario Líder" name="lider_requerimiento" defaultValue={user.name} />
+                                    </div>
+                                </div>
 
-                                <Button
-                                    type="button"
-                                    onClick={handleGenerateJustification}
-                                    disabled={isInterpreting}
-                                    variant="primary"
-                                    size="lg"
-                                    icon={Sparkles}
-                                    className="w-full"
-                                >
-                                    {isInterpreting ? 'Generando...' : 'Generar Justificación IA ✨'}
-                                </Button>
-                                {interpretationText && interpretationText !== 'Generando...' && (
-                                    <TextAreaField label="Justificación Técnica Sugerida" name="justificacion_ia" defaultValue={interpretationText} rows={3} />
-                                )}
+                                <div className="space-y-4">
+                                    <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">2. Diagnóstico Actual</Title>
+                                    <Select
+                                        label="¿Existe actualmente una herramienta en Excel para este proceso?"
+                                        name="existe_herramienta"
+                                        options={[{ value: 'SI', label: 'Sí' }, { value: 'NO', label: 'No' }]}
+                                    />
+                                    <FormField label="Referencia de archivos (Ruta compartida o nombre)" name="ruta_archivos" placeholder="Ej: \\192.168.0.3\compartido\archivo.xlsx" />
+                                    <TextAreaField label="Limitaciones: ¿Qué funcionalidades faltan o qué errores se buscan solucionar?" name="limitaciones_actuales" placeholder="Describa los problemas actuales..." rows={3} />
+                                </div>
+
+                                <div className="space-y-4">
+                                    <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">3. Dinámica (Entrada)</Title>
+                                    <TextAreaField label="¿Cuál es la acción o condición que da inicio al proceso en el sistema?" name="evento_iniciador" placeholder="Evento iniciador..." rows={2} />
+                                    <TextAreaField label="Liste los datos mínimos necesarios para crear un registro (Campos Obligatorios)" name="campos_obligatorios" placeholder="Lista de campos..." rows={3} />
+                                    <TextAreaField label="¿Qué debe validar el sistema antes de permitir el ingreso del dato?" name="validaciones_seguridad" placeholder="Validaciones de seguridad..." rows={2} />
+                                </div>
+
+                                <div className="space-y-4">
+                                    <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">4. Flujo de Trabajo (Workflow)</Title>
+                                    <TextAreaField label="Defina la secuencia de estados (Ciclo de Vida)" name="ciclo_vida" placeholder="Ej: Registrado -> Aprobado -> Cerrado" rows={2} />
+                                    <TextAreaField label="¿Quién tiene la facultad de mover el registro de un estado a otro? (Actores)" name="actores_permisos" placeholder="Roles y permisos..." rows={3} />
+                                    <TextAreaField label="Si el flujo no puede continuar, ¿hacia qué estado regresa? (Rechazos)" name="gestion_rechazos" placeholder="Lógica de devolución..." rows={2} />
+                                </div>
+
+                                <div className="space-y-4">
+                                    <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">5. Reglas de Negocio</Title>
+                                    <TextAreaField label="Describa los cálculos automáticos requeridos" name="calculos_automaticos" placeholder="Fórmulas (usar referencias de Excel)..." rows={3} />
+                                    <TextAreaField label="¿Bajo qué condiciones el sistema debe bloquear una acción? (Restricciones)" name="reglas_restriccion" placeholder="Reglas de bloqueo..." rows={2} />
+                                    <TextAreaField label="Defina qué datos deben quedar protegidos/inmutables tras avanzar etapas" name="inmutabilidad" placeholder="Campos no editables..." rows={2} />
+                                </div>
+
+                                <div className="space-y-4">
+                                    <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">6. Integración y Salida</Title>
+                                    <TextAreaField label="¿Qué otros procesos del sistema deben actualizarse automáticamente?" name="impacto_modulos" placeholder="Impacto en otros módulos..." rows={2} />
+                                    <TextAreaField label="¿El sistema debe generar algún PDF, ticket o alerta por correo?" name="notificaciones_docs" placeholder="Documentos y notificaciones..." rows={2} />
+                                    <TextAreaField label="¿Qué información consolidada necesita extraer? (Reportabilidad y KPIs)" name="reportabilidad" placeholder="Métricas esperadas..." rows={3} />
+                                </div>
                             </div>
                         )}
 

@@ -10,7 +10,7 @@ import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { DevelopmentWithCurrentStatus } from '../../types';
-import { Button, Select, Input } from '../atoms';
+import { Button, Select, Input, Title, Text, MaterialCard } from '../atoms';
 
 interface DevelopmentStageProgressProps {
   development: DevelopmentWithCurrentStatus;
@@ -104,196 +104,203 @@ const DevelopmentStageProgress: React.FC<DevelopmentStageProgressProps> = ({
     return AlertTriangle;
   };
 
+  const barStyle = { width: `${progressPercentage}%` };
+
   return (
-    <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6`}>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-          Progreso de Etapa
-        </h3>
-        <div className="flex items-center space-x-2">
-          {getProgressIcon(progressPercentage)({
-            size: 20,
-            className: progressPercentage >= 100 ? 'text-green-500' :
-              progressPercentage >= 50 ? 'text-yellow-500' : 'text-red-500'
-          })}
-          <span className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-            {progressPercentage}%
-          </span>
-        </div>
-      </div>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+    <MaterialCard elevation={1}>
+      <MaterialCard.Content>
+        <div className="flex items-center justify-between mb-6">
+          <Title variant="h5">
+            Progreso de Etapa
+          </Title>
           <div className="flex items-center space-x-2">
-            <AlertTriangle size={16} />
-            <span>{error}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Información del Desarrollo */}
-      <div className="mb-6 p-4 bg-gray-50 dark:bg-neutral-700 rounded-lg">
-        <h4 className={`font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-          {development.name}
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-          <div>
-            <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Fase Actual:</span>
-            <span className={`ml-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-              {development.current_phase?.phase_name || 'No definida'}
-            </span>
-          </div>
-          <div>
-            <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Etapa Actual:</span>
-            <span className={`ml-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-              {development.current_stage?.stage_name || 'No definida'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Selector de Etapa */}
-      <div className="mb-6">
-        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-          Cambiar Etapa
-        </label>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={ChevronLeft}
-            onClick={() => selectedStageId && handleStageChange(selectedStageId - 1)}
-            disabled={!selectedStageId || selectedStageId <= 1 || isUpdating}
-          />
-
-          <Select
-            value={selectedStageId?.toString() || ''}
-            onChange={(e) => setSelectedStageId(Number(e.target.value))}
-            disabled={isUpdating}
-            className="flex-1"
-            options={[
-              { value: '', label: 'Seleccionar etapa...' },
-              ...Array.from({ length: 11 }, (_, i) => ({
-                value: i.toString(),
-                label: `Etapa ${i} - ${getStageName(i)}`
-              }))
-            ]}
-          />
-
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={ChevronRight}
-            onClick={() => selectedStageId && handleStageChange(selectedStageId + 1)}
-            disabled={!selectedStageId || selectedStageId >= 10 || isUpdating}
-          />
-        </div>
-      </div>
-
-      {/* Control de Progreso */}
-      <div className="mb-6">
-        <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-          Progreso de la Etapa Actual
-        </label>
-
-        <div className="space-y-4">
-          {/* Barra de progreso visual */}
-          <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
-            <div
-              className={`h-3 rounded-full transition-all duration-300 ${getProgressColor(progressPercentage)}`}
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
-          </div>
-
-          {/* Control deslizante */}
-          <div className="flex items-center space-x-4">
-            <Input
-              type="range"
-              value={progressPercentage.toString()}
-              onChange={(e) => setProgressPercentage(Number(e.target.value))}
-              disabled={isUpdating}
-              className="flex-1"
-            />
-            <span className={`text-sm font-medium w-12 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+            {getProgressIcon(progressPercentage)({
+              size: 20,
+              className: progressPercentage >= 100 ? 'text-green-500' :
+                progressPercentage >= 50 ? 'text-yellow-500' : 'text-red-500'
+            })}
+            <Text variant="body2" weight="medium" color="text-primary">
               {progressPercentage}%
-            </span>
-          </div>
-
-          {/* Botones de progreso rápido */}
-          <div className="flex space-x-2">
-            {[0, 25, 50, 75, 100].map((value) => (
-              <Button
-                key={value}
-                variant={progressPercentage === value ? 'primary' : 'outline'}
-                size="xs"
-                onClick={() => setProgressPercentage(value)}
-                disabled={isUpdating}
-              >
-                {value}%
-              </Button>
-            ))}
+            </Text>
           </div>
         </div>
-      </div>
 
-      {/* Botón de Guardar */}
-      <div className="flex justify-end space-x-3">
-        <Button
-          onClick={handleProgressUpdate}
-          loading={isUpdating}
-          icon={Save}
-        >
-          Guardar Progreso
-        </Button>
-      </div>
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle size={16} />
+              <Text variant="body2">{error}</Text>
+            </div>
+          </div>
+        )}
 
-      {/* Información de la Etapa Actual */}
-      {development.current_stage && (
-        <div className={`mt-6 p-4 ${darkMode ? 'bg-neutral-700' : 'bg-blue-50'} rounded-lg`}>
-          <h5 className={`font-medium mb-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-            Información de la Etapa Actual
-          </h5>
+        {/* Información del Desarrollo */}
+        <div className="mb-6 p-4 bg-gray-50 dark:bg-neutral-700 rounded-lg">
+          <Title variant="h6" className="mb-2">
+            {development.name}
+          </Title>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
             <div>
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Código:</span>
-              <span className={`ml-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                {development.current_stage.stage_code}
-              </span>
+              <Text variant="body2" color="text-secondary" as="span">Fase Actual:</Text>
+              <Text variant="body2" color="text-primary" weight="medium" className="ml-2" as="span">
+                {development.current_phase?.phase_name || 'No definida'}
+              </Text>
             </div>
             <div>
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Hito:</span>
-              <span className={`ml-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                {development.current_stage.is_milestone ? 'Sí' : 'No'}
-              </span>
+              <Text variant="body2" color="text-secondary" as="span">Etapa Actual:</Text>
+              <Text variant="body2" color="text-primary" weight="medium" className="ml-2" as="span">
+                {development.current_stage?.stage_name || 'No definida'}
+              </Text>
             </div>
-            {development.current_stage.estimated_days && (
+          </div>
+        </div>
+
+        {/* Selector de Etapa */}
+        <div className="mb-6">
+          <Text variant="subtitle2" weight="medium" color="text-primary" className="mb-2" as="label">
+            Cambiar Etapa
+          </Text>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={ChevronLeft}
+              onClick={() => selectedStageId && handleStageChange(selectedStageId - 1)}
+              disabled={!selectedStageId || selectedStageId <= 1 || isUpdating}
+            />
+
+            <Select
+              value={selectedStageId?.toString() || ''}
+              onChange={(e) => setSelectedStageId(Number(e.target.value))}
+              disabled={isUpdating}
+              className="flex-1"
+              options={[
+                { value: '', label: 'Seleccionar etapa...' },
+                ...Array.from({ length: 11 }, (_, i) => ({
+                  value: i.toString(),
+                  label: `Etapa ${i} - ${getStageName(i)}`
+                }))
+              ]}
+            />
+
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={ChevronRight}
+              onClick={() => selectedStageId && handleStageChange(selectedStageId + 1)}
+              disabled={!selectedStageId || selectedStageId >= 10 || isUpdating}
+            />
+          </div>
+        </div>
+
+        {/* Control de Progreso */}
+        <div className="mb-6">
+          <Text variant="subtitle2" weight="medium" color="text-primary" className="mb-2" as="label">
+            Progreso de la Etapa Actual
+          </Text>
+
+          <div className="space-y-4">
+            {/* Barra de progreso visual */}
+            <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700 overflow-hidden">
+              <Text
+                as="div"
+                className={`h-3 rounded-full transition-all duration-300 ${getProgressColor(progressPercentage)}`}
+                style={barStyle}
+              >
+                &nbsp;
+              </Text>
+            </div>
+
+            {/* Control deslizante */}
+            <div className="flex items-center space-x-4">
+              <Input
+                type="range"
+                value={progressPercentage.toString()}
+                onChange={(e) => setProgressPercentage(Number(e.target.value))}
+                disabled={isUpdating}
+                className="flex-1"
+              />
+              <Text variant="body2" weight="medium" color="text-primary" className="w-12">
+                {progressPercentage}%
+              </Text>
+            </div>
+
+            {/* Botones de progreso rápido */}
+            <div className="flex space-x-2">
+              {[0, 25, 50, 75, 100].map((value) => (
+                <Button
+                  key={value}
+                  variant={progressPercentage === value ? 'primary' : 'outline'}
+                  size="xs"
+                  onClick={() => setProgressPercentage(value)}
+                  disabled={isUpdating}
+                >
+                  {value}%
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Botón de Guardar */}
+        <div className="flex justify-end space-x-3">
+          <Button
+            onClick={handleProgressUpdate}
+            loading={isUpdating}
+            icon={Save}
+          >
+            Guardar Progreso
+          </Button>
+        </div>
+
+        {/* Información de la Etapa Actual */}
+        {development.current_stage && (
+          <div className={`mt-6 p-4 ${darkMode ? 'bg-neutral-700' : 'bg-blue-50'} rounded-lg`}>
+            <Title variant="h6" className="mb-2">
+              Información de la Etapa Actual
+            </Title>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
               <div>
-                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Días Estimados:</span>
-                <span className={`ml-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                  {development.current_stage.estimated_days}
-                </span>
+                <Text variant="body2" color="text-secondary" as="span">Código:</Text>
+                <Text variant="body2" color="text-primary" weight="medium" className="ml-2" as="span">
+                  {development.current_stage.stage_code}
+                </Text>
               </div>
-            )}
-            {development.current_stage.responsible_party && (
               <div>
-                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Responsable:</span>
-                <span className={`ml-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                  {development.current_stage.responsible_party}
-                </span>
+                <Text variant="body2" color="text-secondary" as="span">Hito:</Text>
+                <Text variant="body2" color="text-primary" weight="medium" className="ml-2" as="span">
+                  {development.current_stage.is_milestone ? 'Sí' : 'No'}
+                </Text>
+              </div>
+              {development.current_stage.estimated_days && (
+                <div>
+                  <Text variant="body2" color="text-secondary" as="span">Días Estimados:</Text>
+                  <Text variant="body2" color="text-primary" weight="medium" className="ml-2" as="span">
+                    {development.current_stage.estimated_days}
+                  </Text>
+                </div>
+              )}
+              {development.current_stage.responsible_party && (
+                <div>
+                  <Text variant="body2" color="text-secondary" as="span">Responsable:</Text>
+                  <Text variant="body2" color="text-primary" weight="medium" className="ml-2" as="span">
+                    {development.current_stage.responsible_party}
+                  </Text>
+                </div>
+              )}
+            </div>
+            {development.current_stage.stage_description && (
+              <div className="mt-2">
+                <Text variant="body2" color="text-secondary">Descripción:</Text>
+                <Text variant="body2" color="text-primary" className="mt-1">
+                  {development.current_stage.stage_description}
+                </Text>
               </div>
             )}
           </div>
-          {development.current_stage.stage_description && (
-            <div className="mt-2">
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Descripción:</span>
-              <p className={`mt-1 text-sm ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
-                {development.current_stage.stage_description}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+        )}
+      </MaterialCard.Content>
+    </MaterialCard>
   );
 };
 

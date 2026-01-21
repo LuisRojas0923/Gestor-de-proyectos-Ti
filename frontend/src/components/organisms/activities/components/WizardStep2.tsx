@@ -1,6 +1,6 @@
 import React from 'react';
 import { FollowUpConfig } from '../hooks/useActivityValidation';
-import { Input, Select, Switch } from '../../../atoms';
+import { Input, Select, Switch, Text } from '../../../atoms';
 
 interface WizardStep2Props {
   startDate: string;
@@ -9,7 +9,6 @@ interface WizardStep2Props {
   onStartDateChange: (date: string) => void;
   onEndDateChange: (date: string) => void;
   onFollowUpConfigChange: (config: FollowUpConfig) => void;
-  darkMode: boolean;
 }
 
 export const WizardStep2: React.FC<WizardStep2Props> = ({
@@ -19,7 +18,6 @@ export const WizardStep2: React.FC<WizardStep2Props> = ({
   onStartDateChange,
   onEndDateChange,
   onFollowUpConfigChange,
-  darkMode,
 }) => {
   const handleFollowUpEnabledChange = (enabled: boolean) => {
     onFollowUpConfigChange({
@@ -82,9 +80,9 @@ export const WizardStep2: React.FC<WizardStep2Props> = ({
         {/* Habilitar seguimiento */}
         <div>
           <div className="flex items-center justify-between">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
+            <Text variant="body2" weight="medium" color="secondary">
               ¿Configurar seguimiento automático?
-            </label>
+            </Text>
             <Switch
               checked={followUpConfig.enabled}
               onChange={handleFollowUpEnabledChange}
@@ -168,18 +166,18 @@ export const WizardStep2: React.FC<WizardStep2Props> = ({
             )}
 
             {/* Resumen informativo */}
-            <div className={`p-3 rounded-md border ${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-neutral-50 border-neutral-200'}`}>
-              <p className={`text-sm font-semibold mb-1 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+            <div className="p-3 rounded-md border bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:border-neutral-700">
+              <Text variant="body2" weight="semibold" className="mb-1">
                 Recordatorio:
-              </p>
-              <p className={`text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-600'}`}>
+              </Text>
+              <Text variant="body2" color="secondary">
                 {followUpConfig.type?.includes('before')
                   ? `Se enviará una notificación ${followUpConfig.days || 1} día(s) antes del ${followUpConfig.type.includes('start') ? 'inicio' : 'fin'} de la actividad.`
                   : followUpConfig.type?.includes('after')
                     ? `Se enviará un seguimiento cada ${followUpConfig.interval || 1} día(s) desde el ${followUpConfig.type.includes('start') ? 'inicio' : 'fin'} hasta la fecha límite o el cierre.`
                     : 'Selecciona un tipo de seguimiento para ver más detalles.'
                 }
-              </p>
+              </Text>
             </div>
           </div>
         )}

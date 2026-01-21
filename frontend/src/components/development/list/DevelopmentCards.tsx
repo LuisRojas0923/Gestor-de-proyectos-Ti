@@ -1,5 +1,5 @@
 import { Eye } from 'lucide-react';
-import { Button } from '../../atoms';
+import { Button, Title, Text, MaterialCard } from '../../atoms';
 import { DevelopmentWithCurrentStatus } from '../../../types';
 
 interface DevelopmentCardsProps {
@@ -24,21 +24,22 @@ export const DevelopmentCards: React.FC<DevelopmentCardsProps> = ({
           {/* Header del grupo */}
           {groupBy !== 'none' && (
             <div className={`${darkMode ? 'bg-neutral-700' : 'bg-neutral-100'} rounded-lg p-3`}>
-              <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+              <Title variant="h3" weight="semibold">
                 {groupName} ({groupDevelopments.length} desarrollos)
-              </h3>
+              </Title>
             </div>
           )}
 
           {groupDevelopments.map((dev) => (
-            <div key={dev.id} className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-              } border rounded-xl p-4 hover:shadow-md transition-shadow`}>
+            <MaterialCard key={dev.id} className="hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
-                  <h3 className={`font-medium text-sm ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+                  <Title variant="h4" weight="medium">
                     {dev.name}
-                  </h3>
-                  <p className="text-xs text-primary-500 dark:text-primary-400 mt-1">{dev.id}</p>
+                  </Title>
+                  <Text variant="caption" color="primary" className="mt-1">
+                    {dev.id}
+                  </Text>
                 </div>
                 <div className="flex items-center space-x-2 ml-4">
                   <Button
@@ -46,33 +47,45 @@ export const DevelopmentCards: React.FC<DevelopmentCardsProps> = ({
                     size="sm"
                     icon={Eye}
                     onClick={() => onViewDetails(dev)}
-                    className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
                   >
                     {""}
                   </Button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <span className={`font-medium ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>Responsable:</span>
-                  <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mt-1`}>{dev.responsible || 'N/A'}</p>
+                  <Text variant="caption" weight="medium" color="secondary">
+                    Responsable:
+                  </Text>
+                  <Text variant="body2" className="mt-1">
+                    {dev.responsible || 'N/A'}
+                  </Text>
                 </div>
                 <div>
-                  <span className={`font-medium ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>Proveedor:</span>
-                  <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'} mt-1`}>{dev.provider || 'N/A'}</p>
+                  <Text variant="caption" weight="medium" color="secondary">
+                    Proveedor:
+                  </Text>
+                  <Text variant="body2" className="mt-1">
+                    {dev.provider || 'N/A'}
+                  </Text>
                 </div>
               </div>
 
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
-                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(dev.general_status)}`}>
+                <Text
+                  as="span"
+                  variant="caption"
+                  weight="semibold"
+                  className={`px-2 py-1 inline-flex leading-5 rounded-full text-white ${getStatusColor(dev.general_status)}`}
+                >
                   {dev.general_status}
-                </span>
-                <span className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                </Text>
+                <Text variant="caption" color="secondary">
                   {typeof dev.current_stage === 'object' ? dev.current_stage?.stage_name || 'N/A' : dev.current_stage}
-                </span>
+                </Text>
               </div>
-            </div>
+            </MaterialCard>
           ))}
         </div>
       ))}

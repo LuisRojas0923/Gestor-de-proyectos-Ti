@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, X } from 'lucide-react';
-import { Button, Input, Select, Textarea, Checkbox } from '../atoms';
+import { Button, Input, Select, Textarea, Checkbox, Title, Text, MaterialCard } from '../atoms';
 import { useAppContext } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { API_ENDPOINTS } from '../../config/api';
@@ -295,14 +295,12 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   };
 
   return (
-    <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'
-      } border rounded-xl p-6`}>
+    <MaterialCard className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className={`text-lg font-semibold flex items-center ${darkMode ? 'text-white' : 'text-neutral-900'
-          }`}>
+        <Title variant="h4" weight="semibold" className="flex items-center">
           <Plus className="mr-2" size={20} />
           Nueva Actividad
-        </h3>
+        </Title>
         {onCancel && (
           <Button
             variant="ghost"
@@ -318,7 +316,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
       {error && (
         <div className={`mb-4 p-3 rounded-md ${darkMode ? 'bg-red-900/20 text-red-300 border border-red-800' : 'bg-red-50 text-red-600 border border-red-200'
           }`}>
-          {error}
+          <Text>{error}</Text>
         </div>
       )}
 
@@ -394,24 +392,20 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
             />
           </div>
         </div>
-
         {/* Campos dinámicos por etapa */}
         {stageConfig?.has_dynamic_fields && (
-          <div className={`${darkMode ? 'bg-neutral-700/50' : 'bg-neutral-50'
-            } rounded-lg p-4`}>
-            <h4 className={`text-md font-medium mb-4 ${darkMode ? 'text-white' : 'text-neutral-900'
-              }`}>
+          <div className={`${darkMode ? 'bg-neutral-700/50' : 'bg-neutral-50'} rounded-lg p-4`}>
+            <Title variant="h6" weight="medium" className="mb-4">
               Campos específicos para: {stageConfig.stage_name}
-            </h4>
+            </Title>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {getFormFieldsForStage().map((field) => (
                 <div key={field.name}>
                   {renderDynamicField(field)}
                   {field.description && (
-                    <p className={`text-xs mt-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'
-                      }`}>
+                    <Text variant="caption" color="secondary" className="mt-1">
                       {field.description}
-                    </p>
+                    </Text>
                   )}
                 </div>
               ))}
@@ -460,6 +454,6 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
           </Button>
         </div>
       </form>
-    </div>
+    </MaterialCard>
   );
 };

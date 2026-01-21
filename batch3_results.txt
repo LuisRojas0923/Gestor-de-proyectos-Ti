@@ -1,0 +1,134 @@
+
+================================================================================
+­ƒÄ¿ AUDITOR├ìA DEL SISTEMA DE DISE├æO
+================================================================================
+[Importante] DevelopmentPhases.tsx:200 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Importante] DevelopmentPhases.tsx:256 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Importante] DevelopmentStageProgress.tsx:206 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Importante] DevelopmentTimeline.tsx:187 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Importante] HybridGanttChart.tsx:317 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Leve] UIExample.tsx:40 - Nativo: <h1>-<h6>
+      Sugerencia: Usar <Title /> o <Subtitle /> (├ütomo)
+[Leve] UIExample.tsx:43 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] UIExample.tsx:59 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] UIExample.tsx:60 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] UIExample.tsx:70 - Nativo: <h1>-<h6>
+      Sugerencia: Usar <Title /> o <Subtitle /> (├ütomo)
+[Leve] UIExample.tsx:82 - Nativo: <h1>-<h6>
+      Sugerencia: Usar <Title /> o <Subtitle /> (├ütomo)
+[Leve] UIExample.tsx:143 - Nativo: <h1>-<h6>
+      Sugerencia: Usar <Title /> o <Subtitle /> (├ütomo)
+[Leve] ApiDebug.tsx:34 - Nativo: <h1>-<h6>
+      Sugerencia: Usar <Title /> o <Subtitle /> (├ütomo)
+[Importante] MaterialSearchBar.tsx:112 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Importante] MaterialSearchBar.tsx:123 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Importante] NotificationToast.tsx:138 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Leve] MaterialAppBar.tsx:86 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] MaterialDrawer.tsx:83 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Importante] MaterialDrawer.tsx:119 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Leve] TopBar.tsx:75 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] TopBar.tsx:87 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] TopBar.tsx:90 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] ActivityDeleteModal.tsx:32 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] ActivityDeleteModal.tsx:40 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] ActivityDeleteModal.tsx:48 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] ActivityDeleteModal.tsx:51 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] ActivityEditModal.tsx:249 - Nativo: <h1>-<h6>
+      Sugerencia: Usar <Title /> o <Subtitle /> (├ütomo)
+[Leve] ActivityEditModal.tsx:257 - Nativo: <label>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] ActivityEditModal.tsx:345 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] ActivityEditModal.tsx:356 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] ActivityEditModal.tsx:359 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] WizardStep2.tsx:85 - Nativo: <label>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] WizardStep2.tsx:172 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] WizardStep2.tsx:175 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] WizardStep3.tsx:47 - Nativo: <h1>-<h6>
+      Sugerencia: Usar <Title /> o <Subtitle /> (├ütomo)
+[Leve] WizardStep3.tsx:67 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] Chat.tsx:267 - Nativo: <input>
+      Sugerencia: Usar <Input /> (├ütomo)
+[Leve] Chat.tsx:277 - Nativo: <input>
+      Sugerencia: Usar <Input /> (├ütomo)
+[Importante] DesignSystemCatalog.tsx:445 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Leve] DesignSystemCatalog.tsx:448 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Importante] DesignSystemCatalog.tsx:462 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Leve] DesignSystemCatalog.tsx:465 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] DevelopmentDetail.tsx:174 - Nativo: <h1>-<h6>
+      Sugerencia: Usar <Title /> o <Subtitle /> (├ütomo)
+[Leve] DevelopmentDetail.tsx:175 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] DevelopmentDetail.tsx:250 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] DevelopmentDetail.tsx:254 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Importante] Indicators.tsx:177 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Importante] Indicators.tsx:216 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Leve] Login.tsx:196 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] Login.tsx:214 - Nativo: <button>
+      Sugerencia: Usar <Button /> (├ütomo)
+[Leve] MyDevelopments.tsx:308 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] MyDevelopments.tsx:311 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] MyDevelopments.tsx:320 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] MyDevelopments.tsx:323 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] MyDevelopments.tsx:328 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] MyDevelopments.tsx:334 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] ServicePortal.tsx:167 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] ServicePortal.tsx:173 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] ServicePortal.tsx:174 - Nativo: <p>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Importante] Settings.tsx:169 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Importante] TicketDetail.tsx:220 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+[Leve] TicketDetail.tsx:251 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Leve] TicketDetail.tsx:468 - Nativo: <span>
+      Sugerencia: Usar <Text /> (├ütomo)
+[Importante] GeneralInfoTab.tsx:122 - Estilo Inline
+      Sugerencia: Evitar deuda t├®cnica visual. Usar clases o tokens de dise├▒o.
+================================================================================
+

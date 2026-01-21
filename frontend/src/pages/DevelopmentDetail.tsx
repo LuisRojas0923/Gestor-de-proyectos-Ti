@@ -3,13 +3,12 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
-import QualityControlsTab from '../components/development/QualityControlsTab';
 import { DevelopmentWithCurrentStatus, Activity } from '../types';
 import { useActivities } from './MyDevelopments/hooks/useActivities';
 import { ActivityCreateModal, ActivityEditModal, ActivityDeleteModal } from '../components/organisms/activities';
 import { FollowUpConfig } from '../components/organisms/activities/hooks/useActivityValidation';
 import { DevelopmentEditModal } from '../components/molecules';
-import { Button } from '../components/atoms';
+import { Button, Title, Text } from '../components/atoms';
 
 // Sub-componentes
 import GeneralInfoTab from './DevelopmentDetail/GeneralInfoTab';
@@ -19,7 +18,6 @@ const tabs = [
   { key: 'detalle', label: 'Detalle' },
   { key: 'bitacora', label: 'Bitácora' },
   { key: 'fases', label: 'Fases' },
-  { key: 'calidad', label: 'Calidad' },
   { key: 'requerimientos', label: 'Requerimientos' },
 ];
 
@@ -173,8 +171,8 @@ const DevelopmentDetail: React.FC = () => {
           >
             ← Volver a desarrollos
           </Button>
-          <h1 className={`text-2xl font-bold mt-2 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>{development?.name || (loading ? 'Cargando...' : 'Desarrollo')}</h1>
-          <p className={`${darkMode ? 'text-neutral-400' : 'text-neutral-500'} text-sm`}>{development?.id}</p>
+          <Title variant="h3" weight="bold" color="text-primary" className="mt-2">{development?.name || (loading ? 'Cargando...' : 'Desarrollo')}</Title>
+          <Text variant="caption" color="text-secondary">{development?.id}</Text>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
@@ -246,20 +244,14 @@ const DevelopmentDetail: React.FC = () => {
           />
         )}
 
-        {activeTab === 'calidad' && (
-          <QualityControlsTab
-            developmentId={developmentId as string}
-            currentStageName={development?.current_stage?.stage_name || 'Sin etapa'}
-            darkMode={darkMode}
-          />
-        )}
+
 
         {activeTab === 'fases' && (
-          <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Contenido de Fases (pendiente de integrar).</p>
+          <Text color="text-secondary">Contenido de Fases (pendiente de integrar).</Text>
         )}
 
         {activeTab === 'requerimientos' && (
-          <p className={`${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>Contenido de Requerimientos (pendiente de integrar).</p>
+          <Text color="text-secondary">Contenido de Requerimientos (pendiente de integrar).</Text>
         )}
       </div>
 
@@ -269,7 +261,6 @@ const DevelopmentDetail: React.FC = () => {
         activity={selectedActivity}
         form={editForm}
         errors={editErrors}
-        darkMode={darkMode}
         onFormChange={onEditChange}
         onConfirm={onEditConfirm}
         onCancel={() => setEditOpen(false)}
@@ -278,7 +269,6 @@ const DevelopmentDetail: React.FC = () => {
         isOpen={deleteOpen}
         activity={selectedActivity}
         shouldRollbackStage={shouldRollback}
-        darkMode={darkMode}
         onRollbackChange={setShouldRollback}
         onConfirm={onDeleteConfirm}
         onCancel={() => setDeleteOpen(false)}
@@ -296,7 +286,6 @@ const DevelopmentDetail: React.FC = () => {
         <DevelopmentEditModal
           isOpen={developmentEditOpen}
           development={development}
-          darkMode={darkMode}
           onClose={() => setDevelopmentEditOpen(false)}
           onSave={updateDevelopment}
         />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MaterialCard, MaterialTypography, Text } from '../../components/atoms';
+import { MaterialCard, Title, Text } from '../../components/atoms';
 import { DevelopmentWithCurrentStatus, Activity } from '../../types';
 
 interface GeneralInfoTabProps {
@@ -15,64 +15,66 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
     activitiesLoading,
     lastActivity
 }) => {
+    const progressStyle = { width: `${development?.stage_progress_percentage || 0}%` };
+
     return (
         <div className="space-y-6">
             {/* Información General del Desarrollo */}
             <MaterialCard elevation={2}>
                 <MaterialCard.Header>
-                    <MaterialTypography variant="h5" gutterBottom>
+                    <Title variant="h5" className="mb-2">
                         📋 Información General
-                    </MaterialTypography>
+                    </Title>
                 </MaterialCard.Header>
                 <MaterialCard.Content>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Nombre del Desarrollo
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.name || 'No especificado'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 ID del Desarrollo
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.id || 'No especificado'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Descripción
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.description || 'No especificada'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Módulo
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.module || 'No especificado'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Tipo
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.type || 'No especificado'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Ambiente
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.environment || 'No especificado'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                     </div>
                 </MaterialCard.Content>
@@ -81,50 +83,50 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
             {/* Estado y Progreso */}
             <MaterialCard elevation={2}>
                 <MaterialCard.Header>
-                    <MaterialTypography variant="h5" gutterBottom>
+                    <Title variant="h5" className="mb-2">
                         📊 Estado y Progreso
-                    </MaterialTypography>
+                    </Title>
                 </MaterialCard.Header>
                 <MaterialCard.Content>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Estado General
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.general_status || 'No especificado'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Fase Actual
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.current_phase?.phase_name || 'No especificada'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Etapa Actual
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.current_stage?.stage_name || 'No especificada'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Progreso de Etapa
-                            </MaterialTypography>
+                            </Text>
                             <div className="flex items-center gap-2">
                                 <div className={`w-full bg-neutral-200 rounded-full h-2 ${darkMode ? 'bg-neutral-600' : 'bg-neutral-200'}`}>
                                     <div
                                         className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                        style={{ width: `${development?.stage_progress_percentage || 0}%` }}
+                                        style={progressStyle}
                                     ></div>
                                 </div>
-                                <MaterialTypography variant="body2">
+                                <Text variant="body2">
                                     {development?.stage_progress_percentage || 0}%
-                                </MaterialTypography>
+                                </Text>
                             </div>
                         </div>
                     </div>
@@ -134,43 +136,43 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
             {/* Responsables y Proveedores */}
             <MaterialCard elevation={2}>
                 <MaterialCard.Header>
-                    <MaterialTypography variant="h5" gutterBottom>
+                    <Title variant="h5" className="mb-2">
                         👥 Responsables y Proveedores
-                    </MaterialTypography>
+                    </Title>
                 </MaterialCard.Header>
                 <MaterialCard.Content>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Proveedor
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.provider || 'No especificado'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Responsable
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.responsible || 'No especificado'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Área Solicitante
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.requesting_area || 'No especificada'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Usuario Responsable Principal
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.main_responsible || 'No especificado'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                     </div>
                 </MaterialCard.Content>
@@ -179,35 +181,35 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
             {/* Fechas */}
             <MaterialCard elevation={2}>
                 <MaterialCard.Header>
-                    <MaterialTypography variant="h5" gutterBottom>
+                    <Title variant="h5" className="mb-2">
                         📅 Fechas Importantes
-                    </MaterialTypography>
+                    </Title>
                 </MaterialCard.Header>
                 <MaterialCard.Content>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Fecha de Inicio
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.start_date ? new Date(development.start_date).toLocaleDateString('es-ES') : 'No especificada'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Fecha Estimada de Fin
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.estimated_end_date ? new Date(development.estimated_end_date).toLocaleDateString('es-ES') : 'No especificada'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                         <div>
-                            <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Días Estimados
-                            </MaterialTypography>
-                            <MaterialTypography variant="body1">
+                            </Text>
+                            <Text variant="body1">
                                 {development?.estimated_days || 'No especificados'}
-                            </MaterialTypography>
+                            </Text>
                         </div>
                     </div>
                 </MaterialCard.Content>
@@ -216,26 +218,26 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
             {/* Última Actividad */}
             <MaterialCard elevation={2}>
                 <MaterialCard.Header>
-                    <MaterialTypography variant="h5" gutterBottom>
+                    <Title variant="h5" className="mb-2">
                         🔄 Última Actividad de Bitácora
-                    </MaterialTypography>
+                    </Title>
                 </MaterialCard.Header>
                 <MaterialCard.Content>
                     {activitiesLoading ? (
-                        <MaterialTypography variant="body1" color="textSecondary">
+                        <Text variant="body1" color="text-secondary">
                             Cargando última actividad...
-                        </MaterialTypography>
+                        </Text>
                     ) : lastActivity ? (
                         <MaterialCard elevation={1} className="bg-opacity-50">
                             <MaterialCard.Content>
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
-                                        <MaterialTypography variant="h6" gutterBottom>
+                                        <Title variant="h6" className="mb-2">
                                             {lastActivity.stage_name}
-                                        </MaterialTypography>
-                                        <MaterialTypography variant="body2" color="textSecondary">
+                                        </Title>
+                                        <Text variant="body2" color="text-secondary">
                                             {new Date(lastActivity.created_at).toLocaleString('es-ES')}
-                                        </MaterialTypography>
+                                        </Text>
                                     </div>
                                     <Text
                                         as="span"
@@ -254,20 +256,20 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
                                 </div>
                                 {lastActivity.notes && (
                                     <div className="mb-3">
-                                        <MaterialTypography variant="subtitle2" color="textSecondary" gutterBottom>
+                                        <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                             Notas:
-                                        </MaterialTypography>
-                                        <MaterialTypography variant="body2">
+                                        </Text>
+                                        <Text variant="body2">
                                             {lastActivity.notes}
-                                        </MaterialTypography>
+                                        </Text>
                                     </div>
                                 )}
                             </MaterialCard.Content>
                         </MaterialCard>
                     ) : (
-                        <MaterialTypography variant="body1" color="textSecondary">
+                        <Text variant="body1" color="text-secondary">
                             No hay actividades registradas en la bitácora.
-                        </MaterialTypography>
+                        </Text>
                     )}
                 </MaterialCard.Content>
             </MaterialCard>

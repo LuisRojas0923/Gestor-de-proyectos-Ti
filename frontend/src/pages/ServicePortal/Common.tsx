@@ -1,5 +1,4 @@
-import React from 'react';
-import { Input, Textarea } from '../../components/atoms';
+import { Input, Textarea, Text } from '../../components/atoms';
 import { LucideIcon } from 'lucide-react';
 
 export type TicketStatus = 'Abierto' | 'En Proceso' | 'Cerrado' | 'Pendiente Info' | 'Escalado';
@@ -13,9 +12,9 @@ export const StatusBadge: React.FC<{ status: TicketStatus }> = ({ status }) => {
         'Escalado': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-blue-800'
     };
     return (
-        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border transition-colors ${styles[status]}`}>
+        <Text as="span" className={`px-2.5 py-0.5 rounded-full text-xs font-bold border transition-colors ${styles[status]}`}>
             {status}
-        </span>
+        </Text>
     );
 };
 

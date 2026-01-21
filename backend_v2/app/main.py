@@ -17,12 +17,7 @@ app = FastAPI(
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        config.frontend_url, 
-        "http://localhost:5173", 
-        "http://localhost:3000",
-        "http://192.168.40.36:5173"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -53,6 +48,7 @@ from .api.alertas import router as alertas_router
 from .api.tickets import router as tickets_router
 from .api.ia import router as ia_router
 from .api.erp import router as erp_router
+from .api.panel_control import router as panel_control_router
 
 api_prefix = "/api/v2"
 
@@ -60,6 +56,8 @@ app.include_router(auth_router, prefix=f"{api_prefix}/auth", tags=["Autenticacio
 app.include_router(desarrollos_router, prefix=f"{api_prefix}/desarrollos", tags=["Desarrollos"])
 app.include_router(kpis_router, prefix=f"{api_prefix}/kpis", tags=["KPIs"])
 app.include_router(alertas_router, prefix=f"{api_prefix}/alertas", tags=["Alertas"])
-app.include_router(tickets_router, prefix=f"{api_prefix}/tickets", tags=["Tickets"])
+app.include_router(tickets_router, prefix=f"{api_prefix}/soporte", tags=["Tickets"])
 app.include_router(ia_router, prefix=f"{api_prefix}/ia", tags=["IA"])
 app.include_router(erp_router, prefix=f"{api_prefix}/erp", tags=["ERP"])
+app.include_router(panel_control_router, prefix=f"{api_prefix}/panel-control", tags=["Panel Control"])
+

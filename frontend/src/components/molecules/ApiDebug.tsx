@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useApi } from '../../hooks/useApi';
-import { Button } from '../atoms';
+import { Button, Title, Text, MaterialCard } from '../atoms';
 
 const ApiDebug: React.FC = () => {
   const api = useApi();
@@ -30,8 +30,8 @@ const ApiDebug: React.FC = () => {
   }, []);
 
   return (
-    <div className="p-6 bg-gray-100 rounded-lg">
-      <h3 className="text-lg font-bold mb-4">Debug API - /etapas/cycle-flow</h3>
+    <MaterialCard className="p-6">
+      <Title variant="h5" className="mb-4">Debug API - /etapas/cycle-flow</Title>
 
       <div className="mb-4">
         <Button
@@ -44,32 +44,33 @@ const ApiDebug: React.FC = () => {
       </div>
 
       {loading && (
-        <div className="text-blue-600">Cargando datos...</div>
+        <Text color="primary" className="mb-4">Cargando datos...</Text>
       )}
 
       {error && (
-        <div className="text-red-600 mb-4">
-          <strong>Error:</strong> {error}
+        <div className="mb-4">
+          <Text color="error" weight="bold">Error:</Text>
+          <Text color="error"> {error}</Text>
         </div>
       )}
 
       {data && (
         <div>
-          <div className="text-green-600 mb-2">
-            <strong>✅ Datos cargados exitosamente</strong>
+          <div className="mb-2">
+            <Text color="success" weight="bold">✅ Datos cargados exitosamente</Text>
           </div>
-          <div className="text-sm text-gray-600 mb-2">
+          <Text variant="caption" color="secondary" className="mb-2 block">
             Cantidad de etapas: {Array.isArray(data) ? data.length : 'No es array'}
-          </div>
+          </Text>
           <details className="text-xs">
             <summary className="cursor-pointer text-blue-600">Ver datos completos</summary>
-            <pre className="mt-2 p-2 bg-white rounded border overflow-auto max-h-96">
+            <pre className="mt-2 p-2 bg-[var(--color-surface-variant)] rounded border border-[var(--color-border)] overflow-auto max-h-96 dark:text-white">
               {JSON.stringify(data, null, 2)}
             </pre>
           </details>
         </div>
       )}
-    </div>
+    </MaterialCard>
   );
 };
 

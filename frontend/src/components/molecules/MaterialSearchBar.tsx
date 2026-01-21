@@ -29,6 +29,18 @@ const MaterialSearchBar: React.FC<MaterialSearchBarProps> = ({
   const { darkMode } = state;
   const tokens = materialDesignTokens;
 
+  const suggestionContainerStyle = {
+    backgroundColor: darkMode ? tokens.colors.surface.dark : tokens.colors.surface.light,
+    borderColor: darkMode ? tokens.colors.surface.variant.dark : tokens.colors.surface.variant.light,
+    boxShadow: tokens.elevation[4]
+  };
+
+  const suggestionItemStyle = {
+    color: darkMode ? tokens.colors.text.primary.dark : tokens.colors.text.primary.light,
+    fontSize: tokens.typography.fontSize.body2,
+    fontFamily: tokens.typography.fontFamily.primary
+  };
+
   const [internalValue, setInternalValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -108,23 +120,15 @@ const MaterialSearchBar: React.FC<MaterialSearchBarProps> = ({
           {/* Sugerencias */}
           {showSuggestions && filteredSuggestions.length > 0 && (
             <div
-              className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
-              style={{
-                backgroundColor: darkMode ? tokens.colors.surface.dark : tokens.colors.surface.light,
-                borderColor: darkMode ? tokens.colors.surface.variant.dark : tokens.colors.surface.variant.light,
-                boxShadow: tokens.elevation[4]
-              }}
+              className="absolute top-full left-0 right-0 mt-1 border rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
+              style={suggestionContainerStyle}
             >
               {filteredSuggestions.map((suggestion, index) => (
                 <div
                   key={index}
                   onClick={() => handleSuggestionClick(suggestion)}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors first:rounded-t-lg last:rounded-b-lg cursor-pointer"
-                  style={{
-                    color: darkMode ? tokens.colors.text.primary.dark : tokens.colors.text.primary.light,
-                    fontSize: tokens.typography.fontSize.body2,
-                    fontFamily: tokens.typography.fontFamily.primary
-                  }}
+                  className="w-full px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors first:rounded-t-lg last:rounded-b-lg cursor-pointer"
+                  style={suggestionItemStyle}
                   role="button"
                   tabIndex={0}
                 >

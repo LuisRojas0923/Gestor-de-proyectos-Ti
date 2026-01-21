@@ -62,12 +62,18 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
   }, [statusFilter, developmentId, limit]);
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const s = (status || '').toLowerCase();
+    switch (s) {
       case 'completada':
+      case 'resuelto':
+      case 'cerrado':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
       case 'pendiente':
+      case 'nuevo':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
       case 'en_curso':
+      case 'en proceso':
+      case 'abierto':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
       case 'cancelada':
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
@@ -78,12 +84,12 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
 
   if (loading) {
     return (
-      <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6`}>
+      <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6 shadow-sm`}>
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-300 rounded w-1/3 mb-4"></div>
+          <div className="h-6 bg-gray-300 dark:bg-neutral-700 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-4 bg-gray-300 rounded"></div>
+              <div key={i} className="h-20 bg-gray-100 dark:bg-neutral-700/50 rounded-lg"></div>
             ))}
           </div>
         </div>
@@ -92,10 +98,10 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
   }
 
   return (
-    <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6`}>
+    <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6 shadow-sm`}>
       <div className="flex items-center justify-between mb-6">
         <Title variant="h5" weight="bold">
-          Actividades de la Bitácora
+          Actividades Recientes
         </Title>
         <div className="flex items-center space-x-2">
           {showFilters && (
@@ -137,23 +143,29 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
         {activities.length > 0 ? (
           activities.map((activity) => (
             <div
-              key={activity.id}
-              className={`p-4 rounded-lg border ${darkMode ? 'bg-neutral-700 border-neutral-600' : 'bg-gray-50 border-gray-200'
+              key={`${activity.tipo}-${activity.id}`}
+              className={`p-4 rounded-lg border transition-colors ${darkMode ? 'bg-neutral-700 border-neutral-600 hover:bg-neutral-600/50' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                 }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <Title variant="h6" weight="medium" className="mb-1">
-                    {activity.development?.name || 'Desarrollo no especificado'}
-                  </Title>
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Text variant="caption" weight="bold" className="uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                      {activity.tipo === 'ticket' ? 'Ticket' : 'Proyecto'}
+                    </Text>
+                    <Text variant="caption" color="text-secondary">•</Text>
+                    <Title variant="h6" weight="bold">
+                      {activity.titulo || activity.subject || activity.development?.name || 'Sin título'}
+                    </Title>
+                  </div>
 
-                  <Text variant="body2" weight="bold" className="mb-1 text-blue-600 dark:text-blue-400">
+                  <Text variant="body2" weight="medium" className="mb-2 block">
                     {activity.stage_name}
                   </Text>
 
-                  {activity.notes && (
-                    <Text variant="body2" color="text-secondary" className="mb-3">
-                      {activity.notes}
+                  {(activity.notes || activity.descripcion) && (
+                    <Text variant="body2" color="text-secondary" className="mb-3 line-clamp-2">
+                      {activity.notes || activity.descripcion}
                     </Text>
                   )}
 
@@ -161,52 +173,51 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
                     <div className="flex items-center space-x-1">
                       <Icon name={Calendar} size="xs" color="text-secondary" />
                       <Text variant="caption" color="text-secondary">
-                        Inicio: {activity.start_date ? new Date(activity.start_date).toLocaleDateString() : 'N/A'}
+                        {(activity.start_date || activity.fecha) ? new Date(activity.start_date || activity.fecha!).toLocaleDateString() : 'N/A'}
                       </Text>
                     </div>
 
-                    {activity.end_date && (
+                    {(activity.actor_type || activity.creator_name) && (
                       <div className="flex items-center space-x-1">
-                        <Icon name={Calendar} size="xs" color="text-secondary" />
+                        <Icon name={Users} size="xs" color="text-secondary" />
                         <Text variant="caption" color="text-secondary">
-                          Fin: {new Date(activity.end_date).toLocaleDateString()}
+                          {activity.creator_name || activity.actor_type}
                         </Text>
                       </div>
                     )}
-
-                    <div className="flex items-center space-x-1">
-                      <Icon name={Users} size="xs" color="text-secondary" />
-                      <Text variant="caption" color="text-secondary">
-                        {activity.actor_type}
-                      </Text>
-                    </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end space-y-2 ml-4">
-                  <Text as="span" variant="caption" className={`px-2 py-1 rounded-full ${getStatusColor(activity.status)}`}>
-                    {activity.status.replace('_', ' ').toUpperCase()}
+                <div className="flex flex-col items-end space-y-3 ml-4">
+                  <Text as="span" variant="caption" weight="bold" className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider ${getStatusColor(activity.status || activity.estado || '')}`}>
+                    {(activity.status || activity.estado || 'NUEVO').toString().replace('_', ' ').toUpperCase()}
                   </Text>
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => navigate(`/developments/${activity.development_id}`)}
+                    onClick={() => {
+                      if (activity.tipo === 'ticket') {
+                        navigate(`/tickets/${activity.id}`);
+                      } else {
+                        navigate(`/developments/${activity.development_id}`);
+                      }
+                    }}
                   >
-                    Gestionar
+                    Ver detalle
                   </Button>
                 </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="text-center py-8">
-            <div className="mx-auto mb-4 flex justify-center text-neutral-400">
+          <div className="text-center py-12">
+            <div className="mx-auto mb-4 flex justify-center text-neutral-300 dark:text-neutral-600">
               <Icon name={Calendar} size="xl" />
             </div>
             <Title variant="h6" weight="medium" className="mb-2">
-              No hay actividades con el filtro seleccionado
+              No hay actividades pendientes
             </Title>
-            <Text variant="body2" color="text-secondary">Prueba a seleccionar otro estado en el filtro.</Text>
+            <Text variant="body2" color="text-secondary">Tu bitácora está al día.</Text>
           </div>
         )}
       </div>

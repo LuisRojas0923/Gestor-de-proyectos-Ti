@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface MaterialCardProps {
+interface MaterialCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   elevation?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 8 | 9 | 12 | 16 | 24;
   className?: string;
@@ -14,6 +14,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   className = '',
   onClick,
   hoverable = false,
+  ...props
 }) => {
 
   const baseClasses = `rounded-[1.5rem] transition-all bg-[var(--color-surface)] border border-[var(--color-border)]`;
@@ -40,6 +41,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
     <div
       className={`${baseClasses} ${elevationClasses[elevation]} ${hoverClasses} ${clickableClasses} ${className} font-sans duration-300 ease-in-out`}
       onClick={onClick}
+      {...props}
     >
       {children}
     </div>

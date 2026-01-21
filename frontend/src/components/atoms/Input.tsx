@@ -27,6 +27,7 @@ interface InputProps {
   fullWidth?: boolean;
   id?: string;
   accept?: string;
+  style?: React.CSSProperties;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(({
@@ -54,6 +55,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   fullWidth = true,
   id,
   accept,
+  style,
 }, ref) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPasswordType = type === 'password';
@@ -121,6 +123,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           maxLength={maxLength}
           accept={accept}
           className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]}`}
+          style={style}
         />
 
         {IconComponent && iconPosition === 'right' && (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Select, Textarea, Switch } from '../../atoms';
+import { Button, Input, Select, Textarea, Switch, Title, Text } from '../../atoms';
 import { FollowUpConfig } from './hooks/useActivityValidation';
 import { Modal } from '../../molecules';
 
@@ -14,7 +14,6 @@ interface ActivityEditModalProps {
     end_date?: string;
   } | null;
   errors: string[];
-  darkMode: boolean;
   onFormChange: (patch: Partial<{
     status: string;
     notes?: string;
@@ -32,7 +31,6 @@ export const ActivityEditModal: React.FC<ActivityEditModalProps> = ({
   activity,
   form,
   errors,
-  darkMode,
   onFormChange,
   onConfirm,
   onCancel,
@@ -245,18 +243,18 @@ export const ActivityEditModal: React.FC<ActivityEditModalProps> = ({
             </div>
 
             {/* Configuración de seguimiento */}
-            <div className={`p-4 rounded-lg border ${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-blue-50 border-blue-200'}`}>
-              <h4 className={`text-sm font-semibold mb-3 ${darkMode ? 'text-white' : 'text-neutral-900'}`}>
+            <div className="p-4 rounded-lg border bg-blue-50 border-blue-200 dark:bg-neutral-800 dark:border-neutral-700">
+              <Title variant="h6" weight="semibold" className="mb-3">
                 📅 Configuración de Seguimiento
-              </h4>
+              </Title>
 
               <div className="space-y-4">
                 {/* Habilitar seguimiento */}
                 <div>
                   <div className="flex items-center justify-between">
-                    <label className={`block text-sm font-medium ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
+                    <Text variant="body2" weight="medium" color="secondary">
                       ¿Configurar seguimiento automático?
-                    </label>
+                    </Text>
                     <Switch
                       checked={followUpConfig.enabled}
                       onChange={handleFollowUpEnabledChange}
@@ -341,10 +339,10 @@ export const ActivityEditModal: React.FC<ActivityEditModalProps> = ({
 
                     {/* Descripción del seguimiento */}
                     {followUpConfig.enabled && followUpConfig.type && (
-                      <div className={`p-3 rounded-md ${darkMode ? 'bg-green-900/20 border border-green-800' : 'bg-green-50 border border-green-200'}`}>
-                        <p className={`text-sm ${darkMode ? 'text-green-300' : 'text-green-700'}`}>
-                          <strong>📋 Resumen:</strong> {getFollowUpDescription()}
-                        </p>
+                      <div className="p-3 rounded-md bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800">
+                        <Text variant="body2" color="success">
+                          <Text as="span" weight="bold">📋 Resumen:</Text> {getFollowUpDescription()}
+                        </Text>
                       </div>
                     )}
                   </div>
@@ -352,13 +350,13 @@ export const ActivityEditModal: React.FC<ActivityEditModalProps> = ({
 
                 {/* Fecha actual de seguimiento (solo lectura) */}
                 {form.next_follow_up_at && (
-                  <div className={`p-3 rounded-md ${darkMode ? 'bg-neutral-700' : 'bg-neutral-100'}`}>
-                    <p className={`text-sm ${darkMode ? 'text-neutral-300' : 'text-neutral-700'}`}>
-                      <strong>📅 Próximo seguimiento actual:</strong> {new Date(form.next_follow_up_at).toLocaleDateString()}
-                    </p>
-                    <p className={`text-xs mt-1 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+                  <div className="p-3 rounded-md bg-neutral-100 dark:bg-neutral-700">
+                    <Text variant="body2" color="secondary">
+                      <Text as="span" weight="bold">📅 Próximo seguimiento actual:</Text> {new Date(form.next_follow_up_at).toLocaleDateString()}
+                    </Text>
+                    <Text variant="caption" color="secondary" className="mt-1">
                       Esta fecha se recalculará automáticamente al guardar
-                    </p>
+                    </Text>
                   </div>
                 )}
               </div>
@@ -366,12 +364,12 @@ export const ActivityEditModal: React.FC<ActivityEditModalProps> = ({
 
             {/* Errores */}
             {errors.length > 0 && (
-              <div className={`p-3 rounded-md ${darkMode ? 'bg-red-900/20 border border-red-800 text-red-300' : 'bg-red-50 border border-red-200 text-red-700'}`}>
-                <ul className="list-disc pl-5 text-sm">
+              <div className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                <div className="space-y-1">
                   {errors.map((err, idx) => (
-                    <li key={idx}>{err}</li>
+                    <Text key={idx} variant="caption" color="error" className="block">• {err}</Text>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
           </div>

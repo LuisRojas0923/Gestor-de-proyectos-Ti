@@ -103,6 +103,7 @@ export const NotificationToast: React.FC<ToastNotificationProps> = ({ id, type, 
   const initialClasses = 'w-12 h-12 rounded-full p-2';
   const expandedClasses = 'w-full max-w-sm h-12 rounded-full px-4 py-2';
   const currentShapeClasses = isExpanded ? expandedClasses : initialClasses;
+  const progressBarStyle = { animationDuration: '2s' };
 
   return (
     <div
@@ -135,7 +136,7 @@ export const NotificationToast: React.FC<ToastNotificationProps> = ({ id, type, 
       </div>
       {showContent && (
         <div className={`h-1 bg-[var(--color-border)] ${isExpanded ? 'mx-2 rounded-full overflow-hidden' : ''}`}>
-          <div className={`h-full ${progressClasses} animate-progress-bar`} style={{ animationDuration: '2s' }} />
+          <div className={`h-full ${progressClasses} animate-progress-bar`} style={progressBarStyle} />
         </div>
       )}
     </div>
