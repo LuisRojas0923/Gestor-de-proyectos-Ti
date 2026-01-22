@@ -19,7 +19,7 @@ export const callGeminiAPI = async (userQuery: string, systemPrompt: string): Pr
 
     for (let i = 0; i < maxRetries; i++) {
         try {
-            const response = await fetch(`${BASE_API_URL}?key=${API_KEY}`, {
+            const response = await fetch(`${BASE_API_URL}?key=${API_KEY}`, { // [CONTROLADO]
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

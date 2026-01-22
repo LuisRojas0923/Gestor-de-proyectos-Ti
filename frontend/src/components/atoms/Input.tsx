@@ -26,6 +26,7 @@ interface InputProps {
   maxLength?: number;
   fullWidth?: boolean;
   id?: string;
+  multiple?: boolean;
   accept?: string;
   style?: React.CSSProperties;
 }
@@ -56,6 +57,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   id,
   accept,
   style,
+  multiple,
 }, ref) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPasswordType = type === 'password';
@@ -122,6 +124,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           onKeyPress={onKeyPress}
           maxLength={maxLength}
           accept={accept}
+          multiple={multiple}
           className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]}`}
           style={style}
         />

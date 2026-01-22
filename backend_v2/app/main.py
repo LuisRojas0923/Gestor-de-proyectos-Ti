@@ -49,6 +49,7 @@ from .api.tickets import router as tickets_router
 from .api.ia import router as ia_router
 from .api.erp import router as erp_router
 from .api.panel_control import router as panel_control_router
+from .api.etapas_router import router as etapas_router
 
 api_prefix = "/api/v2"
 
@@ -60,4 +61,5 @@ app.include_router(tickets_router, prefix=f"{api_prefix}/soporte", tags=["Ticket
 app.include_router(ia_router, prefix=f"{api_prefix}/ia", tags=["IA"])
 app.include_router(erp_router, prefix=f"{api_prefix}/erp", tags=["ERP"])
 app.include_router(panel_control_router, prefix=f"{api_prefix}/panel-control", tags=["Panel Control"])
+app.include_router(etapas_router, prefix=f"{api_prefix}/etapas", tags=["Etapas"])
 

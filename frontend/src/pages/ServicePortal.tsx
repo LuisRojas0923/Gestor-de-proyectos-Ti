@@ -37,6 +37,7 @@ const ServicePortal: React.FC = () => {
     const [tickets, setTickets] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [newTicketId, setNewTicketId] = useState<string | null>(null);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const { addNotification } = useNotifications();
 
     const defaultCategories: Category[] = [
@@ -94,7 +95,7 @@ const ServicePortal: React.FC = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const res = await axios.get(`${API_BASE_URL}/soporte/categorias`);
+                const res = await axios.get(`${API_BASE_URL}/soporte/categorias`); // [CONTROLADO]
                 const mapped = res.data.map((cat: any) => ({
                     id: cat.id,
                     name: cat.nombre || cat.name || '',
@@ -103,7 +104,10 @@ const ServicePortal: React.FC = () => {
                     icon: defaultCategories.find(d => d.id === cat.id)?.icon || <Plus />
                 }));
                 setCategories(mapped.length > 0 ? mapped : defaultCategories);
-            } catch { setCategories(defaultCategories); }
+            } catch (err) {
+                console.error("Error fetching categories:", err);
+                setCategories(defaultCategories);
+            }
         };
         fetchCategories();
     }, []);
@@ -111,13 +115,32 @@ const ServicePortal: React.FC = () => {
     // Login logic removed
 
     const fetchTickets = async (id: string) => {
-        try { const res = await axios.get(`${API_BASE_URL}/soporte/mis-tickets/${id}`); setTickets(res.data); } catch { }
+        try {
+            const res = await axios.get(`${API_BASE_URL}/soporte/mis-tickets/${id}`); // [CONTROLADO]
+            setTickets(res.data);
+        } catch (err) {
+            console.error("Error fetching user tickets:", err);
+            addNotification('error', "No se pudieron cargar tus tickets.");
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault(); if (!selectedCategory || !user) return;
         setIsLoading(true);
         const fd = new FormData(e.currentTarget);
+
+        const fileToBase64 = (file: File): Promise<string> => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    const base64String = (reader.result as string).split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = error => reject(error);
+            });
+        };
+
         try {
             // Generate unique ticket ID: TKT-{timestamp}-{random}
             const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
@@ -158,15 +181,60 @@ const ServicePortal: React.FC = () => {
                 justificacion_ia: null
             };
 
-            const res = await axios.post(`${API_BASE_URL}/soporte/`, payload);
-            setNewTicketId(res.data.id); setView('success'); fetchTickets(user.id);
+            if (user) {
+                const res = await axios.post(`${API_BASE_URL}/soporte/`, payload); // [CONTROLADO]
+                const createdTicketId = res.data.id;
+
+                // 2. Subir adjuntos si existen
+                if (selectedFiles.length > 0) {
+                    for (const file of selectedFiles) {
+                        try {
+                            const base64 = await fileToBase64(file);
+                            await axios.post(`${API_BASE_URL}/soporte/${createdTicketId}/adjuntos`, { // [CONTROLADO]
+                                ticket_id: createdTicketId,
+                                nombre_archivo: file.name,
+                                contenido_base64: base64,
+                                tipo_mime: file.type
+                            });
+                        } catch (fileErr) {
+                            console.error(`Error subiendo archivo ${file.name}:`, fileErr);
+                        }
+                    }
+                }
+
+                setNewTicketId(createdTicketId);
+                setView('success');
+                fetchTickets(user.id);
+                setSelectedFiles([]); // Limpiar archivos
+            }
         } catch { addNotification('error', "Error al enviar ticket"); } finally { setIsLoading(false); }
     };
 
-    const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSendUserFeedback = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        alert('Simulación: Ticket actualizado correctamente.');
-        setView('status');
+        if (!selectedTicket || !user) return;
+
+        setIsLoading(true);
+        const fd = new FormData(e.currentTarget);
+        const userResponse = fd.get('user_response') as string;
+
+        try {
+            await axios.patch(`${API_BASE_URL}/soporte/${selectedTicket.id}`, { // [CONTROLADO]
+                estado: 'En Proceso',
+                notas: (selectedTicket.notes || '') + `\n\n[USER ${new Date().toLocaleString()}] ${userResponse}`
+            });
+
+            addNotification('success', "Información enviada correctamente. El ticket vuelve a estar en proceso.");
+
+            // Actualizar lista y volver
+            fetchTickets(user.id);
+            setView('status');
+        } catch (err) {
+            console.error("Error enviando feedback:", err);
+            addNotification('error', "No se pudo enviar la información.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // Redirigir si no hay usuario (protección extra, aunque ProtectedRoute debería manejarlo)
@@ -210,9 +278,19 @@ const ServicePortal: React.FC = () => {
             <main className="max-w-5xl mx-auto p-4 sm:p-8">
                 {view === 'dashboard' && <DashboardView onNavigate={setView} />}
                 {view === 'categories' && <CategoryView categories={categories} onSelect={(c) => { setSelectedCategory(c); setView('form'); }} onBack={() => setView('dashboard')} />}
-                {view === 'form' && selectedCategory && <TicketFormView selectedCategory={selectedCategory} user={user} onSubmit={handleSubmit} onBack={() => setView('categories')} isLoading={isLoading} />}
+                {view === 'form' && selectedCategory && (
+                    <TicketFormView
+                        selectedCategory={selectedCategory}
+                        user={user}
+                        onSubmit={handleSubmit}
+                        onBack={() => { setView('categories'); setSelectedFiles([]); }}
+                        isLoading={isLoading}
+                        selectedFiles={selectedFiles}
+                        onFilesChange={setSelectedFiles}
+                    />
+                )}
                 {view === 'status' && <TicketListView tickets={tickets} onBack={() => setView('dashboard')} onViewDetail={(t) => { setSelectedTicket(t); setView('detail'); }} />}
-                {view === 'detail' && selectedTicket && <TicketDetailView selectedTicket={selectedTicket} user={user} onBack={() => setView('status')} onUpdate={handleUpdate} />}
+                {view === 'detail' && selectedTicket && <TicketDetailView selectedTicket={selectedTicket} user={user} onBack={() => setView('status')} onUpdate={handleSendUserFeedback} />}
                 {view === 'success' && <SuccessView newTicketId={newTicketId} onHome={() => setView('dashboard')} />}
             </main>
         </div>

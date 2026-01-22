@@ -66,9 +66,18 @@ const Dashboard: React.FC = () => {
   });
 
   const [weeklyData, setWeeklyData] = useState<WeeklyProgressData[]>([]);
-
   const [priorityData, setPriorityData] = useState<PriorityData[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
 
+  useEffect(() => {
+    // Retraso controlado para permitir que el motor de layout del navegador
+    // termine antes de que Recharts intente medir el contenedor.
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     // Load dashboard data
@@ -122,8 +131,8 @@ const Dashboard: React.FC = () => {
             <Icon name={LifeBuoy} size="xl" className="animate-pulse" />
           </div>
           <div>
-            <Title variant="h3" weight="bold" className="tracking-tight">Portal de Servicios</Title>
-            <Text variant="body1" className="text-[var(--powder-blue)] font-medium italic mt-1 opacity-90">"Crea reportes de soporte y solicitudes de desarrollo aquí"</Text>
+            <Title variant="h3" weight="bold" color="white" className="tracking-tight">Portal de Servicios</Title>
+            <Text variant="body1" color="inherit" className="text-[var(--powder-blue)] font-medium italic mt-1 opacity-90">"Crea reportes de soporte y solicitudes de desarrollo aquí"</Text>
           </div>
         </div>
         <div className="bg-white/10 p-4 rounded-2xl group-hover:bg-[var(--color-primary-light)] group-hover:text-[var(--color-primary)] transition-all shadow-lg relative z-10">
@@ -171,33 +180,35 @@ const Dashboard: React.FC = () => {
             {t('weeklyProgress')}
           </Title>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <BarChart data={weeklyData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
-                <XAxis
-                  dataKey="nombre"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '1.5rem',
-                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                  }}
-                  itemStyle={{ color: 'var(--color-text-primary)' }}
-                />
-                <Bar dataKey="completados" fill="var(--color-primary)" name="Completados" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="creados" fill="var(--color-primary-light)" name="Creados" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {isMounted && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+                <BarChart data={weeklyData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
+                  <XAxis
+                    dataKey="nombre"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--color-surface)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '1.5rem',
+                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                    }}
+                    itemStyle={{ color: 'var(--color-text-primary)' }}
+                  />
+                  <Bar dataKey="completados" fill="var(--color-primary)" name="Completados" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="creados" fill="var(--color-primary-light)" name="Creados" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -207,29 +218,31 @@ const Dashboard: React.FC = () => {
             Distribución por Prioridad
           </Title>
           <div className="h-[300px] w-full relative">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <PieChart>
-                <Pie
-                  data={priorityData as any[]}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ prioridad, percent }: any) => `${prioridad || 'N/A'} ${((percent || 0) * 100).toFixed(0)}% `}
-                  innerRadius={60}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="cantidad"
-                  paddingAngle={5}
-                >
-                  {priorityData?.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={entry.color || '#6b7280'} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ borderRadius: '1.2rem', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {isMounted && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+                <PieChart>
+                  <Pie
+                    data={priorityData as any[]}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ prioridad, percent }: any) => `${prioridad || 'N/A'} ${((percent || 0) * 100).toFixed(0)}% `}
+                    innerRadius={60}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="cantidad"
+                    paddingAngle={5}
+                  >
+                    {priorityData?.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={entry.color || '#6b7280'} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ borderRadius: '1.2rem', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>

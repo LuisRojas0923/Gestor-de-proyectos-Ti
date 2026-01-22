@@ -190,7 +190,7 @@ class AuditApp:
         # Actualizar labels
         self.lbl_lines.config(text=f"Total Líneas: {summary['total_lines']:,}")
         self.lbl_files.config(text=f"Archivos: {summary['total_files']}")
-        self.lbl_info.config(text=f"🎨 {len(design)} diseño | 🛡️ {len(security)} seguridad | 🏗️ {len(structure)} estructura")
+        self.lbl_info.config(text=f"🎨 {len(design)} diseño | 🛡️ {len(security)} seguridad | ⚠️ {len(reliability)} fiabilidad | 🏗️ {len(structure)} estructura")
         self.status.set("Escaneo completado.")
         
         # Imprimir auditoría en consola

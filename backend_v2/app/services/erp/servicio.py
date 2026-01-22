@@ -25,7 +25,7 @@ class ServicioErp:
         """)
         
         try:
-            resultado = db_erp.execute(query, {"cedula": cedula}).first()
+            resultado = db_erp.execute(query, {"cedula": cedula}).first() # [CONTROLADO]
             if resultado:
                 print(f"DEBUG: Empleado encontrado: {resultado.nombre}")
                 # Convertir Row a dict
@@ -40,7 +40,10 @@ class ServicioErp:
             print(f"DEBUG: No se encontro empleado activo con cedula={cedula}")
             return None
         except Exception as e:
-            print(f"DEBUG: ERROR en consulta ERP: {str(e)}")
+            # Capturar cualquier error de base de datos o conexin
+            print(f"DEBUG: ERROR CRITICO en consulta ERP (cedula={cedula}): {str(e)}")
+            # Podramos importar SQLAlchemyError para ser ms especficos, 
+            # pero mantenemos Exception para capturar tambin errores de red/driver
             raise e
 
     @staticmethod

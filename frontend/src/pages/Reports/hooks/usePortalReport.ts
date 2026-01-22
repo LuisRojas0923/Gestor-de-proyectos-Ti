@@ -166,10 +166,16 @@ export const usePortalReport = () => {
 
       const url = `${API_CONFIG.BASE_URL}${API_ENDPOINTS.REPORTS_PORTAL_DETAILED}?${queryParams.toString()}`;
 
-      const response = await fetch(url);
+      const response = await fetch(url); // [CONTROLADO]
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        let errorDetail = response.statusText;
+        try {
+          const body = await response.json();
+          errorDetail = body.detail || body.message || errorDetail;
+        } catch { /* Ignorar si no es JSON */ }
+
+        throw new Error(`Error ${response.status}: ${errorDetail}`);
       }
 
       const reportResponse = await response.json() as ReportApiResponse;

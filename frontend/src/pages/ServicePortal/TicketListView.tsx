@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Search, Clock, User, ChevronRight, Info, Sparkles } from 'lucide-react';
+import { ArrowLeft, Search, Clock, User, ChevronRight, Info, Sparkles, AlertTriangle } from 'lucide-react';
 import { StatusBadge, TicketStatus } from './Common';
 import { Button, Input, Title, Text, Icon } from '../../components/atoms';
 import { callGeminiAPI } from '../../services/GeminiService';
 
 interface Ticket {
-    id: string; subject: string; status: TicketStatus; creation_date: string; category: string; assigned_to?: string;
+    id: string;
+    asunto: string;
+    estado: TicketStatus;
+    fecha_creacion: string;
+    categoria_id: string;
+    asignado_a?: string;
 }
 
 interface TicketListViewProps {
@@ -24,8 +29,8 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
         setIsExplaining(true);
         setExplanation({ id: ticket.id, text: "Analizando estado..." });
 
-        const q = `Categoría: ${ticket.category}\nAsunto: ${ticket.subject}\nEstado: ${ticket.status}`;
-        const p = `Actúa como Asistente de TI. Explica qué significa el estado '${ticket.status}' para este ticket de forma amable y concisa (máx 3 frases).`;
+        const q = `Categoría: ${ticket.categoria_id}\nAsunto: ${ticket.asunto}\nEstado: ${ticket.estado}`;
+        const p = `Actúa como Asistente de TI. Explica qué significa el estado '${ticket.estado}' para este ticket de forma amable y concisa (máx 3 frases).`;
 
         try {
             const res = await callGeminiAPI(q, p);
@@ -72,12 +77,28 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
                                     <div className="space-y-1 flex-grow">
                                         <div className="flex items-center space-x-3">
                                             <Text variant="caption" className="font-mono text-[var(--color-text-secondary)]/50 uppercase tracking-tighter">{ticket.id}</Text>
-                                            <StatusBadge status={ticket.status} />
+                                            <StatusBadge status={ticket.estado} />
                                         </div>
-                                        <Title variant="h6" weight="bold" color="text-primary" className="transition-colors group-hover:text-[var(--color-primary)]">{ticket.subject}</Title>
+                                        <Title variant="h6" weight="bold" color="text-primary" className="transition-colors group-hover:text-[var(--color-primary)]">{ticket.asunto}</Title>
                                         <div className="flex items-center text-xs text-[var(--color-text-secondary)] space-x-4 font-medium">
-                                            <Text variant="caption" className="flex items-center"><Icon name={Clock} size="sm" className="mr-1" /> {new Date(ticket.creation_date).toLocaleDateString()}</Text>
-                                            <Text variant="caption" className="flex items-center"><Icon name={User} size="sm" className="mr-1" /> {ticket.assigned_to || 'Sin asignar'}</Text>
+                                            <Text variant="caption" as="span" className="flex items-center"><Icon name={Clock} size="sm" className="mr-1" /> {new Date(ticket.fecha_creacion).toLocaleDateString()}</Text>
+                                            <Text variant="caption" as="span" className="flex items-center"><Icon name={User} size="sm" className="mr-1" /> {ticket.asignado_a || 'Sin asignar'}</Text>
+                                            {(() => {
+                                                const creationDate = new Date(ticket.fecha_creacion);
+                                                const now = new Date();
+                                                const diffHours = (now.getTime() - creationDate.getTime()) / (1000 * 60 * 60);
+                                                const isStalled = diffHours > 48 && !['Cerrado', 'Resuelto'].includes(ticket.estado);
+
+                                                if (isStalled) {
+                                                    return (
+                                                        <div className="flex items-center px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg animate-pulse border border-red-200 dark:border-red-800">
+                                                            <AlertTriangle size={12} className="mr-1.5" />
+                                                            <Text variant="caption" weight="bold" className="uppercase tracking-tighter">SLA Vencido (+48h)</Text>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-2">

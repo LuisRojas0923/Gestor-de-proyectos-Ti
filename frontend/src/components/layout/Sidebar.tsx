@@ -9,7 +9,8 @@ import {
   Ticket,
   ClipboardList,
   Share2,
-  LogOut
+  LogOut,
+  Palette,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -34,6 +35,7 @@ const Sidebar: React.FC = () => {
     { name: 'Chat IA', href: '/chat', icon: MessageSquare, role: ['analyst', 'admin'] },
     { name: 'Portal de Servicios', href: '/service-portal', icon: Share2, role: ['user', 'analyst', 'admin'] },
     { name: 'Configuración', href: '/settings', icon: Settings, role: ['analyst', 'admin'] },
+    { name: 'Catálogo de Diseño', href: '/design-catalog', icon: Palette, role: ['admin'] },
   ];
 
   const filteredNavigation = navigation.filter(item =>
@@ -93,7 +95,7 @@ const Sidebar: React.FC = () => {
                 >
                   <Icon size={20} className="flex-shrink-0" />
                   {sidebarOpen && (
-                    <Text variant="body2" weight="bold" className="ml-3">
+                    <Text variant="body2" weight="bold" color="inherit" className="ml-3">
                       {item.name}
                     </Text>
                   )}

@@ -9,6 +9,9 @@ SECURITY_PATTERNS = {
     'Seguridad: Hardcoded Secrets': re.compile(
         r'(?i)(password|secret|api_key|token|access_key)\s*=\s*["\'][^"\']+["\']'
     ),
+    'Seguridad: IP Hardcodeada': re.compile(
+        r'(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})'
+    ),
     'Seguridad: SQL Injection (f-string)': re.compile(
         r'(?i)(execute|query|cursor\.execute)\s*\(\s*f["\'].*\{.+\}.*["\']'
     ),
@@ -17,10 +20,9 @@ SECURITY_PATTERNS = {
     ),
 }
 
-# Patrones de fiabilidad
 RELIABILITY_PATTERNS = {
     'Fiabilidad: API/DB Sin Control': re.compile(
-        r'(?i)(\.execute\(|fetch\(|axios\.|http\.|request\()'
+        r'(?i)(\b\.execute\(|\bfetch\(|\baxios\.|\bhttp\.|\brequest\()'
     ),
 }
 
@@ -34,7 +36,9 @@ def get_all_reliability_patterns():
 
 def get_security_suggestion(pattern_name: str) -> tuple[str, str, str]:
     """Retorna (severidad, tag, sugerencia) para patrones de seguridad."""
-    if 'Hardcoded' in pattern_name:
+    if 'IP Hardcodeada' in pattern_name:
+        return ('Importante', 'important', 'IP privada hardcodeada. Usar variable de entorno ${HOST} en docker-compose o .env.')
+    elif 'Hardcoded' in pattern_name:
         return ('Crítico', 'critical', '¡RIESGO DE SEGURIDAD! Usar variables de entorno (.env).')
     elif 'SQL Injection' in pattern_name:
         return ('Crítico', 'critical', 'Posible SQL Injection. Usar consultas parametrizadas.')

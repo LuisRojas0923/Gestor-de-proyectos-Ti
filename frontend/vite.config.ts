@@ -10,6 +10,12 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    proxy: {
+      '/api/v2': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+      },
+    },
   },
   optimizeDeps: {
     exclude: ['lucide-react'],

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 import {
   Bar,
@@ -15,6 +15,14 @@ import {
 } from '../../../components/atoms';
 
 const QualityReport: React.FC<{ darkMode?: boolean }> = ({ darkMode }) => {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const controlComplianceData = [
     { name: 'C003-GT', cumplido: 95, total: 100 },
@@ -115,25 +123,27 @@ const QualityReport: React.FC<{ darkMode?: boolean }> = ({ darkMode }) => {
           </MaterialTypography>
         </MaterialCard.Header>
         <MaterialCard.Content>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={controlComplianceData}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis
-                dataKey="name"
-                tick={{ fill: darkMode ? '#a3a3a3' : '#525252' }}
-              />
-              <YAxis tick={{ fill: darkMode ? '#a3a3a3' : '#525252' }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: darkMode ? '#262626' : '#ffffff',
-                  border: darkMode ? '1px solid #404040' : '1px solid #e5e5e5',
-                  borderRadius: '8px',
-                  color: darkMode ? '#ffffff' : '#000000',
-                }}
-              />
-              <Bar dataKey="cumplido" fill="#00B388" name="Cumplido %" />
-            </BarChart>
-          </ResponsiveContainer>
+          {isMounted && (
+            <ResponsiveContainer width="100%" height={300} minWidth={0}>
+              <BarChart data={controlComplianceData}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: darkMode ? '#a3a3a3' : '#525252' }}
+                />
+                <YAxis tick={{ fill: darkMode ? '#a3a3a3' : '#525252' }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: darkMode ? '#262626' : '#ffffff',
+                    border: darkMode ? '1px solid #404040' : '1px solid #e5e5e5',
+                    borderRadius: '8px',
+                    color: darkMode ? '#ffffff' : '#000000',
+                  }}
+                />
+                <Bar dataKey="cumplido" fill="#00B388" name="Cumplido %" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </MaterialCard.Content>
       </MaterialCard>
 

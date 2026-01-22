@@ -1,6 +1,7 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 import { materialDesignTokens } from '../tokens';
+import { Text } from './Text';
 
 export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 
@@ -47,16 +48,18 @@ export const Icon: React.FC<IconProps> = ({
     const finalSize = tokens.icon.size[size] || tokens.icon.size.md;
 
     return (
-        <div
+        <Text
+            as="span"
             className={`inline-flex items-center justify-center shrink-0 ${onClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''} ${className}`}
             onClick={onClick}
+            color="inherit"
         >
             <IconComponent
                 size={finalSize}
                 color={finalColor}
                 strokeWidth={2}
             />
-        </div>
+        </Text>
     );
 };
 

@@ -42,7 +42,7 @@ const Login: React.FC = () => {
 
         try {
             // Consulta al endpoint ERP para validar empleado
-            const response = await axios.get(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.ERP_EMPLEADO(formData.username)}`);
+            const response = await axios.get(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.ERP_EMPLEADO(formData.username)}`); // [CONTROLADO]
             const employeeData = response.data;
 
             // Mapeo de datos del ERP al formato de usuario interno
@@ -82,7 +82,7 @@ const Login: React.FC = () => {
             params.append('username', formData.username);
             params.append('password', formData.password);
 
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_LOGIN}`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_LOGIN}`, { // [CONTROLADO]
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',

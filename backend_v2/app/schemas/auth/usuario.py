@@ -57,3 +57,14 @@ class LoginRequest(BaseModel):
     """Schema para la solicitud de login"""
     cedula: str
     contrasena: str
+
+
+class AnalistaCrear(BaseModel):
+    """Schema para solicitar la creación de un analista desde ERP"""
+    cedula: str = Field(..., max_length=50)
+
+
+class PasswordCambiar(BaseModel):
+    """Schema para cambiar la contraseña"""
+    contrasena_actual: str
+    nueva_contrasena: str = Field(..., min_length=8)

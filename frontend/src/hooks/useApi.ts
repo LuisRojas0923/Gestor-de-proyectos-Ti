@@ -38,7 +38,7 @@ export function useApi<T>() {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, { // [CONTROLADO]
         headers: {
           'Content-Type': 'application/json',
           ...options.headers,
@@ -47,37 +47,44 @@ export function useApi<T>() {
       });
 
       if (!response.ok) {
-        const errorMessage = getErrorMessage(response.status);
+        // Intentar extraer mensaje de error del cuerpo si existe
+        let body;
+        try { body = await response.json(); } catch { body = null; }
+
+        const errorMessage = body?.detail || body?.message || getErrorMessage(response.status);
+        console.error(`API Error [${response.status}] at ${url}:`, body);
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      const data = await response.json(); // [CONTROLADO]
       setState({ data, loading: false, error: null });
       return data;
     } catch (error) {
+      console.error(`Fetch Error at ${url}:`, error);
       let errorMessage: string = ERROR_MESSAGES.UNKNOWN_ERROR;
-      
-      if (error instanceof TypeError && error.message.includes('fetch')) {
+
+      if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('NetworkError'))) {
         errorMessage = ERROR_MESSAGES.NETWORK_ERROR;
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       setState({ data: null, loading: false, error: errorMessage });
-      
-      if (errorMessage === ERROR_MESSAGES.NETWORK_ERROR) {
+
+      // Notificar errores graves (red o servidor)
+      if (errorMessage === ERROR_MESSAGES.NETWORK_ERROR || errorMessage === ERROR_MESSAGES.SERVER_ERROR) {
         addNotification('error', errorMessage);
       }
-      
+
       return null;
     }
   }, []);
 
-  const get = useCallback((url: string) => request(url), [request]);
-  
+  const get = useCallback((url: string) => request(url), [request]); // [CONTROLADO]
+
   const post = useCallback(
     (url: string, data: any) =>
-      request(url, {
+      request(url, { // [CONTROLADO]
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -86,7 +93,7 @@ export function useApi<T>() {
 
   const put = useCallback(
     (url: string, data: any) =>
-      request(url, {
+      request(url, { // [CONTROLADO]
         method: 'PUT',
         body: JSON.stringify(data),
       }),
@@ -95,7 +102,7 @@ export function useApi<T>() {
 
   const patch = useCallback(
     (url: string, data: any) =>
-      request(url, {
+      request(url, { // [CONTROLADO]
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
@@ -104,7 +111,7 @@ export function useApi<T>() {
 
   const del = useCallback(
     (url: string) =>
-      request(url, {
+      request(url, { // [CONTROLADO]
         method: 'DELETE',
       }),
     [request]

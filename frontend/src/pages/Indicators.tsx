@@ -44,17 +44,34 @@ const Indicators: React.FC = () => {
     completion_rate: 0
   });
   const [analysts, setAnalysts] = useState<AnalystPerformance[]>([]);
+  const [advancedStats, setAdvancedStats] = useState({
+    avg_resolution_time: 0,
+    sla_compliance: 0,
+    total_resolved: 0,
+    priority_distribution: {} as Record<string, number>,
+    sla_limit_hours: 48
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [summaryData, performanceData] = await Promise.all([
+        const [summaryData, performanceData, advancedData] = await Promise.all([
           get(API_ENDPOINTS.TICKET_STATS_SUMMARY),
-          get(API_ENDPOINTS.TICKET_STATS_PERFORMANCE)
+          get(API_ENDPOINTS.TICKET_STATS_PERFORMANCE),
+          get(API_ENDPOINTS.TICKET_STATS_ADVANCED)
         ]);
         if (summaryData) setSummary(summaryData);
         if (performanceData) setAnalysts(performanceData);
+        if (advancedData) setAdvancedStats(advancedData);
       } catch (error) {
         console.error("Error cargando indicadores:", error);
       } finally {
@@ -108,6 +125,35 @@ const Indicators: React.FC = () => {
         />
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricCard
+          title="SLA Compliance"
+          value={`${advancedStats.sla_compliance}%`}
+          change={{ value: 2, type: 'increase' }}
+          icon={CheckCircle}
+          color="green"
+        />
+        <MetricCard
+          title="Prom. Resolución"
+          value={`${advancedStats.avg_resolution_time}h`}
+          change={{ value: 0.5, type: 'decrease' }}
+          icon={Clock}
+          color="blue"
+        />
+        <MetricCard
+          title="Tickets Resueltos"
+          value={advancedStats.total_resolved.toString()}
+          icon={TrendingUp}
+          color="blue"
+        />
+        <MetricCard
+          title="SLA Goal"
+          value={`< ${advancedStats.sla_limit_hours}h`}
+          icon={Activity}
+          color="blue"
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Ranking de Analistas */}
         <div className="lg:col-span-2 bg-[var(--color-surface)] rounded-[2.5rem] p-8 shadow-xl border border-[var(--color-border)]">
@@ -120,70 +166,73 @@ const Indicators: React.FC = () => {
           </div>
 
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <BarChart data={analysts as any[]}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '1.5rem', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}
-                  itemStyle={{ color: 'var(--color-text-primary)', fontWeight: 'bold' }}
-                  cursor={{ fill: 'var(--color-primary)', opacity: 0.05 }}
-                />
-                <Bar dataKey="performance_score" radius={[8, 8, 0, 0]} barSize={40}>
-                  {analysts.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? 'var(--color-primary)' : 'var(--color-primary-light)'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {isMounted && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+                <BarChart data={analysts as any[]}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '1.5rem', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}
+                    itemStyle={{ color: 'var(--color-text-primary)', fontWeight: 'bold' }}
+                    cursor={{ fill: 'var(--color-primary)', opacity: 0.05 }}
+                  />
+                  <Bar dataKey="performance_score" radius={[8, 8, 0, 0]} barSize={40}>
+                    {analysts.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={index === 0 ? 'var(--color-primary)' : 'var(--color-primary-light)'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
-        {/* Distribución de Carga */}
+        {/* Distribución por Prioridad */}
         <div className="bg-[var(--color-surface)] rounded-[2.5rem] p-8 shadow-xl border border-[var(--color-border)]">
-          <Title variant="h4" weight="bold" color="text-primary" className="mb-6">Distribución de Carga</Title>
+          <Title variant="h4" weight="bold" color="text-primary" className="mb-6">Carga por Prioridad</Title>
           <div className="h-[250px] w-full relative">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <PieChart>
-                <Pie
-                  data={analysts as any[]}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="total"
-                >
-                  {analysts.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={['var(--color-primary)', 'var(--color-primary-light)', 'var(--powder-blue)', 'var(--lavender)'][index % 4]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ borderRadius: '1.2rem', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {isMounted && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+                <PieChart>
+                  <Pie
+                    data={Object.entries(advancedStats.priority_distribution).map(([name, value]) => ({ name, value }))}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {Object.entries(advancedStats.priority_distribution).map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={['var(--color-error)', 'var(--color-warning)', 'var(--color-primary)', 'var(--color-success)'][index % 4]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ borderRadius: '1.2rem', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <Text variant="h3" weight="bold" color="text-primary">{(summary?.total || 0).toString()}</Text>
-              <Text variant="caption" weight="bold" color="text-secondary" className="uppercase opacity-40">Total Tickets</Text>
+              <Text variant="h3" weight="bold" color="text-primary">{advancedStats.total_resolved.toString()}</Text>
+              <Text variant="caption" weight="bold" color="text-secondary" className="uppercase opacity-40">Resolved</Text>
             </div>
           </div>
-
           <div className="mt-8 space-y-4">
-            {analysts.slice(0, 3).map((analyst, i) => {
-              const dotColor = ['var(--color-primary)', 'var(--color-primary-light)', 'var(--powder-blue)'][i % 3];
-              const dotStyle = { backgroundColor: dotColor };
-              return (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 rounded-full" style={dotStyle}></div>
-                    <Text variant="body2" weight="bold" color="text-secondary">{analyst.name}</Text>
-                  </div>
-                  <Text variant="body2" weight="bold" color="text-secondary" className="opacity-60 font-mono">{analyst.total} tks</Text>
+            {Object.entries(advancedStats.priority_distribution).map(([name, value], i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-3 h-3 rounded-full ${i % 4 === 0 ? 'bg-[var(--color-error)]' :
+                    i % 4 === 1 ? 'bg-[var(--color-warning)]' :
+                      i % 4 === 2 ? 'bg-[var(--color-primary)]' :
+                        'bg-[var(--color-success)]'
+                    }`}></div>
+                  <Text variant="body2" weight="bold" color="text-secondary">{name}</Text>
                 </div>
-              );
-            })}
+                <Text variant="body2" weight="bold" color="text-secondary" className="opacity-60 font-mono">{value}</Text>
+              </div>
+            ))}
           </div>
         </div>
       </div>

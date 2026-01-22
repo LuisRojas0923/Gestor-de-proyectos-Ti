@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Calendar, Search, Users } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { Activity } from '../../types';
 import { API_ENDPOINTS } from '../../config/api';
 import { Button, Select, Title, Text, Icon } from '../atoms';
+import MaterialCard from '../atoms/MaterialCard';
 
 interface AlertPanelProps {
   developmentId?: string;
@@ -18,8 +18,6 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
   showFilters = true,
   limit = 10
 }) => {
-  const { state } = useAppContext();
-  const { darkMode } = state;
   const { get } = useApi();
   const navigate = useNavigate();
 
@@ -84,7 +82,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
 
   if (loading) {
     return (
-      <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6 shadow-sm`}>
+      <MaterialCard className="p-6">
         <div className="animate-pulse">
           <div className="h-6 bg-gray-300 dark:bg-neutral-700 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
@@ -93,12 +91,12 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
             ))}
           </div>
         </div>
-      </div>
+      </MaterialCard>
     );
   }
 
   return (
-    <div className={`${darkMode ? 'bg-neutral-800' : 'bg-white'} border rounded-xl p-6 shadow-sm`}>
+    <MaterialCard className="p-6">
       <div className="flex items-center justify-between mb-6">
         <Title variant="h5" weight="bold">
           Actividades Recientes
@@ -142,10 +140,10 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
       <div className="space-y-4">
         {activities.length > 0 ? (
           activities.map((activity) => (
-            <div
+            <MaterialCard
               key={`${activity.tipo}-${activity.id}`}
-              className={`p-4 rounded-lg border transition-colors ${darkMode ? 'bg-neutral-700 border-neutral-600 hover:bg-neutral-600/50' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                }`}
+              className="p-4 border transition-colors bg-[var(--color-surface-variant)]/20 border-[var(--color-border)] hover:bg-[var(--color-surface-variant)]/30 dark:bg-[var(--color-surface-variant)]/50 dark:border-[var(--color-border)] dark:hover:bg-[var(--color-surface-variant)]"
+              elevation={0}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -207,7 +205,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
                   </Button>
                 </div>
               </div>
-            </div>
+            </MaterialCard>
           ))
         ) : (
           <div className="text-center py-12">
@@ -221,7 +219,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </MaterialCard>
   );
 };
 

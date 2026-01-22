@@ -13,8 +13,8 @@ const ApiDebug: React.FC = () => {
     setError(null);
 
     try {
-      console.log('Testing API call to /etapas/cycle-flow');
-      const result = await api.get('/etapas/cycle-flow');
+      console.log('Testing API call to /etapas/flujo-ciclo');
+      const result = await api.get('/etapas/flujo-ciclo');
       console.log('API result:', result);
       setData(result);
     } catch (err) {
@@ -31,7 +31,7 @@ const ApiDebug: React.FC = () => {
 
   return (
     <MaterialCard className="p-6">
-      <Title variant="h5" className="mb-4">Debug API - /etapas/cycle-flow</Title>
+      <Title variant="h5" className="mb-4">Debug API - /etapas/flujo-ciclo</Title>
 
       <div className="mb-4">
         <Button

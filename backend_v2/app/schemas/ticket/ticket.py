@@ -100,3 +100,47 @@ class ComentarioTicket(ComentarioTicketBase):
 
     class Config:
         from_attributes = True
+
+
+class HistorialTicketBase(BaseModel):
+    """Schema base para historial de ticket"""
+    ticket_id: str
+    usuario_id: Optional[str] = None
+    nombre_usuario: Optional[str] = None
+    accion: str
+    detalle: Optional[str] = None
+
+
+class HistorialTicket(HistorialTicketBase):
+    """Schema completo de historial"""
+    id: int
+    creado_en: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdjuntoTicketBase(BaseModel):
+    """Schema base para adjunto de ticket"""
+    ticket_id: str
+    nombre_archivo: str
+    tipo_mime: Optional[str] = None
+
+
+class AdjuntoTicketCrear(AdjuntoTicketBase):
+    """Schema para crear un adjunto (con Base64)"""
+    contenido_base64: str
+
+
+class AdjuntoTicket(AdjuntoTicketBase):
+    """Schema para respuesta de adjunto (sin el base64 pesado a menos que se pida)"""
+    id: int
+    creado_en: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdjuntoTicketCompleto(AdjuntoTicket):
+    """Schema detallado con el contenido binario/base64"""
+    contenido_base64: str

@@ -52,3 +52,32 @@ async def actualizar_desarrollo(
     """Actualiza un desarrollo existente"""
     # Lgica
     return {}
+
+
+@router.get("/informe-detallado-casos-portal")
+async def informe_detallado_casos_portal(
+    db: Session = Depends(obtener_db)
+):
+    """Retorna el informe detallado de casos para el portal"""
+    # Mock data compatible con usePortalReport.ts
+    return {
+        "total_casos": 2,
+        "summary": {
+            "status_distribution": {"En Desarrollo": 1, "Pruebas": 1},
+            "provider_distribution": {"TI Interno": 2}
+        },
+        "casos": [
+            {
+                "desarrollo_id": 101,
+                "nombre_desarrollo": "Mejora Login",
+                "notas_actividad": "En proceso de pruebas de integración",
+                "tipo_actividad": "Desarrollo",
+                "estado_actividad": "En Pruebas",
+                "nombre_etapa": "Pruebas QA",
+                "fecha_inicio_actividad": "2024-01-20",
+                "fecha_fin_actividad": "2024-01-25",
+                "tipo_actor": "Analista",
+                "proveedor": "TI Interno"
+            }
+        ]
+    }

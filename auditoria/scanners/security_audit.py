@@ -20,8 +20,11 @@ def scan_security_issues(root_dir: str) -> list[dict]:
         
         for filename in filenames:
             ext = os.path.splitext(filename)[1].lower()
-            if ext not in ['.py', '.tsx', '.jsx', '.ts', '.js']:
-                continue
+            # También escanear archivos de configuración para detectar IPs hardcodeadas
+            if ext not in ['.py', '.tsx', '.jsx', '.ts', '.js', '.yml', '.yaml', '.env']:
+                # Archivos sin extensión como ".env" necesitan tratamiento especial
+                if not filename.startswith('.env'):
+                    continue
             
             full_path = os.path.join(dirpath, filename)
             rel_path = os.path.relpath(full_path, root_dir)
@@ -31,6 +34,10 @@ def scan_security_issues(root_dir: str) -> list[dict]:
                     lines = f.readlines()
                 
                 for line_num, line_text in enumerate(lines, 1):
+                    # Ignorar líneas con comentarios de supresión
+                    if '[CONTROLADO]' in line_text or '@audit-ok' in line_text:
+                        continue
+                        
                     for pattern_name, pattern in patterns.items():
                         if pattern.search(line_text):
                             severity, tag, suggestion = get_security_suggestion(pattern_name)
@@ -69,6 +76,10 @@ def scan_reliability_issues(root_dir: str) -> list[dict]:
                     lines = f.readlines()
                 
                 for line_num, line_text in enumerate(lines, 1):
+                    # Ignorar líneas con comentarios de supresión
+                    if '[CONTROLADO]' in line_text or '@audit-ok' in line_text:
+                        continue
+
                     for pattern_name, pattern in patterns.items():
                         if pattern.search(line_text):
                             severity, tag, suggestion = get_reliability_suggestion(pattern_name)

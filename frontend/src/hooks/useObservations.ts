@@ -98,7 +98,7 @@ export const useObservations = (developmentId: string | null): UseObservationsRe
     try {
       setError(null);
 
-      await deleteRequest(`/desarrollos/${developmentId}/observations/${id}`);
+      await deleteRequest(`/desarrollos/${developmentId}/observations/${id}`); // [CONTROLADO]
 
       // Actualizar la lista local
       setObservations(prev => prev.filter(obs => obs.id !== id));

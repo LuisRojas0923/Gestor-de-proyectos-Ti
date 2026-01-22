@@ -13,13 +13,14 @@ import {
   Copy,
   Eye,
   EyeOff,
-  Type,
+  Users,
+  Shield,
+  Lock as LockIcon,
 } from 'lucide-react';
+import { AuthService } from '../services/AuthService';
 import { useAppContext } from '../context/AppContext';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { Title, Text, MaterialCard, Input, Button, Select, Switch } from '../components/atoms';
-import { materialDesignTokens } from '../components/tokens';
-import DesignSystemCatalog from './DesignSystemCatalog';
 
 const Settings: React.FC = () => {
   const { addNotification } = useNotifications();
@@ -57,23 +58,18 @@ const Settings: React.FC = () => {
 
   const [newToken, setNewToken] = useState({ name: '', description: '' });
   const [showTokenForm, setShowTokenForm] = useState(false);
-  const [showCatalog, setShowCatalog] = useState(false);
 
-  // Si estamos viendo el catálogo, renderizarlo directamente
-  if (showCatalog) {
-    return (
-      <div className="space-y-4">
-        <Button
-          variant="ghost"
-          onClick={() => setShowCatalog(false)}
-          className="mb-4"
-        >
-          ← Volver a Configuración
-        </Button>
-        <DesignSystemCatalog />
-      </div>
-    );
-  }
+  // Estados para nuevas funcionalidades
+  const [analystCedula, setAnalystCedula] = useState('');
+  const [isCreatingAnalyst, setIsCreatingAnalyst] = useState(false);
+
+  const [passwordForm, setPasswordForm] = useState({
+    actual: '',
+    nueva: '',
+    confirmar: ''
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
 
   const handleProfileUpdate = () => {
     // API call to update profile
@@ -122,6 +118,44 @@ const Settings: React.FC = () => {
     addNotification('success', 'Token eliminado');
   };
 
+  const handleCreateAnalyst = async () => {
+    if (!analystCedula) {
+      addNotification('error', 'Ingresa una cédula válida');
+      return;
+    }
+    setIsCreatingAnalyst(true);
+    try {
+      await AuthService.createAnalyst(analystCedula);
+      addNotification('success', 'Analista creado correctamente. Su contraseña inicial es su cédula.');
+      setAnalystCedula('');
+    } catch (err: any) {
+      addNotification('error', typeof err === 'string' ? err : 'Error al crear analista');
+    } finally {
+      setIsCreatingAnalyst(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordForm.nueva !== passwordForm.confirmar) {
+      addNotification('error', 'Las contraseñas no coinciden');
+      return;
+    }
+    if (passwordForm.nueva.length < 8) {
+      addNotification('error', 'La nueva contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      await AuthService.changePassword(passwordForm.actual, passwordForm.nueva);
+      addNotification('success', 'Contraseña cambiada exitosamente');
+      setPasswordForm({ actual: '', nueva: '', confirmar: '' });
+    } catch (err: any) {
+      addNotification('error', typeof err === 'string' ? err : 'Error al cambiar contraseña');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   const timezones = [
     { value: 'America/Mexico_City', label: 'Ciudad de México (GMT-6)' },
     { value: 'America/New_York', label: 'Nueva York (GMT-5)' },
@@ -133,92 +167,9 @@ const Settings: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <Title variant="h3" weight="bold" color="text-primary">
-          {t('settings')}
-        </Title>
-        <Button
-          variant="outline"
-          onClick={() => setShowCatalog(true)}
-          title="Ver todos los componentes del sistema de diseño"
-        >
-          📖 Catálogo de Diseño
-        </Button>
-      </div>
-
-      {/* Typography Settings */}
-      <MaterialCard className="bg-[var(--color-surface)] border-[var(--color-border)]">
-        <div className="p-6">
-          <div className="flex items-center space-x-3 mb-6">
-            <Title variant="h6" weight="bold" color="text-secondary">
-              <Type size={24} />
-            </Title>
-            <Title variant="h4" weight="bold" color="text-primary">
-              Configuración de Tipografía
-            </Title>
-          </div>
-
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Typeface Preview */}
-              <div>
-                <Text variant="subtitle2" weight="bold" color="text-secondary" className="mb-4">
-                  Fuente Principal
-                </Text>
-                <div className="p-4 rounded-lg bg-[var(--color-surface-variant)] border border-[var(--color-border)]">
-                  {(() => {
-                    const fontStyle = { fontFamily: 'var(--font-family-primary)' };
-                    return (
-                      <Text variant="h1" className="mb-2" style={fontStyle}>
-                        Aa
-                      </Text>
-                    );
-                  })()}
-                  <Text variant="body2" color="text-secondary">
-                    {materialDesignTokens.typography.fontFamily.primary}
-                  </Text>
-                </div>
-              </div>
-
-              {/* Scale Preview */}
-              <div className="space-y-4">
-                <Text variant="subtitle2" weight="bold" color="text-secondary" className="mb-4">
-                  Escala Tipográfica
-                </Text>
-                <div className="space-y-2">
-                  <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
-                    <Title variant="h4">H4 Heading</Title>
-                    <Text variant="caption" color="text-secondary">34px</Text>
-                  </div>
-                  <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
-                    <Title variant="h5">H5 Heading</Title>
-                    <Text variant="caption" color="text-secondary">24px</Text>
-                  </div>
-                  <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
-                    <Title variant="h6">H6 Heading</Title>
-                    <Text variant="caption" color="text-secondary">20px</Text>
-                  </div>
-                  <div className="flex items-baseline justify-between border-b border-[var(--color-border)] pb-2">
-                    <Text variant="body1">Body 1</Text>
-                    <Text variant="caption" color="text-secondary">16px</Text>
-                  </div>
-                  <div className="flex items-baseline justify-between">
-                    <Text variant="caption">Caption</Text>
-                    <Text variant="caption" color="text-secondary">12px</Text>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-6 border-t border-[var(--color-border)]">
-              <Text variant="body2" color="text-secondary" align="center">
-                El sistema de tipografía está centralizado. Cualquier cambio en los tokens se reflejará automáticamente en toda la aplicación.
-              </Text>
-            </div>
-          </div>
-        </div>
-      </MaterialCard>
-
+      <Title variant="h3" weight="bold" color="text-primary">
+        {t('settings')}
+      </Title>
       {/* Profile Settings */}
       <MaterialCard className="p-6">
         <div className="flex items-center space-x-3 mb-6">
@@ -349,6 +300,98 @@ const Settings: React.FC = () => {
           </Button>
         </div>
       </MaterialCard>
+
+      {/* Security - Change Password */}
+      <MaterialCard className="p-6">
+        <div className="flex items-center space-x-3 mb-6">
+          <Shield className="text-[var(--color-text-secondary)]" size={24} />
+          <Title variant="h5" weight="semibold" color="text-primary">
+            Seguridad y Acceso
+          </Title>
+        </div>
+
+        <div className="space-y-6">
+          <Text variant="body2" color="text-secondary" className="mb-4">
+            Mantenga su cuenta segura cambiando periódicamente su contraseña.
+          </Text>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              type="password"
+              label="Contraseña Actual"
+              value={passwordForm.actual}
+              onChange={(e) => setPasswordForm(prev => ({ ...prev, actual: e.target.value }))}
+              placeholder="••••••••"
+              icon={LockIcon}
+            />
+            <Input
+              type="password"
+              label="Nueva Contraseña"
+              value={passwordForm.nueva}
+              onChange={(e) => setPasswordForm(prev => ({ ...prev, nueva: e.target.value }))}
+              placeholder="••••••••"
+              icon={LockIcon}
+            />
+            <Input
+              type="password"
+              label="Confirmar Contraseña"
+              value={passwordForm.confirmar}
+              onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmar: e.target.value }))}
+              placeholder="••••••••"
+              icon={LockIcon}
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              onClick={handleChangePassword}
+              variant="primary"
+              loading={isChangingPassword}
+              icon={Key}
+            >
+              Cambiar Contraseña
+            </Button>
+          </div>
+        </div>
+      </MaterialCard>
+
+      {/* Admin Section - Only for Admin role */}
+      {user?.role === 'admin' && (
+        <MaterialCard className="p-6 border-2 border-[var(--color-primary)]/20 shadow-lg shadow-[var(--color-primary)]/5">
+          <div className="flex items-center space-x-3 mb-6">
+            <Users className="text-[var(--color-primary)]" size={24} />
+            <Title variant="h5" weight="bold" color="text-primary">
+              Administración de Analistas
+            </Title>
+          </div>
+
+          <div className="bg-[var(--color-primary)]/5 p-6 rounded-3xl border border-[var(--color-primary)]/10">
+            <div className="flex flex-col md:flex-row items-end gap-4">
+              <div className="flex-1">
+                <Input
+                  label="Cédula del nuevo analista (Semilla)"
+                  placeholder="Ej: 123456789"
+                  value={analystCedula}
+                  onChange={(e) => setAnalystCedula(e.target.value)}
+                  icon={User}
+                />
+                <Text variant="caption" className="mt-2 text-[var(--color-primary)]/60 font-medium italic">
+                  * El sistema validará los datos en Solid ERP automáticamente.
+                </Text>
+              </div>
+              <Button
+                onClick={handleCreateAnalyst}
+                variant="primary"
+                loading={isCreatingAnalyst}
+                icon={Users}
+                className="mb-1"
+              >
+                Crear Analista
+              </Button>
+            </div>
+          </div>
+        </MaterialCard>
+      )}
 
       {/* API Tokens */}
       <MaterialCard className="p-6">

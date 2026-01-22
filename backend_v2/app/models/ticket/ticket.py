@@ -64,6 +64,8 @@ class Ticket(Base):
     # Relaciones
     categoria = relationship("CategoriaTicket", back_populates="tickets")
     comentarios = relationship("ComentarioTicket", back_populates="ticket")
+    historial = relationship("HistorialTicket", back_populates="ticket", cascade="all, delete-orphan")
+    adjuntos = relationship("AdjuntoTicket", back_populates="ticket", cascade="all, delete-orphan")
     solicitud_desarrollo = relationship("SolicitudDesarrollo", back_populates="ticket", uselist=False)
 
 
@@ -96,3 +98,34 @@ class ComentarioTicket(Base):
     
     # Relaciones
     ticket = relationship("Ticket", back_populates="comentarios")
+
+
+class HistorialTicket(Base):
+    """Logs de actividad de tickets"""
+    __tablename__ = "historial_ticket"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(String(50), ForeignKey("tickets.id"), nullable=False)
+    usuario_id = Column(String(50))
+    nombre_usuario = Column(String(255))
+    accion = Column(String(100), nullable=False)  # ej: "Cambio de Estado", "Asignación"
+    detalle = Column(Text)  # ej: "De Nuevo a En Proceso"
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relaciones
+    ticket = relationship("Ticket", back_populates="historial")
+
+
+class AdjuntoTicket(Base):
+    """Archivos adjuntos en formato Base64"""
+    __tablename__ = "adjuntos_ticket"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(String(50), ForeignKey("tickets.id"), nullable=False)
+    nombre_archivo = Column(String(255), nullable=False)
+    contenido_base64 = Column(Text, nullable=False)  # Almacenamiento de binario como texto
+    tipo_mime = Column(String(100))
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relaciones
+    ticket = relationship("Ticket", back_populates="adjuntos")

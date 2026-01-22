@@ -10,6 +10,7 @@ import Settings from '../pages/Settings';
 import ServicePortal from '../pages/ServicePortal';
 import TicketDetail from '../pages/TicketDetail';
 import TicketManagement from '../pages/TicketManagement';
+import DesignSystemCatalog from '../pages/DesignSystemCatalog';
 import Login from '../pages/Login';
 import Layout from './layout/Layout';
 import ProtectedRoute from './auth/ProtectedRoute';
@@ -34,6 +35,7 @@ const AppRouter: React.FC = () => {
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
           <Route path="ticket-management" element={<TicketManagement />} />
+          <Route path="design-catalog" element={<DesignSystemCatalog />} />
         </Route>
 
         {/* Rutas del Portal (Usuarios Finales) */}
