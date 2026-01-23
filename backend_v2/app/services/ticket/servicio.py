@@ -13,6 +13,7 @@ from app.models.ticket.ticket import (
     ComentarioTicket,
     CategoriaTicket,
     SolicitudDesarrollo,
+    ControlCambios,
     HistorialTicket,
     AdjuntoTicket,
     TicketCrear,
@@ -165,6 +166,19 @@ class ServicioTicket:
                     justificacion_ia=ticket_data.justificacion_ia
                 )
                 db.add(solicitud)
+                
+            if ticket_data.categoria_id == "control_cambios" or (ticket_data.tipo_objeto and ticket_data.accion_requerida):
+                control = ControlCambios(
+                    ticket_id=ticket_data.id,
+                    desarrollo_id=ticket_data.desarrollo_id,
+                    tipo_objeto=ticket_data.tipo_objeto or "No especificado",
+                    accion_requerida=ticket_data.accion_requerida or "No especificada",
+                    impacto_operativo=ticket_data.impacto_operativo or "Bajo",
+                    justificacion=ticket_data.justificacion_cambio or "",
+                    descripcion_cambio=ticket_data.descripcion_cambio or "",
+                    fecha_sugerida=ticket_data.fecha_sugerida
+                )
+                db.add(control)
                 
             await db.commit()
             await db.refresh(nuevo_ticket)

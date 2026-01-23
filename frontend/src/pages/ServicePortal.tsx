@@ -45,50 +45,57 @@ const ServicePortal: React.FC = () => {
             id: 'soporte_hardware',
             name: 'Soporte de Hardware',
             icon: <img src={imgHardware} alt="Hardware" className="w-full h-full object-contain p-1" />,
-            description: 'Problemas físicos: PC, laptop, impresora.',
-            form_type: 'support'
+            description: 'Problemas físicos: PC, laptop, monitor.',
+            form_type: 'support',
+            section: 'soporte'
         },
         {
             id: 'soporte_software',
             name: 'Soporte de Software',
             icon: <img src={imgSoftware} alt="Software" className="w-full h-full object-contain p-1" />,
-            description: 'Instalaciones, desinstalaciones o errores de software.',
-            form_type: 'support'
+            description: 'Instalaciones, Office, Windows, antivirus.',
+            form_type: 'support',
+            section: 'soporte'
         },
         {
             id: 'soporte_impresoras',
             name: 'Soporte de Impresoras',
             icon: <img src={imgImpresora} alt="Impresoras" className="w-full h-full object-contain p-1" />,
-            description: 'Configuración, atascos de papel, cambio de toner y mantenimiento.',
-            form_type: 'support'
+            description: 'Configuración, atascos, toner y mantenimiento.',
+            form_type: 'support',
+            section: 'soporte'
         },
         {
             id: 'perifericos',
             name: 'Periféricos y Equipos',
             icon: <img src={imgPerifericos} alt="Periféricos" className="w-full h-full object-contain p-1" />,
-            description: 'Solicitud de mouse, teclado, monitor, toner.',
-            form_type: 'asset'
-        },
-        {
-            id: 'soporte_mejora',
-            name: 'Soporte Mejoramiento',
-            icon: <img src={imgMejora} alt="Mejoramiento" className="w-full h-full object-contain p-1" />,
-            description: 'Ajustes a desarrollos existentes (Excel, Solid, aplicaciones internas).',
-            form_type: 'support'
-        },
-        {
-            id: 'nuevos_desarrollos_mejora',
-            name: 'Nuevos Desarrollos',
-            icon: <img src={imgDesarrollo} alt="Desarrollos" className="w-full h-full object-contain p-1" />,
-            description: 'Creación de nuevos sistemas o automatización de procesos.',
-            form_type: 'development'
+            description: 'Solicitud de mouse, teclado, monitor, diademas.',
+            form_type: 'asset',
+            section: 'soporte'
         },
         {
             id: 'compra_licencias',
             name: 'Compra de Licencias',
             icon: <img src={imgLicencias} alt="Licencias" className="w-full h-full object-contain p-1" />,
             description: 'Solicitud de licencias de software y paquetería.',
-            form_type: 'asset'
+            form_type: 'asset',
+            section: 'soporte'
+        },
+        {
+            id: 'control_cambios',
+            name: 'Control de Cambios',
+            icon: <img src={imgMejora} alt="Mejoramiento" className="w-full h-full object-contain p-1" />,
+            description: '¿Necesitas ajustar algo que ya funciona? Solicita cambios a módulos de SOLID aquí.',
+            form_type: 'change_control',
+            section: 'mejoramiento'
+        },
+        {
+            id: 'nuevos_desarrollos_mejora',
+            name: 'Nuevos Desarrollos',
+            icon: <img src={imgDesarrollo} alt="Desarrollos" className="w-full h-full object-contain p-1" />,
+            description: 'Creación de nuevos sistemas o automatización de procesos.',
+            form_type: 'development',
+            section: 'mejoramiento'
         }
     ];
 
@@ -101,6 +108,7 @@ const ServicePortal: React.FC = () => {
                     name: cat.nombre || cat.name || '',
                     description: cat.descripcion || cat.description || '',
                     form_type: cat.tipo_formulario || cat.form_type || 'support',
+                    section: defaultCategories.find(d => d.id === cat.id)?.section || 'soporte',
                     icon: defaultCategories.find(d => d.id === cat.id)?.icon || <Plus />
                 }));
                 setCategories(mapped.length > 0 ? mapped : defaultCategories);
@@ -165,6 +173,11 @@ const ServicePortal: React.FC = () => {
                 queNecesitaFinal = `${seccion4}\n\n${seccion5}\n\n${seccion6}`;
             }
 
+            if (selectedCategory.form_type === 'change_control') {
+                asuntoFinal = fd.get('asunto') as string;
+                descripcionFinal = fd.get('descripcion_cambio') as string;
+            }
+
             const payload: any = {
                 id: ticketId,
                 categoria_id: selectedCategory.id,
@@ -176,11 +189,19 @@ const ServicePortal: React.FC = () => {
                 area_creador: user.area,
                 cargo_creador: user.cargo,
                 sede_creador: user.sede,
-                prioridad: 'Media',
-                // Optional fields for development requests
+                prioridad: (fd.get('nivel_prioridad') || 'Media') as string,
+                // Campos de Desarrollo
                 que_necesita: queNecesitaFinal,
                 porque: fd.get('porque') || null,
                 paraque: fd.get('paraque') || null,
+                // Campos de Control de Cambios
+                desarrollo_id: fd.get('desarrollo_id') || null,
+                tipo_objeto: fd.get('tipo_objeto') || null,
+                accion_requerida: fd.get('accion_requerida') || null,
+                impacto_operativo: fd.get('impacto_operativo') || null,
+                justificacion_cambio: fd.get('justificacion_cambio') || null,
+                descripcion_cambio: fd.get('descripcion_cambio') || null,
+                fecha_sugerida: fd.get('fecha_sugerida') || null,
                 justificacion_ia: null
             };
 

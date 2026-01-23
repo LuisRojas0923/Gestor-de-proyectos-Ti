@@ -3,7 +3,7 @@ Modelos de Tickets - Backend V2 (SQLModel)
 Unifica modelos y schemas en una sola definicion
 """
 from typing import Optional, List, Any
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from sqlmodel import SQLModel, Field, Relationship, JSON
 from sqlalchemy import Column
@@ -72,6 +72,7 @@ class Ticket(SQLModel, table=True):
     historial: List["HistorialTicket"] = Relationship(back_populates="ticket", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     adjuntos: List["AdjuntoTicket"] = Relationship(back_populates="ticket", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     solicitud_desarrollo: Optional["SolicitudDesarrollo"] = Relationship(back_populates="ticket", sa_relationship_kwargs={"uselist": False})
+    control_cambios: Optional["ControlCambios"] = Relationship(back_populates="ticket", sa_relationship_kwargs={"uselist": False})
 
 
 class SolicitudDesarrollo(SQLModel, table=True):
@@ -87,6 +88,27 @@ class SolicitudDesarrollo(SQLModel, table=True):
     creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
     
     ticket: Optional[Ticket] = Relationship(back_populates="solicitud_desarrollo")
+
+
+class ControlCambios(SQLModel, table=True):
+    """Solicitudes de cambio con campos estructurados individualmente"""
+    __tablename__ = "control_cambios"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: str = Field(foreign_key="tickets.id", max_length=50)
+    desarrollo_id: Optional[str] = Field(foreign_key="desarrollos.id", max_length=50)
+    
+    # Clasificación precisa requerida por el usuario
+    tipo_objeto: str = Field(max_length=50) # Informe, Ventana, etc.
+    accion_requerida: str = Field(max_length=50) # Corregir, Agregar, etc.
+    
+    # Datos técnicos individuales
+    impacto_operativo: str = Field(default="Bajo", max_length=20)
+    justificacion: str = Field(sa_column_kwargs={"type_": "TEXT"})
+    descripcion_cambio: str = Field(sa_column_kwargs={"type_": "TEXT"})
+    fecha_sugerida: Optional[date] = Field(default=None)
+    
+    ticket: Optional[Ticket] = Relationship(back_populates="control_cambios")
 
 
 class ComentarioTicket(SQLModel, table=True):
@@ -158,6 +180,15 @@ class TicketCrear(TicketBase):
     porque: Optional[str] = None
     paraque: Optional[str] = None
     justificacion_ia: Optional[str] = None
+    
+    # Campos para Control de Cambios
+    desarrollo_id: Optional[str] = None
+    tipo_objeto: Optional[str] = None
+    accion_requerida: Optional[str] = None
+    impacto_operativo: Optional[str] = None
+    justificacion_cambio: Optional[str] = None
+    descripcion_cambio: Optional[str] = None
+    fecha_sugerida: Optional[date] = None
 
 
 class TicketActualizar(SQLModel):

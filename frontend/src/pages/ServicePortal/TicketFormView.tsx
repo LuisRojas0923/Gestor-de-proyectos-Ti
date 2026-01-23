@@ -1,10 +1,12 @@
-import React from 'react';
-import { ArrowLeft, User, Briefcase, MapPin, Mail, FileText, Clock, ChevronRight, Paperclip, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, User, Briefcase, MapPin, Mail, FileText, Clock, ChevronRight, Paperclip, X, Search, Database } from 'lucide-react';
 import { FormField, TextAreaField } from './Common';
 import { Button, Select, Title, Text, Icon, Input } from '../../components/atoms';
+import axios from 'axios';
+import { API_CONFIG } from '../../config/api';
 
 interface Category {
-    id: string; name: string; icon: React.ReactNode; form_type: 'support' | 'development' | 'asset';
+    id: string; name: string; icon: React.ReactNode; form_type: 'support' | 'development' | 'asset' | 'change_control';
 }
 
 interface UserData {
@@ -22,7 +24,22 @@ interface TicketFormViewProps {
 }
 
 const TicketFormView: React.FC<TicketFormViewProps> = ({ selectedCategory, user, onSubmit, onBack, isLoading, selectedFiles, onFilesChange }) => {
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [developments, setDevelopments] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (selectedCategory.form_type === 'change_control') {
+            const fetchDevelopments = async () => {
+                try {
+                    const res = await axios.get(`${API_CONFIG.BASE_URL}/desarrollos/`);
+                    setDevelopments(res.data);
+                } catch (err) {
+                    console.error("Error fetching developments:", err);
+                }
+            };
+            fetchDevelopments();
+        }
+    }, [selectedCategory.form_type]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -130,6 +147,86 @@ const TicketFormView: React.FC<TicketFormViewProps> = ({ selectedCategory, user,
                                     <TextAreaField label="¿Qué otros procesos del sistema deben actualizarse automáticamente?" name="impacto_modulos" placeholder="Impacto en otros módulos..." rows={2} />
                                     <TextAreaField label="¿El sistema debe generar algún PDF, ticket o alerta por correo?" name="notificaciones_docs" placeholder="Documentos y notificaciones..." rows={2} />
                                     <TextAreaField label="¿Qué información consolidada necesita extraer? (Reportabilidad y KPIs)" name="reportabilidad" placeholder="Métricas esperadas..." rows={3} />
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCategory.form_type === 'change_control' && (
+                            <div className="space-y-8 bg-emerald-50/30 dark:bg-emerald-900/10 p-8 rounded-3xl border border-emerald-200 dark:border-emerald-800">
+                                <div className="space-y-4">
+                                    <div className="flex items-center space-x-3 mb-2">
+                                        <Icon name={Database} size="sm" className="text-emerald-500" />
+                                        <Title variant="h5" className="text-emerald-600 dark:text-emerald-400">1. Origen del Cambio</Title>
+                                    </div>
+                                    <Select
+                                        label="Proyecto / Desarrollo a Modificar"
+                                        name="desarrollo_id"
+                                        required
+                                        options={[
+                                            { value: '', label: '-- Seleccione un proyecto --' },
+                                            ...developments.map(d => ({ value: d.id, label: `${d.id} - ${d.name}` }))
+                                        ]}
+                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Select
+                                            label="Tipo de Objeto"
+                                            name="tipo_objeto"
+                                            required
+                                            options={[
+                                                { value: 'Informe/Reporte', label: 'Informe / Reporte' },
+                                                { value: 'Proceso/Ventana', label: 'Proceso / Ventana' },
+                                                { value: 'Maestro/Parametro', label: 'Maestro / Parámetro' },
+                                                { value: 'Interfaz/API', label: 'Interfaz / API' }
+                                            ]}
+                                        />
+                                        <Select
+                                            label="Acción Requerida"
+                                            name="accion_requerida"
+                                            required
+                                            options={[
+                                                { value: 'Corregir Error', label: 'Corregir Error' },
+                                                { value: 'Agregar Funcionalidad', label: 'Nueva Funcionalidad' },
+                                                { value: 'Modificar Existente', label: 'Modificar Existente' },
+                                                { value: 'Eliminar Campo', label: 'Eliminar Campo / Lógica' }
+                                            ]}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 border-t border-emerald-100 dark:border-emerald-800 pt-4">
+                                    <div className="flex items-center space-x-3 mb-2">
+                                        <Icon name={FileText} size="sm" className="text-emerald-500" />
+                                        <Title variant="h5" className="text-emerald-600 dark:text-emerald-400">2. Detalle de la Solicitud</Title>
+                                    </div>
+                                    <FormField label="Título del Ajuste" name="asunto" placeholder="Ej: Agregar NIT en Informe de Gastos" isRequired icon={Search} />
+                                    <TextAreaField
+                                        label="Descripción del Cambio"
+                                        name="descripcion_cambio"
+                                        placeholder="Describa qué se debe cambiar a nivel técnico o funcional..."
+                                        rows={3}
+                                        isRequired
+                                    />
+                                    <TextAreaField
+                                        label="Justificación de Negocio"
+                                        name="justificacion_cambio"
+                                        placeholder="¿Por qué es necesario este cambio? ¿Qué impacto genera si no se hace?"
+                                        rows={2}
+                                        isRequired
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-emerald-100 dark:border-emerald-800 pt-4">
+                                    <Select
+                                        label="Impacto Operativo"
+                                        name="impacto_operativo"
+                                        defaultValue="Medio"
+                                        options={[
+                                            { value: 'Bajo', label: 'Bajo (Estético / Informativo)' },
+                                            { value: 'Medio', label: 'Medio (Funcionalidad importante)' },
+                                            { value: 'Alto', label: 'Alto (Bloqueante / Error crítico)' }
+                                        ]}
+                                    />
+                                    <FormField label="Fecha Sugerida de Entrega" name="fecha_sugerida" type="date" icon={Clock} />
                                 </div>
                             </div>
                         )}
