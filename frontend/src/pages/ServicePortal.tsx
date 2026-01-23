@@ -173,6 +173,9 @@ const ServicePortal: React.FC = () => {
                 creador_id: user.id,
                 nombre_creador: user.name,
                 correo_creador: user.email,
+                area_creador: user.area,
+                cargo_creador: user.cargo,
+                sede_creador: user.sede,
                 prioridad: 'Media',
                 // Optional fields for development requests
                 que_necesita: queNecesitaFinal,

@@ -1,131 +1,205 @@
 """
-Modelos de Tickets - Backend V2
+Modelos de Tickets - Backend V2 (SQLModel)
+Unifica modelos y schemas en una sola definicion
 """
-from sqlalchemy import Column, String, DateTime, Integer, Text, ForeignKey, Boolean, DECIMAL
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from typing import Optional, List, Any
+from datetime import datetime
+from decimal import Decimal
+from sqlmodel import SQLModel, Field, Relationship, JSON
+from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSONB
-from app.database import Base
 
 
-class CategoriaTicket(Base):
+# --- Modelos de Base de Datos (table=True) ---
+
+class CategoriaTicket(SQLModel, table=True):
     """Categorias de tickets de soporte"""
     __tablename__ = "categorias_ticket"
     
-    id = Column(String(50), primary_key=True)
-    nombre = Column(String(100), nullable=False)
-    descripcion = Column(Text)
-    icono = Column(String(50))
-    tipo_formulario = Column(String(50), nullable=False)
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    id: str = Field(primary_key=True, max_length=50)
+    nombre: str = Field(max_length=100)
+    descripcion: Optional[str] = Field(default=None)
+    icono: Optional[str] = Field(default=None, max_length=50)
+    tipo_formulario: str = Field(max_length=50)
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
     
     # Relaciones
-    tickets = relationship("Ticket", back_populates="categoria")
+    tickets: List["Ticket"] = Relationship(back_populates="categoria")
 
 
-class Ticket(Base):
+class Ticket(SQLModel, table=True):
     """Tickets de soporte"""
     __tablename__ = "tickets"
     
-    id = Column(String(50), primary_key=True)
-    categoria_id = Column(String(50), ForeignKey("categorias_ticket.id"), nullable=False)
-    asunto = Column(String(255), nullable=False)
-    descripcion = Column(Text, nullable=False)
-    prioridad = Column(String(20), default="Media")
-    estado = Column(String(50), default="Nuevo")
+    id: str = Field(primary_key=True, max_length=50)
+    categoria_id: str = Field(foreign_key="categorias_ticket.id", max_length=50)
+    asunto: str = Field(max_length=255)
+    descripcion: str
+    prioridad: str = Field(default="Media", max_length=20)
+    estado: str = Field(default="Abierto", max_length=50)
     
     # Datos del solicitante
-    creador_id = Column(String(50), nullable=False)
-    nombre_creador = Column(String(255))
-    correo_creador = Column(String(255))
-    area_creador = Column(String(100))
-    cargo_creador = Column(String(100))
-    sede_creador = Column(String(100))
+    creador_id: str = Field(max_length=50)
+    nombre_creador: Optional[str] = Field(default=None, max_length=255)
+    correo_creador: Optional[str] = Field(default=None, max_length=255)
+    area_creador: Optional[str] = Field(default=None, max_length=100)
+    cargo_creador: Optional[str] = Field(default=None, max_length=100)
+    sede_creador: Optional[str] = Field(default=None, max_length=100)
     
     # Asignacion y resolucion
-    asignado_a = Column(String(255))
-    diagnostico = Column(Text)
-    resolucion = Column(Text)
-    notas = Column(Text)
-    horas_tiempo_empleado = Column(DECIMAL(8, 2))
+    asignado_a: Optional[str] = Field(default=None, max_length=255)
+    diagnostico: Optional[str] = Field(default=None)
+    resolucion: Optional[str] = Field(default=None)
+    notas: Optional[str] = Field(default=None)
+    horas_tiempo_empleado: Optional[Decimal] = Field(default=None)
     
     # Datos adicionales
-    desarrollo_id = Column(String(50), ForeignKey("desarrollos.id"))
-    datos_extra = Column(JSONB)
+    desarrollo_id: Optional[str] = Field(default=None, max_length=50)  # FK removida - tabla no existe
+    datos_extra: Optional[dict] = Field(default=None, sa_column=Column(JSONB))
+
     
     # Fechas
-    fecha_entrega_ideal = Column(DateTime(timezone=True))
-    fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
-    fecha_cierre = Column(DateTime(timezone=True))
-    resuelto_en = Column(DateTime(timezone=True))
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
-    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
+    fecha_entrega_ideal: Optional[datetime] = Field(default=None)
+    fecha_creacion: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    fecha_cierre: Optional[datetime] = Field(default=None)
+    resuelto_en: Optional[datetime] = Field(default=None)
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    actualizado_en: Optional[datetime] = Field(default=None)
     
     # Relaciones
-    categoria = relationship("CategoriaTicket", back_populates="tickets")
-    comentarios = relationship("ComentarioTicket", back_populates="ticket")
-    historial = relationship("HistorialTicket", back_populates="ticket", cascade="all, delete-orphan")
-    adjuntos = relationship("AdjuntoTicket", back_populates="ticket", cascade="all, delete-orphan")
-    solicitud_desarrollo = relationship("SolicitudDesarrollo", back_populates="ticket", uselist=False)
+    categoria: Optional[CategoriaTicket] = Relationship(back_populates="tickets")
+    comentarios: List["ComentarioTicket"] = Relationship(back_populates="ticket")
+    historial: List["HistorialTicket"] = Relationship(back_populates="ticket", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    adjuntos: List["AdjuntoTicket"] = Relationship(back_populates="ticket", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    solicitud_desarrollo: Optional["SolicitudDesarrollo"] = Relationship(back_populates="ticket", sa_relationship_kwargs={"uselist": False})
 
 
-class SolicitudDesarrollo(Base):
+class SolicitudDesarrollo(SQLModel, table=True):
     """Detalle para solicitudes de desarrollo"""
     __tablename__ = "solicitudes_desarrollo"
     
-    id = Column(Integer, primary_key=True, index=True)
-    ticket_id = Column(String(50), ForeignKey("tickets.id"), nullable=False)
-    que_necesita = Column(Text)
-    porque = Column(Text)
-    paraque = Column(Text)
-    justificacion_ia = Column(Text)
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: str = Field(foreign_key="tickets.id", max_length=50)
+    que_necesita: Optional[str] = Field(default=None)
+    porque: Optional[str] = Field(default=None)
+    paraque: Optional[str] = Field(default=None)
+    justificacion_ia: Optional[str] = Field(default=None)
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
     
-    ticket = relationship("Ticket", back_populates="solicitud_desarrollo")
+    ticket: Optional[Ticket] = Relationship(back_populates="solicitud_desarrollo")
 
 
-class ComentarioTicket(Base):
+class ComentarioTicket(SQLModel, table=True):
     """Comentarios en tickets"""
     __tablename__ = "comentarios_ticket"
     
-    id = Column(Integer, primary_key=True, index=True)
-    ticket_id = Column(String(50), ForeignKey("tickets.id"), nullable=False)
-    comentario = Column(Text, nullable=False)
-    es_interno = Column(Boolean, default=False)
-    usuario_id = Column(String(50))
-    nombre_usuario = Column(String(255))
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: str = Field(foreign_key="tickets.id", max_length=50)
+    comentario: str
+    es_interno: bool = Field(default=False)
+    usuario_id: Optional[str] = Field(default=None, max_length=50)
+    nombre_usuario: Optional[str] = Field(default=None, max_length=255)
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
     
-    # Relaciones
-    ticket = relationship("Ticket", back_populates="comentarios")
+    ticket: Optional[Ticket] = Relationship(back_populates="comentarios")
 
 
-class HistorialTicket(Base):
+class HistorialTicket(SQLModel, table=True):
     """Logs de actividad de tickets"""
     __tablename__ = "historial_ticket"
     
-    id = Column(Integer, primary_key=True, index=True)
-    ticket_id = Column(String(50), ForeignKey("tickets.id"), nullable=False)
-    usuario_id = Column(String(50))
-    nombre_usuario = Column(String(255))
-    accion = Column(String(100), nullable=False)  # ej: "Cambio de Estado", "Asignación"
-    detalle = Column(Text)  # ej: "De Nuevo a En Proceso"
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: str = Field(foreign_key="tickets.id", max_length=50)
+    usuario_id: Optional[str] = Field(default=None, max_length=50)
+    nombre_usuario: Optional[str] = Field(default=None, max_length=255)
+    accion: str = Field(max_length=100)
+    detalle: Optional[str] = Field(default=None)
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
     
-    # Relaciones
-    ticket = relationship("Ticket", back_populates="historial")
+    ticket: Optional[Ticket] = Relationship(back_populates="historial")
 
 
-class AdjuntoTicket(Base):
+class AdjuntoTicket(SQLModel, table=True):
     """Archivos adjuntos en formato Base64"""
     __tablename__ = "adjuntos_ticket"
     
-    id = Column(Integer, primary_key=True, index=True)
-    ticket_id = Column(String(50), ForeignKey("tickets.id"), nullable=False)
-    nombre_archivo = Column(String(255), nullable=False)
-    contenido_base64 = Column(Text, nullable=False)  # Almacenamiento de binario como texto
-    tipo_mime = Column(String(100))
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ticket_id: str = Field(foreign_key="tickets.id", max_length=50)
+    nombre_archivo: str = Field(max_length=255)
+    contenido_base64: str
+    tipo_mime: Optional[str] = Field(default=None, max_length=100)
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
     
-    # Relaciones
-    ticket = relationship("Ticket", back_populates="adjuntos")
+    ticket: Optional[Ticket] = Relationship(back_populates="adjuntos")
+
+
+# --- Schemas de Validacion (table=False) ---
+
+class TicketBase(SQLModel):
+    """Schema base para ticket"""
+    categoria_id: str
+    asunto: str
+    descripcion: str
+    prioridad: str = "Media"
+    estado: str = "Abierto"
+    creador_id: str
+    nombre_creador: Optional[str] = None
+    correo_creador: Optional[str] = None
+    area_creador: Optional[str] = None
+    cargo_creador: Optional[str] = None
+    sede_creador: Optional[str] = None
+    datos_extra: Optional[dict] = None
+
+
+class TicketCrear(TicketBase):
+    """Schema para crear un ticket"""
+    id: str
+    que_necesita: Optional[str] = None
+    porque: Optional[str] = None
+    paraque: Optional[str] = None
+    justificacion_ia: Optional[str] = None
+
+
+class TicketActualizar(SQLModel):
+    """Schema para actualizar un ticket"""
+    asunto: Optional[str] = None
+    descripcion: Optional[str] = None
+    prioridad: Optional[str] = None
+    estado: Optional[str] = None
+    asignado_a: Optional[str] = None
+    diagnostico: Optional[str] = None
+    resolucion: Optional[str] = None
+    notas: Optional[str] = None
+    horas_tiempo_empleado: Optional[Decimal] = None
+
+
+class TicketPublico(TicketBase):
+    """Schema publico de ticket (respuesta)"""
+    id: str
+    asignado_a: Optional[str] = None
+    diagnostico: Optional[str] = None
+    resolucion: Optional[str] = None
+    notas: Optional[str] = None
+    horas_tiempo_empleado: Optional[Decimal] = None
+    fecha_entrega_ideal: Optional[datetime] = None
+    fecha_creacion: Optional[datetime] = None
+    fecha_cierre: Optional[datetime] = None
+    resuelto_en: Optional[datetime] = None
+    creado_en: Optional[datetime] = None
+    actualizado_en: Optional[datetime] = None
+
+
+class ComentarioCrear(SQLModel):
+    """Schema para crear un comentario"""
+    comentario: str
+    es_interno: bool = False
+    usuario_id: Optional[str] = None
+    nombre_usuario: Optional[str] = None
+
+
+class AdjuntoCrear(SQLModel):
+    """Schema para crear un adjunto"""
+    ticket_id: str
+    nombre_archivo: str
+    contenido_base64: str
+    tipo_mime: Optional[str] = None

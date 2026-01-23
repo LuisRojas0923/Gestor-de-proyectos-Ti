@@ -5,7 +5,7 @@ import { useAppContext } from '../context/AppContext';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
-export type TicketStatus = 'Nuevo' | 'Abierto' | 'En Proceso' | 'Pendiente Info' | 'Escalado' | 'Resuelto' | 'Cerrado';
+export type TicketStatus = 'Abierto' | 'Asignado' | 'En Proceso' | 'Pendiente Info' | 'Escalado' | 'Resuelto' | 'Cerrado';
 
 export interface Ticket {
     id: string;

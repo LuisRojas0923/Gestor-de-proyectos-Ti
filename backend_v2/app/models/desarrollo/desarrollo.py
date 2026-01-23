@@ -1,84 +1,145 @@
 """
-Modelos de Desarrollo - Backend V2
-Incluye: Desarrollo, Fase, Etapa, Responsable
+Modelos de Desarrollo - Backend V2 (SQLModel)
 """
-from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text, ForeignKey, DECIMAL, Date
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-from app.database import Base
+from typing import Optional, List
+from datetime import datetime, date
+from decimal import Decimal
+from sqlmodel import SQLModel, Field, Relationship
 
 
-class FaseDesarrollo(Base):
+# --- Modelos de Base de Datos (table=True) ---
+
+class FaseDesarrollo(SQLModel, table=True):
     """Fases del ciclo de desarrollo"""
     __tablename__ = "fases_desarrollo"
     
-    id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String(100), nullable=False)
-    codigo = Column(String(20), unique=True, nullable=False)
-    orden = Column(Integer, nullable=False)
-    descripcion = Column(Text)
-    color = Column(String(20), default="#3498db")
-    esta_activa = Column(Boolean, default=True)
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    id: Optional[int] = Field(default=None, primary_key=True)
+    nombre: str = Field(max_length=100)
+    codigo: str = Field(unique=True, max_length=20)
+    orden: int
+    descripcion: Optional[str] = Field(default=None)
+    color: str = Field(default="#3498db", max_length=20)
+    esta_activa: bool = Field(default=True)
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
     
     # Relaciones
-    etapas = relationship("EtapaDesarrollo", back_populates="fase")
-    desarrollos = relationship("Desarrollo", back_populates="fase_actual")
+    etapas: List["EtapaDesarrollo"] = Relationship(back_populates="fase")
+    desarrollos: List["Desarrollo"] = Relationship(back_populates="fase_actual")
 
 
-class EtapaDesarrollo(Base):
+class EtapaDesarrollo(SQLModel, table=True):
     """Etapas dentro de cada fase"""
     __tablename__ = "etapas_desarrollo"
     
-    id = Column(Integer, primary_key=True, index=True)
-    fase_id = Column(Integer, ForeignKey("fases_desarrollo.id"), nullable=False)
-    nombre = Column(String(100), nullable=False)
-    codigo = Column(String(20), nullable=False)
-    orden = Column(Integer, nullable=False)
-    descripcion = Column(Text)
-    duracion_estimada_dias = Column(Integer)
-    porcentaje_inicio = Column(DECIMAL(5, 2), default=0)
-    porcentaje_fin = Column(DECIMAL(5, 2), default=100)
-    esta_activa = Column(Boolean, default=True)
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    id: Optional[int] = Field(default=None, primary_key=True)
+    fase_id: int = Field(foreign_key="fases_desarrollo.id")
+    nombre: str = Field(max_length=100)
+    codigo: str = Field(max_length=20)
+    orden: int
+    descripcion: Optional[str] = Field(default=None)
+    duracion_estimada_dias: Optional[int] = Field(default=None)
+    porcentaje_inicio: Decimal = Field(default=Decimal("0.0"))
+    porcentaje_fin: Decimal = Field(default=Decimal("100.0"))
+    esta_activa: bool = Field(default=True)
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
     
     # Relaciones
-    fase = relationship("FaseDesarrollo", back_populates="etapas")
-    desarrollos = relationship("Desarrollo", back_populates="etapa_actual")
+    fase: Optional[FaseDesarrollo] = Relationship(back_populates="etapas")
+    desarrollos: List["Desarrollo"] = Relationship(back_populates="etapa_actual")
 
 
-class Desarrollo(Base):
+class Desarrollo(SQLModel, table=True):
     """Modelo principal de desarrollo/proyecto"""
     __tablename__ = "desarrollos"
     
-    id = Column(String(50), primary_key=True, index=True)
-    nombre = Column(String(255), nullable=False)
-    descripcion = Column(Text)
-    modulo = Column(String(100))
-    tipo = Column(String(50))
-    ambiente = Column(String(100))
-    enlace_portal = Column(Text)
-    proveedor = Column(String(100))
-    responsable = Column(String(255))
+    id: str = Field(primary_key=True, max_length=50)
+    nombre: str = Field(max_length=255)
+    descripcion: Optional[str] = Field(default=None)
+    modulo: Optional[str] = Field(default=None, max_length=100)
+    tipo: Optional[str] = Field(default=None, max_length=50)
+    ambiente: Optional[str] = Field(default=None, max_length=100)
+    enlace_portal: Optional[str] = Field(default=None)
+    proveedor: Optional[str] = Field(default=None, max_length=100)
+    responsable: Optional[str] = Field(default=None, max_length=255)
     
     # Estado y progreso
-    estado_general = Column(String(50), default="Pendiente")
-    fase_actual_id = Column(Integer, ForeignKey("fases_desarrollo.id"))
-    etapa_actual_id = Column(Integer, ForeignKey("etapas_desarrollo.id"))
-    porcentaje_progreso = Column(DECIMAL(5, 2), default=0)
+    estado_general: str = Field(default="Pendiente", max_length=50)
+    fase_actual_id: Optional[int] = Field(default=None, foreign_key="fases_desarrollo.id")
+    etapa_actual_id: Optional[int] = Field(default=None, foreign_key="etapas_desarrollo.id")
+    porcentaje_progreso: Decimal = Field(default=Decimal("0.0"))
     
     # Fechas
-    fecha_inicio = Column(Date)
-    fecha_estimada_fin = Column(Date)
-    fecha_real_fin = Column(Date)
+    fecha_inicio: Optional[date] = Field(default=None)
+    fecha_estimada_fin: Optional[date] = Field(default=None)
+    fecha_real_fin: Optional[date] = Field(default=None)
     
-    # Auditora
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
-    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
+    # Auditoria
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    actualizado_en: Optional[datetime] = Field(default=None)
     
     # Relaciones
-    fase_actual = relationship("FaseDesarrollo", back_populates="desarrollos")
-    etapa_actual = relationship("EtapaDesarrollo", back_populates="desarrollos")
-    responsables = relationship("ResponsableDesarrollo", back_populates="desarrollo")
-    fechas = relationship("FechaDesarrollo", back_populates="desarrollo")
-    observaciones = relationship("ObservacionDesarrollo", back_populates="desarrollo")
+    fase_actual: Optional[FaseDesarrollo] = Relationship(back_populates="desarrollos")
+    etapa_actual: Optional[EtapaDesarrollo] = Relationship(back_populates="desarrollos")
+
+
+# --- Schemas de Validacion ---
+
+class FaseCrear(SQLModel):
+    """Schema para crear una fase"""
+    nombre: str
+    codigo: str
+    orden: int
+    descripcion: Optional[str] = None
+    color: str = "#3498db"
+    esta_activa: bool = True
+
+
+class EtapaCrear(SQLModel):
+    """Schema para crear una etapa"""
+    fase_id: int
+    nombre: str
+    codigo: str
+    orden: int
+    descripcion: Optional[str] = None
+    duracion_estimada_dias: Optional[int] = None
+    porcentaje_inicio: Decimal = Decimal("0.0")
+    porcentaje_fin: Decimal = Decimal("100.0")
+    esta_activa: bool = True
+
+
+class DesarrolloCrear(SQLModel):
+    """Schema para crear un desarrollo"""
+    id: str
+    nombre: str
+    descripcion: Optional[str] = None
+    modulo: Optional[str] = None
+    tipo: Optional[str] = None
+    ambiente: Optional[str] = None
+    enlace_portal: Optional[str] = None
+    proveedor: Optional[str] = None
+    responsable: Optional[str] = None
+    estado_general: str = "Pendiente"
+    fase_actual_id: Optional[int] = None
+    etapa_actual_id: Optional[int] = None
+    porcentaje_progreso: Decimal = Decimal("0.0")
+    fecha_inicio: Optional[date] = None
+    fecha_estimada_fin: Optional[date] = None
+
+
+class DesarrolloActualizar(SQLModel):
+    """Schema para actualizar un desarrollo"""
+    nombre: Optional[str] = None
+    descripcion: Optional[str] = None
+    modulo: Optional[str] = None
+    tipo: Optional[str] = None
+    ambiente: Optional[str] = None
+    enlace_portal: Optional[str] = None
+    proveedor: Optional[str] = None
+    responsable: Optional[str] = None
+    estado_general: Optional[str] = None
+    fase_actual_id: Optional[int] = None
+    etapa_actual_id: Optional[int] = None
+    porcentaje_progreso: Optional[Decimal] = None
+    fecha_inicio: Optional[date] = None
+    fecha_estimada_fin: Optional[date] = None
+    fecha_real_fin: Optional[date] = None

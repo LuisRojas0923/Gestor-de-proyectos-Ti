@@ -1,6 +1,16 @@
 """
-Modelos de Alertas - Backend V2
+Modelos de Alertas - Backend V2 (SQLModel)
 """
-from .actividad import ActividadProxima, RegistroActividad
+from .actividad import (
+    ActividadProxima,
+    RegistroActividad,
+    ActividadProximaCrear,
+    RegistroActividadCrear
+)
 
-__all__ = ["ActividadProxima", "RegistroActividad"]
+__all__ = [
+    "ActividadProxima",
+    "RegistroActividad",
+    "ActividadProximaCrear",
+    "RegistroActividadCrear"
+]

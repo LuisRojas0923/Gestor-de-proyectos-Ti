@@ -3,8 +3,7 @@ Servicio de Desarrollos - Backend V2
 """
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from app.models.desarrollo import Desarrollo
-from app.schemas.desarrollo import DesarrolloCrear, DesarrolloActualizar
+from app.models.desarrollo.desarrollo import Desarrollo, DesarrolloCrear, DesarrolloActualizar
 
 
 class ServicioDesarrollo:

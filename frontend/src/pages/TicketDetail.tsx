@@ -19,7 +19,7 @@ import { API_CONFIG } from '../config/api';
 const TicketDetail: React.FC = () => {
     const { ticketId } = useParams<{ ticketId: string }>();
     const navigate = useNavigate();
-    const { state } = useAppContext();
+    const { state, dispatch } = useAppContext();
     const { user } = state;
     const [developments, setDevelopments] = useState([]);
 
@@ -54,12 +54,46 @@ const TicketDetail: React.FC = () => {
         setAnalystForm((prev: Partial<Ticket>) => ({ ...prev, [field]: value }));
     };
 
+    const isAnalyst = user?.role === 'analyst' || user?.role === 'admin';
+    const stages: TicketStatus[] = ['Abierto', 'Asignado', 'En Proceso', 'Pendiente Info', 'Escalado', 'Resuelto', 'Cerrado'];
+
     const handleAnalystSave = () => {
+        if (!ticket) return;
+
+        // Lógica de validación de flujo solicitada por el usuario
+        if (analystForm.estado === 'Cerrado' && ticket.estado !== 'Resuelto') {
+            dispatch({
+                type: 'ADD_NOTIFICATION',
+                payload: {
+                    id: Math.random().toString(36).substr(2, 9),
+                    title: 'Flujo Inválido',
+                    message: 'Un ticket debe pasar por el estado "Resuelto" antes de ser Cerrado.',
+                    type: 'error',
+                    timestamp: new Date().toISOString(),
+                    read: false
+                }
+            });
+            return;
+        }
+
+        // Validación adicional: Para pasar a Resuelto debe estar En Proceso o Escalado
+        if (analystForm.estado === 'Resuelto' && !['En Proceso', 'Escalado'].includes(ticket.estado)) {
+            dispatch({
+                type: 'ADD_NOTIFICATION',
+                payload: {
+                    id: Math.random().toString(36).substr(2, 9),
+                    title: 'Flujo Inválido',
+                    message: 'El ticket debe estar "En Proceso" o "Escalado" antes de ser Resuelto.',
+                    type: 'warning',
+                    timestamp: new Date().toISOString(),
+                    read: false
+                }
+            });
+            return;
+        }
+
         updateTicket(analystForm);
     };
-
-    const isAnalyst = user?.role === 'analyst' || user?.role === 'admin';
-    const stages: TicketStatus[] = ['Nuevo', 'Abierto', 'En Proceso', 'Pendiente Info', 'Escalado', 'Resuelto', 'Cerrado'];
 
     useEffect(() => {
         const fetchDevelopments = async () => {
@@ -99,6 +133,7 @@ const TicketDetail: React.FC = () => {
                             name: ticket.nombre_creador,
                             id: ticket.creador_id,
                             area: ticket.area_creador,
+                            cargo: ticket.cargo_creador,
                             sede: ticket.sede_creador,
                             prioridad: ticket.prioridad
                         }}

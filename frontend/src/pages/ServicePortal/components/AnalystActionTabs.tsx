@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Briefcase, Plus } from 'lucide-react';
-import { Title, Text, Button, Select, Textarea } from '../../../components/atoms';
+import { Title, Text, Button, Select, Textarea, Badge } from '../../../components/atoms';
 import { Ticket } from '../../../hooks/useTicketDetail';
 
 interface AnalystActionTabsProps {
@@ -28,16 +28,13 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
             <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 mb-4 shrink-0 shadow-sm transition-all">
                 <div className="flex items-start justify-between mb-3">
                     <Title variant="h5" weight="bold" color="text-primary">{ticket.asunto}</Title>
-                    <Text
-                        variant="caption"
-                        weight="bold"
-                        className={`px-2 py-1 rounded tracking-widest ${ticket.prioridad === 'Alta' || ticket.prioridad === 'Crítica'
-                            ? 'bg-red-100 text-red-600'
-                            : 'bg-blue-100 text-blue-600'
-                            }`}
+                    <Badge
+                        variant={ticket.prioridad === 'Alta' || ticket.prioridad === 'Crítica' ? 'error' : 'info'}
+                        size="sm"
+                        className="uppercase tracking-widest"
                     >
-                        {(ticket.prioridad || 'MEDIA').toUpperCase()}
-                    </Text>
+                        {ticket.prioridad || 'Media'}
+                    </Badge>
                 </div>
                 <div className="border-l-2 border-blue-500 pl-4 py-1">
                     <Text variant="body2" color="text-secondary" className="italic leading-relaxed">
@@ -76,8 +73,8 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                                         value={formData.estado || ticket.estado}
                                         onChange={(e) => onFieldChange('estado', e.target.value)}
                                         options={[
-                                            { value: 'Nuevo', label: 'Nuevo' },
                                             { value: 'Abierto', label: 'Abierto' },
+                                            { value: 'Asignado', label: 'Asignado' },
                                             { value: 'En Proceso', label: 'En Proceso' },
                                             { value: 'Pendiente Info', label: 'Pendiente Info' },
                                             { value: 'Escalado', label: 'Escalado' },
@@ -93,9 +90,13 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                                         onChange={(e) => onFieldChange('asignado_a', e.target.value)}
                                         options={[
                                             { value: '', label: 'Sin Asignar' },
-                                            { value: ticket.asignado_a || 'L. Rojas (Yo)', label: ticket.asignado_a || 'L. Rojas (Yo)' },
+                                            { value: 'L. Rojas (Yo)', label: 'L. Rojas (Yo)' },
                                             { value: 'Soporte Nivel 2', label: 'Soporte Nivel 2' },
                                             { value: 'Desarrollo TI', label: 'Desarrollo TI' },
+                                            // Caso especial: Si está asignado a alguien más que no está en la lista
+                                            ...((ticket.asignado_a && !['L. Rojas (Yo)', 'Soporte Nivel 2', 'Desarrollo TI', ''].includes(ticket.asignado_a))
+                                                ? [{ value: ticket.asignado_a, label: ticket.asignado_a }]
+                                                : []),
                                         ]}
                                     />
                                 </div>

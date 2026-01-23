@@ -124,7 +124,7 @@ const QualityReport: React.FC<{ darkMode?: boolean }> = ({ darkMode }) => {
         </MaterialCard.Header>
         <MaterialCard.Content>
           {isMounted && (
-            <ResponsiveContainer width="100%" height={300} minWidth={0}>
+            <ResponsiveContainer width="100%" height={300} minWidth={0} debounce={50}>
               <BarChart data={controlComplianceData}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { API_CONFIG, ERROR_MESSAGES, HTTP_STATUS } from '../config/api';
+import { useAppContext } from '../context/AppContext';
 
 interface ApiResponse<T> {
   data: T | null;
@@ -25,6 +26,7 @@ const getErrorMessage = (status: number): string => {
 
 export function useApi<T>() {
   const { addNotification } = useNotifications();
+  const { dispatch } = useAppContext();
   const [state, setState] = useState<ApiResponse<T>>({
     data: null,
     loading: false,
@@ -37,14 +39,25 @@ export function useApi<T>() {
   ): Promise<T | null> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...options.headers as any,
+    };
+
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, { // [CONTROLADO]
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
         ...options,
+        headers,
       });
+
+      if (response.status === HTTP_STATUS.UNAUTHORIZED) {
+        console.warn(`Unauthorized access (401) to ${url}. Logging out...`);
+        dispatch({ type: 'LOGOUT' });
+        // Opcional: No arrojar error para evitar doble notificación si ProtectorRoute maneja la redirección
+        return null;
+      }
 
       if (!response.ok) {
         // Intentar extraer mensaje de error del cuerpo si existe

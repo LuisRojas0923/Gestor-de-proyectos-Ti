@@ -1,6 +1,6 @@
 import React from 'react';
 import { Briefcase, MapPin, AlertCircle } from 'lucide-react';
-import { Text } from '../../../components/atoms';
+import { Text, Badge } from '../../../components/atoms';
 
 interface AnalystSidebarInfoProps {
     user: {
@@ -8,6 +8,7 @@ interface AnalystSidebarInfoProps {
         id: string;
         area?: string;
         sede?: string;
+        cargo?: string;
         prioridad?: string;
     };
     createdAt: string;
@@ -25,13 +26,15 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
 
     const slaPercent = Math.max(0, Math.min(100, (remainingTimeMs / (4 * 60 * 60 * 1000)) * 100));
 
+    const progressStyle = { width: `${Math.max(0, 100 - slaPercent)}%` };
+
     return (
         <aside className="col-span-2 bg-[var(--color-surface)] border-r border-[var(--color-border)] p-4 space-y-6 overflow-y-auto hidden lg:block custom-scrollbar transition-colors">
             <section>
                 <Text variant="caption" weight="bold" color="text-secondary" className="uppercase mb-4 tracking-widest opacity-50 block">Solicitante</Text>
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                    <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-inner">
-                        {user.name ? user.name.split(' ').map(n => n[0]).join('') : 'U'}
+                    <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-inner overflow-hidden uppercase">
+                        {user.name ? user.name.split(' ').filter(p => p).slice(0, 2).map(n => n[0]).join('') : 'U'}
                     </div>
                     <div className="overflow-hidden">
                         <Text variant="body2" weight="bold" className="truncate block" color="text-primary">{user.name}</Text>
@@ -44,22 +47,20 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
                 <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 block">Detalles del Perfil</Text>
                 <div className="space-y-3">
                     <ProfileItem icon={<Briefcase size={12} />} label="Área" value={user.area || 'N/A'} />
+                    <ProfileItem icon={<Briefcase size={12} />} label="Cargo" value={user.cargo || 'N/A'} />
                     <ProfileItem icon={<MapPin size={12} />} label="Sede" value={user.sede || 'N/A'} />
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2 text-slate-400">
                             <AlertCircle size={12} />
                             <Text variant="caption" weight="bold" className="uppercase">Prioridad</Text>
                         </div>
-                        <Text
-                            variant="caption"
-                            weight="bold"
-                            className={`px-2 py-0.5 rounded tracking-widest ${user.prioridad === 'Alta' || user.prioridad === 'Crítica'
-                                ? 'bg-red-100 text-red-600'
-                                : 'bg-green-100 text-green-600'
-                                }`}
+                        <Badge
+                            variant={user.prioridad === 'Alta' || user.prioridad === 'Crítica' ? 'error' : 'success'}
+                            size="sm"
+                            className="uppercase tracking-widest"
                         >
-                            {(user.prioridad || 'MEDIA').toUpperCase()}
-                        </Text>
+                            {user.prioridad || 'Media'}
+                        </Badge>
                     </div>
                 </div>
             </section>
@@ -69,7 +70,7 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
                 <div className="relative w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div
                         className={`absolute top-0 left-0 h-full transition-all duration-500 ${slaPercent < 25 ? 'bg-red-500' : slaPercent < 50 ? 'bg-orange-500' : 'bg-green-500'}`}
-                        style={{ width: `${Math.max(0, 100 - slaPercent)}%` }}
+                        style={progressStyle}
                     ></div>
                 </div>
                 <div className="flex justify-between mt-2">

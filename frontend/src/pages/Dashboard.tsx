@@ -180,7 +180,7 @@ const Dashboard: React.FC = () => {
             {t('weeklyProgress')}
           </Title>
           <div className="h-[300px] w-full">
-            {isMounted && (
+            {isMounted && weeklyData.length > 0 && (
               <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
                 <BarChart data={weeklyData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
@@ -218,7 +218,7 @@ const Dashboard: React.FC = () => {
             Distribución por Prioridad
           </Title>
           <div className="h-[300px] w-full relative">
-            {isMounted && (
+            {isMounted && priorityData.length > 0 && (
               <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
                 <PieChart>
                   <Pie

@@ -27,10 +27,10 @@ const AnalystSidebarTimeline: React.FC<AnalystSidebarTimelineProps> = ({ history
                             `}></div>
 
                             <div className="space-y-1">
-                                <Text variant="caption" weight="bold" color="text-primary" className="block text-[11px] leading-tight">
+                                <Text variant="body1" weight="bold" color="text-primary" className="block text-[11px] leading-tight">
                                     {item.accion}
                                 </Text>
-                                <Text variant="caption" className="text-slate-500 dark:text-slate-400 leading-tight block text-[10px]">
+                                <Text variant="body1" className="text-slate-500 dark:text-slate-400 font-medium leading-tight block text-[10px]">
                                     {item.detalle}
                                 </Text>
                                 <Text variant="caption" className="font-mono text-[9px] text-slate-400 uppercase pt-1 block">

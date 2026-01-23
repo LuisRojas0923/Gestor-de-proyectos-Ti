@@ -17,7 +17,7 @@ const AnalystCommandHeader: React.FC<AnalystCommandHeaderProps> = ({
     onSave,
     isSaving
 }) => {
-    const stages = ['Nuevo', 'Abierto', 'En Proceso', 'Escalado', 'Cerrado'];
+    const stages = ['Abierto', 'Asignado', 'En Proceso', 'Escalado', 'Cerrado'];
 
     // Función para manejar el cambio de tema localmente si es necesario, 
     // aunque ThemeToggle ya lo hace globalmente. Aquí usamos el botón del diseño manual.
