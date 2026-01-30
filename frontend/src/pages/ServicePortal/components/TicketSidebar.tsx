@@ -2,6 +2,7 @@ import React from 'react';
 import { User, Briefcase, History as HistoryIcon, MapPin, Link as LinkIcon, FileText, Plus } from 'lucide-react';
 import { Title, Text } from '../../../components/atoms';
 import { Ticket, TicketHistory, TicketAttachment } from '../../../hooks/useTicketDetail';
+import { formatFriendlyDate } from '../../../utils/dateUtils';
 
 interface TicketSidebarProps {
     ticket: Ticket;
@@ -63,7 +64,7 @@ const TicketSidebar: React.FC<TicketSidebarProps> = ({ ticket, history, attachme
                                     </div>
                                     <div className="overflow-hidden">
                                         <Text variant="body2" weight="bold" className="truncate block">{file.nombre_archivo}</Text>
-                                        <Text variant="caption" color="text-secondary" className="opacity-60">{new Date(file.creado_en).toLocaleDateString()}</Text>
+                                        <Text variant="caption" color="text-secondary" className="opacity-60">{formatFriendlyDate(file.creado_en)}</Text>
                                     </div>
                                 </div>
                                 <Plus size={18} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -91,7 +92,7 @@ const TicketSidebar: React.FC<TicketSidebarProps> = ({ ticket, history, attachme
                                 <div className="space-y-1">
                                     <Text variant="body2" weight="bold" color="white">{item.accion}</Text>
                                     <Text variant="caption" color="text-secondary" className="block leading-tight">{item.detalle}</Text>
-                                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-tighter opacity-50">{new Date(item.creado_en).toLocaleString()}</Text>
+                                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-tighter opacity-50">{formatFriendlyDate(item.creado_en)}</Text>
                                 </div>
                             </div>
                         ))

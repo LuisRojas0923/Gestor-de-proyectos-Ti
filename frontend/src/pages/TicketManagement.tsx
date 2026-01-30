@@ -10,8 +10,9 @@ import {
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
-import { Button, Select, Input, Title, Text, Icon } from '../components/atoms';
+import { Select, Input, Title, Text, Icon } from '../components/atoms';
 
 interface Ticket {
     id: string;
@@ -23,7 +24,19 @@ interface Ticket {
     asignado_a?: string;
 }
 
+const formatName = (name: string) => {
+    if (!name) return "Sin asignar";
+    return name
+        .trim()
+        .split(' ')
+        .filter(Boolean)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+};
+
 const TicketManagement: React.FC = () => {
+    const { state } = useAppContext();
+    const { user } = state;
     const { get } = useApi<Ticket[]>();
     const navigate = useNavigate();
 
@@ -103,7 +116,17 @@ const TicketManagement: React.FC = () => {
                     <Title variant="h3" weight="bold" color="text-primary" className="mb-1">
                         Gestión de Tickets
                     </Title>
-                    <Text variant="body1" color="text-secondary" weight="medium" className="tracking-tight">Administración de solicitudes de soporte técnico</Text>
+                    <div className="flex items-center space-x-2">
+                        <Text variant="body1" color="text-secondary" weight="medium" className="tracking-tight">
+                            Administración de solicitudes de soporte técnico
+                        </Text>
+                        {user?.role === 'analyst' && (
+                            <div className="flex items-center px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800">
+                                <Icon name={UserCheck} size="xs" className="text-blue-500 mr-1" />
+                                <Text variant="caption" weight="bold" className="text-blue-600 dark:text-blue-400">Mis asignaciones</Text>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex items-center space-x-3">
@@ -171,7 +194,7 @@ const TicketManagement: React.FC = () => {
                                 <th className="px-6 py-5"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Asunto / Solicitante</Text></th>
                                 <th className="px-6 py-5 text-center"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Prioridad</Text></th>
                                 <th className="px-6 py-5 text-center"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Estado</Text></th>
-                                <th className="px-6 py-5"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Acciones Rápidas</Text></th>
+                                <th className="px-6 py-5"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Responsable</Text></th>
                                 <th className="px-6 py-5 text-right"></th>
                             </tr>
                         </thead>
@@ -202,27 +225,13 @@ const TicketManagement: React.FC = () => {
                                         </Text>
                                     </td>
                                     <td className="px-6 py-5">
-                                        <div className="flex items-center justify-center space-x-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                icon={UserCheck}
-                                                onClick={(e) => { e.stopPropagation(); /* Logic to assign */ }}
-                                                className="text-[var(--color-primary)]"
-                                                title="Asignarme"
-                                            >
-                                                {""}
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                icon={CheckCircle}
-                                                onClick={(e) => { e.stopPropagation(); /* Logic to close */ }}
-                                                className="text-green-600 dark:text-green-400"
-                                                title="Cerrar Ticket"
-                                            >
-                                                {""}
-                                            </Button>
+                                        <div className="flex items-center space-x-2">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${ticket.asignado_a ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]' : 'bg-gray-100 text-gray-400 dark:bg-neutral-800'}`}>
+                                                {ticket.asignado_a ? ticket.asignado_a.charAt(0).toUpperCase() : '?'}
+                                            </div>
+                                            <Text variant="caption" weight="bold" color={ticket.asignado_a ? "text-primary" : "text-secondary"} className={!ticket.asignado_a ? "opacity-50 italic" : ""}>
+                                                {formatName(ticket.asignado_a || "")}
+                                            </Text>
                                         </div>
                                     </td>
                                     <td className="px-6 py-5 text-right" onClick={() => navigate(`/tickets/${ticket.id}`)}>

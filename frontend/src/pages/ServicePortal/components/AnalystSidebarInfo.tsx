@@ -1,6 +1,7 @@
 import React from 'react';
-import { Briefcase, MapPin, AlertCircle } from 'lucide-react';
+import { Briefcase, MapPin, AlertCircle, Clock, Calendar } from 'lucide-react';
 import { Text, Badge } from '../../../components/atoms';
+import { formatFriendlyDate } from '../../../utils/dateUtils';
 
 interface AnalystSidebarInfoProps {
     user: {
@@ -12,9 +13,11 @@ interface AnalystSidebarInfoProps {
         prioridad?: string;
     };
     createdAt: string;
+    idealDate?: string;
+    prioridadJustificacion?: string;
 }
 
-const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt }) => {
+const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt, idealDate, prioridadJustificacion }) => {
     // Cálculo simple de SLA (ejemplo 4h)
     const creationDate = new Date(createdAt);
     const slaLimit = new Date(creationDate.getTime() + 4 * 60 * 60 * 1000);
@@ -25,7 +28,6 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
     const mins = remainingMinutes % 60;
 
     const slaPercent = Math.max(0, Math.min(100, (remainingTimeMs / (4 * 60 * 60 * 1000)) * 100));
-
     const progressStyle = { width: `${Math.max(0, 100 - slaPercent)}%` };
 
     return (
@@ -49,7 +51,7 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
                     <ProfileItem icon={<Briefcase size={12} />} label="Área" value={user.area || 'N/A'} />
                     <ProfileItem icon={<Briefcase size={12} />} label="Cargo" value={user.cargo || 'N/A'} />
                     <ProfileItem icon={<MapPin size={12} />} label="Sede" value={user.sede || 'N/A'} />
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center pt-1">
                         <div className="flex items-center gap-2 text-slate-400">
                             <AlertCircle size={12} />
                             <Text variant="caption" weight="bold" className="uppercase">Prioridad</Text>
@@ -62,6 +64,23 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
                             {user.prioridad || 'Media'}
                         </Badge>
                     </div>
+                    {prioridadJustificacion && (
+                        <div className="bg-amber-50 dark:bg-amber-900/10 p-2.5 rounded-lg border border-amber-100 dark:border-amber-800/50 mt-1">
+                            <Text variant="caption" color="text-secondary" className="italic leading-snug block">
+                                "{prioridadJustificacion}"
+                            </Text>
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            <section className="space-y-4 pt-4 border-t border-[var(--color-border)]">
+                <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 block">Tiempos</Text>
+                <div className="space-y-3">
+                    <ProfileItem icon={<Calendar size={12} />} label="Creado el" value={formatFriendlyDate(createdAt)} />
+                    {idealDate && (
+                        <ProfileItem icon={<Clock size={12} />} label="Fecha Ideal" value={formatFriendlyDate(idealDate)} />
+                    )}
                 </div>
             </section>
 
@@ -85,12 +104,14 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
 };
 
 const ProfileItem: React.FC<{ icon: React.ReactNode, label: string, value: string }> = ({ icon, label, value }) => (
-    <div className="flex justify-between items-center border-b border-slate-50 dark:border-slate-800/50 pb-2">
+    <div className="flex flex-col gap-1 border-b border-slate-50 dark:border-slate-800/50 pb-2">
         <div className="flex items-center gap-2 text-slate-400">
             {icon}
             <Text variant="caption" weight="bold" className="uppercase tracking-tighter opacity-70">{label}</Text>
         </div>
-        <Text variant="caption" weight="bold" color="text-primary">{value}</Text>
+        <Text variant="caption" weight="bold" color="text-primary" className="pl-5 break-words leading-tight">
+            {value}
+        </Text>
     </div>
 );
 

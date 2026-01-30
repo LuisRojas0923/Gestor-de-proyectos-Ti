@@ -1,8 +1,11 @@
 import React, { createContext, ReactNode, useContext, useReducer } from 'react';
+import axios from 'axios';
+import { API_CONFIG } from '../config/api';
 
 // Types
 interface User {
   id: string;
+  cedula: string;
   name: string;
   email: string;
   role: string;
@@ -10,6 +13,7 @@ interface User {
   area?: string;
   cargo?: string;
   sede?: string;
+  permissions?: string[];
 }
 
 interface Requirement {
@@ -53,6 +57,7 @@ interface AppState {
   requirements: Requirement[];
   tasks: Task[];
   notifications: Notification[];
+  refreshKey: number;
   loading: boolean;
   error: string | null;
 }
@@ -72,6 +77,7 @@ type AppAction =
   | { type: 'ADD_NOTIFICATION'; payload: Notification }
   | { type: 'MARK_NOTIFICATION_READ'; payload: string }
   | { type: 'CLEAR_NOTIFICATIONS' }
+  | { type: 'REFRESH_DATA' }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null };
 
@@ -104,6 +110,7 @@ const initialState: AppState = {
   requirements: [],
   tasks: [],
   notifications: [],
+  refreshKey: 0,
   loading: false,
   error: null,
 };
@@ -118,6 +125,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'LOGOUT':
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      localStorage.removeItem('theme'); // Opcional, pero para consistencia
       return { ...state, user: null };
     case 'TOGGLE_DARK_MODE': {
       const newDarkMode = !state.darkMode;
@@ -170,6 +178,11 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         notifications: [],
       };
+    case 'REFRESH_DATA':
+      return {
+        ...state,
+        refreshKey: state.refreshKey + 1,
+      };
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
     case 'SET_ERROR':
@@ -186,6 +199,48 @@ const AppContext = createContext<{
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+
+  // Sincronización global de sesión al cargar la app
+  React.useEffect(() => {
+    const validateSession = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        // Verificar validez del token y obtener datos frescos (incluyendo permisos actualizados)
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/auth/yo`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data) {
+          // Función de mapeo (adaptador) para normalizar datos del backend (español) a frontend interface (inglés)
+          const normalizeUser = (data: any): User => ({
+            id: data.id,
+            cedula: data.cedula,
+            name: data.nombre || data.name || '', // Adaptar 'nombre' a 'name'
+            email: data.email,
+            role: data.rol || data.role || 'usuario', // Adaptar 'rol' a 'role'
+            avatar: data.avatar,
+            area: data.area,
+            cargo: data.cargo,
+            sede: data.sede,
+            permissions: data.permissions || data.permisos || []
+          });
+
+          const normalizedUser = normalizeUser(response.data);
+
+          // Actualizar estado global con datos frescos y normalizados
+          dispatch({ type: 'LOGIN', payload: normalizedUser });
+        }
+      } catch (error) {
+        console.error('Sesión inválida o expirada:', error);
+        // Si el token no sirve, limpiar todo para evitar estados corruptos
+        dispatch({ type: 'LOGOUT' });
+      }
+    };
+
+    validateSession();
+  }, []); // Solo al montar la app
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

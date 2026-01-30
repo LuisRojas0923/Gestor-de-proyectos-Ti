@@ -16,7 +16,7 @@ interface SelectProps {
     errorMessage?: string;
     label?: string;
     helperText?: string;
-    size?: 'sm' | 'md' | 'lg';
+    size?: 'xs' | 'sm' | 'md' | 'lg';
     className?: string;
     name?: string;
     onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
@@ -44,16 +44,17 @@ const Select: React.FC<SelectProps> = ({
     const baseClasses = 'w-full border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed';
 
     const sizeClasses = {
-        sm: 'px-3 py-1.5 text-sm',
-        md: 'px-4 py-2 text-sm',
-        lg: 'px-4 py-3 text-base',
+        xs: 'px-2 py-1 text-[11px] h-8',
+        sm: 'px-3 py-1.5 text-[11px] h-10',
+        md: 'px-4 py-2 text-xs',
+        lg: 'px-4 py-3 text-sm',
     };
 
     const stateClasses = error
         ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-        : 'border-neutral-300 focus:border-primary-500 focus:ring-primary-500 dark:border-neutral-600 dark:focus:border-primary-500';
+        : 'border-[var(--color-border)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20 dark:border-[var(--color-border)]/50';
 
-    const backgroundClasses = 'bg-white text-neutral-900 dark:bg-neutral-800 dark:text-white';
+    const backgroundClasses = 'bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)]/50';
 
     return (
         <div className={`w-full ${className}`}>

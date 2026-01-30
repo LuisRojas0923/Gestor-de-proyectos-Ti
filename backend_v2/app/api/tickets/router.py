@@ -8,6 +8,8 @@ from sqlmodel import select
 from sqlalchemy import func as sa_func
 
 from app.database import obtener_db
+from app.api.auth.router import obtener_usuario_actual_db
+from app.models.auth.usuario import Usuario
 from app.models.ticket.ticket import (
     Ticket,
     ComentarioTicket,
@@ -21,24 +23,40 @@ from app.models.ticket.ticket import (
     TicketPublico
 )
 from app.services.ticket.servicio import ServicioTicket
+from app.services.ticket.bi_service import TicketBIService
+from app.utils_cache import global_cache
 
 router = APIRouter()
 
 
 @router.get("/categorias", response_model=List[CategoriaTicket])
 async def listar_categorias(db: AsyncSession = Depends(obtener_db)):
-    """Retorna lista de categorias de soporte"""
+    """Retorna lista de categorias de soporte con cache"""
+    cache_key = "ticket_categorias"
+    cached_data = global_cache.get(cache_key)
+    if cached_data:
+        return cached_data
+        
     try:
-        return await ServicioTicket.listar_categorias(db)
+        data = await ServicioTicket.listar_categorias(db)
+        global_cache.set(cache_key, data)
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener categorias: {str(e)}")
 
 
 @router.get("/estadisticas/resumen")
 async def obtener_resumen_estadisticas(db: AsyncSession = Depends(obtener_db)):
-    """Retorna resumen de estadisticas de tickets"""
+    """Retorna resumen de estadisticas de tickets con cache"""
+    cache_key = "ticket_stats_resumen"
+    cached_data = global_cache.get(cache_key)
+    if cached_data:
+        return cached_data
+        
     try:
-        return await ServicioTicket.obtener_estadisticas_resumen(db)
+        data = await ServicioTicket.obtener_estadisticas_resumen(db)
+        global_cache.set(cache_key, data)
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -49,6 +67,17 @@ async def obtener_estadisticas_avanzadas(db: AsyncSession = Depends(obtener_db))
     try:
         return await ServicioTicket.obtener_estadisticas_avanzadas(db)
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/estadisticas/bi")
+async def obtener_data_bi(db: AsyncSession = Depends(obtener_db)):
+    """Retorna el set de datos completo para dashboards BI"""
+    try:
+        return await TicketBIService.obtener_data_analitica_bi(db)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -64,30 +93,55 @@ async def obtener_rendimiento(db: AsyncSession = Depends(obtener_db)):
         
         ranking = []
         for nombre in analistas:
-            total_result = await db.execute(
-                select(sa_func.count(Ticket.id)).where(Ticket.asignado_a == nombre)
-            )
-            total_analista = total_result.scalar() or 0
-            
-            resueltos_result = await db.execute(
-                select(sa_func.count(Ticket.id)).where(
+            # Tickets finalizados para cálculo de tiempo real
+            result_resueltos = await db.execute(
+                select(Ticket.creado_en, Ticket.resuelto_en).where(
                     Ticket.asignado_a == nombre,
-                    Ticket.estado.in_(["Resuelto", "Cerrado"])
+                    Ticket.estado.in_(["Resuelto", "Cerrado"]),
+                    Ticket.resuelto_en != None
                 )
             )
-            resueltos_analista = resueltos_result.scalar() or 0
+            data_resueltos = result_resueltos.all()
+            resueltos_analista = len(data_resueltos)
             
-            score = (resueltos_analista / total_analista * 100) if total_analista > 0 else 0
+            avg_h = 0
+            if data_resueltos:
+                tiempos = [(t.resuelto_en - t.creado_en).total_seconds() / 3600 for t in data_resueltos if t.resuelto_en and t.creado_en]
+                avg_h = round(sum(tiempos) / len(tiempos), 1) if tiempos else 0
+
+            # Carga activa actual (Operational Load)
+            active_res = await db.execute(
+                select(sa_func.count(Ticket.id)).where(
+                    Ticket.asignado_a == nombre,
+                    Ticket.estado.in_(["Abierto", "Asignado", "En Proceso", "Pendiente Info", "Escalado"])
+                )
+            )
+            carga_activa = active_res.scalar() or 0
+            
+            # Conteo específico de tickets en proceso
+            proceso_res = await db.execute(
+                select(sa_func.count(Ticket.id)).where(
+                    Ticket.asignado_a == nombre,
+                    Ticket.estado == "En Proceso"
+                )
+            )
+            en_proceso = proceso_res.scalar() or 0
+            
+            # Score de desempeño histórico
+            total_hist_res = await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.asignado_a == nombre))
+            total_hist = total_hist_res.scalar() or 1
+            score = (resueltos_analista / total_hist * 100)
             
             ranking.append({
                 "name": nombre,
-                "total": total_analista,
+                "total": carga_activa,
                 "cerrados": resueltos_analista,
-                "avg_time": 4.5,
+                "en_proceso": en_proceso,
+                "avg_time": avg_h,
                 "performance_score": round(score, 1)
             })
         
-        ranking.sort(key=lambda x: x["performance_score"], reverse=True)
+        ranking.sort(key=lambda x: x["total"], reverse=True)
         return ranking
     except Exception:
         return []
@@ -106,21 +160,35 @@ async def listar_mis_tickets(creador_id: str, db: AsyncSession = Depends(obtener
 async def listar_tickets(
     creador_id: Optional[str] = None,
     estado: Optional[str] = None,
-    db: AsyncSession = Depends(obtener_db)
+    asignado_a: Optional[str] = None,
+    limite: int = 100,
+    db: AsyncSession = Depends(obtener_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db)
 ):
-    """Lista tickets de soporte"""
+    """Lista tickets de soporte con paginación y restricciones de visibilidad"""
     try:
-        query = select(Ticket)
-        if creador_id:
-            query = query.where(Ticket.creador_id == creador_id)
-        if estado:
-            query = query.where(Ticket.estado == estado)
-        query = query.order_by(Ticket.creado_en.desc())
+        # Restricción: Si es analista (no admin), solo ve lo que tiene asignado
+        # a menos que esté buscando sus propios tickets creados.
+        filtro_asignado = asignado_a
         
-        result = await db.execute(query)
-        return result.scalars().all()
+        if usuario_actual.rol == "analyst" and not creador_id:
+            # Si un analista pide la lista general, se la filtramos por si mismo
+            filtro_asignado = usuario_actual.nombre
+            
+        return await ServicioTicket.listar_tickets(
+            db, 
+            creador_id=creador_id, 
+            estado=estado, 
+            asignado_a=filtro_asignado,
+            limit=limite
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.error(f"Error listando tickets: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al listar tickets: {type(e).__name__}"
+        )
 
 
 @router.post("/", response_model=TicketPublico)
@@ -129,7 +197,9 @@ async def crear_ticket(ticket: TicketCrear, db: AsyncSession = Depends(obtener_d
     try:
         return await ServicioTicket.crear_ticket(db, ticket)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"ERROR_CREAR_TICKET: {str(e)}")
 
 
 @router.get("/{ticket_id}", response_model=TicketPublico)

@@ -46,14 +46,20 @@ const Login: React.FC = () => {
             const employeeData = response.data;
 
             // Mapeo de datos del ERP al formato de usuario interno
+            const isDirector = employeeData.cargo?.toLowerCase().includes('director');
+
             const userData = {
-                id: employeeData.nrocedula,
+                id: employeeData.nrocedula, // Usar cédula como ID principal
+                cedula: employeeData.nrocedula,
                 name: employeeData.nombre,
                 email: 'usuario@dominio.com',
-                role: 'user', // Asignar rol de usuario explícitamente
+                role: isDirector ? 'director' : 'user',
                 area: employeeData.area || 'Sin Área',
                 cargo: employeeData.cargo || 'Sin Cargo',
-                sede: employeeData.ciudadcontratacion || 'Principal'
+                sede: employeeData.ciudadcontratacion || 'Principal',
+                viaticante: employeeData.viaticante,
+                baseviaticos: employeeData.baseviaticos,
+                permissions: isDirector ? ['service-portal', 'legalizar-gastos'] : ['service-portal']
             };
 
             // Guardar en contexto global
@@ -97,9 +103,19 @@ const Login: React.FC = () => {
             const data = await response.json();
 
             localStorage.setItem('token', data.access_token);
-            dispatch({ type: 'LOGIN', payload: data.user });
 
-            if (data.user.role === 'analyst' || data.user.role === 'admin') {
+            // Asegurar que el objeto de usuario tenga todos los campos necesarios
+            const userData = {
+                ...data.user,
+                // Si el backend devuelve 'cedula' pero no 'id', o viceversa, lo unificamos
+                id: data.user.id || data.user.cedula,
+                cedula: data.user.cedula || data.user.id
+            };
+
+            dispatch({ type: 'LOGIN', payload: userData });
+
+            const userRole = userData.role?.toLowerCase();
+            if (userRole === 'analyst' || userRole === 'admin' || userRole === 'director') {
                 navigate('/');
             } else {
                 navigate('/service-portal');

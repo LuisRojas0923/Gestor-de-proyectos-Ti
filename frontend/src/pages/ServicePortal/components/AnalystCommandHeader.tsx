@@ -17,7 +17,7 @@ const AnalystCommandHeader: React.FC<AnalystCommandHeaderProps> = ({
     onSave,
     isSaving
 }) => {
-    const stages = ['Abierto', 'Asignado', 'En Proceso', 'Escalado', 'Cerrado'];
+    const stages = ['Asignado', 'En Proceso', 'Pendiente Info', 'Escalado', 'Resuelto', 'Cerrado'];
 
     // Función para manejar el cambio de tema localmente si es necesario, 
     // aunque ThemeToggle ya lo hace globalmente. Aquí usamos el botón del diseño manual.
@@ -63,7 +63,7 @@ const AnalystCommandHeader: React.FC<AnalystCommandHeaderProps> = ({
                                 {stage}
                             </Text>
                             {isActive && (
-                                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full"></div>
+                                <div className="absolute -bottom-2 left-0 right-0 h-[2px] bg-blue-500 rounded-full transition-all shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
                             )}
                         </div>
                     );

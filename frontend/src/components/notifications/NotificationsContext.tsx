@@ -50,5 +50,3 @@ export function useNotifications() {
   if (!ctx) throw new Error('useNotifications must be used within NotificationsProvider');
   return ctx;
 }
-
-

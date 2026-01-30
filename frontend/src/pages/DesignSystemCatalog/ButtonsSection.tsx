@@ -16,6 +16,7 @@ const ButtonsSection: React.FC = () => {
                     <Button variant="outline">Outline</Button>
                     <Button variant="ghost">Ghost</Button>
                     <Button variant="danger">Danger</Button>
+                    <Button variant="erp">ERP Style</Button>
                 </div>
             </MaterialCard>
 

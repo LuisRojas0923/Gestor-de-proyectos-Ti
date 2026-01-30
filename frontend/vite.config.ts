@@ -10,6 +10,9 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    hmr: {
+      clientPort: 80,
+    },
     proxy: {
       '/api/v2': {
         target: 'http://backend:8000',

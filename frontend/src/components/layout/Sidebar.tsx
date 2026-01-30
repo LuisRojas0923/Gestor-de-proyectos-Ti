@@ -11,6 +11,7 @@ import {
   Share2,
   LogOut,
   Palette,
+  Users,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -24,23 +25,42 @@ const Sidebar: React.FC = () => {
 
   const handleLogout = () => {
     dispatch({ type: 'LOGOUT' });
+    // El router debería encargarse de la redirección al cambiar el estado del usuario
   };
 
   const navigation = [
-    { name: 'Tablero', href: '/', icon: LayoutDashboard, role: ['analyst', 'admin'] },
-    { name: 'Mis Desarrollos', href: '/developments', icon: Briefcase, role: ['analyst', 'admin'] },
-    { name: 'Indicadores', href: '/indicators', icon: BarChart3, role: ['analyst', 'admin'] },
-    { name: 'Gestión de Tickets', href: '/ticket-management', icon: Ticket, role: ['analyst', 'admin'] },
-    { name: 'Reportes', href: '/reports', icon: ClipboardList, role: ['analyst', 'admin'] },
-    { name: 'Chat IA', href: '/chat', icon: MessageSquare, role: ['analyst', 'admin'] },
-    { name: 'Portal de Servicios', href: '/service-portal', icon: Share2, role: ['user', 'analyst', 'admin'] },
-    { name: 'Configuración', href: '/settings', icon: Settings, role: ['analyst', 'admin'] },
-    { name: 'Catálogo de Diseño', href: '/design-catalog', icon: Palette, role: ['admin'] },
+    { id: 'dashboard', name: 'Tablero', href: '/', icon: LayoutDashboard },
+    { id: 'developments', name: 'Mis Desarrollos', href: '/developments', icon: Briefcase },
+    { id: 'indicators', name: 'Indicadores', href: '/indicators', icon: BarChart3 },
+    { id: 'ticket-management', name: 'Gestión de Tickets', href: '/ticket-management', icon: Ticket },
+    { id: 'reports', name: 'Reportes', href: '/reports', icon: ClipboardList },
+    { id: 'chat', name: 'Chat IA', href: '/chat', icon: MessageSquare },
+    { id: 'service-portal', name: 'Portal de Servicios', href: '/service-portal', icon: Share2 },
+    { id: 'user-admin', name: 'Gestión de Usuarios', href: '/admin/users', icon: Users },
+    { id: 'settings', name: 'Configuración', href: '/settings', icon: Settings },
+    { id: 'design-catalog', name: 'Catálogo de Diseño', href: '/design-catalog', icon: Palette },
   ];
 
-  const filteredNavigation = navigation.filter(item =>
-    !item.role || (user && item.role.includes(user.role))
-  );
+  const filteredNavigation = navigation.filter(item => {
+    // Normalizar rol para comparaciones
+    const userRole = (user?.role || '').trim().toLowerCase();
+
+    // Si el usuario no tiene cargados los permisos todavía (sesión antigua en caché)
+    // permitimos ver todo lo que su rol tradicional permitía
+    if (!user?.permissions) {
+      if (userRole === 'admin') return true;
+      if (userRole === 'analyst' || userRole === 'director') {
+        return !['user-admin', 'design-catalog'].includes(item.id);
+      }
+      if (userRole === 'user' || userRole === 'usuario') {
+        return item.id === 'service-portal';
+      }
+      return false;
+    }
+
+    // Si ya tiene permisos dinámicos, filtramos estrictamente por ellos
+    return user.permissions.includes(item.id);
+  });
 
   const toggleSidebar = () => {
     dispatch({ type: 'TOGGLE_SIDEBAR' });
@@ -58,7 +78,7 @@ const Sidebar: React.FC = () => {
               <Text weight="bold" variant="body2" className="text-white">GT</Text>
             </div>
             <Text weight="bold" variant="caption" className="uppercase tracking-tighter text-[var(--color-text-primary)]">
-              Gestor Proyectos
+              Portal de Servicios
             </Text>
           </div>
         ) : (

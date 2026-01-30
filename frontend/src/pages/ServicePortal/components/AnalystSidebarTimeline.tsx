@@ -1,6 +1,7 @@
 import { History } from 'lucide-react';
 import { Text, Icon } from '../../../components/atoms';
 import { TicketHistory } from '../../../hooks/useTicketDetail';
+import { formatFriendlyDate } from '../../../utils/dateUtils';
 
 interface AnalystSidebarTimelineProps {
     history: TicketHistory[];
@@ -33,15 +34,16 @@ const AnalystSidebarTimeline: React.FC<AnalystSidebarTimelineProps> = ({ history
                                 <Text variant="body1" className="text-slate-500 dark:text-slate-400 font-medium leading-tight block text-[10px]">
                                     {item.detalle}
                                 </Text>
-                                <Text variant="caption" className="font-mono text-[9px] text-slate-400 uppercase pt-1 block">
-                                    {new Date(item.creado_en).toLocaleString('es-ES', {
-                                        day: '2-digit',
-                                        month: '2-digit',
-                                        year: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    })}
-                                </Text>
+                                <div className="flex flex-col pt-1">
+                                    {item.nombre_usuario && (
+                                        <Text variant="caption" className="text-blue-600 dark:text-blue-400 font-bold text-[9px] uppercase tracking-tighter">
+                                            Por: {item.nombre_usuario}
+                                        </Text>
+                                    )}
+                                    <Text variant="caption" className="font-mono text-[9px] text-slate-400 uppercase block">
+                                        {formatFriendlyDate(item.creado_en)}
+                                    </Text>
+                                </div>
                             </div>
                         </div>
                     ))

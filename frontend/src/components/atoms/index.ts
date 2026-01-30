@@ -16,5 +16,8 @@ export { Subtitle } from './Subtitle';
 export { Icon } from './Icon';
 
 // Componentes de Material Design (Legacy - Preferir versiones estándar)
+// Componentes de Material Design (Legacy - Preferir versiones estándar)
 export { default as MaterialCard } from './MaterialCard';
 export { default as MaterialTypography } from './MaterialTypography';
+
+export * from './CurrencyInput';

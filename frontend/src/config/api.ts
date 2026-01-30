@@ -87,6 +87,7 @@ export const API_ENDPOINTS = {
   TICKET_STATS_SUMMARY: '/soporte/estadisticas/resumen',
   TICKET_STATS_PERFORMANCE: '/soporte/estadisticas/rendimiento',
   TICKET_STATS_ADVANCED: '/soporte/estadisticas/avanzadas',
+  TICKET_STATS_BI: '/soporte/estadisticas/bi',
 
   // Instaladores
   INSTALLERS_FAILED: '/instaladores/fallidos',

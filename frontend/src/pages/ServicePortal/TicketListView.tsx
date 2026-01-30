@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Search, Clock, User, ChevronRight, Info, Sparkles, AlertTriangle } from 'lucide-react';
+import React from 'react';
+import { ArrowLeft, Search, Clock, User, ChevronRight, Info, AlertTriangle } from 'lucide-react';
 import { StatusBadge, TicketStatus } from './Common';
 import { Button, Input, Title, Text, Icon } from '../../components/atoms';
-import { callGeminiAPI } from '../../services/GeminiService';
 
 interface Ticket {
     id: string;
@@ -20,27 +19,6 @@ interface TicketListViewProps {
 }
 
 const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onViewDetail }) => {
-    const [explanation, setExplanation] = useState<{ id: string, text: string } | null>(null);
-    const [isExplaining, setIsExplaining] = useState(false);
-
-    const handleExplainStatus = async (ticket: Ticket) => {
-        if (explanation?.id === ticket.id) return setExplanation(null);
-
-        setIsExplaining(true);
-        setExplanation({ id: ticket.id, text: "Analizando estado..." });
-
-        const q = `Categoría: ${ticket.categoria_id}\nAsunto: ${ticket.asunto}\nEstado: ${ticket.estado}`;
-        const p = `Actúa como Asistente de TI. Explica qué significa el estado '${ticket.estado}' para este ticket de forma amable y concisa (máx 3 frases).`;
-
-        try {
-            const res = await callGeminiAPI(q, p);
-            setExplanation({ id: ticket.id, text: res });
-        } catch {
-            setExplanation({ id: ticket.id, text: "Error al obtener explicación." });
-        } finally {
-            setIsExplaining(false);
-        }
-    };
 
     return (
         <div className="space-y-8 py-4">
@@ -103,16 +81,6 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <Button
-                                            onClick={() => handleExplainStatus(ticket)}
-                                            disabled={isExplaining}
-                                            variant="secondary"
-                                            size="sm"
-                                            icon={Sparkles}
-                                            loading={isExplaining && explanation?.id === ticket.id}
-                                        >
-                                            {isExplaining && explanation?.id === ticket.id ? 'Analizando...' : 'Explicar ✨'}
-                                        </Button>
-                                        <Button
                                             onClick={() => onViewDetail(ticket)}
                                             variant="outline"
                                             size="sm"
@@ -122,14 +90,6 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
                                         </Button>
                                     </div>
                                 </div>
-                                {explanation?.id === ticket.id && (
-                                    <div className="bg-[var(--color-primary-light)]/10 p-5 border-t border-[var(--color-primary)]/10 animate-in slide-in-from-top-2 duration-300">
-                                        <Text variant="body2" color="text-primary" weight="medium" className="leading-relaxed flex items-start">
-                                            <Icon name={Info} size="sm" className="mr-2 mt-0.5 shrink-0 text-[var(--color-primary)]" />
-                                            {explanation.text}
-                                        </Text>
-                                    </div>
-                                )}
                             </div>
                         ))}
                     </div>

@@ -8,10 +8,11 @@ import {
   CheckCircle,
   Info,
   AlertTriangle,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ThemeToggle from '../atoms/ThemeToggle';
 import { Button, Input, Title, Text } from '../atoms';
 
@@ -20,8 +21,26 @@ const TopBar: React.FC = () => {
   const { state, dispatch } = useAppContext();
   const { user, notifications } = state;
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // ... (existing code logic remains similar)
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    dispatch({ type: 'REFRESH_DATA' });
+    // Pequeño delay visual para que el usuario sienta el click
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    let timer: any;
+    if (showNotifications) {
+      timer = setTimeout(() => setShowNotifications(false), 15000);
+    }
+    return () => clearTimeout(timer);
+  }, [showNotifications]);
 
 
   const toggleLanguage = () => {
@@ -46,6 +65,13 @@ const TopBar: React.FC = () => {
       </div>
 
       <div className="flex items-center space-x-4">
+        <Button
+          variant="ghost"
+          size="md"
+          icon={RefreshCw}
+          onClick={handleRefresh}
+          className={`text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-2.5 rounded-xl ${isRefreshing ? 'animate-spin' : ''}`}
+        />
         <Button
           variant="ghost"
           size="md"

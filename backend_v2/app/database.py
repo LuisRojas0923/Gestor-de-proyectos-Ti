@@ -22,8 +22,10 @@ async_engine = create_async_engine(
     ASYNC_DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20
+    pool_size=40,          # Aumentado para soportar 2 workers y 400+ usuarios
+    max_overflow=80,       # Permite hasta 120 conexiones simultáneas
+    pool_timeout=60,       # Aumentado el tiempo de espera en cola
+    pool_recycle=1800
 )
 
 # SessionMaker ASINCRONO
@@ -91,6 +93,16 @@ def obtener_erp_db():
 
 
 async def init_db():
-    """Inicializa las tablas de la base de datos usando SQLModel"""
+    """Inicializa las tablas de la base de datos usando SQLModel y asegura columnas de perfil"""
     async with async_engine.begin() as conn:
+        # 1. Crear tablas si no existen
         await conn.run_sync(SQLModel.metadata.create_all)
+        
+        # 2. Asegurar columnas de perfil (Migración manual segura)
+        from sqlalchemy import text
+        try:
+            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS area VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS sede VARCHAR(255)"))
+        except Exception as e:
+            print(f"DEBUG: Error al asegurar columnas de perfil: {e}")

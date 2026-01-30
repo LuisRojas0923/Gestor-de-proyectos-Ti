@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { useAppContext } from '../context/AppContext';
 import axios from 'axios';
@@ -14,6 +15,11 @@ import TicketFormView from './ServicePortal/TicketFormView';
 import TicketListView from './ServicePortal/TicketListView';
 import TicketDetailView from './ServicePortal/TicketDetailView';
 import SuccessView from './ServicePortal/SuccessView';
+import ExpenseLegalization from './ServicePortal/ExpenseLegalization';
+import AreaSelectionView from './ServicePortal/AreaSelectionView';
+import ViaticosManagement from './ServicePortal/ViaticosManagement';
+import AccountStatement from './ServicePortal/AccountStatement';
+import TransitReportsView from './ServicePortal/TransitReportsView';
 
 import ThemeToggle from '../components/atoms/ThemeToggle';
 import imgHardware from '../assets/images/categories/Soporte Hardware.png';
@@ -23,14 +29,16 @@ import imgImpresora from '../assets/images/categories/Soporte Impresora.png';
 import imgMejora from '../assets/images/categories/Soporte Mejoramiento.png';
 import imgDesarrollo from '../assets/images/categories/Nuevos desarrollos.png';
 import imgLicencias from '../assets/images/categories/Compra de Licencias.png';
+import imgControlCambios from '../assets/images/categories/Control de Cambios.png';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
 const ServicePortal: React.FC = () => {
     const { state, dispatch } = useAppContext();
+    const navigate = useNavigate();
     const { user } = state;
-    const [view, setView] = useState<'dashboard' | 'categories' | 'form' | 'status' | 'success' | 'detail'>('dashboard');
-    // const [user, setUser] = useState<any>(null); // Eliminado, usamos contexto
+    const [view, setView] = useState<'dashboard' | 'areas' | 'categories' | 'form' | 'status' | 'success' | 'detail' | 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_gestion' | 'viaticos_estado'>('dashboard');
+    const [selectedArea, setSelectedArea] = useState<'sistemas' | 'desarrollo' | 'mejoramiento' | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<any>(null);
     const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -40,85 +48,104 @@ const ServicePortal: React.FC = () => {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const { addNotification } = useNotifications();
 
-    const defaultCategories: Category[] = [
-        {
-            id: 'soporte_hardware',
-            name: 'Soporte de Hardware',
+    // Metadatos visuales: Mapeamos el ID de la categoría con su icono y sección
+    const categoryMetadata: Record<string, { icon: React.ReactNode; section: 'soporte' | 'mejoramiento' }> = {
+        soporte_hardware: {
             icon: <img src={imgHardware} alt="Hardware" className="w-full h-full object-contain p-1" />,
-            description: 'Problemas físicos: PC, laptop, monitor.',
-            form_type: 'support',
             section: 'soporte'
         },
-        {
-            id: 'soporte_software',
-            name: 'Soporte de Software',
+        soporte_software: {
             icon: <img src={imgSoftware} alt="Software" className="w-full h-full object-contain p-1" />,
-            description: 'Instalaciones, Office, Windows, antivirus.',
-            form_type: 'support',
             section: 'soporte'
         },
-        {
-            id: 'soporte_impresoras',
-            name: 'Soporte de Impresoras',
+        soporte_impresoras: {
             icon: <img src={imgImpresora} alt="Impresoras" className="w-full h-full object-contain p-1" />,
-            description: 'Configuración, atascos, toner y mantenimiento.',
-            form_type: 'support',
             section: 'soporte'
         },
-        {
-            id: 'perifericos',
-            name: 'Periféricos y Equipos',
+        perifericos: {
             icon: <img src={imgPerifericos} alt="Periféricos" className="w-full h-full object-contain p-1" />,
-            description: 'Solicitud de mouse, teclado, monitor, diademas.',
-            form_type: 'asset',
             section: 'soporte'
         },
-        {
-            id: 'compra_licencias',
-            name: 'Compra de Licencias',
+        compra_licencias: {
             icon: <img src={imgLicencias} alt="Licencias" className="w-full h-full object-contain p-1" />,
-            description: 'Solicitud de licencias de software y paquetería.',
-            form_type: 'asset',
             section: 'soporte'
         },
-        {
-            id: 'control_cambios',
-            name: 'Control de Cambios',
-            icon: <img src={imgMejora} alt="Mejoramiento" className="w-full h-full object-contain p-1" />,
-            description: '¿Necesitas ajustar algo que ya funciona? Solicita cambios a módulos de SOLID aquí.',
-            form_type: 'change_control',
+        nuevos_desarrollos_mejora: {
+            icon: <img src={imgDesarrollo} alt="Desarrollos" className="w-full h-full object-contain p-1" />,
             section: 'mejoramiento'
         },
-        {
-            id: 'nuevos_desarrollos_mejora',
-            name: 'Nuevos Desarrollos',
-            icon: <img src={imgDesarrollo} alt="Desarrollos" className="w-full h-full object-contain p-1" />,
-            description: 'Creación de nuevos sistemas o automatización de procesos.',
-            form_type: 'development',
+        control_cambios: {
+            icon: <img src={imgControlCambios} alt="Control de Cambios" className="w-full h-full object-contain p-1" />,
+            section: 'mejoramiento'
+        },
+        soporte_mejora: {
+            icon: <img src={imgMejora} alt="Mejoramiento" className="w-full h-full object-contain p-1" />,
             section: 'mejoramiento'
         }
-    ];
+    };
 
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const res = await axios.get(`${API_BASE_URL}/soporte/categorias`); // [CONTROLADO]
-                const mapped = res.data.map((cat: any) => ({
-                    id: cat.id,
-                    name: cat.nombre || cat.name || '',
-                    description: cat.descripcion || cat.description || '',
-                    form_type: cat.tipo_formulario || cat.form_type || 'support',
-                    section: defaultCategories.find(d => d.id === cat.id)?.section || 'soporte',
-                    icon: defaultCategories.find(d => d.id === cat.id)?.icon || <Plus />
-                }));
-                setCategories(mapped.length > 0 ? mapped : defaultCategories);
+                const res = await axios.get(`${API_BASE_URL}/soporte/categorias`);
+                const apiCats = res.data;
+
+                // Mapeamos los datos de la API inyectando los iconos locales
+                const mappedCategories = apiCats.map((apiCat: any) => {
+                    const metadata = categoryMetadata[apiCat.id];
+                    return {
+                        id: apiCat.id,
+                        name: apiCat.nombre,
+                        description: apiCat.descripcion,
+                        form_type: apiCat.tipo_formulario,
+                        section: metadata ? metadata.section : 'soporte',
+                        icon: metadata ? metadata.icon : <Plus />
+                    };
+                });
+
+                setCategories(mappedCategories);
             } catch (err) {
                 console.error("Error fetching categories:", err);
-                setCategories(defaultCategories);
+                // Si falla la API, podrías poner un estado de error o cargar unos mínimos
+                addNotification('error', "Error al cargar el catálogo de servicios.");
             }
         };
         fetchCategories();
     }, []);
+
+    // Efecto para asegurar que el perfil del usuario tenga área/cargo/sede (Auto-sync para sesiones activas)
+    useEffect(() => {
+        const refreshUserProfile = async () => {
+            // Se dispara si falta área O sede
+            if (user && (!user.area || !user.sede)) {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+
+                try {
+                    const res = await axios.get(`${API_BASE_URL}/auth/yo`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+
+                    if (res.data) {
+                        const updatedUser = {
+                            ...res.data,
+                            id: res.data.id || res.data.cedula,
+                            cedula: res.data.cedula || res.data.id,
+                            name: res.data.nombre || res.data.name,
+                            role: res.data.rol || res.data.role,
+                            area: res.data.area,
+                            cargo: res.data.cargo,
+                            sede: res.data.sede
+                        };
+                        dispatch({ type: 'LOGIN', payload: updatedUser });
+                    }
+                } catch (err) {
+                    console.error("No se pudo refrescar el perfil automáticamente:", err);
+                }
+            }
+        };
+        refreshUserProfile();
+    }, [user, dispatch]);
 
     // Login logic removed
 
@@ -150,16 +177,13 @@ const ServicePortal: React.FC = () => {
         };
 
         try {
-            // Generate unique ticket ID: TKT-{timestamp}-{random}
-            const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-
             let descripcionFinal = fd.get('descripcion_detallada') || 'Sin descripción';
             let queNecesitaFinal = fd.get('que_necesita') || null;
             let asuntoFinal = fd.get('asunto') || selectedCategory.name;
 
             if (selectedCategory.form_type === 'development') {
                 const nombreProceso = fd.get('nombre_proceso');
-                asuntoFinal = nombreProceso ? `Nuevo Desarrollo: ${nombreProceso}` : selectedCategory.name;
+                asuntoFinal = nombreProceso ? `Desarrollo: ${nombreProceso}` : selectedCategory.name;
 
                 // Empaquetar el formulario de 6 secciones en un formato legible para el backend
                 const seccion1 = `=== 1. IDENTIFICACIÓN ===\nProceso: ${nombreProceso}\nÁrea: ${fd.get('area_solicitante')}\nLíder: ${fd.get('lider_requerimiento')}`;
@@ -171,6 +195,12 @@ const ServicePortal: React.FC = () => {
 
                 descripcionFinal = `${seccion1}\n\n${seccion2}\n\n${seccion3}`;
                 queNecesitaFinal = `${seccion4}\n\n${seccion5}\n\n${seccion6}`;
+            } else if (selectedCategory.section === 'mejoramiento') {
+                const necesidad = fd.get('necesidad_especifica');
+                asuntoFinal = necesidad ? `Mejora: ${necesidad.toString().substring(0, 40)}...` : `Mejora: ${selectedCategory.name}`;
+            } else if (selectedCategory.section === 'soporte') {
+                const situacion = fd.get('situacion_presentada');
+                asuntoFinal = situacion ? `Soporte: ${situacion}` : `Soporte: ${selectedCategory.name}`;
             }
 
             if (selectedCategory.form_type === 'change_control') {
@@ -178,32 +208,44 @@ const ServicePortal: React.FC = () => {
                 descripcionFinal = fd.get('descripcion_cambio') as string;
             }
 
+            // Consolidador de datos para el backend
+            const formDataObj: Record<string, any> = {};
+            fd.forEach((value, key) => {
+                if (key !== 'archivos_adjuntos') {
+                    formDataObj[key] = value;
+                }
+            });
+
             const payload: any = {
-                id: ticketId,
                 categoria_id: selectedCategory.id,
                 asunto: asuntoFinal,
                 descripcion: descripcionFinal,
-                creador_id: user.id,
+                creador_id: user.cedula || user.id,
                 nombre_creador: user.name,
                 correo_creador: user.email,
                 area_creador: user.area,
                 cargo_creador: user.cargo,
                 sede_creador: user.sede,
                 prioridad: (fd.get('nivel_prioridad') || 'Media') as string,
-                // Campos de Desarrollo
+                areas_impactadas: fd.get('areas_impactadas') ? JSON.parse(fd.get('areas_impactadas') as string) : [],
                 que_necesita: queNecesitaFinal,
-                porque: fd.get('porque') || null,
-                paraque: fd.get('paraque') || null,
-                // Campos de Control de Cambios
-                desarrollo_id: fd.get('desarrollo_id') || null,
-                tipo_objeto: fd.get('tipo_objeto') || null,
-                accion_requerida: fd.get('accion_requerida') || null,
-                impacto_operativo: fd.get('impacto_operativo') || null,
-                justificacion_cambio: fd.get('justificacion_cambio') || null,
-                descripcion_cambio: fd.get('descripcion_cambio') || null,
-                fecha_sugerida: fd.get('fecha_sugerida') || null,
-                justificacion_ia: null
+                datos_extra: formDataObj, // Guardamos TODO el formulario aquí por si acaso
+
+                // Campos específicos mapeados para compatibilidad
+                item_solicitado: fd.get('hardware_solicitado') || fd.get('item_solicitado') || (selectedCategory.id === 'compra_licencias' ? 'LICENCIA DE SOFTWARE' : null),
+                especificaciones: fd.get('especificaciones') || null,
+                cantidad: parseInt(fd.get('cantidad') as string) || 1,
+                fecha_entrega_ideal: fd.get('fecha_ideal') || null
             };
+
+            // Validación de Áreas Impactadas
+            if (['development', 'change_control'].includes(selectedCategory.form_type)) {
+                if (!payload.areas_impactadas || payload.areas_impactadas.length === 0) {
+                    addNotification('warning', "Debe agregar al menos una área impactada.");
+                    setIsLoading(false);
+                    return;
+                }
+            }
 
             if (user) {
                 const res = await axios.post(`${API_BASE_URL}/soporte/`, payload); // [CONTROLADO]
@@ -228,7 +270,7 @@ const ServicePortal: React.FC = () => {
 
                 setNewTicketId(createdTicketId);
                 setView('success');
-                fetchTickets(user.id);
+                fetchTickets(user.cedula || user.id);
                 setSelectedFiles([]); // Limpiar archivos
             }
         } catch { addNotification('error', "Error al enviar ticket"); } finally { setIsLoading(false); }
@@ -251,7 +293,7 @@ const ServicePortal: React.FC = () => {
             addNotification('success', "Información enviada correctamente. El ticket vuelve a estar en proceso.");
 
             // Actualizar lista y volver
-            fetchTickets(user.id);
+            fetchTickets(user.cedula || user.id);
             setView('status');
         } catch (err) {
             console.error("Error enviando feedback:", err);
@@ -264,7 +306,7 @@ const ServicePortal: React.FC = () => {
     // Redirigir si no hay usuario (protección extra, aunque ProtectedRoute debería manejarlo)
     useEffect(() => {
         if (user && view === 'dashboard') {
-            fetchTickets(user.id);
+            fetchTickets(user.cedula || user.id);
         }
     }, [user, view]);
 
@@ -272,11 +314,14 @@ const ServicePortal: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
-            <header className="bg-[var(--color-surface)] border-b border-[var(--color-border)] sticky top-0 z-10 transition-colors duration-300">
-                <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <header className="bg-[var(--color-surface)] border-b border-[var(--color-border)] sticky top-0 z-50 transition-colors duration-300">
+                <div className="max-w-[1300px] mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('dashboard')}>
                         <div className="bg-[var(--color-primary)] p-2 rounded-xl text-[var(--color-background)] transition-colors"><Plus size={20} /></div>
-                        <Text as="span" weight="bold" className="text-xl tracking-tight text-[var(--color-primary)]">Portal TI</Text>
+                        <Text as="span" weight="bold" className="text-lg sm:text-xl tracking-tight text-[var(--color-primary)]">
+                            <Text as="span" className="hidden sm:inline">Portal de Servicios SOLID</Text>
+                            <Text as="span" className="inline sm:hidden">Portal SOLID</Text>
+                        </Text>
                     </div>
 
                     <div className="flex items-center space-x-4">
@@ -289,8 +334,7 @@ const ServicePortal: React.FC = () => {
                             variant="ghost"
                             onClick={() => {
                                 dispatch({ type: 'LOGOUT' });
-                                // Dejar que Route maneje redirect o recargar
-                                // window.location.reload(); 
+                                navigate('/login');
                             }}
                             className="p-2.5 rounded-xl hover:bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)] transition-colors"
                         >
@@ -299,9 +343,40 @@ const ServicePortal: React.FC = () => {
                     </div>
                 </div>
             </header>
-            <main className="max-w-5xl mx-auto p-4 sm:p-8">
-                {view === 'dashboard' && <DashboardView onNavigate={setView} />}
-                {view === 'categories' && <CategoryView categories={categories} onSelect={(c) => { setSelectedCategory(c); setView('form'); }} onBack={() => setView('dashboard')} />}
+            <main className="max-w-[1300px] mx-auto p-4 sm:px-8 sm:py-2">
+                {view === 'dashboard' && <DashboardView user={user} onNavigate={(v: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado') => {
+                    if (v === 'viaticos_gestion' || v === 'viaticos_estado') {
+                        setView(v);
+                    } else {
+                        setView(v === 'categories' ? 'areas' : 'status');
+                    }
+                }} />}
+
+                {view === 'areas' && (
+                    <AreaSelectionView
+                        onSelectArea={(area) => {
+                            setSelectedArea(area);
+                            // Si es desarrollo o mejoramiento y solo hay una categoría principal, podríamos ir directo al form
+                            // Pero por ahora, filtramos y mostramos CategoryView por consistencia
+                            setView('categories');
+                        }}
+                        onBack={() => setView('dashboard')}
+                    />
+                )}
+
+                {view === 'categories' && (
+                    <CategoryView
+                        categories={categories.filter(c => {
+                            if (selectedArea === 'sistemas') return c.section === 'soporte';
+                            if (selectedArea === 'mejoramiento') return c.section === 'mejoramiento' && !['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
+                            if (selectedArea === 'desarrollo') return ['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
+                            return true;
+                        })}
+                        onSelect={(c) => { setSelectedCategory(c); setView('form'); }}
+                        onBack={() => setView('areas')}
+                    />
+                )}
+
                 {view === 'form' && selectedCategory && (
                     <TicketFormView
                         selectedCategory={selectedCategory}
@@ -315,6 +390,31 @@ const ServicePortal: React.FC = () => {
                 )}
                 {view === 'status' && <TicketListView tickets={tickets} onBack={() => setView('dashboard')} onViewDetail={(t) => { setSelectedTicket(t); setView('detail'); }} />}
                 {view === 'detail' && selectedTicket && <TicketDetailView selectedTicket={selectedTicket} user={user} onBack={() => setView('status')} onUpdate={handleSendUserFeedback} />}
+                {view === 'legalizar_gastos' && (
+                    <ExpenseLegalization
+                        user={user}
+                        onBack={() => setView('viaticos_gestion')}
+                        onSuccess={() => { setView('viaticos_gestion'); addNotification('success', 'Reporte enviado a tránsito correctamente.'); }}
+                    />
+                )}
+                {view === 'viaticos_gestion' && (
+                    <ViaticosManagement
+                        onNavigate={(v) => setView(v)}
+                        onBack={() => setView('dashboard')}
+                    />
+                )}
+                {view === 'viaticos_reportes' && (
+                    <TransitReportsView
+                        user={user}
+                        onBack={() => setView('viaticos_gestion')}
+                    />
+                )}
+                {view === 'viaticos_estado' && (
+                    <AccountStatement
+                        user={user}
+                        onBack={() => setView('viaticos_gestion')}
+                    />
+                )}
                 {view === 'success' && <SuccessView newTicketId={newTicketId} onHome={() => setView('dashboard')} />}
             </main>
         </div>

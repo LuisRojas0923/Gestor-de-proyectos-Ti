@@ -15,11 +15,14 @@ import AnalystSidebarTimeline from './ServicePortal/components/AnalystSidebarTim
 import AnalystActionTabs from './ServicePortal/components/AnalystActionTabs';
 
 import { API_CONFIG } from '../config/api';
+import { useNotifications } from '../components/notifications/NotificationsContext';
+import { formatFriendlyDate } from '../utils/dateUtils';
 
 const TicketDetail: React.FC = () => {
     const { ticketId } = useParams<{ ticketId: string }>();
     const navigate = useNavigate();
-    const { state, dispatch } = useAppContext();
+    const { state } = useAppContext();
+    const { addNotification } = useNotifications();
     const { user } = state;
     const [developments, setDevelopments] = useState([]);
 
@@ -44,6 +47,7 @@ const TicketDetail: React.FC = () => {
                 prioridad: ticket.prioridad,
                 diagnostico: ticket.diagnostico,
                 resolucion: ticket.resolucion,
+                causa_novedad: ticket.causa_novedad,
                 notas: ticket.notas,
                 asignado_a: ticket.asignado_a
             });
@@ -55,41 +59,27 @@ const TicketDetail: React.FC = () => {
     };
 
     const isAnalyst = user?.role === 'analyst' || user?.role === 'admin';
-    const stages: TicketStatus[] = ['Abierto', 'Asignado', 'En Proceso', 'Pendiente Info', 'Escalado', 'Resuelto', 'Cerrado'];
+    const stages: TicketStatus[] = ['Asignado', 'En Proceso', 'Pendiente Info', 'Escalado', 'Resuelto', 'Cerrado'];
 
     const handleAnalystSave = () => {
         if (!ticket) return;
 
         // Lógica de validación de flujo solicitada por el usuario
         if (analystForm.estado === 'Cerrado' && ticket.estado !== 'Resuelto') {
-            dispatch({
-                type: 'ADD_NOTIFICATION',
-                payload: {
-                    id: Math.random().toString(36).substr(2, 9),
-                    title: 'Flujo Inválido',
-                    message: 'Un ticket debe pasar por el estado "Resuelto" antes de ser Cerrado.',
-                    type: 'error',
-                    timestamp: new Date().toISOString(),
-                    read: false
-                }
-            });
+            addNotification('error', 'Un ticket debe pasar por el estado "Resuelto" antes de ser Cerrado.');
             return;
         }
 
         // Validación adicional: Para pasar a Resuelto debe estar En Proceso o Escalado
-        if (analystForm.estado === 'Resuelto' && !['En Proceso', 'Escalado'].includes(ticket.estado)) {
-            dispatch({
-                type: 'ADD_NOTIFICATION',
-                payload: {
-                    id: Math.random().toString(36).substr(2, 9),
-                    title: 'Flujo Inválido',
-                    message: 'El ticket debe estar "En Proceso" o "Escalado" antes de ser Resuelto.',
-                    type: 'warning',
-                    timestamp: new Date().toISOString(),
-                    read: false
-                }
-            });
-            return;
+        if (analystForm.estado === 'Resuelto') {
+            if (!['En Proceso', 'Escalado'].includes(ticket.estado)) {
+                addNotification('warning', 'El ticket debe estar "En Proceso" o "Escalado" antes de ser Resuelto.');
+                return;
+            }
+            if (!analystForm.causa_novedad) {
+                addNotification('error', 'Debe seleccionar una "Causa de la Novedad" para resolver el ticket.');
+                return;
+            }
         }
 
         updateTicket(analystForm);
@@ -138,6 +128,8 @@ const TicketDetail: React.FC = () => {
                             prioridad: ticket.prioridad
                         }}
                         createdAt={ticket.fecha_creacion}
+                        idealDate={ticket.datos_extra?.fecha_ideal || ticket.fecha_entrega_ideal}
+                        prioridadJustificacion={ticket.datos_extra?.justificacion_prioridad}
                     />
 
                     <AnalystActionTabs
@@ -146,6 +138,8 @@ const TicketDetail: React.FC = () => {
                         onLinkDevelopment={(devId) => updateTicket({ desarrollo_id: devId })}
                         formData={analystForm}
                         onFieldChange={handleAnalystFieldChange}
+                        attachments={attachments}
+                        onDownloadAttachment={downloadAttachment}
                     />
 
                     <AnalystSidebarTimeline history={history} />
@@ -181,7 +175,7 @@ const TicketDetail: React.FC = () => {
                         <div className="bg-white dark:bg-neutral-900 rounded-[2.5rem] p-8 lg:p-10 shadow-sm border border-neutral-100 dark:border-neutral-800">
                             <div className="flex items-center space-x-3 mb-6">
                                 <Text variant="caption" weight="bold" color="primary" className="bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-lg font-mono tracking-widest leading-none">{ticket.id}</Text>
-                                <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-40">{new Date(ticket.fecha_creacion).toLocaleString()}</Text>
+                                <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-40">{formatFriendlyDate(ticket.fecha_creacion)}</Text>
                             </div>
                             <Title variant="h2" weight="bold" color="text-primary" className="mb-8 leading-tight">{ticket.asunto}</Title>
                             <div className="p-8 bg-neutral-50 dark:bg-neutral-800/50 rounded-3xl border border-neutral-100 dark:border-neutral-700/50 italic text-neutral-700 dark:text-neutral-300 text-lg leading-relaxed shadow-inner">
@@ -206,7 +200,14 @@ const TicketDetail: React.FC = () => {
 
                                     {ticket.resolucion && (
                                         <div className="p-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800">
-                                            <Text variant="caption" weight="bold" className="text-emerald-600">SOLUCIÓN</Text>
+                                            <div className="flex justify-between items-start mb-2">
+                                                <Text variant="caption" weight="bold" className="text-emerald-600">SOLUCIÓN</Text>
+                                                {ticket.causa_novedad && (
+                                                    <Text variant="caption" weight="bold" className="bg-emerald-100 dark:bg-emerald-800/40 px-2 py-0.5 rounded-md text-emerald-700">
+                                                        Causa: {ticket.causa_novedad}
+                                                    </Text>
+                                                )}
+                                            </div>
                                             <Text variant="body1" className="leading-relaxed mt-2">{ticket.resolucion}</Text>
                                         </div>
                                     )}
@@ -236,9 +237,10 @@ const TicketDetail: React.FC = () => {
 
 const getStatusStyle = (status: string) => {
     const styles: Record<string, string> = {
-        'Nuevo': 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20',
-        'Abierto': 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20',
+        'Asignado': 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20',
         'En Proceso': 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20',
+        'Pendiente Info': 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20',
+        'Escalado': 'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20',
         'Resuelto': 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20',
         'Cerrado': 'bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800'
     };

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 import { useAppContext } from '../context/AppContext';
+import { useNotifications } from '../components/notifications/NotificationsContext';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -23,18 +24,38 @@ export interface Ticket {
     asignado_a?: string;
     diagnostico?: string;
     resolucion?: string;
+    causa_novedad?: string;
     notas?: string;
     horas_tiempo_empleado?: number;
     fecha_creacion: string;
     fecha_cierre?: string;
-    datos_extra?: Record<string, unknown>;
+    fecha_entrega_ideal?: string;
+    datos_extra?: Record<string, any>;
     desarrollo_id?: string;
+    solicitud_activo?: {
+        id: number;
+        item_solicitado: string;
+        especificaciones?: string;
+        cantidad: number;
+    };
+    solicitud_desarrollo?: {
+        que_necesita: string;
+        porque: string;
+        paraque: string;
+    };
+    control_cambios?: {
+        accion_requerida: string;
+        impacto_operativo: string;
+        justificacion: string;
+        descripcion_cambio: string;
+    };
 }
 
 export interface TicketHistory {
     id: number;
     accion: string;
     detalle: string;
+    nombre_usuario?: string;
     creado_en: string;
 }
 
@@ -52,7 +73,9 @@ export const useTicketDetail = (ticketId: string | undefined) => {
     const [error, setError] = useState<string | null>(null);
     const [history, setHistory] = useState<TicketHistory[]>([]);
     const [attachments, setAttachments] = useState<TicketAttachment[]>([]);
-    const { dispatch } = useAppContext();
+    const { state, dispatch } = useAppContext();
+    const { addNotification } = useNotifications();
+    const currentUser = state.user;
 
     const fetchAllData = useCallback(async () => {
         if (!ticketId) return;
@@ -82,12 +105,18 @@ export const useTicketDetail = (ticketId: string | undefined) => {
         if (!ticketId) return;
         setIsSaving(true);
         try {
-            await axios.patch(`${API_BASE_URL}/soporte/${ticketId}`, updateData);
+            // Adjuntar información del usuario para trazabilidad
+            const dataWithUser = {
+                ...updateData,
+                usuario_id: currentUser?.id,
+                usuario_nombre: currentUser?.name
+            };
+            await axios.patch(`${API_BASE_URL}/soporte/${ticketId}`, dataWithUser);
             await fetchAllData();
-            notify('success', 'Éxito', 'Cambios guardados correctamente.');
+            notify('success', 'Cambios guardados correctamente.');
         } catch (err) {
             console.error("Error al actualizar:", err);
-            notify('error', 'Error', 'No se pudieron guardar los cambios.');
+            notify('error', 'No se pudieron guardar los cambios.');
         } finally {
             setIsSaving(false);
         }
@@ -104,22 +133,26 @@ export const useTicketDetail = (ticketId: string | undefined) => {
             link.click();
             document.body.removeChild(link);
         } catch (err) {
-            notify('error', 'Error', 'No se pudo descargar el archivo.');
+            notify('error', 'No se pudo descargar el archivo.');
         }
     };
 
-    const notify = (type: 'success' | 'error' | 'warning', title: string, message: string) => {
+    const notify = (type: 'success' | 'error' | 'warning', message: string) => {
+        // 1. Añadir al historial persistente (AppContext)
         dispatch({
             type: 'ADD_NOTIFICATION',
             payload: {
                 id: Math.random().toString(36).substr(2, 9),
-                title,
+                title: type === 'error' ? 'Error' : (type === 'success' ? 'Éxito' : 'Aviso'),
                 message,
-                type,
+                type: type === 'error' ? 'error' : (type === 'success' ? 'success' : 'warning'),
                 timestamp: new Date().toISOString(),
                 read: false
             }
         });
+
+        // 2. Mostrar toast visual instantáneo
+        addNotification(type === 'warning' ? 'warning' : type, message);
     };
 
     return {

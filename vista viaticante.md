@@ -1,0 +1,3 @@
+<input type="text" disabled="" name="nombre" class="w-full border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 text-sm border-neutral-300 focus:border-primary-500 focus:ring-primary-500 dark:border-neutral-600 dark:focus:border-primary-500 bg-white text-neutral-900 placeholder-neutral-500 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-400 pl-10" value="">
+
+necesito que se cree un tipo de usuario que se llame Viaticante. pero entonces no se como hacer porque necesitamos poner otro categoria de servicio que seria viaticos, pero esta categoria si debe estar por permisos, y tenemos que hacer una modificacion en el endpoint del erp,

@@ -1,0 +1,27 @@
+# ===== TESTS DE CARGA CON LOCUST =====
+
+# Con interfaz web (abre http://localhost:8089)
+# IMPORTANTE: Host debe ser http://localhost:8000 SIN /api/v2
+locust -f testing/backend/load_test.py --host=http://localhost:8000
+
+# Sin interfaz (headless) - 50 usuarios, 5/segundo, durante 60s
+locust -f testing/backend/load_test.py --host=http://localhost:8000 --headless -u 50 -r 5 -t 60s
+
+# ===== TESTS UNITARIOS =====
+python -m pytest testing/backend/test_api_v2.py -v
+
+# ======================= auditoria =======================
+python -m auditoria 
+
+
+# ===== TESTS DE CARGA CON LOCUST =====
+
+# Con interfaz web (abre http://localhost:8089)
+# IMPORTANTE: Host debe ser http://localhost:8000 SIN /api/v2
+locust -f testing/backend/load_test.py --host=http://localhost:8000
+
+# Sin interfaz (headless) - 400 usuarios, 20/segundo, durante 90s
+locust -f testing/backend/load_test.py --host=http://localhost:8000 --headless -u 400 -r 20 -t 90s
+
+# ===== TESTS UNITARIOS =====
+python -m pytest testing/backend/test_api_v2.py -v

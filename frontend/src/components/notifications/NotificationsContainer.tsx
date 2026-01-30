@@ -20,5 +20,3 @@ export const NotificationsContainer: React.FC = () => {
     </>
   );
 };
-
-

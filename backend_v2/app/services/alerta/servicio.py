@@ -2,8 +2,9 @@
 Servicio de Alertas - Backend V2
 """
 from datetime import datetime, date
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Session
+from app.utils_date import get_bogota_now
 from app.models.alerta import ActividadProxima, RegistroActividad
 
 
@@ -37,7 +38,7 @@ class ServicioAlerta:
             tipo_actividad=tipo,
             creado_por=usuario,
             desarrollo_id=desarrollo_id,
-            fecha_inicio=datetime.utcnow()
+            fecha_inicio=get_bogota_now()
         )
         db.add(log)
         db.commit()

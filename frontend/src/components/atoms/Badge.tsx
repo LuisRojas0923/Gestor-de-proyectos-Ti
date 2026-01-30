@@ -3,7 +3,7 @@ import { Text } from './Text';
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'default' | 'success' | 'warning' | 'error' | 'info';
+  variant?: 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -22,6 +22,7 @@ const Badge: React.FC<BadgeProps> = ({
     warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 shadow-md hover:shadow-lg',
     error: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 shadow-md hover:shadow-lg',
     info: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 shadow-md hover:shadow-lg',
+    primary: 'bg-[var(--color-primary-light)] text-[var(--color-primary)] shadow-md hover:shadow-lg',
   };
 
   const sizeClasses = {

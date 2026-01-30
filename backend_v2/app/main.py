@@ -23,6 +23,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from .database import init_db
+
+@app.on_event("startup")
+async def startup_event():
+    """Acciones al iniciar el servidor"""
+    await init_db()
+
 
 @app.get("/")
 async def raiz():
@@ -50,6 +57,8 @@ from .api.ia import router as ia_router
 from .api.erp import router as erp_router
 from .api.panel_control import router as panel_control_router
 from .api.etapas_router import router as etapas_router
+from .api.solid.router import router as solid_router
+from .api.viaticos.router import router as viaticos_router
 
 api_prefix = "/api/v2"
 
@@ -62,4 +71,6 @@ app.include_router(ia_router, prefix=f"{api_prefix}/ia", tags=["IA"])
 app.include_router(erp_router, prefix=f"{api_prefix}/erp", tags=["ERP"])
 app.include_router(panel_control_router, prefix=f"{api_prefix}/panel-control", tags=["Panel Control"])
 app.include_router(etapas_router, prefix=f"{api_prefix}/etapas", tags=["Etapas"])
+app.include_router(solid_router, prefix=f"{api_prefix}/solid", tags=["SOLID"])
+app.include_router(viaticos_router, prefix=api_prefix, tags=["Viaticos"])
 

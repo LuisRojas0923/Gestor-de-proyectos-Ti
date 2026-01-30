@@ -4,7 +4,7 @@ import { Icon } from './Icon';
 
 interface ButtonProps {
   children?: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'custom';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'erp' | 'custom';
   size?: 'xs' | 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
@@ -43,6 +43,7 @@ const Button: React.FC<ButtonProps> = ({
     outline: 'border border-neutral-300 text-neutral-700 hover:bg-neutral-50 focus:ring-neutral-500 dark:border-neutral-600 dark:text-neutral-300 dark:hover:bg-neutral-800',
     ghost: 'text-neutral-700 hover:bg-white/10 focus:ring-neutral-500 dark:text-neutral-300 dark:hover:bg-neutral-800',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+    erp: 'bg-gradient-to-b from-white to-slate-200 text-[#2b4c7e] border border-slate-300 shadow-sm hover:from-slate-50 hover:to-slate-300 active:shadow-inner dark:from-slate-800 dark:to-slate-900 dark:text-blue-300 dark:border-slate-700 dark:hover:from-slate-700 dark:hover:to-slate-800 dark:active:shadow-black/40',
     custom: '',
   };
 

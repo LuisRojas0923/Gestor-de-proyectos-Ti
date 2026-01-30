@@ -67,7 +67,7 @@ const Textarea: React.FC<TextareaProps> = ({
                 onChange={onChange}
                 onFocus={onFocus}
                 onBlur={onBlur}
-                className={`${baseClasses} ${stateClasses} ${backgroundClasses} px-4 py-2 text-sm`}
+                className={`${baseClasses} ${stateClasses} ${backgroundClasses} px-4 py-2 text-[11px]`}
             />
 
             {error && errorMessage && (

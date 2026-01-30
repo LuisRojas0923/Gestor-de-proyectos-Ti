@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Text, Icon, Button } from './index';
 
 interface InputProps {
-  type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'date' | 'url' | 'range' | 'file';
+  type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'date' | 'url' | 'range' | 'file' | 'hidden';
   placeholder?: string;
   value?: string;
   defaultValue?: string;
@@ -15,7 +15,7 @@ interface InputProps {
   helperText?: string;
   icon?: LucideIcon;
   iconPosition?: 'left' | 'right';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
   name?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -61,7 +61,20 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
 }, ref) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPasswordType = type === 'password';
+  const isHidden = type === 'hidden';
   const inputType = isPasswordType ? (showPassword ? 'text' : 'password') : type;
+
+  if (isHidden) {
+    return (
+      <input
+        ref={ref}
+        type="hidden"
+        name={name}
+        value={value}
+        defaultValue={defaultValue}
+      />
+    );
+  }
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -70,9 +83,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   const baseClasses = 'w-full border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-4 py-3 text-base',
+    xs: 'px-2 py-1 text-[11px] h-8',
+    sm: 'px-3 py-1.5 text-[11px] h-10',
+    md: 'px-4 py-2 text-xs',
+    lg: 'px-4 py-3 text-sm',
   };
 
   const stateClasses = error
@@ -82,6 +96,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   const backgroundClasses = 'bg-white text-neutral-900 placeholder-neutral-500 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-400';
 
   const iconPaddingClasses = {
+    xs: IconComponent && iconPosition === 'left' ? 'pl-8' : (IconComponent && iconPosition === 'right') || isPasswordType ? 'pr-8' : '',
     sm: IconComponent && iconPosition === 'left' ? 'pl-10' : (IconComponent && iconPosition === 'right') || isPasswordType ? 'pr-10' : '',
     md: IconComponent && iconPosition === 'left' ? 'pl-10' : (IconComponent && iconPosition === 'right') || isPasswordType ? 'pr-10' : '',
     lg: IconComponent && iconPosition === 'left' ? 'pl-12' : (IconComponent && iconPosition === 'right') || isPasswordType ? 'pr-12' : '',

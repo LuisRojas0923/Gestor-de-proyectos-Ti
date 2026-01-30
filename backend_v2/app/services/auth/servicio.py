@@ -8,7 +8,7 @@ import bcrypt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.config import config
-from app.models.auth.usuario import Usuario
+from app.models.auth.usuario import Usuario, PermisoRol
 from app.services.erp.servicio import ServicioErp
 
 
@@ -85,7 +85,12 @@ class ServicioAuth:
             correo=None,
             hash_contrasena=hash_pwd,
             rol="analyst",
-            esta_activo=True
+            esta_activo=True,
+            area=datos_erp.get("area"),
+            cargo=datos_erp.get("cargo"),
+            sede=datos_erp.get("ciudadcontratacion"),
+            viaticante=datos_erp.get("viaticante"),
+            baseviaticos=datos_erp.get("baseviaticos")
         )
         
         db.add(nuevo_usuario)
@@ -105,3 +110,30 @@ class ServicioAuth:
         await db.commit()
         await db.refresh(usuario)
         return usuario
+
+    @staticmethod
+    async def sincronizar_perfil_desde_erp(db: AsyncSession, db_erp, usuario: Usuario) -> Usuario:
+        """Sincroniza los datos de perfil de un usuario existente con Solid ERP."""
+        datos_erp = await ServicioErp.obtener_empleado_por_cedula(db_erp, usuario.cedula)
+        
+        if datos_erp:
+            usuario.area = datos_erp.get("area").strip() if datos_erp.get("area") else None
+            usuario.cargo = datos_erp.get("cargo").strip() if datos_erp.get("cargo") else None
+            usuario.sede = datos_erp.get("ciudadcontratacion").strip() if datos_erp.get("ciudadcontratacion") else None
+            usuario.nombre = datos_erp.get("nombre").strip() if datos_erp.get("nombre") else usuario.nombre
+            usuario.viaticante = datos_erp.get("viaticante")
+            usuario.baseviaticos = datos_erp.get("baseviaticos")
+            await db.commit()
+            await db.refresh(usuario)
+        return usuario
+
+    @staticmethod
+    async def obtener_permisos_por_rol(db: AsyncSession, rol: str) -> list[str]:
+        """Obtiene la lista de módulos permitidos para un rol."""
+        result = await db.execute(
+            select(PermisoRol.modulo).where(
+                PermisoRol.rol == rol,
+                PermisoRol.permitido == True
+            )
+        )
+        return list(result.scalars().all())

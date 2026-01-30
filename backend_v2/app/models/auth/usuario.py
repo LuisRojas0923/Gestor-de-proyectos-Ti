@@ -26,6 +26,18 @@ class Usuario(SQLModel, table=True):
     actualizado_en: Optional[datetime] = Field(default=None)
     ultimo_login: Optional[datetime] = Field(default=None)
     
+    # Datos de perfil (Sincronizados con ERP)
+    area: Optional[str] = Field(default=None, max_length=255)
+    cargo: Optional[str] = Field(default=None, max_length=255)
+    sede: Optional[str] = Field(default=None, max_length=255)
+    
+    # Datos de viáticos (Solid ERP)
+    viaticante: Optional[str] = Field(default=None, max_length=20)
+    baseviaticos: Optional[float] = Field(default=None)
+    # Nuevos campos para ruteo inteligente
+    especialidades: Optional[str] = Field(default="[]", max_length=500)  # Lista JSON: ["soporte", "desarrollo"]
+    areas_asignadas: Optional[str] = Field(default="[]", max_length=1000) # Lista JSON de áreas
+    
     # Relaciones
     tokens: List["Token"] = Relationship(back_populates="usuario", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     sesiones: List["Sesion"] = Relationship(back_populates="usuario", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
@@ -62,6 +74,16 @@ class Sesion(SQLModel, table=True):
     
     # Relaciones
     usuario: Optional[Usuario] = Relationship(back_populates="sesiones")
+
+
+class PermisoRol(SQLModel, table=True):
+    """Modelo para gestionar permisos de acceso por rol y módulo"""
+    __tablename__ = "permisos_rol"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    rol: str = Field(index=True, max_length=50) # 'admin', 'analyst', 'user', 'director'
+    modulo: str = Field(index=True, max_length=100) # ID del componente/pantalla
+    permitido: bool = Field(default=True)
 
 
 # --- Schemas de Validacion (table=False, por defecto) ---
@@ -101,6 +123,13 @@ class UsuarioPublico(SQLModel):
     creado_en: Optional[datetime] = None
     actualizado_en: Optional[datetime] = None
     ultimo_login: Optional[datetime] = None
+    area: Optional[str] = None
+    cargo: Optional[str] = None
+    sede: Optional[str] = None
+    viaticante: Optional[str] = None
+    baseviaticos: Optional[float] = None
+    especialidades: Optional[str] = "[]"
+    areas_asignadas: Optional[str] = "[]"
 
 
 class TokenRespuesta(SQLModel):

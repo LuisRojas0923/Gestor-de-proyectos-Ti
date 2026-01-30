@@ -18,12 +18,6 @@ export const NotificationToast: React.FC<ToastNotificationProps> = ({ id, type, 
   const { icon, iconClasses, cardClasses, progressClasses } = useMemo(() => {
     const baseIconClasses = 'w-8 h-8 flex items-center justify-center rounded-full shrink-0';
     const baseCardClasses = 'flex items-center shadow-2xl transform transition-all duration-500 ease-in-out border';
-    // Use design system variables. In dark mode, surface is dark. In light mode, surface is white.
-    // We can rely on css variables directly if the app handles dark mode via class on body, 
-    // but here we have explicit darkMode prop. 
-    // Let's use standard variables that react to the class, assuming the container has the class or body does.
-    // If darkMode prop is passed, maybe the parent doesn't set the class on this portal?
-    // NotificationsContainer is usually at root.
 
     // Using simple conditional for now to match structure but with tokens
     const cardColor = 'bg-[var(--color-surface)] border-[var(--color-border)]';
@@ -142,5 +136,3 @@ export const NotificationToast: React.FC<ToastNotificationProps> = ({ id, type, 
     </div>
   );
 };
-
-

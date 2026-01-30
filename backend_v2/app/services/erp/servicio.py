@@ -19,7 +19,7 @@ class ServicioErp:
         """
         print(f"DEBUG: Consultando empleado cedula={cedula} en ERP...")
         query = text("""
-            SELECT nrocedula, nombre, cargo, area, estado, ciudadcontratacion 
+            SELECT nrocedula, nombre, cargo, area, estado, ciudadcontratacion, viaticante, baseviaticos 
             FROM establecimiento 
             WHERE nrocedula = :cedula AND estado = 'A'
         """)
@@ -35,7 +35,9 @@ class ServicioErp:
                     "cargo": resultado.cargo,
                     "area": resultado.area,
                     "estado": resultado.estado,
-                    "ciudadcontratacion": resultado.ciudadcontratacion
+                    "ciudadcontratacion": resultado.ciudadcontratacion,
+                    "viaticante": resultado.viaticante,
+                    "baseviaticos": float(resultado.baseviaticos) if resultado.baseviaticos is not None else 0.0
                 }
             print(f"DEBUG: No se encontro empleado activo con cedula={cedula}")
             return None

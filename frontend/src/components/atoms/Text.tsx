@@ -11,6 +11,7 @@ export interface TextProps {
     onClick?: () => void;
     htmlFor?: string; // Para labels
     style?: React.CSSProperties;
+    [key: string]: any; // Permitir props adicionales
 }
 
 export const Text: React.FC<TextProps> = ({
@@ -24,6 +25,7 @@ export const Text: React.FC<TextProps> = ({
     onClick,
     htmlFor,
     style,
+    ...props
 }) => {
 
     // Mapping variants to base styles
@@ -91,6 +93,7 @@ export const Text: React.FC<TextProps> = ({
             style={style}
             onClick={onClick}
             htmlFor={htmlFor}
+            {...props}
         >
             {children}
         </Component>
