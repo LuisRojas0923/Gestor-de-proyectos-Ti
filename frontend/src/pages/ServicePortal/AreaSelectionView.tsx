@@ -50,7 +50,7 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onB
                 <ActionCard
                     title="Desarrollo de Software"
                     description="Solicitud de nuevos módulos o funcionalidades en el ecosistema SOLID."
-                    icon={<img src={imgDesarrollo} alt="Desarrollo" className="w-full h-full object-contain p-2" />}
+                    icon={<img src={imgDesarrollo} alt="Desarrollo" className="w-full h-full object-fill scale-x-150" />}
                     onClick={() => onSelectArea('desarrollo')}
                     variant="primary_light"
                 />

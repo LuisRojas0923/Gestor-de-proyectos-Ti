@@ -56,10 +56,16 @@ const ServicePortal: React.FC = () => {
 
     // Persistir estado de navegación
     useEffect(() => {
+        // Clonamos el estado de la categoría pero eliminamos el icono (que es un elemento React no serializable)
+        const sanitizedCategory = selectedCategory ? { ...selectedCategory } : null;
+        if (sanitizedCategory && sanitizedCategory.icon) {
+            delete sanitizedCategory.icon;
+        }
+
         const navState = {
             view,
             selectedArea,
-            selectedCategory,
+            selectedCategory: sanitizedCategory,
             selectedTicket
         };
         localStorage.setItem(NAV_CACHE_KEY, JSON.stringify(navState));
@@ -88,7 +94,7 @@ const ServicePortal: React.FC = () => {
             section: 'soporte'
         },
         nuevos_desarrollos_mejora: {
-            icon: <img src={imgDesarrollo} alt="Desarrollos" className="w-full h-full object-contain p-1" />,
+            icon: <img src={imgDesarrollo} alt="Desarrollos" className="w-full h-full object-fill scale-x-150" />,
             section: 'mejoramiento'
         },
         control_cambios: {
