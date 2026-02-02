@@ -37,16 +37,33 @@ const ServicePortal: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const navigate = useNavigate();
     const { user } = state;
-    const [view, setView] = useState<'dashboard' | 'areas' | 'categories' | 'form' | 'status' | 'success' | 'detail' | 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_gestion' | 'viaticos_estado'>('dashboard');
-    const [selectedArea, setSelectedArea] = useState<'sistemas' | 'desarrollo' | 'mejoramiento' | null>(null);
+    const { addNotification } = useNotifications();
+
+    const NAV_CACHE_KEY = 'portal_nav_cache';
+
+    // Recuperar estado inicial de localStorage
+    const savedNav = JSON.parse(localStorage.getItem(NAV_CACHE_KEY) || '{}');
+
+    const [view, setView] = useState<'dashboard' | 'areas' | 'categories' | 'form' | 'status' | 'success' | 'detail' | 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_gestion' | 'viaticos_estado'>(savedNav.view || 'dashboard');
+    const [selectedArea, setSelectedArea] = useState<'sistemas' | 'desarrollo' | 'mejoramiento' | null>(savedNav.selectedArea || null);
     const [categories, setCategories] = useState<Category[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState<any>(null);
-    const [selectedTicket, setSelectedTicket] = useState<any>(null);
+    const [selectedCategory, setSelectedCategory] = useState<any>(savedNav.selectedCategory || null);
+    const [selectedTicket, setSelectedTicket] = useState<any>(savedNav.selectedTicket || null);
     const [tickets, setTickets] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [newTicketId, setNewTicketId] = useState<string | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-    const { addNotification } = useNotifications();
+
+    // Persistir estado de navegación
+    useEffect(() => {
+        const navState = {
+            view,
+            selectedArea,
+            selectedCategory,
+            selectedTicket
+        };
+        localStorage.setItem(NAV_CACHE_KEY, JSON.stringify(navState));
+    }, [view, selectedArea, selectedCategory, selectedTicket]);
 
     // Metadatos visuales: Mapeamos el ID de la categoría con su icono y sección
     const categoryMetadata: Record<string, { icon: React.ReactNode; section: 'soporte' | 'mejoramiento' }> = {
@@ -333,6 +350,7 @@ const ServicePortal: React.FC = () => {
                         <Button
                             variant="ghost"
                             onClick={() => {
+                                localStorage.removeItem(NAV_CACHE_KEY);
                                 dispatch({ type: 'LOGOUT' });
                                 navigate('/login');
                             }}

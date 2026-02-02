@@ -64,141 +64,152 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
     }, []);
 
     return (
-        <div className="space-y-6 pb-10">
-            <div className="flex items-center justify-between">
-                <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
-                    <ArrowLeft size={20} />
-                    <Text weight="medium">Volver</Text>
-                </Button>
-                <Title variant="h4" weight="bold" color="text-primary">
-                    Estado de Cuenta
-                </Title>
-                <div className="w-20"></div>
-            </div>
+        <div className="flex flex-col max-h-[calc(100vh-100px)] space-y-3 pb-2">
+            {/* BLOQUE SUPERIOR: FIJO (Sin scroll) */}
+            <div className="flex-none space-y-3 px-1">
+                <div className="flex items-center justify-between py-1 relative">
+                    <Button variant="ghost" onClick={onBack} className="flex items-center gap-2 h-9 z-10 transition-colors">
+                        <ArrowLeft size={18} />
+                        <Text weight="medium" className="text-sm">Volver</Text>
+                    </Button>
+                    <Title variant="h5" weight="bold" color="text-primary" className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-lg uppercase tracking-tight">
+                        Estado de Cuenta de Viáticos
+                    </Title>
+                    <div className="w-20"></div>
+                </div>
 
-            <MaterialCard className="p-0 overflow-hidden bg-[var(--color-surface)] rounded-2xl shadow-sm border border-[var(--color-border)] mb-6">
-                <div className="bg-[var(--color-primary)] text-white p-4 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <Title variant="h5" color="white" weight="bold">ESTADO DE CUENTA DE VIATICOS</Title>
-                    <div className="flex items-center gap-4">
-                        <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/20">
-                            <Text variant="caption" color="white" className="opacity-70 uppercase">Cédula Viaticante</Text>
-                            <Text variant="body1" color="white" weight="bold">{user.cedula || user.id}</Text>
+                {/* Tarjeta de Información Compacta */}
+                <MaterialCard className="p-0 overflow-hidden bg-[var(--color-surface)] rounded-xl shadow-md border border-[var(--color-border)]">
+                    <div className="bg-[var(--color-primary)] text-white px-3 py-2 flex justify-between items-center">
+                        <Title variant="h6" color="white" weight="bold" className="text-sm uppercase tracking-wider">Resumen de Cuenta</Title>
+                        <div className="bg-white/10 px-3 py-0.5 rounded-lg border border-white/20">
+                            <Text variant="caption" color="white" className="opacity-90 uppercase text-[9px] font-bold">Cédula: {user.cedula || user.id}</Text>
                         </div>
                     </div>
-                </div>
-                <div className="p-4 bg-[var(--color-surface-variant)] border-b border-[var(--color-border)]">
-                    <div className="flex items-center gap-4">
-                        <Text variant="caption" weight="bold" className="uppercase opacity-70">Nombre Empleado:</Text>
-                        <Text variant="body1" weight="bold">{user.name}</Text>
+                    <div className="px-3 py-2 bg-[var(--color-surface-variant)] flex items-center gap-2">
+                        <Text variant="caption" weight="bold" className="uppercase opacity-70 text-[10px]">Empleado:</Text>
+                        <Text variant="body2" weight="bold" className="text-xs uppercase">{user.name}</Text>
                     </div>
-                </div>
-            </MaterialCard>
+                </MaterialCard>
 
-            <MaterialCard className="p-6 bg-[var(--color-surface)] rounded-2xl shadow-sm border border-[var(--color-border)]">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                    <div className="space-y-1">
-                        <Text variant="caption" color="text-secondary" className="px-1 flex items-center gap-2">
-                            <Calendar size={14} /> Fecha Inicial
-                        </Text>
-                        <Input
-                            type="date"
-                            value={fechaDesde}
-                            onChange={(e) => setFechaDesde(e.target.value)}
-                            className="w-full"
-                        />
+                {/* Filtros Compactos */}
+                <MaterialCard className="p-3 bg-[var(--color-surface)] rounded-xl shadow-md border border-[var(--color-border)]">
+                    <div className="flex flex-wrap md:flex-nowrap items-end gap-3">
+                        <div className="flex-1 min-w-[140px] space-y-0.5">
+                            <Text className="px-1 font-bold opacity-70 text-[10px] text-secondary flex items-center gap-1.5 leading-none">
+                                <Calendar size={12} /> FECHA INICIAL
+                            </Text>
+                            <Input
+                                type="date"
+                                value={fechaDesde}
+                                onChange={(e) => setFechaDesde(e.target.value)}
+                                className="w-full h-8 text-[11px] px-2 shadow-sm border-neutral-200 focus:border-primary"
+                            />
+                        </div>
+                        <div className="flex-1 min-w-[140px] space-y-0.5">
+                            <Text className="px-1 font-bold opacity-70 text-[10px] text-secondary flex items-center gap-1.5 leading-none">
+                                <Calendar size={12} /> FECHA FINAL
+                            </Text>
+                            <Input
+                                type="date"
+                                value={fechaHasta}
+                                onChange={(e) => setFechaHasta(e.target.value)}
+                                className="w-full h-8 text-[11px] px-2 shadow-sm border-neutral-200 focus:border-primary"
+                            />
+                        </div>
+                        <Button onClick={fetchEstadoCuenta} className="h-8 px-6 text-xs flex items-center gap-2 shadow-sm hover:shadow-md transition-all active:scale-95 bg-primary text-white">
+                            <Search size={14} />
+                            Consultar
+                        </Button>
                     </div>
-                    <div className="space-y-1">
-                        <Text variant="caption" color="text-secondary" className="px-1 flex items-center gap-2">
-                            <Calendar size={14} /> Fecha Final
-                        </Text>
-                        <Input
-                            type="date"
-                            value={fechaHasta}
-                            onChange={(e) => setFechaHasta(e.target.value)}
-                            className="w-full"
-                        />
-                    </div>
-                    <Button onClick={fetchEstadoCuenta} className="w-full md:w-auto h-11 flex items-center justify-center gap-2">
-                        <Search size={20} />
-                        Consultar
-                    </Button>
-                </div>
-            </MaterialCard>
+                </MaterialCard>
+            </div>
 
-            <MaterialCard className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[1100px]">
-                        <thead>
-                            <tr className="bg-[#E8EFF5] border-b border-neutral-300">
-                                <th rowSpan={2} className="p-3 border-r border-neutral-300 text-center"><Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">FECHA</Text></th>
-                                <th rowSpan={2} className="p-3 border-r border-neutral-300 text-center"><Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">RADICADO</Text></th>
-                                <th colSpan={2} className="p-2 text-center border-r border-neutral-300 border-b border-neutral-300 bg-[#E8EFF5]"><Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">CONTABILIZADO</Text></th>
-                                <th colSpan={2} className="p-2 text-center border-r border-neutral-300 border-b border-neutral-300 bg-[#E8EFF5]"><Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">EN CANJE</Text></th>
-                                <th colSpan={2} className="p-2 text-center border-r border-neutral-300 border-b border-neutral-300 bg-[#E8EFF5]"><Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">PENDIENTES</Text></th>
-                                <th rowSpan={2} className="p-3 text-center border-r border-neutral-300"><Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">SALDO</Text></th>
-                                <th rowSpan={2} className="p-3 text-left"><Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">OBSERVACIONES</Text></th>
+            {/* BLOQUE DE TABLA: CON SCROLL INDEPENDIENTE */}
+            <MaterialCard className="flex-1 bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden flex flex-col mx-1">
+                <div className="overflow-auto flex-1 scroll-smooth">
+                    <table className="w-full text-left border-separate border-spacing-0 min-w-[1100px]">
+                        <thead className="z-[30]">
+                            <tr className="bg-[#E8EFF5]">
+                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
+                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">FECHA</Text>
+                                </th>
+                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
+                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">RADICADO</Text>
+                                </th>
+                                <th colSpan={2} className="sticky top-0 z-[30] p-2 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
+                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">CONTABILIZADO</Text>
+                                </th>
+                                <th colSpan={2} className="sticky top-0 z-[30] p-2 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
+                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">EN CANJE</Text>
+                                </th>
+                                <th colSpan={2} className="sticky top-0 z-[30] p-2 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
+                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">PENDIENTES</Text>
+                                </th>
+                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
+                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">SALDO</Text>
+                                </th>
+                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-b border-neutral-300 bg-[#E8EFF5] text-left shadow-[inset_0_-1px_0_#d1d5db]">
+                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">OBSERVACIONES</Text>
+                                </th>
                             </tr>
-                            <tr className="bg-[#F8FAFC] border-b border-neutral-300">
-                                <th className="p-2 text-center border-r border-neutral-300 text-[10px] text-neutral-600 font-semibold uppercase tracking-wider">Consignación</th>
-                                <th className="p-2 text-center border-r border-neutral-300 text-[10px] text-neutral-600 font-semibold uppercase tracking-wider">Legalización</th>
-                                <th className="p-2 text-center border-r border-neutral-300 text-[10px] text-neutral-600 font-semibold uppercase tracking-wider">Consignación</th>
-                                <th className="p-2 text-center border-r border-neutral-300 text-[10px] text-neutral-600 font-semibold uppercase tracking-wider">Legalización</th>
-                                <th className="p-2 text-center border-r border-neutral-300 text-[10px] text-neutral-600 font-semibold uppercase tracking-wider">Consignación</th>
-                                <th className="p-2 text-center border-r border-neutral-300 text-[10px] text-neutral-600 font-semibold uppercase tracking-wider">Legalización</th>
+                            <tr className="bg-[#F8FAFC]">
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Consignación</th>
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Legalización</th>
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Consignación</th>
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Legalización</th>
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Consignación</th>
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Legalización</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-neutral-200">
+                        <tbody className="divide-y divide-neutral-300">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={10} className="p-10 text-center">
+                                    <td colSpan={10} className="p-12 text-center">
                                         <div className="flex flex-col items-center gap-4">
                                             <Spinner size="lg" />
-                                            <Text color="text-secondary">Consultando movimientos en ERP...</Text>
+                                            <Text color="text-secondary" weight="medium">Consultando movimientos en ERP...</Text>
                                         </div>
                                     </td>
                                 </tr>
                             ) : movimientos.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} className="p-10 text-center">
-                                        <Text color="text-secondary">No se encontraron movimientos en este rango de fechas.</Text>
+                                    <td colSpan={10} className="p-12 text-center">
+                                        <Text color="text-secondary" weight="medium">No se encontraron movimientos registrados.</Text>
                                     </td>
                                 </tr>
                             ) : movimientos.map((mov, i) => (
-                                <tr key={i} className="hover:bg-neutral-50 transition-colors">
-                                    <td className="p-3 border-r border-neutral-200 whitespace-nowrap text-center bg-white">
-                                        <Text className="text-[12px] text-neutral-700 font-medium">{new Date(mov.fechaaplicacion).toLocaleDateString('es-CO')}</Text>
+                                <tr key={i} className="hover:bg-blue-100 transition-colors group border-b border-neutral-300">
+                                    <td className="p-3 border-r border-b border-neutral-300 whitespace-nowrap text-center bg-white group-hover:bg-transparent transition-colors">
+                                        <Text variant="caption" weight="medium" className="text-neutral-700">{new Date(mov.fechaaplicacion).toLocaleDateString('es-CO')}</Text>
                                     </td>
-                                    <td className="p-3 border-r border-neutral-200 bg-white">
-                                        <Text weight="bold" className="text-[12px] text-neutral-800">{mov.radicado}</Text>
+                                    <td className="p-3 border-r border-b border-neutral-300 bg-white group-hover:bg-transparent transition-colors whitespace-nowrap">
+                                        <Text variant="caption" weight="bold" className="text-neutral-800">{mov.radicado}</Text>
                                     </td>
-                                    {/* CONTABILIZADO */}
-                                    <td className="p-3 text-right border-r border-neutral-200 font-mono text-[12px] text-neutral-600">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-neutral-600 group-hover:bg-transparent">
                                         {mov.consignacion_contabilizado > 0 ? `$${mov.consignacion_contabilizado.toLocaleString()}` : ''}
                                     </td>
-                                    <td className="p-3 text-right border-r border-neutral-200 font-mono text-[12px] text-neutral-600">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-neutral-600 group-hover:bg-transparent">
                                         {mov.legalizacion_contabilizado > 0 ? `$${mov.legalizacion_contabilizado.toLocaleString()}` : ''}
                                     </td>
-                                    {/* EN CANJE (FIRMADO) */}
-                                    <td className="p-3 text-right border-r border-neutral-200 font-mono text-[12px] text-neutral-600">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-blue-600 group-hover:bg-transparent">
                                         {mov.consignacion_firmadas > 0 ? `$${mov.consignacion_firmadas.toLocaleString()}` : ''}
                                     </td>
-                                    <td className="p-3 text-right border-r border-neutral-200 font-mono text-[12px] text-neutral-600">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-blue-600 group-hover:bg-transparent">
                                         {mov.legalizacion_firmadas > 0 ? `$${mov.legalizacion_firmadas.toLocaleString()}` : ''}
                                     </td>
-                                    {/* PENDIENTES */}
-                                    <td className="p-3 text-right border-r border-neutral-200 font-mono text-[12px] text-neutral-600">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-amber-600 group-hover:bg-transparent">
                                         {mov.consignacion_pendientes > 0 ? `$${mov.consignacion_pendientes.toLocaleString()}` : ''}
                                     </td>
-                                    <td className="p-3 text-right border-r border-neutral-200 font-mono text-[12px] text-amber-600 font-medium">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-amber-600 group-hover:bg-transparent font-medium">
                                         {mov.legalizacion_pendientes > 0 ? `$${mov.legalizacion_pendientes.toLocaleString()}` : ''}
                                     </td>
-                                    {/* SALDO */}
-                                    <td className="p-3 text-right border-r border-neutral-200 font-mono text-[12px] font-bold text-neutral-900 bg-neutral-50">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] font-bold text-neutral-900 bg-neutral-50/50 group-hover:bg-blue-100/20">
                                         ${mov.saldo.toLocaleString()}
                                     </td>
-                                    <td className="p-3 min-w-[250px] bg-white">
-                                        <Text variant="caption" className="text-[11px] text-neutral-500 uppercase leading-snug">
-                                            {mov.observaciones || ''}
+                                    <td className="p-3 min-w-[300px] border-b border-neutral-300 bg-white group-hover:bg-transparent transition-colors">
+                                        <Text variant="caption" className="text-neutral-500 uppercase leading-relaxed italic">
+                                            {mov.observaciones || 'Sin observaciones'}
                                         </Text>
                                     </td>
                                 </tr>

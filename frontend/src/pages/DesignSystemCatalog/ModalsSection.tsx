@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { MaterialCard, Title, Text, Button } from '../../components/atoms';
-import { Modal, DeleteConfirmModal } from '../../components/molecules';
+import { Modal, DeleteConfirmModal, ExpenseConfirmModal } from '../../components/molecules';
 import { useNotifications } from '../../components/notifications/NotificationsContext';
 
 const ModalsSection: React.FC = () => {
     const [showDemoModal, setShowDemoModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showExpenseModal, setShowExpenseModal] = useState(false);
     const { addNotification } = useNotifications();
 
     return (
@@ -19,7 +20,10 @@ const ModalsSection: React.FC = () => {
                             Modal Genérico
                         </Button>
                         <Button variant="danger" onClick={() => setShowDeleteModal(true)}>
-                            Modal de Confirmación
+                            Confirmación Borrado
+                        </Button>
+                        <Button variant="erp" onClick={() => setShowExpenseModal(true)}>
+                            Confirmación de Envío (ERP)
                         </Button>
                     </div>
                 </MaterialCard>
@@ -61,6 +65,18 @@ const ModalsSection: React.FC = () => {
                     setShowDeleteModal(false);
                 }}
                 onCancel={() => setShowDeleteModal(false)}
+            />
+
+            <ExpenseConfirmModal
+                isOpen={showExpenseModal}
+                onClose={() => setShowExpenseModal(false)}
+                onConfirm={() => {
+                    addNotification('success', 'Simulación de envío completada');
+                    setShowExpenseModal(false);
+                }}
+                totalGeneral={150000}
+                totalFacturado={100000}
+                totalSinFactura={50000}
             />
         </div>
     );
