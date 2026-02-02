@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
     ArrowLeft,
     Search,
-    Calendar
+    Calendar,
+    Download
 } from 'lucide-react';
 import {
     Button,
@@ -14,6 +15,7 @@ import {
 } from '../../components/atoms';
 import axios from 'axios';
 import { API_CONFIG } from '../../config/api';
+import { generateAccountStatementPDF } from '../../utils/generateAccountStatementPDF';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -72,7 +74,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                         <ArrowLeft size={18} />
                         <Text weight="medium" className="text-sm">Volver</Text>
                     </Button>
-                    <Title variant="h5" weight="bold" color="text-primary" className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-lg uppercase tracking-tight">
+                    <Title variant="h5" weight="bold" color="text-primary" className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] sm:text-sm md:text-lg uppercase tracking-tight top-10 md:top-1/2 md:-translate-y-1/2">
                         Estado de Cuenta de Viáticos
                     </Title>
                     <div className="w-20"></div>
@@ -117,9 +119,24 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                                 className="w-full h-8 text-[11px] px-2 shadow-sm border-neutral-200 focus:border-primary"
                             />
                         </div>
-                        <Button onClick={fetchEstadoCuenta} className="h-8 px-6 text-xs flex items-center gap-2 shadow-sm hover:shadow-md transition-all active:scale-95 bg-primary text-white">
-                            <Search size={14} />
+                        <Button
+                            variant="erp"
+                            size="sm"
+                            onClick={fetchEstadoCuenta}
+                            icon={Search}
+                            className="h-8 shadow-sm font-bold"
+                        >
                             Consultar
+                        </Button>
+                        <Button
+                            variant="erp"
+                            size="sm"
+                            onClick={() => generateAccountStatementPDF(user, movimientos)}
+                            disabled={movimientos.length === 0 || isLoading}
+                            icon={Download}
+                            className="h-8 shadow-sm font-bold"
+                        >
+                            Descargar PDF
                         </Button>
                     </div>
                 </MaterialCard>
@@ -131,35 +148,35 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                     <table className="w-full text-left border-separate border-spacing-0 min-w-[1100px]">
                         <thead className="z-[30]">
                             <tr className="bg-[#E8EFF5]">
-                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
-                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">FECHA</Text>
+                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                    <Text variant="caption" weight="bold" className="text-white text-[11px]">FECHA</Text>
                                 </th>
-                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
-                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">RADICADO</Text>
+                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                    <Text variant="caption" weight="bold" className="text-white text-[11px]">RADICADO</Text>
                                 </th>
-                                <th colSpan={2} className="sticky top-0 z-[30] p-2 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
-                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">CONTABILIZADO</Text>
+                                <th colSpan={2} className="sticky top-0 z-[30] p-2 border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                    <Text variant="caption" weight="bold" className="text-white text-[11px]">CONTABILIZADO</Text>
                                 </th>
-                                <th colSpan={2} className="sticky top-0 z-[30] p-2 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
-                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">EN CANJE</Text>
+                                <th colSpan={2} className="sticky top-0 z-[30] p-2 border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                    <Text variant="caption" weight="bold" className="text-white text-[11px]">EN CANJE</Text>
                                 </th>
-                                <th colSpan={2} className="sticky top-0 z-[30] p-2 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
-                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">PENDIENTES</Text>
+                                <th colSpan={2} className="sticky top-0 z-[30] p-2 border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                    <Text variant="caption" weight="bold" className="text-white text-[11px]">PENDIENTES</Text>
                                 </th>
-                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-r border-b border-neutral-300 bg-[#E8EFF5] text-center shadow-[inset_0_-1px_0_#d1d5db]">
-                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">SALDO</Text>
+                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                    <Text variant="caption" weight="bold" className="text-white text-[11px]">SALDO</Text>
                                 </th>
-                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-b border-neutral-300 bg-[#E8EFF5] text-left shadow-[inset_0_-1px_0_#d1d5db]">
-                                    <Text variant="caption" weight="bold" className="text-[#334155] text-[11px]">OBSERVACIONES</Text>
+                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 border-b border-white/20 bg-[#002060] text-left shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                    <Text variant="caption" weight="bold" className="text-white text-[11px]">OBSERVACIONES</Text>
                                 </th>
                             </tr>
-                            <tr className="bg-[#F8FAFC]">
-                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Consignación</th>
-                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Legalización</th>
-                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Consignación</th>
-                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Legalización</th>
-                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Consignación</th>
-                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-neutral-300 bg-[#F8FAFC] text-[10px] text-neutral-600 text-center font-bold uppercase shadow-[inset_0_-1px_0_#d1d5db]">Legalización</th>
+                            <tr className="bg-[#002060]">
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Consignación</th>
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Legalización</th>
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Consignación</th>
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Legalización</th>
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Consignación</th>
+                                <th className="sticky top-[40px] z-[30] p-2 border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Legalización</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-300">
@@ -181,34 +198,34 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                             ) : movimientos.map((mov, i) => (
                                 <tr key={i} className="hover:bg-blue-100 transition-colors group border-b border-neutral-300">
                                     <td className="p-3 border-r border-b border-neutral-300 whitespace-nowrap text-center bg-white group-hover:bg-transparent transition-colors">
-                                        <Text variant="caption" weight="medium" className="text-neutral-700">{new Date(mov.fechaaplicacion).toLocaleDateString('es-CO')}</Text>
+                                        <Text variant="caption" weight="medium" color="inherit" className="text-[#374151]">{new Date(mov.fechaaplicacion).toLocaleDateString('es-CO')}</Text>
                                     </td>
                                     <td className="p-3 border-r border-b border-neutral-300 bg-white group-hover:bg-transparent transition-colors whitespace-nowrap">
-                                        <Text variant="caption" weight="bold" className="text-neutral-800">{mov.radicado}</Text>
+                                        <Text variant="caption" weight="bold" color="inherit" className="text-[#1f2937]">{mov.radicado}</Text>
                                     </td>
-                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-neutral-600 group-hover:bg-transparent">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-[#4b5563] group-hover:bg-transparent">
                                         {mov.consignacion_contabilizado > 0 ? `$${mov.consignacion_contabilizado.toLocaleString()}` : ''}
                                     </td>
-                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-neutral-600 group-hover:bg-transparent">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-[#4b5563] group-hover:bg-transparent">
                                         {mov.legalizacion_contabilizado > 0 ? `$${mov.legalizacion_contabilizado.toLocaleString()}` : ''}
                                     </td>
-                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-blue-600 group-hover:bg-transparent">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-[#2563eb] group-hover:bg-transparent">
                                         {mov.consignacion_firmadas > 0 ? `$${mov.consignacion_firmadas.toLocaleString()}` : ''}
                                     </td>
-                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-blue-600 group-hover:bg-transparent">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-[#2563eb] group-hover:bg-transparent">
                                         {mov.legalizacion_firmadas > 0 ? `$${mov.legalizacion_firmadas.toLocaleString()}` : ''}
                                     </td>
-                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-amber-600 group-hover:bg-transparent">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-[#d97706] group-hover:bg-transparent">
                                         {mov.consignacion_pendientes > 0 ? `$${mov.consignacion_pendientes.toLocaleString()}` : ''}
                                     </td>
-                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-amber-600 group-hover:bg-transparent font-medium">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] text-[#d97706] group-hover:bg-transparent font-medium">
                                         {mov.legalizacion_pendientes > 0 ? `$${mov.legalizacion_pendientes.toLocaleString()}` : ''}
                                     </td>
-                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] font-bold text-neutral-900 bg-neutral-50/50 group-hover:bg-blue-100/20">
+                                    <td className="p-3 text-right border-r border-b border-neutral-300 font-mono text-[12px] font-bold text-[#111827] bg-[#f9fafb] group-hover:bg-blue-100/20">
                                         ${mov.saldo.toLocaleString()}
                                     </td>
                                     <td className="p-3 min-w-[300px] border-b border-neutral-300 bg-white group-hover:bg-transparent transition-colors">
-                                        <Text variant="caption" className="text-neutral-500 uppercase leading-relaxed italic">
+                                        <Text variant="caption" color="inherit" className="text-[#6b7280] uppercase leading-relaxed italic">
                                             {mov.observaciones || 'Sin observaciones'}
                                         </Text>
                                     </td>
