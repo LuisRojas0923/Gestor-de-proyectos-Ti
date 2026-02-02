@@ -30,6 +30,7 @@ import imgMejora from '../assets/images/categories/Soporte Mejoramiento.png';
 import imgDesarrollo from '../assets/images/categories/Nuevos desarrollos.png';
 import imgLicencias from '../assets/images/categories/Compra de Licencias.png';
 import imgControlCambios from '../assets/images/categories/Control de Cambios.png';
+import imgHeader from '../assets/images/Header.png';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -337,33 +338,47 @@ const ServicePortal: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
-            <header className="bg-[var(--color-surface)] border-b border-[var(--color-border)] sticky top-0 z-50 transition-colors duration-300">
-                <div className="max-w-[1300px] mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('dashboard')}>
-                        <div className="bg-[var(--color-primary)] p-2 rounded-xl text-[var(--color-background)] transition-colors"><Plus size={20} /></div>
-                        <Text as="span" weight="bold" className="text-lg sm:text-xl tracking-tight text-[var(--color-primary)]">
-                            <Text as="span" className="hidden sm:inline">Portal de Servicios SOLID</Text>
-                            <Text as="span" className="inline sm:hidden">Portal SOLID</Text>
-                        </Text>
-                    </div>
+            <header className="bg-transparent border-b border-white/20 sticky top-0 z-50 transition-all duration-300 h-24 shadow-lg">
+                <div
+                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-500 opacity-100"
+                    style={{ backgroundImage: `url(${imgHeader})`, zIndex: -1 }}
+                />
 
-                    <div className="flex items-center space-x-4">
-                        <ThemeToggle />
-                        <div className="text-right hidden sm:block border-l border-[var(--color-border)] pl-4">
-                            <Text variant="body2" weight="bold" color="text-primary">{user.name}</Text>
-                            <Text variant="caption" color="text-secondary">{user.area || 'Usuario'}</Text>
-                        </div>
-                        <Button
-                            variant="ghost"
-                            onClick={() => {
-                                localStorage.removeItem(NAV_CACHE_KEY);
-                                dispatch({ type: 'LOGOUT' });
-                                navigate('/login');
-                            }}
-                            className="p-2.5 rounded-xl hover:bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)] transition-colors"
+                <div className="h-full bg-black/5 transition-colors duration-300">
+                    <div className="max-w-[1300px] mx-auto px-4 h-full flex items-center justify-between relative text-white">
+                        {/* Espacio Izquierdo para mantener centrado */}
+                        <div className="w-10"></div>
+
+                        {/* Marca CENTRADA - Mayúsculas, Negrita, Blanco */}
+                        <div
+                            className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center cursor-pointer select-none"
+                            onClick={() => setView('dashboard')}
                         >
-                            <LogOut size={20} />
-                        </Button>
+                            <Text as="span" weight="bold" color="white" className="text-xl sm:text-2xl tracking-tighter drop-shadow-xl uppercase text-center font-extrabold">
+                                <Text as="span" color="white" className="hidden sm:inline">Portal de Servicios SOLID</Text>
+                                <Text as="span" color="white" className="inline sm:hidden">Portal SOLID</Text>
+                            </Text>
+                        </div>
+
+                        {/* Controles Derecha */}
+                        <div className="flex items-center space-x-6 z-10">
+                            <ThemeToggle className="text-white" />
+                            <div className="text-right hidden sm:block border-l border-white/30 pl-4">
+                                <Text variant="body1" weight="bold" color="white" className="drop-shadow-md uppercase text-[10px] tracking-wider leading-none mb-1">{user.name}</Text>
+                                <Text variant="caption" color="white" className="opacity-80 uppercase text-[9px] tracking-widest font-bold">{user.area || 'Usuario'}</Text>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    localStorage.removeItem(NAV_CACHE_KEY);
+                                    dispatch({ type: 'LOGOUT' });
+                                    navigate('/login');
+                                }}
+                                className="p-3 rounded-xl hover:bg-white/20 text-white transition-all"
+                            >
+                                <LogOut size={22} />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -384,6 +399,7 @@ const ServicePortal: React.FC = () => {
                             // Pero por ahora, filtramos y mostramos CategoryView por consistencia
                             setView('categories');
                         }}
+                        onConsultStatus={() => setView('status')}
                         onBack={() => setView('dashboard')}
                     />
                 )}
@@ -412,7 +428,7 @@ const ServicePortal: React.FC = () => {
                         onFilesChange={setSelectedFiles}
                     />
                 )}
-                {view === 'status' && <TicketListView tickets={tickets} onBack={() => setView('dashboard')} onViewDetail={(t) => { setSelectedTicket(t); setView('detail'); }} />}
+                {view === 'status' && <TicketListView tickets={tickets} onBack={() => setView('areas')} onViewDetail={(t) => { setSelectedTicket(t); setView('detail'); }} />}
                 {view === 'detail' && selectedTicket && <TicketDetailView selectedTicket={selectedTicket} user={user} onBack={() => setView('status')} onUpdate={handleSendUserFeedback} />}
                 {view === 'legalizar_gastos' && (
                     <ExpenseLegalization

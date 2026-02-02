@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { Button } from './index';
 
-const ThemeToggle: React.FC = () => {
+interface ThemeToggleProps {
+    className?: string;
+}
+
+const ThemeToggle: React.FC<ThemeToggleProps> = ({ className }) => {
     const [isDark, setIsDark] = useState(() => {
         if (typeof window !== 'undefined') {
             const savedTheme = localStorage.getItem('theme');
@@ -26,7 +30,7 @@ const ThemeToggle: React.FC = () => {
         <Button
             variant="ghost"
             onClick={() => setIsDark(!isDark)}
-            className="p-2 rounded-2xl bg-[var(--color-surface-variant)] text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-all duration-300 shadow-sm border border-[var(--color-border)]"
+            className={`p-2 rounded-2xl transition-all duration-300 shadow-sm border ${className || 'bg-[var(--color-surface-variant)] text-[var(--color-primary)] border-[var(--color-border)] hover:bg-[var(--color-primary-light)]'}`}
             aria-label="Toggle Theme"
             icon={isDark ? Sun : Moon}
         />

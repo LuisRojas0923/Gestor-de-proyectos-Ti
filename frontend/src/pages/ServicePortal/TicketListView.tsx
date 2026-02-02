@@ -29,7 +29,7 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
                     icon={ArrowLeft}
                     className="font-bold p-0"
                 >
-                    Ir al inicio
+                    Volver
                 </Button>
                 <div className="w-full sm:w-64">
                     <Input

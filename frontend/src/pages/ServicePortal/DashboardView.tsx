@@ -2,7 +2,6 @@ import { ActionCard } from '../../components/molecules';
 import { Title, Text } from '../../components/atoms';
 
 import imgSolicitar from '../../assets/images/categories/Solicitar Servicio.png';
-import imgMisSolicitudes from '../../assets/images/categories/Mis Solicitudes.png';
 import imgGestionViaticos from '../../assets/images/categories/gestion_viaticos.png';
 
 interface DashboardViewProps {
@@ -29,20 +28,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, onNavigate }) => {
                 <Text variant="h6" color="text-secondary" weight="medium">Selecciona una de las opciones principales de gestión</Text>
             </div>
 
-            <div className={`grid grid-cols-1 ${canLegalize ? 'lg:grid-cols-3' : 'md:grid-cols-2'} gap-8`}>
+            <div className={`grid grid-cols-1 ${canLegalize ? 'md:grid-cols-2' : 'md:grid-cols-1 max-w-2xl mx-auto'} gap-8`}>
                 <ActionCard
-                    title="Solicitar Servicio"
-                    description="Crea un nuevo ticket de soporte, desarrollo o activos."
+                    title="Gestión de Solicitudes TI"
+                    description="Crea nuevos requerimientos o consulta el estado de tus tickets actuales."
                     icon={<img src={imgSolicitar} alt="Solicitar Servicio" className="w-full h-full object-contain p-2" />}
                     onClick={() => onNavigate('categories')}
-                />
-
-                <ActionCard
-                    title="Mis Solicitudes"
-                    description="Consulta el estado y progreso de tus tickets activos."
-                    icon={<img src={imgMisSolicitudes} alt="Mis Solicitudes" className="w-full h-full object-contain p-2" />}
-                    onClick={() => onNavigate('status')}
-                    variant="primary_light"
                 />
 
                 {canLegalize && (

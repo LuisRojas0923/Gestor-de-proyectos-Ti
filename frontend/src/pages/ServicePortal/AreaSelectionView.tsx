@@ -7,13 +7,15 @@ import { ActionCard } from '../../components/molecules';
 import imgSistemas from '../../assets/images/categories/Soporte Hardware.png';
 import imgDesarrollo from '../../assets/images/categories/Nuevos desarrollos.png';
 import imgMejora from '../../assets/images/categories/Soporte Mejoramiento.png';
+import imgMisSolicitudes from '../../assets/images/categories/Mis Solicitudes.png';
 
 interface AreaSelectionViewProps {
     onSelectArea: (area: 'sistemas' | 'desarrollo' | 'mejoramiento') => void;
+    onConsultStatus: () => void;
     onBack: () => void;
 }
 
-const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onBack }) => {
+const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onConsultStatus, onBack }) => {
     return (
         <div className="space-y-12 py-6">
             <div className="flex items-center space-x-4">
@@ -29,35 +31,42 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onB
 
             <div className="text-center space-y-4">
                 <div className="inline-block px-4 py-1 bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded-full text-xs font-bold uppercase tracking-widest mb-2">
-                    Catálogo de Servicios TI
+                    Gestión de Solicitudes TI
                 </div>
                 <Title variant="h2" weight="bold" className="text-[var(--deep-navy)] dark:text-white">
-                    ¿Qué tipo de requerimiento tienes?
+                    ¿Qué deseas gestionar hoy?
                 </Title>
-                <Text variant="body1" color="text-secondary" className="max-w-2xl mx-auto">
-                    Selecciona el área encargada de atender tu solicitud para brindarte el formulario adecuado.
+                <Text variant="body1" color="text-secondary" className="max-w-2xl mx-auto font-medium">
+                    Puedes crear un nuevo requerimiento o consultar el estado de tus solicitudes activas.
                 </Text>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <ActionCard
-                    title="Soporte Del Área De Sistemas"
+                    title="Mis Solicitudes"
+                    description="Consulta el estado y progreso de tus tickets activos."
+                    icon={<img src={imgMisSolicitudes} alt="Mis Solicitudes" className="w-full h-full object-contain p-2" />}
+                    onClick={onConsultStatus}
+                    variant="primary_light"
+                />
+
+                <ActionCard
+                    title="Soporte Sistemas"
                     description="Hardware, Software, Impresoras e Infraestructura tecnológica."
                     icon={<img src={imgSistemas} alt="Sistemas" className="w-full h-full object-contain p-2" />}
                     onClick={() => onSelectArea('sistemas')}
                 />
 
                 <ActionCard
-                    title="Desarrollo de Software"
-                    description="Solicitud de nuevos módulos o funcionalidades en el ecosistema SOLID."
+                    title="Desarrollo Software"
+                    description="Solicitud de nuevos módulos o funcionalidades en SOLID."
                     icon={<img src={imgDesarrollo} alt="Desarrollo" className="w-full h-full object-fill scale-x-150" />}
                     onClick={() => onSelectArea('desarrollo')}
-                    variant="primary_light"
                 />
 
                 <ActionCard
-                    title="Mejoramiento Contínuo"
-                    description="Ajustes a herramientas de Excel y procesos operativos existentes."
+                    title="Mejoramiento"
+                    description="Ajustes a herramientas de Excel y procesos existentes."
                     icon={<img src={imgMejora} alt="Mejoramiento" className="w-full h-full object-contain p-2" />}
                     onClick={() => onSelectArea('mejoramiento')}
                 />
