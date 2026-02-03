@@ -78,11 +78,13 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
                     categoria: l.categoria,
                     fecha: l.fecha,
                     ot: l.ot,
+                    ot_id: l.ot_id, // Ensure ot_id is included if it exists in the line item
                     cc: l.cc,
                     scc: l.scc,
                     valorConFactura: Number(l.valorConFactura),
                     valorSinFactura: Number(l.valorSinFactura),
-                    observaciones: l.observaciones
+                    observaciones: l.observaciones,
+                    adjuntos: l.adjuntos || [] // Include adjuntos property, default to empty array if not present
                 }))
             };
 
@@ -182,6 +184,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
                                     <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white w-36 border-b border-white/10">Val. Factura</th>
                                     <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white w-36 border-b border-white/10">Val. Sin Fac.</th>
                                     <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white border-b border-white/10">Observaciones</th>
+                                    <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white w-12 border-b border-white/10">Adj.</th>
                                     <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white w-16 border-b border-white/10"></th>
                                 </tr>
                             </thead>

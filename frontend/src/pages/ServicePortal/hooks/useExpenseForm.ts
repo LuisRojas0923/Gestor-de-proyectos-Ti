@@ -20,12 +20,14 @@ export interface LineaGasto {
     categoria: string;
     fecha: string;
     ot: string;
+    ot_id?: string;
     cc: string;
     scc: string;
     valorConFactura: number;
     valorSinFactura: number;
     observaciones: string;
     combinacionesCC: OTData[];
+    adjuntos: any[];
 }
 
 const generateId = () => {
@@ -62,7 +64,8 @@ export const useExpenseForm = () => {
             valorConFactura: 0,
             valorSinFactura: 0,
             observaciones: '',
-            combinacionesCC: []
+            combinacionesCC: [],
+            adjuntos: []
         }];
     });
 
@@ -103,7 +106,8 @@ export const useExpenseForm = () => {
             valorConFactura: 0,
             valorSinFactura: 0,
             observaciones: '',
-            combinacionesCC: []
+            combinacionesCC: [],
+            adjuntos: []
         }]);
     }, []);
 
@@ -197,7 +201,8 @@ export const useExpenseForm = () => {
             valorConFactura: 0,
             valorSinFactura: 0,
             observaciones: '',
-            combinacionesCC: []
+            combinacionesCC: [],
+            adjuntos: []
         }]);
         setObservacionesGral('');
         localStorage.removeItem(CACHE_KEY);

@@ -1,6 +1,8 @@
 from typing import Optional
 from datetime import datetime, date
 from sqlmodel import SQLModel, Field
+from sqlalchemy import Column
+from sqlalchemy.dialects.postgresql import JSONB
 import uuid
 
 class TransitoViatico(SQLModel, table=True):
@@ -32,3 +34,4 @@ class TransitoViatico(SQLModel, table=True):
     # Metadata del Reporte
     observaciones_gral: Optional[str] = Field(default=None)
     usuario_id: Optional[str] = Field(default=None, max_length=50)
+    adjuntos: Optional[list] = Field(default=[], sa_column=Column(JSONB))

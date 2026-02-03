@@ -1,7 +1,9 @@
 import React from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Paperclip, CheckCircle2 } from 'lucide-react';
 import { Text, Input, Select, MaterialCard } from '../../../components/atoms';
 import { CurrencyInput } from '../../../components/atoms/CurrencyInput';
+import { fileToBase64, validateFileSize } from '../../../utils/fileUtils';
+import { useNotifications } from '../../../components/notifications/NotificationsContext';
 
 interface ExpenseLineItemProps {
     linea: any;
@@ -26,6 +28,39 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
     selectOT,
     setLineas
 }) => {
+    const { addNotification } = useNotifications();
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        const newAdjuntos = [...(linea.adjuntos || [])];
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+
+            if (!validateFileSize(file, 2)) {
+                addNotification('warning', `El archivo ${file.name} supera el límite de 2MB.`);
+                continue;
+            }
+
+            try {
+                const base64 = await fileToBase64(file);
+                newAdjuntos.push({
+                    nombre: file.name,
+                    tipo: file.type,
+                    contenido: base64
+                });
+            } catch (err) {
+                console.error("Error al procesar archivo:", err);
+                addNotification('error', `No se pudo procesar el archivo ${file.name}.`);
+            }
+        }
+
+        updateLinea(linea.id, 'adjuntos', newAdjuntos);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
     return (
         <tr className={`hover:bg-[var(--color-surface-variant)]/30 transition-colors group/line ${isSearchingOT === linea.id ? 'relative z-[60]' : 'relative z-0'}`}>
             {/* # No. */}
@@ -191,6 +226,36 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                     className="!border-none !bg-transparent !shadow-none !px-2 placeholder:opacity-30"
                     fullWidth
                 />
+            </td>
+
+            {/* Adjunto */}
+            <td className="px-2 py-2 border-b border-[var(--color-border)] text-center">
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileChange}
+                    accept="image/*,application/pdf"
+                    multiple
+                />
+                <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`
+                        p-1.5 rounded-lg transition-all flex items-center justify-center mx-auto
+                        ${linea.adjuntos && linea.adjuntos.length > 0
+                            ? 'bg-green-500/10 text-green-600 border border-green-500/20'
+                            : 'text-[var(--color-text-secondary)] opacity-10 hover:opacity-100 hover:bg-[var(--color-surface-variant)]'
+                        }
+                    `}
+                    title={linea.adjuntos && linea.adjuntos.length > 0 ? `${linea.adjuntos.length} adjunto(s)` : 'Adjuntar factura'}
+                >
+                    {linea.adjuntos && linea.adjuntos.length > 0 ? (
+                        <CheckCircle2 size={16} />
+                    ) : (
+                        <Paperclip size={16} />
+                    )}
+                </button>
             </td>
 
             {/* Botón Eliminar */}

@@ -23,5 +23,6 @@ CREATE TABLE transito_viaticos (
     
     -- Metadata del Reporte
     observaciones_gral TEXT,
-    usuario_id VARCHAR(50)
+    usuario_id VARCHAR(50),
+    adjuntos JSONB DEFAULT '[]'::jsonb
 );

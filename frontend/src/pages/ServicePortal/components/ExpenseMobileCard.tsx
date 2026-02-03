@@ -1,7 +1,9 @@
 import React from 'react';
-import { Trash2, Calendar, Hash, Tag, Info, DollarSign } from 'lucide-react';
+import { Trash2, Calendar, Hash, Tag, Info, DollarSign, Paperclip, CheckCircle2 } from 'lucide-react';
 import { Text, Input, Select, MaterialCard, Button } from '../../../components/atoms';
 import { CurrencyInput } from '../../../components/atoms/CurrencyInput';
+import { fileToBase64, validateFileSize } from '../../../utils/fileUtils';
+import { useNotifications } from '../../../components/notifications/NotificationsContext';
 
 interface ExpenseMobileCardProps {
     linea: any;
@@ -26,6 +28,39 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
     selectOT,
     setLineas
 }) => {
+    const { addNotification } = useNotifications();
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        const newAdjuntos = [...(linea.adjuntos || [])];
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+
+            if (!validateFileSize(file, 2)) {
+                addNotification('warning', `El archivo ${file.name} supera el límite de 2MB.`);
+                continue;
+            }
+
+            try {
+                const base64 = await fileToBase64(file);
+                newAdjuntos.push({
+                    nombre: file.name,
+                    tipo: file.type,
+                    contenido: base64
+                });
+            } catch (err) {
+                console.error("Error al procesar archivo:", err);
+                addNotification('error', `No se pudo procesar el archivo ${file.name}.`);
+            }
+        }
+
+        updateLinea(linea.id, 'adjuntos', newAdjuntos);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
     return (
         <MaterialCard className="p-4 mb-4 relative group overflow-visible">
             {/* Cabecera: # e Icono eliminar */}
@@ -36,12 +71,30 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                     </div>
                     <Text weight="bold" className="text-sm uppercase tracking-tight text-[var(--color-primary)]">Gasto Registrado</Text>
                 </div>
-                <Button
-                    variant="ghost"
-                    onClick={() => removeLinea(linea.id)}
-                    className="text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors flex items-center justify-center !w-9 !h-9"
-                    icon={Trash2}
-                />
+                <div className="flex items-center gap-1">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        onChange={handleFileChange}
+                        accept="image/*,application/pdf"
+                        multiple
+                    />
+                    <Button
+                        variant="ghost"
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`p-2 rounded-full transition-colors flex items-center justify-center !w-9 !h-9 ${linea.adjuntos && linea.adjuntos.length > 0 ? 'text-green-600 bg-green-50' : 'text-slate-400'
+                            }`}
+                        icon={linea.adjuntos && linea.adjuntos.length > 0 ? CheckCircle2 : Paperclip}
+                        title="Adjuntar factura"
+                    />
+                    <Button
+                        variant="ghost"
+                        onClick={() => removeLinea(linea.id)}
+                        className="text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors flex items-center justify-center !w-9 !h-9"
+                        icon={Trash2}
+                    />
+                </div>
             </div>
 
             {/* Grid de Campos */}
