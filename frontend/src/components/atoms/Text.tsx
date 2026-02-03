@@ -6,7 +6,7 @@ export interface TextProps {
     variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'body1' | 'body2' | 'caption' | 'subtitle1' | 'subtitle2';
     weight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
     align?: 'left' | 'center' | 'right' | 'justify';
-    color?: 'primary' | 'secondary' | 'text-primary' | 'text-secondary' | 'error' | 'success' | 'warning' | 'white' | 'gray' | 'inherit';
+    color?: 'primary' | 'secondary' | 'text-primary' | 'text-secondary' | 'error' | 'success' | 'warning' | 'white' | 'gray' | 'navy' | 'inherit';
     className?: string;
     onClick?: () => void;
     htmlFor?: string; // Para labels
@@ -68,6 +68,7 @@ export const Text: React.FC<TextProps> = ({
         warning: 'text-amber-600 dark:text-amber-400',
         white: 'text-white',
         gray: 'text-gray-500',
+        navy: 'text-navy dark:text-white',
         inherit: '',
     };
 

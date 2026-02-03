@@ -16,6 +16,7 @@ export const materialDesignTokens = {
       800: '#1565c0',
       900: '#0d47a1'
     },
+    navy: 'var(--deep-navy)',
 
     secondary: {
       50: '#fff3e0',

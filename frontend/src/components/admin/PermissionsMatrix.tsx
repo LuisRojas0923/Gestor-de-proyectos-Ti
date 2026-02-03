@@ -17,15 +17,20 @@ const PermissionsMatrix: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    const roles = ['admin', 'analyst', 'director', 'user'];
+    const roles = ['admin', 'analyst', 'director', 'viaticante', 'user'];
     const modulos = [
         { id: 'dashboard', label: 'Tablero' },
-        { id: 'developments', label: 'Desarrollos' },
+        { id: 'viaticos_gestion', label: 'Gestión Viáticos' },
+        { id: 'mis_solicitudes', label: 'Mis Solicitudes' },
+        { id: 'sistemas', label: 'Soporte Sistemas' },
+        { id: 'desarrollo', label: 'Desarrollo Software' },
+        { id: 'mejoramiento', label: 'Mejoramiento' },
+        { id: 'developments', label: 'Desarrollos (Módulo)' },
         { id: 'indicators', label: 'Indicadores BI' },
         { id: 'ticket-management', label: 'Gestión Tickets' },
         { id: 'reports', label: 'Reportes' },
         { id: 'chat', label: 'Chat IA' },
-        { id: 'service-portal', label: 'Portal Soportes' },
+        { id: 'service-portal', label: 'Portal Soportes (General)' },
         { id: 'user-admin', label: 'Gestión Usuarios' },
         { id: 'settings', label: 'Configuración' },
         { id: 'design-catalog', label: 'Catálogo UI' }

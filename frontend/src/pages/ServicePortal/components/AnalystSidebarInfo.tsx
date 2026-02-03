@@ -31,9 +31,9 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
     const progressStyle = { width: `${Math.max(0, 100 - slaPercent)}%` };
 
     return (
-        <aside className="col-span-2 bg-[var(--color-surface)] border-r border-[var(--color-border)] p-4 space-y-6 overflow-y-auto hidden lg:block custom-scrollbar transition-colors">
+        <aside className="col-span-2 bg-[var(--color-background)] border-r border-[var(--color-border)] p-4 space-y-6 overflow-y-auto hidden lg:block custom-scrollbar transition-colors">
             <section>
-                <Text variant="caption" weight="bold" color="text-secondary" className="uppercase mb-4 tracking-widest opacity-50 block">Solicitante</Text>
+                <Text variant="caption" weight="bold" color="navy" className="uppercase mb-4 tracking-widest block">Solicitante</Text>
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                     <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-inner overflow-hidden uppercase">
                         {user.name ? user.name.split(' ').filter(p => p).slice(0, 2).map(n => n[0]).join('') : 'U'}
@@ -46,7 +46,7 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
             </section>
 
             <section className="space-y-4">
-                <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 block">Detalles del Perfil</Text>
+                <Text variant="caption" weight="bold" color="navy" className="uppercase tracking-widest block">Detalles del Perfil</Text>
                 <div className="space-y-3">
                     <ProfileItem icon={<Briefcase size={12} />} label="Área" value={user.area || 'N/A'} />
                     <ProfileItem icon={<Briefcase size={12} />} label="Cargo" value={user.cargo || 'N/A'} />
@@ -75,7 +75,7 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
             </section>
 
             <section className="space-y-4 pt-4 border-t border-[var(--color-border)]">
-                <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 block">Tiempos</Text>
+                <Text variant="caption" weight="bold" color="navy" className="uppercase tracking-widest block">Tiempos</Text>
                 <div className="space-y-3">
                     <ProfileItem icon={<Calendar size={12} />} label="Creado el" value={formatFriendlyDate(createdAt)} />
                     {idealDate && (
@@ -85,7 +85,7 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
             </section>
 
             <section className="pt-4 border-t border-[var(--color-border)] opacity-80">
-                <Text variant="caption" weight="bold" color="text-secondary" className="uppercase mb-4 tracking-widest opacity-50 block">SLA de Respuesta</Text>
+                <Text variant="caption" weight="bold" color="navy" className="uppercase mb-4 tracking-widest block">SLA de Respuesta</Text>
                 <div className="relative w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div
                         className={`absolute top-0 left-0 h-full transition-all duration-500 ${slaPercent < 25 ? 'bg-red-500' : slaPercent < 50 ? 'bg-orange-500' : 'bg-green-500'}`}

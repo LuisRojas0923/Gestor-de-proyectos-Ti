@@ -11,6 +11,7 @@ interface ButtonProps {
   icon?: LucideIcon;
   iconPosition?: 'left' | 'right';
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   type?: 'button' | 'submit' | 'reset';
   className?: string;
   title?: string;
@@ -28,6 +29,7 @@ const Button: React.FC<ButtonProps> = ({
   icon: IconComponent,
   iconPosition = 'left',
   onClick,
+  onMouseDown,
   type = 'button',
   className = '',
   title = '',
@@ -70,6 +72,7 @@ const Button: React.FC<ButtonProps> = ({
     <button
       type={type}
       onClick={onClick}
+      onMouseDown={onMouseDown}
       disabled={disabled || loading}
       title={title}
       className={`

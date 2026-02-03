@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Save, Plus } from 'lucide-react';
-import { Button, Text, Title, Spinner, Textarea } from '../../components/atoms';
+import { Button, Text, Title, Textarea } from '../../components/atoms';
 import axios from 'axios';
 import { API_CONFIG } from '../../config/api';
 import { useNotifications } from '../../components/notifications/NotificationsContext';
 import { useExpenseForm } from './hooks/useExpenseForm';
 import UserSummaryCard from './components/UserSummaryCard';
 import ExpenseLineItem from './components/ExpenseLineItem';
+import ExpenseMobileCard from './components/ExpenseMobileCard';
 import ExpenseTotals from './components/ExpenseTotals';
 
 import { ExpenseConfirmModal } from '../../components/molecules';
@@ -116,57 +117,138 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
             {/* Info Tarjeta Azul */}
             <UserSummaryCard user={user} />
 
-            <div className="space-y-1 md:space-y-2">
-                {/* Cabecera Sección Gastos */}
-                <div className="md:sticky top-[180px] z-20 bg-[var(--color-background)]/80 backdrop-blur-md py-1 flex justify-between items-center px-1">
-                    <Title variant="h6" weight="bold" className="text-slate-800">DETALLE DE GASTOS</Title>
-                    <Button
-                        onClick={addLinea}
-                        variant="erp"
-                        size="sm"
-                        className="px-4 h-9 rounded-xl text-[11px] font-bold shadow-sm"
-                        icon={Plus}
-                    >
-                        Agregar Gasto
-                    </Button>
-                </div>
-
-                {/* Lista de Líneas */}
-                <div className="space-y-4">
-                    {lineas.map((linea, index) => (
-                        <ExpenseLineItem
-                            key={linea.id}
-                            linea={linea}
-                            index={index}
-                            isSearchingOT={isSearchingOT}
-                            ots={ots}
-                            updateLinea={updateLinea}
-                            removeLinea={removeLinea}
-                            handleOTSearch={handleOTSearch}
-                            selectOT={selectOT}
-                            setLineas={setLineas}
+            {/* Command Center: Totales y Acciones Principales */}
+            <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-3 shadow-sm">
+                <div className="flex flex-col md:flex-row items-center gap-4">
+                    {/* Totales */}
+                    <div className="flex-1 w-full">
+                        <ExpenseTotals
+                            totalFacturado={totalFacturado}
+                            totalSinFactura={totalSinFactura}
+                            totalGeneral={totalGeneral}
                         />
-                    ))}
+                    </div>
+
+                    {/* Acciones */}
+                    <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                        <Button
+                            onClick={addLinea}
+                            variant="erp"
+                            size="md"
+                            icon={Plus}
+                            className="h-10 font-bold rounded-xl px-6"
+                        >
+                            AGREGAR GASTO
+                        </Button>
+                        <Button
+                            onClick={handlePrepareSubmit}
+                            disabled={isLoading}
+                            loading={isLoading}
+                            variant="erp"
+                            size="md"
+                            icon={Save}
+                            className="h-10 font-black rounded-xl shadow-lg shadow-[var(--color-primary)]/10 px-6"
+                        >
+                            {isLoading ? 'ENVIANDO...' : 'ENVIAR REPORTE'}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            {/* Observaciones y Totales */}
-            <div className="space-y-6 max-w-[1300px] mx-auto mt-6 px-1">
-                <div className="space-y-2">
-                    <Text as="label" variant="caption" weight="bold" className="text-[11px] text-[var(--color-text-secondary)] opacity-60 uppercase tracking-tight block px-1">Observaciones Generales</Text>
-                    <Textarea
-                        placeholder="Escribe aquí cualquier observación..."
-                        value={observacionesGral}
-                        onChange={(e) => setObservacionesGral(e.target.value)}
-                        rows={4}
-                        className="w-full bg-[var(--color-surface)] border-[var(--color-border)] rounded-2xl focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all"
-                    />
+            <div className="space-y-4 mt-8">
+                {/* Cabecera de Tabla */}
+                <div className="flex items-center justify-between px-2">
+                    <Title variant="h6" weight="bold" className="text-sm tracking-tight flex items-center gap-2">
+                        <span className="w-1.5 h-4 bg-[var(--color-primary)] rounded-full"></span>
+                        ÍTEMS DEL REPORTE
+                        <Text as="span" variant="caption" className="ml-2 font-medium opacity-40 lowercase">
+                            ({lineas.length} registros)
+                        </Text>
+                    </Title>
                 </div>
 
-                <ExpenseTotals
-                    totalFacturado={totalFacturado}
-                    totalSinFactura={totalSinFactura}
-                    totalGeneral={totalGeneral}
+                {/* VISTA DESKTOP (Tabla con Scroll Interno) */}
+                <div className="hidden md:block bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
+                    <div className="max-h-[520px] overflow-auto scrollbar-thin scrollbar-thumb-[var(--color-border)] scrollbar-track-transparent">
+                        <table className="w-full border-separate border-spacing-0">
+                            <thead className="bg-[var(--color-surface-variant)] sticky top-0 z-[40] shadow-sm">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-10 border-b border-[var(--color-border)]">#</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] min-w-[150px] border-b border-[var(--color-border)]">Categoría</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-40 border-b border-[var(--color-border)]">Fecha</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] min-w-[120px] border-b border-[var(--color-border)]">OT / OS</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-32 border-b border-[var(--color-border)]">C. Costo</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-32 border-b border-[var(--color-border)]">Subcentro</th>
+                                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-36 border-b border-[var(--color-border)]">Val. Factura</th>
+                                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-36 border-b border-[var(--color-border)]">Val. Sin Fac.</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] border-b border-[var(--color-border)]">Observaciones</th>
+                                    <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-16 border-b border-[var(--color-border)]"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-transparent">
+                                {lineas.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={10} className="px-4 py-10 text-center">
+                                            <Text className="opacity-40 italic">No hay gastos reportados. Haz clic en "Agregar Gasto".</Text>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    lineas.map((linea, index) => (
+                                        <ExpenseLineItem
+                                            key={linea.id}
+                                            linea={linea}
+                                            index={index}
+                                            isSearchingOT={isSearchingOT}
+                                            ots={ots}
+                                            updateLinea={updateLinea}
+                                            removeLinea={removeLinea}
+                                            handleOTSearch={handleOTSearch}
+                                            selectOT={selectOT}
+                                            setLineas={setLineas}
+                                        />
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* VISTA MÓVIL (Tarjetas con Scroll Natural) */}
+                <div className="md:hidden space-y-4">
+                    {lineas.length === 0 ? (
+                        <div className="p-10 text-center bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] border-dashed">
+                            <Text className="opacity-40 italic">No hay gastos reportados. Haz clic en "Agregar Gasto".</Text>
+                        </div>
+                    ) : (
+                        lineas.map((linea, index) => (
+                            <ExpenseMobileCard
+                                key={linea.id}
+                                linea={linea}
+                                index={index}
+                                isSearchingOT={isSearchingOT}
+                                ots={ots}
+                                updateLinea={updateLinea}
+                                removeLinea={removeLinea}
+                                handleOTSearch={handleOTSearch}
+                                selectOT={selectOT}
+                                setLineas={setLineas}
+                            />
+                        ))
+                    )}
+                </div>
+            </div>
+
+            {/* Observaciones Generales Inferior */}
+            <div className="space-y-2 mt-6 px-1">
+                <Text as="label" variant="caption" weight="bold" className="text-[10px] text-[var(--color-text-secondary)] uppercase tracking-widest opacity-70 px-1">
+                    Observaciones Generales
+                </Text>
+                <Textarea
+                    placeholder="Escribe aquí cualquier observación adicional..."
+                    value={observacionesGral}
+                    onChange={(e) => setObservacionesGral(e.target.value)}
+                    rows={4}
+                    className="w-full bg-[var(--color-surface)] border-[var(--color-border)] rounded-2xl focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all text-sm shadow-sm"
                 />
             </div>
 
@@ -179,21 +261,6 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
                 totalFacturado={totalFacturado}
                 totalSinFactura={totalSinFactura}
             />
-
-            {/* Botón Flotante Enviar */}
-            <div className="fixed bottom-0 left-0 w-full bg-[var(--color-surface)]/80 backdrop-blur-xl border-t border-[var(--color-border)] p-4 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-                <div className="max-w-[1300px] mx-auto flex items-center justify-center">
-                    <Button
-                        onClick={handlePrepareSubmit}
-                        disabled={isLoading}
-                        variant="erp"
-                        className="px-20 h-14 rounded-2xl flex items-center gap-3 shadow-xl font-bold text-lg active:scale-95 transition-all"
-                    >
-                        {isLoading ? <Spinner size="sm" /> : <Save size={24} />}
-                        {isLoading ? 'Procesando...' : 'Enviar Reporte'}
-                    </Button>
-                </div>
-            </div>
         </div>
     );
 };

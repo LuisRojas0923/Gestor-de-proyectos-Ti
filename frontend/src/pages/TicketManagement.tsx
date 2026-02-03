@@ -2,15 +2,20 @@ import {
     Search,
     CheckCircle,
     AlertCircle,
-    ChevronRight,
     FilterX,
     Inbox,
     RefreshCw,
-    UserCheck
+    UserCheck,
+    Play,
+    Eye,
+    Clock,
+    UserPlus
 } from 'lucide-react';
+import { Button } from '../components/atoms';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { useNotifications } from '../components/notifications/NotificationsContext';
 import { useApi } from '../hooks/useApi';
 import { Select, Input, Title, Text, Icon } from '../components/atoms';
 
@@ -37,8 +42,9 @@ const formatName = (name: string) => {
 const TicketManagement: React.FC = () => {
     const { state } = useAppContext();
     const { user } = state;
-    const { get } = useApi<Ticket[]>();
+    const { get, patch } = useApi<any>();
     const navigate = useNavigate();
+    const { addNotification } = useNotifications();
 
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
@@ -107,6 +113,41 @@ const TicketManagement: React.FC = () => {
         abierto: filteredTickets.filter(t => t.estado === 'Abierto' || t.estado === 'Nuevo').length,
         enProceso: filteredTickets.filter(t => t.estado === 'En Proceso').length,
         cerrado: filteredTickets.filter(t => t.estado === 'Cerrado').length,
+    };
+
+    const handleQuickAction = async (e: React.MouseEvent, ticketId: string, newStatus: string) => {
+        e.stopPropagation();
+        if (!confirm(`¿Estás seguro de cambiar el estado a ${newStatus}?`)) return;
+
+        try {
+            await patch(`/soporte/${ticketId}`, { estado: newStatus });
+            addNotification('success', `Ticket actualizado a ${newStatus}`);
+            // Recargar tickets localmente
+            const updated = tickets.map(t => t.id === ticketId ? { ...t, estado: newStatus } : t);
+            setTickets(updated);
+        } catch (error) {
+            console.error(error);
+            addNotification('error', 'Error al actualizar el ticket');
+        }
+    };
+
+    const handleAssignToMe = async (e: React.MouseEvent, ticketId: string) => {
+        e.stopPropagation();
+        if (!user) return;
+        if (!confirm(`¿Deseas asignarte este ticket?`)) return;
+
+        try {
+            // Asumimos que user tiene nombre.
+            const userName = (user as any).nombre || (user as any).name || (user as any).username || "Usuario Actual";
+            await patch(`/soporte/${ticketId}`, { asignado_a: userName, estado: 'En Proceso' });
+            addNotification('success', `Ticket asignado a ${userName}`);
+
+            const updated = tickets.map(t => t.id === ticketId ? { ...t, asignado_a: userName, estado: 'En Proceso' } : t);
+            setTickets(updated);
+        } catch (error) {
+            console.error(error);
+            addNotification('error', 'Error al asignar el ticket');
+        }
     };
 
     return (
@@ -186,61 +227,113 @@ const TicketManagement: React.FC = () => {
                     <Text variant="body2" color="text-secondary" weight="medium">Cargando tickets...</Text>
                 </div>
             ) : filteredTickets.length > 0 ? (
-                <div className="bg-[var(--color-surface)] rounded-[2.5rem] overflow-hidden border border-[var(--color-border)] shadow-xl shadow-black/5">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="border-b border-[var(--color-border)]/50 bg-[var(--color-surface-variant)]/30">
-                                <th className="px-6 py-5"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">ID</Text></th>
-                                <th className="px-6 py-5"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Asunto / Solicitante</Text></th>
-                                <th className="px-6 py-5 text-center"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Prioridad</Text></th>
-                                <th className="px-6 py-5 text-center"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Estado</Text></th>
-                                <th className="px-6 py-5"><Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50 text-[10px]">Responsable</Text></th>
-                                <th className="px-6 py-5 text-right"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-neutral-700">
-                            {filteredTickets.map((ticket) => (
-                                <tr
-                                    key={ticket.id}
-                                    className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group"
-                                >
-                                    <td className="px-6 py-5 font-mono text-xs text-gray-400" onClick={() => navigate(`/tickets/${ticket.id}`)}>{ticket.id}</td>
-                                    <td className="px-6 py-5" onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                                        <div>
-                                            <Text variant="body2" weight="bold" color="text-primary" className="group-hover:text-[var(--color-primary)] transition-colors mb-0.5">
-                                                {ticket.asunto}
-                                            </Text>
-                                            <Text variant="caption" color="text-secondary" weight="medium">{ticket.nombre_creador}</Text>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5" onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                                        <div className="flex items-center justify-center space-x-1.5">
-                                            <div className={`w-2 h-2 rounded-full ${getPriorityStyle(ticket.prioridad).replace('text', 'bg')}`}></div>
-                                            <Text as="span" variant="caption" weight="bold" className={getPriorityStyle(ticket.prioridad)}>{ticket.prioridad}</Text>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5 text-center" onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                                        <Text as="span" variant="caption" weight="bold" className={`px-3 py-1.5 rounded-xl tracking-wider text-[10px] ${getStatusStyle(ticket.estado)}`}>
-                                            {(ticket.estado || 'NUEVO').toUpperCase()}
+                <div className="space-y-2">
+                    {filteredTickets.map((ticket) => (
+                        <div
+                            key={ticket.id}
+                            onClick={() => navigate(`/tickets/${ticket.id}`)}
+                            className="group bg-[var(--color-surface)] p-3 rounded-xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden"
+                        >
+                            {/* Borde izquierdo azul navy fijo */}
+                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-900 dark:bg-blue-800"></div>
+
+                            <div className="flex flex-col md:flex-row md:items-center gap-3 pl-3">
+                                {/* Columna 1: ID */}
+                                <div className="md:w-20 shrink-0">
+                                    <Text variant="caption" className="font-mono text-[10px] text-gray-400">#{ticket.id.slice(0, 8)}</Text>
+                                </div>
+
+                                {/* Columna 2: Fecha */}
+                                <div className="md:w-24 shrink-0 flex items-center text-gray-400">
+                                    <Clock size={12} className="mr-1.5" />
+                                    <Text variant="caption" color="text-secondary" className="text-[10px]">
+                                        {new Date(ticket.fecha_creacion).toLocaleDateString()}
+                                    </Text>
+                                </div>
+
+                                {/* Columna 3: Estado */}
+                                <div className="md:w-32 shrink-0">
+                                    <Text as="span" variant="caption" weight="bold" className={`px-2 py-0.5 rounded-md text-[9px] tracking-wider ${getStatusStyle(ticket.estado)}`}>
+                                        {(ticket.estado || 'NUEVO').toUpperCase()}
+                                    </Text>
+                                </div>
+
+                                {/* Columna 4: Info Principal (Asunto y Solicitante) */}
+                                <div className="flex-1 min-w-0 flex flex-col justify-center mr-4">
+                                    <Text variant="body2" weight="bold" color="text-primary" className="truncate group-hover:text-[var(--color-primary)] transition-colors text-sm">
+                                        {ticket.asunto}
+                                    </Text>
+                                    <div className="flex items-center text-gray-400 mt-0.5 space-x-2">
+                                        <Icon name={UserCheck} size="xs" className="w-3 h-3" />
+                                        <Text variant="caption" color="text-secondary" className="truncate text-[10px]">
+                                            {ticket.nombre_creador}
                                         </Text>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <div className="flex items-center space-x-2">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold ${ticket.asignado_a ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]' : 'bg-gray-100 text-gray-400 dark:bg-neutral-800'}`}>
-                                                {ticket.asignado_a ? ticket.asignado_a.charAt(0).toUpperCase() : '?'}
-                                            </div>
-                                            <Text variant="caption" weight="bold" color={ticket.asignado_a ? "text-primary" : "text-secondary"} className={!ticket.asignado_a ? "opacity-50 italic" : ""}>
-                                                {formatName(ticket.asignado_a || "")}
-                                            </Text>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5 text-right" onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                                        <ChevronRight size={18} className="text-gray-300 group-hover:text-blue-500 transition-all group-hover:translate-x-1" />
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                    </div>
+                                </div>
+
+                                {/* Columna 5: Prioridad */}
+                                <div className="md:w-24 shrink-0 flex items-center gap-1.5">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${getPriorityStyle(ticket.prioridad).replace('text', 'bg')}`}></div>
+                                    <Text variant="caption" weight="bold" className={`${getPriorityStyle(ticket.prioridad)} text-[10px]`}>{ticket.prioridad}</Text>
+                                </div>
+
+                                {/* Columna 6: Responsable (Nombre Completo) */}
+                                <div className="md:w-64 shrink-0 flex items-center gap-2">
+                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${ticket.asignado_a ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]' : 'bg-gray-100 text-gray-400'}`}>
+                                        {ticket.asignado_a ? ticket.asignado_a.charAt(0).toUpperCase() : '?'}
+                                    </div>
+                                    <Text variant="caption" color="text-secondary" className="text-[10px] truncate" title={ticket.asignado_a}>
+                                        {formatName(ticket.asignado_a || "Sin asignar")}
+                                    </Text>
+                                </div>
+
+                                {/* Columna 7: Acciones Rápidas */}
+                                <div className="flex items-center justify-end md:w-36 gap-2">
+                                    {(!ticket.asignado_a || (user && ticket.asignado_a !== (user as any).nombre)) && ticket.estado !== 'Cerrado' && (
+                                        <Button
+                                            variant="ghost"
+                                            onClick={(e) => handleAssignToMe(e, ticket.id)}
+                                            className="w-9 h-9 p-0 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200 shadow-sm"
+                                            title="Asignarme Ticket"
+                                        >
+                                            <Icon name={UserPlus} size="sm" />
+                                        </Button>
+                                    )}
+
+                                    {ticket.estado !== 'En Proceso' && ticket.estado !== 'Cerrado' && (
+                                        <Button
+                                            variant="ghost"
+                                            onClick={(e) => handleQuickAction(e, ticket.id, 'En Proceso')}
+                                            className="w-9 h-9 p-0 rounded-full bg-yellow-50 text-yellow-600 hover:bg-yellow-100 border border-yellow-200 shadow-sm"
+                                            title="Poner En Proceso"
+                                        >
+                                            <Icon name={Play} size="sm" className="ml-0.5" />
+                                        </Button>
+                                    )}
+
+                                    {ticket.estado === 'En Proceso' && (
+                                        <Button
+                                            variant="ghost"
+                                            onClick={(e) => handleQuickAction(e, ticket.id, 'Cerrado')}
+                                            className="w-9 h-9 p-0 rounded-full bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 shadow-sm"
+                                            title="Resolver Ticket"
+                                        >
+                                            <Icon name={CheckCircle} size="sm" />
+                                        </Button>
+                                    )}
+
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                        className="w-9 h-9 p-0 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 shadow-sm"
+                                        title="Ver Detalle"
+                                    >
+                                        <Icon name={Eye} size="sm" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             ) : (
                 <div className="py-20 text-center bg-[var(--color-surface)] rounded-[2.5rem] border border-[var(--color-border)] shadow-xl shadow-black/5">

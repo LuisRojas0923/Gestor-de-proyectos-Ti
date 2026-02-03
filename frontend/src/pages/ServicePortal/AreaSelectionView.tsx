@@ -43,14 +43,6 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onC
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <ActionCard
-                    title="Mis Solicitudes"
-                    description="Consulta el estado y progreso de tus tickets activos."
-                    icon={<img src={imgMisSolicitudes} alt="Mis Solicitudes" className="w-full h-full object-contain p-2" />}
-                    onClick={onConsultStatus}
-                    variant="primary_light"
-                />
-
-                <ActionCard
                     title="Soporte Sistemas"
                     description="Hardware, Software, Impresoras e Infraestructura tecnológica."
                     icon={<img src={imgSistemas} alt="Sistemas" className="w-full h-full object-contain p-2" />}
@@ -69,6 +61,14 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onC
                     description="Ajustes a herramientas de Excel y procesos existentes."
                     icon={<img src={imgMejora} alt="Mejoramiento" className="w-full h-full object-contain p-2" />}
                     onClick={() => onSelectArea('mejoramiento')}
+                />
+
+                <ActionCard
+                    title="Mis Solicitudes"
+                    description="Consulta el estado y progreso de tus tickets activos."
+                    icon={<img src={imgMisSolicitudes} alt="Mis Solicitudes" className="w-full h-full object-contain p-2" />}
+                    onClick={onConsultStatus}
+                    variant="primary_light"
                 />
             </div>
         </div>

@@ -40,7 +40,8 @@ export default {
           700: '#404040',
           800: '#262626',
           900: '#171717',
-        }
+        },
+        navy: 'var(--deep-navy)',
       },
       fontFamily: {
         'sans': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],

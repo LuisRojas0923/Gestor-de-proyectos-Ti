@@ -14,6 +14,7 @@ export { Text } from './Text';
 export { Title } from './Title';
 export { Subtitle } from './Subtitle';
 export { Icon } from './Icon';
+export { default as ThemeToggle } from './ThemeToggle';
 
 // Componentes de Material Design (Legacy - Preferir versiones estándar)
 // Componentes de Material Design (Legacy - Preferir versiones estándar)

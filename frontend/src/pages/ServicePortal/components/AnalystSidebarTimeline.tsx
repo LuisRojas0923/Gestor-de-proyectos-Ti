@@ -9,10 +9,10 @@ interface AnalystSidebarTimelineProps {
 
 const AnalystSidebarTimeline: React.FC<AnalystSidebarTimelineProps> = ({ history }) => {
     return (
-        <aside className="col-span-3 bg-[var(--color-surface)] border-l border-[var(--color-border)] p-4 flex flex-col hidden lg:flex custom-scrollbar transition-colors">
+        <aside className="col-span-3 bg-[var(--color-background)] border-l border-[var(--color-border)] p-4 flex flex-col hidden lg:flex custom-scrollbar transition-colors">
             <div className="flex items-center gap-3 mb-6">
                 <Icon name={History} size="sm" className="text-slate-400" />
-                <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-widest opacity-50">Auditoría del Ticket</Text>
+                <Text variant="caption" weight="bold" color="navy" className="uppercase tracking-widest">Auditoría del Ticket</Text>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
@@ -21,7 +21,7 @@ const AnalystSidebarTimeline: React.FC<AnalystSidebarTimelineProps> = ({ history
                         <div key={item.id} className="relative pl-6 border-l border-slate-200 dark:border-slate-800 pb-2 transition-all">
                             {/* Dot */}
                             <div className={`
-                                absolute -left-[4.5px] top-1 w-2 h-2 rounded-full ring-4 ring-[var(--color-surface)]
+                                absolute -left-[4.5px] top-1 w-2 h-2 rounded-full ring-4 ring-[var(--color-background)]
                                 ${idx === 0
                                     ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse'
                                     : 'bg-slate-300 dark:bg-slate-600'}
