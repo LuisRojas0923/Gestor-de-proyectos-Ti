@@ -1,8 +1,8 @@
-import { ActionCard } from '../../components/molecules';
-import { Title, Text } from '../../components/atoms';
+import { ActionCard } from '../../../components/molecules';
+import { Title, Text } from '../../../components/atoms';
 
-import imgSolicitar from '../../assets/images/categories/Solicitar Servicio.png';
-import imgGestionViaticos from '../../assets/images/categories/gestion_viaticos.png';
+import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
+import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 
 interface DashboardViewProps {
     user: any;

@@ -55,8 +55,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         </div>
                         <Select
                             value={linea.categoria}
+                            size="xs"
                             onChange={(e) => updateLinea(linea.id, 'categoria', e.target.value)}
-                            className="text-xs bg-[var(--color-surface-variant)]/30 border-[var(--color-border)]/50 rounded-xl"
+                            className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl"
                             options={[
                                 { value: 'Alimentación', label: 'Alimentación' },
                                 { value: 'Hospedaje', label: 'Hospedaje' },
@@ -77,8 +78,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         <Input
                             type="date"
                             value={linea.fecha}
+                            size="xs"
                             onChange={(e) => updateLinea(linea.id, 'fecha', e.target.value)}
-                            className="text-xs bg-[var(--color-surface-variant)]/30 border-[var(--color-border)]/50 rounded-xl"
+                            className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl"
                             fullWidth
                         />
                     </div>
@@ -94,24 +96,35 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         type="text"
                         placeholder="Buscar OT..."
                         value={linea.ot}
+                        size="xs"
                         onChange={(e) => handleOTSearch(e.target.value, linea.id)}
-                        className="text-xs font-bold bg-[var(--color-surface-variant)]/30 border-[var(--color-border)]/50 rounded-xl placeholder:font-normal placeholder:opacity-40"
+                        className="font-bold bg-[var(--color-surface-variant)]/30 border-none rounded-xl placeholder:font-normal placeholder:opacity-40"
                     />
                     {isSearchingOT === linea.id && ots.length > 0 && (
-                        <div className="absolute top-full left-0 w-full bg-[var(--color-surface)] backdrop-blur-md border border-[var(--color-border)] rounded-xl shadow-2xl z-[100] max-h-60 overflow-y-auto mt-1 py-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                            {ots.map((ot) => (
-                                <div
-                                    key={ot.numero}
-                                    className="px-3 py-2 hover:bg-[var(--color-primary)]/10 cursor-pointer border-b border-[var(--color-border)]/50 last:border-none transition-colors group"
-                                    onClick={() => selectOT(ot, linea.id)}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <Text weight="bold" className="text-[10px] text-[var(--color-text-primary)]">{ot.numero}</Text>
-                                        <Text weight="bold" className="text-[8px] text-[var(--color-primary)] opacity-0 group-hover:opacity-100 uppercase">Seleccionar</Text>
-                                    </div>
-                                    <Text variant="caption" className="text-[9px] text-[var(--color-text-secondary)] truncate uppercase">{ot.cliente}</Text>
+                        <div className="absolute top-full left-0 w-full z-[100] mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <MaterialCard elevation={4} className="!rounded-2xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]/95 backdrop-blur-md shadow-2xl">
+                                <div className="max-h-60 overflow-y-auto py-1">
+                                    {ots.map((ot) => (
+                                        <div
+                                            key={ot.numero}
+                                            className="px-4 py-2.5 hover:bg-[var(--color-primary)]/10 cursor-pointer border-b border-[var(--color-border)]/50 last:border-none transition-colors group"
+                                            onClick={() => selectOT(ot, linea.id)}
+                                        >
+                                            <div className="flex items-center justify-between mb-0.5">
+                                                <Text variant="body2" weight="bold" color="text-primary" className="font-mono">
+                                                    {ot.numero}
+                                                </Text>
+                                                <Text variant="caption" weight="bold" color="primary" className="opacity-0 group-hover:opacity-100 uppercase tracking-tighter">
+                                                    Seleccionar
+                                                </Text>
+                                            </div>
+                                            <Text variant="caption" color="text-secondary" className="truncate uppercase font-medium">
+                                                {ot.cliente}
+                                            </Text>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            </MaterialCard>
                         </div>
                     )}
                 </div>
@@ -122,6 +135,7 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         <Text variant="caption" weight="bold" className="text-[9px] uppercase tracking-wider opacity-50 mb-1">C. Costo</Text>
                         <Select
                             value={linea.cc}
+                            size="xs"
                             disabled={!linea.ot || linea.combinacionesCC.length === 0}
                             onChange={(e) => {
                                 const newCC = e.target.value;
@@ -136,7 +150,7 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                                         : l
                                 ));
                             }}
-                            className="text-xs bg-[var(--color-surface-variant)]/30 border-[var(--color-border)]/50 rounded-xl"
+                            className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl"
                             options={[
                                 { value: '', label: '...' },
                                 ...Array.from(new Set(linea.combinacionesCC.map((c: any) => c.centrocosto?.trim()).filter(Boolean))).map((cc: any) => ({
@@ -150,9 +164,10 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         <Text variant="caption" weight="bold" className="text-[9px] uppercase tracking-wider opacity-50 mb-1">Subcentro</Text>
                         <Select
                             value={linea.scc}
+                            size="xs"
                             disabled={!linea.cc}
                             onChange={(e) => updateLinea(linea.id, 'scc', e.target.value)}
-                            className="text-xs bg-[var(--color-surface-variant)]/30 border-[var(--color-border)]/50 rounded-xl"
+                            className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl"
                             options={[
                                 { value: '', label: '...' },
                                 ...linea.combinacionesCC
@@ -177,8 +192,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         </div>
                         <CurrencyInput
                             value={linea.valorConFactura.toString()}
+                            size="xs"
                             onChange={(val: string) => updateLinea(linea.id, 'valorConFactura', val)}
-                            className="!text-xs !h-9 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3"
+                            className="!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3"
                         />
                     </div>
                     <div className="space-y-1">
@@ -188,8 +204,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         </div>
                         <CurrencyInput
                             value={linea.valorSinFactura.toString()}
+                            size="xs"
                             onChange={(val: string) => updateLinea(linea.id, 'valorSinFactura', val)}
-                            className="!text-xs !h-9 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3"
+                            className="!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3"
                         />
                     </div>
                 </div>
@@ -201,8 +218,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         type="text"
                         placeholder="Ej: Almuerzo entrega proyecto..."
                         value={linea.observaciones}
+                        size="xs"
                         onChange={(e) => updateLinea(linea.id, 'observaciones', e.target.value)}
-                        className="text-xs bg-[var(--color-surface-variant)]/30 border-[var(--color-border)]/50 rounded-xl placeholder:opacity-30"
+                        className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl placeholder:opacity-30"
                         fullWidth
                     />
                 </div>

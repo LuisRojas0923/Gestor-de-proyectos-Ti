@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { Button, Title } from '../../components/atoms';
-import { ServiceCard } from '../../components/molecules';
+import { Button, Title } from '../../../components/atoms';
+import { ServiceCard } from '../../../components/molecules';
 
 export interface Category {
     id: string;

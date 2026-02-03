@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Save, Plus } from 'lucide-react';
-import { Button, Text, Title, Textarea } from '../../components/atoms';
+import { Button, Text, Title, Textarea } from '../../../components/atoms';
 import axios from 'axios';
-import { API_CONFIG } from '../../config/api';
-import { useNotifications } from '../../components/notifications/NotificationsContext';
-import { useExpenseForm } from './hooks/useExpenseForm';
-import UserSummaryCard from './components/UserSummaryCard';
-import ExpenseLineItem from './components/ExpenseLineItem';
-import ExpenseMobileCard from './components/ExpenseMobileCard';
-import ExpenseTotals from './components/ExpenseTotals';
+import { API_CONFIG } from '../../../config/api';
+import { useNotifications } from '../../../components/notifications/NotificationsContext';
+import { useExpenseForm } from '../hooks/useExpenseForm';
+import UserSummaryCard from '../components/UserSummaryCard';
+import ExpenseLineItem from '../components/ExpenseLineItem';
+import ExpenseMobileCard from '../components/ExpenseMobileCard';
+import ExpenseTotals from '../components/ExpenseTotals';
 
-import { ExpenseConfirmModal } from '../../components/molecules';
+import { ExpenseConfirmModal } from '../../../components/molecules';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -132,15 +132,6 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
                     {/* Acciones */}
                     <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                         <Button
-                            onClick={addLinea}
-                            variant="erp"
-                            size="md"
-                            icon={Plus}
-                            className="h-10 font-bold rounded-xl px-6"
-                        >
-                            AGREGAR GASTO
-                        </Button>
-                        <Button
                             onClick={handlePrepareSubmit}
                             disabled={isLoading}
                             loading={isLoading}
@@ -165,24 +156,33 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
                             ({lineas.length} registros)
                         </Text>
                     </Title>
+                    <Button
+                        onClick={addLinea}
+                        variant="erp"
+                        size="xs"
+                        icon={Plus}
+                        className="font-bold rounded-xl px-4"
+                    >
+                        AGREGAR GASTO
+                    </Button>
                 </div>
 
                 {/* VISTA DESKTOP (Tabla con Scroll Interno) */}
-                <div className="hidden md:block bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
-                    <div className="max-h-[520px] overflow-auto scrollbar-thin scrollbar-thumb-[var(--color-border)] scrollbar-track-transparent">
+                <div className={`hidden md:block bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm ${isSearchingOT ? 'overflow-visible' : 'overflow-hidden'}`}>
+                    <div className={`max-h-[470px] scrollbar-thin scrollbar-thumb-[var(--color-border)] scrollbar-track-transparent ${isSearchingOT ? 'overflow-visible' : 'overflow-auto'}`}>
                         <table className="w-full border-separate border-spacing-0">
-                            <thead className="bg-[var(--color-surface-variant)] sticky top-0 z-[40] shadow-sm">
+                            <thead className="bg-[#002060] sticky top-0 z-[40] shadow-sm">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-10 border-b border-[var(--color-border)]">#</th>
-                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] min-w-[150px] border-b border-[var(--color-border)]">Categoría</th>
-                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-40 border-b border-[var(--color-border)]">Fecha</th>
-                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] min-w-[120px] border-b border-[var(--color-border)]">OT / OS</th>
-                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-32 border-b border-[var(--color-border)]">C. Costo</th>
-                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-32 border-b border-[var(--color-border)]">Subcentro</th>
-                                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-36 border-b border-[var(--color-border)]">Val. Factura</th>
-                                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-36 border-b border-[var(--color-border)]">Val. Sin Fac.</th>
-                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] border-b border-[var(--color-border)]">Observaciones</th>
-                                    <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] w-16 border-b border-[var(--color-border)]"></th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-10 border-b border-white/10">#</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white min-w-[150px] border-b border-white/10">Categoría</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-40 border-b border-white/10">Fecha</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white min-w-[120px] border-b border-white/10">OT / OS</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-32 border-b border-white/10">C. Costo</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-32 border-b border-white/10">Subcentro</th>
+                                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white w-36 border-b border-white/10">Val. Factura</th>
+                                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white w-36 border-b border-white/10">Val. Sin Fac.</th>
+                                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white border-b border-white/10">Observaciones</th>
+                                    <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white w-16 border-b border-white/10"></th>
                                 </tr>
                             </thead>
                             <tbody className="bg-transparent">

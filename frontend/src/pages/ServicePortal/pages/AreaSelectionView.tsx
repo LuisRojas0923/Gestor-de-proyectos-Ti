@@ -1,13 +1,13 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { Title, Text, Button } from '../../components/atoms';
-import { ActionCard } from '../../components/molecules';
+import { Title, Text, Button } from '../../../components/atoms';
+import { ActionCard } from '../../../components/molecules';
 
 // Imágenes para las áreas (reutilizando activos si existen o iconos representativos)
-import imgSistemas from '../../assets/images/categories/Soporte Hardware.png';
-import imgDesarrollo from '../../assets/images/categories/Nuevos desarrollos.png';
-import imgMejora from '../../assets/images/categories/Soporte Mejoramiento.png';
-import imgMisSolicitudes from '../../assets/images/categories/Mis Solicitudes.png';
+import imgSistemas from '../../../assets/images/categories/Soporte Hardware.png';
+import imgDesarrollo from '../../../assets/images/categories/Nuevos desarrollos.png';
+import imgMejora from '../../../assets/images/categories/Soporte Mejoramiento.png';
+import imgMisSolicitudes from '../../../assets/images/categories/Mis Solicitudes.png';
 
 interface AreaSelectionViewProps {
     onSelectArea: (area: 'sistemas' | 'desarrollo' | 'mejoramiento') => void;

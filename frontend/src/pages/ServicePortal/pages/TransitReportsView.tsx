@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Clock, FileText } from 'lucide-react';
-import { Button, Text, Title, MaterialCard, Spinner } from '../../components/atoms';
+import { Button, Text, Title, MaterialCard, Spinner } from '../../../components/atoms';
 import axios from 'axios';
-import { API_CONFIG } from '../../config/api';
+import { API_CONFIG } from '../../../config/api';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 

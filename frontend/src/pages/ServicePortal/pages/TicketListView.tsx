@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Search, Clock, User, ChevronRight, Info, AlertTriangle } from 'lucide-react';
 import { StatusBadge, TicketStatus } from './Common';
-import { Button, Input, Title, Text, Icon } from '../../components/atoms';
+import { Button, Input, Title, Text, Icon } from '../../../components/atoms';
 
 interface Ticket {
     id: string;

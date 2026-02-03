@@ -1,11 +1,11 @@
 import React, { useRef } from 'react';
 import { ArrowLeft, User, Briefcase, MapPin, Mail, FileText, Clock, ChevronRight } from 'lucide-react';
 import { FormField, TextAreaField } from './Common';
-import { Button, Select, Title, Text, Icon } from '../../components/atoms';
-import { useTicketForm } from './hooks/useTicketForm';
-import { ImpactedAreasSelection } from './components/ImpactedAreasSelection';
-import { FileAttachmentSection } from './components/FileAttachmentSection';
-import { SupportSection, MejoramientoSection, DevelopmentSection, ChangeControlSection, AssetSection } from './components/TicketFormSections';
+import { Button, Select, Title, Text, Icon } from '../../../components/atoms';
+import { useTicketForm } from '../hooks/useTicketForm';
+import { ImpactedAreasSelection } from '../components/ImpactedAreasSelection';
+import { FileAttachmentSection } from '../components/FileAttachmentSection';
+import { SupportSection, MejoramientoSection, DevelopmentSection, ChangeControlSection, AssetSection } from '../components/TicketFormSections';
 
 interface Category {
     id: string;

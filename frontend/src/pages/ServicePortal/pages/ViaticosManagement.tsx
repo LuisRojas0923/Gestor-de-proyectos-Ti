@@ -1,10 +1,10 @@
 import { ArrowLeft } from 'lucide-react';
-import { Button, Text, Title } from '../../components/atoms';
-import { ActionCard } from '../../components/molecules';
+import { Button, Text, Title } from '../../../components/atoms';
+import { ActionCard } from '../../../components/molecules';
 
-import imgIngresar from '../../assets/images/categories/Ingresar Reporte.png';
-import imgConsultar from '../../assets/images/categories/Consultar Reportes.png';
-import imgEstadoCuenta from '../../assets/images/categories/estado de cuenta.png';
+import imgIngresar from '../../../assets/images/categories/Ingresar Reporte.png';
+import imgConsultar from '../../../assets/images/categories/Consultar Reportes.png';
+import imgEstadoCuenta from '../../../assets/images/categories/estado de cuenta.png';
 
 interface ViaticosManagementProps {
     onNavigate: (view: 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_estado') => void;

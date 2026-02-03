@@ -1,4 +1,4 @@
-import { Input, Textarea, Text } from '../../components/atoms';
+import { Input, Textarea, Text } from '../../../components/atoms';
 import { LucideIcon } from 'lucide-react';
 
 export type TicketStatus = 'Asignado' | 'En Proceso' | 'Pendiente Info' | 'Escalado' | 'Resuelto' | 'Cerrado';

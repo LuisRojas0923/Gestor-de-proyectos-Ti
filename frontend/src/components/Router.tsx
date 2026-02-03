@@ -41,7 +41,7 @@ const AppRouter: React.FC = () => {
         </Route>
 
         {/* Rutas del Portal (Usuarios Finales) */}
-        <Route path="/service-portal" element={
+        <Route path="/service-portal/*" element={
           <ProtectedRoute moduleCode="service-portal">
             <ServicePortal />
           </ProtectedRoute>

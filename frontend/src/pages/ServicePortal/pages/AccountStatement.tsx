@@ -12,10 +12,10 @@ import {
     Title,
     MaterialCard,
     Spinner
-} from '../../components/atoms';
+} from '../../../components/atoms';
 import axios from 'axios';
-import { API_CONFIG } from '../../config/api';
-import { generateAccountStatementPDF } from '../../utils/generateAccountStatementPDF';
+import { API_CONFIG } from '../../../config/api';
+import { generateAccountStatementPDF } from '../../../utils/generateAccountStatementPDF';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 

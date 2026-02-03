@@ -1,6 +1,6 @@
 import React from 'react';
 import { Database, FileText, Search, Clock } from 'lucide-react';
-import { FormField, TextAreaField } from '../Common';
+import { FormField, TextAreaField } from '../pages/Common';
 import { Select, Title, Text, Icon } from '../../../components/atoms';
 
 interface Category {

@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ArrowLeft, FileText, ClipboardList, ShieldCheck, Settings, UserCheck, Plus } from 'lucide-react';
 import { StatusBadge, TicketStatus, TextAreaField } from './Common';
-import { Button, Title, Text, Icon } from '../../components/atoms';
-import { API_CONFIG } from '../../config/api';
-import { formatFriendlyDate } from '../../utils/dateUtils';
+import { Button, Title, Text, Icon } from '../../../components/atoms';
+import { API_CONFIG } from '../../../config/api';
+import { formatFriendlyDate } from '../../../utils/dateUtils';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 

@@ -1,27 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { useAppContext } from '../context/AppContext';
 import axios from 'axios';
 import {
-    Plus,
-    LogOut
+    Plus
 } from 'lucide-react';
 import { API_CONFIG } from '../config/api';
-import { Button, Text } from '../components/atoms';
-import DashboardView from './ServicePortal/DashboardView';
-import CategoryView, { Category } from './ServicePortal/CategoryView';
-import TicketFormView from './ServicePortal/TicketFormView';
-import TicketListView from './ServicePortal/TicketListView';
-import TicketDetailView from './ServicePortal/TicketDetailView';
-import SuccessView from './ServicePortal/SuccessView';
-import ExpenseLegalization from './ServicePortal/ExpenseLegalization';
-import AreaSelectionView from './ServicePortal/AreaSelectionView';
-import ViaticosManagement from './ServicePortal/ViaticosManagement';
-import AccountStatement from './ServicePortal/AccountStatement';
-import TransitReportsView from './ServicePortal/TransitReportsView';
+import DashboardView from './ServicePortal/pages/DashboardView';
+import CategoryView, { Category } from './ServicePortal/pages/CategoryView';
+import TicketFormView from './ServicePortal/pages/TicketFormView';
+import TicketListView from './ServicePortal/pages/TicketListView';
+import TicketDetailView from './ServicePortal/pages/TicketDetailView';
+import SuccessView from './ServicePortal/pages/SuccessView';
+import ExpenseLegalization from './ServicePortal/pages/ExpenseLegalization';
+import AreaSelectionView from './ServicePortal/pages/AreaSelectionView';
+import ViaticosManagement from './ServicePortal/pages/ViaticosManagement';
+import AccountStatement from './ServicePortal/pages/AccountStatement';
+import TransitReportsView from './ServicePortal/pages/TransitReportsView';
+import PortalLayout from './ServicePortal/PortalLayout';
 
-import ThemeToggle from '../components/atoms/ThemeToggle';
 import imgHardware from '../assets/images/categories/Soporte Hardware.png';
 import imgSoftware from '../assets/images/categories/Soporte Software.png';
 import imgPerifericos from '../assets/images/categories/Soporte Perifericos.png';
@@ -30,7 +28,6 @@ import imgMejora from '../assets/images/categories/Soporte Mejoramiento.png';
 import imgDesarrollo from '../assets/images/categories/Nuevos desarrollos.png';
 import imgLicencias from '../assets/images/categories/Compra de Licencias.png';
 import imgControlCambios from '../assets/images/categories/Control de Cambios.png';
-import imgHeader from '../assets/images/Header.png';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -40,37 +37,15 @@ const ServicePortal: React.FC = () => {
     const { user } = state;
     const { addNotification } = useNotifications();
 
-    const NAV_CACHE_KEY = 'portal_nav_cache';
 
-    // Recuperar estado inicial de localStorage
-    const savedNav = JSON.parse(localStorage.getItem(NAV_CACHE_KEY) || '{}');
-
-    const [view, setView] = useState<'dashboard' | 'areas' | 'categories' | 'form' | 'status' | 'success' | 'detail' | 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_gestion' | 'viaticos_estado'>(savedNav.view || 'dashboard');
-    const [selectedArea, setSelectedArea] = useState<'sistemas' | 'desarrollo' | 'mejoramiento' | null>(savedNav.selectedArea || null);
     const [categories, setCategories] = useState<Category[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState<any>(savedNav.selectedCategory || null);
-    const [selectedTicket, setSelectedTicket] = useState<any>(savedNav.selectedTicket || null);
+    const [selectedCategory, setSelectedCategory] = useState<any>(null);
+    const [selectedTicket, setSelectedTicket] = useState<any>(null);
     const [tickets, setTickets] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [newTicketId, setNewTicketId] = useState<string | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-    // Persistir estado de navegación
-    useEffect(() => {
-        // Clonamos el estado de la categoría pero eliminamos el icono (que es un elemento React no serializable)
-        const sanitizedCategory = selectedCategory ? { ...selectedCategory } : null;
-        if (sanitizedCategory && sanitizedCategory.icon) {
-            delete sanitizedCategory.icon;
-        }
-
-        const navState = {
-            view,
-            selectedArea,
-            selectedCategory: sanitizedCategory,
-            selectedTicket
-        };
-        localStorage.setItem(NAV_CACHE_KEY, JSON.stringify(navState));
-    }, [view, selectedArea, selectedCategory, selectedTicket]);
 
     // Metadatos visuales: Mapeamos el ID de la categoría con su icono y sección
     const categoryMetadata: Record<string, { icon: React.ReactNode; section: 'soporte' | 'mejoramiento' }> = {
@@ -293,7 +268,7 @@ const ServicePortal: React.FC = () => {
                 }
 
                 setNewTicketId(createdTicketId);
-                setView('success');
+                navigate(`/service-portal/exito/${createdTicketId}`);
                 fetchTickets(user.cedula || user.id);
                 setSelectedFiles([]); // Limpiar archivos
             }
@@ -318,7 +293,7 @@ const ServicePortal: React.FC = () => {
 
             // Actualizar lista y volver
             fetchTickets(user.cedula || user.id);
-            setView('status');
+            navigate('/service-portal/mis-tickets');
         } catch (err) {
             console.error("Error enviando feedback:", err);
             addNotification('error', "No se pudo enviar la información.");
@@ -329,137 +304,168 @@ const ServicePortal: React.FC = () => {
 
     // Redirigir si no hay usuario (protección extra, aunque ProtectedRoute debería manejarlo)
     useEffect(() => {
-        if (user && view === 'dashboard') {
+        if (user) {
             fetchTickets(user.cedula || user.id);
         }
-    }, [user, view]);
+    }, [user]);
+
+    const CategoryWrapper: React.FC<{
+        categories: Category[],
+        onSelect: (c: Category) => void,
+        onBack: () => void
+    }> = ({ categories, onSelect, onBack }) => {
+        const { area } = useParams<{ area: string }>();
+
+        const filteredCategories = categories.filter(c => {
+            if (area === 'sistemas') return c.section === 'soporte';
+            if (area === 'mejoramiento') return c.section === 'mejoramiento' && !['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
+            if (area === 'desarrollo') return ['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
+            return true;
+        });
+
+        return <CategoryView categories={filteredCategories} onSelect={onSelect} onBack={onBack} />;
+    };
+
+    const TicketFormWrapper = () => {
+        const { categoryId } = useParams<{ categoryId: string }>();
+        const category = selectedCategory || categories.find(c => c.id === categoryId);
+
+        if (!category && categories.length > 0) {
+            return <Navigate to="/service-portal/servicios" replace />;
+        }
+
+        if (categories.length === 0) {
+            return <div className="p-20 text-center"><div className="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-[var(--color-primary)] rounded-full" role="status"></div></div>;
+        }
+
+        return (
+            <TicketFormView
+                selectedCategory={category}
+                user={user as any}
+                onSubmit={handleSubmit}
+                onBack={() => { navigate(-1); setSelectedFiles([]); }}
+                isLoading={isLoading}
+                selectedFiles={selectedFiles}
+                onFilesChange={setSelectedFiles}
+            />
+        );
+    };
+
+    const TicketDetailWrapper = () => {
+        const { ticketId } = useParams<{ ticketId: string }>();
+        const ticket = selectedTicket || tickets.find(t => t.id === ticketId);
+
+        if (!ticket && tickets.length > 0) {
+            return <Navigate to="/service-portal/mis-tickets" replace />;
+        }
+
+        if (tickets.length === 0) {
+            return <div className="p-20 text-center"><div className="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-[var(--color-primary)] rounded-full" role="status"></div></div>;
+        }
+
+        return (
+            <TicketDetailView
+                selectedTicket={ticket}
+                user={user as any}
+                onBack={() => navigate('/service-portal/mis-tickets')}
+                onUpdate={handleSendUserFeedback}
+            />
+        );
+    };
 
     if (!user) return <div className="flex justify-center items-center h-screen">Cargando perfil...</div>;
 
     return (
-        <div className="min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
-            <header className="bg-transparent border-b border-white/20 sticky top-0 z-50 transition-all duration-300 h-24 shadow-lg">
-                <div
-                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-500 opacity-100"
-                    style={{ backgroundImage: `url(${imgHeader})`, zIndex: -1 }}
-                />
+        <PortalLayout
+            user={user}
+            onHome={() => navigate('/service-portal/inicio')}
+            onLogout={() => {
+                dispatch({ type: 'LOGOUT' });
+                navigate('/login');
+            }}
+        >
+            <Routes>
+                <Route index element={<Navigate to="/service-portal/inicio" replace />} />
 
-                <div className="h-full bg-black/5 transition-colors duration-300">
-                    <div className="max-w-[1300px] mx-auto px-4 h-full flex items-center justify-between text-white relative">
-                        {/* 1. SECCIÓN IZQUIERDA (Equilibrio) */}
-                        <div className="flex-1 flex justify-start">
-                            <div className="w-10 md:w-20"></div>
-                        </div>
-
-                        {/* 2. SECCIÓN CENTRAL (Marca) - Siempre centrada por flex-1 en los lados */}
-                        <div
-                            className="flex flex-col items-center cursor-pointer select-none mx-2 sm:mx-6 shrink-0"
-                            onClick={() => setView('dashboard')}
-                        >
-                            <Text as="span" weight="bold" color="white" className="text-lg sm:text-2xl tracking-tighter drop-shadow-xl uppercase text-center font-extrabold leading-tight">
-                                <Text as="span" color="white" className="hidden sm:inline">Portal de Servicios SOLID</Text>
-                                <Text as="span" color="white" className="inline sm:hidden">Portal SOLID</Text>
-                            </Text>
-                        </div>
-
-                        {/* 3. SECCIÓN DERECHA (Controles) */}
-                        <div className="flex-1 flex items-center justify-end space-x-2 sm:space-x-4 z-10">
-                            <ThemeToggle className="text-white scale-90 sm:scale-100" />
-                            <div className="text-right hidden lg:block border-l border-white/30 pl-4">
-                                <Text variant="body1" weight="bold" color="white" className="drop-shadow-md uppercase text-[10px] tracking-wider leading-none mb-1 max-w-[150px] truncate">{user.name}</Text>
-                                <Text variant="caption" color="white" className="opacity-80 uppercase text-[9px] tracking-widest font-bold">{user.area || 'Usuario'}</Text>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                onClick={() => {
-                                    localStorage.removeItem(NAV_CACHE_KEY);
-                                    dispatch({ type: 'LOGOUT' });
-                                    navigate('/login');
-                                }}
-                                className="p-2 sm:p-3 rounded-xl hover:bg-white/20 text-white transition-all"
-                            >
-                                <LogOut size={20} />
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-            <main className="max-w-[1300px] mx-auto p-4 sm:px-8 sm:py-2">
-                {view === 'dashboard' && <DashboardView user={user} onNavigate={(v: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado') => {
-                    if (v === 'viaticos_gestion' || v === 'viaticos_estado') {
-                        setView(v);
-                    } else {
-                        setView(v === 'categories' ? 'areas' : 'status');
-                    }
-                }} />}
-
-                {view === 'areas' && (
-                    <AreaSelectionView
-                        onSelectArea={(area) => {
-                            setSelectedArea(area);
-                            // Si es desarrollo o mejoramiento y solo hay una categoría principal, podríamos ir directo al form
-                            // Pero por ahora, filtramos y mostramos CategoryView por consistencia
-                            setView('categories');
-                        }}
-                        onConsultStatus={() => setView('status')}
-                        onBack={() => setView('dashboard')}
-                    />
-                )}
-
-                {view === 'categories' && (
-                    <CategoryView
-                        categories={categories.filter(c => {
-                            if (selectedArea === 'sistemas') return c.section === 'soporte';
-                            if (selectedArea === 'mejoramiento') return c.section === 'mejoramiento' && !['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
-                            if (selectedArea === 'desarrollo') return ['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
-                            return true;
-                        })}
-                        onSelect={(c) => { setSelectedCategory(c); setView('form'); }}
-                        onBack={() => setView('areas')}
-                    />
-                )}
-
-                {view === 'form' && selectedCategory && (
-                    <TicketFormView
-                        selectedCategory={selectedCategory}
+                <Route path="inicio" element={
+                    <DashboardView
                         user={user}
-                        onSubmit={handleSubmit}
-                        onBack={() => { setView('categories'); setSelectedFiles([]); }}
-                        isLoading={isLoading}
-                        selectedFiles={selectedFiles}
-                        onFilesChange={setSelectedFiles}
+                        onNavigate={(v) => {
+                            if (v === 'viaticos_gestion') navigate('/service-portal/gastos/gestion');
+                            else if (v === 'categories') navigate('/service-portal/servicios');
+                            else if (v === 'status') navigate('/service-portal/mis-tickets');
+                        }}
                     />
-                )}
-                {view === 'status' && <TicketListView tickets={tickets} onBack={() => setView('areas')} onViewDetail={(t) => { setSelectedTicket(t); setView('detail'); }} />}
-                {view === 'detail' && selectedTicket && <TicketDetailView selectedTicket={selectedTicket} user={user} onBack={() => setView('status')} onUpdate={handleSendUserFeedback} />}
-                {view === 'legalizar_gastos' && (
+                } />
+
+                <Route path="servicios" element={
+                    <AreaSelectionView
+                        onSelectArea={(area) => navigate(`/service-portal/servicios/${area}`)}
+                        onConsultStatus={() => navigate('/service-portal/mis-tickets')}
+                        onBack={() => navigate('/service-portal/inicio')}
+                    />
+                } />
+
+                <Route path="servicios/:area" element={
+                    <CategoryWrapper
+                        categories={categories}
+                        onSelect={(c) => { setSelectedCategory(c); navigate(`/service-portal/crear/${c.id}`); }}
+                        onBack={() => navigate('/service-portal/servicios')}
+                    />
+                } />
+
+                <Route path="crear/:categoryId" element={<TicketFormWrapper />} />
+
+                <Route path="mis-tickets" element={
+                    <TicketListView
+                        tickets={tickets}
+                        onBack={() => navigate('/service-portal/inicio')}
+                        onViewDetail={(t) => { setSelectedTicket(t); navigate(`/service-portal/mis-tickets/${t.id}`); }}
+                    />
+                } />
+
+                <Route path="mis-tickets/:ticketId" element={<TicketDetailWrapper />} />
+
+                <Route path="gastos/gestion" element={
+                    <ViaticosManagement
+                        onNavigate={(v) => {
+                            if (v === 'legalizar_gastos') navigate('/service-portal/gastos/nuevo');
+                            else if (v === 'viaticos_reportes') navigate('/service-portal/gastos/reportes');
+                            else if (v === 'viaticos_estado') navigate('/service-portal/gastos/estado');
+                        }}
+                        onBack={() => navigate('/service-portal/inicio')}
+                    />
+                } />
+
+                <Route path="gastos/nuevo" element={
                     <ExpenseLegalization
                         user={user}
-                        onBack={() => setView('viaticos_gestion')}
-                        onSuccess={() => { setView('viaticos_gestion'); addNotification('success', 'Reporte enviado a tránsito correctamente.'); }}
+                        onBack={() => navigate('/service-portal/gastos/gestion')}
+                        onSuccess={() => { navigate('/service-portal/gastos/gestion'); addNotification('success', 'Reporte enviado a tránsito correctamente.'); }}
                     />
-                )}
-                {view === 'viaticos_gestion' && (
-                    <ViaticosManagement
-                        onNavigate={(v) => setView(v)}
-                        onBack={() => setView('dashboard')}
-                    />
-                )}
-                {view === 'viaticos_reportes' && (
+                } />
+
+                <Route path="gastos/reportes" element={
                     <TransitReportsView
                         user={user}
-                        onBack={() => setView('viaticos_gestion')}
+                        onBack={() => navigate('/service-portal/gastos/gestion')}
                     />
-                )}
-                {view === 'viaticos_estado' && (
+                } />
+
+                <Route path="gastos/estado" element={
                     <AccountStatement
                         user={user}
-                        onBack={() => setView('viaticos_gestion')}
+                        onBack={() => navigate('/service-portal/gastos/gestion')}
                     />
-                )}
-                {view === 'success' && <SuccessView newTicketId={newTicketId} onHome={() => setView('dashboard')} />}
-            </main>
-        </div>
+                } />
+
+                <Route path="exito/:ticketId" element={
+                    <SuccessView newTicketId={newTicketId} onHome={() => navigate('/service-portal/inicio')} />
+                } />
+
+                <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />
+            </Routes>
+        </PortalLayout>
     );
 };
 
