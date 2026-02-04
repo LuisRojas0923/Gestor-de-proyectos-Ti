@@ -60,6 +60,7 @@ interface AppState {
   refreshKey: number;
   loading: boolean;
   error: string | null;
+  isViaticosVerified: boolean;
 }
 
 type AppAction =
@@ -79,7 +80,8 @@ type AppAction =
   | { type: 'CLEAR_NOTIFICATIONS' }
   | { type: 'REFRESH_DATA' }
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null };
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_VIATICOS_VERIFIED'; payload: boolean };
 
 // Función para obtener el estado inicial del modo oscuro desde localStorage
 const getInitialDarkMode = (): boolean => {
@@ -113,6 +115,7 @@ const initialState: AppState = {
   refreshKey: 0,
   loading: false,
   error: null,
+  isViaticosVerified: false,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -126,7 +129,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       localStorage.removeItem('theme'); // Opcional, pero para consistencia
-      return { ...state, user: null };
+      return { ...state, user: null, isViaticosVerified: false };
     case 'TOGGLE_DARK_MODE': {
       const newDarkMode = !state.darkMode;
       // Guardar en localStorage
@@ -187,6 +190,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, loading: action.payload };
     case 'SET_ERROR':
       return { ...state, error: action.payload };
+    case 'SET_VIATICOS_VERIFIED':
+      return { ...state, isViaticosVerified: action.payload };
     default:
       return state;
   }

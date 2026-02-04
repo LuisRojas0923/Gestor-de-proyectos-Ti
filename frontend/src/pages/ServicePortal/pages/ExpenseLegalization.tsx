@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Save, Plus } from 'lucide-react';
-import { Button, Text, Title, Textarea } from '../../../components/atoms';
+import { useLocation } from 'react-router-dom';
+import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
+import { Button, Text, Title, Textarea, Badge } from '../../../components/atoms';
 import axios from 'axios';
 import { API_CONFIG } from '../../../config/api';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
@@ -10,7 +11,7 @@ import ExpenseLineItem from '../components/ExpenseLineItem';
 import ExpenseMobileCard from '../components/ExpenseMobileCard';
 import ExpenseTotals from '../components/ExpenseTotals';
 
-import { ExpenseConfirmModal } from '../../../components/molecules';
+import { ExpenseConfirmModal, ClearReportConfirmModal } from '../../../components/molecules';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -18,9 +19,20 @@ interface ExpenseLegalizationProps {
     user: any;
     onBack: () => void;
     onSuccess: () => void;
+    initialLineas?: any[];
+    initialObservaciones?: string;
 }
 
-const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack, onSuccess }) => {
+const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
+    user,
+    onBack,
+    onSuccess,
+    initialLineas,
+    initialObservaciones
+}) => {
+    const location = useLocation();
+    const state = location.state as { lineas?: any[], observaciones?: string } | null;
+
     const {
         lineas,
         setLineas,
@@ -36,29 +48,88 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
         totalFacturado,
         totalSinFactura,
         totalGeneral,
-        clearForm
+        clearForm,
+        loadLineas,
+        restoreBackup,
+        hasBackup,
+        validationErrors,
+        setValidationErrors,
+        logMarina
     } = useExpenseForm();
+
+    const reporteIdOriginal = (initialLineas?.[0] as any)?.reporte_id || (state?.lineas?.[0] as any)?.reporte_id;
+
+    const hasLoadedInitial = React.useRef(false);
+
+    // Cargar lineas iniciales si vienen por props o por location.state (edición de tránsito)
+    React.useEffect(() => {
+        if (hasLoadedInitial.current) return;
+
+        const lineasACargar = initialLineas || state?.lineas;
+        const obsACargar = initialObservaciones || state?.observaciones;
+
+        if (lineasACargar && lineasACargar.length > 0) {
+            loadLineas(lineasACargar, obsACargar);
+            hasLoadedInitial.current = true;
+        }
+    }, [initialLineas, initialObservaciones, state, loadLineas]);
 
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showClearModal, setShowClearModal] = useState(false);
     const { addNotification } = useNotifications();
 
     const handlePrepareSubmit = () => {
-        const tieneLineasIncompletas = lineas.some(l =>
-            !l.categoria || !l.ot || !l.cc || !l.scc ||
-            (Number(l.valorConFactura) === 0 && Number(l.valorSinFactura) === 0)
-        );
+        const errors: Record<string, string[]> = {};
+        let hayErrores = false;
+        const mensajesErrores: string[] = [];
 
         if (lineas.length === 0) {
             addNotification('error', 'Debe reportar al menos un gasto.');
             return;
         }
 
-        if (tieneLineasIncompletas) {
-            addNotification('error', 'Por favor complete todos los campos obligatorios.');
+        lineas.forEach((l, idx) => {
+            const camposFaltantes: string[] = [];
+            const lineErrors: string[] = [];
+
+            if (!l.categoria) {
+                lineErrors.push('categoria');
+                camposFaltantes.push('Categoría');
+            }
+            if (!l.ot) {
+                lineErrors.push('ot');
+                camposFaltantes.push('OT');
+            }
+            if (!l.cc) {
+                lineErrors.push('cc');
+                camposFaltantes.push('Centro de Costo');
+            }
+            if (!l.scc) {
+                lineErrors.push('scc');
+                camposFaltantes.push('Subcentro de Costo');
+            }
+            if (Number(l.valorConFactura) === 0 && Number(l.valorSinFactura) === 0) {
+                lineErrors.push('valorConFactura', 'valorSinFactura');
+                camposFaltantes.push('Valor');
+            }
+
+            if (lineErrors.length > 0) {
+                errors[l.id] = lineErrors;
+                hayErrores = true;
+                mensajesErrores.push(`Fila ${idx + 1}: falta ${camposFaltantes.join(', ')}`);
+            }
+        });
+
+        if (hayErrores) {
+            setValidationErrors(errors);
+            // Mostrar los primeros 3 errores si hay muchos para no saturar
+            const mensajeMostrar = mensajesErrores.slice(0, 3).join(' | ') + (mensajesErrores.length > 3 ? '...' : '');
+            addNotification('error', `Campos pendientes: ${mensajeMostrar}`);
             return;
         }
 
+        setValidationErrors({});
         setShowConfirmModal(true);
     };
 
@@ -67,6 +138,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
         setShowConfirmModal(false);
         try {
             const payload = {
+                reporte_id: reporteIdOriginal || null, // Pasar ID si es edición
                 empleado_cedula: user.cedula || user.id,
                 empleado_nombre: user.name,
                 area: user.area || 'N/A',
@@ -89,10 +161,12 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
             };
 
             await axios.post(`${API_BASE_URL}/viaticos/enviar`, payload);
+
+            logMarina("🚀 [API] Reporte enviado con éxito. Ejecutando limpieza profunda.");
+
             // ELIMINADO: addNotification('success', 'Reporte de gastos enviado correctamente.');
             // Se asume que el contenedor principal maneja la notificación de éxito al disparar onSuccess()
-            // o que la notificación duplicada venía de aquí y de onSuccess.
-            clearForm();
+            clearForm(); // Esto borra caché y backups
             onSuccess();
         } catch (err: any) {
             console.error("Error enviando reporte:", err);
@@ -119,6 +193,33 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
             {/* Info Tarjeta Azul */}
             <UserSummaryCard user={user} />
 
+            {/* Banner de Borrador Guardado */}
+            {hasBackup && (
+                <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top duration-500">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-blue-500 p-2 rounded-full text-white shadow-lg shadow-blue-500/20">
+                            <Save size={18} />
+                        </div>
+                        <div>
+                            <Text weight="bold" className="text-blue-900 dark:text-blue-100">Borrador Protegido</Text>
+                            <Text variant="caption" className="text-blue-700 dark:text-blue-400">Detectamos que estabas llenando un reporte antes de abrir esta consulta.</Text>
+                        </div>
+                    </div>
+                    <Button
+                        onClick={() => {
+                            if (restoreBackup()) {
+                                addNotification('success', 'Borrador recuperado correctamente.');
+                            }
+                        }}
+                        variant="primary"
+                        size="sm"
+                        className="rounded-xl px-6"
+                    >
+                        RECUPERAR MI TRABAJO
+                    </Button>
+                </div>
+            )}
+
             {/* Command Center: Totales y Acciones Principales */}
             <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-3 shadow-sm">
                 <div className="flex flex-col md:flex-row items-center gap-4">
@@ -132,7 +233,12 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
                     </div>
 
                     {/* Acciones */}
-                    <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                        {observacionesGral.match(/\[(REP-L\d+)\]/) && (
+                            <Badge variant="success" size="lg" className="font-black px-4 bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400">
+                                {observacionesGral.match(/\[(REP-L\d+)\]/)?.[1]}
+                            </Badge>
+                        )}
                         <Button
                             onClick={handlePrepareSubmit}
                             disabled={isLoading}
@@ -158,15 +264,26 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
                             ({lineas.length} registros)
                         </Text>
                     </Title>
-                    <Button
-                        onClick={addLinea}
-                        variant="erp"
-                        size="xs"
-                        icon={Plus}
-                        className="font-bold rounded-xl px-4"
-                    >
-                        AGREGAR GASTO
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            onClick={() => setShowClearModal(true)}
+                            variant="erp"
+                            size="xs"
+                            icon={Trash2}
+                            className="font-bold rounded-xl px-4 text-red-600 border-red-200 hover:bg-red-50"
+                        >
+                            LIMPIAR
+                        </Button>
+                        <Button
+                            onClick={addLinea}
+                            variant="erp"
+                            size="xs"
+                            icon={Plus}
+                            className="font-bold rounded-xl px-4 text-[var(--color-primary)]"
+                        >
+                            AGREGAR GASTO
+                        </Button>
+                    </div>
                 </div>
 
                 {/* VISTA DESKTOP (Tabla con Scroll Interno) */}
@@ -208,6 +325,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
                                             handleOTSearch={handleOTSearch}
                                             selectOT={selectOT}
                                             setLineas={setLineas}
+                                            errors={validationErrors[linea.id] || []}
                                         />
                                     ))
                                 )}
@@ -235,6 +353,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
                                 handleOTSearch={handleOTSearch}
                                 selectOT={selectOT}
                                 setLineas={setLineas}
+                                errors={validationErrors[linea.id] || []}
                             />
                         ))
                     )}
@@ -255,7 +374,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
                 />
             </div>
 
-            {/* Modal de Confirmación */}
+            {/* Modal de Confirmación de Envío */}
             <ExpenseConfirmModal
                 isOpen={showConfirmModal}
                 onClose={() => setShowConfirmModal(false)}
@@ -263,6 +382,16 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({ user, onBack,
                 totalGeneral={totalGeneral}
                 totalFacturado={totalFacturado}
                 totalSinFactura={totalSinFactura}
+            />
+
+            {/* Modal de Confirmación de Limpieza */}
+            <ClearReportConfirmModal
+                isOpen={showClearModal}
+                onClose={() => setShowClearModal(false)}
+                onConfirm={() => {
+                    clearForm();
+                    addNotification('info', 'Reporte limpiado completamente.');
+                }}
             />
         </div>
     );

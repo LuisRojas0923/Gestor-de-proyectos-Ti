@@ -15,6 +15,7 @@ interface ExpenseLineItemProps {
     handleOTSearch: (query: string, id: string) => void;
     selectOT: (ot: any, id: string) => void;
     setLineas: React.Dispatch<React.SetStateAction<any[]>>;
+    errors?: string[];
 }
 
 const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
@@ -26,7 +27,8 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
     removeLinea,
     handleOTSearch,
     selectOT,
-    setLineas
+    setLineas,
+    errors = []
 }) => {
     const { addNotification } = useNotifications();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -64,20 +66,23 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
     return (
         <tr className={`hover:bg-[var(--color-surface-variant)]/30 transition-colors group/line ${isSearchingOT === linea.id ? 'relative z-[60]' : 'relative z-0'}`}>
             {/* # No. */}
-            <td className="px-4 py-2 border-b border-[var(--color-border)] border-r border-[var(--color-border)]/30">
-                <div className="h-8 flex items-center justify-center bg-[#002060]/5 rounded-lg border border-[#002060]/10">
-                    <span className="text-xs text-[#002060] font-mono font-bold">{index + 1}</span>
+            <td className="px-3 py-2 border-b border-[var(--color-border)] text-center">
+                <div className="flex items-center justify-center">
+                    <span className="w-6 h-6 flex items-center justify-center bg-[#002060]/10 text-[#002060] text-[10px] font-black rounded-full border border-[#002060]/20 shadow-sm">
+                        {index + 1}
+                    </span>
                 </div>
             </td>
 
             {/* Categoría */}
-            <td className="px-2 py-2 border-b border-[var(--color-border)]">
+            <td className={`px-2 py-2 border-b border-[var(--color-border)] ${errors.includes('categoria') ? 'bg-red-50/50' : ''}`}>
                 <Select
                     value={linea.categoria}
                     size="xs"
                     onChange={(e) => updateLinea(linea.id, 'categoria', e.target.value)}
-                    className="!border-none !bg-transparent !shadow-none !px-2"
+                    className={`!border-none !bg-transparent !shadow-none !px-2 ${errors.includes('categoria') ? 'ring-1 ring-red-500 rounded-lg' : ''}`}
                     options={[
+                        { value: '', label: 'Seleccione...' },
                         { value: 'Alimentación', label: 'Alimentación' },
                         { value: 'Hospedaje', label: 'Hospedaje' },
                         { value: 'Transporte Municipal', label: 'Transporte Mun.' },
@@ -103,7 +108,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
             </td>
 
             {/* OT / OS */}
-            <td className="px-2 py-2 border-b border-[var(--color-border)]">
+            <td className={`px-2 py-2 border-b border-[var(--color-border)] ${errors.includes('ot') ? 'bg-red-50/50' : ''}`}>
                 <div className="relative">
                     <Input
                         type="text"
@@ -111,7 +116,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                         value={linea.ot}
                         size="xs"
                         onChange={(e) => handleOTSearch(e.target.value, linea.id)}
-                        className="!border-none !bg-transparent !shadow-none !px-2 font-bold placeholder:font-normal placeholder:opacity-40"
+                        className={`!border-none !bg-transparent !shadow-none !px-2 font-bold placeholder:font-normal placeholder:opacity-40 ${errors.includes('ot') ? 'ring-1 ring-red-500 rounded-lg' : ''}`}
                     />
                     {isSearchingOT === linea.id && ots.length > 0 && (
                         <div className="absolute top-full left-0 w-[400px] z-[100] mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -144,7 +149,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
             </td>
 
             {/* C. Costo */}
-            <td className="px-2 py-2 border-b border-[var(--color-border)]">
+            <td className={`px-2 py-2 border-b border-[var(--color-border)] ${errors.includes('cc') ? 'bg-red-50/50' : ''}`}>
                 <Select
                     value={linea.cc}
                     size="xs"
@@ -162,7 +167,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                                 : l
                         ));
                     }}
-                    className="!border-none !bg-transparent !shadow-none !px-2"
+                    className={`!border-none !bg-transparent !shadow-none !px-2 ${errors.includes('cc') ? 'ring-1 ring-red-500 rounded-lg' : ''}`}
                     options={[
                         { value: '', label: '...' },
                         ...Array.from(new Set(linea.combinacionesCC.map((c: any) => c.centrocosto?.trim()).filter(Boolean))).map((cc: any) => ({
@@ -174,13 +179,13 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
             </td>
 
             {/* Subcentro */}
-            <td className="px-2 py-2 border-b border-[var(--color-border)]">
+            <td className={`px-2 py-2 border-b border-[var(--color-border)] ${errors.includes('scc') ? 'bg-red-50/50' : ''}`}>
                 <Select
                     value={linea.scc}
                     size="xs"
                     disabled={!linea.cc}
                     onChange={(e) => updateLinea(linea.id, 'scc', e.target.value)}
-                    className="!border-none !bg-transparent !shadow-none !px-2"
+                    className={`!border-none !bg-transparent !shadow-none !px-2 ${errors.includes('scc') ? 'ring-1 ring-red-500 rounded-lg' : ''}`}
                     options={[
                         { value: '', label: '...' },
                         ...linea.combinacionesCC
@@ -196,22 +201,22 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
             </td>
 
             {/* Factura */}
-            <td className="px-2 py-2 border-b border-[var(--color-border)]">
+            <td className={`px-2 py-2 border-b border-[var(--color-border)] ${errors.includes('valorConFactura') ? 'bg-red-50/50' : ''}`}>
                 <CurrencyInput
                     value={linea.valorConFactura.toString()}
                     size="xs"
                     onChange={(val: string) => updateLinea(linea.id, 'valorConFactura', val)}
-                    className="font-bold bg-[var(--color-primary)]/5 border-none focus:ring-2 focus:ring-[var(--color-primary)]/20 rounded-lg !px-2"
+                    className={`font-bold bg-[var(--color-primary)]/5 border-none focus:ring-2 focus:ring-[var(--color-primary)]/20 rounded-lg !px-2 ${errors.includes('valorConFactura') ? 'ring-1 ring-red-500' : ''}`}
                 />
             </td>
 
             {/* Sin Factura */}
-            <td className="px-2 py-2 border-b border-[var(--color-border)]">
+            <td className={`px-2 py-2 border-b border-[var(--color-border)] ${errors.includes('valorSinFactura') ? 'bg-red-50/50' : ''}`}>
                 <CurrencyInput
                     value={linea.valorSinFactura.toString()}
                     size="xs"
                     onChange={(val: string) => updateLinea(linea.id, 'valorSinFactura', val)}
-                    className="font-bold bg-[var(--color-primary)]/5 border-none focus:ring-2 focus:ring-[var(--color-primary)]/20 rounded-lg !px-2"
+                    className={`font-bold bg-[var(--color-primary)]/5 border-none focus:ring-2 focus:ring-[var(--color-primary)]/20 rounded-lg !px-2 ${errors.includes('valorSinFactura') ? 'ring-1 ring-red-500' : ''}`}
                 />
             </td>
 

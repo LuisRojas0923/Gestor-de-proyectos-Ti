@@ -6,6 +6,11 @@ import { useNotifications } from '../../../components/notifications/Notification
 const API_BASE_URL = API_CONFIG.BASE_URL;
 const CACHE_KEY = 'expense_form_cache';
 
+const DEBUG_MARINA = true; // Cambiar a false para desactivar logs en consola
+const logMarina = (msg: string, data: any = '') => {
+    if (DEBUG_MARINA) console.log(`⚓ Marina Debug | ${new Date().toLocaleTimeString()} | ${msg}`, data);
+};
+
 export interface OTData {
     numero: string;
     cliente: string;
@@ -84,6 +89,7 @@ export const useExpenseForm = () => {
 
     const [ots, setOts] = useState<OTData[]>([]);
     const [isSearchingOT, setIsSearchingOT] = useState<string | null>(null);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
     const { addNotification } = useNotifications();
 
     // Auto-save cada vez que cambian los datos
@@ -91,11 +97,16 @@ export const useExpenseForm = () => {
         const saveTimeout = setTimeout(() => {
             const dataToSave = { lineas, observacionesGral };
             localStorage.setItem(CACHE_KEY, JSON.stringify(dataToSave));
+            logMarina("💾 [DRAFT] Borrador actualizado en el almacenamiento local", {
+                items: lineas.length,
+                total: lineas.reduce((acc, l) => acc + Number(l.valorConFactura) + Number(l.valorSinFactura), 0)
+            });
         }, 500); // Debounce de 500ms
         return () => clearTimeout(saveTimeout);
     }, [lineas, observacionesGral]);
 
     const addLinea = useCallback(() => {
+        logMarina("➕ [UI] Agregando nueva línea de gasto");
         setLineas(prev => [...prev, {
             id: generateId(),
             categoria: '',
@@ -112,6 +123,7 @@ export const useExpenseForm = () => {
     }, []);
 
     const removeLinea = useCallback((id: string) => {
+        logMarina("❌ [UI] Removiendo línea de gasto", id);
         setLineas(prev => {
             if (prev.length > 1) {
                 return prev.filter(l => l.id !== id);
@@ -126,7 +138,16 @@ export const useExpenseForm = () => {
     }, []);
 
     const handleOTSearch = async (query: string, lineaId: string) => {
-        updateLinea(lineaId, 'ot', query);
+        // Al modificar manualmente la OT, reseteamos el contexto contable previo
+        // para evitar que se guarden CC/SCC de una selección anterior (blindaje)
+        setLineas(prev => prev.map(l => l.id === lineaId ? {
+            ...l,
+            ot: query,
+            cc: '',
+            scc: '',
+            combinacionesCC: []
+        } : l));
+
         if (query.length < 2) {
             setOts([]);
             setIsSearchingOT(null);
@@ -135,6 +156,7 @@ export const useExpenseForm = () => {
 
         setIsSearchingOT(lineaId);
         try {
+            logMarina("🔎 [API] Buscando OTs", query);
             const res = await axios.get(`${API_BASE_URL}/viaticos/ots?query=${query}`);
             const data = res.data;
             setOts(data);
@@ -152,6 +174,7 @@ export const useExpenseForm = () => {
     const selectOT = async (ot: OTData, lineaId: string) => {
         setIsSearchingOT(lineaId);
         try {
+            logMarina("✅ [UI] OT Seleccionada", ot.numero);
             const res = await axios.get(`${API_BASE_URL}/viaticos/ot/${ot.numero}/combinaciones`);
             const combinaciones: OTData[] = res.data;
 
@@ -191,7 +214,8 @@ export const useExpenseForm = () => {
     const totalGeneral = totalFacturado + totalSinFactura;
 
     const clearForm = useCallback(() => {
-        setLineas([{
+        logMarina("🧹 [UI] Limpiando formulario completo y caché");
+        const defaultLineas = [{
             id: generateId(),
             categoria: '',
             fecha: new Date().toISOString().split('T')[0],
@@ -203,10 +227,88 @@ export const useExpenseForm = () => {
             observaciones: '',
             combinacionesCC: [],
             adjuntos: []
-        }]);
+        }];
+
+        setLineas(defaultLineas);
         setObservacionesGral('');
+        setValidationErrors({}); // Limpiar errores visuales
+
+        // Limpiar localStorage de raíz
         localStorage.removeItem(CACHE_KEY);
+        localStorage.removeItem(CACHE_KEY + '_backup');
     }, []);
+
+    const isFormEmpty = useCallback((lines: LineaGasto[]) => {
+        if (lines.length > 1) return false;
+        const l = lines[0];
+        if (!l) return true;
+        return !l.categoria && !l.ot && Number(l.valorConFactura) === 0 &&
+            Number(l.valorSinFactura) === 0 && !l.observaciones &&
+            (!l.adjuntos || l.adjuntos.length === 0);
+    }, []);
+
+    const loadLineas = useCallback(async (nuevasLineas: LineaGasto[], observaciones?: string) => {
+        if (!nuevasLineas || nuevasLineas.length === 0) return;
+
+        logMarina("📥 [LOAD] Solicitud de carga de datos externos", { count: nuevasLineas.length });
+
+        // Backup seguro fuera del setter
+        const currentData = { lineas, observacionesGral };
+        if (!isFormEmpty(currentData.lineas)) {
+            logMarina("🛡️ [BACKUP] Resguardando borrador actual antes de sobrescribir");
+            localStorage.setItem(CACHE_KEY + '_backup', JSON.stringify({
+                ...currentData,
+                backupTimestamp: new Date().toISOString(),
+                origin: 'AUTO_BACKUP_BEFORE_LOAD'
+            }));
+        }
+
+        // --- RECUPERACIÓN DE COMBINACIONES CC/SCC ---
+        // Para que los selectores funcionen, necesitamos las combinaciones de cada OT
+        const otsUnicas = Array.from(new Set(nuevasLineas.map(l => l.ot).filter(Boolean)));
+        const lineasConCombos = [...nuevasLineas];
+
+        logMarina("🔄 [LOAD] Recuperando combinaciones para OTs:", otsUnicas);
+
+        for (const otNum of otsUnicas) {
+            try {
+                const res = await axios.get(`${API_BASE_URL}/viaticos/ot/${otNum}/combinaciones`);
+                const combos = res.data;
+                // Asignar combos a todas las líneas que tengan esta OT
+                lineasConCombos.forEach((l, idx) => {
+                    if (l.ot === otNum) {
+                        lineasConCombos[idx] = { ...l, combinacionesCC: combos };
+                    }
+                });
+            } catch (err) {
+                console.error(`Error recuperando combos para OT ${otNum}:`, err);
+            }
+        }
+
+        setLineas(lineasConCombos);
+        if (observaciones !== undefined) {
+            setObservacionesGral(observaciones);
+        }
+    }, [isFormEmpty, lineas, observacionesGral]);
+
+    const restoreBackup = useCallback(() => {
+        const backup = localStorage.getItem(CACHE_KEY + '_backup');
+        if (backup) {
+            try {
+                const parsed = JSON.parse(backup);
+                logMarina("🔄 [RESTORE] Restaurando borrador desde respaldo del " + (parsed.backupTimestamp || 'archivo antiguo'));
+                setLineas(parsed.lineas);
+                setObservacionesGral(parsed.observacionesGral || '');
+                localStorage.removeItem(CACHE_KEY + '_backup');
+                return true;
+            } catch (e) {
+                console.error("Error al restaurar backup:", e);
+            }
+        }
+        return false;
+    }, []);
+
+    const hasBackup = !!localStorage.getItem(CACHE_KEY + '_backup');
 
     return {
         lineas,
@@ -225,6 +327,12 @@ export const useExpenseForm = () => {
         totalFacturado,
         totalSinFactura,
         totalGeneral,
-        clearForm
+        clearForm,
+        loadLineas,
+        restoreBackup,
+        hasBackup,
+        validationErrors,
+        setValidationErrors,
+        logMarina
     };
 };

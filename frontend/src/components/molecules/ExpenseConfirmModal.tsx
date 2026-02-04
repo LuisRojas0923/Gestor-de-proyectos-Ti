@@ -25,6 +25,9 @@ const ExpenseConfirmModal: React.FC<ExpenseConfirmModalProps> = ({
             isOpen={isOpen}
             onClose={onClose}
             size="md"
+            closeOnOverlayClick={false}
+            showCloseButton={false}
+            className="!bg-slate-100 dark:!bg-neutral-900"
             title={
                 <div className="flex items-center gap-2">
                     <Save className="text-[var(--color-primary)]" size={20} />

@@ -19,9 +19,10 @@ interface ReporteResumen {
 interface TransitReportsViewProps {
     user: any;
     onBack: () => void;
+    onSelectReport: (reporteId: string) => void;
 }
 
-const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack }) => {
+const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, onSelectReport }) => {
     const [reportes, setReportes] = useState<ReporteResumen[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -80,7 +81,11 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack })
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {reportes.map((reporte) => (
-                        <MaterialCard key={reporte.reporte_id} className="p-5 hover:border-[var(--color-primary)] transition-all flex flex-col justify-between group cursor-default">
+                        <MaterialCard
+                            key={reporte.reporte_id}
+                            onClick={() => onSelectReport(reporte.reporte_id)}
+                            className="p-5 hover:border-[var(--color-primary)] transition-all flex flex-col justify-between group cursor-pointer"
+                        >
                             <div className="space-y-4">
                                 <div className="flex justify-between items-start">
                                     <div className="bg-[var(--color-surface-variant)] px-3 py-1 rounded-full border border-[var(--color-border)]">

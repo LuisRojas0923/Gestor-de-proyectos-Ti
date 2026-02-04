@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.config import config
 from app.models.auth.usuario import Usuario, PermisoRol
-from app.services.erp.servicio import ServicioErp
+from app.services.erp import EmpleadosService
 
 
 class ServicioAuth:
@@ -70,7 +70,7 @@ class ServicioAuth:
             raise ValueError("El usuario ya existe en el sistema")
 
         # 2. Consultar ERP (sincrono por ahora)
-        datos_erp = await ServicioErp.obtener_empleado_por_cedula(db_erp, cedula)
+        datos_erp = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula)
         if not datos_erp:
             raise ValueError("No se encontro el empleado en Solid ERP o esta inactivo")
 
@@ -114,7 +114,7 @@ class ServicioAuth:
     @staticmethod
     async def sincronizar_perfil_desde_erp(db: AsyncSession, db_erp, usuario: Usuario) -> Usuario:
         """Sincroniza los datos de perfil de un usuario existente con Solid ERP."""
-        datos_erp = await ServicioErp.obtener_empleado_por_cedula(db_erp, usuario.cedula)
+        datos_erp = await EmpleadosService.obtener_empleado_por_cedula(db_erp, usuario.cedula)
         
         if datos_erp:
             usuario.area = datos_erp.get("area").strip() if datos_erp.get("area") else None
@@ -139,3 +139,37 @@ class ServicioAuth:
             )
         )
         return list(result.scalars().all())
+    @staticmethod
+    async def crear_usuario_portal_desde_erp(db: AsyncSession, db_erp, cedula: str, contrasena: str) -> Usuario:
+        """
+        Crea un usuario con rol 'usuario' validando contra Solid ERP (para segundo factor).
+        """
+        usuario_existente = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+        if usuario_existente:
+            raise ValueError("El usuario ya tiene una contraseña configurada")
+
+        datos_erp = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula)
+        if not datos_erp:
+            raise ValueError("No se encontro el empleado en Solid ERP")
+
+        id_usuario = f"USR-P-{cedula}"
+        hash_pwd = ServicioAuth.obtener_hash_contrasena(contrasena)
+        
+        nuevo_usuario = Usuario(
+            id=id_usuario,
+            cedula=cedula,
+            nombre=datos_erp["nombre"],
+            hash_contrasena=hash_pwd,
+            rol="usuario", # Rol estándar del portal
+            esta_activo=True,
+            area=datos_erp.get("area"),
+            cargo=datos_erp.get("cargo"),
+            sede=datos_erp.get("ciudadcontratacion"),
+            viaticante=str(datos_erp.get("viaticante")) if datos_erp.get("viaticante") is not None else None,
+            baseviaticos=datos_erp.get("baseviaticos")
+        )
+        
+        db.add(nuevo_usuario)
+        await db.commit()
+        await db.refresh(nuevo_usuario)
+        return nuevo_usuario

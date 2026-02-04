@@ -449,6 +449,37 @@ const ServicePortal: React.FC = () => {
                     <TransitReportsView
                         user={user}
                         onBack={() => navigate('/service-portal/gastos/gestion')}
+                        onSelectReport={async (rid) => {
+                            try {
+                                setIsLoading(true);
+                                const res = await axios.get(`${API_BASE_URL}/viaticos/reporte/${rid}/detalle`);
+                                const lineasDetalle = res.data.map((l: any) => ({
+                                    id: l.id || Math.random().toString(36).substring(7),
+                                    categoria: l.categoria,
+                                    fecha: l.fecha_gasto,
+                                    ot: l.ot,
+                                    cc: l.cc,
+                                    scc: l.scc,
+                                    valorConFactura: Number(l.valor_con_factura),
+                                    valorSinFactura: Number(l.valor_sin_factura),
+                                    observaciones: l.observaciones_linea,
+                                    adjuntos: typeof l.adjuntos === 'string' ? JSON.parse(l.adjuntos) : (l.adjuntos || []),
+                                    combinacionesCC: [] // Se cargarán al entrar si es necesario
+                                }));
+
+                                navigate('/service-portal/gastos/nuevo', {
+                                    state: {
+                                        lineas: lineasDetalle,
+                                        observaciones: res.data[0]?.observaciones_gral
+                                    }
+                                });
+                            } catch (err) {
+                                console.error("Error cargando detalle:", err);
+                                addNotification('error', "No se pudo cargar el detalle del reporte.");
+                            } finally {
+                                setIsLoading(false);
+                            }
+                        }}
                     />
                 } />
 

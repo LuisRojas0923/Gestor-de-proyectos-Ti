@@ -1,6 +1,8 @@
 import { ArrowLeft } from 'lucide-react';
 import { Button, Text, Title } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
+import { useAppContext } from '../../../context/AppContext';
+import ViaticosAuthModal from '../components/ViaticosAuthModal';
 
 import imgIngresar from '../../../assets/images/categories/Ingresar Reporte.png';
 import imgConsultar from '../../../assets/images/categories/Consultar Reportes.png';
@@ -12,6 +14,20 @@ interface ViaticosManagementProps {
 }
 
 const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onBack }) => {
+    const { state, dispatch } = useAppContext();
+    const { user, isViaticosVerified } = state;
+
+    if (!isViaticosVerified && user) {
+        return (
+            <ViaticosAuthModal
+                cedula={user.cedula}
+                onVerified={() => {
+                    dispatch({ type: 'SET_VIATICOS_VERIFIED', payload: true });
+                }}
+                onBack={onBack}
+            />
+        );
+    }
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -27,16 +43,16 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
                 <ActionCard
-                    title="Ingresar Reporte"
+                    title="Legalizacion de Gastos"
                     description="Registra y legaliza tus viáticos, adjuntando facturas y detalles por OT."
-                    icon={<img src={imgIngresar} alt="Ingresar Reporte" className="w-full h-full object-contain p-2" />}
+                    icon={<img src={imgIngresar} alt="Legalizacion de Gastos" className="w-full h-full object-contain p-2" />}
                     onClick={() => onNavigate('legalizar_gastos')}
                 />
 
                 <ActionCard
-                    title="Consultar Reportes"
+                    title="Consultar Legalizaciones"
                     description="Mira el estado de los reportes que has enviado y que están en tránsito de aprobación."
-                    icon={<img src={imgConsultar} alt="Consultar Reportes" className="w-full h-full object-contain p-2" />}
+                    icon={<img src={imgConsultar} alt="Consultar Legalizaciones" className="w-full h-full object-contain p-2" />}
                     onClick={() => onNavigate('viaticos_reportes')}
                     variant="primary_light"
                 />

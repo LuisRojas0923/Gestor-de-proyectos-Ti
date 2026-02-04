@@ -10,6 +10,7 @@ export interface ModalProps {
     children: React.ReactNode;
     size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
     showCloseButton?: boolean;
+    closeOnOverlayClick?: boolean;
     className?: string; // Para clases adicionales en el contenedor
 }
 
@@ -20,6 +21,7 @@ const Modal: React.FC<ModalProps> = ({
     children,
     size = 'md',
     showCloseButton = true,
+    closeOnOverlayClick = true,
     className = '',
 }) => {
     // Prevenir scroll en el body cuando el modal está abierto
@@ -49,7 +51,7 @@ const Modal: React.FC<ModalProps> = ({
             {/* Overlay */}
             <div
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-fade-in"
-                onClick={onClose}
+                onClick={closeOnOverlayClick ? onClose : undefined}
                 aria-hidden="true"
             />
 

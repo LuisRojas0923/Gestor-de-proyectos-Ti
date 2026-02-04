@@ -28,3 +28,4 @@ export { default as ProviderSelector } from './ProviderSelector';
 export { default as IndicatorsHeader } from './IndicatorsHeader';
 export { default as ExpenseConfirmModal } from './ExpenseConfirmModal';
 export { default as KpiDetailsModal } from './KpiDetailsModal';
+export { default as ClearReportConfirmModal } from './ClearReportConfirmModal';

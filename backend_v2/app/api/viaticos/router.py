@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from typing import List, Optional
 from datetime import date
 from pydantic import BaseModel
 import uuid
 
 from ...database import obtener_db, obtener_erp_db
-from ...models.viaticos.transito import TransitoViatico
+from ...services.erp import ViaticosService
 
 router = APIRouter(prefix="/viaticos")
 
@@ -31,6 +29,7 @@ class LineaGasto(BaseModel):
     valorConFactura: float
     valorSinFactura: float
     observaciones: Optional[str] = None
+    adjuntos: Optional[List[dict]] = []
 
 class ReporteViaticos(BaseModel):
     empleado_cedula: str
@@ -46,30 +45,10 @@ class ReporteViaticos(BaseModel):
 
 @router.get("/ots", response_model=List[OTResponse])
 def buscar_ots(query: Optional[str] = None, db_erp: Session = Depends(obtener_erp_db)):
-    """Busca OTs en la tabla otviaticos del ERP (Sincrono)"""
-    sql = "SELECT numero, MAX(especialidad) as especialidad, MAX(cliente) as cliente, MAX(ciudad) as ciudad FROM otviaticos"
-    params = {}
-    
-    if query:
-        sql += " WHERE numero LIKE :query OR cliente LIKE :query"
-        params = {"query": f"%{query}%"}
-    
-    # Agrupar por número para evitar duplicados en la lista de búsqueda
-    sql += " GROUP BY numero"
-    
-    # Limitar resultados para performance
-    sql += " LIMIT 50"
-    
+    """Busca OTs en la tabla otviaticos del ERP"""
     try:
-        resultado = db_erp.execute(text(sql), params).all()
-        return [
-            OTResponse(
-                numero=str(row.numero),
-                especialidad=row.especialidad,
-                cliente=row.cliente,
-                ciudad=row.ciudad
-            ) for row in resultado
-        ]
+        resultado = ViaticosService.buscar_ots(db_erp, query)
+        return [OTResponse(**row) for row in resultado]
     except Exception as e:
         print(f"ERROR ERP: {e}")
         raise HTTPException(status_code=500, detail=f"Error al consultar OTs en ERP: {str(e)}")
@@ -77,19 +56,9 @@ def buscar_ots(query: Optional[str] = None, db_erp: Session = Depends(obtener_er
 @router.get("/ot/{numero}/combinaciones", response_model=List[OTResponse])
 def obtener_combinaciones_ot(numero: str, db_erp: Session = Depends(obtener_erp_db)):
     """Obtiene todas las combinaciones de CC/SCC para una OT específica"""
-    sql = "SELECT DISTINCT numero, MAX(especialidad) OVER (PARTITION BY numero) as especialidad, MAX(cliente) OVER (PARTITION BY numero) as cliente, MAX(ciudad) OVER (PARTITION BY numero) as ciudad, centrocosto, subcentrocosto FROM otviaticos WHERE numero = :numero"
     try:
-        resultado = db_erp.execute(text(sql), {"numero": numero}).all()
-        return [
-            OTResponse(
-                numero=str(row.numero),
-                especialidad=row.especialidad,
-                cliente=row.cliente,
-                ciudad=row.ciudad,
-                centrocosto=row.centrocosto,
-                subcentrocosto=row.subcentrocosto
-            ) for row in resultado
-        ]
+        resultado = ViaticosService.obtener_combinaciones_ot(db_erp, numero)
+        return [OTResponse(**row) for row in resultado]
     except Exception as e:
         print(f"ERROR ERP combinaciones: {e}")
         raise HTTPException(status_code=500, detail=f"Error al consultar combinaciones de OT: {str(e)}")
@@ -97,62 +66,28 @@ def obtener_combinaciones_ot(numero: str, db_erp: Session = Depends(obtener_erp_
 @router.post("/enviar")
 async def enviar_reporte(reporte: ReporteViaticos, db_erp: Session = Depends(obtener_erp_db)):
     """Recibe un reporte de viaticos y lo guarda en la tabla de transito del ERP (Solid)"""
-    reporte_id = uuid.uuid4()
-    
     try:
-        print(f"DEBUG: Enviando reporte al ERP - Empleado: {reporte.empleado_nombre}")
+        # Convertir el modelo Pydantic a dict para el servicio
+        reporte_id = ViaticosService.enviar_reporte(db_erp, reporte.model_dump())
         
-        sql_insert = text("""
-            INSERT INTO transito_viaticos (
-                reporte_id, estado, fecha_registro, empleado_cedula, empleado_nombre, 
-                area, cargo, ciudad, categoria, fecha_gasto, ot, cc, scc, 
-                valor_con_factura, valor_sin_factura, observaciones_linea, 
-                observaciones_gral, usuario_id
-            ) VALUES (
-                :reporte_id, :estado, CURRENT_TIMESTAMP, :empleado_cedula, :empleado_nombre, 
-                :area, :cargo, :ciudad, :categoria, :fecha_gasto, :ot, :cc, :scc, 
-                :valor_con_factura, :valor_sin_factura, :observaciones_linea, 
-                :observaciones_gral, :usuario_id
-            )
-        """)
-
-        for gasto in reporte.gastos:
-            db_erp.execute(sql_insert, {
-                "reporte_id": reporte_id,
-                "estado": "PRE-INICIAL",
-                "empleado_cedula": reporte.empleado_cedula,
-                "empleado_nombre": reporte.empleado_nombre,
-                "area": reporte.area,
-                "cargo": reporte.cargo,
-                "ciudad": reporte.ciudad,
-                "categoria": gasto.categoria,
-                "fecha_gasto": gasto.fecha,
-                "ot": gasto.ot,
-                "cc": gasto.cc,
-                "scc": gasto.scc,
-                "valor_con_factura": gasto.valorConFactura,
-                "valor_sin_factura": gasto.valorSinFactura,
-                "observaciones_linea": gasto.observaciones,
-                "observaciones_gral": reporte.observaciones_gral,
-                "usuario_id": reporte.usuario_id
-            })
-        
-        db_erp.commit()
-        print(f"DEBUG: Reporte {reporte_id} guardado exitosamente en ERP.")
-
         return {
             "status": "success", 
-            "reporte_id": str(reporte_id), 
+            "reporte_id": reporte_id, 
             "count": len(reporte.gastos),
             "mensaje": "Reporte enviado correctamente a la tabla de tránsito del ERP"
         }
     except Exception as e:
-        db_erp.rollback()
         print(f"ERROR ENVIAR ERP: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error al enviar reporte al ERP: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al guardar reporte en transito: {str(e)}")
+
+@router.get("/reporte/{reporte_id}/detalle")
+async def obtener_detalle_reporte(reporte_id: str, db_erp: Session = Depends(obtener_erp_db)):
+    """Obtiene el detalle completo de las líneas de un reporte en tránsito"""
+    try:
+        return ViaticosService.obtener_detalle_reporte(db_erp, reporte_id)
+    except Exception as e:
+        print(f"ERROR GET DETALLE REPORTE: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al obtener detalle del reporte: {str(e)}")
 
 @router.get("/estado-cuenta")
 def obtener_estado_cuenta(
@@ -162,54 +97,8 @@ def obtener_estado_cuenta(
     db_erp: Session = Depends(obtener_erp_db)
 ):
     """Obtiene el estado de cuenta detallado de viáticos desde el ERP"""
-    sql = """
-    WITH movimientos AS (
-        SELECT 
-            codigo, fechaaplicacion, empleado, nombreempleado, 
-            codigoconsignacion AS radicado, valor::numeric AS valor, 
-            'CONSIGNACION' AS tipo, UPPER(TRIM(estado)) AS estado_limpio, 
-            observaciones 
-        FROM consignacion
-        UNION ALL
-        SELECT 
-            codigo, fechaaplicacion, empleado, nombreempleado, 
-            codigolegalizacion AS radicado, valortotal::numeric AS valor, 
-            'LEGALIZACION' AS tipo, UPPER(TRIM(estado)) AS estado_limpio, 
-            observaciones 
-        FROM legalizacion
-    )
-    SELECT 
-        m.codigo,
-        m.fechaaplicacion,
-        m.empleado,
-        m.nombreempleado,
-        m.radicado,
-        CASE WHEN m.tipo = 'CONSIGNACION' AND m.estado_limpio = 'CONTABILIZADO' THEN m.valor ELSE 0 END AS consignacion_contabilizado,
-        CASE WHEN m.tipo = 'LEGALIZACION' AND m.estado_limpio = 'CONTABILIZADO' THEN m.valor ELSE 0 END AS legalizacion_contabilizado,
-        CASE WHEN m.tipo = 'CONSIGNACION' AND m.estado_limpio = 'EN FIRME' THEN m.valor ELSE 0 END AS consignacion_firmadas,
-        CASE WHEN m.tipo = 'LEGALIZACION' AND m.estado_limpio = 'EN FIRME' THEN m.valor ELSE 0 END AS legalizacion_firmadas,
-        CASE WHEN m.tipo = 'CONSIGNACION' AND m.estado_limpio = 'PENDIENTE' THEN m.valor ELSE 0 END AS consignacion_pendientes,
-        CASE WHEN m.tipo = 'LEGALIZACION' AND m.estado_limpio = 'PENDIENTE' THEN m.valor ELSE 0 END AS legalizacion_pendientes,
-        SUM(CASE WHEN m.tipo = 'CONSIGNACION' THEN m.valor WHEN m.tipo = 'LEGALIZACION' THEN -m.valor ELSE 0 END) 
-            OVER (PARTITION BY m.empleado ORDER BY m.fechaaplicacion ASC, m.codigo ASC) AS saldo,
-        m.observaciones
-    FROM movimientos m
-    WHERE m.empleado = :cedula
-    """
-    
-    params = {"cedula": cedula}
-    if desde:
-        sql += " AND m.fechaaplicacion >= :desde"
-        params["desde"] = desde
-    if hasta:
-        sql += " AND m.fechaaplicacion <= :hasta"
-        params["hasta"] = hasta
-        
-    sql += " ORDER BY m.fechaaplicacion ASC, m.codigo ASC"
-
     try:
-        resultado = db_erp.execute(text(sql), params).all()
-        return [dict(row._mapping) for row in resultado]
+        return ViaticosService.obtener_estado_cuenta(db_erp, cedula, desde, hasta)
     except Exception as e:
         print(f"ERROR ERP Estado Cuenta: {e}")
         raise HTTPException(status_code=500, detail=f"Error al obtener estado de cuenta: {str(e)}")
@@ -218,9 +107,7 @@ def obtener_estado_cuenta(
 async def obtener_reportes_viaticos(cedula: str, db_erp: Session = Depends(obtener_erp_db)):
     """Obtiene los reportes en tránsito agrupados por reporte_id desde el ERP"""
     try:
-        sql = text("SELECT * FROM transito_viaticos WHERE empleado_cedula = :cedula")
-        resultado = db_erp.execute(sql, {"cedula": cedula})
-        lineas = [dict(row._mapping) for row in resultado]
+        lineas = ViaticosService.obtener_reportes_transito(db_erp, cedula)
         
         reportes = {}
         for l in lineas:
@@ -249,6 +136,4 @@ async def obtener_reportes_viaticos(cedula: str, db_erp: Session = Depends(obten
         return lista_reportes
     except Exception as e:
         print(f"ERROR GET REPORTES ERP: {e}")
-        import traceback
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error al obtener reportes en tránsito desde el ERP: {str(e)}")

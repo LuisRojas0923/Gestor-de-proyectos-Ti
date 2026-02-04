@@ -15,6 +15,7 @@ interface ExpenseMobileCardProps {
     handleOTSearch: (query: string, id: string) => void;
     selectOT: (ot: any, id: string) => void;
     setLineas: React.Dispatch<React.SetStateAction<any[]>>;
+    errors?: string[];
 }
 
 const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
@@ -26,7 +27,8 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
     removeLinea,
     handleOTSearch,
     selectOT,
-    setLineas
+    setLineas,
+    errors = []
 }) => {
     const { addNotification } = useNotifications();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -66,8 +68,8 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
             {/* Cabecera: # e Icono eliminar */}
             <div className="flex items-center justify-between mb-4 pb-2 border-b border-[var(--color-border)]/50">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 flex items-center justify-center bg-[#002060]/10 rounded-full border border-[#002060]/20">
-                        <Text as="span" variant="caption" weight="bold" className="text-[#002060] text-[10px] leading-none">{index + 1}</Text>
+                    <div className="w-7 h-7 flex items-center justify-center bg-[#002060]/10 text-[#002060] text-[10px] font-black rounded-full border border-[#002060]/20 shadow-sm">
+                        {index + 1}
                     </div>
                     <Text weight="bold" className="text-sm uppercase tracking-tight text-[var(--color-primary)]">Gasto Registrado</Text>
                 </div>
@@ -110,8 +112,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                             value={linea.categoria}
                             size="xs"
                             onChange={(e) => updateLinea(linea.id, 'categoria', e.target.value)}
-                            className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl"
+                            className={`bg-[var(--color-surface-variant)]/30 border-none rounded-xl ${errors.includes('categoria') ? 'ring-1 ring-red-500' : ''}`}
                             options={[
+                                { value: '', label: 'Seleccione...' },
                                 { value: 'Alimentación', label: 'Alimentación' },
                                 { value: 'Hospedaje', label: 'Hospedaje' },
                                 { value: 'Transporte Municipal', label: 'Transporte Mun.' },
@@ -151,7 +154,7 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         value={linea.ot}
                         size="xs"
                         onChange={(e) => handleOTSearch(e.target.value, linea.id)}
-                        className="font-bold bg-[var(--color-surface-variant)]/30 border-none rounded-xl placeholder:font-normal placeholder:opacity-40"
+                        className={`font-bold bg-[var(--color-surface-variant)]/30 border-none rounded-xl placeholder:font-normal placeholder:opacity-40 ${errors.includes('ot') ? 'ring-1 ring-red-500' : ''}`}
                     />
                     {isSearchingOT === linea.id && ots.length > 0 && (
                         <div className="absolute top-full left-0 w-full z-[100] mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -203,7 +206,7 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                                         : l
                                 ));
                             }}
-                            className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl"
+                            className={`bg-[var(--color-surface-variant)]/30 border-none rounded-xl ${errors.includes('cc') ? 'ring-1 ring-red-500' : ''}`}
                             options={[
                                 { value: '', label: '...' },
                                 ...Array.from(new Set(linea.combinacionesCC.map((c: any) => c.centrocosto?.trim()).filter(Boolean))).map((cc: any) => ({
@@ -220,7 +223,7 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                             size="xs"
                             disabled={!linea.cc}
                             onChange={(e) => updateLinea(linea.id, 'scc', e.target.value)}
-                            className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl"
+                            className={`bg-[var(--color-surface-variant)]/30 border-none rounded-xl ${errors.includes('scc') ? 'ring-1 ring-red-500' : ''}`}
                             options={[
                                 { value: '', label: '...' },
                                 ...linea.combinacionesCC
@@ -247,7 +250,7 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                             value={linea.valorConFactura.toString()}
                             size="xs"
                             onChange={(val: string) => updateLinea(linea.id, 'valorConFactura', val)}
-                            className="!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3"
+                            className={`!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3 ${errors.includes('valorConFactura') ? 'ring-1 ring-red-500' : ''}`}
                         />
                     </div>
                     <div className="space-y-1">
@@ -259,7 +262,7 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                             value={linea.valorSinFactura.toString()}
                             size="xs"
                             onChange={(val: string) => updateLinea(linea.id, 'valorSinFactura', val)}
-                            className="!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3"
+                            className={`!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3 ${errors.includes('valorSinFactura') ? 'ring-1 ring-red-500' : ''}`}
                         />
                     </div>
                 </div>
