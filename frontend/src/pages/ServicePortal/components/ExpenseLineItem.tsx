@@ -1,6 +1,6 @@
 import React from 'react';
 import { Trash2, Paperclip, CheckCircle2 } from 'lucide-react';
-import { Text, Input, Select, MaterialCard } from '../../../components/atoms';
+import { Text, Input, Select, MaterialCard, Button } from '../../../components/atoms';
 import { CurrencyInput } from '../../../components/atoms/CurrencyInput';
 import { fileToBase64, validateFileSize } from '../../../utils/fileUtils';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
@@ -68,9 +68,9 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
             {/* # No. */}
             <td className="px-3 py-2 border-b border-[var(--color-border)] text-center">
                 <div className="flex items-center justify-center">
-                    <span className="w-6 h-6 flex items-center justify-center bg-[#002060]/10 text-[#002060] text-[10px] font-black rounded-full border border-[#002060]/20 shadow-sm">
+                    <Text as="span" weight="bold" className="w-6 h-6 flex items-center justify-center bg-[#002060]/10 text-[#002060] text-[10px] rounded-full border border-[#002060]/20 shadow-sm">
                         {index + 1}
-                    </span>
+                    </Text>
                 </div>
             </td>
 
@@ -235,7 +235,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
 
             {/* Adjunto */}
             <td className="px-2 py-2 border-b border-[var(--color-border)] text-center">
-                <input
+                <Input
                     type="file"
                     ref={fileInputRef}
                     className="hidden"
@@ -243,35 +243,29 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                     accept="image/*,application/pdf"
                     multiple
                 />
-                <button
-                    type="button"
+                <Button
+                    variant="ghost"
                     onClick={() => fileInputRef.current?.click()}
                     className={`
-                        p-1.5 rounded-lg transition-all flex items-center justify-center mx-auto
+                        !p-1.5 rounded-lg transition-all flex items-center justify-center mx-auto
                         ${linea.adjuntos && linea.adjuntos.length > 0
                             ? 'bg-green-500/10 text-green-600 border border-green-500/20'
                             : 'text-[var(--color-text-secondary)] opacity-10 hover:opacity-100 hover:bg-[var(--color-surface-variant)]'
                         }
                     `}
                     title={linea.adjuntos && linea.adjuntos.length > 0 ? `${linea.adjuntos.length} adjunto(s)` : 'Adjuntar factura'}
-                >
-                    {linea.adjuntos && linea.adjuntos.length > 0 ? (
-                        <CheckCircle2 size={16} />
-                    ) : (
-                        <Paperclip size={16} />
-                    )}
-                </button>
+                    icon={linea.adjuntos && linea.adjuntos.length > 0 ? CheckCircle2 : Paperclip}
+                />
             </td>
 
             {/* Botón Eliminar */}
             <td className="px-4 py-2 text-center border-b border-[var(--color-border)]">
-                <button
-                    type="button"
+                <Button
+                    variant="ghost"
                     onClick={() => removeLinea(linea.id)}
-                    className="text-[var(--color-text-secondary)] opacity-10 hover:opacity-100 hover:text-red-500 transition-all rounded-lg p-1.5 flex items-center justify-center mx-auto"
-                >
-                    <Trash2 size={16} />
-                </button>
+                    className="text-[var(--color-text-secondary)] opacity-10 hover:opacity-100 hover:text-red-500 transition-all rounded-lg !p-1.5 flex items-center justify-center mx-auto"
+                    icon={Trash2}
+                />
             </td>
         </tr>
     );

@@ -10,7 +10,7 @@ class EmpleadosService:
         """Consulta un empleado en la base de datos del ERP por su cedula"""
         print(f"DEBUG: Consultando empleado cedula={cedula} en ERP...")
         query = text("""
-            SELECT nrocedula, nombre, cargo, area, estado, ciudadcontratacion, viaticante, baseviaticos 
+            SELECT nrocedula, nombre, cargo, area, estado, ciudadcontratacion, viaticante, baseviaticos, centrocosto 
             FROM establecimiento 
             WHERE nrocedula = :cedula AND estado = 'A'
         """)
@@ -25,7 +25,8 @@ class EmpleadosService:
                 "estado": resultado.estado,
                 "ciudadcontratacion": resultado.ciudadcontratacion,
                 "viaticante": resultado.viaticante,
-                "baseviaticos": float(resultado.baseviaticos) if resultado.baseviaticos is not None else 0.0
+                "baseviaticos": float(resultado.baseviaticos) if resultado.baseviaticos is not None else 0.0,
+                "centrocosto": resultado.centrocosto
             }
         return None
 

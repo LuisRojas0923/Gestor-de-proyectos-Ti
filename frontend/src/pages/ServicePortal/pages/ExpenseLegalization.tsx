@@ -143,6 +143,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                 empleado_nombre: user.name,
                 area: user.area || 'N/A',
                 cargo: user.cargo || 'N/A',
+                centrocosto: user.centrocosto || 'N/A',
                 ciudad: user.sede || 'N/A',
                 observaciones_gral: observacionesGral,
                 usuario_id: user.cedula || user.id,
@@ -258,7 +259,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                 {/* Cabecera de Tabla */}
                 <div className="flex items-center justify-between px-2">
                     <Title variant="h6" weight="bold" className="text-sm tracking-tight flex items-center gap-2">
-                        <span className="w-1.5 h-4 bg-[var(--color-primary)] rounded-full"></span>
+                        <div className="w-1.5 h-4 bg-[var(--color-primary)] rounded-full"></div>
                         ÍTEMS DEL REPORTE
                         <Text as="span" variant="caption" className="ml-2 font-medium opacity-40 lowercase">
                             ({lineas.length} registros)

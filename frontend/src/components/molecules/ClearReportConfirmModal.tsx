@@ -25,7 +25,7 @@ const ClearReportConfirmModal: React.FC<ClearReportConfirmModalProps> = ({
             title={
                 <div className="flex items-center gap-2 text-red-600">
                     <Trash2 size={20} />
-                    <span>Limpiar Reporte</span>
+                    <Text as="span" weight="bold">Limpiar Reporte</Text>
                 </div>
             }
         >

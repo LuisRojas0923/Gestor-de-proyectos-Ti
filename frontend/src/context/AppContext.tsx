@@ -105,6 +105,27 @@ const getInitialUser = (): User | null => {
   }
 };
 
+// Función para obtener la verificación de viáticos desde localStorage (con expiración de 4 horas)
+const getInitialViaticosVerified = (): boolean => {
+  try {
+    const saved = localStorage.getItem('viaticosVerified');
+    if (!saved) return false;
+
+    const { verified, timestamp } = JSON.parse(saved);
+    const now = new Date().getTime();
+    const fourHours = 4 * 60 * 60 * 1000;
+
+    if (verified && (now - timestamp) < fourHours) {
+      return true;
+    }
+
+    localStorage.removeItem('viaticosVerified');
+    return false;
+  } catch (error) {
+    return false;
+  }
+};
+
 const initialState: AppState = {
   user: getInitialUser(),
   darkMode: getInitialDarkMode(),
@@ -115,7 +136,7 @@ const initialState: AppState = {
   refreshKey: 0,
   loading: false,
   error: null,
-  isViaticosVerified: false,
+  isViaticosVerified: getInitialViaticosVerified(),
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -128,7 +149,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'LOGOUT':
       localStorage.removeItem('user');
       localStorage.removeItem('token');
-      localStorage.removeItem('theme'); // Opcional, pero para consistencia
+      localStorage.removeItem('theme');
+      localStorage.removeItem('viaticosVerified');
       return { ...state, user: null, isViaticosVerified: false };
     case 'TOGGLE_DARK_MODE': {
       const newDarkMode = !state.darkMode;
@@ -191,6 +213,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'SET_ERROR':
       return { ...state, error: action.payload };
     case 'SET_VIATICOS_VERIFIED':
+      if (action.payload) {
+        localStorage.setItem('viaticosVerified', JSON.stringify({
+          verified: true,
+          timestamp: new Date().getTime()
+        }));
+      } else {
+        localStorage.removeItem('viaticosVerified');
+      }
       return { ...state, isViaticosVerified: action.payload };
     default:
       return state;

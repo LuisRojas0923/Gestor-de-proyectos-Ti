@@ -233,9 +233,8 @@ export const useExpenseForm = () => {
         setObservacionesGral('');
         setValidationErrors({}); // Limpiar errores visuales
 
-        // Limpiar localStorage de raíz
+        // Limpiar localStorage de raíz (solo caché actual, mantenemos backup para emergencias)
         localStorage.removeItem(CACHE_KEY);
-        localStorage.removeItem(CACHE_KEY + '_backup');
     }, []);
 
     const isFormEmpty = useCallback((lines: LineaGasto[]) => {
@@ -254,13 +253,20 @@ export const useExpenseForm = () => {
 
         // Backup seguro fuera del setter
         const currentData = { lineas, observacionesGral };
-        if (!isFormEmpty(currentData.lineas)) {
+        const hasExistingBackup = !!localStorage.getItem(CACHE_KEY + '_backup');
+        const isCurrentDataExternal = currentData.lineas.some(l => (l as any).reporte_id) || observacionesGral.includes('[REP-L');
+
+        if (!isFormEmpty(currentData.lineas) && !isCurrentDataExternal && !hasExistingBackup) {
             logMarina("🛡️ [BACKUP] Resguardando borrador actual antes de sobrescribir");
             localStorage.setItem(CACHE_KEY + '_backup', JSON.stringify({
                 ...currentData,
                 backupTimestamp: new Date().toISOString(),
                 origin: 'AUTO_BACKUP_BEFORE_LOAD'
             }));
+        } else if (hasExistingBackup) {
+            logMarina("💎 [INTEGRITY] Se conserva el respaldo existente (no se sobrescribe por carga externa)");
+        } else if (isCurrentDataExternal) {
+            logMarina("⏭️ [BACKUP] Saltando respaldo: los datos actuales son externos");
         }
 
         // --- RECUPERACIÓN DE COMBINACIONES CC/SCC ---

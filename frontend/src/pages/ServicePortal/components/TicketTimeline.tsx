@@ -32,7 +32,7 @@ const TicketTimeline: React.FC<TicketTimelineProps> = ({ status, stages }) => {
 
                 {/* Línea de progreso activa */}
                 <div
-                    className="absolute left-0 h-[2px] bg-blue-500 top-4 -translate-y-1/2 -z-0 transition-all duration-1000 ease-out rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                    className="absolute left-0 h-[2px] bg-blue-500 top-4 -translate-y-1/2 -z-10 transition-all duration-1000 ease-out rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"
                     style={{ width: `${(currentStageIndex >= 0 ? (currentStageIndex / (stages.length - 1)) * 100 : 0)}%` }}
                 ></div>
 
@@ -56,16 +56,15 @@ const TicketTimeline: React.FC<TicketTimelineProps> = ({ status, stages }) => {
 
                             {/* Etiqueta de Texto */}
                             <div className="absolute top-10 flex flex-col items-center">
-                                <span className={`
+                                <Text as="span" weight="bold" className={`
                                     text-xs
-                                    font-bold
                                     text-left
                                     text-gray-900 dark:text-gray-100
                                     ${isActive ? 'inline-flex items-center font-medium rounded-full transition-all bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 shadow-md hover:shadow-lg px-2 py-0.5 text-xs whitespace-nowrap tracking-[0.1em] uppercase text-[9px] font-black scale-110' : 'whitespace-nowrap tracking-wider uppercase text-[9px] transition-all duration-300 text-slate-400 dark:text-slate-600'}
                                     ${isCompleted ? 'text-slate-900 dark:text-white opacity-80' : ''}
                                 `}>
                                     {stage}
-                                </span>
+                                </Text>
                                 {isActive && (
                                     <div className="mt-2 w-6 h-[3px] bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
                                 )}

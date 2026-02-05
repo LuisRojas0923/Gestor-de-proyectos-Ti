@@ -92,7 +92,7 @@ const AnalystCommandHeader: React.FC<AnalystCommandHeaderProps> = ({
                         <div className="absolute left-0 right-0 h-[1.5px] bg-slate-100 dark:bg-slate-800 top-5 -translate-y-1/2 -z-0 rounded-full"></div>
                         {/* Línea de progreso */}
                         <div
-                            className="absolute left-0 h-[1.5px] bg-indigo-500 top-5 -translate-y-1/2 -z-0 transition-all duration-1000 ease-out rounded-full shadow-[0_0_8px_rgba(99,102,241,0.3)]"
+                            className="absolute left-0 h-[1.5px] bg-indigo-500 top-5 -translate-y-1/2 -z-10 transition-all duration-1000 ease-out rounded-full shadow-[0_0_8px_rgba(99,102,241,0.3)]"
                             style={{ width: `${progressWidth}%` }}
                         ></div>
 
@@ -119,14 +119,14 @@ const AnalystCommandHeader: React.FC<AnalystCommandHeaderProps> = ({
 
                                     {isActive && stage === 'Pendiente Info' ? (
                                         <div className="absolute top-8 flex flex-col items-center w-full">
-                                            <span className={config.textClass}>
+                                            <Text as="span" weight="bold" className={config.textClass}>
                                                 {stage}
-                                            </span>
+                                            </Text>
                                         </div>
                                     ) : (
-                                        <span className={`mt-2 text-[8px] font-bold tracking-tighter uppercase ${['Escalado', 'Resuelto', 'Cerrado'].includes(stage) && !isGenericCompleted ? inactiveTextClass : finalTextClass}`}>
+                                        <Text as="span" weight="bold" className={`mt-2 text-[8px] tracking-tighter uppercase ${['Escalado', 'Resuelto', 'Cerrado'].includes(stage) && !isGenericCompleted ? inactiveTextClass : finalTextClass}`}>
                                             {stage}
-                                        </span>
+                                        </Text>
                                     )}
                                 </div>
                             );

@@ -32,10 +32,12 @@ class LineaGasto(BaseModel):
     adjuntos: Optional[List[dict]] = []
 
 class ReporteViaticos(BaseModel):
+    reporte_id: Optional[str] = None
     empleado_cedula: str
     empleado_nombre: str
     area: str
     cargo: str
+    centrocosto: Optional[str] = None
     ciudad: str
     observaciones_gral: Optional[str] = None
     gastos: List[LineaGasto]
@@ -105,35 +107,9 @@ def obtener_estado_cuenta(
 
 @router.get("/reportes/{cedula}")
 async def obtener_reportes_viaticos(cedula: str, db_erp: Session = Depends(obtener_erp_db)):
-    """Obtiene los reportes en tránsito agrupados por reporte_id desde el ERP"""
+    """Obtiene el listado agrupado de legalizaciones desde la tabla de cabecera"""
     try:
-        lineas = ViaticosService.obtener_reportes_transito(db_erp, cedula)
-        
-        reportes = {}
-        for l in lineas:
-            rid = str(l["reporte_id"])
-            if rid not in reportes:
-                reportes[rid] = {
-                    "reporte_id": rid,
-                    "fecha": l["fecha_registro"],
-                    "estado": l["estado"],
-                    "empleado_nombre": l["empleado_nombre"],
-                    "area": l["area"],
-                    "cargo": l["cargo"],
-                    "ciudad": l["ciudad"],
-                    "total_con_factura": 0.0,
-                    "total_sin_factura": 0.0,
-                    "cantidad_lineas": 0,
-                    "observaciones_gral": l["observaciones_gral"]
-                }
-            reportes[rid]["total_con_factura"] += float(l["valor_con_factura"] or 0)
-            reportes[rid]["total_sin_factura"] += float(l["valor_sin_factura"] or 0)
-            reportes[rid]["cantidad_lineas"] += 1
-            
-        lista_reportes = list(reportes.values())
-        lista_reportes.sort(key=lambda x: x["fecha"] if x["fecha"] else "", reverse=True)
-        
-        return lista_reportes
+        return ViaticosService.obtener_resumen_legalizaciones(db_erp, cedula)
     except Exception as e:
         print(f"ERROR GET REPORTES ERP: {e}")
-        raise HTTPException(status_code=500, detail=f"Error al obtener reportes en tránsito desde el ERP: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al obtener listado de legalizaciones: {str(e)}")

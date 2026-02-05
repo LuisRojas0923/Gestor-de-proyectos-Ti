@@ -74,7 +74,7 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                     <Text weight="bold" className="text-sm uppercase tracking-tight text-[var(--color-primary)]">Gasto Registrado</Text>
                 </div>
                 <div className="flex items-center gap-1">
-                    <input
+                    <Input
                         type="file"
                         ref={fileInputRef}
                         className="hidden"

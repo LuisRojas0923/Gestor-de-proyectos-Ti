@@ -103,7 +103,7 @@ const ViaticosAuthModal: React.FC<ViaticosAuthModalProps> = ({ cedula, onVerifie
                     </Title>
                     <Text className="opacity-70">
                         {step === 'setup'
-                            ? 'Marina ha detectado que no tienes una contraseña de viáticos. Configúrala ahora para proteger tus reportes.'
+                            ? 'Hemos detectado que no tienes una contraseña de viáticos. Configúrala ahora para proteger tus reportes.'
                             : 'Ingresa tu contraseña personal para acceder a la gestión de tus viáticos.'}
                     </Text>
                 </div>
@@ -120,6 +120,7 @@ const ViaticosAuthModal: React.FC<ViaticosAuthModalProps> = ({ cedula, onVerifie
                             required
                             size="lg"
                             className="bg-transparent"
+                            autoComplete={step === 'setup' ? "new-password" : "current-password"}
                         />
                     </div>
 
@@ -135,6 +136,7 @@ const ViaticosAuthModal: React.FC<ViaticosAuthModalProps> = ({ cedula, onVerifie
                                 required
                                 size="lg"
                                 className="bg-transparent"
+                                autoComplete="new-password"
                             />
                         </div>
                     )}
@@ -158,7 +160,7 @@ const ViaticosAuthModal: React.FC<ViaticosAuthModalProps> = ({ cedula, onVerifie
 
                     <div className="text-center pt-4 border-t border-gray-100 dark:border-white/5 mt-4">
                         <Text variant="caption" className="opacity-50">
-                            Cédula activa: <span className="font-bold">{cedula}</span>
+                            Cédula activa: <Text as="span" weight="bold">{cedula}</Text>
                         </Text>
                     </div>
                 </form>

@@ -31,7 +31,7 @@ const ExpenseConfirmModal: React.FC<ExpenseConfirmModalProps> = ({
             title={
                 <div className="flex items-center gap-2">
                     <Save className="text-[var(--color-primary)]" size={20} />
-                    <span>Confirmar Envío</span>
+                    <Text as="span" weight="bold">Confirmar Envío</Text>
                 </div>
             }
         >

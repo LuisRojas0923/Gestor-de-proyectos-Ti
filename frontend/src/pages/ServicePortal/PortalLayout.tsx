@@ -16,8 +16,8 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
         <div className="min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
             <header className="bg-transparent border-b border-white/20 sticky top-0 z-50 transition-all duration-300 h-24 shadow-lg">
                 <div
-                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-500 opacity-100"
-                    style={{ backgroundImage: `url(${imgHeader})`, zIndex: -1 }}
+                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-500 opacity-100 -z-10"
+                    style={{ backgroundImage: `url(${imgHeader})` }}
                 />
 
                 <div className="h-full bg-black/5 transition-colors duration-300">

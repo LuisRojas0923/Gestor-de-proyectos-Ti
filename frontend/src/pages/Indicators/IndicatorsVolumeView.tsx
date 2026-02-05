@@ -139,7 +139,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                     <Text weight="bold" className="mb-2 text-blue-900 dark:text-blue-300">{val}</Text>
                                     <div
                                         className={`${p.color} w-full rounded-t-lg transition-all hover:opacity-80`}
-                                        style={{ height: height }}
+                                        style={{ height: `${height}px` }}
                                     ></div>
                                     <Text weight="bold" color="white" className="bg-blue-900 dark:bg-blue-800 w-full text-center py-1 text-[10px] tracking-tight mt-1 rounded-b-sm block uppercase">
                                         {p.label}

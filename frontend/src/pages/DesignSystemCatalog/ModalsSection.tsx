@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { MaterialCard, Title, Text, Button } from '../../components/atoms';
-import { Modal, DeleteConfirmModal, ExpenseConfirmModal } from '../../components/molecules';
+import { Modal, DeleteConfirmModal, ExpenseConfirmModal, ClearReportConfirmModal } from '../../components/molecules';
+import ViaticosAuthModal from '../ServicePortal/components/ViaticosAuthModal';
 import { useNotifications } from '../../components/notifications/NotificationsContext';
 
 const ModalsSection: React.FC = () => {
     const [showDemoModal, setShowDemoModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showExpenseModal, setShowExpenseModal] = useState(false);
+    const [showClearModal, setShowClearModal] = useState(false);
+    const [showAuthModal, setShowAuthModal] = useState(false);
     const { addNotification } = useNotifications();
 
     return (
@@ -24,6 +27,12 @@ const ModalsSection: React.FC = () => {
                         </Button>
                         <Button variant="erp" onClick={() => setShowExpenseModal(true)}>
                             Confirmación de Envío (ERP)
+                        </Button>
+                        <Button variant="ghost" className="text-red-600 border-red-200" onClick={() => setShowClearModal(true)}>
+                            Limpiar Reporte (Borrador)
+                        </Button>
+                        <Button variant="primary" onClick={() => setShowAuthModal(true)}>
+                            Autenticación de Viáticos (Marina)
                         </Button>
                     </div>
                 </MaterialCard>
@@ -78,6 +87,26 @@ const ModalsSection: React.FC = () => {
                 totalFacturado={100000}
                 totalSinFactura={50000}
             />
+
+            <ClearReportConfirmModal
+                isOpen={showClearModal}
+                onClose={() => setShowClearModal(false)}
+                onConfirm={() => {
+                    addNotification('info', 'Reporte simulado como limpio');
+                    setShowClearModal(false);
+                }}
+            />
+
+            {showAuthModal && (
+                <ViaticosAuthModal
+                    cedula="12345678"
+                    onVerified={(nombre) => {
+                        addNotification('success', `Verificado como: ${nombre}`);
+                        setShowAuthModal(false);
+                    }}
+                    onBack={() => setShowAuthModal(false)}
+                />
+            )}
         </div>
     );
 };
