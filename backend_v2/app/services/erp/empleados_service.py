@@ -10,9 +10,22 @@ class EmpleadosService:
         """Consulta un empleado en la base de datos del ERP por su cedula"""
         print(f"DEBUG: Consultando empleado cedula={cedula} en ERP...")
         query = text("""
-            SELECT nrocedula, nombre, cargo, area, estado, ciudadcontratacion, viaticante, baseviaticos, centrocosto 
-            FROM establecimiento 
-            WHERE nrocedula = :cedula AND estado = 'A'
+            SELECT DISTINCT ON (E.nrocedula)
+                E.nrocedula      AS "nrocedula",
+                E.nombre::text   AS "nombre",
+                C.cargo::text    AS "cargo",
+                C.area::text     AS "area",
+                C.estado::text   AS "estado",
+                C.ciudadcontratacion::text AS "ciudadcontratacion",
+                E.viaticante,
+                E.baseviaticos,
+                C.centrocosto::text AS "centrocosto"
+            FROM establecimiento E
+            LEFT JOIN contrato C
+                ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+            WHERE TRIM(CAST(E.nrocedula AS TEXT)) = :cedula
+              AND C.estado = 'Activo'
+            ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST
         """)
         
         resultado = db_erp.execute(query, {"cedula": cedula}).first()

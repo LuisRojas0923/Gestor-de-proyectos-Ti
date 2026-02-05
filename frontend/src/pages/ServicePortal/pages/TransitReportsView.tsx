@@ -89,14 +89,12 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                 </div>
             ) : (
                 <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
-                    <table className="w-full text-left border-collapse min-w-[1200px]">
+                    <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
                             <tr className="bg-[var(--color-surface-variant)] text-[11px] uppercase tracking-wider text-[var(--color-text-secondary)] font-bold">
                                 <th className="px-4 py-3 border-b border-[var(--color-border)]">Acción</th>
                                 <th className="px-4 py-3 border-b border-[var(--color-border)]">Cód</th>
                                 <th className="px-4 py-3 border-b border-[var(--color-border)]">Radicado</th>
-                                <th className="px-4 py-3 border-b border-[var(--color-border)]">Fecha</th>
-                                <th className="px-4 py-3 border-b border-[var(--color-border)]">Hora</th>
                                 <th className="px-4 py-3 border-b border-[var(--color-border)]">F. Aplicación</th>
                                 <th className="px-4 py-3 border-b border-[var(--color-border)]">Cédula</th>
                                 <th className="px-4 py-3 border-b border-[var(--color-border)]">Empleado</th>
@@ -124,8 +122,6 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                     </td>
                                     <td className="px-4 py-3 font-medium opacity-70">{reporte.codigo}</td>
                                     <td className="px-4 py-3 font-bold text-blue-900 dark:text-blue-300">{reporte.codigolegalizacion}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap">{reporte.fecha}</td>
-                                    <td className="px-4 py-3 opacity-60 italic">{reporte.hora}</td>
                                     <td className="px-4 py-3">{reporte.fechaaplicacion}</td>
                                     <td className="px-4 py-3 opacity-80">{reporte.empleado}</td>
                                     <td className="px-4 py-3 font-medium uppercase">{reporte.nombreempleado}</td>

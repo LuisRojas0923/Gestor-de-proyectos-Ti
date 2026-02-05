@@ -134,7 +134,8 @@ const ServicePortal: React.FC = () => {
                             role: res.data.rol || res.data.role,
                             area: res.data.area,
                             cargo: res.data.cargo,
-                            sede: res.data.sede
+                            sede: res.data.sede,
+                            centrocosto: res.data.centrocosto || res.data.centro_costo || ''
                         };
                         dispatch({ type: 'LOGIN', payload: updatedUser });
                     }
@@ -470,7 +471,8 @@ const ServicePortal: React.FC = () => {
                                 navigate('/service-portal/gastos/nuevo', {
                                     state: {
                                         lineas: lineasDetalle,
-                                        observaciones: res.data[0]?.observaciones_gral
+                                        observaciones: res.data[0]?.observaciones_gral,
+                                        reporte_id: rid
                                     }
                                 });
                             } catch (err) {

@@ -13,6 +13,7 @@ interface User {
   area?: string;
   cargo?: string;
   sede?: string;
+  centrocosto?: string;
   permissions?: string[];
 }
 
@@ -259,6 +260,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             area: data.area,
             cargo: data.cargo,
             sede: data.sede,
+            centrocosto: data.centrocosto || data.centro_costo || '',
             permissions: data.permissions || data.permisos || []
           });
 

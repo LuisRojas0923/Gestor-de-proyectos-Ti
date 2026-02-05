@@ -31,7 +31,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
     initialObservaciones
 }) => {
     const location = useLocation();
-    const state = location.state as { lineas?: any[], observaciones?: string } | null;
+    const state = location.state as { lineas?: any[], observaciones?: string, reporte_id?: string } | null;
 
     const {
         lineas,
@@ -57,7 +57,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
         logMarina
     } = useExpenseForm();
 
-    const reporteIdOriginal = (initialLineas?.[0] as any)?.reporte_id || (state?.lineas?.[0] as any)?.reporte_id;
+    const reporteIdOriginal = state?.reporte_id || (initialLineas?.[0] as any)?.reporte_id || (state?.lineas?.[0] as any)?.reporte_id;
 
     const hasLoadedInitial = React.useRef(false);
 
