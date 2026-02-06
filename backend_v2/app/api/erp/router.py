@@ -3,8 +3,8 @@ API de Endpoint ERP - Backend V2
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database import obtener_db, obtener_erp_db
-from app.services.erp import EmpleadosService
+from app.database import obtener_db, obtener_erp_db, obtener_erp_db_opcional
+from app.services.erp.servicio import ServicioErp
 from typing import Any, Dict, List, Optional
 
 router = APIRouter()
@@ -24,20 +24,31 @@ async def consultar_solicitudes_erp(
 
 @router.get("/empleado/{identificacion}")
 async def obtener_empleado_erp(
-    identificacion: str, 
-    db_erp: Session = Depends(obtener_erp_db)
+    identificacion: str,
+    db_erp: Optional[Session] = Depends(obtener_erp_db_opcional),
 ):
     """
-    Consulta un empleado en el ERP para el login del portal
+    Consulta un empleado en el ERP para el login del portal.
+    Si el ERP no esta disponible o la consulta falla, devuelve 503.
     """
-    empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, identificacion)
-    
+    if db_erp is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="El servicio ERP no esta disponible. Usa login de administrador (usuario y contraseña).",
+        )
+    try:
+        empleado = await ServicioErp.obtener_empleado_por_cedula(db_erp, identificacion)
+    except Exception as e:
+        print(f"ERROR ERP empleado (cedula={identificacion}): {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Error al consultar el ERP. Verifica la conexion o usa login de administrador.",
+        )
     if not empleado:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Empleado no encontrado o inactivo en el ERP"
+            detail="Empleado no encontrado o inactivo en el ERP",
         )
-    
     return empleado
 
 

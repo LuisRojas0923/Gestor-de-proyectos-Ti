@@ -92,6 +92,19 @@ def obtener_erp_db():
         db.close()
 
 
+def obtener_erp_db_opcional():
+    """Sesion ERP opcional: si la conexion falla, devuelve None (evita 500 en login)."""
+    try:
+        db = SessionErp()
+        try:
+            yield db
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"DEBUG: ERP no disponible: {e}")
+        yield None
+
+
 async def init_db():
     """Inicializa las tablas de la base de datos usando SQLModel y asegura columnas de perfil"""
     async with async_engine.begin() as conn:

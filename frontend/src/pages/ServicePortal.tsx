@@ -18,6 +18,7 @@ import AreaSelectionView from './ServicePortal/pages/AreaSelectionView';
 import ViaticosManagement from './ServicePortal/pages/ViaticosManagement';
 import AccountStatement from './ServicePortal/pages/AccountStatement';
 import TransitReportsView from './ServicePortal/pages/TransitReportsView';
+import ReservaSalasView from './ServicePortal/pages/ReservaSalasView';
 import PortalLayout from './ServicePortal/PortalLayout';
 
 import imgHardware from '../assets/images/categories/Soporte Hardware.png';
@@ -422,6 +423,7 @@ const ServicePortal: React.FC = () => {
                     <AreaSelectionView
                         onSelectArea={(area) => navigate(`/service-portal/servicios/${area}`)}
                         onConsultStatus={() => navigate('/service-portal/mis-tickets')}
+                        onReservaSalas={() => navigate('/service-portal/reserva-salas')}
                         onBack={() => navigate('/service-portal/inicio')}
                     />
                 } />
@@ -547,6 +549,10 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="exito/:ticketId" element={
                     <SuccessView newTicketId={newTicketId} onHome={() => navigate('/service-portal/inicio')} />
+                } />
+
+                <Route path="reserva-salas" element={
+                    <ReservaSalasView onBack={() => navigate('/service-portal/servicios')} />
                 } />
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />

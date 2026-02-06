@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CalendarDays } from 'lucide-react';
 import { Title, Text, Button, Badge } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 
@@ -12,10 +12,11 @@ import imgMisSolicitudes from '../../../assets/images/categories/Mis Solicitudes
 interface AreaSelectionViewProps {
     onSelectArea: (area: 'sistemas' | 'desarrollo' | 'mejoramiento') => void;
     onConsultStatus: () => void;
+    onReservaSalas: () => void;
     onBack: () => void;
 }
 
-const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onConsultStatus, onBack }) => {
+const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onConsultStatus, onReservaSalas, onBack }) => {
     return (
         <div className="space-y-12 py-6">
             <div className="flex items-center space-x-4">
@@ -45,7 +46,7 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onC
                 </Text>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-8">
                 <ActionCard
                     title="Soporte Sistemas"
                     description="Hardware, Software, Impresoras e Infraestructura tecnológica."
@@ -65,6 +66,13 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onC
                     description="Ajustes a herramientas de Excel y procesos existentes."
                     icon={<img src={imgMejora} alt="Mejoramiento" className="w-full h-full object-contain p-2" />}
                     onClick={() => onSelectArea('mejoramiento')}
+                />
+
+                <ActionCard
+                    title="Reserva de salas"
+                    description="Reserva salas de reuniones y espacios para tu equipo."
+                    icon={<CalendarDays className="w-full h-full p-2 text-[var(--color-primary)]" strokeWidth={1.5} />}
+                    onClick={onReservaSalas}
                 />
 
                 <ActionCard

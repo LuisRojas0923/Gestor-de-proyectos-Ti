@@ -104,6 +104,14 @@ export const API_ENDPOINTS = {
   ERP_SOLICITUDES: '/erp/solicitudes',
   ERP_EMPLEADO: (id: string) => `/erp/empleado/${id}`,
   ERP_SINCRONIZAR: '/erp/sincronizar',
+
+  // Reserva de Salas
+  RESERVA_SALAS_ROOMS: '/reserva-salas/rooms',
+  RESERVA_SALAS_ROOM_BY_ID: (id: string) => `/reserva-salas/rooms/${id}`,
+  RESERVA_SALAS_RESERVATIONS: '/reserva-salas/reservations',
+  RESERVA_SALAS_RESERVATION_BY_ID: (id: string) => `/reserva-salas/reservations/${id}`,
+  RESERVA_SALAS_RESERVATION_CANCEL: (id: string) => `/reserva-salas/reservations/${id}/cancel`,
+  RESERVA_SALAS_RECURRING: '/reserva-salas/reservations/recurring',
 };
 
 export const HTTP_STATUS = {
