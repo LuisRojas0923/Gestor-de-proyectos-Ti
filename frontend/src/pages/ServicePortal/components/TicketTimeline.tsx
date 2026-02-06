@@ -56,13 +56,15 @@ const TicketTimeline: React.FC<TicketTimelineProps> = ({ status, stages }) => {
 
                             {/* Etiqueta de Texto */}
                             <div className="absolute top-10 flex flex-col items-center">
-                                <Text as="span" weight="bold" className={`
-                                    text-xs
-                                    text-left
-                                    text-gray-900 dark:text-gray-100
-                                    ${isActive ? 'inline-flex items-center font-medium rounded-full transition-all bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 shadow-md hover:shadow-lg px-2 py-0.5 text-xs whitespace-nowrap tracking-[0.1em] uppercase text-[9px] font-black scale-110' : 'whitespace-nowrap tracking-wider uppercase text-[9px] transition-all duration-300 text-slate-400 dark:text-slate-600'}
-                                    ${isCompleted ? 'text-slate-900 dark:text-white opacity-80' : ''}
-                                `}>
+                                <Text
+                                    weight="bold"
+                                    className={`
+                                        text-xs
+                                        text-center
+                                        ${isActive ? 'inline-flex items-center rounded-full transition-all bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 shadow-md px-2 py-0.5 whitespace-nowrap tracking-[0.1em] uppercase text-[9px] scale-110' : 'whitespace-nowrap tracking-wider uppercase text-[9px] transition-all duration-300 text-slate-400 dark:text-slate-600'}
+                                        ${isCompleted ? 'text-slate-900 dark:text-white opacity-80' : ''}
+                                    `}
+                                >
                                     {stage}
                                 </Text>
                                 {isActive && (

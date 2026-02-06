@@ -3,6 +3,7 @@ import { LogOut } from 'lucide-react';
 import { Button, Text } from '../../components/atoms';
 import ThemeToggle from '../../components/atoms/ThemeToggle';
 import imgHeader from '../../assets/images/Header.png';
+import imgSolidLogo from '../../assets/images/categories/Logo SOLID-ERP.png';
 
 interface PortalLayoutProps {
     children: React.ReactNode;
@@ -13,7 +14,7 @@ interface PortalLayoutProps {
 
 const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onLogout }) => {
     return (
-        <div className="min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
+        <div className="flex flex-col min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
             <header className="bg-transparent border-b border-white/20 sticky top-0 z-50 transition-all duration-300 h-24 shadow-lg">
                 <div
                     className="absolute inset-0 bg-cover bg-center transition-opacity duration-500 opacity-100 -z-10"
@@ -32,7 +33,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                             className="flex flex-col items-center cursor-pointer select-none mx-2 sm:mx-6 shrink-0"
                             onClick={onHome}
                         >
-                            <Text as="span" weight="bold" color="white" className="text-lg sm:text-2xl tracking-tighter drop-shadow-xl uppercase text-center font-extrabold leading-tight">
+                            <Text weight="bold" color="white" className="text-lg sm:text-2xl tracking-tighter drop-shadow-xl uppercase text-center font-extrabold leading-tight">
                                 <Text as="span" color="white" className="hidden sm:inline">Portal de Servicios SOLID</Text>
                                 <Text as="span" color="white" className="inline sm:hidden">Portal SOLID</Text>
                             </Text>
@@ -56,9 +57,38 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                     </div>
                 </div>
             </header>
-            <main className="max-w-[1300px] mx-auto p-4 sm:px-8 sm:py-2">
+            <main className="flex-grow max-w-[1300px] w-full mx-auto p-4 sm:px-8 sm:py-2">
                 {children}
             </main>
+
+            <footer className="w-full py-6 mt-auto bg-[var(--color-surface)] border-t border-[var(--color-border)] opacity-60 hover:opacity-100 transition-opacity duration-500">
+                <div className="max-w-[1300px] mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 order-2 md:order-1">
+                        <Text variant="caption" weight="bold" className="uppercase tracking-[0.3em] text-[9px] opacity-70">
+                            Ecosistema
+                        </Text>
+                        <img src={imgSolidLogo} alt="SOLID-ERP" className="h-4 w-auto dark:invert" />
+                    </div>
+
+                    <div className="flex flex-col items-center order-1 md:order-2">
+                        <Text variant="caption" weight="medium" className="uppercase tracking-[0.2em] text-[var(--color-text-secondary)] text-[10px]">
+                            Portal de Servicios
+                        </Text>
+                        <div className="flex items-center gap-2">
+                            <Text variant="caption" weight="bold" color="navy" className="text-[9px] uppercase">
+                                Powered by
+                            </Text>
+                            <img
+                                src={imgSolidLogo}
+                                alt="SOLID-ERP"
+                                className="h-5 w-auto grayscale contrast-125 dark:invert dark:brightness-200"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="hidden md:block w-32 order-3"></div>
+                </div>
+            </footer>
         </div>
     );
 };

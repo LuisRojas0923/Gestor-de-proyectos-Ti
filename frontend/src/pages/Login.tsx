@@ -59,6 +59,7 @@ const Login: React.FC = () => {
                 sede: employeeData.ciudadcontratacion || 'Principal',
                 viaticante: employeeData.viaticante,
                 baseviaticos: employeeData.baseviaticos,
+                centrocosto: employeeData.centrocosto || '---',
                 permissions: isDirector ? ['service-portal', 'legalizar-gastos'] : ['service-portal']
             };
 

@@ -104,5 +104,6 @@ async def init_db():
             await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS area VARCHAR(255)"))
             await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo VARCHAR(255)"))
             await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS sede VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS centrocosto VARCHAR(255)"))
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil: {e}")

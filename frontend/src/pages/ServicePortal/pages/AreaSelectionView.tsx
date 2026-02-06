@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { Title, Text, Button } from '../../../components/atoms';
+import { Title, Text, Button, Badge } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 
 // Imágenes para las áreas (reutilizando activos si existen o iconos representativos)
@@ -30,9 +30,13 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onC
             </div>
 
             <div className="text-center space-y-4">
-                <div className="inline-block px-4 py-1 bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded-full text-xs font-bold uppercase tracking-widest mb-2">
+                <Badge
+                    variant="primary"
+                    size="lg"
+                    className="mb-4 uppercase tracking-[0.2em] font-extrabold shadow-sm"
+                >
                     Gestión de Solicitudes TI
-                </div>
+                </Badge>
                 <Title variant="h2" weight="bold" className="text-[var(--deep-navy)] dark:text-white">
                     ¿Qué deseas gestionar hoy?
                 </Title>

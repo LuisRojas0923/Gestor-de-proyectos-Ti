@@ -30,6 +30,7 @@ class Usuario(SQLModel, table=True):
     area: Optional[str] = Field(default=None, max_length=255)
     cargo: Optional[str] = Field(default=None, max_length=255)
     sede: Optional[str] = Field(default=None, max_length=255)
+    centrocosto: Optional[str] = Field(default=None, max_length=255)
     
     # Datos de viáticos (Solid ERP)
     viaticante: Optional[str] = Field(default=None, max_length=20)
@@ -126,6 +127,7 @@ class UsuarioPublico(SQLModel):
     area: Optional[str] = None
     cargo: Optional[str] = None
     sede: Optional[str] = None
+    centrocosto: Optional[str] = None
     viaticante: Optional[str] = None
     baseviaticos: Optional[float] = None
     especialidades: Optional[str] = "[]"

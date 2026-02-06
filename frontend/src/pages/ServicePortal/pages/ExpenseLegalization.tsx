@@ -31,7 +31,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
     initialObservaciones
 }) => {
     const location = useLocation();
-    const state = location.state as { lineas?: any[], observaciones?: string, reporte_id?: string } | null;
+    const state = location.state as { lineas?: any[], observaciones?: string, reporte_id?: string, from?: string } | null;
 
     const {
         lineas,

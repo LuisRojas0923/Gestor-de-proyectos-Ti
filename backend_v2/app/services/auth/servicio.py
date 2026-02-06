@@ -89,6 +89,7 @@ class ServicioAuth:
             area=datos_erp.get("area"),
             cargo=datos_erp.get("cargo"),
             sede=datos_erp.get("ciudadcontratacion"),
+            centrocosto=datos_erp.get("centrocosto"),
             viaticante=datos_erp.get("viaticante"),
             baseviaticos=datos_erp.get("baseviaticos")
         )
@@ -120,6 +121,7 @@ class ServicioAuth:
             usuario.area = datos_erp.get("area").strip() if datos_erp.get("area") else None
             usuario.cargo = datos_erp.get("cargo").strip() if datos_erp.get("cargo") else None
             usuario.sede = datos_erp.get("ciudadcontratacion").strip() if datos_erp.get("ciudadcontratacion") else None
+            usuario.centrocosto = datos_erp.get("centrocosto").strip() if datos_erp.get("centrocosto") else None
             usuario.nombre = datos_erp.get("nombre").strip() if datos_erp.get("nombre") else usuario.nombre
             # Fix: Castear viaticante a str porque en BD es VARCHAR y asyncpg es estricto con bools
             val_viaticante = datos_erp.get("viaticante")
@@ -165,6 +167,7 @@ class ServicioAuth:
             area=datos_erp.get("area"),
             cargo=datos_erp.get("cargo"),
             sede=datos_erp.get("ciudadcontratacion"),
+            centrocosto=datos_erp.get("centrocosto"),
             viaticante=str(datos_erp.get("viaticante")) if datos_erp.get("viaticante") is not None else None,
             baseviaticos=datos_erp.get("baseviaticos")
         )

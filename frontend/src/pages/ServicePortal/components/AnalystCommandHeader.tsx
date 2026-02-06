@@ -29,17 +29,13 @@ const AnalystCommandHeader: React.FC<AnalystCommandHeaderProps> = ({
         switch (stageName) {
             case 'Asignado':
                 return {
-                    icon: isCompleted || isActive ?
-                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M20 6 9 17l-5-5"></path></svg> :
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-200 dark:bg-indigo-900"></div>,
+                    icon: isCompleted || isActive ? <Check size={10} className="text-white" strokeWidth={3} /> : <div className="w-1.5 h-1.5 rounded-full bg-indigo-200 dark:bg-indigo-900"></div>,
                     bgClass: isActive || isCompleted ? 'bg-indigo-500 shadow-sm shadow-indigo-500/20' : 'bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-900/50',
                     textClass: `text-indigo-600 dark:text-indigo-400 ${isActive || isCompleted ? 'opacity-100' : 'opacity-50'}`
                 };
             case 'En Proceso':
                 return {
-                    icon: isCompleted || isActive ?
-                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M20 6 9 17l-5-5"></path></svg> :
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-200 dark:bg-blue-900"></div>,
+                    icon: isCompleted || isActive ? <Check size={10} className="text-white" strokeWidth={3} /> : <div className="w-1.5 h-1.5 rounded-full bg-blue-200 dark:bg-blue-900"></div>,
                     bgClass: isActive || isCompleted ? 'bg-blue-500 shadow-sm shadow-blue-500/20' : 'bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-900/50',
                     textClass: `text-blue-600 dark:text-blue-400 ${isActive || isCompleted ? 'opacity-100' : 'opacity-50'}`
                 };

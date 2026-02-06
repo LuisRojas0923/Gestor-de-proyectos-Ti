@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { useNavigate, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { useAppContext } from '../context/AppContext';
 import axios from 'axios';
@@ -34,6 +34,7 @@ const API_BASE_URL = API_CONFIG.BASE_URL;
 const ServicePortal: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = state;
     const { addNotification } = useNotifications();
 
@@ -112,11 +113,11 @@ const ServicePortal: React.FC = () => {
         fetchCategories();
     }, []);
 
-    // Efecto para asegurar que el perfil del usuario tenga área/cargo/sede (Auto-sync para sesiones activas)
+    // Efecto para asegurar que el perfil del usuario tenga área/cargo/sede/centrocosto (Auto-sync para sesiones activas)
     useEffect(() => {
         const refreshUserProfile = async () => {
-            // Se dispara si falta área O sede
-            if (user && (!user.area || !user.sede)) {
+            // Se dispara si falta área O sede O centrocosto
+            if (user && (!user.area || !user.sede || !user.centrocosto || user.centrocosto === '---')) {
                 const token = localStorage.getItem('token');
                 if (!token) return;
 
@@ -441,8 +442,22 @@ const ServicePortal: React.FC = () => {
                 <Route path="gastos/nuevo" element={
                     <ExpenseLegalization
                         user={user}
-                        onBack={() => navigate('/service-portal/gastos/gestion')}
-                        onSuccess={() => { navigate('/service-portal/gastos/gestion'); addNotification('success', 'Reporte enviado a tránsito correctamente.'); }}
+                        onBack={() => {
+                            if (location.state?.from === 'reportes') {
+                                navigate('/service-portal/gastos/reportes');
+                            } else {
+                                navigate('/service-portal/gastos/gestion');
+                            }
+                        }}
+                        onSuccess={() => {
+                            if (location.state?.from === 'reportes') {
+                                navigate('/service-portal/gastos/reportes');
+                                addNotification('success', 'Reporte actualizado correctamente.');
+                            } else {
+                                navigate('/service-portal/gastos/gestion');
+                                addNotification('success', 'Reporte enviado a tránsito correctamente.');
+                            }
+                        }}
                     />
                 } />
 
@@ -472,7 +487,8 @@ const ServicePortal: React.FC = () => {
                                     state: {
                                         lineas: lineasDetalle,
                                         observaciones: res.data[0]?.observaciones_gral,
-                                        reporte_id: rid
+                                        reporte_id: rid,
+                                        from: 'reportes'
                                     }
                                 });
                             } catch (err) {
