@@ -29,6 +29,87 @@ import imgDesarrollo from '../assets/images/categories/Nuevos desarrollos.png';
 import imgLicencias from '../assets/images/categories/Compra de Licencias.png';
 import imgControlCambios from '../assets/images/categories/Control de Cambios.png';
 
+// --- WRAPPERS DE NAVEGACIÓN (Definidos fuera para evitar re-montados innecesarios) ---
+
+const CategoryWrapper: React.FC<{
+    categories: Category[],
+    onSelect: (c: Category) => void,
+    onBack: () => void
+}> = ({ categories, onSelect, onBack }) => {
+    const { area } = useParams<{ area: string }>();
+
+    const filteredCategories = categories.filter(c => {
+        if (area === 'sistemas') return c.section === 'soporte';
+        if (area === 'mejoramiento') return c.section === 'mejoramiento' && !['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
+        if (area === 'desarrollo') return ['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
+        return true;
+    });
+
+    return <CategoryView categories={filteredCategories} onSelect={onSelect} onBack={onBack} />;
+};
+
+const TicketFormWrapper: React.FC<{
+    selectedCategory: any,
+    categories: Category[],
+    user: any,
+    onSubmit: (data: any) => Promise<void>,
+    onBack: () => void,
+    isLoading: boolean,
+    selectedFiles: File[],
+    onFilesChange: (files: File[]) => void
+}> = ({ selectedCategory, categories, user, onSubmit, onBack, isLoading, selectedFiles, onFilesChange }) => {
+    const { categoryId } = useParams<{ categoryId: string }>();
+    const category = selectedCategory || categories.find(c => c.id === categoryId);
+
+    if (!category && categories.length > 0) {
+        return <Navigate to="/service-portal/servicios" replace />;
+    }
+
+    if (categories.length === 0) {
+        return <div className="p-20 text-center"><div className="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-[var(--color-primary)] rounded-full" role="status"></div></div>;
+    }
+
+    return (
+        <TicketFormView
+            selectedCategory={category}
+            user={user as any}
+            onSubmit={onSubmit}
+            onBack={onBack}
+            isLoading={isLoading}
+            selectedFiles={selectedFiles}
+            onFilesChange={onFilesChange}
+        />
+    );
+};
+
+const TicketDetailWrapper: React.FC<{
+    selectedTicket: any,
+    tickets: any[],
+    user: any,
+    onBack: () => void,
+    onUpdate: (feedback: string) => Promise<void>
+}> = ({ selectedTicket, tickets, user, onBack, onUpdate }) => {
+    const { ticketId } = useParams<{ ticketId: string }>();
+    const ticket = selectedTicket || tickets.find(t => t.id === ticketId);
+
+    if (!ticket && tickets.length > 0) {
+        return <Navigate to="/service-portal/mis-tickets" replace />;
+    }
+
+    if (tickets.length === 0) {
+        return <div className="p-20 text-center"><div className="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-[var(--color-primary)] rounded-full" role="status"></div></div>;
+    }
+
+    return (
+        <TicketDetailView
+            selectedTicket={ticket}
+            user={user as any}
+            onBack={onBack}
+            onUpdate={onUpdate}
+        />
+    );
+};
+
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
 const ServicePortal: React.FC = () => {
@@ -311,69 +392,6 @@ const ServicePortal: React.FC = () => {
         }
     }, [user]);
 
-    const CategoryWrapper: React.FC<{
-        categories: Category[],
-        onSelect: (c: Category) => void,
-        onBack: () => void
-    }> = ({ categories, onSelect, onBack }) => {
-        const { area } = useParams<{ area: string }>();
-
-        const filteredCategories = categories.filter(c => {
-            if (area === 'sistemas') return c.section === 'soporte';
-            if (area === 'mejoramiento') return c.section === 'mejoramiento' && !['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
-            if (area === 'desarrollo') return ['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
-            return true;
-        });
-
-        return <CategoryView categories={filteredCategories} onSelect={onSelect} onBack={onBack} />;
-    };
-
-    const TicketFormWrapper = () => {
-        const { categoryId } = useParams<{ categoryId: string }>();
-        const category = selectedCategory || categories.find(c => c.id === categoryId);
-
-        if (!category && categories.length > 0) {
-            return <Navigate to="/service-portal/servicios" replace />;
-        }
-
-        if (categories.length === 0) {
-            return <div className="p-20 text-center"><div className="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-[var(--color-primary)] rounded-full" role="status"></div></div>;
-        }
-
-        return (
-            <TicketFormView
-                selectedCategory={category}
-                user={user as any}
-                onSubmit={handleSubmit}
-                onBack={() => { navigate(-1); setSelectedFiles([]); }}
-                isLoading={isLoading}
-                selectedFiles={selectedFiles}
-                onFilesChange={setSelectedFiles}
-            />
-        );
-    };
-
-    const TicketDetailWrapper = () => {
-        const { ticketId } = useParams<{ ticketId: string }>();
-        const ticket = selectedTicket || tickets.find(t => t.id === ticketId);
-
-        if (!ticket && tickets.length > 0) {
-            return <Navigate to="/service-portal/mis-tickets" replace />;
-        }
-
-        if (tickets.length === 0) {
-            return <div className="p-20 text-center"><div className="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-[var(--color-primary)] rounded-full" role="status"></div></div>;
-        }
-
-        return (
-            <TicketDetailView
-                selectedTicket={ticket}
-                user={user as any}
-                onBack={() => navigate('/service-portal/mis-tickets')}
-                onUpdate={handleSendUserFeedback}
-            />
-        );
-    };
 
     if (!user) return <div className="flex justify-center items-center h-screen">Cargando perfil...</div>;
 
@@ -416,7 +434,18 @@ const ServicePortal: React.FC = () => {
                     />
                 } />
 
-                <Route path="crear/:categoryId" element={<TicketFormWrapper />} />
+                <Route path="crear/:categoryId" element={
+                    <TicketFormWrapper
+                        selectedCategory={selectedCategory}
+                        categories={categories}
+                        user={user}
+                        onSubmit={handleSubmit}
+                        onBack={() => { navigate(-1); setSelectedFiles([]); }}
+                        isLoading={isLoading}
+                        selectedFiles={selectedFiles}
+                        onFilesChange={setSelectedFiles}
+                    />
+                } />
 
                 <Route path="mis-tickets" element={
                     <TicketListView
@@ -426,7 +455,15 @@ const ServicePortal: React.FC = () => {
                     />
                 } />
 
-                <Route path="mis-tickets/:ticketId" element={<TicketDetailWrapper />} />
+                <Route path="mis-tickets/:ticketId" element={
+                    <TicketDetailWrapper
+                        selectedTicket={selectedTicket}
+                        tickets={tickets}
+                        user={user}
+                        onBack={() => navigate('/service-portal/mis-tickets')}
+                        onUpdate={handleSendUserFeedback}
+                    />
+                } />
 
                 <Route path="gastos/gestion" element={
                     <ViaticosManagement
