@@ -17,18 +17,23 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
         <div className="flex flex-col min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
             <header className="bg-transparent border-b border-white/20 sticky top-0 z-50 transition-all duration-300 h-24 shadow-lg">
                 <div
-                    className="absolute inset-0 bg-cover bg-center transition-opacity duration-500 opacity-100 -z-10"
+                    className="absolute inset-0 bg-[length:100%_auto] bg-center bg-no-repeat transition-opacity duration-500 opacity-100 -z-10"
                     style={{ backgroundImage: `url(${imgHeader})` }}
                 />
 
                 <div className="h-full bg-black/5 transition-colors duration-300">
                     <div className="max-w-[1300px] mx-auto px-4 h-full flex items-center justify-between text-white relative">
-                        {/* 1. SECCIÓN IZQUIERDA (Equilibrio) */}
-                        <div className="flex-1 flex justify-start">
-                            <div className="w-10 md:w-20"></div>
+                        {/* 1. SECCIÓN IZQUIERDA (Branding de Ecosistema) */}
+                        <div className="flex-1 flex justify-start items-center gap-4">
+                            <div className="flex items-center gap-3 group select-none">
+                                <Text variant="caption" weight="bold" color="white" className="uppercase tracking-[0.3em] text-[8px] sm:text-[9px] opacity-70 group-hover:opacity-100 transition-opacity">
+                                    Ecosistema
+                                </Text>
+                                <img src={imgSolidLogo} alt="SOLID-ERP" className="h-3.5 sm:h-4 w-auto brightness-0 invert opacity-80 group-hover:opacity-100 transition-all" />
+                            </div>
                         </div>
 
-                        {/* 2. SECCIÓN CENTRAL (Marca) - Siempre centrada por flex-1 en los lados */}
+                        {/* 2. SECCIÓN CENTRAL (Marca) */}
                         <div
                             className="flex flex-col items-center cursor-pointer select-none mx-2 sm:mx-6 shrink-0"
                             onClick={onHome}
@@ -63,14 +68,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
 
             <footer className="w-full py-6 mt-auto bg-[var(--color-surface)] border-t border-[var(--color-border)] opacity-60 hover:opacity-100 transition-opacity duration-500">
                 <div className="max-w-[1300px] mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 order-2 md:order-1">
-                        <Text variant="caption" weight="bold" className="uppercase tracking-[0.3em] text-[9px] opacity-70">
-                            Ecosistema
-                        </Text>
-                        <img src={imgSolidLogo} alt="SOLID-ERP" className="h-4 w-auto dark:invert" />
-                    </div>
-
-                    <div className="flex flex-col items-center order-1 md:order-2">
+                    <div className="flex flex-col items-center mx-auto">
                         <Text variant="caption" weight="medium" className="uppercase tracking-[0.2em] text-[var(--color-text-secondary)] text-[10px]">
                             Portal de Servicios
                         </Text>
@@ -85,8 +83,6 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                             />
                         </div>
                     </div>
-
-                    <div className="hidden md:block w-32 order-3"></div>
                 </div>
             </footer>
         </div>
