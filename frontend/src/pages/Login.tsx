@@ -7,6 +7,7 @@ import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
 import axios from 'axios';
 import imgUserLogin from '../assets/images/categories/Usuario Inicio Sesion.png';
 import imgAdminLogin from '../assets/images/categories/icons8-usuario-administrador-96.png';
+import imgFondo from '../assets/images/fondo - copia.png';
 
 const Login: React.FC = () => {
     const { state, dispatch } = useAppContext();
@@ -138,11 +139,18 @@ const Login: React.FC = () => {
     // Usaremos un diseño unificado visualmente atractivo
 
     return (
-        <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-500 
-            ${loginMode === 'portal'
-                ? 'bg-gradient-to-br from-[var(--deep-navy)] to-[var(--color-primary)]'
-                : (darkMode ? 'bg-gradient-to-br from-gray-900 to-black' : 'bg-gradient-to-br from-gray-100 to-gray-300')
-            }`}>
+        <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Imagen de Fondo con Overlay */}
+            <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 scale-105"
+                style={{ backgroundImage: `url(${imgFondo})` }}
+            />
+            <div className={`absolute inset-0 transition-colors duration-500 
+                ${loginMode === 'portal'
+                    ? 'bg-black/40 backdrop-blur-[2px]'
+                    : (darkMode ? 'bg-black/60 backdrop-blur-[3px]' : 'bg-white/30 backdrop-blur-[2px]')
+                }`}
+            />
 
             <MaterialCard
                 elevation={5}
