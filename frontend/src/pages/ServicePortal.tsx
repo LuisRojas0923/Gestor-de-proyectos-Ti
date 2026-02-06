@@ -52,11 +52,11 @@ const TicketFormWrapper: React.FC<{
     selectedCategory: any,
     categories: Category[],
     user: any,
-    onSubmit: (data: any) => Promise<void>,
+    onSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>,
     onBack: () => void,
     isLoading: boolean,
     selectedFiles: File[],
-    onFilesChange: (files: File[]) => void
+    onFilesChange: React.Dispatch<React.SetStateAction<File[]>>
 }> = ({ selectedCategory, categories, user, onSubmit, onBack, isLoading, selectedFiles, onFilesChange }) => {
     const { categoryId } = useParams<{ categoryId: string }>();
     const category = selectedCategory || categories.find(c => c.id === categoryId);
@@ -87,7 +87,7 @@ const TicketDetailWrapper: React.FC<{
     tickets: any[],
     user: any,
     onBack: () => void,
-    onUpdate: (feedback: string) => Promise<void>
+    onUpdate: (e: React.FormEvent<HTMLFormElement>) => Promise<void>
 }> = ({ selectedTicket, tickets, user, onBack, onUpdate }) => {
     const { ticketId } = useParams<{ ticketId: string }>();
     const ticket = selectedTicket || tickets.find(t => t.id === ticketId);
