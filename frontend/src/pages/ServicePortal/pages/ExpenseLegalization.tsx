@@ -11,7 +11,7 @@ import ExpenseLineItem from '../components/ExpenseLineItem';
 import ExpenseMobileCard from '../components/ExpenseMobileCard';
 import ExpenseTotals from '../components/ExpenseTotals';
 
-import { ExpenseConfirmModal, ClearReportConfirmModal } from '../../../components/molecules';
+import { ExpenseConfirmModal, ClearReportConfirmModal, DeleteReportConfirmModal } from '../../../components/molecules';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -77,6 +77,8 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showClearModal, setShowClearModal] = useState(false);
+    const [showDeleteReportModal, setShowDeleteReportModal] = useState(false);
+    const [isDeletingReport, setIsDeletingReport] = useState(false);
     const { addNotification } = useNotifications();
 
     const handlePrepareSubmit = () => {
@@ -133,7 +135,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
         setShowConfirmModal(true);
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (estado: 'BORRADOR' | 'PRE-INICIAL' = 'PRE-INICIAL') => {
         setIsLoading(true);
         setShowConfirmModal(false);
         try {
@@ -147,34 +149,81 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                 ciudad: user.sede || 'N/A',
                 observaciones_gral: observacionesGral,
                 usuario_id: user.cedula || user.id,
+                estado: estado,
                 gastos: lineas.map(l => ({
                     categoria: l.categoria,
-                    fecha: l.fecha,
+                    fecha: l.fecha || new Date().toISOString().split('T')[0], // Fecha por defecto si falta
                     ot: l.ot,
-                    ot_id: l.ot_id, // Ensure ot_id is included if it exists in the line item
+                    ot_id: l.ot_id,
                     cc: l.cc,
                     scc: l.scc,
                     valorConFactura: Number(l.valorConFactura),
                     valorSinFactura: Number(l.valorSinFactura),
-                    observaciones: l.observaciones,
-                    adjuntos: l.adjuntos || [] // Include adjuntos property, default to empty array if not present
+                    observaciones: l.observaciones || '',
+                    adjuntos: l.adjuntos || []
                 }))
             };
 
-            await axios.post(`${API_BASE_URL}/viaticos/enviar`, payload);
+            // DEBUG: Ver payload antes de enviar para diagnosticar 422
+            console.log('⚓ Marina DEBUG | Payload a enviar:', JSON.stringify(payload, null, 2));
 
-            logMarina("🚀 [API] Reporte enviado con éxito. Ejecutando limpieza profunda.");
+            const response = await axios.post(`${API_BASE_URL}/viaticos/enviar`, payload);
 
-            // ELIMINADO: addNotification('success', 'Reporte de gastos enviado correctamente.');
-            // Se asume que el contenedor principal maneja la notificación de éxito al disparar onSuccess()
-            clearForm(); // Esto borra caché y backups
-            onSuccess();
+            logMarina(`🚀 [API] Reporte guardado como ${estado} con éxito.`);
+
+            if (estado === 'BORRADOR') {
+                addNotification('success', 'Borrador guardado correctamente en el ERP.');
+                // Si es un borrador nuevo, necesitamos actualizar la URL o el estado local con el ID retornado
+                if (!reporteIdOriginal && response.data.reporte_id) {
+                    // Aquí podríamos recargar la página con el ID o simplemente notificar
+                    // Por ahora, al ser borrador persistido en DB, si el usuario sale y vuelve, lo verá en "Mis Legalizaciones"
+                }
+            } else {
+                clearForm();
+                onSuccess();
+            }
         } catch (err: any) {
-            console.error("Error enviando reporte:", err);
-            addNotification('error', err.response?.data?.detail || 'Error al enviar el reporte.');
+            console.error(`Error guardando como ${estado}:`, err);
+            // Robustecer manejo de errores: FastAPI devuelve objetos de validación, no strings
+            let errorMessage = 'Error al procesar el reporte.';
+            if (err.response?.data?.detail) {
+                if (typeof err.response.data.detail === 'string') {
+                    errorMessage = err.response.data.detail;
+                } else if (Array.isArray(err.response.data.detail)) {
+                    // Pydantic devuelve array de errores de validación
+                    errorMessage = err.response.data.detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(', ');
+                } else {
+                    errorMessage = JSON.stringify(err.response.data.detail);
+                }
+            }
+            addNotification('error', errorMessage);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleDeleteReport = async () => {
+        if (!reporteIdOriginal) return;
+        setIsDeletingReport(true);
+        try {
+            await axios.delete(`${API_BASE_URL}/viaticos/reporte/${reporteIdOriginal}`);
+            addNotification('success', 'Reporte eliminado permanentemente.');
+            onBack();
+        } catch (err) {
+            console.error("Error deleting report:", err);
+            addNotification('error', 'No se pudo eliminar el reporte.');
+        } finally {
+            setIsDeletingReport(false);
+            setShowDeleteReportModal(false);
+        }
+    };
+
+    const handleSaveDraft = () => {
+        if (lineas.length === 0) {
+            addNotification('warning', 'Agrega al menos una línea para guardar el borrador.');
+            return;
+        }
+        handleSubmit('BORRADOR');
     };
 
     return (
@@ -234,44 +283,58 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                     </div>
 
                     {/* Acciones */}
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                    <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
                         {observacionesGral.match(/\[(REP-L\d+)\]/) && (
-                            <Badge variant="success" size="lg" className="font-black px-4 bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400">
+                            <Badge variant="success" size="lg" className="font-black px-4 bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 w-full sm:w-auto justify-center">
                                 {observacionesGral.match(/\[(REP-L\d+)\]/)?.[1]}
                             </Badge>
                         )}
-                        <Button
-                            onClick={handlePrepareSubmit}
-                            disabled={isLoading}
-                            loading={isLoading}
-                            variant="erp"
-                            size="md"
-                            icon={Save}
-                            className="h-10 font-black rounded-xl shadow-lg shadow-[var(--color-primary)]/10 px-6"
-                        >
-                            {isLoading ? 'ENVIANDO...' : 'ENVIAR REPORTE'}
-                        </Button>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <Button
+                                onClick={handleSaveDraft}
+                                disabled={isLoading}
+                                variant="erp"
+                                size="md"
+                                icon={Save}
+                                className="h-11 sm:h-10 flex-1 sm:flex-initial font-bold rounded-xl bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200 shadow-none px-4 sm:px-6"
+                            >
+                                GUARDAR
+                            </Button>
+                            <Button
+                                onClick={handlePrepareSubmit}
+                                disabled={isLoading}
+                                loading={isLoading}
+                                variant="erp"
+                                size="md"
+                                className="h-11 sm:h-10 grow sm:flex-initial font-black rounded-xl shadow-lg shadow-[var(--color-primary)]/10 px-6 sm:px-8"
+                            >
+                                {isLoading ? 'ENVIANDO...' : 'ENVIAR REPORTE'}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div className="space-y-4 mt-8">
-                {/* Cabecera de Tabla */}
-                <div className="flex items-center justify-between px-2">
-                    <Title variant="h6" weight="bold" className="text-sm tracking-tight flex items-center gap-2">
-                        <div className="w-1.5 h-4 bg-[var(--color-primary)] rounded-full"></div>
-                        ÍTEMS DEL REPORTE
-                        <Text as="span" variant="caption" className="ml-2 font-medium opacity-40 lowercase">
-                            ({lineas.length} registros)
-                        </Text>
-                    </Title>
-                    <div className="flex gap-2">
+                {/* Cabecera de Tabla: Barra de Título y Acciones (Responsive Inteligente) */}
+                <div className="flex flex-row items-center justify-between px-3 sm:px-4 py-2 bg-[var(--color-surface-variant)]/40 border-b border-[var(--color-border)] gap-2 rounded-t-2xl min-h-[48px]">
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                        <div className="w-1 h-4 bg-[var(--color-primary)] rounded-full hidden sm:block"></div>
+                        <Title variant="h6" weight="bold" className="text-[10px] sm:text-xs tracking-tight uppercase whitespace-nowrap flex items-center gap-1">
+                            ÍTEMS <span className="hidden sm:inline">DEL REPORTE</span>
+                            <Text as="span" variant="caption" className="font-medium opacity-40 lowercase text-[9px] sm:text-[10px]">
+                                ({lineas.length})
+                            </Text>
+                        </Title>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-1.5 ml-auto">
                         <Button
                             onClick={() => setShowClearModal(true)}
                             variant="erp"
                             size="xs"
                             icon={Trash2}
-                            className="font-bold rounded-xl px-4 text-red-600 border-red-200 hover:bg-red-50"
+                            className="font-bold rounded-lg px-2 sm:px-2.5 py-1 text-red-600 border-red-100 hover:bg-red-50 text-[9px] w-fit shadow-sm bg-white dark:bg-black/20"
                         >
                             LIMPIAR
                         </Button>
@@ -280,9 +343,25 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                             variant="erp"
                             size="xs"
                             icon={Plus}
-                            className="font-bold rounded-xl px-4 text-[var(--color-primary)]"
+                            className="font-bold rounded-lg px-2 sm:px-2.5 py-1 text-[var(--color-primary)] text-[9px] w-fit shadow-sm bg-white dark:bg-black/20"
                         >
-                            AGREGAR GASTO
+                            <span className="hidden sm:inline">AGREGAR GASTO</span>
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                if (reporteIdOriginal) {
+                                    setShowDeleteReportModal(true);
+                                } else {
+                                    clearForm();
+                                    onBack();
+                                }
+                            }}
+                            variant="erp"
+                            size="xs"
+                            icon={Trash2}
+                            className="font-bold rounded-lg px-2 sm:px-2.5 py-1 text-red-600 border-red-100 hover:bg-red-50 text-[9px] w-fit shadow-sm bg-white dark:bg-black/20"
+                        >
+                            <span className="hidden sm:inline">{reporteIdOriginal ? 'BORRAR' : 'DESCARTAR'}</span>
                         </Button>
                     </div>
                 </div>
@@ -375,11 +454,10 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                 />
             </div>
 
-            {/* Modal de Confirmación de Envío */}
             <ExpenseConfirmModal
                 isOpen={showConfirmModal}
                 onClose={() => setShowConfirmModal(false)}
-                onConfirm={handleSubmit}
+                onConfirm={() => handleSubmit('PRE-INICIAL')}
                 totalGeneral={totalGeneral}
                 totalFacturado={totalFacturado}
                 totalSinFactura={totalSinFactura}
@@ -393,6 +471,14 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                     clearForm();
                     addNotification('info', 'Reporte limpiado completamente.');
                 }}
+            />
+            {/* Modal de Confirmación de Borrado Permanente */}
+            <DeleteReportConfirmModal
+                isOpen={showDeleteReportModal}
+                onClose={() => setShowDeleteReportModal(false)}
+                onConfirm={handleDeleteReport}
+                reportCode={observacionesGral.match(/\[(REP-L\d+)\]/)?.[1]}
+                isLoading={isDeletingReport}
             />
         </div>
     );

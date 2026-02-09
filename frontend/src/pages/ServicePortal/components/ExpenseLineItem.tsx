@@ -203,7 +203,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
             {/* Factura */}
             <td className={`px-2 py-2 border-b border-[var(--color-border)] ${errors.includes('valorConFactura') ? 'bg-red-50/50' : ''}`}>
                 <CurrencyInput
-                    value={linea.valorConFactura.toString()}
+                    value={(linea.valorConFactura ?? 0).toString()}
                     size="xs"
                     onChange={(val: string) => updateLinea(linea.id, 'valorConFactura', val)}
                     className={`font-bold bg-[var(--color-primary)]/5 border-none focus:ring-2 focus:ring-[var(--color-primary)]/20 rounded-lg !px-2 ${errors.includes('valorConFactura') ? 'ring-1 ring-red-500' : ''}`}
@@ -213,7 +213,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
             {/* Sin Factura */}
             <td className={`px-2 py-2 border-b border-[var(--color-border)] ${errors.includes('valorSinFactura') ? 'bg-red-50/50' : ''}`}>
                 <CurrencyInput
-                    value={linea.valorSinFactura.toString()}
+                    value={(linea.valorSinFactura ?? 0).toString()}
                     size="xs"
                     onChange={(val: string) => updateLinea(linea.id, 'valorSinFactura', val)}
                     className={`font-bold bg-[var(--color-primary)]/5 border-none focus:ring-2 focus:ring-[var(--color-primary)]/20 rounded-lg !px-2 ${errors.includes('valorSinFactura') ? 'ring-1 ring-red-500' : ''}`}

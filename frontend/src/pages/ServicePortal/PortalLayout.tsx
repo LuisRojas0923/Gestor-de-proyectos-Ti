@@ -30,26 +30,29 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                     <div className="w-full px-4 sm:px-10 h-full flex items-center justify-between text-white relative py-0">
                         {/* 1. SECCIÓN IZQUIERDA (Logo Refridcol - Extremo Izquierdo y Alto Total) */}
                         <div className="flex items-center justify-start shrink-0 h-full">
-                            <img
-                                src={imgLogoRefridcol}
-                                alt="Refridcol"
-                                className="h-full w-auto object-contain py-1 transition-transform hover:scale-105"
-                            />
+                            <button
+                                type="button"
+                                onClick={onHome}
+                                className="h-full w-auto object-contain py-1 transition-transform hover:scale-105 focus:outline-none cursor-pointer bg-transparent border-none rounded-none"
+                                aria-label="Ir al inicio"
+                            >
+                                <img src={imgLogoRefridcol} alt="Refridcol" className="h-full w-auto object-contain" />
+                            </button>
                         </div>
 
-                        {/* 2. SECCIÓN CENTRAL (Identidad del Portal - Centrado Absoluto a la Pantalla) */}
+                        {/* 2. SECCIÓN CENTRAL (Identidad del Portal - Centrado Relativo en Móvil, Absoluto en Desktop) */}
                         <div
-                            className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center cursor-pointer select-none z-10"
+                            className="flex-1 md:absolute md:left-1/2 md:-translate-x-1/2 flex flex-col items-center cursor-pointer select-none z-10 px-2"
                             onClick={onHome}
                         >
-                            <Title variant="h2" weight="bold" color="white" className="tracking-tighter drop-shadow-2xl uppercase text-center font-black leading-tight italic whitespace-nowrap">
+                            <Title variant="h2" weight="bold" color="white" className="tracking-tighter drop-shadow-2xl uppercase text-center font-black leading-tight italic whitespace-nowrap text-base sm:text-2xl md:text-3xl">
                                 <span className="hidden sm:inline">Portal de Servicios SOLID</span>
                                 <span className="inline sm:hidden">Portal SOLID</span>
                             </Title>
                         </div>
 
                         {/* 3. SECCIÓN DERECHA (Controles y Sello Ecosistema al final) */}
-                        <div className="flex items-center justify-end space-x-2 sm:space-x-4 z-20 w-[60%] md:w-auto">
+                        <div className="flex items-center justify-end z-20 shrink-0">
                             {/* Controles Estándar */}
                             <div className="flex items-center gap-2 sm:gap-4 border-r border-white/20 pr-4">
                                 <ThemeToggle className="text-white scale-80 sm:scale-100" />
@@ -70,11 +73,11 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                             </div>
 
                             {/* SELLO ECOSISTEMA: VERTICAL Y PREMIUM */}
-                            <div className="flex flex-col items-center gap-1.5 group select-none pl-4 border-l border-white/20 ml-2">
-                                <Text variant="caption" weight="bold" color="white" className="uppercase tracking-[0.3em] text-[7.5px] opacity-60 group-hover:opacity-100 transition-opacity leading-none drop-shadow-sm">
+                            <div className="hidden xs:flex flex-col items-center gap-1.5 group select-none pl-2 sm:pl-4 border-l border-white/20 ml-1 sm:ml-2">
+                                <Text variant="caption" weight="bold" color="white" className="uppercase tracking-[0.3em] text-[6px] sm:text-[7.5px] opacity-60 group-hover:opacity-100 transition-opacity leading-none drop-shadow-sm">
                                     Ecosistema
                                 </Text>
-                                <div className="h-6 w-auto flex items-center justify-center">
+                                <div className="h-4 sm:h-6 w-auto flex items-center justify-center">
                                     <img
                                         src={imgSolidLogo}
                                         alt="SOLID-ERP"

@@ -269,12 +269,23 @@ export const useExpenseForm = () => {
             logMarina("⏭️ [BACKUP] Saltando respaldo: los datos actuales son externos");
         }
 
-        // --- RECUPERACIÓN DE COMBINACIONES CC/SCC ---
-        // Para que los selectores funcionen, necesitamos las combinaciones de cada OT
-        const otsUnicas = Array.from(new Set(nuevasLineas.map(l => l.ot).filter(Boolean)));
-        const lineasConCombos = [...nuevasLineas];
+        // --- NORMALIZACIÓN Y RECUPERACIÓN DE COMBINACIONES CC/SCC ---
+        // Normalizar nombres de campos (DB lowercase -> Frontend camelCase)
+        const lineasNormalizadas = nuevasLineas.map((l: any) => ({
+            ...l,
+            id: l.id || generateId(),
+            fecha: l.fecharealgasto || l.fecha || new Date().toISOString().split('T')[0],
+            valorConFactura: l.valorconfactura !== undefined ? l.valorconfactura : l.valorConFactura,
+            valorSinFactura: l.valorsinfactura !== undefined ? l.valorsinfactura : l.valorSinFactura,
+            cc: l.centrocosto || l.cc,
+            scc: l.subcentrocosto || l.scc,
+            observaciones: l.observaciones || l.observaciones_linea || ''
+        }));
 
-        logMarina("🔄 [LOAD] Recuperando combinaciones para OTs:", otsUnicas);
+        const otsUnicas = Array.from(new Set(lineasNormalizadas.map(l => l.ot).filter(Boolean)));
+        const lineasConCombos = [...lineasNormalizadas];
+
+        logMarina("🔄 [LOAD] Normalizando y recuperando combinaciones para OTs:", otsUnicas);
 
         for (const otNum of otsUnicas) {
             try {

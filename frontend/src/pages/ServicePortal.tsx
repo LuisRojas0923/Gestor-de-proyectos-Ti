@@ -194,15 +194,17 @@ const ServicePortal: React.FC = () => {
         fetchCategories();
     }, []);
 
+    const hasRefreshed = React.useRef(false);
     // Efecto para asegurar que el perfil del usuario tenga área/cargo/sede/centrocosto (Auto-sync para sesiones activas)
     useEffect(() => {
         const refreshUserProfile = async () => {
-            // Se dispara si falta área O sede O centrocosto
-            if (user && (!user.area || !user.sede || !user.centrocosto || user.centrocosto === '---')) {
+            // Se dispara si falta área O sede O centrocosto Y no hemos intentado ya en este montaje
+            if (user && !hasRefreshed.current && (!user.area || !user.sede || !user.centrocosto || user.centrocosto === '---')) {
                 const token = localStorage.getItem('token');
                 if (!token) return;
 
                 try {
+                    hasRefreshed.current = true; // Marcar como intentado para evitar bucles
                     const res = await axios.get(`${API_BASE_URL}/auth/yo`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
@@ -227,7 +229,7 @@ const ServicePortal: React.FC = () => {
             }
         };
         refreshUserProfile();
-    }, [user, dispatch]);
+    }, [user?.cedula, dispatch]); // Depender de un primitivo (cedula) en lugar del objeto completo
 
     // Login logic removed
 
@@ -387,10 +389,10 @@ const ServicePortal: React.FC = () => {
 
     // Redirigir si no hay usuario (protección extra, aunque ProtectedRoute debería manejarlo)
     useEffect(() => {
-        if (user) {
+        if (user?.cedula || user?.id) {
             fetchTickets(user.cedula || user.id);
         }
-    }, [user]);
+    }, [user?.cedula, user?.id]);
 
 
     if (!user) return <div className="flex justify-center items-center h-screen">Cargando perfil...</div>;
@@ -509,13 +511,13 @@ const ServicePortal: React.FC = () => {
                                 const lineasDetalle = res.data.map((l: any) => ({
                                     id: l.id || Math.random().toString(36).substring(7),
                                     categoria: l.categoria,
-                                    fecha: l.fecha_gasto,
+                                    fecha: l.fecharealgasto || l.fecha_gasto || l.fecha,
                                     ot: l.ot,
-                                    cc: l.cc,
-                                    scc: l.scc,
-                                    valorConFactura: Number(l.valor_con_factura),
-                                    valorSinFactura: Number(l.valor_sin_factura),
-                                    observaciones: l.observaciones_linea,
+                                    cc: l.centrocosto || l.cc,
+                                    scc: l.subcentrocosto || l.scc,
+                                    valorConFactura: Number(l.valorconfactura !== undefined ? l.valorconfactura : l.valor_con_factura),
+                                    valorSinFactura: Number(l.valorsinfactura !== undefined ? l.valorsinfactura : l.valor_sin_factura),
+                                    observaciones: l.observaciones || l.observaciones_linea,
                                     adjuntos: typeof l.adjuntos === 'string' ? JSON.parse(l.adjuntos) : (l.adjuntos || []),
                                     combinacionesCC: [] // Se cargarán al entrar si es necesario
                                 }));

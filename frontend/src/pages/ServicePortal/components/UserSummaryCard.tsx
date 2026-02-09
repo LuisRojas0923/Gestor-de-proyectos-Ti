@@ -15,8 +15,8 @@ const UserSummaryCard: React.FC<UserSummaryCardProps> = ({ user }) => {
                         <User size={11} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <Text variant="caption" weight="semibold" color="white" className="text-[8px] sm:text-[14px] uppercase tracking-tight block opacity-70 truncate">Empleado</Text>
-                        <Text variant="caption" className="text-[8px] sm:text-[14px] font-bold leading-tight truncate block" color="white" title={user.name}>{user.name}</Text>
+                        <Text variant="caption" weight="semibold" color="white" className="text-[10px] sm:text-[14px] uppercase tracking-tight block opacity-70 truncate">Empleado</Text>
+                        <Text variant="caption" className="text-[10px] sm:text-[14px] font-bold leading-tight truncate block" color="white" title={user.name}>{user.name}</Text>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -24,8 +24,8 @@ const UserSummaryCard: React.FC<UserSummaryCardProps> = ({ user }) => {
                         <IdCard size={11} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <Text variant="caption" weight="semibold" color="white" className="text-[8px] sm:text-[14px] uppercase tracking-tight block opacity-70 truncate">Cargo</Text>
-                        <Text variant="caption" className="text-[8px] sm:text-[14px] font-bold leading-tight truncate block" color="white" title={user.cargo}>{user.cargo}</Text>
+                        <Text variant="caption" weight="semibold" color="white" className="text-[10px] sm:text-[14px] uppercase tracking-tight block opacity-70 truncate">Cargo</Text>
+                        <Text variant="caption" className="text-[10px] sm:text-[14px] font-bold leading-tight truncate block" color="white" title={user.cargo}>{user.cargo}</Text>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -33,8 +33,8 @@ const UserSummaryCard: React.FC<UserSummaryCardProps> = ({ user }) => {
                         <Network size={11} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <Text variant="caption" weight="semibold" color="white" className="text-[8px] sm:text-[14px] uppercase tracking-tight block opacity-70 truncate">Área</Text>
-                        <Text variant="caption" className="text-[8px] sm:text-[14px] font-bold leading-tight truncate block" color="white" title={user.area}>{user.area}</Text>
+                        <Text variant="caption" weight="semibold" color="white" className="text-[10px] sm:text-[14px] uppercase tracking-tight block opacity-70 truncate">Área</Text>
+                        <Text variant="caption" className="text-[10px] sm:text-[14px] font-bold leading-tight truncate block" color="white" title={user.area}>{user.area}</Text>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -42,8 +42,8 @@ const UserSummaryCard: React.FC<UserSummaryCardProps> = ({ user }) => {
                         <MapPin size={11} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <Text variant="caption" weight="semibold" color="white" className="text-[8px] sm:text-[14px] uppercase tracking-tight block opacity-70 truncate">Sede</Text>
-                        <Text variant="caption" className="text-[8px] sm:text-[14px] font-bold leading-tight truncate block" color="white" title={user.sede}>{user.sede}</Text>
+                        <Text variant="caption" weight="semibold" color="white" className="text-[10px] sm:text-[14px] uppercase tracking-tight block opacity-70 truncate">Sede</Text>
+                        <Text variant="caption" className="text-[10px] sm:text-[14px] font-bold leading-tight truncate block" color="white" title={user.sede}>{user.sede}</Text>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -51,8 +51,8 @@ const UserSummaryCard: React.FC<UserSummaryCardProps> = ({ user }) => {
                         <Wallet size={11} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <Text variant="caption" weight="semibold" color="white" className="text-[8px] sm:text-[14px] uppercase tracking-tight block opacity-70 truncate">C. Costo</Text>
-                        <Text variant="caption" className="text-[8px] sm:text-[14px] font-bold leading-tight truncate block" color="white" title={user.centrocosto || '---'}>{user.centrocosto || '---'}</Text>
+                        <Text variant="caption" weight="semibold" color="white" className="text-[10px] sm:text-[14px] uppercase tracking-tight block opacity-70 truncate">C. Costo</Text>
+                        <Text variant="caption" className="text-[10px] sm:text-[14px] font-bold leading-tight truncate block" color="white" title={user.centrocosto || '---'}>{user.centrocosto || '---'}</Text>
                     </div>
                 </div>
                 <div className="flex items-center gap-3 border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-6 col-span-2 md:col-span-1">
@@ -60,8 +60,8 @@ const UserSummaryCard: React.FC<UserSummaryCardProps> = ({ user }) => {
                         <Wallet size={11} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <Text variant="caption" weight="semibold" color="white" className="text-[8px] sm:text-[14px] uppercase tracking-tight block opacity-70">Base Viáticos</Text>
-                        <Text variant="caption" className="text-[9px] sm:text-[14px] font-black leading-tight" color="white">${(user.baseviaticos || 0).toLocaleString()}</Text>
+                        <Text variant="caption" weight="semibold" color="white" className="text-[10px] sm:text-[14px] uppercase tracking-tight block opacity-70">Base Viáticos</Text>
+                        <Text variant="caption" className="text-[11px] sm:text-[14px] font-black leading-tight" color="white">${(user.baseviaticos || 0).toLocaleString()}</Text>
                     </div>
                 </div>
             </div>
