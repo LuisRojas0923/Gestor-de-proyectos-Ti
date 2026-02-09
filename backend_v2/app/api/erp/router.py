@@ -4,7 +4,7 @@ API de Endpoint ERP - Backend V2
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import obtener_db, obtener_erp_db, obtener_erp_db_opcional
-from app.services.erp.servicio import ServicioErp
+from app.services.erp import EmpleadosService
 from typing import Any, Dict, List, Optional
 
 router = APIRouter()
@@ -37,7 +37,7 @@ async def obtener_empleado_erp(
             detail="El servicio ERP no esta disponible. Usa login de administrador (usuario y contraseña).",
         )
     try:
-        empleado = await ServicioErp.obtener_empleado_por_cedula(db_erp, identificacion)
+        empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, identificacion)
     except Exception as e:
         print(f"ERROR ERP empleado (cedula={identificacion}): {e}")
         raise HTTPException(

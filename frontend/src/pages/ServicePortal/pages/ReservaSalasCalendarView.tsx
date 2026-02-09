@@ -10,7 +10,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import type { EventClickArg, EventDropArg } from '@fullcalendar/core';
 import type { DateClickArg, EventResizeDoneArg } from '@fullcalendar/interaction';
 import { Calendar, ArrowLeft, Plus } from 'lucide-react';
-import { Title, Text, Button } from '../../../components/atoms';
+import { Title, Text, Button, Icon, Select } from '../../../components/atoms';
 import { useReservaSalas } from '../../../hooks/useReservaSalas';
 import { useAppContext } from '../../../context/AppContext';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
@@ -173,34 +173,35 @@ export const ReservaSalasCalendarView: React.FC<ReservaSalasCalendarViewProps> =
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Button variant="ghost" onClick={onBack} icon={ArrowLeft} className="font-bold p-0">Volver</Button>
-          <span className="flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-[var(--color-primary)]" />
+          <div className="flex items-center gap-2">
+            <Icon name={Calendar} size="lg" color="primary" />
             <Title variant="h3" weight="bold" className="text-[var(--deep-navy)] dark:text-white">
               Calendario de reservas
             </Title>
-          </span>
+          </div>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => { setSelectedDate(null); setShowCreateModal(true); }}>
           Nueva reserva
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4">
-        <Text variant="body2" weight="bold" color="text-secondary">Sala:</Text>
-        <select
-          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)] focus:ring-2 focus:ring-[var(--color-primary)] max-w-xs"
-          value={selectedRoom?.id ?? ''}
-          onChange={(e) => {
-            const r = rooms.find((x) => x.id === e.target.value);
-            setSelectedRoom(r ?? null);
-          }}
-        >
-          {rooms.map((room) => (
-            <option key={room.id} value={room.id}>
-              {room.name} (Capacidad: {room.capacity})
-            </option>
-          ))}
-        </select>
+      <div className="flex flex-wrap items-center gap-3 w-full max-w-lg">
+        <Text as="label" variant="body2" weight="bold" color="text-secondary" className="min-w-[56px]">
+          Sala:
+        </Text>
+        <div className="flex-1">
+          <Select
+            value={selectedRoom?.id ?? ''}
+            onChange={(e) => {
+              const r = rooms.find((x) => x.id === e.target.value);
+              setSelectedRoom(r ?? null);
+            }}
+            options={rooms.map((room) => ({
+              value: room.id,
+              label: `${room.name} (Capacidad: ${room.capacity})`,
+            }))}
+          />
+        </div>
       </div>
 
       <div className="reserva-salas-calendar rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 overflow-hidden">

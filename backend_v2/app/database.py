@@ -120,3 +120,50 @@ async def init_db():
             await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS centrocosto VARCHAR(255)"))
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil: {e}")
+
+    # 3. Seed idempotente de sala por defecto
+    try:
+        import uuid
+        from sqlmodel import select
+        from .models.reserva_salas.models import Room
+
+        default_room_id = uuid.UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
+
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Room).where(Room.id == default_room_id))
+            if result.scalars().first() is None:
+                session.add(
+                    Room(
+                        id=default_room_id,
+                        name="Sala de reuniones 1",
+                        capacity=10,
+                        resources=["Proyector", "Pizarra"],
+                        is_active=True,
+                        notes="Sala principal",
+                    )
+                )
+                await session.commit()
+    except Exception as e:
+        print(f"DEBUG: Error seed sala por defecto: {e}")
+
+    # 4. Usuario administrador por defecto (si no existe)
+    try:
+        from .models.auth.usuario import Usuario
+        from .services.auth.servicio import ServicioAuth
+
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Usuario).where(Usuario.cedula == "admin"))
+            if result.scalar_one_or_none() is None:
+                admin = Usuario(
+                    id="admin-01",
+                    cedula="admin",
+                    nombre="Administrador Sistema",
+                    rol="admin",
+                    hash_contrasena=ServicioAuth.obtener_hash_contrasena("admin123"),
+                    esta_activo=True,
+                )
+                session.add(admin)
+                await session.commit()
+                print("DEBUG: Usuario administrador creado (admin / admin123)")
+    except Exception as e:
+        print(f"DEBUG: Error creando usuario admin: {e}")

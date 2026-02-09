@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Button, Input, Text } from '../../../components/atoms';
 import { Modal } from '../../../components/molecules';
 import { useReservaSalas } from '../../../hooks/useReservaSalas';
+import { useNotifications } from '../../../components/notifications/NotificationsContext';
 import { useAppContext } from '../../../context/AppContext';
 import type { Reservation } from '../../../types/reservaSalas';
 
@@ -18,6 +19,11 @@ const formatDateTime = (datetime: string): string => {
   });
 };
 
+const toMinutes = (timeStr: string): number => {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + (m || 0);
+};
+
 interface ReservationDetailModalProps {
   reservation: Reservation;
   onClose: () => void;
@@ -28,6 +34,7 @@ const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({ reserva
   const { state } = useAppContext();
   const user = state.user;
   const { updateReservation, cancelReservation } = useReservaSalas();
+  const { addNotification } = useNotifications();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,8 +49,21 @@ const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({ reserva
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    const startMins = toMinutes(formData.start_time);
+    const endMins = toMinutes(formData.end_time);
+    if (startMins < toMinutes('07:00') || endMins > toMinutes('18:00')) {
+      const msg = 'Las reservas solo están permitidas entre las 7:00 AM y las 6:00 PM (18:00).';
+      setError(msg);
+      addNotification('error', msg);
+      return;
+    }
+    if (startMins >= endMins) {
+      setError('La hora de fin debe ser posterior a la hora de inicio.');
+      addNotification('error', 'La hora de fin debe ser posterior a la hora de inicio.');
+      return;
+    }
+    setLoading(true);
     try {
       const startDatetime = `${formData.date}T${formData.start_time}:00`;
       const endDatetime = `${formData.date}T${formData.end_time}:00`;
@@ -54,9 +74,12 @@ const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({ reserva
         updated_by_name: formData.updated_by_name,
         updated_by_document: formData.updated_by_document,
       });
+      addNotification('success', 'Reserva actualizada correctamente');
       onUpdate();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al actualizar');
+      const message = e instanceof Error ? e.message : 'Error al actualizar';
+      setError(message);
+      addNotification('error', message);
     } finally {
       setLoading(false);
     }
@@ -72,9 +95,12 @@ const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({ reserva
         cancelled_by_name: user.name || 'Usuario',
         cancelled_by_document: user.cedula || user.id || '',
       });
+      addNotification('success', 'Reserva cancelada correctamente');
       onUpdate();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al cancelar');
+      const message = e instanceof Error ? e.message : 'Error al cancelar';
+      setError(message);
+      addNotification('error', message);
     } finally {
       setLoading(false);
     }

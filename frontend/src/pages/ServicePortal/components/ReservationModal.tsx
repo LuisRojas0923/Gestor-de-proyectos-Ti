@@ -1,11 +1,12 @@
 /**
  * Modal para crear una nueva reserva (migrado desde PRUEBA ANTI).
- * Horario laboral: 07:30 - 18:00.
+ * Horario permitido: 7:00 - 18:00 (6 PM).
  */
 import React, { useState } from 'react';
 import { Button, Input, Text } from '../../../components/atoms';
 import { Modal } from '../../../components/molecules';
 import { useReservaSalas } from '../../../hooks/useReservaSalas';
+import { useNotifications } from '../../../components/notifications/NotificationsContext';
 import { useAppContext } from '../../../context/AppContext';
 import type { Room } from '../../../types/reservaSalas';
 
@@ -25,6 +26,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ room, initialDate, 
   const { state } = useAppContext();
   const user = state.user;
   const { createReservation } = useReservaSalas();
+  const { addNotification } = useNotifications();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -42,16 +44,20 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ room, initialDate, 
     setError(null);
     const startMins = toMinutes(formData.start_time);
     const endMins = toMinutes(formData.end_time);
-    const openMins = toMinutes('07:30');
+    const openMins = toMinutes('07:00');
     const closeMins = toMinutes('18:00');
 
-    if (startMins < openMins || startMins >= closeMins || endMins <= openMins || endMins > closeMins) {
-      setError('El horario debe estar entre 07:30 y 18:00 (24h).');
+    if (startMins < openMins || endMins > closeMins) {
+      const message = 'Las reservas solo están permitidas entre las 7:00 AM y las 6:00 PM (18:00).';
+      setError(message);
+      addNotification('error', message);
       setLoading(false);
       return;
     }
     if (startMins >= endMins) {
-      setError('La hora de fin debe ser posterior a la hora de inicio.');
+      const message = 'La hora de fin debe ser posterior a la hora de inicio.';
+      setError(message);
+      addNotification('error', message);
       setLoading(false);
       return;
     }
@@ -67,9 +73,12 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ room, initialDate, 
         created_by_name: formData.created_by_name.trim(),
         created_by_document: formData.created_by_document.trim(),
       });
+      addNotification('success', 'Reserva creada correctamente');
       onSuccess();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al crear la reserva');
+      const message = e instanceof Error ? e.message : 'Error al crear la reserva';
+      setError(message);
+      addNotification('error', message);
     } finally {
       setLoading(false);
     }

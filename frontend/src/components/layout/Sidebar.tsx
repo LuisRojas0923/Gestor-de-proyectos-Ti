@@ -3,6 +3,7 @@ import {
   Briefcase,
   ChevronLeft,
   ChevronRight,
+  DoorOpen,
   LayoutDashboard,
   MessageSquare,
   Settings,
@@ -37,6 +38,7 @@ const Sidebar: React.FC = () => {
     { id: 'chat', name: 'Chat IA', href: '/chat', icon: MessageSquare },
     { id: 'service-portal', name: 'Portal de Servicios', href: '/service-portal', icon: Share2 },
     { id: 'user-admin', name: 'Gestión de Usuarios', href: '/admin/users', icon: Users },
+    { id: 'rooms-admin', name: 'Gestión de Salas', href: '/admin/rooms', icon: DoorOpen },
     { id: 'settings', name: 'Configuración', href: '/settings', icon: Settings },
     { id: 'design-catalog', name: 'Catálogo de Diseño', href: '/design-catalog', icon: Palette },
   ];
@@ -44,6 +46,9 @@ const Sidebar: React.FC = () => {
   const filteredNavigation = navigation.filter(item => {
     // Normalizar rol para comparaciones
     const userRole = (user?.role || '').trim().toLowerCase();
+
+    // Gestión de Salas: solo rol admin
+    if (item.id === 'rooms-admin') return userRole === 'admin';
 
     // Si el usuario no tiene cargados los permisos todavía (sesión antigua en caché)
     // permitimos ver todo lo que su rol tradicional permitía

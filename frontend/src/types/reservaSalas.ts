@@ -12,6 +12,22 @@ export interface Room {
   updated_at: string;
 }
 
+export interface RoomCreate {
+  name: string;
+  capacity: number;
+  resources: string[];
+  is_active: boolean;
+  notes?: string;
+}
+
+export interface RoomUpdate {
+  name?: string;
+  capacity?: number;
+  resources?: string[];
+  is_active?: boolean;
+  notes?: string;
+}
+
 export interface Reservation {
   id: string;
   room_id: string;

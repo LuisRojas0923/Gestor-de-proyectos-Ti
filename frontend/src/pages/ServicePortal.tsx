@@ -415,6 +415,7 @@ const ServicePortal: React.FC = () => {
                             if (v === 'viaticos_gestion') navigate('/service-portal/gastos/gestion');
                             else if (v === 'categories') navigate('/service-portal/servicios');
                             else if (v === 'status') navigate('/service-portal/mis-tickets');
+                            else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
                         }}
                     />
                 } />
@@ -423,7 +424,6 @@ const ServicePortal: React.FC = () => {
                     <AreaSelectionView
                         onSelectArea={(area) => navigate(`/service-portal/servicios/${area}`)}
                         onConsultStatus={() => navigate('/service-portal/mis-tickets')}
-                        onReservaSalas={() => navigate('/service-portal/reserva-salas')}
                         onBack={() => navigate('/service-portal/inicio')}
                     />
                 } />
@@ -552,7 +552,7 @@ const ServicePortal: React.FC = () => {
                 } />
 
                 <Route path="reserva-salas" element={
-                    <ReservaSalasView onBack={() => navigate('/service-portal/servicios')} />
+                    <ReservaSalasView onBack={() => navigate('/service-portal/inicio')} />
                 } />
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />

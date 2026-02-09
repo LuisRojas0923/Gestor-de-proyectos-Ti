@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
-from app.database import obtener_db, obtener_erp_db
+from app.database import obtener_db, obtener_erp_db, obtener_erp_db_opcional
 from app.models.auth.usuario import (
     Usuario, UsuarioCrear, UsuarioPublico, PermisoRol,
     TokenRespuesta, LoginRequest, AnalistaCrear, PasswordCambiar
@@ -22,7 +22,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v2/auth/login")
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(), 
     db: AsyncSession = Depends(obtener_db),
-    db_erp = Depends(obtener_erp_db)
+    db_erp = Depends(obtener_erp_db_opcional),
 ):
     """Endpoint para inicio de sesion (OAuth2 compatible)"""
     try:
@@ -44,9 +44,8 @@ async def login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
             
-        # 3. Sincronizar perfil si falta información clave (Auto-parche)
-        # Se envuelve en try-except para que un fallo en el ERP no bloquee el login
-        if not usuario.area or not usuario.sede:
+        # 3. Sincronizar perfil desde ERP si falta información y ERP está disponible
+        if db_erp and (not usuario.area or not usuario.sede):
             try:
                 usuario = await ServicioAuth.sincronizar_perfil_desde_erp(db, db_erp, usuario)
             except Exception as e:

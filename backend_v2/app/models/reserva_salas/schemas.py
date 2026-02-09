@@ -24,11 +24,20 @@ class RoomRead(SQLModel):
 
 
 class RoomCreate(SQLModel):
-    """Crear sala (admin, uso futuro)"""
+    """Crear sala (admin)"""
     name: str
     capacity: int = 1
     resources: List[str] = []
     is_active: bool = True
+    notes: Optional[str] = None
+
+
+class RoomUpdate(SQLModel):
+    """Actualizar sala (admin)"""
+    name: Optional[str] = None
+    capacity: Optional[int] = None
+    resources: Optional[List[str]] = None
+    is_active: Optional[bool] = None
     notes: Optional[str] = None
 
 

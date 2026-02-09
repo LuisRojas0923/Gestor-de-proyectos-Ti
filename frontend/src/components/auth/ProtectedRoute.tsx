@@ -23,6 +23,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
     const isAdminRole = ['analyst', 'admin', 'director'].includes(userRole);
 
     // 1. Nueva validación por módulo (RBAC Dinámico)
+    // Dashboard siempre permitido para roles administrativos para evitar bucles de redirección.
+    if (moduleCode === 'dashboard' && isAdminRole) {
+        return <>{children}</>;
+    }
     // Solo bloqueamos si el arreglo de permisos EXISTE y el módulo NO está permitido.
     if (moduleCode && user.permissions && !user.permissions.includes(moduleCode)) {
         // Si el rol es estrictamente de usuario, siempre va al portal
@@ -33,12 +37,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
         // Si es un admin/analista/director:
         // Evitamos bucles si ya estamos en la raíz o si falla el propio dashboard
         if (location.pathname === '/' || moduleCode === 'dashboard') {
-            // Como último recurso, si un administrativo no tiene dashboard, 
+            // Como último recurso, si un administrativo no tiene dashboard,
             // le permitimos ver el portal de servicios en lugar de bloquearlo.
             return <Navigate to="/service-portal" replace />;
         }
 
-        // Si falla otro módulo (ej: chat), lo devolvemos al inicio administrativo
+        // Si falla otro módulo (ej: chat), devolver al inicio administrativo.
+        // No hay bucle porque el dashboard ya está permitido para admin/analyst/director arriba.
         return <Navigate to="/" replace />;
     }
 
