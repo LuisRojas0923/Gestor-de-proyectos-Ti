@@ -101,7 +101,7 @@ export function useApi<T>() {
         addNotification('error', errorMessage);
       }
 
-      return null;
+      throw error;
     }
   }, []);
 

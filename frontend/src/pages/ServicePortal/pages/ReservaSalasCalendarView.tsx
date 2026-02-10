@@ -120,15 +120,19 @@ export const ReservaSalasCalendarView: React.FC<ReservaSalasCalendarViewProps> =
     if (selectedRoom) loadReservations({ room_id: selectedRoom.id, status: 'ACTIVE' });
   }, [selectedRoom, loadReservations]);
 
-  const calendarEvents = reservations.map((r) => ({
-    id: String(r.id),
-    title: r.title,
-    start: new Date(r.start_datetime),
-    end: new Date(r.end_datetime),
-    backgroundColor: r.status === 'ACTIVE' ? 'var(--color-primary)' : '#6b7280',
-    borderColor: r.status === 'ACTIVE' ? 'var(--color-primary)' : '#4b5563',
-    editable: r.status === 'ACTIVE' && (r.created_by_document === user?.cedula || user?.role === 'admin'),
-  }));
+  const calendarEvents = reservations.map((r) => {
+    const isOwner = String(r.created_by_document).trim() === String(user?.cedula).trim();
+    const isAdmin = user?.role === 'admin';
+    return {
+      id: String(r.id),
+      title: r.title,
+      start: new Date(r.start_datetime),
+      end: new Date(r.end_datetime),
+      backgroundColor: r.status === 'ACTIVE' ? 'var(--color-primary)' : '#6b7280',
+      borderColor: r.status === 'ACTIVE' ? 'var(--color-primary)' : '#4b5563',
+      editable: r.status === 'ACTIVE' && (isOwner || isAdmin),
+    };
+  });
 
   if (loadingRooms) {
     return (
