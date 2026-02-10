@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS legalizaciones_transito (
     nombreempleado VARCHAR(255),
     area VARCHAR(255),
     valortotal NUMERIC(15,2) DEFAULT 0,
-    estado VARCHAR(50) DEFAULT 'PRE-INICIAL',
+    estado VARCHAR(50) DEFAULT 'INICIAL',
     usuario VARCHAR(50), -- Usuario que creo el registro
     observaciones TEXT,
     anexo INTEGER DEFAULT 0, -- 1 si tiene archivos, 0 si no

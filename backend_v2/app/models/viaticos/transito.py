@@ -11,7 +11,7 @@ class TransitoViatico(SQLModel, table=True):
     
     id: Optional[int] = Field(default=None, primary_key=True)
     reporte_id: uuid.UUID = Field(index=True)
-    estado: str = Field(default="PRE-INICIAL", max_length=50)
+    estado: str = Field(default="INICIAL", max_length=50)
     fecha_registro: datetime = Field(default_factory=datetime.now)
     
     # Metadata del Empleado

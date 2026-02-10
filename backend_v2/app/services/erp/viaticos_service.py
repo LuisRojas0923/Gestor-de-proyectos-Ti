@@ -43,53 +43,63 @@ class ViaticosService:
         """Guarda o actualiza un reporte de viáticos en la tabla de tránsito del ERP"""
         
         # Generar o Recuperar Consecutivo Amigable (Formato REP-LXXXX)
-        # Lo usaremos también como reporte_id para el vínculo entre tablas
         try:
-            sql_count = text("SELECT COUNT(DISTINCT reporte_id) FROM legalizaciones_transito")
-            count = db_erp.execute(sql_count).scalar() or 0
-            
             reporte_id_str = reporte_data.get("reporte_id")
-            es_actualizacion = bool(reporte_id_str and len(str(reporte_id_str)) > 5)
+            # Un ID amigable siempre empieza por REP-L. Los UUIDs no.
+            es_actualizacion = bool(reporte_id_str and "REP-L" in str(reporte_id_str))
             
             if es_actualizacion:
-                # Si ya tiene el formato amigable [REP-L...] o REP-L..., lo limpiamos
-                if "[" in str(reporte_id_str):
-                    # Quitar corchetes si los tiene
-                    consecutivo = str(reporte_id_str).replace("[", "").replace("]", "")
-                elif "REP-L" in str(reporte_id_str):
-                    consecutivo = str(reporte_id_str)
-                else:
-                    # Si es un UUID antiguo, generamos consecutivo nuevo sin corchetes
-                    consecutivo = f"REP-L{(count + 1):04d}"
+                consecutivo = str(reporte_id_str).replace("[", "").replace("]", "")
             else:
-                consecutivo = f"REP-L{(count + 1):04d}"
-        except:
-            consecutivo = "REP-LAUTO"
+                # Generación robusta: buscar el último número usado para evitar duplicados por huecos
+                sql_max = text("""
+                    SELECT reporte_id FROM legalizaciones_transito 
+                    WHERE reporte_id LIKE 'REP-L%' 
+                    ORDER BY length(reporte_id) DESC, reporte_id DESC 
+                    LIMIT 1
+                """)
+                max_val = db_erp.execute(sql_max).scalar()
+                
+                if max_val:
+                    try:
+                        # Extraer solo los números del string (p.ej. REP-L0005 -> 5)
+                        num_str = "".join(filter(str.isdigit, max_val))
+                        nuevo_num = int(num_str) + 1 if num_str else 1
+                    except:
+                        # Fallback a conteo si falla el parseo numérico
+                        sql_count = text("SELECT COUNT(*) FROM legalizaciones_transito")
+                        nuevo_num = (db_erp.execute(sql_count).scalar() or 0) + 1
+                else:
+                    nuevo_num = 1
+                
+                consecutivo = f"REP-L{nuevo_num:04d}"
+        except Exception as e:
+            print(f"DEBUG_ID_GEN_ERROR: {e}")
+            consecutivo = f"REP-L{uuid.uuid4().hex[:6].upper()}"
 
         # Si es actualización, LIMPIAMOS las líneas previas antes de re-insertar (Upsert Lógico)
-        # Usamos el ID recibido (UUID o antiguo) para asegurar que se borre el registro previo
         if es_actualizacion:
-            print(f"DEBUG: Borrando registro previo {reporte_id_str} para actualizar a {consecutivo}")
+            print(f"DEBUG_ERP: Actualizando reporte {reporte_id_str} -> {consecutivo}")
             db_erp.execute(text("DELETE FROM transito_viaticos WHERE reporte_id = :rid"), {"rid": reporte_id_str})
             db_erp.execute(text("DELETE FROM legalizaciones_transito WHERE reporte_id = :rid"), {"rid": reporte_id_str})
 
-        reporte_id = consecutivo # Ahora el ID amigable es el vínculo oficial
-        
+        reporte_id = consecutivo 
         obs_gral = reporte_data.get("observaciones_gral", "")
         
         # Calcular Totales y Anexos
         total_acumulado = sum(float(g["valorConFactura"] or 0) + float(g["valorSinFactura"] or 0) for g in reporte_data["gastos"])
         tiene_anexos = 1 if any(len(g.get("adjuntos", [])) > 0 for g in reporte_data["gastos"]) else 0
 
-        # Obtener Centro de Costo del Empleado (Dato nuevo)
+        # Obtener Centro de Costo del Empleado
         cc_empleado = reporte_data.get("centrocosto") or "POR-DEFINIR"
 
         # 1. Insertar Cabecera (legalizaciones_transito)
-        # Convertir usuario_id (cédula) a integer para compatibilidad Java/ERP
         try:
-            usuario_int = int(reporte_data["usuario_id"])
+            # Limpiar cualquier caracter no numérico de la cédula del usuario
+            clean_uid = "".join(filter(str.isdigit, str(reporte_data.get("usuario_id", "0"))))
+            usuario_int = int(clean_uid) if clean_uid else 0
         except (ValueError, TypeError):
-            usuario_int = 0  # Fallback si no es numérico
+            usuario_int = 0
 
         sql_header = text("""
             INSERT INTO legalizaciones_transito (
@@ -103,68 +113,74 @@ class ViaticosService:
             ) RETURNING codigo
         """)
         
-        result_header = db_erp.execute(sql_header, {
-            "codigolegalizacion": "",  # Campo en blanco como pidió el usuario
-            "empleado": reporte_data["empleado_cedula"],
-            "nombreempleado": reporte_data["empleado_nombre"],
-            "area": reporte_data["area"],
-            "valortotal": total_acumulado,
-            "estado": reporte_data.get("estado", "PRE-INICIAL"),
-            "usuario": usuario_int,  # Integer como espera el ERP
-            "observaciones": obs_gral,
-            "anexo": tiene_anexos,
-            "centrocosto": cc_empleado,
-            "cargo": reporte_data["cargo"],
-            "ciudad": reporte_data["ciudad"],
-            "reporte_id": reporte_id
-        })
-        
-        cabecera_id_numerico = result_header.scalar()
-
-        # 2. Insertar Detalles (transito_viaticos)
-        sql_insert = text("""
-            INSERT INTO transito_viaticos (
-                legalizacion, fecha, fecharealgasto, categoria, ot, 
-                centrocosto, subcentrocosto, valorconfactura, valorsinfactura, 
-                observaciones, reporte_id, estado, fecha_registro, 
-                empleado_cedula, empleado_nombre, area, cargo, ciudad, 
-                observaciones_gral, usuario_id, adjuntos
-            ) VALUES (
-                :legalizacion, :fecha, :fecharealgasto, :categoria, :ot, 
-                :centrocosto, :subcentrocosto, :valorconfactura, :valorsinfactura, 
-                :observaciones, :reporte_id, :estado, CURRENT_TIMESTAMP, 
-                :empleado_cedula, :empleado_nombre, :area, :cargo, :ciudad, 
-                :observaciones_gral, :usuario_id, :adjuntos
-            )
-        """)
-
-        for gasto in reporte_data["gastos"]:
-            db_erp.execute(sql_insert, {
-                "legalizacion": cabecera_id_numerico,
-                "fecha": date.today(), # Fecha de creacion de la linea
-                "fecharealgasto": gasto["fecha"],
-                "categoria": gasto["categoria"],
-                "ot": gasto["ot"],
-                "centrocosto": gasto["cc"],
-                "subcentrocosto": gasto["scc"],
-                "valorconfactura": gasto["valorConFactura"],
-                "valorsinfactura": gasto["valorSinFactura"],
-                "observaciones": gasto.get("observaciones"),
-                "reporte_id": reporte_id,
-                "estado": reporte_data.get("estado", "PRE-INICIAL"),
-                "empleado_cedula": reporte_data["empleado_cedula"],
-                "empleado_nombre": reporte_data["empleado_nombre"],
-                "area": reporte_data["area"],
-                "cargo": reporte_data["cargo"],
-                "ciudad": reporte_data["ciudad"],
-                "observaciones_gral": obs_gral,
-                "usuario_id": usuario_int,  # Integer como espera el ERP
-                "adjuntos": json.dumps(gasto.get("adjuntos", []))
+        try:
+            result_header = db_erp.execute(sql_header, {
+                "codigolegalizacion": str(reporte_id), # Usar el ID amigable en lugar de None
+                "empleado": str(reporte_data["empleado_cedula"]),
+                "nombreempleado": str(reporte_data["empleado_nombre"]),
+                "area": str(reporte_data["area"]),
+                "valortotal": float(total_acumulado),
+                "estado": str(reporte_data.get("estado", "INICIAL")),
+                "usuario": usuario_int,
+                "observaciones": str(obs_gral),
+                "anexo": int(tiene_anexos),
+                "centrocosto": str(cc_empleado if cc_empleado and cc_empleado != "---" else "POR-DEFINIR"),
+                "cargo": str(reporte_data["cargo"]),
+                "ciudad": str(reporte_data["ciudad"]),
+                "reporte_id": str(reporte_id)
             })
-        
-        db_erp.commit()
-        print(f"REPORT_SUCCESS | ID: {reporte_id} | Consecutivo: {consecutivo} | Total: {total_acumulado}")
-        return str(reporte_id)
+            
+            cabecera_id_numerico = result_header.scalar()
+
+            # 2. Insertar Detalles (transito_viaticos)
+            sql_insert = text("""
+                INSERT INTO transito_viaticos (
+                    legalizacion, fecha, fecharealgasto, categoria, ot, 
+                    centrocosto, subcentrocosto, valorconfactura, valorsinfactura, 
+                    observaciones, reporte_id, estado, fecha_registro, 
+                    empleado_cedula, empleado_nombre, area, cargo, ciudad, 
+                    observaciones_gral, usuario_id, adjuntos
+                ) VALUES (
+                    :legalizacion, :fecha, :fecharealgasto, :categoria, :ot, 
+                    :centrocosto, :subcentrocosto, :valorconfactura, :valorsinfactura, 
+                    :observaciones, :reporte_id, :estado, CURRENT_TIMESTAMP, 
+                    :empleado_cedula, :empleado_nombre, :area, :cargo, :ciudad, 
+                    :observaciones_gral, :usuario_id, CAST(:adjuntos AS jsonb)
+                )
+            """)
+
+            for gasto in reporte_data["gastos"]:
+                db_erp.execute(sql_insert, {
+                    "legalizacion": cabecera_id_numerico,
+                    "fecha": date.today(),
+                    "fecharealgasto": gasto["fecha"],
+                    "categoria": str(gasto["categoria"]),
+                    "ot": str(gasto["ot"]),
+                    "centrocosto": str(gasto["cc"]),
+                    "subcentrocosto": str(gasto["scc"]),
+                    "valorconfactura": float(gasto["valorConFactura"] or 0),
+                    "valorsinfactura": float(gasto["valorSinFactura"] or 0),
+                    "observaciones": str(gasto.get("observaciones", "")),
+                    "reporte_id": str(reporte_id),
+                    "estado": str(reporte_data.get("estado", "INICIAL")),
+                    "empleado_cedula": str(reporte_data["empleado_cedula"]),
+                    "empleado_nombre": str(reporte_data["empleado_nombre"]),
+                    "area": str(reporte_data["area"]),
+                    "cargo": str(reporte_data["cargo"]),
+                    "ciudad": str(reporte_data["ciudad"]),
+                    "observaciones_gral": str(obs_gral),
+                    "usuario_id": usuario_int,
+                    "adjuntos": json.dumps(gasto.get("adjuntos", []))
+                })
+            
+            db_erp.commit()
+            print(f"REPORT_SUCCESS | ID: {reporte_id} | Total: {total_acumulado}")
+            return str(reporte_id)
+
+        except Exception as e:
+            db_erp.rollback()
+            print(f"CRITICAL_ERP_ERROR: {str(e)}")
+            raise e
 
     @staticmethod
     def obtener_estado_cuenta(db_erp: Session, cedula: str, desde: Optional[date] = None, hasta: Optional[date] = None) -> List[Dict]:

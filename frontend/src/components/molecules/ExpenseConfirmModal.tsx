@@ -63,7 +63,7 @@ const ExpenseConfirmModal: React.FC<ExpenseConfirmModalProps> = ({
                 <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-900/30">
                     <AlertCircle size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />
                     <Text variant="caption" className="text-amber-700 dark:text-amber-300 leading-tight">
-                        Al confirmar, el reporte pasará a revisión por el área administrativa. Asegúrate de que los centros de costo sean correctos.
+                        Al confirmar, el reporte pasará a revisión por el área administrativa. Asegurate que la informacion sea correcta.
                     </Text>
                 </div>
 

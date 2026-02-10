@@ -43,7 +43,7 @@ class ReporteViaticos(BaseModel):
     observaciones_gral: Optional[str] = None
     gastos: List[LineaGasto]
     usuario_id: str
-    estado: Optional[str] = 'PRE-INICIAL'
+    estado: Optional[str] = 'INICIAL'
 
 # --- Endpoints ---
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { useAppContext } from '../context/AppContext';
 import axios from 'axios';
@@ -115,7 +115,6 @@ const API_BASE_URL = API_CONFIG.BASE_URL;
 const ServicePortal: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const navigate = useNavigate();
-    const location = useLocation();
     const { user } = state;
     const { addNotification } = useNotifications();
 
@@ -481,21 +480,10 @@ const ServicePortal: React.FC = () => {
                 <Route path="gastos/nuevo" element={
                     <ExpenseLegalization
                         user={user}
-                        onBack={() => {
-                            if (location.state?.from === 'reportes') {
-                                navigate('/service-portal/gastos/reportes');
-                            } else {
-                                navigate('/service-portal/gastos/gestion');
-                            }
-                        }}
+                        onBack={() => navigate('/service-portal/gastos/reportes')}
                         onSuccess={() => {
-                            if (location.state?.from === 'reportes') {
-                                navigate('/service-portal/gastos/reportes');
-                                addNotification('success', 'Reporte actualizado correctamente.');
-                            } else {
-                                navigate('/service-portal/gastos/gestion');
-                                addNotification('success', 'Reporte enviado a tránsito correctamente.');
-                            }
+                            navigate('/service-portal/gastos/reportes');
+                            addNotification('success', 'Operación realizada correctamente.');
                         }}
                     />
                 } />
@@ -504,6 +492,7 @@ const ServicePortal: React.FC = () => {
                     <TransitReportsView
                         user={user}
                         onBack={() => navigate('/service-portal/gastos/gestion')}
+                        onNewReport={() => navigate('/service-portal/gastos/nuevo')}
                         onSelectReport={async (rid) => {
                             try {
                                 setIsLoading(true);

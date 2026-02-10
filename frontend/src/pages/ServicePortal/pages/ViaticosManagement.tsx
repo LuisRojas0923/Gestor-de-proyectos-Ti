@@ -5,7 +5,6 @@ import { useAppContext } from '../../../context/AppContext';
 import ViaticosAuthModal from '../components/ViaticosAuthModal';
 
 import imgIngresar from '../../../assets/images/categories/Ingresar Reporte.png';
-import imgConsultar from '../../../assets/images/categories/Consultar Reportes.png';
 import imgEstadoCuenta from '../../../assets/images/categories/estado de cuenta.png';
 
 interface ViaticosManagementProps {
@@ -31,9 +30,15 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <Button variant="ghost" onClick={onBack} className="flex items-center gap-2 px-0 hover:bg-transparent transition-colors">
-                    <ArrowLeft size={20} />
-                    <Text weight="medium">Volver al Dashboard</Text>
+                <Button
+                    variant="ghost"
+                    onClick={onBack}
+                    className="text-neutral-700 hover:bg-white/10 dark:text-neutral-300 dark:hover:bg-neutral-800 px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
+                >
+                    <ArrowLeft size={18} />
+                    <Text weight="medium" className="text-base font-medium text-left text-gray-900 dark:text-gray-100 hidden sm:inline">
+                        Volver
+                    </Text>
                 </Button>
                 <Title variant="h4" weight="bold" color="text-primary" className="uppercase tracking-tight">
                     Gestión de Viáticos
@@ -41,20 +46,13 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                 <div className="w-20"></div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 max-w-4xl mx-auto">
                 <ActionCard
                     title="Legalizacion de Gastos"
                     description="Registra y legaliza tus viáticos, adjuntando facturas y detalles por OT."
                     icon={<img src={imgIngresar} alt="Legalizacion de Gastos" className="w-full h-full object-contain p-2" />}
-                    onClick={() => onNavigate('legalizar_gastos')}
-                />
-
-                <ActionCard
-                    title="Consultar Legalizaciones"
-                    description="Mira el estado de los reportes que has enviado y que están en tránsito de aprobación."
-                    icon={<img src={imgConsultar} alt="Consultar Legalizaciones" className="w-full h-full object-contain p-2" />}
                     onClick={() => onNavigate('viaticos_reportes')}
-                    variant="primary_light"
+                    className="md:h-64"
                 />
 
                 <ActionCard
@@ -62,6 +60,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                     description="Consulta tus movimientos, saldos y el histórico oficial desde el ERP."
                     icon={<img src={imgEstadoCuenta} alt="Estado de Cuenta" className="w-full h-full object-contain p-2" />}
                     onClick={() => onNavigate('viaticos_estado')}
+                    className="md:h-64"
                 />
             </div>
         </div>

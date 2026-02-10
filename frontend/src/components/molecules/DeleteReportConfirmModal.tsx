@@ -56,7 +56,7 @@ const DeleteReportConfirmModal: React.FC<DeleteReportConfirmModalProps> = ({
                 <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30">
                     <AlertTriangle size={24} className="text-amber-600 dark:text-amber-400 shrink-0" />
                     <Text variant="caption" className="text-amber-700 dark:text-amber-300 font-medium">
-                        Esta acción es **irreversible** y eliminará tanto la cabecera como todas las líneas de gasto asociadas del servidor.
+                        Esta acción es IRREVERSIBLE y eliminará tanto la cabecera como todas las líneas de gasto asociadas del servidor.
                     </Text>
                 </div>
 

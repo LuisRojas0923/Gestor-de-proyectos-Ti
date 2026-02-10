@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, FileText, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, Trash2, Plus } from 'lucide-react';
 import { Button, Text, Title, MaterialCard, Spinner } from '../../../components/atoms';
 import { DeleteReportConfirmModal } from '../../../components/molecules';
 import axios from 'axios';
@@ -31,10 +31,11 @@ interface ReporteResumen {
 interface TransitReportsViewProps {
     user: any;
     onBack: () => void;
+    onNewReport: () => void;
     onSelectReport: (reporteId: string) => void;
 }
 
-const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, onSelectReport }) => {
+const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, onNewReport, onSelectReport }) => {
     const [reportes, setReportes] = useState<ReporteResumen[]>([]);
     const [reportToDelete, setReportToDelete] = useState<ReporteResumen | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -53,63 +54,63 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
         }
     };
 
+    const handleDeleteReport = async () => {
+        if (!reportToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            await axios.delete(`${API_BASE_URL}/viaticos/reporte/${reportToDelete.reporte_id}`);
+            addNotification('success', 'Reporte eliminado correctamente.');
+            setReportes(prev => prev.filter(r => r.reporte_id !== reportToDelete.reporte_id));
+        } catch (err) {
+            console.error("Error deleting report:", err);
+            addNotification('error', 'Error al eliminar el reporte.');
+        } finally {
+            setIsDeleting(false);
+            setReportToDelete(null);
+        }
+    };
+
     useEffect(() => {
         if (user?.cedula || user?.id) {
             fetchReportes();
         }
     }, [user?.cedula, user?.id]);
 
-    const handleDeleteReport = async () => {
-        if (!reportToDelete) return;
-        setIsDeleting(true);
-        try {
-            await axios.delete(`${API_BASE_URL}/viaticos/reporte/${reportToDelete.reporte_id}`);
-            addNotification('success', 'Reporte eliminado correctamente.');
-            // Recargar lista
-            await fetchReportes();
-            setReportToDelete(null);
-        } catch (err) {
-            console.error("Error deleting report:", err);
-            addNotification('error', 'No se pudo eliminar el reporte.');
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
     return (
         <div className="space-y-6 pb-20">
-            <div className="flex items-center justify-between">
-                <Button variant="ghost" onClick={onBack} className="flex items-center gap-2 px-0 hover:bg-transparent">
-                    <ArrowLeft size={20} />
-                    <Text weight="medium">Volver</Text>
-                </Button>
-                <Title variant="h4" weight="bold" color="navy" className="text-xl md:text-2xl">
-                    MIS LEGALIZACIONES
-                </Title>
-                <div className="w-10"></div>
-            </div>
-
-            <MaterialCard className="p-4 bg-amber-50/50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/20 shadow-none">
-                <div className="flex gap-3">
-                    <div className="bg-amber-500/20 p-2 rounded-lg text-amber-600 dark:text-amber-400 h-fit">
-                        <Clock size={20} />
-                    </div>
-                    <div>
-                        <Text weight="bold" color="text-primary" className="text-sm">RESUMEN EN TRÁNSITO</Text>
-                        <Text variant="body2" color="text-secondary" className="text-xs leading-relaxed flex items-center gap-1.5 flex-wrap">
-                            A continuación se muestran los gastos agrupados por reporte. Haz clic en
-                            <Button
-                                variant="erp"
-                                size="xs"
-                                className="px-1.5 py-0.5 text-[9px] uppercase tracking-tighter shadow-none pointer-events-none h-auto min-h-0"
-                            >
-                                modificar
-                            </Button>
-                            para editar las líneas de un reporte.
+            <div className="space-y-2 -mb-4">
+                <div className="relative flex items-center justify-between min-h-[36px] px-1">
+                    <Button
+                        variant="ghost"
+                        onClick={onBack}
+                        className="text-neutral-700 hover:bg-white/10 dark:text-neutral-300 dark:hover:bg-neutral-800 px-3 py-1.5 text-sm rounded-lg flex items-center gap-2 z-10"
+                    >
+                        <ArrowLeft size={18} />
+                        <Text weight="medium" className="text-base font-medium text-left text-gray-900 dark:text-gray-100 hidden sm:inline">
+                            Volver
                         </Text>
-                    </div>
+                    </Button>
+
+                    <Title variant="h4" weight="bold" color="navy" className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-lg md:text-2xl uppercase text-center w-full pointer-events-none font-['Roboto']">
+                        Legalización de Gastos
+                    </Title>
+                    <div className="w-10 md:w-20"></div>
                 </div>
-            </MaterialCard>
+
+                {/* Botón NUEVO (0.5rem debajo del título) */}
+                <div className="flex items-center justify-end px-1">
+                    <Button
+                        variant="erp"
+                        size="xs"
+                        onClick={onNewReport}
+                        className="font-bold rounded-lg px-4 sm:px-5 py-1.5 text-[var(--color-primary)] text-[10px] sm:text-xs w-[132px] shadow-sm bg-white dark:bg-black/20 z-10 border border-slate-200 justify-center"
+                    >
+                        <Plus size={14} className="mr-1.5" />
+                        <span className="uppercase">NUEVO</span>
+                    </Button>
+                </div>
+            </div>
 
             {isLoading ? (
                 <div className="py-20 text-center">
@@ -123,78 +124,68 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {/* Vista de Tarjetas (Móvil) */}
+                    {/* Tarjetas Móviles */}
                     <div className="grid grid-cols-1 gap-4 lg:hidden">
                         {reportes.map((reporte) => (
-                            <MaterialCard key={reporte.reporte_id} className="p-4 border-[var(--color-border)] hover:border-blue-500/50 transition-all">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-tighter text-[10px]">Radicado</Text>
-                                        <div className="mt-0.5">
-                                            <Text
-                                                variant="caption"
-                                                weight="bold"
-                                                className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-[10px] border border-blue-100 dark:border-blue-800/50 inline-block"
-                                            >
-                                                {reporte.codigolegalizacion}
-                                            </Text>
+                            <MaterialCard key={reporte.reporte_id} className="p-3 border-[var(--color-border)] hover:border-blue-500/50 transition-all">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <Text
+                                            variant="caption"
+                                            weight="bold"
+                                            className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-[10px] border border-blue-100 dark:border-blue-800/50"
+                                        >
+                                            {reporte.codigolegalizacion || 'Sin radicado'}
+                                        </Text>
+                                        <Text
+                                            variant="caption"
+                                            weight="bold"
+                                            className={`px-1.5 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${reporte.estado === 'BORRADOR'
+                                                ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700/50'
+                                                : 'bg-amber-50 text-amber-900 border-amber-200/50 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800/50'
+                                                }`}
+                                        >
+                                            {reporte.estado}
+                                        </Text>
+                                    </div>
+                                    <Text weight="bold" className="text-sm text-primary">${reporte.valortotal.toLocaleString()}</Text>
+                                </div>
+
+                                <div className="flex flex-col gap-1 text-[11px] text-gray-600 dark:text-gray-400 mb-2">
+                                    <div className="flex justify-between items-center w-full">
+                                        <div className="flex flex-wrap gap-x-4">
+                                            <span>{reporte.fechaaplicacion}</span>
+                                            <span>{reporte.area} - {reporte.centrocosto}</span>
                                         </div>
                                     </div>
-                                    <Text
-                                        variant="caption"
-                                        weight="bold"
-                                        className={`px-2 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${reporte.estado === 'BORRADOR'
-                                            ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700/50'
-                                            : 'bg-amber-50 text-amber-900 border-amber-200/50 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800/50'
-                                            }`}
-                                    >
-                                        {reporte.estado}
-                                    </Text>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-y-3 mb-4">
-                                    <div>
-                                        <Text variant="caption" color="text-secondary" className="text-[10px] uppercase">Fecha</Text>
-                                        <Text className="text-xs">{reporte.fechaaplicacion}</Text>
-                                    </div>
-                                    <div>
-                                        <Text variant="caption" color="text-secondary" className="text-[10px] uppercase">Valor Total</Text>
-                                        <Text weight="bold" className="text-sm text-primary">${reporte.valortotal.toLocaleString()}</Text>
-                                    </div>
-                                    <div className="col-span-2">
-                                        <Text variant="caption" color="text-secondary" className="text-[10px] uppercase">Área / C. Costo</Text>
-                                        <Text className="text-xs">{reporte.area} - {reporte.centrocosto}</Text>
-                                    </div>
-                                    <div className="col-span-2">
-                                        <Text variant="caption" color="text-secondary" className="text-[10px] uppercase">Ciudad</Text>
-                                        <Text className="text-xs">{reporte.ciudad}</Text>
+                                    <div className="flex justify-between items-center w-full">
+                                        <span>{reporte.ciudad}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setReportToDelete(reporte)}
+                                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                            title="Eliminar Reporte"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div className="pt-3 border-t border-[var(--color-border)] flex justify-end gap-2">
+                                <div className="pt-2 border-t border-[var(--color-border)]">
                                     <Button
                                         variant="erp"
                                         size="sm"
                                         onClick={() => onSelectReport(reporte.reporte_id)}
-                                        className="grow font-bold px-4"
+                                        className="w-full font-bold"
                                     >
                                         Modificar
-                                    </Button>
-                                    <Button
-                                        variant="erp"
-                                        size="sm"
-                                        onClick={() => setReportToDelete(reporte)}
-                                        className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30 px-3 shadow-none"
-                                        title="Eliminar Reporte"
-                                    >
-                                        <Trash2 size={16} />
                                     </Button>
                                 </div>
                             </MaterialCard>
                         ))}
                     </div>
 
-                    {/* Vista de Tabla (Escritorio) */}
+                    {/* Tabla Escritorio */}
                     <div className="hidden lg:block overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
                         <table className="w-full text-left border-collapse min-w-[1000px]">
                             <thead>
@@ -227,26 +218,11 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                                 >
                                                     modificar
                                                 </Button>
-                                                <Button
-                                                    variant="erp"
-                                                    size="xs"
-                                                    onClick={() => setReportToDelete(reporte)}
-                                                    className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30 px-2 shadow-none border-none"
-                                                    title="Eliminar"
-                                                >
-                                                    <Trash2 size={12} />
-                                                </Button>
                                             </div>
                                         </td>
                                         <td className="px-2 py-2 font-medium opacity-50 whitespace-nowrap">{reporte.codigo}</td>
-                                        <td className="px-3 py-2 whitespace-nowrap">
-                                            <Text
-                                                variant="caption"
-                                                weight="bold"
-                                                className="px-1.5 py-0.5 rounded bg-blue-50/80 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-[9px] border border-blue-100 dark:border-blue-800/50 inline-block whitespace-nowrap"
-                                            >
-                                                {reporte.codigolegalizacion}
-                                            </Text>
+                                        <td className="px-3 py-2 whitespace-nowrap text-blue-700 font-bold">
+                                            {reporte.codigolegalizacion || '---'}
                                         </td>
                                         <td className="px-2 py-2 whitespace-nowrap tabular-nums opacity-70">{reporte.fechaaplicacion}</td>
                                         <td className="px-2 py-2 opacity-60 tabular-nums whitespace-nowrap">{reporte.empleado}</td>
@@ -274,7 +250,20 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                         </td>
                                         <td className="px-2 py-2 whitespace-nowrap font-medium opacity-70">{reporte.centrocosto || '---'}</td>
                                         <td className="px-2 py-2 italic opacity-50 text-[10px] truncate max-w-[120px]" title={reporte.cargo}>{reporte.cargo}</td>
-                                        <td className="px-2 py-2 whitespace-nowrap opacity-70">{reporte.ciudad}</td>
+                                        <td className="px-2 py-2 whitespace-nowrap opacity-70">
+                                            <div className="flex items-center gap-2">
+                                                <span>{reporte.ciudad}</span>
+                                                <Button
+                                                    variant="erp"
+                                                    size="xs"
+                                                    onClick={() => setReportToDelete(reporte)}
+                                                    className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30 px-2 shadow-none border-none"
+                                                    title="Eliminar"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </Button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -282,7 +271,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                     </div>
                 </div>
             )}
-            {/* Modal de Confirmación de Eliminación */}
+
             <DeleteReportConfirmModal
                 isOpen={!!reportToDelete}
                 onClose={() => setReportToDelete(null)}

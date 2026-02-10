@@ -1,5 +1,4 @@
-import React from 'react';
-import { User, IdCard, Network, MapPin, Wallet } from 'lucide-react';
+import { User, IdCard, Network, MapPin, Wallet, Trash2 } from 'lucide-react';
 import { Text, MaterialCard } from '../../../components/atoms';
 
 interface UserSummaryCardProps {

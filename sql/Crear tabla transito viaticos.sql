@@ -1,7 +1,7 @@
 CREATE TABLE transito_viaticos (
     id SERIAL PRIMARY KEY,
     reporte_id UUID NOT NULL, -- Identifica todas las líneas de un mismo envío
-    estado VARCHAR(50) DEFAULT 'PRE-INICIAL',
+    estado VARCHAR(50) DEFAULT 'INICIAL',
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     -- Datos del Empleado (Metadata unificada)

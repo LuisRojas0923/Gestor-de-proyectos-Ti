@@ -70,9 +70,15 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
             {/* BLOQUE SUPERIOR: FIJO (Sin scroll) */}
             <div className="flex-none space-y-3 px-1">
                 <div className="flex items-center justify-between py-1 relative">
-                    <Button variant="ghost" onClick={onBack} className="flex items-center gap-2 h-9 z-10 transition-colors">
+                    <Button
+                        variant="ghost"
+                        onClick={onBack}
+                        className="text-neutral-700 hover:bg-white/10 dark:text-neutral-300 dark:hover:bg-neutral-800 px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
+                    >
                         <ArrowLeft size={18} />
-                        <Text weight="medium" className="text-sm">Volver</Text>
+                        <Text weight="medium" className="text-base font-medium text-left text-gray-900 dark:text-gray-100 hidden sm:inline">
+                            Volver
+                        </Text>
                     </Button>
                     <Title variant="h5" weight="bold" color="text-primary" className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] sm:text-sm md:text-lg uppercase tracking-tight top-10 md:top-1/2 md:-translate-y-1/2">
                         Estado de Cuenta de Viáticos
@@ -134,7 +140,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                             onClick={() => generateAccountStatementPDF(user, movimientos)}
                             disabled={movimientos.length === 0 || isLoading}
                             icon={Download}
-                            className="h-8 shadow-sm font-bold"
+                            className="h-8 shadow-sm font-bold ml-auto md:ml-0"
                         >
                             Descargar PDF
                         </Button>

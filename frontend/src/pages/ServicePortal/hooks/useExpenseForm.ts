@@ -251,23 +251,7 @@ export const useExpenseForm = () => {
 
         logMarina("📥 [LOAD] Solicitud de carga de datos externos", { count: nuevasLineas.length });
 
-        // Backup seguro fuera del setter
-        const currentData = { lineas, observacionesGral };
-        const hasExistingBackup = !!localStorage.getItem(CACHE_KEY + '_backup');
-        const isCurrentDataExternal = currentData.lineas.some(l => (l as any).reporte_id) || observacionesGral.includes('[REP-L');
 
-        if (!isFormEmpty(currentData.lineas) && !isCurrentDataExternal && !hasExistingBackup) {
-            logMarina("🛡️ [BACKUP] Resguardando borrador actual antes de sobrescribir");
-            localStorage.setItem(CACHE_KEY + '_backup', JSON.stringify({
-                ...currentData,
-                backupTimestamp: new Date().toISOString(),
-                origin: 'AUTO_BACKUP_BEFORE_LOAD'
-            }));
-        } else if (hasExistingBackup) {
-            logMarina("💎 [INTEGRITY] Se conserva el respaldo existente (no se sobrescribe por carga externa)");
-        } else if (isCurrentDataExternal) {
-            logMarina("⏭️ [BACKUP] Saltando respaldo: los datos actuales son externos");
-        }
 
         // --- NORMALIZACIÓN Y RECUPERACIÓN DE COMBINACIONES CC/SCC ---
         // Normalizar nombres de campos (DB lowercase -> Frontend camelCase)
@@ -308,24 +292,7 @@ export const useExpenseForm = () => {
         }
     }, [isFormEmpty, lineas, observacionesGral]);
 
-    const restoreBackup = useCallback(() => {
-        const backup = localStorage.getItem(CACHE_KEY + '_backup');
-        if (backup) {
-            try {
-                const parsed = JSON.parse(backup);
-                logMarina("🔄 [RESTORE] Restaurando borrador desde respaldo del " + (parsed.backupTimestamp || 'archivo antiguo'));
-                setLineas(parsed.lineas);
-                setObservacionesGral(parsed.observacionesGral || '');
-                localStorage.removeItem(CACHE_KEY + '_backup');
-                return true;
-            } catch (e) {
-                console.error("Error al restaurar backup:", e);
-            }
-        }
-        return false;
-    }, []);
 
-    const hasBackup = !!localStorage.getItem(CACHE_KEY + '_backup');
 
     return {
         lineas,
@@ -346,8 +313,6 @@ export const useExpenseForm = () => {
         totalGeneral,
         clearForm,
         loadLineas,
-        restoreBackup,
-        hasBackup,
         validationErrors,
         setValidationErrors,
         logMarina
