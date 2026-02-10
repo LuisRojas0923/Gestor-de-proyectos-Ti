@@ -52,18 +52,19 @@ class ViaticosService:
             es_actualizacion = bool(reporte_id_str and len(str(reporte_id_str)) > 5)
             
             if es_actualizacion:
-                # Si ya tiene el formato amigable [REP-L...], lo mantenemos
+                # Si ya tiene el formato amigable [REP-L...] o REP-L..., lo limpiamos
                 if "[" in str(reporte_id_str):
+                    # Quitar corchetes si los tiene
+                    consecutivo = str(reporte_id_str).replace("[", "").replace("]", "")
+                elif "REP-L" in str(reporte_id_str):
                     consecutivo = str(reporte_id_str)
                 else:
-                    # Si es un UUID antiguo, lo mantenemos como ID pero generamos un consecutivo nuevo para mostrar
-                    # En realidad, el usuario prefiere migrar todo a [REP-L...]. 
-                    # Pero para el DELETE necesitamos el original.
-                    consecutivo = f"[REP-L{(count + 1):04d}]"
+                    # Si es un UUID antiguo, generamos consecutivo nuevo sin corchetes
+                    consecutivo = f"REP-L{(count + 1):04d}"
             else:
-                consecutivo = f"[REP-L{(count + 1):04d}]"
+                consecutivo = f"REP-L{(count + 1):04d}"
         except:
-            consecutivo = "[REP-LAUTO]"
+            consecutivo = "REP-LAUTO"
 
         # Si es actualización, LIMPIAMOS las líneas previas antes de re-insertar (Upsert Lógico)
         # Usamos el ID recibido (UUID o antiguo) para asegurar que se borre el registro previo
@@ -84,25 +85,32 @@ class ViaticosService:
         cc_empleado = reporte_data.get("centrocosto") or "POR-DEFINIR"
 
         # 1. Insertar Cabecera (legalizaciones_transito)
+        # Convertir usuario_id (cédula) a integer para compatibilidad Java/ERP
+        try:
+            usuario_int = int(reporte_data["usuario_id"])
+        except (ValueError, TypeError):
+            usuario_int = 0  # Fallback si no es numérico
+
         sql_header = text("""
             INSERT INTO legalizaciones_transito (
-                codigolegalizacion, fechaaplicacion, empleado, nombreempleado, 
+                codigolegalizacion, fecha, hora, fechaaplicacion, empleado, nombreempleado, 
                 area, valortotal, estado, usuario, observaciones, 
                 anexo, centrocosto, cargo, ciudad, reporte_id
             ) VALUES (
-                :codigolegalizacion, CURRENT_DATE, :empleado, :nombreempleado,
-                :area, :valortotal, 'PRE-INICIAL', :usuario, :observaciones,
+                :codigolegalizacion, CURRENT_DATE, CURRENT_TIME, CURRENT_DATE, :empleado, :nombreempleado,
+                :area, :valortotal, :estado, :usuario, :observaciones,
                 :anexo, :centrocosto, :cargo, :ciudad, :reporte_id
-            )
+            ) RETURNING codigo
         """)
         
-        db_erp.execute(sql_header, {
-            "codigolegalizacion": consecutivo,
+        result_header = db_erp.execute(sql_header, {
+            "codigolegalizacion": "",  # Campo en blanco como pidió el usuario
             "empleado": reporte_data["empleado_cedula"],
             "nombreempleado": reporte_data["empleado_nombre"],
             "area": reporte_data["area"],
             "valortotal": total_acumulado,
-            "usuario": reporte_data["usuario_id"],
+            "estado": reporte_data.get("estado", "PRE-INICIAL"),
+            "usuario": usuario_int,  # Integer como espera el ERP
             "observaciones": obs_gral,
             "anexo": tiene_anexos,
             "centrocosto": cc_empleado,
@@ -110,40 +118,47 @@ class ViaticosService:
             "ciudad": reporte_data["ciudad"],
             "reporte_id": reporte_id
         })
+        
+        cabecera_id_numerico = result_header.scalar()
 
         # 2. Insertar Detalles (transito_viaticos)
         sql_insert = text("""
             INSERT INTO transito_viaticos (
-                reporte_id, estado, fecha_registro, empleado_cedula, empleado_nombre, 
-                area, cargo, ciudad, categoria, fecha_gasto, ot, cc, scc, 
-                valor_con_factura, valor_sin_factura, observaciones_linea, 
+                legalizacion, fecha, fecharealgasto, categoria, ot, 
+                centrocosto, subcentrocosto, valorconfactura, valorsinfactura, 
+                observaciones, reporte_id, estado, fecha_registro, 
+                empleado_cedula, empleado_nombre, area, cargo, ciudad, 
                 observaciones_gral, usuario_id, adjuntos
             ) VALUES (
-                :reporte_id, 'PRE-INICIAL', CURRENT_TIMESTAMP, :empleado_cedula, :empleado_nombre, 
-                :area, :cargo, :ciudad, :categoria, :fecha_gasto, :ot, :cc, :scc, 
-                :valor_con_factura, :valor_sin_factura, :observaciones_linea, 
+                :legalizacion, :fecha, :fecharealgasto, :categoria, :ot, 
+                :centrocosto, :subcentrocosto, :valorconfactura, :valorsinfactura, 
+                :observaciones, :reporte_id, :estado, CURRENT_TIMESTAMP, 
+                :empleado_cedula, :empleado_nombre, :area, :cargo, :ciudad, 
                 :observaciones_gral, :usuario_id, :adjuntos
             )
         """)
 
         for gasto in reporte_data["gastos"]:
             db_erp.execute(sql_insert, {
+                "legalizacion": cabecera_id_numerico,
+                "fecha": date.today(), # Fecha de creacion de la linea
+                "fecharealgasto": gasto["fecha"],
+                "categoria": gasto["categoria"],
+                "ot": gasto["ot"],
+                "centrocosto": gasto["cc"],
+                "subcentrocosto": gasto["scc"],
+                "valorconfactura": gasto["valorConFactura"],
+                "valorsinfactura": gasto["valorSinFactura"],
+                "observaciones": gasto.get("observaciones"),
                 "reporte_id": reporte_id,
+                "estado": reporte_data.get("estado", "PRE-INICIAL"),
                 "empleado_cedula": reporte_data["empleado_cedula"],
                 "empleado_nombre": reporte_data["empleado_nombre"],
                 "area": reporte_data["area"],
                 "cargo": reporte_data["cargo"],
                 "ciudad": reporte_data["ciudad"],
-                "categoria": gasto["categoria"],
-                "fecha_gasto": gasto["fecha"],
-                "ot": gasto["ot"],
-                "cc": gasto["cc"],
-                "scc": gasto["scc"],
-                "valor_con_factura": gasto["valorConFactura"],
-                "valor_sin_factura": gasto["valorSinFactura"],
-                "observaciones_linea": gasto.get("observaciones"),
                 "observaciones_gral": obs_gral,
-                "usuario_id": reporte_data["usuario_id"],
+                "usuario_id": usuario_int,  # Integer como espera el ERP
                 "adjuntos": json.dumps(gasto.get("adjuntos", []))
             })
         
@@ -220,3 +235,17 @@ class ViaticosService:
         sql = text("SELECT * FROM transito_viaticos WHERE reporte_id = :reporte_id")
         resultado = db_erp.execute(sql, {"reporte_id": reporte_id})
         return [dict(row._mapping) for row in resultado]
+
+    @staticmethod
+    def eliminar_reporte(db_erp: Session, reporte_id: str):
+        """Elimina físicamente un reporte y sus líneas de las tablas de tránsito"""
+        try:
+            # Eliminar detalles
+            db_erp.execute(text("DELETE FROM transito_viaticos WHERE reporte_id = :rid"), {"rid": reporte_id})
+            # Eliminar cabecera
+            db_erp.execute(text("DELETE FROM legalizaciones_transito WHERE reporte_id = :rid"), {"rid": reporte_id})
+            db_erp.commit()
+            print(f"REPORT_DELETE_SUCCESS | ID: {reporte_id}")
+        except Exception as e:
+            db_erp.rollback()
+            raise e

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import date
 from pydantic import BaseModel
 import uuid
@@ -22,8 +22,9 @@ class OTResponse(BaseModel):
 
 class LineaGasto(BaseModel):
     categoria: str
-    fecha: date
+    fecha: Union[date, str]
     ot: str
+    ot_id: Optional[str] = None
     cc: str
     scc: str
     valorConFactura: float
@@ -42,6 +43,7 @@ class ReporteViaticos(BaseModel):
     observaciones_gral: Optional[str] = None
     gastos: List[LineaGasto]
     usuario_id: str
+    estado: Optional[str] = 'PRE-INICIAL'
 
 # --- Endpoints ---
 
@@ -113,3 +115,13 @@ async def obtener_reportes_viaticos(cedula: str, db_erp: Session = Depends(obten
     except Exception as e:
         print(f"ERROR GET REPORTES ERP: {e}")
         raise HTTPException(status_code=500, detail=f"Error al obtener listado de legalizaciones: {str(e)}")
+
+@router.delete("/reporte/{reporte_id}")
+async def eliminar_reporte(reporte_id: str, db_erp: Session = Depends(obtener_erp_db)):
+    """Elimina permanentemente un reporte en tránsito (cabecera y detalle)"""
+    try:
+        ViaticosService.eliminar_reporte(db_erp, reporte_id)
+        return {"status": "success", "mensaje": f"Reporte {reporte_id} eliminado correctamente"}
+    except Exception as e:
+        print(f"ERROR DELETE REPORTE ERP: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al eliminar el reporte: {str(e)}")

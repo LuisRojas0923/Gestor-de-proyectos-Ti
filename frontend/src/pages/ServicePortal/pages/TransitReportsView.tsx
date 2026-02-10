@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, FileText } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, Trash2 } from 'lucide-react';
 import { Button, Text, Title, MaterialCard, Spinner } from '../../../components/atoms';
+import { DeleteReportConfirmModal } from '../../../components/molecules';
 import axios from 'axios';
 import { API_CONFIG } from '../../../config/api';
+import { useNotifications } from '../../../components/notifications/NotificationsContext';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -34,21 +36,45 @@ interface TransitReportsViewProps {
 
 const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, onSelectReport }) => {
     const [reportes, setReportes] = useState<ReporteResumen[]>([]);
+    const [reportToDelete, setReportToDelete] = useState<ReporteResumen | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const { addNotification } = useNotifications();
+
+    const fetchReportes = async () => {
+        setIsLoading(true);
+        try {
+            const res = await axios.get(`${API_BASE_URL}/viaticos/reportes/${user.cedula || user.id}`);
+            setReportes(res.data);
+        } catch (err) {
+            console.error("Error fetching transit reports:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchReportes = async () => {
-            try {
-                const res = await axios.get(`${API_BASE_URL}/viaticos/reportes/${user.cedula || user.id}`);
-                setReportes(res.data);
-            } catch (err) {
-                console.error("Error fetching transit reports:", err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchReportes();
-    }, [user]);
+        if (user?.cedula || user?.id) {
+            fetchReportes();
+        }
+    }, [user?.cedula, user?.id]);
+
+    const handleDeleteReport = async () => {
+        if (!reportToDelete) return;
+        setIsDeleting(true);
+        try {
+            await axios.delete(`${API_BASE_URL}/viaticos/reporte/${reportToDelete.reporte_id}`);
+            addNotification('success', 'Reporte eliminado correctamente.');
+            // Recargar lista
+            await fetchReportes();
+            setReportToDelete(null);
+        } catch (err) {
+            console.error("Error deleting report:", err);
+            addNotification('error', 'No se pudo eliminar el reporte.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     return (
         <div className="space-y-6 pb-20">
@@ -117,7 +143,10 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                     <Text
                                         variant="caption"
                                         weight="bold"
-                                        className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[10px]"
+                                        className={`px-2 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${reporte.estado === 'BORRADOR'
+                                            ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700/50'
+                                            : 'bg-amber-50 text-amber-900 border-amber-200/50 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800/50'
+                                            }`}
                                     >
                                         {reporte.estado}
                                     </Text>
@@ -147,9 +176,18 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                         variant="erp"
                                         size="sm"
                                         onClick={() => onSelectReport(reporte.reporte_id)}
-                                        className="w-full sm:w-auto font-bold px-4"
+                                        className="grow font-bold px-4"
                                     >
                                         Modificar
+                                    </Button>
+                                    <Button
+                                        variant="erp"
+                                        size="sm"
+                                        onClick={() => setReportToDelete(reporte)}
+                                        className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30 px-3 shadow-none"
+                                        title="Eliminar Reporte"
+                                    >
+                                        <Trash2 size={16} />
                                     </Button>
                                 </div>
                             </MaterialCard>
@@ -180,14 +218,25 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                 {reportes.map((reporte) => (
                                     <tr key={reporte.reporte_id} className="hover:bg-[var(--color-primary)]/5 transition-colors text-[11px]">
                                         <td className="px-3 py-2 whitespace-nowrap">
-                                            <Button
-                                                variant="erp"
-                                                size="xs"
-                                                onClick={() => onSelectReport(reporte.reporte_id)}
-                                                className="font-bold px-2 py-0.5 text-[9px] uppercase tracking-tighter shadow-none border-slate-200"
-                                            >
-                                                modificar
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="erp"
+                                                    size="xs"
+                                                    onClick={() => onSelectReport(reporte.reporte_id)}
+                                                    className="font-bold px-4 py-1 text-[9px] uppercase tracking-tighter shadow-none border-slate-200"
+                                                >
+                                                    modificar
+                                                </Button>
+                                                <Button
+                                                    variant="erp"
+                                                    size="xs"
+                                                    onClick={() => setReportToDelete(reporte)}
+                                                    className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30 px-2 shadow-none border-none"
+                                                    title="Eliminar"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </Button>
+                                            </div>
                                         </td>
                                         <td className="px-2 py-2 font-medium opacity-50 whitespace-nowrap">{reporte.codigo}</td>
                                         <td className="px-3 py-2 whitespace-nowrap">
@@ -212,7 +261,10 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                             <Text
                                                 variant="caption"
                                                 weight="bold"
-                                                className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 dark:bg-amber-900/40 dark:text-amber-400 text-[8px] border border-amber-200/50 dark:border-amber-800/50 uppercase tracking-tighter"
+                                                className={`px-2 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${reporte.estado === 'BORRADOR'
+                                                    ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700/50'
+                                                    : 'bg-amber-50 text-amber-900 border-amber-200/50 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800/50'
+                                                    }`}
                                             >
                                                 {reporte.estado}
                                             </Text>
@@ -230,6 +282,14 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                     </div>
                 </div>
             )}
+            {/* Modal de Confirmación de Eliminación */}
+            <DeleteReportConfirmModal
+                isOpen={!!reportToDelete}
+                onClose={() => setReportToDelete(null)}
+                onConfirm={handleDeleteReport}
+                reportCode={reportToDelete?.codigolegalizacion}
+                isLoading={isDeleting}
+            />
         </div>
     );
 };

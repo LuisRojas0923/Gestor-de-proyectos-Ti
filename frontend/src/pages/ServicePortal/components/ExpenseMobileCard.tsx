@@ -67,11 +67,11 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
         <MaterialCard className="p-4 mb-4 relative group overflow-visible">
             {/* Cabecera: # e Icono eliminar */}
             <div className="flex items-center justify-between mb-4 pb-2 border-b border-[var(--color-border)]/50">
-                <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 flex items-center justify-center bg-[#002060]/10 text-[#002060] text-[10px] font-black rounded-full border border-[#002060]/20 shadow-sm">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 flex items-center justify-center bg-[#002060]/10 text-[#002060] text-[11px] font-black rounded-full border border-[#002060]/20 shadow-sm shrink-0">
                         {index + 1}
                     </div>
-                    <Text weight="bold" className="text-sm uppercase tracking-tight text-[var(--color-primary)]">Gasto Registrado</Text>
+                    <Text weight="bold" className="text-[13px] uppercase tracking-[0.05em] text-[var(--color-primary)] font-black">GASTO REGISTRADO</Text>
                 </div>
                 <div className="flex items-center gap-1">
                     <Input
@@ -247,7 +247,7 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                             <Text variant="caption" weight="bold" className="text-[9px] uppercase tracking-wider">Con Factura</Text>
                         </div>
                         <CurrencyInput
-                            value={linea.valorConFactura.toString()}
+                            value={(linea.valorConFactura ?? 0).toString()}
                             size="xs"
                             onChange={(val: string) => updateLinea(linea.id, 'valorConFactura', val)}
                             className={`!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3 ${errors.includes('valorConFactura') ? 'ring-1 ring-red-500' : ''}`}
@@ -259,7 +259,7 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                             <Text variant="caption" weight="bold" className="text-[9px] uppercase tracking-wider">Sin Factura</Text>
                         </div>
                         <CurrencyInput
-                            value={linea.valorSinFactura.toString()}
+                            value={(linea.valorSinFactura ?? 0).toString()}
                             size="xs"
                             onChange={(val: string) => updateLinea(linea.id, 'valorSinFactura', val)}
                             className={`!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3 ${errors.includes('valorSinFactura') ? 'ring-1 ring-red-500' : ''}`}
