@@ -4,7 +4,6 @@ import { Lock, LogIn, User as UserIcon, ArrowRight } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
-import axios from 'axios';
 import imgUserLogin from '../assets/images/categories/Usuario Inicio Sesion.png';
 import imgAdminLogin from '../assets/images/categories/icons8-usuario-administrador-96.png';
 
@@ -41,39 +40,32 @@ const Login: React.FC = () => {
         setError(null);
 
         try {
-            // Consulta al endpoint ERP para validar empleado
-            const response = await axios.get(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.ERP_EMPLEADO(formData.username)}`); // [CONTROLADO]
-            const employeeData = response.data;
+            // Autenticación en el backend para obtener token JWT y datos de usuario
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_PORTAL_LOGIN}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username: formData.username }),
+            });
 
-            // Mapeo de datos del ERP al formato de usuario interno
-            const isDirector = employeeData.cargo?.toLowerCase().includes('director');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Error de autenticación');
+            }
 
-            const userData = {
-                id: employeeData.nrocedula, // Usar cédula como ID principal
-                cedula: employeeData.nrocedula,
-                name: employeeData.nombre,
-                email: 'usuario@dominio.com',
-                role: isDirector ? 'director' : 'user',
-                area: employeeData.area || 'Sin Área',
-                cargo: employeeData.cargo || 'Sin Cargo',
-                sede: employeeData.ciudadcontratacion || 'Principal',
-                viaticante: employeeData.viaticante,
-                baseviaticos: employeeData.baseviaticos,
-                centrocosto: employeeData.centrocosto || '---',
-                permissions: isDirector ? ['service-portal', 'legalizar-gastos'] : ['service-portal']
-            };
+            const data = await response.json();
+
+            // Guardar token para futuras peticiones (creación/edición de reuniones)
+            localStorage.setItem('token', data.access_token);
 
             // Guardar en contexto global
-            dispatch({ type: 'LOGIN', payload: userData });
+            dispatch({ type: 'LOGIN', payload: data.user });
             navigate('/service-portal');
 
         } catch (err: any) {
-            console.error('Login error:', err);
-            if (err.response && err.response.status === 404) {
-                setError("Usuario no encontrado o inactivo en Solid ERP. Verifica tu cédula.");
-            } else {
-                setError("Error de conexión con el servidor.");
-            }
+            console.error('Portal login error:', err);
+            setError(err.message || "Error al conectar con el servidor.");
         } finally {
             setIsLoading(false);
         }

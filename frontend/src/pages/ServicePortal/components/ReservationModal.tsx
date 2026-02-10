@@ -7,7 +7,6 @@ import { Button, Input, Text } from '../../../components/atoms';
 import { Modal } from '../../../components/molecules';
 import { useReservaSalas } from '../../../hooks/useReservaSalas';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
-import { useAppContext } from '../../../context/AppContext';
 import type { Room } from '../../../types/reservaSalas';
 
 const toMinutes = (timeStr: string): number => {
@@ -23,8 +22,6 @@ interface ReservationModalProps {
 }
 
 const ReservationModal: React.FC<ReservationModalProps> = ({ room, initialDate, onClose, onSuccess }) => {
-  const { state } = useAppContext();
-  const user = state.user;
   const { createReservation } = useReservaSalas();
   const { addNotification } = useNotifications();
   const [loading, setLoading] = useState(false);
@@ -34,8 +31,6 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ room, initialDate, 
     start_time: '09:00',
     end_time: '10:00',
     title: '',
-    created_by_name: user?.name || '',
-    created_by_document: user?.cedula || user?.id || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,8 +65,6 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ room, initialDate, 
         start_datetime: new Date(startDatetime).toISOString(),
         end_datetime: new Date(endDatetime).toISOString(),
         title: formData.title.trim(),
-        created_by_name: formData.created_by_name.trim(),
-        created_by_document: formData.created_by_document.trim(),
       });
       addNotification('success', 'Reserva creada correctamente');
       onSuccess();
@@ -122,20 +115,6 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ room, initialDate, 
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="Ej: Reunión de equipo"
-        />
-        <Input
-          label="Nombre completo"
-          required
-          value={formData.created_by_name}
-          onChange={(e) => setFormData({ ...formData, created_by_name: e.target.value })}
-          placeholder="Ej: Juan Pérez"
-        />
-        <Input
-          label="Número de documento"
-          required
-          value={formData.created_by_document}
-          onChange={(e) => setFormData({ ...formData, created_by_document: e.target.value })}
-          placeholder="Ej: 1234567890"
         />
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>Cancelar</Button>

@@ -118,8 +118,14 @@ async def init_db():
             await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo VARCHAR(255)"))
             await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS sede VARCHAR(255)"))
             await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS centrocosto VARCHAR(255)"))
+            
+            # Columnas de auditoría para reservas
+            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS updated_by_name VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS updated_by_document VARCHAR(100)"))
+            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_by_name VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_by_document VARCHAR(100)"))
         except Exception as e:
-            print(f"DEBUG: Error al asegurar columnas de perfil: {e}")
+            print(f"DEBUG: Error al asegurar columnas de perfil/auditoría: {e}")
 
     # 3. Seed idempotente de sala por defecto
     try:

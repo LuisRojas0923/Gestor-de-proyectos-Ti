@@ -75,4 +75,3 @@ app.include_router(etapas_router, prefix=f"{api_prefix}/etapas", tags=["Etapas"]
 app.include_router(solid_router, prefix=f"{api_prefix}/solid", tags=["SOLID"])
 app.include_router(viaticos_router, prefix=api_prefix, tags=["Viaticos"])
 app.include_router(reserva_salas_router, prefix=f"{api_prefix}/reserva-salas", tags=["Reserva Salas"])
-

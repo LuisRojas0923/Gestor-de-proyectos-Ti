@@ -194,33 +194,48 @@ async def listar_reservas(
 async def crear_reserva(
     body: ReservationCreate,
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Crea una nueva reserva. Solo en horario 7:00 - 18:00."""
-    if body.end_datetime <= body.start_datetime:
+    print(f"DEBUG: Intentando crear reserva. Usuario={usuario.nombre}, Documento={usuario.cedula}")
+    print(f"DEBUG: Datos reserva: {body}")
+
+    # Normalizar zonas horarias
+    start = body.start_datetime
+    end = body.end_datetime
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    if end.tzinfo is None:
+        end = end.replace(tzinfo=timezone.utc)
+
+    if end <= start:
         raise HTTPException(status_code=400, detail="end_datetime debe ser posterior a start_datetime")
-    if not _dentro_horario_permitido(body.start_datetime, body.end_datetime):
+    
+    if not _dentro_horario_permitido(start, end):
         raise HTTPException(
             status_code=400,
             detail="Las reservas solo están permitidas entre las 7:00 AM y las 6:00 PM (18:00).",
         )
+
     # Verificar solapamientos (misma sala, mismo horario)
     overlap_result = await db.execute(
         select(Reservation).where(
             Reservation.room_id == body.room_id,
             Reservation.status == "ACTIVE",
-            Reservation.start_datetime < body.end_datetime,
-            Reservation.end_datetime > body.start_datetime,
+            Reservation.start_datetime < end,
+            Reservation.end_datetime > start,
         )
     )
     if overlap_result.scalars().first() is not None:
         raise HTTPException(status_code=409, detail="La sala ya tiene una reserva en ese horario")
+    
     reservation = Reservation(
         room_id=body.room_id,
-        start_datetime=body.start_datetime,
-        end_datetime=body.end_datetime,
+        start_datetime=start,
+        end_datetime=end,
         title=body.title,
-        created_by_name=body.created_by_name,
-        created_by_document=body.created_by_document,
+        created_by_name=usuario.nombre,
+        created_by_document=usuario.cedula,
         status="ACTIVE",
     )
     db.add(reservation)
@@ -247,24 +262,44 @@ async def actualizar_reserva(
     reservation_id: uuid.UUID,
     body: ReservationUpdate,
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
-    """Actualiza fechas o título de una reserva."""
+    """Actualiza fechas o título de una reserva. Solo creador o admin."""
     result = await db.execute(select(Reservation).where(Reservation.id == reservation_id))
     reservation = result.scalar_one_or_none()
+    
     if not reservation:
         raise HTTPException(status_code=404, detail="Reserva no encontrada")
+    
+    # Verificar propiedad o admin
+    if reservation.created_by_document != usuario.cedula and usuario.rol != "admin":
+        raise HTTPException(
+            status_code=403, 
+            detail="No tienes permiso para modificar esta reserva. Solo el creador o un administrador pueden hacerlo."
+        )
+
     if reservation.status != "ACTIVE":
         raise HTTPException(status_code=400, detail="Solo se puede actualizar una reserva activa")
+    
+    # Normalizar zonas horarias
     start = body.start_datetime if body.start_datetime is not None else reservation.start_datetime
     end = body.end_datetime if body.end_datetime is not None else reservation.end_datetime
+    
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    if end.tzinfo is None:
+        end = end.replace(tzinfo=timezone.utc)
+
     if end <= start:
         raise HTTPException(status_code=400, detail="end_datetime debe ser posterior a start_datetime")
+    
     if not _dentro_horario_permitido(start, end):
         raise HTTPException(
             status_code=400,
             detail="Las reservas solo están permitidas entre las 7:00 AM y las 6:00 PM (18:00).",
         )
-    # Verificar solapamientos (misma sala, mismo horario, excluyendo la reserva actual)
+
+    # Verificar solapamientos
     overlap_result = await db.execute(
         select(Reservation).where(
             Reservation.room_id == reservation.room_id,
@@ -276,17 +311,28 @@ async def actualizar_reserva(
     )
     if overlap_result.scalars().first() is not None:
         raise HTTPException(status_code=409, detail="La sala ya tiene una reserva en ese horario")
+
+    # Aplicar cambios
     if body.title is not None:
         reservation.title = body.title
     if body.start_datetime is not None:
-        reservation.start_datetime = body.start_datetime
+        new_start = body.start_datetime
+        if new_start.tzinfo is None:
+            new_start = new_start.replace(tzinfo=timezone.utc)
+        reservation.start_datetime = new_start
     if body.end_datetime is not None:
-        reservation.end_datetime = body.end_datetime
-    reservation.updated_by_name = body.updated_by_name
-    reservation.updated_by_document = body.updated_by_document
+        new_end = body.end_datetime
+        if new_end.tzinfo is None:
+            new_end = new_end.replace(tzinfo=timezone.utc)
+        reservation.end_datetime = new_end
+
+    reservation.updated_by_name = usuario.nombre
+    reservation.updated_by_document = usuario.cedula
+    
     await db.commit()
     await db.refresh(reservation)
     return reservation
+
 
 
 @router.post("/reservations/{reservation_id}/cancel", response_model=ReservationRead)
@@ -294,17 +340,26 @@ async def cancelar_reserva(
     reservation_id: uuid.UUID,
     body: ReservationCancelBody,
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
-    """Cancela una reserva (soft: status = CANCELLED)."""
+    """Cancela una reserva (soft: status = CANCELLED). Solo creador o admin."""
     result = await db.execute(select(Reservation).where(Reservation.id == reservation_id))
     reservation = result.scalar_one_or_none()
     if not reservation:
         raise HTTPException(status_code=404, detail="Reserva no encontrada")
+    
+    # Verificar propiedad o admin
+    if reservation.created_by_document != usuario.cedula and usuario.rol != "admin":
+        raise HTTPException(
+            status_code=403, 
+            detail="No tienes permiso para cancelar esta reserva. Solo el creador o un administrador pueden hacerlo."
+        )
+
     if reservation.status == "CANCELLED":
         return reservation
     reservation.status = "CANCELLED"
-    reservation.cancelled_by_name = body.cancelled_by_name
-    reservation.cancelled_by_document = body.cancelled_by_document
+    reservation.cancelled_by_name = usuario.nombre
+    reservation.cancelled_by_document = usuario.cedula
     await db.commit()
     await db.refresh(reservation)
     return reservation

@@ -22,10 +22,7 @@ interface ReservaSalasCalendarViewProps {
   onBack: () => void;
 }
 
-const toLocalIso = (date: Date): string => {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-};
+
 
 export const ReservaSalasCalendarView: React.FC<ReservaSalasCalendarViewProps> = ({ onBack }) => {
   const { state } = useAppContext();
@@ -84,10 +81,8 @@ export const ReservaSalasCalendarView: React.FC<ReservaSalasCalendarViewProps> =
     const newEnd = info.event.end ?? new Date(newStart.getTime() + durationMs);
     try {
       await updateReservation(info.event.id, {
-        start_datetime: toLocalIso(newStart),
-        end_datetime: toLocalIso(newEnd),
-        updated_by_name: user.name || 'Usuario',
-        updated_by_document: user.cedula || user.id || '',
+        start_datetime: newStart.toISOString(),
+        end_datetime: newEnd.toISOString(),
       });
       if (selectedRoom) loadReservations({ room_id: selectedRoom.id, status: 'ACTIVE' });
     } catch (e) {
@@ -102,10 +97,8 @@ export const ReservaSalasCalendarView: React.FC<ReservaSalasCalendarViewProps> =
     const newEnd = info.event.end!;
     try {
       await updateReservation(info.event.id, {
-        start_datetime: toLocalIso(newStart),
-        end_datetime: toLocalIso(newEnd),
-        updated_by_name: user.name || 'Usuario',
-        updated_by_document: user.cedula || user.id || '',
+        start_datetime: newStart.toISOString(),
+        end_datetime: newEnd.toISOString(),
       });
       if (selectedRoom) loadReservations({ room_id: selectedRoom.id, status: 'ACTIVE' });
     } catch (e) {
@@ -113,6 +106,7 @@ export const ReservaSalasCalendarView: React.FC<ReservaSalasCalendarViewProps> =
       addNotification('error', e instanceof Error ? e.message : 'No se pudo redimensionar');
     }
   }, [user, updateReservation, selectedRoom, loadReservations, addNotification]);
+
 
   const handleReservationCreated = useCallback(() => {
     setShowCreateModal(false);
@@ -133,6 +127,7 @@ export const ReservaSalasCalendarView: React.FC<ReservaSalasCalendarViewProps> =
     end: new Date(r.end_datetime),
     backgroundColor: r.status === 'ACTIVE' ? 'var(--color-primary)' : '#6b7280',
     borderColor: r.status === 'ACTIVE' ? 'var(--color-primary)' : '#4b5563',
+    editable: r.status === 'ACTIVE' && (r.created_by_document === user?.cedula || user?.role === 'admin'),
   }));
 
   if (loadingRooms) {

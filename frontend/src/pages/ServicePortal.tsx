@@ -198,8 +198,9 @@ const ServicePortal: React.FC = () => {
     // Efecto para asegurar que el perfil del usuario tenga área/cargo/sede/centrocosto (Auto-sync para sesiones activas)
     useEffect(() => {
         const refreshUserProfile = async () => {
-            // Se dispara si falta área O sede O centrocosto
-            if (user && (!user.area || !user.sede || !user.centrocosto || user.centrocosto === '---')) {
+            // Solo intentar refrescar si falta información vital (área o sede) 
+            // y no estamos ya en proceso de carga o ya lo intentamos.
+            if (user && (!user.area || !user.sede) && user.id) {
                 const token = localStorage.getItem('token');
                 if (!token) return;
 
@@ -215,12 +216,17 @@ const ServicePortal: React.FC = () => {
                             cedula: res.data.cedula || res.data.id,
                             name: res.data.nombre || res.data.name,
                             role: res.data.rol || res.data.role,
-                            area: res.data.area,
-                            cargo: res.data.cargo,
-                            sede: res.data.sede,
-                            centrocosto: res.data.centrocosto || res.data.centro_costo || ''
+                            area: res.data.area || 'Sin Área',
+                            cargo: res.data.cargo || 'Sin Cargo',
+                            sede: res.data.sede || 'Principal',
+                            centrocosto: res.data.centrocosto || res.data.centro_costo || '---',
+                            permissions: res.data.permissions || user.permissions || []
                         };
-                        dispatch({ type: 'LOGIN', payload: updatedUser });
+
+                        // Solo despachar si algo cambió realmente para evitar loops
+                        if (updatedUser.area !== user.area || updatedUser.sede !== user.sede) {
+                            dispatch({ type: 'LOGIN', payload: updatedUser });
+                        }
                     }
                 } catch (err) {
                     console.error("No se pudo refrescar el perfil automáticamente:", err);
@@ -228,7 +234,7 @@ const ServicePortal: React.FC = () => {
             }
         };
         refreshUserProfile();
-    }, [user, dispatch]);
+    }, [user?.id, user?.area, user?.sede, dispatch]);
 
     // Login logic removed
 

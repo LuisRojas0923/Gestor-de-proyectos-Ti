@@ -108,6 +108,7 @@ export const API_ENDPOINTS = {
 
   // Autenticación
   AUTH_LOGIN: '/auth/login',
+  AUTH_PORTAL_LOGIN: '/auth/portal-login',
   AUTH_ME: '/auth/yo',
   // Reportes
   REPORTS_PORTAL_DETAILED: '/desarrollos/informe-detallado-casos-portal',

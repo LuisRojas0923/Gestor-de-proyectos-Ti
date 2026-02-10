@@ -49,21 +49,16 @@ export interface ReservationCreate {
   start_datetime: string;
   end_datetime: string;
   title: string;
-  created_by_name: string;
-  created_by_document: string;
 }
 
 export interface ReservationUpdate {
   start_datetime?: string;
   end_datetime?: string;
   title?: string;
-  updated_by_name: string;
-  updated_by_document: string;
 }
 
 export interface ReservationCancelBody {
-  cancelled_by_name: string;
-  cancelled_by_document: string;
+  // Ahora el backend usa el usuario de la sesión
 }
 
 export interface RecurringReservationCreate {
@@ -76,6 +71,4 @@ export interface RecurringReservationCreate {
   start_date: string;
   end_date?: string;
   occurrences?: number;
-  created_by_name: string;
-  created_by_document: string;
 }

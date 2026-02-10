@@ -43,8 +43,6 @@ const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({ reserva
     start_time: reservation.start_datetime.split('T')[1].substring(0, 5),
     end_time: reservation.end_datetime.split('T')[1].substring(0, 5),
     title: reservation.title,
-    updated_by_name: user?.name || '',
-    updated_by_document: user?.cedula || user?.id || '',
   });
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -71,8 +69,6 @@ const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({ reserva
         start_datetime: new Date(startDatetime).toISOString(),
         end_datetime: new Date(endDatetime).toISOString(),
         title: formData.title,
-        updated_by_name: formData.updated_by_name,
-        updated_by_document: formData.updated_by_document,
       });
       addNotification('success', 'Reserva actualizada correctamente');
       onUpdate();
@@ -91,10 +87,7 @@ const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({ reserva
     setLoading(true);
     setError(null);
     try {
-      await cancelReservation(reservation.id, {
-        cancelled_by_name: user.name || 'Usuario',
-        cancelled_by_document: user.cedula || user.id || '',
-      });
+      await cancelReservation(reservation.id, {});
       addNotification('success', 'Reserva cancelada correctamente');
       onUpdate();
     } catch (e) {
@@ -124,7 +117,7 @@ const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({ reserva
               <div><Text variant="caption" color="text-secondary">Organizador</Text><br /><Text variant="body1">{reservation.created_by_name}</Text></div>
               <div><Text variant="caption" color="text-secondary">Estado</Text><br /><Text variant="body1" weight="bold">{reservation.status === 'ACTIVE' ? 'Activa' : 'Cancelada'}</Text></div>
             </div>
-            {reservation.status === 'ACTIVE' && (
+            {reservation.status === 'ACTIVE' && (reservation.created_by_document === user?.cedula || user?.role === 'admin') && (
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="secondary" onClick={() => setIsEditing(true)}>Editar</Button>
                 <Button variant="danger" onClick={handleCancel} disabled={loading}>Cancelar reserva</Button>
@@ -139,8 +132,6 @@ const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({ reserva
               <Input label="Hora fin" type="time" required value={formData.end_time} onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
             </div>
             <Input label="Título" required value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
-            <Input label="Su nombre (auditoría)" required value={formData.updated_by_name} onChange={(e) => setFormData({ ...formData, updated_by_name: e.target.value })} />
-            <Input label="Su documento (auditoría)" required value={formData.updated_by_document} onChange={(e) => setFormData({ ...formData, updated_by_document: e.target.value })} />
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="ghost" onClick={() => setIsEditing(false)} disabled={loading}>Cancelar</Button>
               <Button type="submit" disabled={loading}>{loading ? 'Actualizando...' : 'Actualizar'}</Button>

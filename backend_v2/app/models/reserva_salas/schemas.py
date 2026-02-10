@@ -44,28 +44,23 @@ class RoomUpdate(SQLModel):
 # --- Reservations ---
 
 class ReservationCreate(SQLModel):
-    """Crear reserva"""
+    """Crear reserva (auditoría automática)"""
     room_id: uuid.UUID
     start_datetime: datetime
     end_datetime: datetime
     title: str
-    created_by_name: str
-    created_by_document: str
 
 
 class ReservationUpdate(SQLModel):
-    """Actualizar reserva (fechas/título)"""
+    """Actualizar reserva (auditoría automática)"""
     start_datetime: Optional[datetime] = None
     end_datetime: Optional[datetime] = None
     title: Optional[str] = None
-    updated_by_name: str
-    updated_by_document: str
 
 
 class ReservationCancelBody(SQLModel):
-    """Cancelar reserva"""
-    cancelled_by_name: str
-    cancelled_by_document: str
+    """Cuerpo opcional para cancelación"""
+    pass
 
 
 class ReservationRead(SQLModel):
