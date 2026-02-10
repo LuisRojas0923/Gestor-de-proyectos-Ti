@@ -60,11 +60,23 @@ export function useApi<T>() {
       }
 
       if (!response.ok) {
-        // Intentar extraer mensaje de error del cuerpo si existe
-        let body;
-        try { body = await response.json(); } catch { body = null; }
+        let body: { detail?: unknown; message?: string } | null = null;
+        try { body = await response.json(); } catch { /* ignore */ }
 
-        const errorMessage = body?.detail || body?.message || getErrorMessage(response.status);
+        let errorMessage: string;
+        if (body?.detail != null) {
+          if (Array.isArray(body.detail)) {
+            errorMessage = (body.detail as { msg?: string; loc?: unknown[] }[])
+              .map((e) => e.msg || (e.loc ? `${e.loc.join('.')}: error` : JSON.stringify(e)))
+              .join('; ') || getErrorMessage(response.status);
+          } else if (typeof body.detail === 'string') {
+            errorMessage = body.detail;
+          } else {
+            errorMessage = body?.message || getErrorMessage(response.status);
+          }
+        } else {
+          errorMessage = body?.message || getErrorMessage(response.status);
+        }
         console.error(`API Error [${response.status}] at ${url}:`, body);
         throw new Error(errorMessage);
       }
@@ -89,7 +101,7 @@ export function useApi<T>() {
         addNotification('error', errorMessage);
       }
 
-      return null;
+      throw error;
     }
   }, []);
 

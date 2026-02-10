@@ -76,3 +76,44 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Calendario Reserva de Salas: encabezados legibles con texto azul */
+.reserva-salas-calendar .fc-col-header-cell {
+  background: var(--color-surface-variant);
+  color: var(--color-primary);
+  font-weight: 600;
+  border-color: var(--color-border);
+}
+.reserva-salas-calendar .fc-col-header-cell-cushion {
+  color: var(--color-primary);
+}
+.reserva-salas-calendar .fc-toolbar-title {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+.reserva-salas-calendar .fc-button {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+.reserva-salas-calendar .fc-button:hover {
+  background: var(--color-secondary);
+  color: var(--color-primary);
+}
+.reserva-salas-calendar .fc-button-primary:not(:disabled).fc-button-active,
+.reserva-salas-calendar .fc-button-primary:not(:disabled):active {
+  background: var(--color-primary);
+  color: var(--color-surface);
+  border-color: var(--color-primary);
+}
+.reserva-salas-calendar .fc-timegrid-slot-label {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+.reserva-salas-calendar .fc-scrollgrid {
+  border-color: var(--color-border);
+}
+.reserva-salas-calendar .fc-theme-standard td,
+.reserva-salas-calendar .fc-theme-standard th {
+  border-color: var(--color-border);
+}

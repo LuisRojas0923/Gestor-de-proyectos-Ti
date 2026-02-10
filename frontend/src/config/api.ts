@@ -1,8 +1,20 @@
 // Configuración de la API
 // Sistema de Gestión de Proyectos TI
+// Si abres la app en http://localhost:5173, las peticiones van a ese puerto y fallan.
+// Usa http://localhost (puerto 80 con Nginx) o esta lógica redirige al backend :8000.
+
+function getBaseUrl(): string {
+  const env = import.meta.env.VITE_API_BASE_URL;
+  if (env) return env;
+  // Cuando la app se abre en el puerto de Vite (5173), /api/v2 no existe ahí → usar backend directo
+  if (typeof window !== 'undefined' && window.location.port === '5173') {
+    return `${window.location.protocol}//${window.location.hostname}:8000/api/v2`;
+  }
+  return '/api/v2';
+}
 
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://192.168.40.96:8000/api/v2',
+  BASE_URL: getBaseUrl(),
   TIMEOUT: 30000, // 30 segundos
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000, // 1 segundo
@@ -96,6 +108,7 @@ export const API_ENDPOINTS = {
 
   // Autenticación
   AUTH_LOGIN: '/auth/login',
+  AUTH_PORTAL_LOGIN: '/auth/portal-login',
   AUTH_ME: '/auth/yo',
   // Reportes
   REPORTS_PORTAL_DETAILED: '/desarrollos/informe-detallado-casos-portal',
@@ -104,6 +117,14 @@ export const API_ENDPOINTS = {
   ERP_SOLICITUDES: '/erp/solicitudes',
   ERP_EMPLEADO: (id: string) => `/erp/empleado/${id}`,
   ERP_SINCRONIZAR: '/erp/sincronizar',
+
+  // Reserva de Salas
+  RESERVA_SALAS_ROOMS: '/reserva-salas/rooms',
+  RESERVA_SALAS_ROOM_BY_ID: (id: string) => `/reserva-salas/rooms/${id}`,
+  RESERVA_SALAS_RESERVATIONS: '/reserva-salas/reservations',
+  RESERVA_SALAS_RESERVATION_BY_ID: (id: string) => `/reserva-salas/reservations/${id}`,
+  RESERVA_SALAS_RESERVATION_CANCEL: (id: string) => `/reserva-salas/reservations/${id}/cancel`,
+  RESERVA_SALAS_RECURRING: '/reserva-salas/reservations/recurring',
 };
 
 export const HTTP_STATUS = {

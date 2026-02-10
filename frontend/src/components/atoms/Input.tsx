@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Text, Icon, Button } from './index';
 
 interface InputProps {
-  type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'date' | 'url' | 'range' | 'file' | 'hidden';
+  type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'date' | 'time' | 'datetime-local' | 'url' | 'range' | 'file' | 'hidden';
   placeholder?: string;
   value?: string;
   defaultValue?: string;

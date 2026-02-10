@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
-from app.database import obtener_db, obtener_erp_db
+from app.database import obtener_db, obtener_erp_db, obtener_erp_db_opcional
 from app.models.auth.usuario import (
     Usuario, UsuarioCrear, UsuarioPublico, PermisoRol,
     TokenRespuesta, LoginRequest, AnalistaCrear, PasswordCambiar
@@ -22,7 +22,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v2/auth/login")
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(), 
     db: AsyncSession = Depends(obtener_db),
-    db_erp = Depends(obtener_erp_db)
+    db_erp = Depends(obtener_erp_db_opcional),
 ):
     """Endpoint para inicio de sesion (OAuth2 compatible)"""
     try:
@@ -44,9 +44,8 @@ async def login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
             
-        # 3. Sincronizar perfil si falta información clave (Auto-parche)
-        # Se envuelve en try-except para que un fallo en el ERP no bloquee el login
-        if not usuario.area or not usuario.sede:
+        # 3. Sincronizar perfil desde ERP si falta información y ERP está disponible
+        if db_erp and (not usuario.area or not usuario.sede):
             try:
                 usuario = await ServicioAuth.sincronizar_perfil_desde_erp(db, db_erp, usuario)
             except Exception as e:
@@ -72,6 +71,7 @@ async def login(
                 "area": usuario.area,
                 "cargo": usuario.cargo,
                 "sede": usuario.sede,
+                "centrocosto": usuario.centrocosto,
                 "viaticante": usuario.viaticante,
                 "baseviaticos": usuario.baseviaticos,
                 "permissions": permisos
@@ -87,6 +87,110 @@ async def login(
         )
 
 
+@router.post("/portal-login")
+async def portal_login(
+    payload: dict, # { "username": "..." }
+    db: AsyncSession = Depends(obtener_db),
+    db_erp = Depends(obtener_erp_db_opcional),
+):
+    """Endpoint para inicio de sesion simplificado del portal (solo cedula)"""
+    cedula = payload.get("username")
+    if not cedula:
+        raise HTTPException(status_code=400, detail="Cedula requerida")
+    
+    # 1. Validar contra ERP
+    if not db_erp:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Servicio ERP no disponible para validacion de portal"
+        )
+        
+    try:
+        from app.services.erp import EmpleadosService
+        empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula)
+    except Exception as e:
+        print(f"ERROR ERP en portal-login: {e}")
+        raise HTTPException(status_code=503, detail="Error de conexion con ERP")
+        
+    if not empleado:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado en el sistema")
+
+    # 2. Asegurar que el usuario exista en la BD local (para auditoria y roles)
+    try:
+        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+        
+        if not usuario:
+            # Auto-registro minimo para usuarios del portal
+            id_usuario = f"USR-P-{cedula}"
+            hash_temporal = ServicioAuth.obtener_hash_contrasena(cedula)
+            
+            usuario = Usuario(
+                id=id_usuario,
+                cedula=cedula,
+                nombre=empleado["nombre"],
+                hash_contrasena=hash_temporal,
+                rol="user",
+                esta_activo=True,
+                area=empleado.get("area"),
+                cargo=empleado.get("cargo"),
+                sede=empleado.get("ciudadcontratacion"),
+                centrocosto=empleado.get("centrocosto"),
+                viaticante=str(empleado.get("viaticante")) if empleado.get("viaticante") is not None else None,
+                baseviaticos=empleado.get("baseviaticos")
+            )
+            db.add(usuario)
+            await db.commit()
+            await db.refresh(usuario)
+        else:
+            # Sincronizar datos si ya existe y ERP está disponible (evitando re-commits innecesarios)
+            if db_erp:
+                # Sincronización manual in-place para evitar dependencias circulares o leaks
+                val_viaticante = empleado.get("viaticante")
+                usuario.area = empleado.get("area").strip() if empleado.get("area") else usuario.area
+                usuario.cargo = empleado.get("cargo").strip() if empleado.get("cargo") else usuario.cargo
+                usuario.sede = empleado.get("ciudadcontratacion").strip() if empleado.get("ciudadcontratacion") else usuario.sede
+                usuario.centrocosto = empleado.get("centrocosto").strip() if empleado.get("centrocosto") else usuario.centrocosto
+                usuario.nombre = empleado.get("nombre").strip() if empleado.get("nombre") else usuario.nombre
+                usuario.viaticante = str(val_viaticante) if val_viaticante is not None else usuario.viaticante
+                usuario.baseviaticos = empleado.get("baseviaticos") if empleado.get("baseviaticos") is not None else usuario.baseviaticos
+                
+                await db.commit()
+                await db.refresh(usuario)
+    except Exception as e:
+        print(f"ERROR persistencia portal-login: {e}")
+        # Intentamos continuar si el usuario ya existe, sino fallamos
+        if not usuario:
+            raise HTTPException(status_code=500, detail="Error al persistir usuario local")
+
+
+    # 3. Obtener permisos
+    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol or "user")
+
+    # 4. Generar token
+    token_acceso = ServicioAuth.crear_token_acceso(
+        datos={"sub": usuario.cedula, "rol": usuario.rol or "user"}
+    )
+    
+    return {
+        "access_token": token_acceso,
+        "token_type": "bearer",
+        "user": {
+            "id": usuario.id,
+            "cedula": usuario.cedula,
+            "name": usuario.nombre,
+            "role": usuario.rol or "user",
+            "email": usuario.correo or "usuario@dominio.com",
+            "area": usuario.area,
+            "cargo": usuario.cargo,
+            "sede": usuario.sede,
+            "centrocosto": usuario.centrocosto,
+            "viaticante": usuario.viaticante,
+            "baseviaticos": usuario.baseviaticos,
+            "permissions": permisos or ["service-portal"]
+        }
+    }
+
+
 @router.post("/registro", response_model=UsuarioPublico)
 async def registrar_usuario(usuario: UsuarioCrear, db: AsyncSession = Depends(obtener_db)):
     """Endpoint para registrar un nuevo usuario"""
@@ -97,29 +201,39 @@ async def registrar_usuario(usuario: UsuarioCrear, db: AsyncSession = Depends(ob
 async def obtener_usuario_actual_db(
     token: str = Depends(oauth2_scheme), 
     db: AsyncSession = Depends(obtener_db),
-    db_erp = Depends(obtener_erp_db)
 ):
+
     """Dependencia para obtener el objeto usuario completo del token y sincronizar si es necesario"""
     try:
         cedula = ServicioAuth.obtener_cedula_desde_token(token)
+        print(f"DEBUG: Token recibido, cedula extraida={cedula}")
         if not cedula:
+            print("DEBUG: Token invallido o expirado")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token invalido o expirado",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+        print(f"DEBUG: Usuario buscado en BD, encontrado={usuario is not None}")
         if not usuario:
+            print(f"DEBUG: Usuario cedula={cedula} no encontrado en BD local")
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
             
         # Sincronizar si falta información (Auto-parche)
+        # Sincronizar si falta información (Auto-parche)
         if not usuario.area or not usuario.sede:
+            from app.database import SessionErp # Import local para evitar ciclos
             try:
-                usuario = await ServicioAuth.sincronizar_perfil_desde_erp(db, db_erp, usuario)
+                # Usamos un bloque with síncrono para la conexión ERP
+                with SessionErp() as db_erp:
+                    usuario = await ServicioAuth.sincronizar_perfil_desde_erp(db, db_erp, usuario)
             except Exception as e:
-                print(f"DEBUG: Error sincronizando perfil en yo: {e}")
+                print(f"DEBUG: ERP no disponible o fallo en sincronizacion: {e}")
                 
         return usuario
+
     except HTTPException:
         raise
     except Exception as e:

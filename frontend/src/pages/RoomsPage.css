@@ -1,0 +1,256 @@
+/* Gestión de Salas - Solo admin */
+
+.rooms-page {
+  padding: 1.5rem;
+  animation: rooms-page-fadeIn 0.3s ease;
+}
+
+@keyframes rooms-page-fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.rooms-page-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.rooms-page-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-border, #e5e7eb);
+  border-top-color: var(--color-primary, #3b82f6);
+  border-radius: 50%;
+  animation: rooms-page-spin 0.8s linear infinite;
+}
+
+@keyframes rooms-page-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rooms-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.rooms-page-error {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--color-error-bg, #fef2f2);
+  border: 1px solid var(--color-error, #ef4444);
+  border-radius: 0.5rem;
+}
+
+.rooms-page-filters {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 0.75rem;
+}
+
+.rooms-page-filter-group {
+  flex: 1;
+  min-width: 180px;
+}
+
+.rooms-page-filter-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.rooms-page-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.rooms-page-card {
+  padding: 1.5rem;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: box-shadow 0.2s ease;
+}
+
+.rooms-page-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.rooms-page-card-inactive {
+  opacity: 0.65;
+  border-color: var(--color-text-muted, #9ca3af);
+}
+
+.rooms-page-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.rooms-page-card-header h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text-primary, #111827);
+}
+
+.rooms-page-badge-inactive {
+  padding: 0.25rem 0.75rem;
+  background: var(--color-surface-hover, #f3f4f6);
+  border: 1px solid var(--color-text-muted, #9ca3af);
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6b7280);
+  font-weight: 600;
+}
+
+.rooms-page-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rooms-page-info-item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.rooms-page-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.rooms-page-resources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rooms-page-resource-tag {
+  padding: 0.25rem 0.75rem;
+  background: var(--color-surface-hover, #f3f4f6);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 0.375rem;
+  font-size: 0.85rem;
+  color: var(--color-text-primary, #111827);
+}
+
+.rooms-page-notes {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.rooms-page-card-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border, #e5e7eb);
+}
+
+.rooms-page-empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.rooms-page-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rooms-page-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rooms-page-form-group label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.rooms-page-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 0.5rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  background: var(--color-bg, #fff);
+  color: var(--color-text-primary, #111827);
+}
+
+.rooms-page-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.rooms-page-form-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.rooms-page-form-checkbox input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+}
+
+.rooms-page-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border, #e5e7eb);
+}
+
+@media (max-width: 768px) {
+  .rooms-page-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rooms-page-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rooms-page-filter-group {
+    min-width: 100%;
+  }
+}

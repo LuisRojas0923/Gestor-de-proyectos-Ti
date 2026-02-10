@@ -18,6 +18,7 @@ import AreaSelectionView from './ServicePortal/pages/AreaSelectionView';
 import ViaticosManagement from './ServicePortal/pages/ViaticosManagement';
 import AccountStatement from './ServicePortal/pages/AccountStatement';
 import TransitReportsView from './ServicePortal/pages/TransitReportsView';
+import ReservaSalasView from './ServicePortal/pages/ReservaSalasView';
 import PortalLayout from './ServicePortal/PortalLayout';
 
 import imgHardware from '../assets/images/categories/Soporte Hardware.png';
@@ -215,12 +216,17 @@ const ServicePortal: React.FC = () => {
                             cedula: res.data.cedula || res.data.id,
                             name: res.data.nombre || res.data.name,
                             role: res.data.rol || res.data.role,
-                            area: res.data.area,
-                            cargo: res.data.cargo,
-                            sede: res.data.sede,
-                            centrocosto: res.data.centrocosto || res.data.centro_costo || ''
+                            area: res.data.area || 'Sin Área',
+                            cargo: res.data.cargo || 'Sin Cargo',
+                            sede: res.data.sede || 'Principal',
+                            centrocosto: res.data.centrocosto || res.data.centro_costo || '---',
+                            permissions: res.data.permissions || user.permissions || []
                         };
-                        dispatch({ type: 'LOGIN', payload: updatedUser });
+
+                        // Solo despachar si algo cambió realmente para evitar loops
+                        if (updatedUser.area !== user.area || updatedUser.sede !== user.sede) {
+                            dispatch({ type: 'LOGIN', payload: updatedUser });
+                        }
                     }
                 } catch (err) {
                     console.error("No se pudo refrescar el perfil automáticamente:", err);
@@ -415,6 +421,7 @@ const ServicePortal: React.FC = () => {
                             if (v === 'viaticos_gestion') navigate('/service-portal/gastos/gestion');
                             else if (v === 'categories') navigate('/service-portal/servicios');
                             else if (v === 'status') navigate('/service-portal/mis-tickets');
+                            else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
                         }}
                     />
                 } />
@@ -538,6 +545,10 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="exito/:ticketId" element={
                     <SuccessView newTicketId={newTicketId} onHome={() => navigate('/service-portal/inicio')} />
+                } />
+
+                <Route path="reserva-salas" element={
+                    <ReservaSalasView onBack={() => navigate('/service-portal/inicio')} />
                 } />
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />

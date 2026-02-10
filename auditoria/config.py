@@ -5,7 +5,7 @@ import os
 
 # Carpetas a ignorar durante el escaneo
 IGNORE_DIRS = {
-    'node_modules', '.git', '__pycache__', 'venv', 'env',
+    'node_modules', '.git', '__pycache__', 'venv', '.venv', 'env',
     '.idea', '.vscode', 'dist', 'build', 'coverage', 
     '.pytest_cache', 'z_backend_obsoleto_backup', 'auditoria'
 }

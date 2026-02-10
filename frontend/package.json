@@ -9,8 +9,13 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
-  "dependencies": {
-    "@headlessui/react": "^2.2.7",
+"dependencies": {
+  "@fullcalendar/core": "^6.1.10",
+  "@fullcalendar/daygrid": "^6.1.10",
+  "@fullcalendar/interaction": "^6.1.10",
+  "@fullcalendar/react": "^6.1.10",
+  "@fullcalendar/timegrid": "^6.1.10",
+  "@headlessui/react": "^2.2.7",
     "@hookform/resolvers": "^5.2.1",
     "@types/axios": "^0.9.36",
     "@types/node": "^24.3.0",
