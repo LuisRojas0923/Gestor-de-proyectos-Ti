@@ -14,6 +14,7 @@ interface User {
   cargo?: string;
   sede?: string;
   centrocosto?: string;
+  viaticante?: string | boolean;
   permissions?: string[];
 }
 
@@ -261,6 +262,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             cargo: data.cargo,
             sede: data.sede,
             centrocosto: data.centrocosto || data.centro_costo || '',
+            viaticante: data.viaticante,
             permissions: data.permissions || data.permisos || []
           });
 

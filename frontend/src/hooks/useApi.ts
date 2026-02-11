@@ -53,9 +53,8 @@ export function useApi<T>() {
       });
 
       if (response.status === HTTP_STATUS.UNAUTHORIZED) {
-        console.warn(`Unauthorized access (401) to ${url}. Logging out...`);
+        console.error(`🔒 401 Unauthorized en ${url}. Token presente: ${!!token}, Token (primeros 20): ${token ? token.substring(0, 20) + '...' : 'NULL'}. Ejecutando logout...`);
         dispatch({ type: 'LOGOUT' });
-        // Opcional: No arrojar error para evitar doble notificación si ProtectorRoute maneja la redirección
         return null;
       }
 
