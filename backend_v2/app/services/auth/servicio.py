@@ -123,9 +123,7 @@ class ServicioAuth:
             usuario.sede = datos_erp.get("ciudadcontratacion").strip() if datos_erp.get("ciudadcontratacion") else None
             usuario.centrocosto = datos_erp.get("centrocosto").strip() if datos_erp.get("centrocosto") else None
             usuario.nombre = datos_erp.get("nombre").strip() if datos_erp.get("nombre") else usuario.nombre
-            # Fix: Castear viaticante a str porque en BD es VARCHAR y asyncpg es estricto con bools
-            val_viaticante = datos_erp.get("viaticante")
-            usuario.viaticante = str(val_viaticante) if val_viaticante is not None else None
+            usuario.viaticante = bool(val_viaticante) if val_viaticante is not None else False
             usuario.baseviaticos = datos_erp.get("baseviaticos")
             await db.commit()
             await db.refresh(usuario)
@@ -168,7 +166,7 @@ class ServicioAuth:
             cargo=datos_erp.get("cargo"),
             sede=datos_erp.get("ciudadcontratacion"),
             centrocosto=datos_erp.get("centrocosto"),
-            viaticante=str(datos_erp.get("viaticante")) if datos_erp.get("viaticante") is not None else None,
+            viaticante=bool(datos_erp.get("viaticante")) if datos_erp.get("viaticante") is not None else False,
             baseviaticos=datos_erp.get("baseviaticos")
         )
         

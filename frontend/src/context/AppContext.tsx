@@ -14,7 +14,7 @@ interface User {
   cargo?: string;
   sede?: string;
   centrocosto?: string;
-  viaticante?: string | boolean;
+  viaticante?: boolean;
   permissions?: string[];
 }
 
@@ -262,7 +262,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             cargo: data.cargo,
             sede: data.sede,
             centrocosto: data.centrocosto || data.centro_costo || '',
-            viaticante: data.viaticante,
+            viaticante: typeof data.viaticante === 'boolean' ? data.viaticante : String(data.viaticante).toLowerCase() === 'true',
             permissions: data.permissions || data.permisos || []
           });
 

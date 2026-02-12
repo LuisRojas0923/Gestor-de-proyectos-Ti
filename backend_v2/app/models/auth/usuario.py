@@ -33,7 +33,7 @@ class Usuario(SQLModel, table=True):
     centrocosto: Optional[str] = Field(default=None, max_length=255)
     
     # Datos de viáticos (Solid ERP)
-    viaticante: Optional[str] = Field(default=None, max_length=20)
+    viaticante: bool = Field(default=False)
     baseviaticos: Optional[float] = Field(default=None)
     # Nuevos campos para ruteo inteligente
     especialidades: Optional[str] = Field(default="[]", max_length=500)  # Lista JSON: ["soporte", "desarrollo"]
@@ -128,7 +128,7 @@ class UsuarioPublico(SQLModel):
     cargo: Optional[str] = None
     sede: Optional[str] = None
     centrocosto: Optional[str] = None
-    viaticante: Optional[str] = None
+    viaticante: bool = False
     baseviaticos: Optional[float] = None
     especialidades: Optional[str] = "[]"
     areas_asignadas: Optional[str] = "[]"

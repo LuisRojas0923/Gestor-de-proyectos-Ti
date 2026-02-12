@@ -115,83 +115,136 @@ async def portal_login(
     if not empleado:
         raise HTTPException(status_code=404, detail="Usuario no encontrado en el sistema")
 
-    # 2. Asegurar que el usuario exista en la BD local (para auditoria y roles)
-    try:
-        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
-        
-        if not usuario:
-            # Auto-registro minimo para usuarios del portal
-            id_usuario = f"USR-P-{cedula}"
-            hash_temporal = ServicioAuth.obtener_hash_contrasena(cedula)
-            
-            usuario = Usuario(
-                id=id_usuario,
-                cedula=cedula,
-                nombre=empleado["nombre"],
-                hash_contrasena=hash_temporal,
-                rol="user",
-                esta_activo=True,
-                area=empleado.get("area"),
-                cargo=empleado.get("cargo"),
-                sede=empleado.get("ciudadcontratacion"),
-                centrocosto=empleado.get("centrocosto"),
-                viaticante=str(empleado.get("viaticante")) if empleado.get("viaticante") is not None else None,
-                baseviaticos=empleado.get("baseviaticos")
-            )
-            db.add(usuario)
+    # 2. Obtener o crear objeto virtual para el token
+    usuario_local = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+    
+    # Preparamos los datos del usuario (ya sea del local o del ERP)
+    user_data = {
+        "id": usuario_local.id if usuario_local else f"USR-P-{cedula}",
+        "cedula": cedula,
+        "nombre": empleado["nombre"],
+        "rol": usuario_local.rol if usuario_local else "user",
+        "area": empleado.get("area"),
+        "cargo": empleado.get("cargo"),
+        "sede": empleado.get("ciudadcontratacion"),
+        "centrocosto": empleado.get("centrocosto"),
+        "viaticante": bool(empleado.get("viaticante")),
+        "baseviaticos": empleado.get("baseviaticos")
+    }
+
+    # 3. Si el usuario existe localmente, sincronizamos sus datos de perfil (opcional/perezoso)
+    if usuario_local:
+        try:
+            usuario_local.area = user_data["area"]
+            usuario_local.cargo = user_data["cargo"]
+            usuario_local.sede = user_data["sede"]
+            usuario_local.centrocosto = user_data["centrocosto"]
+            usuario_local.nombre = user_data["nombre"]
+            usuario_local.viaticante = user_data["viaticante"]
+            usuario_local.baseviaticos = user_data["baseviaticos"]
             await db.commit()
-            await db.refresh(usuario)
-        else:
-            # Sincronizar datos si ya existe y ERP está disponible (evitando re-commits innecesarios)
-            if db_erp:
-                # Sincronización manual in-place para evitar dependencias circulares o leaks
-                val_viaticante = empleado.get("viaticante")
-                usuario.area = empleado.get("area").strip() if empleado.get("area") else usuario.area
-                usuario.cargo = empleado.get("cargo").strip() if empleado.get("cargo") else usuario.cargo
-                usuario.sede = empleado.get("ciudadcontratacion").strip() if empleado.get("ciudadcontratacion") else usuario.sede
-                usuario.centrocosto = empleado.get("centrocosto").strip() if empleado.get("centrocosto") else usuario.centrocosto
-                usuario.nombre = empleado.get("nombre").strip() if empleado.get("nombre") else usuario.nombre
-                usuario.viaticante = str(val_viaticante) if val_viaticante is not None else usuario.viaticante
-                usuario.baseviaticos = empleado.get("baseviaticos") if empleado.get("baseviaticos") is not None else usuario.baseviaticos
-                
-                await db.commit()
-                await db.refresh(usuario)
-    except Exception as e:
-        print(f"ERROR persistencia portal-login: {e}")
-        # Intentamos continuar si el usuario ya existe, sino fallamos
-        if not usuario:
-            raise HTTPException(status_code=500, detail="Error al persistir usuario local")
+        except Exception as e:
+            print(f"DEBUG: Error sincronizando usuario local existente: {e}")
+            await db.rollback()
 
 
-    # 3. Obtener permisos
-    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol or "user")
+    # 4. Obtener permisos del rol
+    permisos = []
+    if usuario_local:
+        permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario_local.rol)
+    
+    if not permisos:
+        permisos = ["service-portal"]
 
-    # 4. Generar token
+    # 5. Generar token
     token_acceso = ServicioAuth.crear_token_acceso(
-        datos={"sub": usuario.cedula, "rol": usuario.rol or "user"}
+        datos={"sub": user_data["cedula"], "rol": user_data["rol"]}
     )
     
     return {
         "access_token": token_acceso,
         "token_type": "bearer",
         "user": {
-            "id": usuario.id,
-            "cedula": usuario.cedula,
-            "name": usuario.nombre,
-            "role": usuario.rol or "user",
-            "email": usuario.correo or "usuario@dominio.com",
-            "area": usuario.area,
-            "cargo": usuario.cargo,
-            "sede": usuario.sede,
-            "centrocosto": usuario.centrocosto,
-            "viaticante": usuario.viaticante,
-            "baseviaticos": usuario.baseviaticos,
-            "permissions": permisos or ["service-portal"]
+            "id": user_data["id"],
+            "cedula": user_data["cedula"],
+            "name": user_data["nombre"],
+            "role": user_data["rol"],
+            "email": usuario_local.correo if usuario_local else "usuario@dominio.com",
+            "area": user_data["area"],
+            "cargo": user_data["cargo"],
+            "sede": user_data["sede"],
+            "centrocosto": user_data["centrocosto"],
+            "viaticante": user_data["viaticante"],
+            "baseviaticos": user_data["baseviaticos"],
+            "permissions": permisos
         }
     }
 
 
-@router.post("/registro", response_model=UsuarioPublico)
+@router.post("/portal-init")
+async def portal_init(
+    db: AsyncSession = Depends(obtener_db),
+    db_erp = Depends(obtener_erp_db_opcional),
+    token: str = Depends(oauth2_scheme)
+):
+    """
+    Endpoint para inicializar físicamente un usuario del portal en la DB local.
+    Se llama solo cuando el usuario intenta acceder a una funcionalidad protegida (Lazy Creation).
+    """
+    # 1. Extraer cédula del token (sin fallar si no existe en DB local)
+    cedula = ServicioAuth.obtener_cedula_desde_token(token)
+    if not cedula:
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+
+    # 2. Verificar si ya existe (prevención de duplicados)
+    usuario_local = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+    if usuario_local:
+        return {"status": "already_exists", "user_id": usuario_local.id}
+
+    # 3. Consultar ERP para obtener datos frescos y veraces
+    if not db_erp:
+        raise HTTPException(status_code=503, detail="Servicio ERP no disponible para inicialización")
+
+    from app.services.erp.empleados_service import EmpleadosService
+    empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula)
+    
+    if not empleado:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado en el ERP")
+
+    # 4. Crear físicamente en la DB local
+    id_usuario = f"USR-P-{cedula}"
+    # Generamos un hash temporal basado en la cédula (como en portal-login antiguo)
+    hash_temporal = ServicioAuth.obtener_hash_contrasena(cedula)
+    
+    try:
+        nuevo_usuario = Usuario(
+            id=id_usuario,
+            cedula=cedula,
+            nombre=empleado["nombre"],
+            hash_contrasena=hash_temporal,
+            rol="user",
+            esta_activo=True,
+            area=empleado.get("area"),
+            cargo=empleado.get("cargo"),
+            sede=empleado.get("ciudadcontratacion"),
+            centrocosto=empleado.get("centrocosto"),
+            viaticante=bool(empleado.get("viaticante")),
+            baseviaticos=empleado.get("baseviaticos")
+        )
+        db.add(nuevo_usuario)
+        await db.commit()
+        await db.refresh(nuevo_usuario)
+        
+        return {
+            "status": "created", 
+            "user_id": nuevo_usuario.id,
+            "message": "Usuario inicializado exitosamente en el portal"
+        }
+    except Exception as e:
+        await db.rollback()
+        print(f"ERROR en portal-init: {e}")
+        raise HTTPException(status_code=500, detail="Error al crear el registro local del usuario")
+
 async def registrar_usuario(usuario: UsuarioCrear, db: AsyncSession = Depends(obtener_db)):
     """Endpoint para registrar un nuevo usuario"""
     # TODO: Implementar logica de registro
@@ -385,7 +438,7 @@ async def actualizar_permisos(
     return {"mensaje": "Permisos actualizados correctamente"}
 @router.get("/viaticos/status/{cedula}")
 async def obtener_estado_viaticos(cedula: str, db: AsyncSession = Depends(obtener_db)):
-    """Verifica si un empleado ya tiene contraseña configurada para viáticos"""
+    """Verifica si un empleado ya existe en la tabla de usuarios"""
     usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
     return {"registrado": usuario is not None}
 

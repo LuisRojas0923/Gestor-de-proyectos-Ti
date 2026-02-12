@@ -417,8 +417,10 @@ const ServicePortal: React.FC = () => {
                 <Route path="inicio" element={
                     <DashboardView
                         user={user}
-                        onNavigate={(v) => {
-                            if (v === 'viaticos_gestion') navigate('/service-portal/gastos/gestion');
+                        onNavigate={async (v) => {
+                            if (v === 'viaticos_gestion') {
+                                navigate('/service-portal/gastos/gestion');
+                            }
                             else if (v === 'categories') navigate('/service-portal/servicios');
                             else if (v === 'status') navigate('/service-portal/mis-tickets');
                             else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
