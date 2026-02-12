@@ -24,11 +24,11 @@ export const FormField: React.FC<{
     placeholder?: string, defaultValue?: string | number, readOnly?: boolean, icon?: LucideIcon
 }> = ({ label, name, type = 'text', isRequired = true, placeholder, defaultValue, readOnly = false, icon }) => (
     <Input
-        label={label}
+        label={placeholder ? `${placeholder} — ${label}` : label}
         name={name}
         type={type}
         required={isRequired && !readOnly}
-        placeholder={placeholder}
+        placeholder={undefined}
         defaultValue={defaultValue?.toString()}
         disabled={readOnly}
         icon={icon}

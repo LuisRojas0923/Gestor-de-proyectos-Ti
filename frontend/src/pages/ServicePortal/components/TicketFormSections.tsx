@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, FileText, Search, Clock } from 'lucide-react';
+import { Database, FileText, Search } from 'lucide-react';
 import { FormField, TextAreaField } from '../pages/Common';
 import { Select, Title, Text, Icon } from '../../../components/atoms';
 
@@ -67,39 +67,61 @@ export const DevelopmentSection: React.FC<{ userArea: string, userName: string }
             <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">1. Identificación del Proceso</Title>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField label="Nombre del Proceso" name="nombre_proceso" placeholder="Ej: Gestión de Activos" />
+                <Select
+                    label="¿Cuántas personas aproximadamente usarán esta herramienta?"
+                    name="cantidad_usuarios_estimada"
+                    options={[
+                        { value: '1-5', label: '1 a 5 personas' },
+                        { value: '5-20', label: '5 a 20 personas' },
+                        { value: '20+', label: 'Más de 20 personas' }
+                    ]}
+                />
                 <FormField label="Área Solicitante" name="area_solicitante" defaultValue={userArea} />
-                <FormField label="Usuario Líder" name="lider_requerimiento" defaultValue={userName} />
+                <FormField label="Usuario Líder (Responsable)" name="lider_requerimiento" defaultValue={userName} />
             </div>
         </div>
         <div className="space-y-4">
             <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">2. Diagnóstico Actual</Title>
-            <Select label="¿Existe actualmente una herramienta en Excel para este proceso?" name="existe_herramienta" options={[{ value: 'SI', label: 'Sí' }, { value: 'NO', label: 'No' }]} />
-            <FormField label="Referencia de archivos (Ruta compartida o nombre)" name="ruta_archivos" placeholder="Ej: \\SERVIDOR-TI\compartido\archivo.xlsx" />
-            <TextAreaField label="Limitaciones: ¿Qué funcionalidades faltan o qué errores se buscan solucionar?" name="limitaciones_actuales" placeholder="Describa los problemas actuales..." rows={3} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select label="¿Ya existe hoy algo en Excel para este proceso?" name="existe_herramienta" options={[{ value: 'SI', label: 'Sí' }, { value: 'NO', label: 'No' }]} />
+                <Select
+                    label="¿Qué volumen de datos se manejará al mes?"
+                    name="volumen_datos_estimado"
+                    options={[
+                        { value: 'Bajo', label: 'Poco (1 a 50 registros)' },
+                        { value: 'Medio', label: 'Moderado (50 a 500 registros)' },
+                        { value: 'Alto', label: 'Alto (500 a 5000 registros)' },
+                        { value: 'Masivo', label: 'Masivo (Más de 5000)' }
+                    ]}
+                />
+            </div>
+            <FormField label="¿Dónde están los archivos actuales? (Ruta o nombre)" name="ruta_archivos" placeholder="Ej: \\SERVIDOR-TI\compartido\archivo.xlsx" />
+            <TextAreaField label="¿Qué problemas tiene hoy o qué le falta a lo que usa actualmente?" name="limitaciones_actuales" placeholder="Describa los problemas actuales..." rows={3} />
         </div>
         <div className="space-y-4">
-            <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">3. Dinámica (Entrada)</Title>
-            <TextAreaField label="¿Cuál es la acción o condición que da inicio al proceso en el sistema?" name="evento_iniciador" placeholder="Evento iniciador..." rows={2} />
-            <TextAreaField label="Liste los datos mínimos necesarios para crear un registro (Campos Obligatorios)" name="campos_obligatorios" placeholder="Lista de campos..." rows={3} />
-            <TextAreaField label="¿Qué debe validar el sistema antes de permitir el ingreso del dato?" name="validaciones_seguridad" placeholder="Validaciones de seguridad..." rows={2} />
+            <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">3. Datos de Entrada</Title>
+            <TextAreaField label="¿Cómo empieza el proceso en el sistema? (Evento inicial)" name="evento_iniciador" placeholder="Ej: 'Cuando el cliente llama', 'Cuando llega la factura'..." rows={2} />
+            <TextAreaField label="¿Qué datos necesita guardar el sistema? (Campos necesarios)" name="campos_obligatorios" placeholder="Ej: Nombre, Cédula, Fecha, Dirección, Teléfono..." rows={3} />
+            <TextAreaField label="¿Qué debe revisar el sistema antes de guardar? (Validaciones)" name="validaciones_seguridad" placeholder="Ej: 'Que la cédula no esté repetida', 'Que el valor sea mayor a cero'..." rows={2} />
         </div>
         <div className="space-y-4">
-            <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">4. Flujo de Trabajo (Workflow)</Title>
-            <TextAreaField label="Defina la secuencia de estados (Ciclo de Vida)" name="ciclo_vida" placeholder="Ej: Registrado -> Aprobado -> Cerrado" rows={2} />
-            <TextAreaField label="¿Quién tiene la facultad de mover el registro de un estado a otro? (Actores)" name="actores_permisos" placeholder="Roles y permisos..." rows={3} />
-            <TextAreaField label="Si el flujo no puede continuar, ¿hacia qué estado regresa? (Rechazos)" name="gestion_rechazos" placeholder="Lógica de devolución..." rows={2} />
+            <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">4. Flujo de Trabajo</Title>
+            <TextAreaField label="¿Cuál es el camino que sigue el registro? (Estados)" name="ciclo_vida" placeholder="Ej: Registrado -> Revisado -> Aprobado -> Cerrado" rows={2} />
+            <TextAreaField label="¿Quiénes pueden cambiar el estado del registro? (Actores)" name="actores_permisos" placeholder="Ej: El auxiliar registra, el jefe aprueba, el director cierra..." rows={3} />
+            <TextAreaField label="¿Hacia dónde regresa el flujo si algo se rechaza?" name="gestion_rechazos" placeholder="Ej: De 'Revisión' se devuelve a 'Registrado' para corregir..." rows={2} />
         </div>
         <div className="space-y-4">
             <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">5. Reglas de Negocio</Title>
-            <TextAreaField label="Describa los cálculos automáticos requeridos" name="calculos_automaticos" placeholder="Fórmulas (usar referencias de Excel)..." rows={3} />
-            <TextAreaField label="¿Bajo qué condiciones el sistema debe bloquear una acción? (Restricciones)" name="reglas_restriccion" placeholder="Reglas de bloqueo..." rows={2} />
-            <TextAreaField label="Defina qué datos deben quedar protegidos/inmutables tras avanzar etapas" name="inmutabilidad" placeholder="Campos no editables..." rows={2} />
+            <TextAreaField label="¿Qué cálculos debe hacer el sistema solo? (Fórmulas)" name="calculos_automaticos" placeholder="Ej: Sumar totales, calcular el IVA (19%), restar del inventario..." rows={3} />
+            <TextAreaField label="¿Cuándo el sistema debe bloquear una acción? (Restricciones)" name="reglas_restriccion" placeholder="Ej: 'No dejar guardar si el saldo es cero', 'No dejar avanzar si no hay adjunto'..." rows={2} />
+            <TextAreaField label="¿Qué datos NO se pueden cambiar después de guardar?" name="inmutabilidad" placeholder="Ej: La fecha de creación, el autor o el número de radicado..." rows={2} />
         </div>
         <div className="space-y-4">
             <Title variant="h5" className="text-[var(--color-primary)] border-b pb-2">6. Integración y Salida</Title>
-            <TextAreaField label="¿Qué otros procesos del sistema deben actualizarse automáticamente?" name="impacto_modulos" placeholder="Impacto en otros módulos..." rows={2} />
-            <TextAreaField label="¿El sistema debe generar algún PDF, ticket o alerta por correo?" name="notificaciones_docs" placeholder="Documentos y notificaciones..." rows={2} />
-            <TextAreaField label="¿Qué información consolidada necesita extraer? (Reportabilidad y KPIs)" name="reportabilidad" placeholder="Métricas esperadas..." rows={3} />
+            <TextAreaField label="¿Qué otra parte del sistema debe actualizarse sola?" name="impacto_modulos" placeholder="Ej: 'Que actualice el saldo en Contabilidad' o 'Que baje el stock'..." rows={2} />
+            <TextAreaField label="¿El sistema debe generar algún PDF, ticket o avisar por correo?" name="notificaciones_docs" placeholder="Ej: 'Enviar correo al jefe al registrar', 'Generar un PDF de la solicitud'..." rows={2} />
+            <TextAreaField label="¿Qué informes o listas necesita ver al final del mes? (Reportes)" name="reportabilidad" placeholder="Ej: Lista de pendientes por área, total de gastos mensual..." rows={3} />
+            <TextAreaField label="¿Cuándo sabremos que este desarrollo es exitoso? (Criterio de éxito)" name="criterio_exito" placeholder="Ej: 'Cuando el reporte de saldos coincida con el Excel y tarde menos de 5 seg'..." rows={2} />
         </div>
     </div>
 );

@@ -275,12 +275,12 @@ const ServicePortal: React.FC = () => {
                 asuntoFinal = nombreProceso ? `Desarrollo: ${nombreProceso}` : selectedCategory.name;
 
                 // Empaquetar el formulario de 6 secciones en un formato legible para el backend
-                const seccion1 = `=== 1. IDENTIFICACIÓN ===\nProceso: ${nombreProceso}\nÁrea: ${fd.get('area_solicitante')}\nLíder: ${fd.get('lider_requerimiento')}`;
-                const seccion2 = `=== 2. DIAGNÓSTICO ===\nHerramienta Excel: ${fd.get('existe_herramienta')}\nRutas: ${fd.get('ruta_archivos')}\nLimitaciones: ${fd.get('limitaciones_actuales')}`;
-                const seccion3 = `=== 3. DINÁMICA ===\nEvento: ${fd.get('evento_iniciador')}\nCampos: ${fd.get('campos_obligatorios')}\nValidaciones: ${fd.get('validaciones_seguridad')}`;
-                const seccion4 = `=== 4. WORKFLOW ===\nCiclo: ${fd.get('ciclo_vida')}\nActores: ${fd.get('actores_permisos')}\nRechazos: ${fd.get('gestion_rechazos')}`;
+                const seccion1 = `=== 1. IDENTIFICACIÓN ===\nProceso: ${nombreProceso}\nUsuarios Estimados: ${fd.get('cantidad_usuarios_estimada')}\nÁrea: ${fd.get('area_solicitante')}\nLíder: ${fd.get('lider_requerimiento')}`;
+                const seccion2 = `=== 2. DIAGNÓSTICO ===\nHerramienta Excel: ${fd.get('existe_herramienta')}\nVolumen Datos: ${fd.get('volumen_datos_estimado')}\nRutas: ${fd.get('ruta_archivos')}\nLimitaciones: ${fd.get('limitaciones_actuales')}`;
+                const seccion3 = `=== 3. DATOS DE ENTRADA ===\nEvento: ${fd.get('evento_iniciador')}\nCampos: ${fd.get('campos_obligatorios')}\nValidaciones: ${fd.get('validaciones_seguridad')}`;
+                const seccion4 = `=== 4. FLUJO DE TRABAJO ===\nCiclo: ${fd.get('ciclo_vida')}\nActores: ${fd.get('actores_permisos')}\nRechazos: ${fd.get('gestion_rechazos')}`;
                 const seccion5 = `=== 5. REGLAS ===\nCálculos: ${fd.get('calculos_automaticos')}\nRestricciones: ${fd.get('reglas_restriccion')}\nInmutabilidad: ${fd.get('inmutabilidad')}`;
-                const seccion6 = `=== 6. INTEGRACIÓN ===\nImpacto: ${fd.get('impacto_modulos')}\nNotificaciones: ${fd.get('notificaciones_docs')}\nKPIs: ${fd.get('reportabilidad')}`;
+                const seccion6 = `=== 6. INTEGRACIÓN Y ÉXITO ===\nImpacto: ${fd.get('impacto_modulos')}\nNotificaciones: ${fd.get('notificaciones_docs')}\nKPIs: ${fd.get('reportabilidad')}\nCriterio de Éxito: ${fd.get('criterio_exito')}`;
 
                 descripcionFinal = `${seccion1}\n\n${seccion2}\n\n${seccion3}`;
                 queNecesitaFinal = `${seccion4}\n\n${seccion5}\n\n${seccion6}`;
