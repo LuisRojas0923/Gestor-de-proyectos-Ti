@@ -3,6 +3,12 @@
 -- Gestor de Proyectos TI - Refridcol 2025
 -- ==========================================
 
+-- 0. Secuencia para IDs de tickets (requerida por el backend al crear tickets)
+CREATE SEQUENCE IF NOT EXISTS ticket_id_seq START WITH 1;
+
+-- 0. Secuencia para IDs de tickets (requerida por el backend al crear tickets)
+CREATE SEQUENCE IF NOT EXISTS ticket_id_seq START WITH 1;
+
 -- 1. Categorías de Tickets (Soporte)
 -- Estas categorías aparecen en el desplegable para crear nuevos tickets
 INSERT INTO categorias_ticket (id, nombre, tipo_formulario, descripcion, icono) VALUES
