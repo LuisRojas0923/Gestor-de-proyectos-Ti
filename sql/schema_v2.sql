@@ -95,6 +95,9 @@ CREATE TABLE IF NOT EXISTS desarrollos (
 -- 3. Módulo de Soporte y Tickets
 -- ==========================================
 
+-- Secuencia para IDs de tickets (TKT-0001, TKT-0002, ...). Requerida por backend_v2/app/services/ticket/servicio.py
+CREATE SEQUENCE IF NOT EXISTS ticket_id_seq START WITH 1;
+
 CREATE TABLE IF NOT EXISTS categorias_ticket (
     id VARCHAR(50) PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
