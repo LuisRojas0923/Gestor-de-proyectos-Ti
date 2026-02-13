@@ -141,3 +141,34 @@ Como el puerto **5432** del servidor ya está ocupado por tu ERP, hemos configur
 
 > [!NOTE]
 > Recuerda que el archivo `.env` en `C:\GestorTI\.env` es la fuente de verdad para las credenciales y configuraciones de producción.
+
+
+
+
+¡Muy buena pregunta! En Docker, las variables del 
+.env
+ se "inyectan" en el contenedor solo cuando este se crea o se recrea. No se aplican automáticamente solo con guardar el archivo.
+
+Para que el backend reconozca un cambio en el 
+.env
+, debes ejecutar este comando en la terminal de Ubuntu del servidor:
+
+bash
+cd /mnt/c/GestorTI
+sudo docker compose -f docker-compose.prod.yml up -d
+¿Por qué ese comando?
+Docker comparará la configuración actual del contenedor con el archivo 
+.env
+.
+Si detecta cambios, recreará solo el contenedor del backend (o el que haya cambiado) para inyectar las nuevas variables.
+No necesitas hacer un --build (a menos que hayas cambiado código fuente), solo el up -d.
+
+
+
+
+Para reconstruir solo el Frontend (por ejemplo, si cambiaste un logo, un color o un texto en el código React/Vite), usa este comando en tu terminal de Ubuntu del servidor:
+
+bash
+cd /mnt/c/GestorTI
+# Reconstruir la imagen y reiniciar el contenedor del front
+sudo docker compose -f docker-compose.prod.yml up -d --build frontend
