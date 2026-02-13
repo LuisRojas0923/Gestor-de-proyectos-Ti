@@ -109,5 +109,35 @@ Esto activará:
 
 ---
 
+## 6. Acceso Externo desde Clientes (DBeaver / pgAdmin)
+
+Como el puerto **5432** del servidor ya está ocupado por tu ERP, hemos configurado Docker para que la base de datos del proyecto sea accesible por el puerto **5433**.
+
+### Pasos para conectar desde otro equipo:
+
+1. **Configurar el Túnel en Windows Server (PowerShell Admin):**
+   Debes mapear el puerto de Windows hacia Linux/WSL2:
+   ```powershell
+   # 1. Obtener la IP de WSL
+   wsl -d Ubuntu hostname -I
+   
+   # 2. Crear el proxy (reemplaza <IP_WSL> con el resultado del comando anterior)
+   netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5433 connectaddress=<IP_WSL> connectport=5433
+   ```
+
+2. **Abrir el Puerto en Firewall (PowerShell Admin):**
+   ```powershell
+   New-NetFirewallRule -DisplayName "Docker DB External Access" -Direction Inbound -LocalPort 5433 -Protocol TCP -Action Allow
+   ```
+
+3. **Datos de Conexión en tu Cliente (DBeaver/pgAdmin):**
+   - **Host:** `192.168.0.21`
+   - **Puerto:** `5433`
+   - **Base de Datos:** `project_manager`
+   - **Usuario:** `user`
+   - **Contraseña:** (La que está en tu archivo .env)
+
+---
+
 > [!NOTE]
 > Recuerda que el archivo `.env` en `C:\GestorTI\.env` es la fuente de verdad para las credenciales y configuraciones de producción.
