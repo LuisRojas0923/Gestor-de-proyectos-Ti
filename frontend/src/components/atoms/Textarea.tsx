@@ -10,6 +10,7 @@ interface TextareaProps {
     error?: boolean;
     errorMessage?: string;
     label?: string;
+    labelHint?: string;
     helperText?: string;
     rows?: number;
     maxLength?: number;
@@ -29,6 +30,7 @@ const Textarea: React.FC<TextareaProps> = ({
     error = false,
     errorMessage,
     label,
+    labelHint,
     helperText,
     rows = 3,
     maxLength,
@@ -49,10 +51,17 @@ const Textarea: React.FC<TextareaProps> = ({
     return (
         <div className={`w-full ${className}`}>
             {label && (
-                <Text as="label" variant="body2" weight="medium" color="text-primary" className="mb-1 block">
-                    {label}
-                    {required && <Text as="span" color="error" className="ml-1">*</Text>}
-                </Text>
+                <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                    <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
+                        {label}
+                        {required && <Text as="span" color="error" className="ml-1">*</Text>}
+                    </Text>
+                    {labelHint && (
+                        <Text variant="caption" color="text-secondary" className="text-[12px] opacity-70">
+                            {labelHint}
+                        </Text>
+                    )}
+                </div>
             )}
 
             <textarea

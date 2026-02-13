@@ -24,7 +24,8 @@ export const FormField: React.FC<{
     placeholder?: string, defaultValue?: string | number, readOnly?: boolean, icon?: LucideIcon
 }> = ({ label, name, type = 'text', isRequired = true, placeholder, defaultValue, readOnly = false, icon }) => (
     <Input
-        label={placeholder ? `${placeholder} — ${label}` : label}
+        label={label}
+        labelHint={placeholder}
         name={name}
         type={type}
         required={isRequired && !readOnly}
@@ -41,10 +42,11 @@ export const TextAreaField: React.FC<{
 }> = ({ label, name, rows = 3, isRequired = true, placeholder, defaultValue, readOnly = false }) => (
     <Textarea
         label={label}
+        labelHint={placeholder}
         name={name}
         rows={rows}
         required={isRequired && !readOnly}
-        placeholder={placeholder}
+        placeholder={undefined}
         defaultValue={defaultValue}
         disabled={readOnly}
     />
