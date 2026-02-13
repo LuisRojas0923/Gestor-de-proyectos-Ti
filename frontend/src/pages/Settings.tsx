@@ -310,7 +310,14 @@ const Settings: React.FC = () => {
           </Title>
         </div>
 
-        <div className="space-y-6">
+        <form
+          className="space-y-6"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleChangePassword();
+          }}
+          noValidate
+        >
           <Text variant="body2" color="text-secondary" className="mb-4">
             Mantenga su cuenta segura cambiando periódicamente su contraseña.
           </Text>
@@ -323,6 +330,7 @@ const Settings: React.FC = () => {
               onChange={(e) => setPasswordForm(prev => ({ ...prev, actual: e.target.value }))}
               placeholder="••••••••"
               icon={LockIcon}
+              autoComplete="current-password"
             />
             <Input
               type="password"
@@ -331,6 +339,7 @@ const Settings: React.FC = () => {
               onChange={(e) => setPasswordForm(prev => ({ ...prev, nueva: e.target.value }))}
               placeholder="••••••••"
               icon={LockIcon}
+              autoComplete="new-password"
             />
             <Input
               type="password"
@@ -339,12 +348,13 @@ const Settings: React.FC = () => {
               onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmar: e.target.value }))}
               placeholder="••••••••"
               icon={LockIcon}
+              autoComplete="new-password"
             />
           </div>
 
           <div className="flex justify-end">
             <Button
-              onClick={handleChangePassword}
+              type="submit"
               variant="primary"
               loading={isChangingPassword}
               icon={Key}
@@ -352,7 +362,7 @@ const Settings: React.FC = () => {
               Cambiar Contraseña
             </Button>
           </div>
-        </div>
+        </form>
       </MaterialCard>
 
       {/* Admin Section - Only for Admin role */}

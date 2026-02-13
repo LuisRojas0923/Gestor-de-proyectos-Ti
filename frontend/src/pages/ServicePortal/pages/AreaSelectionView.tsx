@@ -56,7 +56,7 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onC
                 <ActionCard
                     title="Desarrollo Software"
                     description="Solicitud de nuevos módulos o funcionalidades en SOLID."
-                    icon={<img src={imgDesarrollo} alt="Desarrollo" className="w-full h-full object-fill scale-x-150" />}
+                    icon={<img src={imgDesarrollo} alt="Desarrollo" className="w-full h-full object-contain p-2" />}
                     onClick={() => onSelectArea('desarrollo')}
                 />
 

@@ -152,7 +152,7 @@ const ServicePortal: React.FC = () => {
             section: 'soporte'
         },
         nuevos_desarrollos_mejora: {
-            icon: <img src={imgDesarrollo} alt="Desarrollos" className="w-full h-full object-fill scale-x-150" />,
+            icon: <img src={imgDesarrollo} alt="Desarrollos" className="w-full h-full object-contain p-2" />,
             section: 'mejoramiento'
         },
         control_cambios: {
