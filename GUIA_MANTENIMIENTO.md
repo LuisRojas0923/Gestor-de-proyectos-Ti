@@ -172,3 +172,22 @@ bash
 cd /mnt/c/GestorTI
 # Reconstruir la imagen y reiniciar el contenedor del front
 sudo docker compose -f docker-compose.prod.yml up -d --build frontend
+
+
+### 🔄 Sincronización Total (Traer cambios de GitHub y Reiniciar)
+
+Si hiciste cambios en el código desde tu PC local y los subiste a GitHub, sigue este flujo en la terminal de **Ubuntu del servidor** para actualizar todo el sistema:
+
+```bash
+cd /mnt/c/GestorTI
+
+# 1. Traer las últimas mejoras de GitHub
+git pull origin main
+
+# 2. Reconstruir y levantar todo (Backend y Frontend)
+# Esto detectará qué cambió y lo actualizará automáticamente
+sudo docker compose -f docker-compose.prod.yml up -d --build
+```
+
+> [!TIP]
+> Si el cambio fue solo en la base de datos (SQL), recuerda que el `git pull` bajará el archivo `.sql`, pero deberás ejecutarlo manualmente en tu cliente (Adminer) para que se aplique a los datos reales.
