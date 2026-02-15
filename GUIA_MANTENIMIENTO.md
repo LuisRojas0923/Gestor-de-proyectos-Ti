@@ -63,28 +63,23 @@ Para ver qué está pasando "dentro" de los servicios y detectar errores:
 
 ### Ver Logs del Backend (API)
 ```bash
-# Ver las últimas 50 líneas
-sudo docker logs gestorti_backend_1 --tail 50
-
 # Ver logs en tiempo real (seguimiento)
-sudo docker logs -f gestorti_backend_1
+sudo docker compose -f docker-compose.prod.yml logs -f backend
 ```
 
 ### Ver Logs de la Base de Datos (Postgres)
 ```bash
-sudo docker logs gestor-de-proyectos-ti-db --tail 50
+sudo docker compose -f docker-compose.prod.yml logs -f db
 ```
 
 ### Ver Logs del Servidor Web (Nginx)
-Útil para ver si el error es de conexión de red (502 Gateway):
 ```bash
-sudo docker logs gestor-de-proyectos-ti-nginx --tail 50
+sudo docker compose -f docker-compose.prod.yml logs -f nginx
 ```
 
 ### Ver Logs del Frontend
-Normalmente el frontend es estático, pero si hay errores al servir los archivos:
 ```bash
-sudo docker logs gestorti_frontend_1 --tail 50
+sudo docker compose -f docker-compose.prod.yml logs -f frontend
 ```
 
 ---
@@ -145,33 +140,24 @@ Como el puerto **5432** del servidor ya está ocupado por tu ERP, hemos configur
 
 
 
-¡Muy buena pregunta! En Docker, las variables del 
-.env
- se "inyectan" en el contenedor solo cuando este se crea o se recrea. No se aplican automáticamente solo con guardar el archivo.
+---
 
-Para que el backend reconozca un cambio en el 
-.env
-, debes ejecutar este comando en la terminal de Ubuntu del servidor:
+## 7. Consejos de Administración Rápida
 
-bash
+### Aplicar cambios en el `.env`
+Si cambias una variable en el archivo `.env`, no necesitas reconstruir todo. Solo ejecuta:
+```bash
 cd /mnt/c/GestorTI
 sudo docker compose -f docker-compose.prod.yml up -d
-¿Por qué ese comando?
-Docker comparará la configuración actual del contenedor con el archivo 
-.env
-.
-Si detecta cambios, recreará solo el contenedor del backend (o el que haya cambiado) para inyectar las nuevas variables.
-No necesitas hacer un --build (a menos que hayas cambiado código fuente), solo el up -d.
+```
+Docker detectará el cambio y recreará solo el contenedor necesario en segundos.
 
-
-
-
-Para reconstruir solo el Frontend (por ejemplo, si cambiaste un logo, un color o un texto en el código React/Vite), usa este comando en tu terminal de Ubuntu del servidor:
-
-bash
+### Reconstruir solo el Frontend
+Si cambiaste algo de diseño o texto en React y quieres actualizarlo:
+```bash
 cd /mnt/c/GestorTI
-# Reconstruir la imagen y reiniciar el contenedor del front
 sudo docker compose -f docker-compose.prod.yml up -d --build frontend
+```
 
 
 ### 🔄 Sincronización Total (Traer cambios de GitHub y Reiniciar)
