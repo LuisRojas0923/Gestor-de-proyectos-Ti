@@ -7,7 +7,6 @@ import {
     RefreshCw,
     UserCheck,
     Play,
-    Eye,
     Clock,
     UserPlus
 } from 'lucide-react';
@@ -25,6 +24,7 @@ interface Ticket {
     estado: string;
     prioridad: string;
     nombre_creador: string;
+    area_creador?: string;
     fecha_creacion: string;
     asignado_a?: string;
 }
@@ -228,6 +228,34 @@ const TicketManagement: React.FC = () => {
                 </div>
             ) : filteredTickets.length > 0 ? (
                 <div className="space-y-2">
+                    {/* Header Row Estilizado: Azul Navy con Letra Blanca */}
+                    <div className="hidden md:flex items-stretch gap-0 px-2 py-1 mb-3 bg-[var(--deep-navy)] rounded-2xl border border-[var(--color-border)] shadow-xl overflow-hidden">
+                        <div className="md:w-20 shrink-0 flex items-center justify-center py-2.5 border-r border-white/10">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">ID</Text>
+                        </div>
+                        <div className="md:w-24 shrink-0 flex items-center justify-center py-2.5 border-r border-white/10">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Fecha</Text>
+                        </div>
+                        <div className="md:w-32 shrink-0 flex items-center justify-center py-2.5 border-r border-white/10">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Estado</Text>
+                        </div>
+                        <div className="flex-1 min-w-0 flex items-center px-6 py-2.5 border-r border-white/10">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Asunto / Solicitante</Text>
+                        </div>
+                        <div className="md:w-48 shrink-0 flex items-center px-4 py-2.5 border-r border-white/10">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Área Origen</Text>
+                        </div>
+                        <div className="md:w-24 shrink-0 flex items-center justify-center py-2.5 border-r border-white/10">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Prioridad</Text>
+                        </div>
+                        <div className="md:w-64 shrink-0 flex items-center px-4 py-2.5 border-r border-white/10">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Analista</Text>
+                        </div>
+                        <div className="md:w-36 shrink-0 flex items-center justify-center py-2.5 bg-white/10">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Acciones</Text>
+                        </div>
+                    </div>
+
                     {filteredTickets.map((ticket) => (
                         <div
                             key={ticket.id}
@@ -269,6 +297,14 @@ const TicketManagement: React.FC = () => {
                                             {ticket.nombre_creador}
                                         </Text>
                                     </div>
+                                </div>
+
+                                {/* Columna: Área del Solicitante */}
+                                <div className="md:w-48 shrink-0 flex flex-col justify-center border-l border-gray-100 dark:border-gray-800 pl-4 items-center md:items-start text-center md:text-left">
+                                    <Text variant="caption" color="text-secondary" className="text-[9px] uppercase font-bold opacity-40 mb-0.5 tracking-wider">Área Solicitante</Text>
+                                    <Text variant="body2" weight="bold" color="text-primary" className="truncate text-[11px] max-w-full" title={ticket.area_creador}>
+                                        {ticket.area_creador || 'Sin área'}
+                                    </Text>
                                 </div>
 
                                 {/* Columna 5: Prioridad */}
@@ -322,14 +358,6 @@ const TicketManagement: React.FC = () => {
                                         </Button>
                                     )}
 
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => navigate(`/tickets/${ticket.id}`)}
-                                        className="w-9 h-9 p-0 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 shadow-sm"
-                                        title="Ver Detalle"
-                                    >
-                                        <Icon name={Eye} size="sm" />
-                                    </Button>
                                 </div>
                             </div>
                         </div>

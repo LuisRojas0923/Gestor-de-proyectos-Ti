@@ -11,7 +11,7 @@ export default defineConfig({
       usePolling: true,
     },
     hmr: {
-      clientPort: 80,
+      clientPort: 5173,
     },
     proxy: {
       '/api/v2': {
