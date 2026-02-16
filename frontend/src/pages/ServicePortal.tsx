@@ -169,7 +169,7 @@ const ServicePortal: React.FC = () => {
         const fetchCategories = async () => {
             try {
                 const res = await axios.get(`${API_BASE_URL}/soporte/categorias`);
-                const apiCats = res.data;
+                const apiCats = res.data as any[];
 
                 // Mapeamos los datos de la API inyectando los iconos locales
                 const mappedCategories = apiCats.map((apiCat: any) => {
@@ -210,17 +210,20 @@ const ServicePortal: React.FC = () => {
                     });
 
                     if (res.data) {
+                        const data = res.data as any;
                         const updatedUser = {
-                            ...res.data,
-                            id: res.data.id || res.data.cedula,
-                            cedula: res.data.cedula || res.data.id,
-                            name: res.data.nombre || res.data.name,
-                            role: res.data.rol || res.data.role,
-                            area: res.data.area || 'Sin Área',
-                            cargo: res.data.cargo || 'Sin Cargo',
-                            sede: res.data.sede || 'Principal',
-                            centrocosto: res.data.centrocosto || res.data.centro_costo || '---',
-                            permissions: res.data.permissions || user.permissions || []
+                            ...user,
+                            id: data.id || data.cedula || user?.id || '',
+                            cedula: data.cedula || data.id || user?.cedula || '',
+                            name: data.nombre || data.name || user?.name || '',
+                            role: data.rol || data.role || user?.role || 'usuario',
+                            email: data.email || user?.email || '',
+                            area: data.area || user?.area || 'Sin Área',
+                            cargo: data.cargo || user?.cargo || 'Sin Cargo',
+                            sede: data.sede || user?.sede || 'Principal',
+                            centrocosto: data.centrocosto || data.centro_costo || user?.centrocosto || '---',
+                            viaticante: data.viaticante ?? user?.viaticante ?? false,
+                            permissions: data.permissions || data.permisos || user?.permissions || []
                         };
 
                         // Solo despachar si algo cambió realmente para evitar loops
@@ -241,7 +244,7 @@ const ServicePortal: React.FC = () => {
     const fetchTickets = async (id: string) => {
         try {
             const res = await axios.get(`${API_BASE_URL}/soporte/mis-tickets/${id}`); // [CONTROLADO]
-            setTickets(res.data);
+            setTickets(res.data as any[]);
         } catch (err) {
             console.error("Error fetching user tickets:", err);
             addNotification('error', "No se pudieron cargar tus tickets.");
@@ -269,6 +272,21 @@ const ServicePortal: React.FC = () => {
             let descripcionFinal = fd.get('descripcion_detallada') || 'Sin descripción';
             let queNecesitaFinal = fd.get('que_necesita') || null;
             let asuntoFinal = fd.get('asunto') || selectedCategory.name;
+            let finalCategoryId = selectedCategory.id;
+
+            // Manejo de Categoría Virtual: Mapear al ID real seleccionado en el formulario
+            if (selectedCategory.id === 'soporte_tecnico_sistemas' || selectedCategory.id === 'soporte_tecnico') {
+                const subCatId = fd.get('sub_categoria_id');
+                if (subCatId) {
+                    finalCategoryId = subCatId.toString();
+                    // Intentar recuperar el nombre para el asunto si no hay uno específico
+                    if (!fd.get('asunto')) {
+                        const allSubCats = categories.find(c => c.id === selectedCategory.id)?.subCategories || [];
+                        const subCatName = allSubCats.find((sc: any) => sc.id === subCatId)?.name;
+                        asuntoFinal = subCatName ? `${subCatName}: ${fd.get('situacion_presentada') || 'Solicitud'}` : asuntoFinal;
+                    }
+                }
+            }
 
             if (selectedCategory.form_type === 'development') {
                 const nombreProceso = fd.get('nombre_proceso');
@@ -306,7 +324,7 @@ const ServicePortal: React.FC = () => {
             });
 
             const payload: any = {
-                categoria_id: selectedCategory.id,
+                categoria_id: finalCategoryId,
                 asunto: asuntoFinal,
                 descripcion: descripcionFinal,
                 creador_id: user.cedula || user.id,
@@ -338,7 +356,7 @@ const ServicePortal: React.FC = () => {
 
             if (user) {
                 const res = await axios.post(`${API_BASE_URL}/soporte/`, payload); // [CONTROLADO]
-                const createdTicketId = res.data.id;
+                const createdTicketId = (res.data as any).id;
 
                 // 2. Subir adjuntos si existen
                 if (selectedFiles.length > 0) {
@@ -506,7 +524,8 @@ const ServicePortal: React.FC = () => {
                             try {
                                 setIsLoading(true);
                                 const res = await axios.get(`${API_BASE_URL}/viaticos/reporte/${rid}/detalle`);
-                                const lineasDetalle = res.data.map((l: any) => ({
+                                const resData = res.data as any[];
+                                const lineasDetalle = resData.map((l: any) => ({
                                     id: l.id || Math.random().toString(36).substring(7),
                                     categoria: l.categoria,
                                     fecha: l.fecharealgasto || l.fecha_gasto || l.fecha,
@@ -517,13 +536,13 @@ const ServicePortal: React.FC = () => {
                                     valorSinFactura: Number(l.valorsinfactura !== undefined ? l.valorsinfactura : l.valor_sin_factura),
                                     observaciones: l.observaciones || l.observaciones_linea,
                                     adjuntos: typeof l.adjuntos === 'string' ? JSON.parse(l.adjuntos) : (l.adjuntos || []),
-                                    combinacionesCC: [] // Se cargarán al entrar si es necesario
+                                    combinacionesCC: []
                                 }));
 
                                 navigate('/service-portal/gastos/nuevo', {
                                     state: {
                                         lineas: lineasDetalle,
-                                        observaciones: res.data[0]?.observaciones_gral,
+                                        observaciones: resData[0]?.observaciones_gral,
                                         reporte_id: rid,
                                         from: 'reportes'
                                     }
@@ -540,7 +559,7 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="gastos/estado" element={
                     <AccountStatement
-                        user={user}
+                        user={user as any}
                         onBack={() => navigate('/service-portal/gastos/gestion')}
                     />
                 } />

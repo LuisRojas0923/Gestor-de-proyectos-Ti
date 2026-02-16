@@ -5,14 +5,15 @@ import { Button, Select, Title, Text, Icon } from '../../../components/atoms';
 import { useTicketForm } from '../hooks/useTicketForm';
 import { ImpactedAreasSelection } from '../components/ImpactedAreasSelection';
 import { FileAttachmentSection } from '../components/FileAttachmentSection';
-import { SupportSection, MejoramientoSection, DevelopmentSection, ChangeControlSection, AssetSection } from '../components/TicketFormSections';
+import { SupportSection, DevelopmentSection, ChangeControlSection, AssetSection, ImprovementSupportSection } from '../components/TicketFormSections';
 
 interface Category {
     id: string;
     name: string;
     icon: React.ReactNode;
-    form_type: 'support' | 'development' | 'asset' | 'change_control';
+    form_type: 'support' | 'development' | 'asset' | 'change_control' | 'improvement_support';
     section: 'soporte' | 'mejoramiento';
+    subCategories?: { id: string; name: string; form_type?: string }[];
 }
 
 interface UserData {
@@ -31,10 +32,25 @@ interface TicketFormViewProps {
 
 const TicketFormView: React.FC<TicketFormViewProps> = ({ selectedCategory, user, onSubmit, onBack, isLoading, selectedFiles, onFilesChange }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [activeSubCategoryId, setActiveSubCategoryId] = React.useState<string | null>(null);
+
     const {
         modules, components, selectedModuleId, setSelectedModuleId, impactedAreas, areaInput, setAreaInput,
         calculatedPriority, setCalculatedPriority, handleImpactChange, addArea, removeArea, handleFileChange, removeFile
     } = useTicketForm(selectedCategory, onFilesChange);
+
+    const getCurrentDateTimeLocal = () => {
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+        return new Date(now.getTime() - offset).toISOString().slice(0, 16);
+    };
+
+    const defaultDateTime = getCurrentDateTimeLocal();
+    const defaultDate = defaultDateTime.split('T')[0];
+
+    // Determinar el tipo de formulario efectivo (considerando subcategorías)
+    const activeSubCat = selectedCategory.subCategories?.find(sc => sc.id === activeSubCategoryId);
+    const effectiveFormType = activeSubCat?.form_type || selectedCategory.form_type;
 
     return (
         <div className="space-y-8 py-4">
@@ -69,7 +85,13 @@ const TicketFormView: React.FC<TicketFormViewProps> = ({ selectedCategory, user,
                             <div className="flex-grow border-t border-[var(--color-border)]"></div>
                         </div>
 
-                        {selectedCategory.form_type === 'support' && <SupportSection category={selectedCategory} />}
+                        {selectedCategory.form_type === 'support' && (
+                            <SupportSection
+                                category={selectedCategory}
+                                onSubCategoryChange={(id) => setActiveSubCategoryId(id)}
+                            />
+                        )}
+                        {selectedCategory.form_type === 'improvement_support' && <ImprovementSupportSection category={selectedCategory} />}
                         {selectedCategory.form_type === 'development' && <DevelopmentSection userArea={user.area || ''} userName={user.name} />}
                         {selectedCategory.form_type === 'change_control' && (
                             <ChangeControlSection
@@ -80,7 +102,10 @@ const TicketFormView: React.FC<TicketFormViewProps> = ({ selectedCategory, user,
                                 handleImpactChange={handleImpactChange}
                             />
                         )}
-                        {selectedCategory.form_type === 'asset' && <AssetSection categoryId={selectedCategory.id} />}
+                        {/* Renderizar AssetSection si el formulario base es asset O si la subcategoría seleccionada es asset */}
+                        {(effectiveFormType === 'asset' || selectedCategory.form_type === 'asset') && (
+                            <AssetSection categoryId={activeSubCategoryId || selectedCategory.id} />
+                        )}
 
                         {(selectedCategory.form_type === 'change_control' || selectedCategory.form_type === 'development') && (
                             <ImpactedAreasSelection
@@ -108,13 +133,13 @@ const TicketFormView: React.FC<TicketFormViewProps> = ({ selectedCategory, user,
                             </div>
                             <div className="space-y-4">
                                 {selectedCategory.form_type === 'asset' && (
-                                    <FormField label="Fecha Ideal de Cierre / Atención" name="fecha_ideal" type="date" icon={Clock} isRequired />
+                                    <FormField label="Fecha Ideal de Cierre / Atención" name="fecha_ideal" type="date" icon={Clock} isRequired defaultValue={defaultDate} />
                                 )}
                                 {(selectedCategory.form_type === 'development' || selectedCategory.section === 'mejoramiento') && (
-                                    <FormField label="Fecha y Hora Propuesta Reunión Inicial" name="fecha_reunion" type="datetime-local" isRequired />
+                                    <FormField label="Fecha y Hora Propuesta Reunión Inicial" name="fecha_reunion" type="datetime-local" isRequired defaultValue={defaultDateTime} />
                                 )}
                                 {selectedCategory.section === 'soporte' && selectedCategory.form_type === 'support' && (
-                                    <FormField label="¿Cuándo ocurrió el problema?" name="fecha_ocurrencia" type="datetime-local" isRequired />
+                                    <FormField label="¿Cuándo ocurrió el problema?" name="fecha_ocurrencia" type="datetime-local" isRequired defaultValue={defaultDateTime} />
                                 )}
                             </div>
                         </div>

@@ -8,8 +8,9 @@ export interface Category {
     name: string;
     icon: React.ReactNode;
     description: string;
-    form_type: 'support' | 'development' | 'asset' | 'change_control';
+    form_type: 'support' | 'development' | 'asset' | 'change_control' | 'improvement_support';
     section: 'soporte' | 'mejoramiento';
+    subCategories?: { id: string; name: string; description?: string; icon?: React.ReactNode; form_type?: string }[];
 }
 
 interface CategoryViewProps {

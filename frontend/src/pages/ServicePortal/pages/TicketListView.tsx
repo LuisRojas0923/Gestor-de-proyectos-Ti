@@ -48,46 +48,59 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
                 </div>
 
                 {tickets.length > 0 ? (
-                    <div className="grid gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {tickets.map(ticket => (
-                            <div key={ticket.id} className="bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all overflow-hidden group">
-                                <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div className="space-y-1 flex-grow">
-                                        <div className="flex items-center space-x-3">
-                                            <Text variant="caption" className="font-mono text-[var(--color-text-secondary)]/50 uppercase tracking-tighter">{ticket.id}</Text>
-                                            <StatusBadge status={ticket.estado} />
-                                        </div>
-                                        <Title variant="h6" weight="bold" color="text-primary" className="transition-colors group-hover:text-[var(--color-primary)]">{ticket.asunto}</Title>
-                                        <div className="flex items-center text-xs text-[var(--color-text-secondary)] space-x-4 font-medium">
-                                            <Text variant="caption" as="span" className="flex items-center"><Icon name={Clock} size="sm" className="mr-1" /> {new Date(ticket.fecha_creacion).toLocaleDateString()}</Text>
-                                            <Text variant="caption" as="span" className="flex items-center"><Icon name={User} size="sm" className="mr-1" /> {ticket.asignado_a || 'Sin asignar'}</Text>
-                                            {(() => {
-                                                const creationDate = new Date(ticket.fecha_creacion);
-                                                const now = new Date();
-                                                const diffHours = (now.getTime() - creationDate.getTime()) / (1000 * 60 * 60);
-                                                const isStalled = diffHours > 48 && !['Cerrado', 'Resuelto'].includes(ticket.estado);
-
-                                                if (isStalled) {
-                                                    return (
-                                                        <div className="flex items-center px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg animate-pulse border border-red-200 dark:border-red-800">
-                                                            <AlertTriangle size={12} className="mr-1.5" />
-                                                            <Text variant="caption" weight="bold" className="uppercase tracking-tighter">SLA Vencido (+48h)</Text>
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
-                                        </div>
+                            <div
+                                key={ticket.id}
+                                onClick={() => onViewDetail(ticket)}
+                                className="bg-[var(--color-surface)] rounded-[2rem] border border-[var(--color-border)] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden group cursor-pointer flex flex-col h-full"
+                            >
+                                <div className="p-6 flex flex-col h-full space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <Text variant="caption" className="font-mono text-[var(--color-text-secondary)]/50 uppercase tracking-tighter bg-[var(--color-surface-variant)]/50 px-2 py-0.5 rounded-lg">{ticket.id}</Text>
+                                        <StatusBadge status={ticket.estado} />
                                     </div>
-                                    <div className="flex items-center space-x-2">
-                                        <Button
-                                            onClick={() => onViewDetail(ticket)}
-                                            variant="outline"
-                                            size="sm"
-                                            className="p-2.5"
-                                        >
-                                            <ChevronRight size={20} />
-                                        </Button>
+
+                                    <div className="flex-grow">
+                                        <Title variant="h6" weight="bold" color="text-primary" className="leading-tight group-hover:text-[var(--color-primary)] transition-colors line-clamp-2 min-h-[3rem]">
+                                            {ticket.asunto}
+                                        </Title>
+                                    </div>
+
+                                    <div className="space-y-3 pt-4 border-t border-[var(--color-border)]/50">
+                                        <div className="flex items-center justify-between text-[var(--color-text-secondary)]">
+                                            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider opacity-60">
+                                                <Icon name={Clock} size="xs" className="mr-1.5" />
+                                                {new Date(ticket.fecha_creacion).toLocaleDateString()}
+                                            </div>
+                                            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider opacity-60">
+                                                <Icon name={User} size="xs" className="mr-1.5" />
+                                                {ticket.asignado_a || 'Sin asignar'}
+                                            </div>
+                                        </div>
+
+                                        {(() => {
+                                            const creationDate = new Date(ticket.fecha_creacion);
+                                            const now = new Date();
+                                            const diffHours = (now.getTime() - creationDate.getTime()) / (1000 * 60 * 60);
+                                            const isStalled = diffHours > 48 && !['Cerrado', 'Resuelto'].includes(ticket.estado);
+
+                                            if (isStalled) {
+                                                return (
+                                                    <div className="flex items-center justify-center space-x-2 py-2 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-xl border border-red-100 dark:border-red-900/30">
+                                                        <AlertTriangle size={14} className="animate-pulse" />
+                                                        <Text variant="caption" weight="bold" className="uppercase tracking-tighter !text-[10px]">SLA Vencido (+48h)</Text>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+
+                                        <div className="flex items-center justify-end group-hover:translate-x-1 transition-transform">
+                                            <Text variant="caption" weight="bold" className="text-[var(--color-primary)] uppercase tracking-widest text-[10px] flex items-center">
+                                                Ver detalle <ChevronRight size={14} className="ml-1" />
+                                            </Text>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
