@@ -69,7 +69,7 @@ const TicketDetailView: React.FC<TicketDetailViewProps> = ({ selectedTicket, onB
         const fetchLastModifier = async () => {
             try {
                 const res = await axios.get(`${API_BASE_URL}/soporte/${selectedTicket.id}/historial`);
-                const history = res.data;
+                const history = res.data as any[];
 
                 // Buscar la acción más reciente que tenga un nombre_usuario y no sea el creador original
                 const lastHistoryItem = history.find((h: any) => h.nombre_usuario && h.nombre_usuario !== selectedTicket.nombre_creador);

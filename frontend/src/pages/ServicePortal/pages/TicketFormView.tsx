@@ -136,7 +136,13 @@ const TicketFormView: React.FC<TicketFormViewProps> = ({ selectedCategory, user,
                                     <FormField label="Fecha Ideal de Cierre / Atención" name="fecha_ideal" type="date" icon={Clock} isRequired defaultValue={defaultDate} />
                                 )}
                                 {(selectedCategory.form_type === 'development' || selectedCategory.section === 'mejoramiento') && (
-                                    <FormField label="Fecha y Hora Propuesta Reunión Inicial" name="fecha_reunion" type="datetime-local" isRequired defaultValue={defaultDateTime} />
+                                    <FormField
+                                        label={selectedCategory.id === 'soporte_mejora' ? "¿Cuándo ocurrió el problema?" : "Fecha y Hora Propuesta Reunión Inicial"}
+                                        name="fecha_reunion"
+                                        type="datetime-local"
+                                        isRequired
+                                        defaultValue={defaultDateTime}
+                                    />
                                 )}
                                 {selectedCategory.section === 'soporte' && selectedCategory.form_type === 'support' && (
                                     <FormField label="¿Cuándo ocurrió el problema?" name="fecha_ocurrencia" type="datetime-local" isRequired defaultValue={defaultDateTime} />

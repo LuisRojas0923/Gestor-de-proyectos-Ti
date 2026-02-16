@@ -19,7 +19,7 @@ const TicketDetail: React.FC = () => {
     const { state } = useAppContext();
     const { addNotification } = useNotifications();
     const { user } = state;
-    const [developments, setDevelopments] = useState([]);
+    const [developments, setDevelopments] = useState<any[]>([]);
 
     const {
         ticket,
@@ -83,7 +83,7 @@ const TicketDetail: React.FC = () => {
         const fetchDevelopments = async () => {
             try {
                 const res = await axios.get(`${API_CONFIG.BASE_URL}/desarrollos/`);
-                setDevelopments(res.data);
+                setDevelopments(res.data as any[]);
             } catch (err) {
                 console.error("Error cargando desarrollos:", err);
             }

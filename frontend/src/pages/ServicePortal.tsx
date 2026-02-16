@@ -41,8 +41,8 @@ const CategoryWrapper: React.FC<{
 
     const filteredCategories = categories.filter(c => {
         if (area === 'sistemas') return c.section === 'soporte';
-        if (area === 'mejoramiento') return c.section === 'mejoramiento' && !['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
-        if (area === 'desarrollo') return ['nuevos_desarrollos_mejora', 'control_cambios'].includes(c.id);
+        if (area === 'mejoramiento') return c.id === 'soporte_mejora' || c.id === 'nuevos_desarrollos_mejora';
+        if (area === 'desarrollo') return c.id === 'control_cambios' || c.id === 'nuevos_desarrollos_solid';
         return true;
     });
 
@@ -152,7 +152,7 @@ const ServicePortal: React.FC = () => {
             section: 'soporte'
         },
         nuevos_desarrollos_mejora: {
-            icon: <img src={imgDesarrollo} alt="Desarrollos" className="w-full h-full object-contain p-2" />,
+            icon: <img src={imgDesarrollo} alt="Nuevas Herramientas" className="w-full h-full object-contain p-2" />,
             section: 'mejoramiento'
         },
         control_cambios: {
@@ -160,8 +160,12 @@ const ServicePortal: React.FC = () => {
             section: 'mejoramiento'
         },
         soporte_mejora: {
-            icon: <img src={imgMejora} alt="Mejoramiento" className="w-full h-full object-contain p-1" />,
+            icon: <img src={imgMejora} alt="Soporte Mejoramiento" className="w-full h-full object-contain p-1" />,
             section: 'mejoramiento'
+        },
+        nuevos_desarrollos_solid: {
+            icon: <img src={imgDesarrollo} alt="Desarrollo SOLID" className="w-full h-full object-contain p-2" />,
+            section: 'mejoramiento' // Usamos mejoramiento como base para la lógica de visualización si es necesario, o lo filtramos por ID
         }
     };
 

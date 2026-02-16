@@ -6,7 +6,7 @@ import { Select, Title, Text, Icon } from '../../../components/atoms';
 interface Category {
     id: string;
     name: string;
-    form_type: 'support' | 'development' | 'asset' | 'change_control';
+    form_type: 'support' | 'development' | 'asset' | 'change_control' | 'improvement_support';
     section: 'soporte' | 'mejoramiento';
 }
 
@@ -57,6 +57,26 @@ export const SupportSection: React.FC<{ category: Category }> = ({ category }) =
                 </div>
             </div>
         )}
+    </div>
+);
+
+export const ImprovementSupportSection: React.FC<{ category: Category }> = () => (
+    <div className="space-y-8 bg-[var(--color-primary)]/5 p-6 rounded-3xl border border-[var(--color-primary)]/10">
+        <Title variant="h5" className="text-[var(--color-primary)] font-bold">Detalles de Soporte Mejoramiento</Title>
+        <TextAreaField label="¿Cuál es la necesidad específica que desea resolver?" name="necesidad_especifica" rows={3} isRequired />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Select
+                label="Frecuencia de Uso"
+                name="frecuencia_uso"
+                options={[
+                    { value: 'Diariamente', label: 'Diariamente' },
+                    { value: 'Semanalmente', label: 'Semanalmente' },
+                    { value: 'Mensualmente', label: 'Mensualmente' },
+                    { value: 'Puntual', label: 'Puntual / Ocasional' },
+                ]}
+            />
+            <FormField label="Responsable principal de utilizar la herramienta" name="responsable_uso" placeholder="Nombre y Cargo" isRequired />
+        </div>
     </div>
 );
 
