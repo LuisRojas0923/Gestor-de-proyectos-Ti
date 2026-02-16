@@ -109,7 +109,7 @@ async def reasignar_tickets():
                     ticket.area_creador or "",
                     conteo_carga
                 )
-                
+                #tickets en estado cerrado tambien
                 if analista:
                     anterior = ticket.asignado_a or "Sin asignar"
                     ticket.asignado_a = analista
