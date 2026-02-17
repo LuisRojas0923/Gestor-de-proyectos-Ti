@@ -14,15 +14,33 @@ import {
   Palette,
   Users,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
+import { useApi } from '../../hooks/useApi';
 import { Button, Text } from '../atoms';
 
 const Sidebar: React.FC = () => {
   const { state, dispatch } = useAppContext();
   const { sidebarOpen, user } = state;
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [version, setVersion] = useState<string>('');
+  const { get } = useApi();
+
+  useEffect(() => {
+    const fetchVersion = async () => {
+      try {
+        const data = await get('/health');
+        if (data && (data as any).version) {
+          setVersion((data as any).version);
+        }
+      } catch (err) {
+        console.error("Error al obtener version:", err);
+        setVersion('2.0.0');
+      }
+    };
+    fetchVersion();
+  }, [get]);
 
   const handleLogout = () => {
     dispatch({ type: 'LOGOUT' });
@@ -161,6 +179,15 @@ const Sidebar: React.FC = () => {
                 {user.role}
               </Text>
             </div>
+          </div>
+        )}
+
+        {/* VERSION DISPLAY */}
+        {sidebarOpen && (
+          <div className="mt-4 pt-2 flex justify-center opacity-30 select-none">
+            <Text variant="caption" className="text-[9px] font-mono tracking-tighter uppercase whitespace-nowrap">
+              Versión: {version}
+            </Text>
           </div>
         )}
       </div>

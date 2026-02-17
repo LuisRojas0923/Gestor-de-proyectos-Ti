@@ -5,12 +5,43 @@ Aplicacion FastAPI principal
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import config
+import subprocess
+import os
+import logging
+
+# Configurar logging basico
+logger = logging.getLogger(__name__)
+
+# Obtener version de Git actual
+def obtener_git_hash():
+    # 1. Intentar variable de entorno (util en Docker/Prod)
+    env_version = os.getenv("APP_VERSION_HASH")
+    if env_version:
+        return env_version
+
+    # 2. Intentar leer desde archivo (generado en el host)
+    try:
+        if os.path.exists(".git_hash"):
+            with open(".git_hash", "r") as f:
+                return f.read().strip()
+    except Exception:
+        pass
+
+    # 3. Intentar comando Git (fallara en Docker sin git)
+    try:
+        return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], stderr=subprocess.STDOUT).decode('ascii').strip()
+    except Exception as e:
+        logger.warning(f"No se pudo obtener el Git Hash vía comandos: {str(e)}")
+        return "desconocido"
+
+GIT_HASH = obtener_git_hash()
+VERSION_SISTEMA = f"2.0.0-{GIT_HASH}"
 
 # Crear aplicacion FastAPI
 app = FastAPI(
     title="Gestor de Proyectos TI - API",
     description="Sistema de gestion de desarrollos y proyectos de TI",
-    version="2.0.0",
+    version=VERSION_SISTEMA,
     docs_url="/docs"
 )
 
@@ -41,10 +72,11 @@ async def raiz():
     }
 
 
+@app.get("/api/v2/health")
 @app.get("/health")
 async def verificar_salud():
-    """Verificacion de salud del servicio"""
-    return {"estado": "saludable", "version": "2.0.0"}
+    """Verificacion de salud del servicio (Disponible en raiz y bajo prefijo api/v2)"""
+    return {"estado": "saludable", "version": VERSION_SISTEMA}
 
 
 # Importar y registrar routers
