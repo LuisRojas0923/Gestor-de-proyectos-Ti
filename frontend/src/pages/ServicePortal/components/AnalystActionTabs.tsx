@@ -162,7 +162,14 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                                 <Select
                                     label="Asignar a"
                                     value={formData.asignado_a || ticket.asignado_a || ''}
-                                    onChange={(e) => onFieldChange('asignado_a', e.target.value)}
+                                    onChange={(e) => {
+                                        const nuevoAsignado = e.target.value;
+                                        onFieldChange('asignado_a', nuevoAsignado);
+                                        // Inteligencia: Si está en Pendiente, ajustar sub_estado según asignación
+                                        if ((formData.estado || ticket.estado) === 'Pendiente') {
+                                            onFieldChange('sub_estado', nuevoAsignado ? 'Asignado' : 'Sin Asignar');
+                                        }
+                                    }}
                                     size="md"
                                     options={[
                                         { value: '', label: 'Sin Asignar' },
@@ -194,13 +201,17 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                                         onFieldChange('estado', nuevoEstado);
                                         // Auto-seleccionar primer sub-estado al cambiar estado
                                         const subEstados: Record<string, string[]> = {
-                                            'Pendiente': ['Asignado'],
+                                            'Pendiente': ['Sin Asignar', 'Asignado'],
                                             'Proceso': ['Proceso', 'Pendiente Información'],
                                             'Cerrado': ['Resuelto', 'Escalado'],
                                         };
                                         const opciones = subEstados[nuevoEstado] || [];
                                         if (opciones.length > 0) {
-                                            onFieldChange('sub_estado', opciones[0]);
+                                            let subParaFijar = opciones[0];
+                                            if (nuevoEstado === 'Pendiente' && (formData.asignado_a || ticket.asignado_a)) {
+                                                subParaFijar = 'Asignado';
+                                            }
+                                            onFieldChange('sub_estado', subParaFijar);
                                         }
                                     }}
                                     size="md"
@@ -217,7 +228,10 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                                     size="md"
                                     options={
                                         (formData.estado || ticket.estado) === 'Pendiente'
-                                            ? [{ value: 'Asignado', label: 'Asignado' }]
+                                            ? [
+                                                { value: 'Sin Asignar', label: 'Sin Asignar' },
+                                                { value: 'Asignado', label: 'Asignado' }
+                                            ]
                                             : (formData.estado || ticket.estado) === 'Proceso'
                                                 ? [
                                                     { value: 'Proceso', label: 'Proceso' },

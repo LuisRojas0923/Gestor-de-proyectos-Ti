@@ -3,7 +3,7 @@ Servicio de Tickets - Backend V2 (Async + SQLModel)
 """
 from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func as sa_func, text
+from sqlalchemy import func as sa_func, text, or_
 from sqlalchemy.orm import joinedload
 from sqlmodel import select
 from datetime import datetime, timezone
@@ -204,6 +204,8 @@ class ServicioTicket:
             )
             if analista:
                 nuevo_ticket.asignado_a = analista
+            else:
+                nuevo_ticket.sub_estado = "Sin Asignar"
             
             db.add(nuevo_ticket)
             await cls.registrar_historial(db, ticket_id, "Creacion", f"Ticket creado por {ticket_data.nombre_creador}")
@@ -282,6 +284,13 @@ class ServicioTicket:
                     await cls.registrar_historial(db, ticket_id, f"Cambio de {field.capitalize()}", f"De '{old_value or 'Ninguno'}' a '{value}'", user_id, user_name)
                 setattr(db_ticket, field, value)
         
+        # Inteligencia de sub-estado para Pendiente
+        if db_ticket.estado == "Pendiente":
+            if db_ticket.asignado_a and db_ticket.asignado_a.strip():
+                db_ticket.sub_estado = "Asignado"
+            else:
+                db_ticket.sub_estado = "Sin Asignar"
+
         # Validación de Causa Obligatoria para sub_estado Resuelto
         if db_ticket.sub_estado == "Resuelto" and not db_ticket.causa_novedad:
             raise HTTPException(status_code=400, detail="La 'Causa de la Novedad' es obligatoria para resolver el ticket.")
@@ -353,7 +362,9 @@ class ServicioTicket:
         limit: int = 100,
         creador_id: Optional[str] = None,
         estado: Optional[str] = None,
-        asignado_a: Optional[str] = None
+        asignado_a: Optional[str] = None,
+        search: Optional[str] = None,
+        sub_estado: Optional[str] = None
     ) -> List[Ticket]:
         """Lista tickets con paginacion, extensiones y filtros (Async)"""
         query = select(Ticket).options(
@@ -361,12 +372,28 @@ class ServicioTicket:
             joinedload(Ticket.solicitud_desarrollo),
             joinedload(Ticket.control_cambios)
         )
+        
+        # Filtros básicos
         if creador_id:
             query = query.where(Ticket.creador_id == creador_id)
         if estado:
             query = query.where(Ticket.estado == estado)
+        if sub_estado:
+            query = query.where(Ticket.sub_estado == sub_estado)
         if asignado_a:
             query = query.where(Ticket.asignado_a == asignado_a)
+            
+        # Búsqueda global (Servidor)
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.where(
+                or_(
+                    Ticket.id.ilike(search_pattern),
+                    Ticket.asunto.ilike(search_pattern),
+                    Ticket.nombre_creador.ilike(search_pattern),
+                    Ticket.area_creador.ilike(search_pattern)
+                )
+            )
             
         query = query.order_by(Ticket.creado_en.desc()).offset(skip).limit(limit)
         

@@ -7,8 +7,8 @@ import {
     RefreshCw,
     UserCheck,
     Play,
-    Clock,
-    UserPlus
+    UserPlus,
+    Clock
 } from 'lucide-react';
 import { Button } from '../components/atoms';
 import React, { useState, useEffect } from 'react';
@@ -40,6 +40,18 @@ const formatName = (name: string) => {
         .join(' ');
 };
 
+const COLUMN_WIDTHS = {
+    id: "md:w-20",
+    fecha: "md:w-24",
+    estado: "md:w-32",
+    asunto: "flex-1",
+    solicitante: "md:w-64",
+    area: "md:w-48",
+    prioridad: "md:w-24",
+    analista: "md:w-64",
+    acciones: "md:w-36"
+};
+
 const TicketManagement: React.FC = () => {
     const { state } = useAppContext();
     const { user } = state;
@@ -48,46 +60,84 @@ const TicketManagement: React.FC = () => {
     const { addNotification } = useNotifications();
 
     const [tickets, setTickets] = useState<Ticket[]>([]);
-    const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadMoreLoading, setIsLoadMoreLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('Todos');
+    const [subStatusFilter, setSubStatusFilter] = useState('Todos');
+    const [skip, setSkip] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const LIMIT = 100;
 
-    useEffect(() => {
-        const fetchTickets = async () => {
-            try {
-                const data = await get('/soporte/');
-                if (data) {
+    const SUB_STATUS_OPTIONS: Record<string, { value: string, label: string }[]> = {
+        'Todos': [],
+        'Pendiente': [
+            { value: "Sin Asignar", label: "Sin Asignar" },
+            { value: "Asignado", label: "Asignado" }
+        ],
+        'Proceso': [
+            { value: "Proceso", label: "En Proceso" },
+            { value: "Pendiente Información", label: "Pendiente Info" }
+        ],
+        'Cerrado': [
+            { value: "Resuelto", label: "Resuelto" },
+            { value: "Escalado", label: "Escalado" }
+        ]
+    };
+
+    const fetchTickets = async (currentSkip: number, isNewSearch: boolean = false) => {
+        try {
+            if (isNewSearch) setIsLoading(true);
+            else setIsLoadMoreLoading(true);
+
+            const params = new URLSearchParams();
+            params.append('skip', currentSkip.toString());
+            params.append('limite', LIMIT.toString());
+            if (statusFilter !== 'Todos') params.append('estado', statusFilter);
+            if (subStatusFilter !== 'Todos') params.append('sub_estado', subStatusFilter);
+            if (searchTerm) params.append('search', searchTerm);
+
+            const data = await get(`/soporte/?${params.toString()}`);
+            if (data) {
+                if (isNewSearch) {
                     setTickets(data);
-                    setFilteredTickets(data);
+                } else {
+                    setTickets(prev => [...prev, ...data]);
                 }
-            } catch (error) {
-                console.error("Error cargando tickets:", error);
-            } finally {
-                setIsLoading(false);
+                setHasMore(data.length === LIMIT);
             }
-        };
-        fetchTickets();
-    }, [get]);
+        } catch (error) {
+            console.error("Error cargando tickets:", error);
+            addNotification("error", "Error al cargar tickets del servidor");
+        } finally {
+            setIsLoading(false);
+            setIsLoadMoreLoading(false);
+        }
+    };
 
+    // Efecto para búsqueda y filtros (Debounce)
     useEffect(() => {
-        let result = tickets;
+        const timer = setTimeout(() => {
+            setSkip(0);
+            fetchTickets(0, true);
+        }, 500); // 500ms debounce
 
-        if (searchTerm) {
-            const search = searchTerm.toLowerCase();
-            result = result.filter(t =>
-                (t.asunto?.toLowerCase() || '').includes(search) ||
-                (t.id?.toLowerCase() || '').includes(search) ||
-                (t.nombre_creador?.toLowerCase() || '').includes(search)
-            );
-        }
+        return () => clearTimeout(timer);
+    }, [searchTerm, statusFilter, subStatusFilter]);
 
-        if (statusFilter !== 'Todos') {
-            result = result.filter(t => t.estado === statusFilter);
-        }
+    // Reset sub-estado al cambiar estado
+    useEffect(() => {
+        setSubStatusFilter('Todos');
+    }, [statusFilter]);
 
-        setFilteredTickets(result);
-    }, [searchTerm, statusFilter, tickets]);
+    const handleLoadMore = () => {
+        const nextSkip = skip + LIMIT;
+        setSkip(nextSkip);
+        fetchTickets(nextSkip);
+    };
+
+    // Eliminar el useEffect anterior de filtrado local ya que ahora se hace en servidor
+    const filteredTickets = tickets;
 
     const getStatusStyle = (status: string) => {
         switch (status) {
@@ -173,7 +223,7 @@ const TicketManagement: React.FC = () => {
                     <div className="relative w-64">
                         <Input
                             type="text"
-                            placeholder="Buscar por ID, asunto o cliente..."
+                            placeholder="Buscar por ID, asunto, solicitante o área..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             icon={Search}
@@ -181,22 +231,33 @@ const TicketManagement: React.FC = () => {
                         />
                     </div>
 
-                    <div className="w-64">
+                    <div className="w-48">
                         <Select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
                             options={[
                                 { value: "Todos", label: "Todos los estados" },
-                                { value: "Nuevo", label: "Nuevo" },
-                                { value: "Abierto", label: "Abierto" },
-                                { value: "En Proceso", label: "En Proceso" },
-                                { value: "Pendiente Info", label: "Pendiente Info" },
-                                { value: "Escalado", label: "Escalado" },
+                                { value: "Pendiente", label: "Pendiente" },
+                                { value: "Proceso", label: "Proceso" },
                                 { value: "Cerrado", label: "Cerrado" },
                             ]}
                             className="bg-[var(--color-surface)]"
                         />
                     </div>
+
+                    {statusFilter !== 'Todos' && (
+                        <div className="w-48 animate-in fade-in slide-in-from-left-2 duration-300">
+                            <Select
+                                value={subStatusFilter}
+                                onChange={(e) => setSubStatusFilter(e.target.value)}
+                                options={[
+                                    { value: "Todos", label: `Todos (${statusFilter})` },
+                                    ...SUB_STATUS_OPTIONS[statusFilter]
+                                ]}
+                                className="bg-[var(--color-surface)]"
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -204,8 +265,8 @@ const TicketManagement: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                     { label: 'Total Tickets', count: statusCounts.total, color: 'blue', icon: Inbox },
-                    { label: 'Abiertos / Nuevos', count: statusCounts.abierto, color: 'blue', icon: AlertCircle },
-                    { label: 'En Proceso', count: statusCounts.enProceso, color: 'yellow', icon: RefreshCw },
+                    { label: 'Pendientes', count: statusCounts.pendiente, color: 'blue', icon: AlertCircle },
+                    { label: 'En Proceso', count: statusCounts.proceso, color: 'yellow', icon: RefreshCw },
                     { label: 'Cerrados', count: statusCounts.cerrado, color: 'green', icon: CheckCircle },
                 ].map((card) => (
                     <div key={card.label} className="bg-[var(--color-surface)] p-5 rounded-3xl border border-[var(--color-border)] shadow-sm">
@@ -226,141 +287,180 @@ const TicketManagement: React.FC = () => {
                     <Text variant="body2" color="text-secondary" weight="medium">Cargando tickets...</Text>
                 </div>
             ) : filteredTickets.length > 0 ? (
-                <div className="space-y-2">
-                    {/* Header Row Estilizado: Azul Navy con Letra Blanca */}
-                    <div className="hidden md:flex items-stretch gap-0 px-2 py-1 mb-3 bg-[var(--deep-navy)] rounded-2xl border border-[var(--color-border)] shadow-xl overflow-hidden">
-                        <div className="md:w-20 shrink-0 flex items-center justify-center py-2.5 border-r border-white/10">
+                <div className="relative">
+                    {/* ENCABEZADO SINCRONIZADO (Flex Layout con anchos fijos solicitado) */}
+                    <div className="hidden md:flex items-stretch gap-0 mb-3 bg-[var(--deep-navy)] rounded-2xl border border-[var(--color-border)] shadow-xl overflow-hidden sticky top-0 z-20">
+                        <div className={`${COLUMN_WIDTHS.id} shrink-0 flex items-center pl-6 py-2.5 border-r border-white/10`}>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">ID</Text>
                         </div>
-                        <div className="md:w-24 shrink-0 flex items-center justify-center py-2.5 border-r border-white/10">
+                        <div className={`${COLUMN_WIDTHS.fecha} shrink-0 flex items-center justify-center py-2.5 border-r border-white/10`}>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Fecha</Text>
                         </div>
-                        <div className="md:w-32 shrink-0 flex items-center justify-center py-2.5 border-r border-white/10">
+                        <div className={`${COLUMN_WIDTHS.estado} shrink-0 flex items-center justify-center py-2.5 border-r border-white/10`}>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Estado</Text>
                         </div>
-                        <div className="flex-1 min-w-0 flex items-center px-6 py-2.5 border-r border-white/10">
-                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Asunto / Solicitante</Text>
+                        <div className={`${COLUMN_WIDTHS.asunto} min-w-0 flex items-center px-6 py-2.5 border-r border-white/10`}>
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Asunto</Text>
                         </div>
-                        <div className="md:w-48 shrink-0 flex items-center px-4 py-2.5 border-r border-white/10">
+                        <div className={`${COLUMN_WIDTHS.solicitante} shrink-0 flex items-center px-6 py-2.5 border-r border-white/10`}>
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Solicitante</Text>
+                        </div>
+                        <div className={`${COLUMN_WIDTHS.area} shrink-0 flex items-center px-4 py-2.5 border-r border-white/10`}>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Área Origen</Text>
                         </div>
-                        <div className="md:w-24 shrink-0 flex items-center justify-center py-2.5 border-r border-white/10">
+                        <div className={`${COLUMN_WIDTHS.prioridad} shrink-0 flex items-center justify-center py-2.5 border-r border-white/10`}>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Prioridad</Text>
                         </div>
-                        <div className="md:w-64 shrink-0 flex items-center px-4 py-2.5 border-r border-white/10">
+                        <div className={`${COLUMN_WIDTHS.analista} shrink-0 flex items-center px-4 py-2.5 border-r border-white/10`}>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Analista</Text>
                         </div>
-                        <div className="md:w-36 shrink-0 flex items-center justify-center py-2.5 bg-white/10">
+                        <div className={`${COLUMN_WIDTHS.acciones} shrink-0 flex items-center justify-center py-2.5 bg-white/10`}>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Acciones</Text>
                         </div>
                     </div>
 
-                    {filteredTickets.map((ticket) => (
-                        <div
-                            key={ticket.id}
-                            onClick={() => navigate(`/tickets/${ticket.id}`)}
-                            className="group bg-[var(--color-surface)] p-3 rounded-xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden"
-                        >
-                            {/* Borde izquierdo azul navy fijo */}
-                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-900 dark:bg-blue-800"></div>
+                    <div className="max-h-[650px] overflow-y-auto pr-1 space-y-2 pb-6 custom-scrollbar">
+                        {filteredTickets.map((ticket) => {
+                            // Lógica de limpieza de ID para evitar #TKT-TKT-
+                            const cleanId = ticket.id.replace('TKT-', '');
 
-                            <div className="flex flex-col md:flex-row md:items-center gap-3 pl-3">
-                                {/* Columna 1: ID */}
-                                <div className="md:w-20 shrink-0">
-                                    <Text variant="caption" className="font-mono text-[10px] text-gray-400">#{ticket.id.slice(0, 8)}</Text>
-                                </div>
+                            return (
+                                <div
+                                    key={ticket.id}
+                                    onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                    className="group bg-[var(--color-surface)] p-3 rounded-xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden"
+                                >
+                                    {/* Borde izquierdo azul navy fijo */}
+                                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-900 dark:bg-blue-800"></div>
 
-                                {/* Columna 2: Fecha */}
-                                <div className="md:w-24 shrink-0 flex items-center text-gray-400">
-                                    <Clock size={12} className="mr-1.5" />
-                                    <Text variant="caption" color="text-secondary" className="text-[10px]">
-                                        {new Date(ticket.fecha_creacion).toLocaleDateString()}
-                                    </Text>
-                                </div>
+                                    <div className="flex flex-col md:flex-row md:items-center gap-0">
+                                        {/* ID Col */}
+                                        <div className={`${COLUMN_WIDTHS.id} shrink-0 pl-6 flex items-center`}>
+                                            <Text variant="caption" className="font-mono text-[10px] text-gray-400">
+                                                #TKT-{cleanId}
+                                            </Text>
+                                        </div>
 
-                                {/* Columna 3: Estado */}
-                                <div className="md:w-32 shrink-0">
-                                    <Text as="span" variant="caption" weight="bold" className={`px-2 py-0.5 rounded-md text-[9px] tracking-wider ${getStatusStyle(ticket.estado)}`}>
-                                        {(ticket.sub_estado || ticket.estado || 'NUEVO').toUpperCase()}
-                                    </Text>
-                                </div>
+                                        {/* Fecha Col */}
+                                        <div className={`${COLUMN_WIDTHS.fecha} shrink-0 flex items-center justify-center text-gray-400`}>
+                                            <Icon name={Clock} size="xs" className="mr-1.5" />
+                                            <Text variant="caption" color="text-secondary" className="text-[10px]">
+                                                {new Date(ticket.fecha_creacion).toLocaleDateString()}
+                                            </Text>
+                                        </div>
 
-                                {/* Columna 4: Info Principal (Asunto y Solicitante) */}
-                                <div className="flex-1 min-w-0 flex flex-col justify-center mr-4">
-                                    <Text variant="body2" weight="bold" color="text-primary" className="truncate group-hover:text-[var(--color-primary)] transition-colors text-sm">
-                                        {ticket.asunto}
-                                    </Text>
-                                    <div className="flex items-center text-gray-400 mt-0.5 space-x-2">
-                                        <Icon name={UserCheck} size="xs" className="w-3 h-3" />
-                                        <Text variant="caption" color="text-secondary" className="truncate text-[10px]">
-                                            {ticket.nombre_creador}
-                                        </Text>
+                                        {/* Estado Col */}
+                                        <div className={`${COLUMN_WIDTHS.estado} shrink-0 flex items-center justify-center`}>
+                                            <span className={`px-3 py-1 rounded-lg text-[11px] font-bold tracking-wider border border-current/20 shrink-0 shadow-sm ${getStatusStyle(ticket.estado)}`}>
+                                                {(ticket.estado || 'PENDIENTE').toUpperCase()}
+                                            </span>
+                                        </div>
+
+                                        {/* Asunto (Flex-1) */}
+                                        <div className={`${COLUMN_WIDTHS.asunto} min-w-0 flex flex-col justify-center px-6`}>
+                                            <Text variant="body2" weight="bold" color="text-primary" className="truncate group-hover:text-[var(--color-primary)] transition-colors text-sm">
+                                                {ticket.asunto}
+                                            </Text>
+                                        </div>
+
+                                        {/* Solicitante Col */}
+                                        <div className={`${COLUMN_WIDTHS.solicitante} shrink-0 flex items-center text-gray-400 px-6`}>
+                                            <Icon name={UserCheck} size="xs" className="w-3 h-3 mr-2" />
+                                            <Text variant="caption" color="text-secondary" className="truncate text-[10px] uppercase">
+                                                {ticket.nombre_creador}
+                                            </Text>
+                                        </div>
+
+                                        {/* Área Col */}
+                                        <div className={`${COLUMN_WIDTHS.area} shrink-0 flex flex-col justify-center border-l border-gray-100 dark:border-gray-800 px-4 items-center md:items-start text-center md:text-left`}>
+                                            <Text variant="caption" weight="bold" className="text-[9px] uppercase opacity-40 mb-0.5 tracking-wider">
+                                                Área Solicitante
+                                            </Text>
+                                            <Text variant="body2" weight="bold" className="truncate text-[11px] max-w-full" title={ticket.area_creador}>
+                                                {ticket.area_creador || 'S/A'}
+                                            </Text>
+                                        </div>
+
+                                        {/* Prioridad Col */}
+                                        <div className={`${COLUMN_WIDTHS.prioridad} shrink-0 flex items-center justify-center gap-1.5`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${getPriorityStyle(ticket.prioridad).replace('text', 'bg')}`}></div>
+                                            <Text variant="caption" weight="bold" className={`text-[10px] ${getPriorityStyle(ticket.prioridad)}`}>
+                                                {ticket.prioridad}
+                                            </Text>
+                                        </div>
+
+                                        {/* Analista Col */}
+                                        <div className={`${COLUMN_WIDTHS.analista} shrink-0 flex items-center px-4 gap-2`}>
+                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${ticket.asignado_a ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]' : 'bg-gray-100 text-gray-400'}`}>
+                                                {ticket.asignado_a ? ticket.asignado_a.charAt(0).toUpperCase() : '?'}
+                                            </div>
+                                            <Text variant="caption" color="text-secondary" className="text-[10px] truncate" title={ticket.asignado_a}>
+                                                {ticket.asignado_a ? formatName(ticket.asignado_a) : 'Sin asignar'}
+                                            </Text>
+                                        </div>
+
+                                        {/* Acciones Col */}
+                                        <div className={`flex items-center justify-center ${COLUMN_WIDTHS.acciones} gap-2`}>
+                                            {(!ticket.asignado_a || (user && ticket.asignado_a !== (user as any).nombre)) && ticket.estado !== 'Cerrado' && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={(e) => handleAssignToMe(e, ticket.id)}
+                                                    className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20"
+                                                    title="Asignarme Ticket"
+                                                    icon={UserPlus}
+                                                />
+                                            )}
+
+                                            {ticket.estado !== 'Proceso' && ticket.estado !== 'Cerrado' && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={(e) => handleQuickAction(e, ticket.id, 'Proceso', 'Proceso')}
+                                                    className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white transition-all border border-amber-500/20"
+                                                    title="Poner En Proceso"
+                                                    icon={Play}
+                                                />
+                                            )}
+
+                                            {ticket.estado !== 'Cerrado' && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate(`/portal-servicios/ticket/${ticket.id}`);
+                                                    }}
+                                                    className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all border border-emerald-500/20"
+                                                    title="Ver Detalle"
+                                                    icon={CheckCircle}
+                                                />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
+                            );
+                        })}
 
-                                {/* Columna: Área del Solicitante */}
-                                <div className="md:w-48 shrink-0 flex flex-col justify-center border-l border-gray-100 dark:border-gray-800 pl-4 items-center md:items-start text-center md:text-left">
-                                    <Text variant="caption" color="text-secondary" className="text-[9px] uppercase font-bold opacity-40 mb-0.5 tracking-wider">Área Solicitante</Text>
-                                    <Text variant="body2" weight="bold" color="text-primary" className="truncate text-[11px] max-w-full" title={ticket.area_creador}>
-                                        {ticket.area_creador || 'Sin área'}
-                                    </Text>
-                                </div>
-
-                                {/* Columna 5: Prioridad */}
-                                <div className="md:w-24 shrink-0 flex items-center gap-1.5">
-                                    <div className={`w-1.5 h-1.5 rounded-full ${getPriorityStyle(ticket.prioridad).replace('text', 'bg')}`}></div>
-                                    <Text variant="caption" weight="bold" className={`${getPriorityStyle(ticket.prioridad)} text-[10px]`}>{ticket.prioridad}</Text>
-                                </div>
-
-                                {/* Columna 6: Responsable (Nombre Completo) */}
-                                <div className="md:w-64 shrink-0 flex items-center gap-2">
-                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${ticket.asignado_a ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]' : 'bg-gray-100 text-gray-400'}`}>
-                                        {ticket.asignado_a ? ticket.asignado_a.charAt(0).toUpperCase() : '?'}
-                                    </div>
-                                    <Text variant="caption" color="text-secondary" className="text-[10px] truncate" title={ticket.asignado_a}>
-                                        {formatName(ticket.asignado_a || "Sin asignar")}
-                                    </Text>
-                                </div>
-
-                                {/* Columna 7: Acciones Rápidas */}
-                                <div className="flex items-center justify-end md:w-36 gap-2">
-                                    {(!ticket.asignado_a || (user && ticket.asignado_a !== (user as any).nombre)) && ticket.estado !== 'Cerrado' && (
-                                        <Button
-                                            variant="ghost"
-                                            onClick={(e) => handleAssignToMe(e, ticket.id)}
-                                            className="w-9 h-9 p-0 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200 shadow-sm"
-                                            title="Asignarme Ticket"
-                                        >
-                                            <Icon name={UserPlus} size="sm" />
-                                        </Button>
+                        {/* BOTÓN CARGAR MÁS */}
+                        {hasMore && (
+                            <div className="py-8 flex justify-center">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleLoadMore}
+                                    disabled={isLoadMoreLoading}
+                                    className="min-w-[200px] border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-all rounded-xl shadow-lg flex items-center gap-2"
+                                >
+                                    {isLoadMoreLoading ? (
+                                        <Icon name={RefreshCw} size="sm" className="animate-spin" />
+                                    ) : (
+                                        <Icon name={RefreshCw} size="sm" />
                                     )}
-
-                                    {ticket.estado !== 'Proceso' && ticket.estado !== 'Cerrado' && (
-                                        <Button
-                                            variant="ghost"
-                                            onClick={(e) => handleQuickAction(e, ticket.id, 'Proceso', 'Proceso')}
-                                            className="w-9 h-9 p-0 rounded-full bg-yellow-50 text-yellow-600 hover:bg-yellow-100 border border-yellow-200 shadow-sm"
-                                            title="Poner En Proceso"
-                                        >
-                                            <Icon name={Play} size="sm" className="ml-0.5" />
-                                        </Button>
-                                    )}
-
-                                    {ticket.estado === 'Proceso' && (
-                                        <Button
-                                            variant="ghost"
-                                            onClick={(e) => handleQuickAction(e, ticket.id, 'Cerrado', 'Resuelto')}
-                                            className="w-9 h-9 p-0 rounded-full bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 shadow-sm"
-                                            title="Resolver Ticket"
-                                        >
-                                            <Icon name={CheckCircle} size="sm" />
-                                        </Button>
-                                    )}
-
-                                </div>
+                                    {isLoadMoreLoading ? 'Cargando...' : 'Cargar más tickets'}
+                                </Button>
                             </div>
-                        </div>
-                    ))}
+                        )}
+                    </div>
                 </div>
             ) : (
                 <div className="py-20 text-center bg-[var(--color-surface)] rounded-[2.5rem] border border-[var(--color-border)] shadow-xl shadow-black/5">
@@ -370,8 +470,9 @@ const TicketManagement: React.FC = () => {
                     <Title variant="h6" weight="bold" className="mb-2" color="text-primary">No se encontraron tickets</Title>
                     <Text variant="body2" color="text-secondary" weight="medium">Prueba ajustando los filtros o el término de búsqueda.</Text>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };
 

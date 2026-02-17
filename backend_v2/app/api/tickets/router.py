@@ -161,11 +161,14 @@ async def listar_tickets(
     creador_id: Optional[str] = None,
     estado: Optional[str] = None,
     asignado_a: Optional[str] = None,
+    skip: int = 0,
     limite: int = 100,
+    search: Optional[str] = None,
+    sub_estado: Optional[str] = None,
     db: AsyncSession = Depends(obtener_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual_db)
 ):
-    """Lista tickets de soporte con paginación y restricciones de visibilidad"""
+    """Lista tickets de soporte con paginación, búsqueda avanzada y restricciones de visibilidad"""
     try:
         # Restricción: Si es analista (no admin), solo ve lo que tiene asignado
         # a menos que esté buscando sus propios tickets creados.
@@ -180,7 +183,10 @@ async def listar_tickets(
             creador_id=creador_id, 
             estado=estado, 
             asignado_a=filtro_asignado,
-            limit=limite
+            skip=skip,
+            limit=limite,
+            search=search,
+            sub_estado=sub_estado
         )
     except Exception as e:
         import logging

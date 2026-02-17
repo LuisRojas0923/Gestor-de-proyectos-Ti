@@ -40,37 +40,6 @@ async def crear_desarrollo(
         raise HTTPException(status_code=500, detail=f"Error al crear desarrollo: {str(e)}")
 
 
-@router.get("/{desarrollo_id}", response_model=Desarrollo)
-async def obtener_desarrollo(
-    desarrollo_id: str, 
-    db: AsyncSession = Depends(obtener_db)
-):
-    """Obtiene un desarrollo por su ID"""
-    try:
-        # TODO: Implementar lógica con el servicio de desarrollos
-        raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener desarrollo: {str(e)}")
-
-
-@router.put("/{desarrollo_id}", response_model=Desarrollo)
-async def actualizar_desarrollo(
-    desarrollo_id: str,
-    desarrollo: DesarrolloActualizar,
-    db: AsyncSession = Depends(obtener_db)
-):
-    """Actualiza un desarrollo existente"""
-    try:
-        # TODO: Implementar lógica con el servicio de desarrollos
-        raise HTTPException(status_code=501, detail="Endpoint no implementado")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al actualizar desarrollo: {str(e)}")
-
-
 @router.get("/informe-detallado-casos-portal")
 async def informe_detallado_casos_portal(
     db: AsyncSession = Depends(obtener_db)
@@ -101,3 +70,34 @@ async def informe_detallado_casos_portal(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener informe de casos: {str(e)}")
+
+
+@router.get("/{desarrollo_id}", response_model=Desarrollo)
+async def obtener_desarrollo(
+    desarrollo_id: str, 
+    db: AsyncSession = Depends(obtener_db)
+):
+    """Obtiene un desarrollo por su ID"""
+    try:
+        # TODO: Implementar lógica con el servicio de desarrollos
+        raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener desarrollo: {str(e)}")
+
+
+@router.put("/{desarrollo_id}", response_model=Desarrollo)
+async def actualizar_desarrollo(
+    desarrollo_id: str,
+    desarrollo: DesarrolloActualizar,
+    db: AsyncSession = Depends(obtener_db)
+):
+    """Actualiza un desarrollo existente"""
+    try:
+        # TODO: Implementar lógica con el servicio de desarrollos
+        raise HTTPException(status_code=501, detail="Endpoint no implementado")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al actualizar desarrollo: {str(e)}")
