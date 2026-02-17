@@ -12,30 +12,39 @@ import logging
 # Configurar logging basico
 logger = logging.getLogger(__name__)
 
-# Obtener version de Git actual
-def obtener_git_hash():
-    # 1. Intentar variable de entorno (util en Docker/Prod)
-    env_version = os.getenv("APP_VERSION_HASH")
+# Obtener version del sistema dinamicamente
+def obtener_version_sistema():
+    # 1. Intentar variable de entorno (Prioridad Maxima)
+    env_version = os.getenv("APP_VERSION")
     if env_version:
         return env_version
 
-    # 2. Intentar leer desde archivo (generado en el host)
+    # 2. Intentar leer desde archivos generados en despliegue
+    for file_name in [".version", ".git_hash"]:
+        try:
+            path = os.path.join(os.getcwd(), file_name)
+            if os.path.exists(path):
+                with open(path, "r") as f:
+                    content = f.read().strip()
+                    if content: return content
+        except Exception:
+            pass
+
+    # 3. Intentar Git Tags (SemVer)
     try:
-        if os.path.exists(".git_hash"):
-            with open(".git_hash", "r") as f:
-                return f.read().strip()
+        return subprocess.check_output(['git', 'describe', '--tags', '--always'], stderr=subprocess.STDOUT).decode('ascii').strip()
     except Exception:
         pass
 
-    # 3. Intentar comando Git (fallara en Docker sin git)
+    # 4. Fallback: Git Hash directo
     try:
-        return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], stderr=subprocess.STDOUT).decode('ascii').strip()
+        hash_largo = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], stderr=subprocess.STDOUT).decode('ascii').strip()
+        return f"v2.1.0-{hash_largo}"
     except Exception as e:
-        logger.warning(f"No se pudo obtener el Git Hash vía comandos: {str(e)}")
-        return "desconocido"
+        logger.warning(f"No se pudo determinar version: {str(e)}")
+        return "v2.1.0-desconocido"
 
-GIT_HASH = obtener_git_hash()
-VERSION_SISTEMA = f"2.0.0-{GIT_HASH}"
+VERSION_SISTEMA = obtener_version_sistema()
 
 # Crear aplicacion FastAPI
 app = FastAPI(
