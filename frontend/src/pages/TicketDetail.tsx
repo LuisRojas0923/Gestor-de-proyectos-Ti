@@ -39,6 +39,7 @@ const TicketDetail: React.FC = () => {
         if (ticket) {
             setAnalystForm({
                 estado: ticket.estado,
+                sub_estado: ticket.sub_estado,
                 prioridad: ticket.prioridad,
                 diagnostico: ticket.diagnostico,
                 resolucion: ticket.resolucion,
@@ -58,18 +59,8 @@ const TicketDetail: React.FC = () => {
     const handleAnalystSave = () => {
         if (!ticket) return;
 
-        // Lógica de validación de flujo solicitada por el usuario
-        if (analystForm.estado === 'Cerrado' && ticket.estado !== 'Resuelto') {
-            addNotification('error', 'Un ticket debe pasar por el estado "Resuelto" antes de ser Cerrado.');
-            return;
-        }
-
-        // Validación adicional: Para pasar a Resuelto debe estar En Proceso o Escalado
-        if (analystForm.estado === 'Resuelto') {
-            if (!['En Proceso', 'Escalado'].includes(ticket.estado)) {
-                addNotification('warning', 'El ticket debe estar "En Proceso" o "Escalado" antes de ser Resuelto.');
-                return;
-            }
+        // Validación: Para sub_estado Resuelto se requiere causa_novedad
+        if (analystForm.sub_estado === 'Resuelto') {
             if (!analystForm.causa_novedad) {
                 addNotification('error', 'Debe seleccionar una "Causa de la Novedad" para resolver el ticket.');
                 return;
@@ -100,6 +91,7 @@ const TicketDetail: React.FC = () => {
             <AnalystCommandHeader
                 ticketId={ticket.id}
                 status={ticket.estado}
+                subStatus={ticket.sub_estado}
                 onBack={() => navigate(-1)}
                 onSave={handleAnalystSave}
                 isSaving={isSaving}

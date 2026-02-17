@@ -37,7 +37,8 @@ class Ticket(SQLModel, table=True):
     asunto: str = Field(max_length=255)
     descripcion: str
     prioridad: str = Field(default="Media", max_length=20)
-    estado: str = Field(default="Abierto", max_length=50)
+    estado: str = Field(default="Pendiente", max_length=50)
+    sub_estado: Optional[str] = Field(default="Asignado", max_length=50)
     
     # Datos del solicitante
     creador_id: str = Field(max_length=50)
@@ -193,7 +194,8 @@ class TicketBase(SQLModel):
     asunto: str
     descripcion: str
     prioridad: str = "Media"
-    estado: str = "Abierto"
+    estado: str = "Pendiente"
+    sub_estado: str = "Asignado"
     creador_id: str
     nombre_creador: Optional[str] = None
     correo_creador: Optional[str] = None
@@ -242,6 +244,7 @@ class TicketActualizar(SQLModel):
     descripcion: Optional[str] = None
     prioridad: Optional[str] = None
     estado: Optional[str] = None
+    sub_estado: Optional[str] = None
     asignado_a: Optional[str] = None
     diagnostico: Optional[str] = None
     resolucion: Optional[str] = None
@@ -255,6 +258,7 @@ class TicketActualizar(SQLModel):
 class TicketPublico(TicketBase):
     """Schema publico de ticket (respuesta)"""
     id: str
+    sub_estado: Optional[str] = None
     asignado_a: Optional[str] = None
     diagnostico: Optional[str] = None
     resolucion: Optional[str] = None

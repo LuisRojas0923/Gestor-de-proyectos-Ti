@@ -83,7 +83,7 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
                                             const creationDate = new Date(ticket.fecha_creacion);
                                             const now = new Date();
                                             const diffHours = (now.getTime() - creationDate.getTime()) / (1000 * 60 * 60);
-                                            const isStalled = diffHours > 48 && !['Cerrado', 'Resuelto'].includes(ticket.estado);
+                                            const isStalled = diffHours > 48 && ticket.estado !== 'Cerrado';
 
                                             if (isStalled) {
                                                 return (

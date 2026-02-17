@@ -12,6 +12,7 @@ interface Ticket {
     id: string;
     asunto: string;
     estado: TicketStatus;
+    sub_estado?: string;
     fecha_creacion: string;
     categoria_id: string;
     areas_impactadas?: string[];
@@ -316,7 +317,7 @@ const TicketDetailView: React.FC<TicketDetailViewProps> = ({ selectedTicket, onB
                             </div>
 
                             {/* Sección de retroalimentación - Solo si está pendiente de información */}
-                            {selectedTicket.estado === 'Pendiente Info' && (
+                            {selectedTicket.sub_estado === 'Pendiente Información' && (
                                 <form onSubmit={onUpdate} className="space-y-6 p-6 bg-[var(--color-surface-variant)]/30 rounded-3xl border-2 border-[var(--color-primary)]/20 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                     <div className="flex items-center space-x-3 text-[var(--color-primary)]">
                                         <Icon name={Settings} size="sm" />

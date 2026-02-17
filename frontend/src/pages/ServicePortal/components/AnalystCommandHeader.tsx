@@ -5,6 +5,7 @@ import { Button, Text, ThemeToggle } from '../../../components/atoms';
 interface AnalystCommandHeaderProps {
     ticketId: string;
     status: string;
+    subStatus?: string;
     onBack: () => void;
     onSave: () => void;
     isSaving: boolean;
@@ -12,12 +13,13 @@ interface AnalystCommandHeaderProps {
 
 const AnalystCommandHeader: React.FC<AnalystCommandHeaderProps> = ({
     ticketId,
-    status,
+    status, // Solo estados principales: Pendiente, Proceso, Cerrado
+    subStatus,
     onBack,
     onSave,
     isSaving
 }) => {
-    const stages = ['Asignado', 'En Proceso', 'Pendiente Info', 'Escalado', 'Resuelto', 'Cerrado'];
+    const stages = ['Pendiente', 'Proceso', 'Cerrado'];
     const currentStageIndex = stages.indexOf(status);
     const progressWidth = currentStageIndex >= 0 ? (currentStageIndex / (stages.length - 1)) * 100 : 0;
 
@@ -27,36 +29,41 @@ const AnalystCommandHeader: React.FC<AnalystCommandHeaderProps> = ({
 
         // Configuración de estilos adaptada al sistema de diseño
         switch (stageName) {
-            case 'Asignado':
+            case 'Pendiente':
                 return {
                     icon: isCompleted || isActive ? <Check size={10} className="text-white" strokeWidth={3} /> : <div className="w-1.5 h-1.5 rounded-full bg-indigo-200 dark:bg-indigo-900"></div>,
                     bgClass: isActive || isCompleted ? 'bg-indigo-500 shadow-sm shadow-indigo-500/20' : 'bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-900/50',
                     textClass: `text-indigo-600 dark:text-indigo-400 ${isActive || isCompleted ? 'opacity-100' : 'opacity-50'}`
                 };
-            case 'En Proceso':
+            case 'Proceso':
+                // Si es Proceso y el sub-estado es Pendiente Info, usamos color ámbar
+                const isWarningSub = isActive && subStatus === 'Pendiente Información';
                 return {
                     icon: isCompleted || isActive ? <Check size={10} className="text-white" strokeWidth={3} /> : <div className="w-1.5 h-1.5 rounded-full bg-blue-200 dark:bg-blue-900"></div>,
-                    bgClass: isActive || isCompleted ? 'bg-blue-500 shadow-sm shadow-blue-500/20' : 'bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-900/50',
-                    textClass: `text-blue-600 dark:text-blue-400 ${isActive || isCompleted ? 'opacity-100' : 'opacity-50'}`
+                    bgClass: isActive || isCompleted
+                        ? (isWarningSub ? 'bg-amber-500 shadow-sm shadow-amber-500/20' : 'bg-blue-500 shadow-sm shadow-blue-500/20')
+                        : 'bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-900/50',
+                    textClass: isWarningSub
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : `text-blue-600 dark:text-blue-400 ${isActive || isCompleted ? 'opacity-100' : 'opacity-50'}`
                 };
-            case 'Pendiente Info':
+            case 'Cerrado':
+                const isSuccessSub = isActive && subStatus === 'Resuelto';
+                const isEscalatedSub = isActive && subStatus === 'Escalado';
                 return {
-                    icon: <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-amber-500 dark:bg-white animate-pulse' : 'bg-amber-500 dark:bg-amber-900'}`}></div>,
-                    bgClass: isActive ? 'bg-white dark:bg-amber-600 border-[3px] border-amber-500 shadow-md shadow-amber-500/30' : 'bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-900/50',
-                    textClass: isActive ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 shadow-sm px-1.5 py-0.5 rounded-full' : 'text-amber-500 dark:text-amber-700'
+                    icon: isCompleted || isActive ? <Check size={10} className="text-white" strokeWidth={3} /> : <div className="w-1.5 h-1.5 rounded-full bg-emerald-200 dark:bg-emerald-900"></div>,
+                    bgClass: isActive || isCompleted
+                        ? (isEscalatedSub ? 'bg-purple-500' : isSuccessSub ? 'bg-emerald-500' : 'bg-slate-500')
+                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800',
+                    textClass: isActive || isCompleted
+                        ? (isEscalatedSub ? 'text-purple-600' : isSuccessSub ? 'text-emerald-600' : 'text-slate-600')
+                        : 'text-slate-300 dark:text-slate-700'
                 };
             default:
-                let color = 'slate';
-                if (stageName === 'Escalado') color = 'purple';
-                if (stageName === 'Resuelto') color = 'emerald';
-
-                const textColors: any = { purple: 'text-purple-300 dark:text-purple-800', emerald: 'text-emerald-300 dark:text-emerald-800', slate: 'text-slate-300 dark:text-slate-700' };
-                const bgColors: any = { purple: 'bg-purple-200 dark:bg-purple-900', emerald: 'bg-emerald-200 dark:bg-emerald-900', slate: 'bg-slate-200 dark:bg-slate-700' };
-
                 return {
-                    icon: <div className={`w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-white' : bgColors[color]}`}></div>,
-                    bgClass: isCompleted ? `bg-${color}-500 shadow-sm` : `bg-white dark:bg-slate-800 border border-${color}-200 dark:border-${color}-900/50`,
-                    textClass: textColors[color]
+                    icon: null,
+                    bgClass: 'bg-slate-100',
+                    textClass: 'text-slate-400'
                 };
         }
     };
@@ -83,7 +90,7 @@ const AnalystCommandHeader: React.FC<AnalystCommandHeaderProps> = ({
 
                 {/* COMPONENTE DE LÍNEA DE TIEMPO COMPACTO */}
                 <div className="flex-1 w-full relative">
-                    <div className="flex items-center justify-between pb-4 pt-2 w-full lg:w-auto overflow-x-auto custom-scrollbar scrollbar-hide">
+                    <div className="flex items-center justify-between pb-4 pt-2 w-full lg:w-3/4 mx-auto overflow-x-visible">
                         {/* Línea de base */}
                         <div className="absolute left-0 right-0 h-[1.5px] bg-slate-100 dark:bg-slate-800 top-5 -translate-y-1/2 -z-0 rounded-full"></div>
                         {/* Línea de progreso */}
@@ -95,35 +102,33 @@ const AnalystCommandHeader: React.FC<AnalystCommandHeaderProps> = ({
                         {stages.map((stage, idx) => {
                             const config = getStageConfig(stage, idx);
                             const isActive = idx === currentStageIndex;
-                            const isCompleted = idx < currentStageIndex;
-
-                            const isGenericCompleted = isCompleted && ['Escalado', 'Resuelto', 'Cerrado'].includes(stage);
-                            const genericCompletedClass = isGenericCompleted ?
-                                (stage === 'Escalado' ? 'bg-purple-500 border-none' : stage === 'Resuelto' ? 'bg-emerald-500 border-none' : 'bg-slate-500 border-none') : '';
-
-                            const finalBgClass = isGenericCompleted ? genericCompletedClass : config.bgClass;
-                            const finalTextClass = isGenericCompleted ? config.textClass.replace('300', '600').replace('800', '400') : config.textClass;
-                            const inactiveTextClass = "text-slate-300 dark:text-slate-700";
 
                             return (
-                                <div key={stage} className="relative z-10 flex flex-col items-center flex-1 min-w-[60px] group text-center px-1">
-                                    <div className={`relative w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${finalBgClass}`}>
-                                        {isGenericCompleted ? (
-                                            <Check size={10} className="text-white" strokeWidth={4} />
-                                        ) : config.icon}
+                                <div key={stage} className="relative z-10 flex flex-col items-center flex-1 group text-center px-1">
+                                    <div className={`relative w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${config.bgClass}`}>
+                                        {config.icon}
                                     </div>
 
-                                    {isActive && stage === 'Pendiente Info' ? (
-                                        <div className="absolute top-8 flex flex-col items-center w-full">
-                                            <Text as="span" weight="bold" className={config.textClass}>
-                                                {stage}
-                                            </Text>
-                                        </div>
-                                    ) : (
-                                        <Text as="span" weight="bold" className={`mt-2 text-[8px] tracking-tighter uppercase ${['Escalado', 'Resuelto', 'Cerrado'].includes(stage) && !isGenericCompleted ? inactiveTextClass : finalTextClass}`}>
+                                    <div className="absolute top-8 flex flex-col items-center w-full min-w-[120px]">
+                                        <Text
+                                            as="span"
+                                            variant="caption"
+                                            weight="bold"
+                                            className={`uppercase tracking-tighter !text-[9px] ${config.textClass}`}
+                                        >
                                             {stage}
                                         </Text>
-                                    )}
+                                        {isActive && subStatus && (
+                                            <Text
+                                                as="span"
+                                                variant="caption"
+                                                weight="bold"
+                                                className={`uppercase mt-0.5 !text-[10px] tracking-widest animate-in fade-in slide-in-from-top-1 duration-700 ${config.textClass} bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border border-current/20 shadow-sm`}
+                                            >
+                                                {subStatus}
+                                            </Text>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}

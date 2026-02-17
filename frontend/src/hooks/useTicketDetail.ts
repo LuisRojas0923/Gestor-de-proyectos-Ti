@@ -6,7 +6,8 @@ import { useNotifications } from '../components/notifications/NotificationsConte
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
-export type TicketStatus = 'Abierto' | 'Asignado' | 'En Proceso' | 'Pendiente Info' | 'Escalado' | 'Resuelto' | 'Cerrado';
+export type TicketStatus = 'Pendiente' | 'Proceso' | 'Cerrado';
+export type TicketSubStatus = 'Asignado' | 'Proceso' | 'Pendiente Información' | 'Resuelto' | 'Escalado';
 
 export interface Ticket {
     id: string;
@@ -14,6 +15,7 @@ export interface Ticket {
     asunto: string;
     descripcion: string;
     estado: string;
+    sub_estado?: string;
     prioridad: string;
     creador_id: string;
     nombre_creador: string;

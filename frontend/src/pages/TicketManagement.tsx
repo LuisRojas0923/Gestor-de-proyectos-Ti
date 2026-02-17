@@ -22,6 +22,7 @@ interface Ticket {
     id: string;
     asunto: string;
     estado: string;
+    sub_estado?: string;
     prioridad: string;
     nombre_creador: string;
     area_creador?: string;
@@ -90,11 +91,9 @@ const TicketManagement: React.FC = () => {
 
     const getStatusStyle = (status: string) => {
         switch (status) {
-            case 'Nuevo':
-            case 'Abierto': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-            case 'En Proceso': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+            case 'Pendiente': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+            case 'Proceso': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
             case 'Cerrado': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-            case 'Escalado': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
             default: return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
         }
     };
@@ -110,20 +109,20 @@ const TicketManagement: React.FC = () => {
 
     const statusCounts = {
         total: filteredTickets.length,
-        abierto: filteredTickets.filter(t => t.estado === 'Abierto' || t.estado === 'Nuevo').length,
-        enProceso: filteredTickets.filter(t => t.estado === 'En Proceso').length,
+        pendiente: filteredTickets.filter(t => t.estado === 'Pendiente').length,
+        proceso: filteredTickets.filter(t => t.estado === 'Proceso').length,
         cerrado: filteredTickets.filter(t => t.estado === 'Cerrado').length,
     };
 
-    const handleQuickAction = async (e: React.MouseEvent, ticketId: string, newStatus: string) => {
+    const handleQuickAction = async (e: React.MouseEvent, ticketId: string, newStatus: string, newSubStatus: string) => {
         e.stopPropagation();
-        if (!confirm(`¿Estás seguro de cambiar el estado a ${newStatus}?`)) return;
+        if (!confirm(`¿Estás seguro de cambiar el estado a ${newStatus} - ${newSubStatus}?`)) return;
 
         try {
-            await patch(`/soporte/${ticketId}`, { estado: newStatus });
-            addNotification('success', `Ticket actualizado a ${newStatus}`);
+            await patch(`/soporte/${ticketId}`, { estado: newStatus, sub_estado: newSubStatus });
+            addNotification('success', `Ticket actualizado a ${newStatus} - ${newSubStatus}`);
             // Recargar tickets localmente
-            const updated = tickets.map(t => t.id === ticketId ? { ...t, estado: newStatus } : t);
+            const updated = tickets.map(t => t.id === ticketId ? { ...t, estado: newStatus, sub_estado: newSubStatus } : t);
             setTickets(updated);
         } catch (error) {
             console.error(error);
@@ -139,10 +138,10 @@ const TicketManagement: React.FC = () => {
         try {
             // Asumimos que user tiene nombre.
             const userName = (user as any).nombre || (user as any).name || (user as any).username || "Usuario Actual";
-            await patch(`/soporte/${ticketId}`, { asignado_a: userName, estado: 'En Proceso' });
+            await patch(`/soporte/${ticketId}`, { asignado_a: userName, estado: 'Proceso', sub_estado: 'Proceso' });
             addNotification('success', `Ticket asignado a ${userName}`);
 
-            const updated = tickets.map(t => t.id === ticketId ? { ...t, asignado_a: userName, estado: 'En Proceso' } : t);
+            const updated = tickets.map(t => t.id === ticketId ? { ...t, asignado_a: userName, estado: 'Proceso', sub_estado: 'Proceso' } : t);
             setTickets(updated);
         } catch (error) {
             console.error(error);
@@ -282,7 +281,7 @@ const TicketManagement: React.FC = () => {
                                 {/* Columna 3: Estado */}
                                 <div className="md:w-32 shrink-0">
                                     <Text as="span" variant="caption" weight="bold" className={`px-2 py-0.5 rounded-md text-[9px] tracking-wider ${getStatusStyle(ticket.estado)}`}>
-                                        {(ticket.estado || 'NUEVO').toUpperCase()}
+                                        {(ticket.sub_estado || ticket.estado || 'NUEVO').toUpperCase()}
                                     </Text>
                                 </div>
 
@@ -336,10 +335,10 @@ const TicketManagement: React.FC = () => {
                                         </Button>
                                     )}
 
-                                    {ticket.estado !== 'En Proceso' && ticket.estado !== 'Cerrado' && (
+                                    {ticket.estado !== 'Proceso' && ticket.estado !== 'Cerrado' && (
                                         <Button
                                             variant="ghost"
-                                            onClick={(e) => handleQuickAction(e, ticket.id, 'En Proceso')}
+                                            onClick={(e) => handleQuickAction(e, ticket.id, 'Proceso', 'Proceso')}
                                             className="w-9 h-9 p-0 rounded-full bg-yellow-50 text-yellow-600 hover:bg-yellow-100 border border-yellow-200 shadow-sm"
                                             title="Poner En Proceso"
                                         >
@@ -347,10 +346,10 @@ const TicketManagement: React.FC = () => {
                                         </Button>
                                     )}
 
-                                    {ticket.estado === 'En Proceso' && (
+                                    {ticket.estado === 'Proceso' && (
                                         <Button
                                             variant="ghost"
-                                            onClick={(e) => handleQuickAction(e, ticket.id, 'Cerrado')}
+                                            onClick={(e) => handleQuickAction(e, ticket.id, 'Cerrado', 'Resuelto')}
                                             className="w-9 h-9 p-0 rounded-full bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 shadow-sm"
                                             title="Resolver Ticket"
                                         >

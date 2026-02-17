@@ -160,17 +160,13 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                             {/* Formulario de Acción */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Select
-                                    label="Cambiar Estado"
-                                    value={formData.estado || ticket.estado}
-                                    onChange={(e) => onFieldChange('estado', e.target.value)}
+                                    label="Asignar a"
+                                    value={formData.asignado_a || ticket.asignado_a || ''}
+                                    onChange={(e) => onFieldChange('asignado_a', e.target.value)}
                                     size="md"
                                     options={[
-                                        { value: 'Asignado', label: 'Asignado' },
-                                        { value: 'En Proceso', label: 'En Proceso' },
-                                        { value: 'Pendiente Info', label: 'Pendiente Info' },
-                                        { value: 'Escalado', label: 'Escalado' },
-                                        { value: 'Resuelto', label: 'Resuelto' },
-                                        { value: 'Cerrado', label: 'Cerrado' },
+                                        { value: '', label: 'Sin Asignar' },
+                                        ...analistas
                                     ]}
                                 />
                                 <Select
@@ -190,18 +186,51 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                                         { value: 'Otro', label: 'Otro' },
                                     ]}
                                 />
-                                <div className="md:col-span-2">
-                                    <Select
-                                        label="Asignar a"
-                                        value={formData.asignado_a || ticket.asignado_a || ''}
-                                        onChange={(e) => onFieldChange('asignado_a', e.target.value)}
-                                        size="md"
-                                        options={[
-                                            { value: '', label: 'Sin Asignar' },
-                                            ...analistas
-                                        ]}
-                                    />
-                                </div>
+                                <Select
+                                    label="Estado"
+                                    value={formData.estado || ticket.estado}
+                                    onChange={(e) => {
+                                        const nuevoEstado = e.target.value;
+                                        onFieldChange('estado', nuevoEstado);
+                                        // Auto-seleccionar primer sub-estado al cambiar estado
+                                        const subEstados: Record<string, string[]> = {
+                                            'Pendiente': ['Asignado'],
+                                            'Proceso': ['Proceso', 'Pendiente Información'],
+                                            'Cerrado': ['Resuelto', 'Escalado'],
+                                        };
+                                        const opciones = subEstados[nuevoEstado] || [];
+                                        if (opciones.length > 0) {
+                                            onFieldChange('sub_estado', opciones[0]);
+                                        }
+                                    }}
+                                    size="md"
+                                    options={[
+                                        { value: 'Pendiente', label: 'Pendiente' },
+                                        { value: 'Proceso', label: 'Proceso' },
+                                        { value: 'Cerrado', label: 'Cerrado' },
+                                    ]}
+                                />
+                                <Select
+                                    label="Sub-Estado"
+                                    value={formData.sub_estado || ticket.sub_estado || ''}
+                                    onChange={(e) => onFieldChange('sub_estado', e.target.value)}
+                                    size="md"
+                                    options={
+                                        (formData.estado || ticket.estado) === 'Pendiente'
+                                            ? [{ value: 'Asignado', label: 'Asignado' }]
+                                            : (formData.estado || ticket.estado) === 'Proceso'
+                                                ? [
+                                                    { value: 'Proceso', label: 'Proceso' },
+                                                    { value: 'Pendiente Información', label: 'Pendiente Información' },
+                                                ]
+                                                : (formData.estado || ticket.estado) === 'Cerrado'
+                                                    ? [
+                                                        { value: 'Resuelto', label: 'Resuelto' },
+                                                        { value: 'Escalado', label: 'Escalado' },
+                                                    ]
+                                                    : [{ value: '', label: 'Seleccione un estado primero' }]
+                                    }
+                                />
                             </div>
 
                             <div className="space-y-6">

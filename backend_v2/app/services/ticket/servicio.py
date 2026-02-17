@@ -113,22 +113,22 @@ class ServicioTicket:
     async def obtener_estadisticas_resumen(db: AsyncSession) -> Dict[str, Any]:
         """Obtiene estadisticas resumidas de tickets (Async)"""
         total = (await db.execute(select(sa_func.count(Ticket.id)))).scalar() or 0
-        # Consideramos Abierto y Asignado como "nuevos"
-        nuevos = (await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.estado.in_(["Abierto", "Asignado"])))).scalar() or 0
-        en_proceso = (await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.estado == "En Proceso"))).scalar() or 0
-        pendientes_info = (await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.estado == "Pendiente Info"))).scalar() or 0
-        escalados = (await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.estado == "Escalado"))).scalar() or 0
+        # Pendiente = tickets nuevos/asignados
+        pendiente = (await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.estado == "Pendiente"))).scalar() or 0
+        en_proceso = (await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.estado == "Proceso"))).scalar() or 0
         cerrados = (await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.estado == "Cerrado"))).scalar() or 0
-        resueltos = (await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.estado == "Resuelto"))).scalar() or 0
+        escalados = (await db.execute(select(sa_func.count(Ticket.id)).where(
+            Ticket.estado == "Cerrado", Ticket.sub_estado == "Escalado"
+        ))).scalar() or 0
         
         return {
             "total": total,
-            "nuevos": nuevos,
+            "nuevos": pendiente,
             "en_proceso": en_proceso,
-            "pendientes": nuevos + en_proceso + pendientes_info + escalados,
-            "cerrados": cerrados + resueltos,
+            "pendientes": pendiente + en_proceso,
+            "cerrados": cerrados,
             "escalados": escalados,
-            "completion_rate": round(((cerrados + resueltos) / total * 100) if total > 0 else 0, 1),
+            "completion_rate": round((cerrados / total * 100) if total > 0 else 0, 1),
             "total_tickets": total
         }
 
@@ -137,8 +137,8 @@ class ServicioTicket:
         """Obtiene estadisticas avanzadas de tickets (Async)"""
         result = await db.execute(
             select(Ticket).where(
-                Ticket.estado.in_(["Resuelto", "Cerrado"]),
-                Ticket.resuelto_en != None
+                Ticket.estado == "Cerrado",
+                Ticket.sub_estado == "Resuelto",
             )
         )
         tickets_cerrados = result.scalars().all()
@@ -191,7 +191,8 @@ class ServicioTicket:
                 cargo_creador=ticket_data.cargo_creador,
                 sede_creador=ticket_data.sede_creador,
                 prioridad=ticket_data.prioridad or "Media",
-                estado="Asignado",
+                estado="Pendiente",
+                sub_estado="Asignado",
                 datos_extra=ticket_data.datos_extra,
                 areas_impactadas=ticket_data.areas_impactadas
             )
@@ -277,25 +278,24 @@ class ServicioTicket:
         for field, value in update_data.items():
             old_value = getattr(db_ticket, field)
             if str(old_value) != str(value):
-                if field in ["estado", "prioridad", "asignado_a", "resolucion", "causa_novedad"]:
+                if field in ["estado", "sub_estado", "prioridad", "asignado_a", "resolucion", "causa_novedad"]:
                     await cls.registrar_historial(db, ticket_id, f"Cambio de {field.capitalize()}", f"De '{old_value or 'Ninguno'}' a '{value}'", user_id, user_name)
                 setattr(db_ticket, field, value)
         
-        # Validación de Causa Obligatoria para estado Resuelto
-        if db_ticket.estado == "Resuelto" and not db_ticket.causa_novedad:
+        # Validación de Causa Obligatoria para sub_estado Resuelto
+        if db_ticket.sub_estado == "Resuelto" and not db_ticket.causa_novedad:
             raise HTTPException(status_code=400, detail="La 'Causa de la Novedad' es obligatoria para resolver el ticket.")
 
         # Auto-dates for resolution
-        if "estado" in update_data:
-            new_status = update_data["estado"]
+        if "estado" in update_data or "sub_estado" in update_data:
             now = get_bogota_now()
             
-            if new_status in ["Resuelto", "Cerrado"]:
+            if db_ticket.estado == "Cerrado":
                 if not db_ticket.fecha_cierre: 
                     db_ticket.fecha_cierre = now
                 if not db_ticket.resuelto_en: 
                     db_ticket.resuelto_en = now
-            elif new_status == "En Proceso":
+            elif db_ticket.estado == "Proceso":
                 # Capturar fecha de atención inicial si es la primera vez
                 if not db_ticket.atendido_en:
                     db_ticket.atendido_en = now
