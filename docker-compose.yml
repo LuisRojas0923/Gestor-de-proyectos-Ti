@@ -20,6 +20,7 @@ services:
       - "8000:8000" # Re-expuesto para acceso directo por IP:8000
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager}
+      - APP_VERSION=v2.1.0-DEV
       - ERP_DATABASE_URL=${ERP_DATABASE_URL}
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - SECRET_KEY=${SECRET_KEY}
