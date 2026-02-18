@@ -23,9 +23,9 @@ const AppRouter: React.FC = () => {
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        {/* Rutas Administrativas (Analistas) */}
+        {/* Rutas Administrativas (Analistas y Managers) */}
         <Route path="/" element={
-          <ProtectedRoute allowedRoles={['analyst', 'admin', 'director']}>
+          <ProtectedRoute allowedRoles={['analyst', 'admin', 'director', 'manager']}>
             <Layout />
           </ProtectedRoute>
         }>
@@ -38,7 +38,7 @@ const AppRouter: React.FC = () => {
           <Route path="settings" element={<ProtectedRoute moduleCode="settings"><Settings /></ProtectedRoute>} />
           <Route path="ticket-management" element={<ProtectedRoute moduleCode="ticket-management"><TicketManagement /></ProtectedRoute>} />
           <Route path="admin/users" element={<ProtectedRoute moduleCode="user-admin"><UserAdmin /></ProtectedRoute>} />
-          <Route path="admin/rooms" element={<ProtectedRoute allowedRoles={['admin']}><RoomsPage /></ProtectedRoute>} />
+          <Route path="admin/rooms" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><RoomsPage /></ProtectedRoute>} />
           <Route path="design-catalog" element={<ProtectedRoute moduleCode="design-catalog"><DesignSystemCatalog /></ProtectedRoute>} />
         </Route>
 

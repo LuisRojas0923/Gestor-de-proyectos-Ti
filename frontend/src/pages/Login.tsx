@@ -57,12 +57,21 @@ const Login: React.FC = () => {
 
             const data = await response.json();
 
-            // Guardar token para futuras peticiones (creación/edición de reuniones)
+            // Normalización de datos del usuario
+            const userData = {
+                ...data.user,
+                id: data.user.id || data.user.cedula,
+                cedula: data.user.cedula || data.user.id,
+                name: data.user.nombre || data.user.name || '',
+                role: (data.user.rol || data.user.role || 'usuario').toLowerCase()
+            };
+
+            // Guardar token para futuras peticiones
             localStorage.setItem('token', data.access_token);
 
             // Guardar en contexto global
-            dispatch({ type: 'LOGIN', payload: data.user });
-            navigate('/service-portal');
+            dispatch({ type: 'LOGIN', payload: userData });
+            navigate('/service-portal/inicio');
 
         } catch (err: any) {
             console.error('Portal login error:', err);
@@ -112,7 +121,7 @@ const Login: React.FC = () => {
             if (userRole === 'analyst' || userRole === 'admin' || userRole === 'director') {
                 navigate('/');
             } else {
-                navigate('/service-portal');
+                navigate('/service-portal/inicio');
             }
         } catch (err) {
             setError('Usuario o contraseña incorrectos');
