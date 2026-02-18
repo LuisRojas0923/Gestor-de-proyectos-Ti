@@ -48,37 +48,42 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
                 </div>
 
                 {tickets.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="flex flex-col gap-3">
                         {tickets.map(ticket => (
                             <div
                                 key={ticket.id}
                                 onClick={() => onViewDetail(ticket)}
-                                className="bg-[var(--color-surface)] rounded-[2rem] border border-[var(--color-border)] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden group cursor-pointer flex flex-col h-full"
+                                className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden group cursor-pointer p-4"
                             >
-                                <div className="p-6 flex flex-col h-full space-y-4">
-                                    <div className="flex justify-between items-start">
-                                        <Text variant="caption" className="font-mono text-[var(--color-text-secondary)]/50 uppercase tracking-tighter bg-[var(--color-surface-variant)]/50 px-2 py-0.5 rounded-lg">{ticket.id}</Text>
-                                        <StatusBadge status={ticket.estado} />
+                                <div className="flex flex-col sm:grid sm:grid-cols-[100px_minmax(200px,2.5fr)_1.5fr_120px_130px] sm:items-center gap-4">
+                                    {/* 1. ID */}
+                                    <div className="flex-shrink-0">
+                                        <Text variant="caption" className="font-mono text-[var(--color-text-secondary)]/50 uppercase tracking-tighter bg-[var(--color-surface-variant)]/50 px-2 py-0.5 rounded-lg whitespace-nowrap inline-block">
+                                            {ticket.id}
+                                        </Text>
                                     </div>
 
-                                    <div className="flex-grow">
-                                        <Title variant="h6" weight="bold" color="text-primary" className="leading-tight group-hover:text-[var(--color-primary)] transition-colors line-clamp-2 min-h-[3rem]">
+                                    {/* 2. Asunto */}
+                                    <div className="flex-grow min-w-0">
+                                        <Title variant="h6" weight="bold" color="text-primary" className="leading-tight group-hover:text-[var(--color-primary)] transition-colors line-clamp-1">
                                             {ticket.asunto}
                                         </Title>
                                     </div>
 
-                                    <div className="space-y-3 pt-4 border-t border-[var(--color-border)]/50">
-                                        <div className="flex items-center justify-between text-[var(--color-text-secondary)]">
-                                            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider opacity-60">
-                                                <Icon name={Clock} size="xs" className="mr-1.5" />
-                                                {new Date(ticket.fecha_creacion).toLocaleDateString()}
-                                            </div>
-                                            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider opacity-60">
-                                                <Icon name={User} size="xs" className="mr-1.5" />
-                                                {ticket.asignado_a || 'Sin asignar'}
-                                            </div>
-                                        </div>
+                                    {/* 3. Encargado */}
+                                    <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+                                        <Icon name={User} size="xs" className="opacity-40" />
+                                        <Text variant="caption" weight="medium" className="truncate">{ticket.asignado_a || 'Sin asignar'}</Text>
+                                    </div>
 
+                                    {/* 4. Fecha */}
+                                    <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+                                        <Icon name={Clock} size="xs" className="opacity-40" />
+                                        <Text variant="caption" weight="medium">{new Date(ticket.fecha_creacion).toLocaleDateString()}</Text>
+                                    </div>
+
+                                    {/* 5. Estado y SLA */}
+                                    <div className="flex items-center justify-between sm:justify-end gap-3">
                                         {(() => {
                                             const creationDate = new Date(ticket.fecha_creacion);
                                             const now = new Date();
@@ -87,19 +92,16 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
 
                                             if (isStalled) {
                                                 return (
-                                                    <div className="flex items-center justify-center space-x-2 py-2 bg-red-50 dark:bg-red-900/10 text-red-500 rounded-xl border border-red-100 dark:border-red-900/30">
-                                                        <AlertTriangle size={14} className="animate-pulse" />
-                                                        <Text variant="caption" weight="bold" className="uppercase tracking-tighter !text-[10px]">SLA Vencido (+48h)</Text>
+                                                    <div className="flex items-center" title="SLA Vencido (+48h)">
+                                                        <AlertTriangle size={12} className="text-red-500 animate-pulse" />
                                                     </div>
                                                 );
                                             }
                                             return null;
                                         })()}
-
-                                        <div className="flex items-center justify-end group-hover:translate-x-1 transition-transform">
-                                            <Text variant="caption" weight="bold" className="text-[var(--color-primary)] uppercase tracking-widest text-[10px] flex items-center">
-                                                Ver detalle <ChevronRight size={14} className="ml-1" />
-                                            </Text>
+                                        <StatusBadge status={ticket.estado} />
+                                        <div className="hidden sm:block group-hover:translate-x-1 transition-transform">
+                                            <ChevronRight size={16} className="text-[var(--color-primary)]/40" />
                                         </div>
                                     </div>
                                 </div>
