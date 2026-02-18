@@ -23,6 +23,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      - APP_VERSION=${APP_VERSION:-v2.1.0-prod}
       - FRONTEND_URL=http://${FRONTEND_HOST:-localhost}
       - TZ=America/Bogota
     depends_on:

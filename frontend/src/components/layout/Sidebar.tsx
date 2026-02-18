@@ -184,9 +184,9 @@ const Sidebar: React.FC = () => {
 
         {/* VERSION DISPLAY */}
         {sidebarOpen && (
-          <div className="mt-4 pt-2 flex justify-center opacity-30 select-none">
-            <Text variant="caption" className="text-[9px] font-mono tracking-tighter uppercase whitespace-nowrap">
-              Versión: {version}
+          <div className="mt-4 pt-2 flex justify-center opacity-40 select-none">
+            <Text variant="caption" className="text-[10px] font-mono tracking-tighter uppercase whitespace-nowrap bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-md">
+              {version}
             </Text>
           </div>
         )}
