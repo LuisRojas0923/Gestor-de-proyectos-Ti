@@ -3,7 +3,8 @@
  * Integrado desde PRUEBA ANTI; usa API reserva-salas/rooms.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Input, Text, Title, Checkbox, Textarea } from '../components/atoms';
+import { Button, Input, Text, Title, Checkbox, Textarea, Badge, Icon } from '../components/atoms';
+import { Users, Wrench, FileText } from 'lucide-react';
 import { Modal } from '../components/molecules';
 import { useAppContext } from '../context/AppContext';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
@@ -187,7 +188,7 @@ const RoomsPage: React.FC = () => {
 
       <div className="rooms-page-filters">
         <div className="rooms-page-filter-group">
-          <label>Capacidad mínima</label>
+          <Text as="label" variant="body2" weight="medium" color="text-secondary">Capacidad mínima</Text>
           <Input
             type="number"
             placeholder="Ej: 6"
@@ -196,7 +197,7 @@ const RoomsPage: React.FC = () => {
           />
         </div>
         <div className="rooms-page-filter-group">
-          <label>Recursos</label>
+          <Text as="label" variant="body2" weight="medium" color="text-secondary">Recursos</Text>
           <Input
             type="text"
             placeholder="Ej: Proyector, Pizarra"
@@ -216,30 +217,30 @@ const RoomsPage: React.FC = () => {
             className={`rooms-page-card ${!room.is_active ? 'rooms-page-card-inactive' : ''}`}
           >
             <div className="rooms-page-card-header">
-              <h3>{room.name}</h3>
-              {!room.is_active && <span className="rooms-page-badge-inactive">Inactiva</span>}
+              <Title variant="h5" weight="bold">{room.name}</Title>
+              {!room.is_active && <Badge variant="error" size="sm">Inactiva</Badge>}
             </div>
             <div className="rooms-page-card-info">
               <div className="rooms-page-info-item">
-                <span className="rooms-page-icon">👥</span>
-                <span>Capacidad: {room.capacity} personas</span>
+                <Icon name={Users} size="sm" color="primary" className="mr-2" />
+                <Text variant="body2" color="text-secondary">Capacidad: {room.capacity} personas</Text>
               </div>
               {Array.isArray(room.resources) && room.resources.length > 0 && (
                 <div className="rooms-page-info-item">
-                  <span className="rooms-page-icon">🛠️</span>
+                  <Icon name={Wrench} size="sm" color="primary" className="mr-2" />
                   <div className="rooms-page-resources">
                     {room.resources.map((resource, idx) => (
-                      <span key={idx} className="rooms-page-resource-tag">
+                      <Badge key={idx} variant="default" size="sm" className="mr-1 mb-1">
                         {resource}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 </div>
               )}
               {room.notes && (
                 <div className="rooms-page-info-item">
-                  <span className="rooms-page-icon">📝</span>
-                  <span className="rooms-page-notes">{room.notes}</span>
+                  <Icon name={FileText} size="sm" color="primary" className="mr-2" />
+                  <Text variant="body2" color="text-secondary" className="rooms-page-notes truncate">{room.notes}</Text>
                 </div>
               )}
             </div>
