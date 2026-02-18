@@ -142,7 +142,36 @@ Como el puerto **5432** del servidor ya está ocupado por tu ERP, hemos configur
 
 ---
 
-## 7. Consejos de Administración Rápida
+## 7. Gestión de Versiones (SemVer)
+
+El sistema utiliza **Git Tags** y variables de entorno para mostrar la versión actual en la interfaz.
+
+### ¿Cómo subir de versión el sistema?
+Cuando el equipo de desarrollo finaliza una fase importante:
+
+1. **Crear una etiqueta (Tag)** en el repositorio (desde tu PC o el servidor):
+   ```bash
+   git tag -a v2.1.0 -m "Lanzamiento oficial v2.1.0"
+   git push origin v2.1.0
+   ```
+
+2. **Desplegar con la versión** en el servidor `SRV-BD`:
+   ```bash
+   # Asegúrate de haber hecho git pull primero
+   APP_VERSION=$(git describe --tags --always) sudo docker compose -f docker-compose.prod.yml up -d --build
+   ```
+
+### Limpieza de Versiones "Atascadas"
+Si el Sidebar muestra una versión antigua que no coincide con GitHub, puede que haya un archivo residual. Ejecuta:
+```bash
+cd /mnt/c/GestorTI
+rm backend_v2/.git_hash
+sudo docker compose -f docker-compose.prod.yml up -d
+```
+
+---
+
+## 8. Consejos de Administración Rápida
 
 ### Aplicar cambios en el `.env`
 Si cambias una variable en el archivo `.env`, no necesitas reconstruir todo. Solo ejecuta:
@@ -171,8 +200,8 @@ cd /mnt/c/GestorTI
 git pull origin main
 
 # 2. Reconstruir y levantar todo (Backend y Frontend)
-# Esto detectará qué cambió y lo actualizará automáticamente
-sudo docker compose -f docker-compose.prod.yml up -d --build
+# Se recomienda inyectar la versión actual de Git Tags
+APP_VERSION=$(git describe --tags --always) sudo docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 > [!TIP]
