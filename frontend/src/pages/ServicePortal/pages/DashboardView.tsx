@@ -16,7 +16,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, onNavigate }) => {
         user?.viaticante === true ||
         userRole === 'admin' ||
         userRole === 'director' ||
-        userRole === 'manager' ||
         user?.permissions?.includes('legalizar-gastos');
 
     return (
