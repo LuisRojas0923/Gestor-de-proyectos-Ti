@@ -20,7 +20,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
 
     // Normalizar rol del usuario de forma segura
     const userRole = (user.role || '').trim().toLowerCase();
-    const isAdminRole = ['analyst', 'admin', 'director', 'manager'].includes(userRole);
+    const isAdminRole = ['analyst', 'admin', 'director'].includes(userRole);
 
     // 1. Nueva validación por módulo (RBAC Dinámico)
     // Dashboard siempre permitido para roles administrativos para evitar bucles de redirección.
@@ -29,9 +29,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
     }
     // Solo bloqueamos si el arreglo de permisos EXISTE y el módulo NO está permitido.
     if (moduleCode && user.permissions && !user.permissions.includes(moduleCode)) {
-        // Si el rol es estrictamente de usuario, siempre va al portal
-        if (userRole === 'user' || userRole === 'usuario') {
-            return <Navigate to="/service-portal" replace />;
+        // Si el rol es estrictamente de usuario o manager, siempre va al portal
+        if (userRole === 'user' || userRole === 'usuario' || userRole === 'manager') {
+            // Evitar redirección infinita si ya estamos navegando dentro del portal
+            if (location.pathname.startsWith('/service-portal')) {
+                return <>{children}</>;
+            }
+            return <Navigate to="/service-portal/inicio" replace />;
         }
 
         // Si es un admin/analista/director:
@@ -39,11 +43,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
         if (location.pathname === '/' || moduleCode === 'dashboard') {
             // Como último recurso, si un administrativo no tiene dashboard,
             // le permitimos ver el portal de servicios en lugar de bloquearlo.
-            return <Navigate to="/service-portal" replace />;
+            return <Navigate to="/service-portal/inicio" replace />;
         }
 
         // Si falla otro módulo (ej: chat), devolver al inicio administrativo.
-        // No hay bucle porque el dashboard ya está permitido para admin/analyst/director arriba.
         return <Navigate to="/" replace />;
     }
 
