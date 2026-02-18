@@ -4,6 +4,7 @@ import { AppProvider } from './context/AppContext';
 import { NotificationsProvider } from './components/notifications/NotificationsContext';
 import { NotificationsContainer } from './components/notifications/NotificationsContainer';
 import './i18n';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 function App() {
   useEffect(() => {
@@ -18,12 +19,14 @@ function App() {
   }, []);
 
   return (
-    <AppProvider>
-      <NotificationsProvider>
-        <AppRouter />
-        <NotificationsContainer />
-      </NotificationsProvider>
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <NotificationsProvider>
+          <AppRouter />
+          <NotificationsContainer />
+        </NotificationsProvider>
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
 

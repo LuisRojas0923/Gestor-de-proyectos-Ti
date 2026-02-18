@@ -1,32 +1,38 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Portal de Servicios | SOLID ERP</title>
-    
-    <!-- Google Fonts - Roboto para Material Design -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Roboto+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script>
-      // Aplicar modo oscuro inmediatamente si está guardado en localStorage
-      // Esto previene el flash del modo claro al cargar la página
-      (function() {
-        try {
-          const savedDarkMode = localStorage.getItem('darkMode');
-          if (savedDarkMode && JSON.parse(savedDarkMode)) {
-            document.documentElement.classList.add('dark');
-          }
-        } catch (error) {
-          console.warn('Error al aplicar modo oscuro inicial:', error);
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="google" content="notranslate" /> <!-- Previene crashes automáticos en Chrome -->
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal de Servicios | SOLID ERP</title>
+
+  <!-- Google Fonts - Roboto para Material Design -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Roboto+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+  <div id="root" translate="no"></div>
+  <script>
+    // Aplicar modo oscuro inmediatamente si está guardado en localStorage
+    // Esto previene el flash del modo claro al cargar la página
+    (function () {
+      try {
+        const savedDarkMode = localStorage.getItem('darkMode');
+        if (savedDarkMode && JSON.parse(savedDarkMode)) {
+          document.documentElement.classList.add('dark');
         }
-      })();
-    </script>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+      } catch (error) {
+        console.warn('Error al aplicar modo oscuro inicial:', error);
+      }
+    })();
+  </script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

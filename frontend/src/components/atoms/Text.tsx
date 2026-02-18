@@ -96,7 +96,7 @@ export const Text: React.FC<TextProps> = ({
             htmlFor={htmlFor}
             {...props}
         >
-            {children}
+            {children && <span>{children}</span>}
         </Component>
     );
 };

@@ -43,7 +43,7 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
       onClick={onClick}
       {...props}
     >
-      {children}
+      <span className="block w-full h-full">{children}</span>
     </div>
   );
 };
@@ -59,7 +59,7 @@ const MaterialCardHeader: React.FC<MaterialCardSubComponentProps> = ({
   className = '',
 }) => (
   <div className={`px-6 py-4 border-b border-[var(--color-border)]/50 transition-colors ${className}`}>
-    {children}
+    <span>{children}</span>
   </div>
 );
 
@@ -68,7 +68,7 @@ const MaterialCardContent: React.FC<MaterialCardSubComponentProps> = ({
   className = '',
 }) => (
   <div className={`px-6 py-4 transition-colors text-[var(--color-text-primary)] ${className}`}>
-    {children}
+    <span>{children}</span>
   </div>
 );
 
@@ -77,7 +77,7 @@ const MaterialCardActions: React.FC<MaterialCardSubComponentProps> = ({
   className = '',
 }) => (
   <div className={`px-6 py-4 flex items-center justify-end space-x-2 transition-colors ${className}`}>
-    {children}
+    <span>{children}</span>
   </div>
 );
 

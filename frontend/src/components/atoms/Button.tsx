@@ -103,7 +103,7 @@ const Button: React.FC<ButtonProps> = ({
         />
       )}
 
-      {children}
+      {children && <span>{children}</span>}
 
       {!loading && IconComponent && iconPosition === 'right' && (
         <Icon
