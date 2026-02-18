@@ -17,7 +17,7 @@ const PermissionsMatrix: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    const roles = ['admin', 'analyst', 'director', 'viaticante', 'user'];
+    const roles = ['admin', 'manager', 'analyst', 'director', 'viaticante', 'user'];
     const modulos = [
         { id: 'dashboard', label: 'Tablero' },
         { id: 'viaticos_gestion', label: 'Gestión Viáticos' },

@@ -93,8 +93,8 @@ async def crear_sala(
     usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Crea una nueva sala. Solo admin."""
-    if usuario.rol != "admin":
-        raise HTTPException(status_code=403, detail="Solo administradores pueden crear salas")
+    if usuario.rol not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Solo administradores o managers pueden crear salas")
     room = Room(
         name=body.name,
         capacity=body.capacity,
@@ -116,8 +116,8 @@ async def actualizar_sala(
     usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Actualiza una sala. Solo admin."""
-    if usuario.rol != "admin":
-        raise HTTPException(status_code=403, detail="Solo administradores pueden editar salas")
+    if usuario.rol not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Solo administradores o managers pueden editar salas")
     result = await db.execute(select(Room).where(Room.id == room_id))
     room = result.scalar_one_or_none()
     if not room:
@@ -144,8 +144,8 @@ async def desactivar_sala(
     usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Desactiva una sala (soft: is_active = False). Solo admin."""
-    if usuario.rol != "admin":
-        raise HTTPException(status_code=403, detail="Solo administradores pueden desactivar salas")
+    if usuario.rol not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Solo administradores o managers pueden desactivar salas")
     result = await db.execute(select(Room).where(Room.id == room_id))
     room = result.scalar_one_or_none()
     if not room:
@@ -272,10 +272,10 @@ async def actualizar_reserva(
         raise HTTPException(status_code=404, detail="Reserva no encontrada")
     
     # Verificar propiedad o admin
-    if reservation.created_by_document != usuario.cedula and usuario.rol != "admin":
+    if reservation.created_by_document != usuario.cedula and usuario.rol not in ["admin", "manager"]:
         raise HTTPException(
             status_code=403, 
-            detail="No tienes permiso para modificar esta reserva. Solo el creador o un administrador pueden hacerlo."
+            detail="No tienes permiso para modificar esta reserva. Solo el creador, un administrador o un manager pueden hacerlo."
         )
 
     if reservation.status != "ACTIVE":
@@ -349,10 +349,10 @@ async def cancelar_reserva(
         raise HTTPException(status_code=404, detail="Reserva no encontrada")
     
     # Verificar propiedad o admin
-    if reservation.created_by_document != usuario.cedula and usuario.rol != "admin":
+    if reservation.created_by_document != usuario.cedula and usuario.rol not in ["admin", "manager"]:
         raise HTTPException(
             status_code=403, 
-            detail="No tienes permiso para cancelar esta reserva. Solo el creador o un administrador pueden hacerlo."
+            detail="No tienes permiso para cancelar esta reserva. Solo el creador, un administrador o un manager pueden hacerlo."
         )
 
     if reservation.status == "CANCELLED":

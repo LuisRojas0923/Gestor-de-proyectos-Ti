@@ -117,7 +117,7 @@ const ReservationDetailModal: React.FC<ReservationDetailModalProps> = ({ reserva
               <div><Text variant="caption" color="text-secondary">Organizador</Text><br /><Text variant="body1">{reservation.created_by_name}</Text></div>
               <div><Text variant="caption" color="text-secondary">Estado</Text><br /><Text variant="body1" weight="bold">{reservation.status === 'ACTIVE' ? 'Activa' : 'Cancelada'}</Text></div>
             </div>
-            {reservation.status === 'ACTIVE' && (reservation.created_by_document === user?.cedula || user?.role === 'admin') && (
+            {reservation.status === 'ACTIVE' && (reservation.created_by_document === user?.cedula || user?.role === 'admin' || user?.role === 'manager') && (
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="secondary" onClick={() => setIsEditing(true)}>Editar</Button>
                 <Button variant="danger" onClick={handleCancel} disabled={loading}>Cancelar reserva</Button>

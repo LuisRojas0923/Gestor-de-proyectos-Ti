@@ -66,13 +66,13 @@ const Sidebar: React.FC = () => {
     const userRole = (user?.role || '').trim().toLowerCase();
 
     // Gestión de Salas: solo rol admin
-    if (item.id === 'rooms-admin') return userRole === 'admin';
+    if (item.id === 'rooms-admin') return userRole === 'admin' || userRole === 'manager';
 
     // Si el usuario no tiene cargados los permisos todavía (sesión antigua en caché)
     // permitimos ver todo lo que su rol tradicional permitía
     if (!user?.permissions) {
       if (userRole === 'admin') return true;
-      if (userRole === 'analyst' || userRole === 'director') {
+      if (['analyst', 'director', 'manager'].includes(userRole)) {
         return !['user-admin', 'design-catalog'].includes(item.id);
       }
       if (userRole === 'user' || userRole === 'usuario') {

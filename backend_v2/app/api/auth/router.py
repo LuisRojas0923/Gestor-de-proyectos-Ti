@@ -355,7 +355,7 @@ async def listar_analistas(
         raise HTTPException(status_code=403, detail="No tiene permisos para ver esta lista")
     
     result = await db.execute(
-        select(Usuario).where(Usuario.rol.in_(["analyst", "admin", "director"]))
+        select(Usuario).where(Usuario.rol.in_(["analyst", "admin", "director", "manager"]))
     )
     return result.scalars().all()
 

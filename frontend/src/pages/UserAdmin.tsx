@@ -212,7 +212,7 @@ const UserAdmin: React.FC = () => {
                                     <div>
                                         <Text variant="caption" weight="bold" className="uppercase mb-2 block">Rol del Sistema</Text>
                                         <div className="flex space-x-2">
-                                            {['analyst', 'admin', 'director'].map(role => (
+                                            {['analyst', 'admin', 'director', 'manager'].map(role => (
                                                 <Button
                                                     key={role}
                                                     variant={selectedUser.rol === role ? 'primary' : 'ghost'}
@@ -227,7 +227,7 @@ const UserAdmin: React.FC = () => {
                                     </div>
 
                                     <div>
-                                        <Text variant="caption" weight="bold" className="uppercase mb-3 block flex items-center">
+                                        <Text variant="caption" weight="bold" className="uppercase mb-3 flex items-center">
                                             <Briefcase size={14} className="mr-1" /> Especialidades TI
                                         </Text>
                                         <div className="grid grid-cols-2 gap-2">
@@ -246,7 +246,7 @@ const UserAdmin: React.FC = () => {
                                     </div>
 
                                     <div>
-                                        <Text variant="caption" weight="bold" className="uppercase mb-3 block flex items-center">
+                                        <Text variant="caption" weight="bold" className="uppercase mb-3 flex items-center">
                                             <MapPin size={14} className="mr-1" /> Áreas Asignadas (Mejoramiento)
                                         </Text>
                                         <div className="flex flex-wrap gap-2">

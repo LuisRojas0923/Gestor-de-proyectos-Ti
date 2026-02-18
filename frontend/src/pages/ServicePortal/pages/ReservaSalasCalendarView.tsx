@@ -122,7 +122,7 @@ export const ReservaSalasCalendarView: React.FC<ReservaSalasCalendarViewProps> =
 
   const calendarEvents = reservations.map((r) => {
     const isOwner = String(r.created_by_document).trim() === String(user?.cedula).trim();
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = user?.role === 'admin' || user?.role === 'manager';
     return {
       id: String(r.id),
       title: r.title,

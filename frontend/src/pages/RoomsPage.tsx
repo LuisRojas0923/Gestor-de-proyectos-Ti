@@ -1,9 +1,9 @@
 /**
- * Gestión de Salas - Solo usuarios con rol admin.
+ * Gestión de Salas - Usuarios con rol admin o manager.
  * Integrado desde PRUEBA ANTI; usa API reserva-salas/rooms.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Input, Text, Title } from '../components/atoms';
+import { Button, Input, Text, Title, Checkbox, Textarea } from '../components/atoms';
 import { Modal } from '../components/molecules';
 import { useAppContext } from '../context/AppContext';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
@@ -23,7 +23,7 @@ const RoomsPage: React.FC = () => {
   const { state } = useAppContext();
   const user = state.user;
   const { addNotification } = useNotifications();
-  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
+  const canManage = ['admin', 'manager'].includes((user?.role || '').toLowerCase());
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -172,7 +172,7 @@ const RoomsPage: React.FC = () => {
         <Title variant="h4" weight="bold">
           Gestión de Salas
         </Title>
-        {isAdmin && (
+        {canManage && (
           <Button variant="primary" onClick={() => setShowModal(true)}>
             Nueva Sala
           </Button>
@@ -243,7 +243,7 @@ const RoomsPage: React.FC = () => {
                 </div>
               )}
             </div>
-            {isAdmin && (
+            {canManage && (
               <div className="rooms-page-card-actions">
                 <Button variant="secondary" onClick={() => handleEdit(room)}>
                   Editar
@@ -285,7 +285,6 @@ const RoomsPage: React.FC = () => {
             label="Capacidad *"
             type="number"
             required
-            min={1}
             value={formData.capacity}
             onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
             placeholder="Ej: 10"
@@ -296,25 +295,19 @@ const RoomsPage: React.FC = () => {
             onChange={(e) => setFormData({ ...formData, resources: e.target.value })}
             placeholder="Ej: Proyector, Pizarra, Videoconferencia"
           />
-          <div className="rooms-page-form-group">
-            <label>Notas</label>
-            <textarea
-              className="rooms-page-textarea"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Información adicional sobre la sala..."
-              rows={3}
-            />
-          </div>
+          <Textarea
+            label="Notas"
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="Información adicional sobre la sala..."
+            rows={3}
+          />
           <div className="rooms-page-form-group rooms-page-form-checkbox">
-            <label>
-              <input
-                type="checkbox"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              />
-              Sala activa
-            </label>
+            <Checkbox
+              label="Sala activa"
+              checked={formData.is_active}
+              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+            />
           </div>
           <div className="rooms-page-form-footer">
             <Button type="button" variant="secondary" onClick={handleCloseModal}>
