@@ -21,9 +21,9 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
         <Button
             variant="custom"
             onClick={onClick}
-            className={`p-6 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2rem] text-left hover:border-[var(--color-primary)] hover:shadow-xl transition-all group flex flex-col h-full items-start w-full ${className}`}
+            className={`p-6 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2rem] text-center hover:border-[var(--color-primary)] hover:shadow-xl transition-all group flex flex-col h-full items-center w-full ${className}`}
         >
-            <div className="text-[var(--color-primary)] mb-4 bg-[var(--color-primary)]/10 w-14 h-14 rounded-2xl flex items-center justify-center transition-all group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-background)] shrink-0">
+            <div className="text-[var(--color-primary)] mb-4 bg-[var(--color-primary)]/10 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto transition-all group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-background)] shrink-0">
                 {icon}
             </div>
             <div className="flex-grow">

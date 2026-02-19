@@ -9,7 +9,8 @@ import {
   Info,
   AlertTriangle,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Menu
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useState, useEffect } from 'react';
@@ -53,9 +54,16 @@ const TopBar: React.FC = () => {
   };
 
   return (
-    <header className="bg-[var(--color-surface)] border-b border-[var(--color-border)] px-6 py-4 flex items-center justify-between transition-colors duration-300">
+    <header className="bg-[var(--color-surface)] border-b border-[var(--color-border)] px-4 md:px-6 py-4 flex items-center justify-between transition-colors duration-300">
       <div className="flex items-center space-x-4">
-        <div className="relative">
+        <Button
+          variant="ghost"
+          size="md"
+          icon={Menu}
+          onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+          className="md:hidden text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-2 rounded-xl"
+        />
+        <div className="relative hidden sm:block">
           <Input
             placeholder={t('search')}
             icon={Search}

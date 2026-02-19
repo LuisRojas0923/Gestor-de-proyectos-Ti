@@ -46,7 +46,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
         setIsLoading(true);
         try {
             const res = await axios.get(`${API_BASE_URL}/viaticos/reportes/${user.cedula || user.id}`);
-            setReportes(res.data);
+            setReportes(res.data as ReporteResumen[]);
         } catch (err) {
             console.error("Error fetching transit reports:", err);
         } finally {
@@ -107,7 +107,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                         className="font-bold rounded-lg px-4 sm:px-5 py-1.5 text-[var(--color-primary)] text-[10px] sm:text-xs w-[132px] shadow-sm bg-white dark:bg-black/20 z-10 border border-slate-200 justify-center"
                     >
                         <Plus size={14} className="mr-1.5" />
-                        <span className="uppercase">NUEVO</span>
+                        <Text as="span" weight="bold" color="inherit" className="uppercase">NUEVO</Text>
                     </Button>
                 </div>
             </div>
@@ -154,20 +154,20 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                 <div className="flex flex-col gap-1 text-[11px] text-gray-600 dark:text-gray-400 mb-2">
                                     <div className="flex justify-between items-center w-full">
                                         <div className="flex flex-wrap gap-x-4">
-                                            <span>{reporte.fechaaplicacion}</span>
-                                            <span>{reporte.area} - {reporte.centrocosto}</span>
+                                            <Text as="span">{reporte.fechaaplicacion}</Text>
+                                            <Text as="span">{reporte.area} - {reporte.centrocosto}</Text>
                                         </div>
                                     </div>
                                     <div className="flex justify-between items-center w-full">
-                                        <span>{reporte.ciudad}</span>
-                                        <button
-                                            type="button"
+                                        <Text as="span">{reporte.ciudad}</Text>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() => setReportToDelete(reporte)}
-                                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border-none shadow-none"
                                             title="Eliminar Reporte"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                            icon={Trash2}
+                                        />
                                     </div>
                                 </div>
 
@@ -252,7 +252,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                         <td className="px-2 py-2 italic opacity-50 text-[10px] truncate max-w-[120px]" title={reporte.cargo}>{reporte.cargo}</td>
                                         <td className="px-2 py-2 whitespace-nowrap opacity-70">
                                             <div className="flex items-center gap-2">
-                                                <span>{reporte.ciudad}</span>
+                                                <Text as="span">{reporte.ciudad}</Text>
                                                 <Button
                                                     variant="erp"
                                                     size="xs"

@@ -82,32 +82,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                 </div>
             </div>
 
-            {/* Tabla Matriz (Imagen 2 Superior Izquierda) */}
-            <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)] overflow-hidden">
-                <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Matriz de Observación por Analista</Title>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead>
-                            <tr className="bg-[var(--deep-navy)] text-white">
-                                <th className="px-4 py-3 font-bold uppercase tracking-wider">Observación</th>
-                                {(headers || []).map(h => <th key={h} className="px-4 py-3 font-bold uppercase tracking-wider text-center">{h}</th>)}
-                                <th className="px-4 py-3 font-bold uppercase tracking-wider text-center">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--color-border)]">
-                            {(matriz || []).map((row, i) => (
-                                <tr key={i} className="hover:bg-[var(--color-surface-variant)] transition-colors">
-                                    <td className="px-4 py-3 font-bold text-[var(--color-text-primary)]">{row.observacion}</td>
-                                    {(headers || []).map(h => (
-                                        <td key={h} className="px-4 py-3 text-center font-mono">{row[h] || 0}</td>
-                                    ))}
-                                    <td className="px-4 py-3 text-center font-bold bg-gray-50 dark:bg-gray-800/20">{row.total}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Porcentaje por Analista */}
@@ -139,8 +114,10 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                     <Text weight="bold" className="mb-2 text-blue-900 dark:text-blue-300">{val}</Text>
                                     <div
                                         className={`${p.color} w-full rounded-t-lg transition-all hover:opacity-80`}
-                                        style={{ height: `${Math.max(height, 20)}px` }}
-                                    ></div>
+                                        style={{ '--h': `${Math.max(height, 20)}px` } as React.CSSProperties}
+                                    >
+                                        <div className="h-[var(--h)] w-full" />
+                                    </div>
                                     <Text weight="bold" color="white" className="bg-blue-900 dark:bg-blue-800 w-full text-center py-1 text-[10px] tracking-tight mt-1 rounded-b-sm block uppercase">
                                         {p.label}
                                     </Text>

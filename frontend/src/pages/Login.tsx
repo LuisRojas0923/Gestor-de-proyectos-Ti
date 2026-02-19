@@ -6,7 +6,6 @@ import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
 import imgUserLogin from '../assets/images/categories/Usuario Inicio Sesion.png';
 import imgAdminLogin from '../assets/images/categories/icons8-usuario-administrador-96.png';
-import imgFondo from '../assets/images/fondo - copia.png';
 
 const Login: React.FC = () => {
     const { state, dispatch } = useAppContext();
@@ -142,10 +141,7 @@ const Login: React.FC = () => {
     return (
         <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
             {/* Imagen de Fondo con Overlay */}
-            <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 scale-105"
-                style={{ backgroundImage: `url(${imgFondo})` }}
-            />
+            <div className="absolute inset-0 bg-main-wallpaper transition-transform duration-1000 scale-105" />
             <div className={`absolute inset-0 transition-colors duration-500 
                 ${loginMode === 'portal'
                     ? 'bg-black/40 backdrop-blur-[2px]'

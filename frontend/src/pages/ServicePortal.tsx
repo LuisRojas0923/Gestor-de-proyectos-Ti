@@ -482,7 +482,7 @@ const ServicePortal: React.FC = () => {
                 <Route path="mis-tickets" element={
                     <TicketListView
                         tickets={tickets}
-                        onBack={() => navigate('/service-portal/inicio')}
+                        onBack={() => navigate('/service-portal/servicios')}
                         onViewDetail={(t) => { setSelectedTicket(t); navigate(`/service-portal/mis-tickets/${t.id}`); }}
                     />
                 } />

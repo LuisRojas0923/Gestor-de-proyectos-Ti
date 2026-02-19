@@ -2,7 +2,6 @@ import React from 'react';
 import { LogOut } from 'lucide-react';
 import { Button, Text, Title } from '../../components/atoms';
 import ThemeToggle from '../../components/atoms/ThemeToggle';
-import imgFondo from '../../assets/images/fondo - copia.png';
 import imgLogoRefridcol from '../../assets/images/Logo Refridcol Solo.png';
 import imgSolidLogo from '../../assets/images/categories/Logo SOLID-ERP.png';
 
@@ -17,27 +16,24 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
     return (
         <div className="flex flex-col min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
             <header className="bg-transparent border-b border-white/20 sticky top-0 z-50 transition-all duration-300 h-24 shadow-lg">
-                <div
-                    className="absolute inset-0 bg-no-repeat transition-opacity duration-500 opacity-100 -z-10"
-                    style={{
-                        backgroundImage: `url(${imgFondo})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center 30%'
-                    }}
-                />
+                <div className="absolute inset-0 bg-main-wallpaper transition-opacity duration-500 opacity-100 -z-10" />
 
                 <div className="h-full bg-black/10 transition-colors duration-300">
                     <div className="w-full px-4 sm:px-10 h-full flex items-center justify-between text-white relative py-0">
                         {/* 1. SECCIÓN IZQUIERDA (Logo Refridcol - Extremo Izquierdo y Alto Total) */}
-                        <div className="flex items-center justify-start shrink-0 h-full">
-                            <button
-                                type="button"
+                        <div className="flex items-center justify-start shrink-0 h-full py-2">
+                            <Button
+                                variant="ghost"
                                 onClick={onHome}
-                                className="h-full w-auto object-contain py-1 transition-transform hover:scale-105 focus:outline-none cursor-pointer bg-transparent border-none rounded-none"
+                                className="h-full w-auto transition-transform hover:scale-105 focus:outline-none cursor-pointer bg-transparent border-none rounded-none p-0 flex items-center justify-center overflow-hidden"
                                 aria-label="Ir al inicio"
                             >
-                                <img src={imgLogoRefridcol} alt="Refridcol" className="h-full w-auto object-contain" />
-                            </button>
+                                <img
+                                    src={imgLogoRefridcol}
+                                    alt="Refridcol"
+                                    className="h-20 w-auto object-contain block"
+                                />
+                            </Button>
                         </div>
 
                         {/* 2. SECCIÓN CENTRAL (Identidad del Portal - Centrado Relativo en Móvil, Absoluto en Desktop) */}
@@ -46,8 +42,8 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                             onClick={onHome}
                         >
                             <Title variant="h2" weight="bold" color="white" className="tracking-tighter drop-shadow-2xl uppercase text-center font-black leading-tight italic whitespace-nowrap text-base sm:text-2xl md:text-3xl">
-                                <span className="hidden sm:inline">Portal de Servicios SOLID</span>
-                                <span className="inline sm:hidden">Portal SOLID</span>
+                                <Text as="span" weight="bold" color="inherit" className="hidden sm:inline">Portal de Servicios SOLID</Text>
+                                <Text as="span" weight="bold" color="inherit" className="inline sm:hidden">Portal SOLID</Text>
                             </Title>
                         </div>
 
@@ -93,7 +89,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                 {children}
             </main>
 
-            <footer className="w-full py-6 mt-auto bg-[var(--color-surface)] border-t border-[var(--color-border)] opacity-60 hover:opacity-100 transition-opacity duration-500">
+            <footer className="w-full py-4 mt-auto bg-[var(--color-surface)] border-t border-[var(--color-border)] sticky bottom-0 z-40 shadow-[0_-8px_15px_-3px_rgba(0,0,0,0.05)] opacity-95 hover:opacity-100 transition-all duration-500">
                 <div className="max-w-[1300px] mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex flex-col items-center mx-auto">
                         <Text variant="caption" weight="medium" className="uppercase tracking-[0.2em] text-[var(--color-text-secondary)] text-[10px]">

@@ -351,9 +351,13 @@ const TicketManagement: React.FC = () => {
 
                                         {/* Estado Col */}
                                         <div className={`${COLUMN_WIDTHS.estado} shrink-0 flex items-center justify-center`}>
-                                            <span className={`px-3 py-1 rounded-lg text-[11px] font-bold tracking-wider border border-current/20 shrink-0 shadow-sm ${getStatusStyle(ticket.estado)}`}>
+                                            <Text
+                                                as="span"
+                                                weight="bold"
+                                                className={`px-3 py-1 rounded-lg text-[11px] tracking-wider border border-current/20 shrink-0 shadow-sm ${getStatusStyle(ticket.estado)}`}
+                                            >
                                                 {(ticket.estado || 'PENDIENTE').toUpperCase()}
-                                            </span>
+                                            </Text>
                                         </div>
 
                                         {/* Asunto (Flex-1) */}

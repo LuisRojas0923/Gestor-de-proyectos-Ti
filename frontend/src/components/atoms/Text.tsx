@@ -96,7 +96,11 @@ export const Text: React.FC<TextProps> = ({
             htmlFor={htmlFor}
             {...props}
         >
-            {children && <span>{children}</span>}
+            {/* 
+                PROTECCIÓN DE TRADUCCIÓN: El nodo raíz de este componente 
+                actúa como escudo para evitar que los traductores rompan el DOM.
+            */}
+            {children}
         </Component>
     );
 };
