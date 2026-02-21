@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, FileText, Trash2, Plus } from 'lucide-react';
-import { Button, Text, Title, MaterialCard, Spinner } from '../../../components/atoms';
+import { Button, Text, Title, MaterialCard, Spinner, Switch } from '../../../components/atoms';
 import { DeleteReportConfirmModal } from '../../../components/molecules';
 import axios from 'axios';
 import { API_CONFIG } from '../../../config/api';
@@ -32,7 +32,7 @@ interface TransitReportsViewProps {
     user: any;
     onBack: () => void;
     onNewReport: () => void;
-    onSelectReport: (reporteId: string) => void;
+    onSelectReport: (reporte: ReporteResumen) => void;
 }
 
 const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, onNewReport, onSelectReport }) => {
@@ -40,6 +40,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
     const [reportToDelete, setReportToDelete] = useState<ReporteResumen | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
     const { addNotification } = useNotifications();
 
     const fetchReportes = async () => {
@@ -77,6 +78,10 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
         }
     }, [user?.cedula, user?.id]);
 
+    const filteredReportes = showHistory
+        ? reportes
+        : reportes.filter(r => r.estado?.toUpperCase().trim() !== 'PROCESADO');
+
     return (
         <div className="space-y-6 pb-20">
             <div className="space-y-2 -mb-4">
@@ -99,7 +104,16 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                 </div>
 
                 {/* Botón NUEVO (0.5rem debajo del título) */}
-                <div className="flex items-center justify-end px-1">
+                <div className="flex items-center justify-between px-1">
+                    <div className="bg-white dark:bg-black/20 px-3 h-9 rounded-lg border border-slate-200 shadow-sm transition-all hover:border-slate-300 flex items-center justify-center">
+                        <Switch
+                            checked={showHistory}
+                            onChange={setShowHistory}
+                            label={showHistory ? 'HISTORIAL COMPLETO' : 'SOLO PENDIENTES'}
+                            className="font-bold uppercase tracking-wider text-slate-500 !text-[9px]"
+                        />
+                    </div>
+
                     <Button
                         variant="erp"
                         size="xs"
@@ -126,7 +140,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                 <div className="space-y-4">
                     {/* Tarjetas Móviles */}
                     <div className="grid grid-cols-1 gap-4 lg:hidden">
-                        {reportes.map((reporte) => (
+                        {filteredReportes.map((reporte) => (
                             <MaterialCard key={reporte.reporte_id} className="p-3 border-[var(--color-border)] hover:border-blue-500/50 transition-all">
                                 <div className="flex justify-between items-center mb-2">
                                     <div className="flex items-center gap-2">
@@ -175,7 +189,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                     <Button
                                         variant="erp"
                                         size="sm"
-                                        onClick={() => onSelectReport(reporte.reporte_id)}
+                                        onClick={() => onSelectReport(reporte)}
                                         className="w-full font-bold"
                                     >
                                         Modificar
@@ -206,14 +220,14 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--color-border)]">
-                                {reportes.map((reporte) => (
+                                {filteredReportes.map((reporte) => (
                                     <tr key={reporte.reporte_id} className="hover:bg-[var(--color-primary)]/5 transition-colors text-[11px]">
                                         <td className="px-3 py-2 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
                                                 <Button
                                                     variant="erp"
                                                     size="xs"
-                                                    onClick={() => onSelectReport(reporte.reporte_id)}
+                                                    onClick={() => onSelectReport(reporte)}
                                                     className="font-bold px-4 py-1 text-[9px] uppercase tracking-tighter shadow-none border-slate-200"
                                                 >
                                                     modificar

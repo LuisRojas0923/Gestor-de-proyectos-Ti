@@ -523,8 +523,9 @@ const ServicePortal: React.FC = () => {
                     <TransitReportsView
                         user={user}
                         onBack={() => navigate('/service-portal/gastos/gestion')}
-                        onNewReport={() => navigate('/service-portal/gastos/nuevo')}
-                        onSelectReport={async (rid) => {
+                        onNewReport={() => navigate('/service-portal/gastos/nuevo', { state: { newReport: true } })}
+                        onSelectReport={async (reporte) => {
+                            const rid = reporte.reporte_id;
                             try {
                                 setIsLoading(true);
                                 const res = await axios.get(`${API_BASE_URL}/viaticos/reporte/${rid}/detalle`);
@@ -548,6 +549,7 @@ const ServicePortal: React.FC = () => {
                                         lineas: lineasDetalle,
                                         observaciones: resData[0]?.observaciones_gral,
                                         reporte_id: rid,
+                                        estado: reporte.estado,
                                         from: 'reportes'
                                     }
                                 });

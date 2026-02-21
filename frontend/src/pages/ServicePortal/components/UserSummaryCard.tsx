@@ -1,14 +1,15 @@
-import { User, IdCard, Network, MapPin, Wallet, Trash2 } from 'lucide-react';
+import { User, IdCard, Network, MapPin, Wallet } from 'lucide-react';
 import { Text, MaterialCard } from '../../../components/atoms';
 
 interface UserSummaryCardProps {
     user: any;
+    reporteId?: string | null;
 }
 
-const UserSummaryCard: React.FC<UserSummaryCardProps> = ({ user }) => {
+const UserSummaryCard: React.FC<UserSummaryCardProps> = ({ user, reporteId }) => {
     return (
         <MaterialCard className="!bg-[#002060] !text-white p-2 sm:p-3 md:p-4 rounded-2xl shadow-lg !border-none md:sticky top-[104px] z-30 mb-0.5 backdrop-blur-sm">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4 md:gap-6 items-center">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2 sm:gap-4 md:gap-6 items-center">
                 <div className="flex items-center gap-2">
                     <div className="bg-blue-800/40 p-2 rounded-lg text-white">
                         <User size={11} />
@@ -61,6 +62,15 @@ const UserSummaryCard: React.FC<UserSummaryCardProps> = ({ user }) => {
                     <div className="min-w-0 flex-1">
                         <Text variant="caption" weight="semibold" color="white" className="text-[10px] sm:text-[14px] uppercase tracking-tight block opacity-70">Base Viáticos</Text>
                         <Text variant="caption" className="text-[11px] sm:text-[14px] font-black leading-tight" color="white">${(user.baseviaticos || 0).toLocaleString()}</Text>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3 border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6 col-span-2 lg:col-span-1">
+                    <div className="bg-yellow-500/20 p-2.5 rounded-lg text-yellow-400 border border-yellow-500/30">
+                        <Wallet size={11} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <Text variant="caption" weight="semibold" color="white" className="text-[10px] sm:text-[14px] uppercase tracking-tight block opacity-70">Radicado</Text>
+                        <Text variant="caption" className="text-[11px] sm:text-[14px] font-black leading-tight text-white sm:text-yellow-400" color="inherit">{reporteId || 'NUEVO'}</Text>
                     </div>
                 </div>
             </div>

@@ -42,19 +42,25 @@ class ViaticosService:
     def enviar_reporte(db_erp: Session, reporte_data: Dict) -> str:
         """Guarda o actualiza un reporte de viáticos en la tabla de tránsito del ERP"""
         
-        # Generar o Recuperar Consecutivo Amigable (Formato REP-LXXXX)
+        # Generar o Recuperar Consecutivo Amigable (Formato WEB-LXXXX)
         try:
-            reporte_id_str = reporte_data.get("reporte_id")
-            # Un ID amigable siempre empieza por REP-L. Los UUIDs no.
-            es_actualizacion = bool(reporte_id_str and "REP-L" in str(reporte_id_str))
+            reporte_id_val = reporte_data.get("reporte_id")
+            # Un ID amigable siempre empieza por WEB-L. Los UUIDs no.
+            # Robustez: Asegurar que sea string y no sea "null" literal ni vacío
+            es_actualizacion = bool(
+                reporte_id_val and 
+                isinstance(reporte_id_val, str) and 
+                "WEB-L" in reporte_id_val and 
+                reporte_id_val.strip().lower() != "null"
+            )
             
             if es_actualizacion:
-                consecutivo = str(reporte_id_str).replace("[", "").replace("]", "")
+                consecutivo = str(reporte_id_val).strip()
             else:
                 # Generación robusta: buscar el último número usado para evitar duplicados por huecos
                 sql_max = text("""
                     SELECT reporte_id FROM legalizaciones_transito 
-                    WHERE reporte_id LIKE 'REP-L%' 
+                    WHERE reporte_id LIKE 'WEB-L%' 
                     ORDER BY length(reporte_id) DESC, reporte_id DESC 
                     LIMIT 1
                 """)
@@ -62,7 +68,7 @@ class ViaticosService:
                 
                 if max_val:
                     try:
-                        # Extraer solo los números del string (p.ej. REP-L0005 -> 5)
+                        # Extraer solo los números del string (p.ej. WEB-L0005 -> 5)
                         num_str = "".join(filter(str.isdigit, max_val))
                         nuevo_num = int(num_str) + 1 if num_str else 1
                     except:
@@ -72,19 +78,32 @@ class ViaticosService:
                 else:
                     nuevo_num = 1
                 
-                consecutivo = f"REP-L{nuevo_num:04d}"
+                consecutivo = f"WEB-L{nuevo_num:04d}"
         except Exception as e:
             print(f"DEBUG_ID_GEN_ERROR: {e}")
-            consecutivo = f"REP-L{uuid.uuid4().hex[:6].upper()}"
+            consecutivo = f"WEB-L{uuid.uuid4().hex[:6].upper()}"
 
-        # Si es actualización, LIMPIAMOS las líneas previas antes de re-insertar (Upsert Lógico)
+        # Si es actualización, VALIDAR ESTADO y luego LIMPIAR líneas previas
         if es_actualizacion:
-            print(f"DEBUG_ERP: Actualizando reporte {reporte_id_str} -> {consecutivo}")
-            db_erp.execute(text("DELETE FROM transito_viaticos WHERE reporte_id = :rid"), {"rid": reporte_id_str})
-            db_erp.execute(text("DELETE FROM legalizaciones_transito WHERE reporte_id = :rid"), {"rid": reporte_id_str})
+            # Blindaje: No permitir modificar si ya está PROCESADO
+            sql_check = text("SELECT estado FROM legalizaciones_transito WHERE reporte_id = :rid")
+            estado_actual = db_erp.execute(sql_check, {"rid": reporte_id_val}).scalar()
+            
+            if estado_actual == "PROCESADO":
+                print(f"CRITICAL_SECURITY_ALERT: Intento de modificar reporte PROCESADO {reporte_id_val}")
+                raise Exception("No es posible modificar un reporte que ya ha sido PROCESADO.")
+
+            print(f"DEBUG_ERP: Actualizando reporte {reporte_id_val} -> {consecutivo}")
+            del_detalles = db_erp.execute(text("DELETE FROM transito_viaticos WHERE reporte_id = :rid"), {"rid": reporte_id_val}).rowcount
+            del_cabecera = db_erp.execute(text("DELETE FROM legalizaciones_transito WHERE reporte_id = :rid"), {"rid": reporte_id_val}).rowcount
+            print(f"DEBUG_ERP: Limpieza finalizada. (Filas eliminadas: Transito={del_detalles}, Cabecera={del_cabecera})")
 
         reporte_id = consecutivo 
         obs_gral = reporte_data.get("observaciones_gral", "")
+        
+        # Blindaje: Evitar que se acumulen etiquetas [WEB-LXXXX] si ya existen en las observaciones
+        import re
+        obs_gral = re.sub(r'\[WEB-L\d+\]\s*', '', obs_gral).strip()
         
         # Calcular Totales y Anexos
         total_acumulado = sum(float(g["valorConFactura"] or 0) + float(g["valorSinFactura"] or 0) for g in reporte_data["gastos"])
@@ -115,14 +134,14 @@ class ViaticosService:
         
         try:
             result_header = db_erp.execute(sql_header, {
-                "codigolegalizacion": str(reporte_id), # Usar el ID amigable en lugar de None
+                "codigolegalizacion": str(reporte_id), 
                 "empleado": str(reporte_data["empleado_cedula"]),
                 "nombreempleado": str(reporte_data["empleado_nombre"]),
                 "area": str(reporte_data["area"]),
                 "valortotal": float(total_acumulado),
                 "estado": str(reporte_data.get("estado", "INICIAL")),
                 "usuario": usuario_int,
-                "observaciones": str(obs_gral),
+                "observaciones": obs_gral.strip(),
                 "anexo": int(tiene_anexos),
                 "centrocosto": str(cc_empleado if cc_empleado and cc_empleado != "---" else "POR-DEFINIR"),
                 "cargo": str(reporte_data["cargo"]),
@@ -251,6 +270,17 @@ class ViaticosService:
         sql = text("SELECT * FROM transito_viaticos WHERE reporte_id = :reporte_id")
         resultado = db_erp.execute(sql, {"reporte_id": reporte_id})
         return [dict(row._mapping) for row in resultado]
+
+    @staticmethod
+    def obtener_categorias_legalizacion(db_erp: Session) -> List[Dict]:
+        """Obtiene el listado de categorías de legalización desde el ERP"""
+        try:
+            sql = text("SELECT descripcion as label, descripcion as value FROM categorialegalizacion ORDER BY descripcion ASC")
+            resultado = db_erp.execute(sql).all()
+            return [dict(row._mapping) for row in resultado]
+        except Exception as e:
+            print(f"ERROR ERP Categorias: {e}")
+            raise e
 
     @staticmethod
     def eliminar_reporte(db_erp: Session, reporte_id: str):

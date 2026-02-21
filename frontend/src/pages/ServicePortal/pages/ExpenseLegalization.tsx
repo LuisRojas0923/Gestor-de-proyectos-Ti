@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Plus, Trash2, Send } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Send, Download } from 'lucide-react';
 import { Button, Text, Title, Textarea } from '../../../components/atoms';
 import axios from 'axios';
 import { API_CONFIG } from '../../../config/api';
@@ -10,6 +10,7 @@ import UserSummaryCard from '../components/UserSummaryCard';
 import ExpenseLineItem from '../components/ExpenseLineItem';
 import ExpenseMobileCard from '../components/ExpenseMobileCard';
 import ExpenseTotals from '../components/ExpenseTotals';
+import { generateExpenseReportPDF } from '../../../utils/generateExpenseReportPDF';
 
 import { ExpenseConfirmModal, DeleteReportConfirmModal } from '../../../components/molecules';
 
@@ -31,13 +32,17 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
     initialObservaciones
 }) => {
     const location = useLocation();
-    const state = location.state as { lineas?: any[], observaciones?: string, reporte_id?: string, from?: string } | null;
+    const state = location.state as { lineas?: any[], observaciones?: string, reporte_id?: string, estado?: string, from?: string, newReport?: boolean } | null;
 
     const {
         lineas,
         setLineas,
         observacionesGral,
         setObservacionesGral,
+        activeReporteId: hookReporteId,
+        setActiveReporteId: setHookReporteId,
+        currentEstado: hookEstado,
+        setCurrentEstado: setHookEstado,
         ots,
         isSearchingOT,
         addLinea,
@@ -55,7 +60,16 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
         logMarina
     } = useExpenseForm();
 
-    const reporteIdOriginal = state?.reporte_id || (initialLineas?.[0] as any)?.reporte_id || (state?.lineas?.[0] as any)?.reporte_id;
+    // Sincronizar estados locales con los del hook (que persiste en localStorage)
+    const activeReporteId = hookReporteId;
+    const currentEstado = hookEstado;
+
+    const setActiveReporteId = setHookReporteId;
+    const setCurrentEstado = setHookEstado;
+
+    // Solo se permite editar si es un reporte nuevo o está en estado BORRADOR o INICIAL
+    const isReadOnly = currentEstado !== undefined && currentEstado !== 'BORRADOR' && currentEstado !== 'INICIAL';
+    const canDownloadPDF = currentEstado === 'INICIAL' || currentEstado === 'PROCESADO';
 
     const hasLoadedInitial = React.useRef(false);
 
@@ -63,24 +77,57 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
     React.useEffect(() => {
         if (hasLoadedInitial.current) return;
 
+        if (state?.newReport) {
+            logMarina("🆕 [INIT] Forzando nuevo reporte por solicitud del usuario");
+            clearForm();
+            hasLoadedInitial.current = true;
+            return;
+        }
+
         const lineasACargar = initialLineas || state?.lineas;
         const obsACargar = initialObservaciones || state?.observaciones;
 
         if (lineasACargar && lineasACargar.length > 0) {
             loadLineas(lineasACargar, obsACargar);
+
+            // Si cargamos desde props/state, actualizamos los IDs locales del hook
+            const repId = state?.reporte_id || (lineasACargar[0] as any)?.reporte_id;
+            const status = state?.estado;
+            if (repId) setActiveReporteId(repId);
+            if (status) setCurrentEstado(status);
+
             hasLoadedInitial.current = true;
-        } else {
-            // Modo nuevo: limpiar formulario para empezar desde cero
+        } else if (!activeReporteId) {
+            // Solo limpiar si no hay nada en el caché (activeReporteId viene del hook/localStorage)
             clearForm();
             hasLoadedInitial.current = true;
+        } else {
+            hasLoadedInitial.current = true;
         }
-    }, [initialLineas, initialObservaciones, state, loadLineas, clearForm]);
+    }, [initialLineas, initialObservaciones, state, loadLineas, clearForm, activeReporteId, setActiveReporteId, setCurrentEstado]);
 
     const [isLoading, setIsLoading] = useState(false);
+    const [categorias, setCategorias] = useState<{ label: string, value: string }[]>([]);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showDeleteReportModal, setShowDeleteReportModal] = useState(false);
     const [isDeletingReport, setIsDeletingReport] = useState(false);
     const { addNotification } = useNotifications();
+
+    // Cargar categorías desde el ERP al montar el componente
+    React.useEffect(() => {
+        const fetchCategorias = async () => {
+            try {
+                const response = await axios.get(`${API_BASE_URL}/viaticos/categorias`);
+                if (Array.isArray(response.data)) {
+                    setCategorias(response.data);
+                }
+            } catch (err) {
+                console.error("Error cargando categorías:", err);
+                // Fallback silencioso si falla la API (se mostrará el select vacío o con lo que tenga)
+            }
+        };
+        fetchCategorias();
+    }, []);
 
     const handlePrepareSubmit = () => {
         const errors: Record<string, string[]> = {};
@@ -101,8 +148,16 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                 camposFaltantes.push('Categoría');
             }
             if (!l.ot) {
-                lineErrors.push('ot');
-                camposFaltantes.push('OT');
+                // Validación flexible: Permitir OT vacío solo si CC=4 dígitos y SCC=2 dígitos
+                const isManualCCValid = /^\d{4}$/.test(l.cc);
+                const isManualSCCValid = /^\d{2}$/.test(l.scc);
+
+                if (!isManualCCValid || !isManualSCCValid) {
+                    lineErrors.push('ot');
+                    if (!isManualCCValid) lineErrors.push('cc');
+                    if (!isManualSCCValid) lineErrors.push('scc');
+                    camposFaltantes.push('OT (O CC/SCC válidos)');
+                }
             }
             if (!l.cc) {
                 lineErrors.push('cc');
@@ -140,7 +195,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
         setShowConfirmModal(false);
         try {
             const payload = {
-                reporte_id: reporteIdOriginal || null,
+                reporte_id: activeReporteId || null,
                 empleado_cedula: user.cedula || user.id,
                 empleado_nombre: user.name,
                 area: user.area || 'N/A',
@@ -165,10 +220,21 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
             };
 
             logMarina(`🚀 [API] Enviando reporte como ${estado}`);
-            await axios.post(`${API_BASE_URL}/viaticos/enviar`, payload);
+            const response = await axios.post(`${API_BASE_URL}/viaticos/enviar`, payload);
+
+            // Corregir extracción del ID: El servidor retorna { "status": "success", "reporte_id": "WEB-LXXXX", ... }
+            const nuevoId = (response.data as any)?.reporte_id || response.data;
+
+            if (nuevoId && typeof nuevoId === 'string') {
+                logMarina(`🆔 [API] Recibido nuevo ID: ${nuevoId}`);
+                setActiveReporteId(nuevoId);
+            } else {
+                logMarina(`⚠️ [API] No se pudo extraer ID de la respuesta: ${JSON.stringify(response.data)}`);
+            }
 
             if (estado === 'BORRADOR') {
                 addNotification('success', 'Borrador guardado correctamente.');
+                setCurrentEstado('BORRADOR'); // Actualizar estado para ocultar PDF
             } else {
                 clearForm();
                 onSuccess();
@@ -190,10 +256,10 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
     };
 
     const handleDeleteReport = async () => {
-        if (!reporteIdOriginal) return;
+        if (!activeReporteId) return;
         setIsDeletingReport(true);
         try {
-            await axios.delete(`${API_BASE_URL}/viaticos/reporte/${reporteIdOriginal}`);
+            await axios.delete(`${API_BASE_URL}/viaticos/reporte/${activeReporteId}`);
             addNotification('success', 'Reporte eliminado permanentemente.');
             onBack();
         } catch (err) {
@@ -234,7 +300,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
             </div>
 
             {/* Info Tarjeta Azul */}
-            <UserSummaryCard user={user} />
+            <UserSummaryCard user={user} reporteId={activeReporteId} />
 
 
 
@@ -254,7 +320,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                     <div className="grid grid-cols-3 gap-2 w-full h-full items-center">
                         <Button
                             onClick={handleSaveDraft}
-                            disabled={isLoading}
+                            disabled={isLoading || isReadOnly}
                             variant="erp"
                             size="md"
                             icon={Save}
@@ -262,31 +328,43 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                         >
                             GUARDAR
                         </Button>
-                        <Button
-                            onClick={() => {
-                                if (reporteIdOriginal) {
-                                    setShowDeleteReportModal(true);
-                                } else {
-                                    clearForm();
-                                    onBack();
-                                }
-                            }}
-                            disabled={isLoading}
-                            variant="erp"
-                            size="md"
-                            icon={Trash2}
-                            className="h-[68px] font-bold rounded-2xl shadow-none px-2 uppercase text-[10px] sm:text-xs flex-col gap-1 justify-center shrink-0 border-red-200 text-red-600 dark:text-red-400"
-                        >
-                            ELIMINAR
-                        </Button>
+                        {canDownloadPDF ? (
+                            <Button
+                                onClick={() => generateExpenseReportPDF(user, lineas, observacionesGral)}
+                                variant="erp"
+                                size="md"
+                                icon={Download}
+                                className="h-[68px] font-bold rounded-2xl shadow-none px-2 uppercase text-[10px] sm:text-xs flex-col gap-1 justify-center shrink-0 border-blue-200 text-blue-700 dark:text-blue-400"
+                            >
+                                PDF
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={() => {
+                                    if (activeReporteId) {
+                                        setShowDeleteReportModal(true);
+                                    } else {
+                                        clearForm();
+                                        onBack();
+                                    }
+                                }}
+                                disabled={isLoading || isReadOnly}
+                                variant="erp"
+                                size="md"
+                                icon={Trash2}
+                                className="h-[68px] font-bold rounded-2xl shadow-none px-2 uppercase text-[10px] sm:text-xs flex-col gap-1 justify-center shrink-0 border-red-200 text-red-600 dark:text-red-400 disabled:opacity-30"
+                            >
+                                ELIMINAR
+                            </Button>
+                        )}
                         <Button
                             onClick={handlePrepareSubmit}
-                            disabled={isLoading}
+                            disabled={isLoading || isReadOnly}
                             loading={isLoading}
                             variant="erp"
                             size="md"
                             icon={Send}
-                            className="h-[68px] font-black rounded-2xl shadow-lg shadow-[var(--color-primary)]/10 px-2 uppercase text-[11px] sm:text-sm text-[#002060] dark:text-blue-300 flex-col gap-1 justify-center shrink-0"
+                            className="h-[68px] font-black rounded-2xl shadow-lg shadow-[var(--color-primary)]/10 px-2 uppercase text-[11px] sm:text-sm text-[#002060] dark:text-blue-300 flex-col gap-1 justify-center shrink-0 disabled:opacity-30"
                         >
                             {isLoading ? 'ENVIANDO...' : 'ENVIAR'}
                         </Button>
@@ -310,10 +388,11 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                     <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-1.5 ml-auto">
                         <Button
                             onClick={addLinea}
+                            disabled={isReadOnly}
                             variant="erp"
                             size="xs"
                             icon={Plus}
-                            className="font-bold rounded-lg px-2 sm:px-2.5 py-1 text-[var(--color-primary)] text-[9px] w-fit shadow-sm bg-white dark:bg-black/20"
+                            className="font-bold rounded-lg px-2 sm:px-2.5 py-1 text-[var(--color-primary)] text-[9px] w-fit shadow-sm bg-white dark:bg-black/20 disabled:opacity-50"
                         >
                             <Text as="span" weight="bold" color="inherit" className="hidden sm:inline uppercase">AGREGAR LINEA</Text>
                             <Text as="span" weight="bold" color="inherit" className="sm:hidden uppercase">AGREGAR</Text>
@@ -361,6 +440,8 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                                             selectOT={selectOT}
                                             setLineas={setLineas}
                                             errors={validationErrors[linea.id] || []}
+                                            isReadOnly={isReadOnly}
+                                            categorias={categorias}
                                         />
                                     ))
                                 )}
@@ -389,6 +470,8 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                                 selectOT={selectOT}
                                 setLineas={setLineas}
                                 errors={validationErrors[linea.id] || []}
+                                isReadOnly={isReadOnly}
+                                categorias={categorias}
                             />
                         ))
                     )}
@@ -405,7 +488,8 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                     value={observacionesGral}
                     onChange={(e) => setObservacionesGral(e.target.value)}
                     rows={4}
-                    className="w-full bg-[var(--color-surface)] border-[var(--color-border)] rounded-2xl focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all text-sm shadow-sm"
+                    disabled={isReadOnly}
+                    className="w-full bg-[var(--color-surface)] border-[var(--color-border)] rounded-2xl focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all text-sm shadow-sm disabled:opacity-50"
                 />
             </div>
 
@@ -423,7 +507,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                 isOpen={showDeleteReportModal}
                 onClose={() => setShowDeleteReportModal(false)}
                 onConfirm={handleDeleteReport}
-                reportCode={observacionesGral.match(/\[(REP-L\d+)\]/)?.[1]}
+                reportCode={activeReporteId}
                 isLoading={isDeletingReport}
             />
         </div>

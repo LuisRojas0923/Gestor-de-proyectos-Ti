@@ -269,7 +269,7 @@ const TicketManagement: React.FC = () => {
                     { label: 'En Proceso', count: statusCounts.proceso, color: 'yellow', icon: RefreshCw },
                     { label: 'Cerrados', count: statusCounts.cerrado, color: 'green', icon: CheckCircle },
                 ].map((card) => (
-                    <div key={card.label} className="bg-[var(--color-surface)] p-5 rounded-3xl border border-[var(--color-border)] shadow-sm">
+                    <div key={card.label} className="bg-[var(--color-surface)] p-5 rounded-3xl border border-[var(--color-border)] shadow-sm h-[100px]">
                         <div className="flex items-center justify-between mb-2">
                             <div className={`p-2 rounded-xl bg-${card.color}-100 dark:bg-${card.color}-900/20 text-${card.color}-600 dark:text-${card.color}-400`}>
                                 <Icon name={card.icon} size="sm" />

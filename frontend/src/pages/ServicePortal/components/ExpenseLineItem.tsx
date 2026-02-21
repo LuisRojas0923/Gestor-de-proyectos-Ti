@@ -16,6 +16,8 @@ interface ExpenseLineItemProps {
     selectOT: (ot: any, id: string) => void;
     setLineas: React.Dispatch<React.SetStateAction<any[]>>;
     errors?: string[];
+    isReadOnly?: boolean;
+    categorias?: { label: string, value: string }[];
 }
 
 const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
@@ -28,7 +30,9 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
     handleOTSearch,
     selectOT,
     setLineas,
-    errors = []
+    errors = [],
+    isReadOnly = false,
+    categorias = []
 }) => {
     const { addNotification } = useNotifications();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -63,6 +67,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
         updateLinea(linea.id, 'adjuntos', newAdjuntos);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
+
     return (
         <tr className={`hover:bg-[var(--color-surface-variant)]/30 transition-colors group/line ${isSearchingOT === linea.id ? 'relative z-[60]' : 'relative z-0'}`}>
             {/* # No. */}
@@ -79,18 +84,12 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                 <Select
                     value={linea.categoria}
                     size="xs"
+                    disabled={isReadOnly}
                     onChange={(e) => updateLinea(linea.id, 'categoria', e.target.value)}
-                    className={`!border-none !bg-transparent !shadow-none !px-2 ${errors.includes('categoria') ? 'ring-1 ring-red-500 rounded-lg' : ''}`}
+                    className={`!border-none !bg-transparent !shadow-none !px-2 ${errors.includes('categoria') ? 'ring-1 ring-red-500 rounded-lg' : ''} disabled:opacity-50`}
                     options={[
                         { value: '', label: 'Seleccione...' },
-                        { value: 'Alimentación', label: 'Alimentación' },
-                        { value: 'Hospedaje', label: 'Hospedaje' },
-                        { value: 'Transporte Municipal', label: 'Transporte Mun.' },
-                        { value: 'Transporte Intermunicipal', label: 'Transporte Inter.' },
-                        { value: 'Peajes', label: 'Peajes' },
-                        { value: 'Combustible', label: 'Combustible' },
-                        { value: 'Papeleria', label: 'Papelería' },
-                        { value: 'Imprevistos', label: 'Imprevistos' },
+                        ...categorias
                     ]}
                 />
             </td>
@@ -101,8 +100,9 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                     type="date"
                     value={linea.fecha}
                     size="xs"
+                    disabled={isReadOnly}
                     onChange={(e) => updateLinea(linea.id, 'fecha', e.target.value)}
-                    className="!border-none !bg-transparent !shadow-none !px-2"
+                    className="!border-none !bg-transparent !shadow-none !px-2 disabled:opacity-50"
                     fullWidth
                 />
             </td>
@@ -115,8 +115,9 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                         placeholder="Buscar OT..."
                         value={linea.ot}
                         size="xs"
+                        disabled={isReadOnly}
                         onChange={(e) => handleOTSearch(e.target.value, linea.id)}
-                        className={`!border-none !bg-transparent !shadow-none !px-2 font-bold placeholder:font-normal placeholder:opacity-40 ${errors.includes('ot') ? 'ring-1 ring-red-500 rounded-lg' : ''}`}
+                        className={`!border-none !bg-transparent !shadow-none !px-2 font-bold placeholder:font-normal placeholder:opacity-40 ${errors.includes('ot') ? 'ring-1 ring-red-500 rounded-lg' : ''} disabled:opacity-50`}
                     />
                     {isSearchingOT === linea.id && ots.length > 0 && (
                         <div className="absolute top-full left-0 w-[400px] z-[100] mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -150,54 +151,80 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
 
             {/* C. Costo */}
             <td className={`px-2 py-2 border-b border-[var(--color-border)] ${errors.includes('cc') ? 'bg-red-50/50' : ''}`}>
-                <Select
-                    value={linea.cc}
-                    size="xs"
-                    disabled={!linea.ot || linea.combinacionesCC.length === 0}
-                    onChange={(e) => {
-                        const newCC = e.target.value;
-                        const sccsDisp = linea.combinacionesCC
-                            .filter((c: any) => c.centrocosto?.trim() === newCC)
-                            .map((c: any) => c.subcentrocosto?.trim())
-                            .filter(Boolean);
-                        const newSCC = sccsDisp.length === 1 ? (sccsDisp[0] || '') : '';
-                        setLineas(prevLineas => prevLineas.map((l: any) =>
-                            l.id === linea.id
-                                ? { ...l, cc: newCC, scc: newSCC }
-                                : l
-                        ));
-                    }}
-                    className={`!border-none !bg-transparent !shadow-none !px-2 ${errors.includes('cc') ? 'ring-1 ring-red-500 rounded-lg' : ''}`}
-                    options={[
-                        { value: '', label: '...' },
-                        ...Array.from(new Set(linea.combinacionesCC.map((c: any) => c.centrocosto?.trim()).filter(Boolean))).map((cc: any) => ({
-                            value: cc || '',
-                            label: cc || ''
-                        }))
-                    ]}
-                />
+                {linea.ot ? (
+                    <Select
+                        value={linea.cc}
+                        size="xs"
+                        disabled={isReadOnly || !linea.ot || linea.combinacionesCC.length === 0}
+                        onChange={(e) => {
+                            const newCC = e.target.value;
+                            const sccsDisp = linea.combinacionesCC
+                                .filter((c: any) => c.centrocosto?.trim() === newCC)
+                                .map((c: any) => c.subcentrocosto?.trim())
+                                .filter(Boolean);
+                            const newSCC = sccsDisp.length === 1 ? (sccsDisp[0] || '') : '';
+                            setLineas(prevLineas => prevLineas.map((l: any) =>
+                                l.id === linea.id
+                                    ? { ...l, cc: newCC, scc: newSCC }
+                                    : l
+                            ));
+                        }}
+                        className={`!border-none !bg-transparent !shadow-none !px-2 ${errors.includes('cc') ? 'ring-1 ring-red-500 rounded-lg' : ''} disabled:opacity-50`}
+                        options={[
+                            { value: '', label: '...' },
+                            ...Array.from(new Set(linea.combinacionesCC.map((c: any) => c.centrocosto?.trim()).filter(Boolean))).map((cc: any) => ({
+                                value: cc || '',
+                                label: cc || ''
+                            }))
+                        ]}
+                    />
+                ) : (
+                    <Input
+                        type="text"
+                        maxLength={4}
+                        placeholder="0000"
+                        value={linea.cc}
+                        size="xs"
+                        disabled={isReadOnly}
+                        onChange={(e) => updateLinea(linea.id, 'cc', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                        className={`!border-none !bg-transparent !shadow-none !px-2 text-center font-mono ${errors.includes('cc') ? 'ring-1 ring-red-500 rounded-lg' : ''} disabled:opacity-50`}
+                    />
+                )}
             </td>
 
             {/* Subcentro */}
             <td className={`px-2 py-2 border-b border-[var(--color-border)] ${errors.includes('scc') ? 'bg-red-50/50' : ''}`}>
-                <Select
-                    value={linea.scc}
-                    size="xs"
-                    disabled={!linea.cc}
-                    onChange={(e) => updateLinea(linea.id, 'scc', e.target.value)}
-                    className={`!border-none !bg-transparent !shadow-none !px-2 ${errors.includes('scc') ? 'ring-1 ring-red-500 rounded-lg' : ''}`}
-                    options={[
-                        { value: '', label: '...' },
-                        ...linea.combinacionesCC
-                            .filter((c: any) => c.centrocosto?.trim() === linea.cc)
-                            .map((c: any) => c.subcentrocosto?.trim())
-                            .filter(Boolean)
-                            .map((scc: any) => ({
-                                value: scc || '',
-                                label: scc || ''
-                            }))
-                    ]}
-                />
+                {linea.ot ? (
+                    <Select
+                        value={linea.scc}
+                        size="xs"
+                        disabled={isReadOnly || !linea.cc}
+                        onChange={(e) => updateLinea(linea.id, 'scc', e.target.value)}
+                        className={`!border-none !bg-transparent !shadow-none !px-2 ${errors.includes('scc') ? 'ring-1 ring-red-500 rounded-lg' : ''} disabled:opacity-50`}
+                        options={[
+                            { value: '', label: '...' },
+                            ...linea.combinacionesCC
+                                .filter((c: any) => c.centrocosto?.trim() === linea.cc)
+                                .map((c: any) => c.subcentrocosto?.trim())
+                                .filter(Boolean)
+                                .map((scc: any) => ({
+                                    value: scc || '',
+                                    label: scc || ''
+                                }))
+                        ]}
+                    />
+                ) : (
+                    <Input
+                        type="text"
+                        maxLength={2}
+                        placeholder="00"
+                        value={linea.scc}
+                        size="xs"
+                        disabled={isReadOnly}
+                        onChange={(e) => updateLinea(linea.id, 'scc', e.target.value.replace(/\D/g, '').slice(0, 2))}
+                        className={`!border-none !bg-transparent !shadow-none !px-2 text-center font-mono ${errors.includes('scc') ? 'ring-1 ring-red-500 rounded-lg' : ''} disabled:opacity-50`}
+                    />
+                )}
             </td>
 
             {/* Factura */}
@@ -205,8 +232,9 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                 <CurrencyInput
                     value={(linea.valorConFactura ?? 0).toString()}
                     size="xs"
+                    disabled={isReadOnly}
                     onChange={(val: string) => updateLinea(linea.id, 'valorConFactura', val)}
-                    className={`font-bold bg-[var(--color-primary)]/5 border-none focus:ring-2 focus:ring-[var(--color-primary)]/20 rounded-lg !px-2 ${errors.includes('valorConFactura') ? 'ring-1 ring-red-500' : ''}`}
+                    className={`font-bold bg-[var(--color-primary)]/5 border-none focus:ring-2 focus:ring-[var(--color-primary)]/20 rounded-lg !px-2 ${errors.includes('valorConFactura') ? 'ring-1 ring-red-500' : ''} disabled:opacity-50`}
                 />
             </td>
 
@@ -215,8 +243,9 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                 <CurrencyInput
                     value={(linea.valorSinFactura ?? 0).toString()}
                     size="xs"
+                    disabled={isReadOnly}
                     onChange={(val: string) => updateLinea(linea.id, 'valorSinFactura', val)}
-                    className={`font-bold bg-[var(--color-primary)]/5 border-none focus:ring-2 focus:ring-[var(--color-primary)]/20 rounded-lg !px-2 ${errors.includes('valorSinFactura') ? 'ring-1 ring-red-500' : ''}`}
+                    className={`font-bold bg-[var(--color-primary)]/5 border-none focus:ring-2 focus:ring-[var(--color-primary)]/20 rounded-lg !px-2 ${errors.includes('valorSinFactura') ? 'ring-1 ring-red-500' : ''} disabled:opacity-50`}
                 />
             </td>
 
@@ -227,15 +256,16 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                     placeholder="Motivo..."
                     value={linea.observaciones}
                     size="xs"
+                    disabled={isReadOnly}
                     onChange={(e) => updateLinea(linea.id, 'observaciones', e.target.value)}
-                    className="!border-none !bg-transparent !shadow-none !px-2 placeholder:opacity-30"
+                    className="!border-none !bg-transparent !shadow-none !px-2 placeholder:opacity-30 disabled:opacity-50"
                     fullWidth
                 />
             </td>
 
             {/* Adjunto */}
             <td className="px-2 py-2 border-b border-[var(--color-border)] text-center">
-                <Input
+                <input
                     type="file"
                     ref={fileInputRef}
                     className="hidden"
@@ -245,6 +275,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                 />
                 <Button
                     variant="ghost"
+                    disabled={isReadOnly}
                     onClick={() => fileInputRef.current?.click()}
                     className={`
                         !p-1.5 rounded-lg transition-all flex items-center justify-center mx-auto
@@ -252,6 +283,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                             ? 'bg-green-500/10 text-green-600 border border-green-500/20'
                             : 'text-[var(--color-text-secondary)] opacity-10 hover:opacity-100 hover:bg-[var(--color-surface-variant)]'
                         }
+                        disabled:opacity-20
                     `}
                     title={linea.adjuntos && linea.adjuntos.length > 0 ? `${linea.adjuntos.length} adjunto(s)` : 'Adjuntar factura'}
                     icon={linea.adjuntos && linea.adjuntos.length > 0 ? CheckCircle2 : Paperclip}
@@ -262,8 +294,9 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
             <td className="px-4 py-2 text-center border-b border-[var(--color-border)]">
                 <Button
                     variant="ghost"
+                    disabled={isReadOnly}
                     onClick={() => removeLinea(linea.id)}
-                    className="text-[var(--color-text-secondary)] opacity-10 hover:opacity-100 hover:text-red-500 transition-all rounded-lg !p-1.5 flex items-center justify-center mx-auto"
+                    className="text-[var(--color-text-secondary)] opacity-10 hover:opacity-100 hover:text-red-500 transition-all rounded-lg !p-1.5 flex items-center justify-center mx-auto disabled:opacity-0"
                     icon={Trash2}
                 />
             </td>

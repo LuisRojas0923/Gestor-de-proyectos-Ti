@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { Button, Text, Title } from '../../components/atoms';
 import ThemeToggle from '../../components/atoms/ThemeToggle';
@@ -13,6 +14,10 @@ interface PortalLayoutProps {
 }
 
 const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onLogout }) => {
+    const { pathname } = useLocation();
+    const isEstadoCuenta = pathname.includes('gastos/estado');
+    const footerFixed = !isEstadoCuenta;
+
     return (
         <div className="flex flex-col min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
             <header className="bg-transparent border-b border-white/20 sticky top-0 z-50 transition-all duration-300 h-24 shadow-lg">
@@ -42,7 +47,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                             onClick={onHome}
                         >
                             <Title variant="h2" weight="bold" color="white" className="tracking-tighter drop-shadow-2xl uppercase text-center font-black leading-tight italic whitespace-nowrap text-base sm:text-2xl md:text-3xl">
-                                <Text as="span" weight="bold" color="inherit" className="hidden sm:inline">Portal de Servicios SOLID</Text>
+                                <span className="hidden sm:inline">Portal de Servicios SOLID</span>
                                 <Text as="span" weight="bold" color="inherit" className="inline sm:hidden">Portal SOLID</Text>
                             </Title>
                         </div>
@@ -85,11 +90,11 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                     </div>
                 </div>
             </header>
-            <main className="flex-grow max-w-[1300px] w-full mx-auto p-4 sm:px-8 sm:py-2">
+            <main className="flex-grow max-w-[1300px] w-full mx-auto p-4 sm:px-8 sm:py-2 pb-24">
                 {children}
             </main>
 
-            <footer className="w-full py-4 mt-auto bg-[var(--color-surface)] border-t border-[var(--color-border)] sticky bottom-0 z-40 shadow-[0_-8px_15px_-3px_rgba(0,0,0,0.05)] opacity-95 hover:opacity-100 transition-all duration-500">
+            <footer className={`w-full h-[60px] py-2 z-40 bg-[var(--color-surface)] border-t border-[var(--color-border)] opacity-60 hover:opacity-100 transition-opacity duration-500 flex items-center ${footerFixed ? 'fixed bottom-0 left-0 right-0' : 'relative'}`}>
                 <div className="max-w-[1300px] mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex flex-col items-center mx-auto">
                         <Text variant="caption" weight="medium" className="uppercase tracking-[0.2em] text-[var(--color-text-secondary)] text-[10px]">
