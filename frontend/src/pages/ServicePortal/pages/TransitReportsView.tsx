@@ -35,6 +35,19 @@ interface TransitReportsViewProps {
     onSelectReport: (reporte: ReporteResumen) => void;
 }
 
+const getStatusBadgeClasses = (estado: string) => {
+    const est = estado?.toUpperCase().trim() || '';
+    if (est === 'BORRADOR') {
+        return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-400 dark:border-rose-800/50';
+    }
+    // Estados intermedios que requieren atención (Amarillo/Ámbar)
+    if (est === 'INICIAL' || est === 'PENDIENTE' || est === 'EN CANJE' || est === 'AMARILLO' || est === 'REVISIÓN') {
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50 shadow-sm';
+    }
+    // Procesados, Contabilizados o Completados (Verde/Esmeralda)
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:border-emerald-800/50';
+};
+
 const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, onNewReport, onSelectReport }) => {
     const [reportes, setReportes] = useState<ReporteResumen[]>([]);
     const [reportToDelete, setReportToDelete] = useState<ReporteResumen | null>(null);
@@ -154,10 +167,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                         <Text
                                             variant="caption"
                                             weight="bold"
-                                            className={`px-1.5 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${reporte.estado === 'BORRADOR'
-                                                ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700/50'
-                                                : 'bg-amber-50 text-amber-900 border-amber-200/50 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800/50'
-                                                }`}
+                                            className={`px-1.5 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${getStatusBadgeClasses(reporte.estado)}`}
                                         >
                                             {reporte.estado}
                                         </Text>
@@ -251,10 +261,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                             <Text
                                                 variant="caption"
                                                 weight="bold"
-                                                className={`px-2 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${reporte.estado === 'BORRADOR'
-                                                    ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700/50'
-                                                    : 'bg-amber-50 text-amber-900 border-amber-200/50 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800/50'
-                                                    }`}
+                                                className={`px-2 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${getStatusBadgeClasses(reporte.estado)}`}
                                             >
                                                 {reporte.estado}
                                             </Text>
