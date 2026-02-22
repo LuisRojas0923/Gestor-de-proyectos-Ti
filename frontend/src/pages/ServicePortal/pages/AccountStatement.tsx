@@ -33,8 +33,15 @@ interface Movimiento {
     observaciones: string;
 }
 
+interface UserProps {
+    id?: string;
+    cedula?: string;
+    name?: string;
+    [key: string]: any;
+}
+
 interface AccountStatementProps {
-    user: any;
+    user: UserProps;
     onBack: () => void;
 }
 
@@ -52,7 +59,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                 desde: fechaDesde,
                 hasta: fechaHasta
             };
-            const res = await axios.get(`${API_BASE_URL}/viaticos/estado-cuenta`, { params });
+            const res = await axios.get<Movimiento[]>(`${API_BASE_URL}/viaticos/estado-cuenta`, { params });
             setMovimientos(res.data);
         } catch (err) {
             console.error("Error fetching estado cuenta:", err);
@@ -66,19 +73,10 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
     }, []);
 
     return (
-        <>
-            <style>{`
-                .account-statement-table thead tr:nth-child(2) th {
-                    position: sticky !important;
-                    top: 30px !important;
-                    z-index: 30;
-                    background: #002060 !important;
-                }
-            `}</style>
-        <div className="flex flex-col min-h-[calc(100vh-100px)] space-y-3 pb-2">
-            {/* BLOQUE SUPERIOR: FIJO (Sticky al hacer scroll) */}
-            <div className="sticky top-0 z-20 flex-none space-y-3 px-1 bg-[var(--color-background)] pb-2">
-                <div className="sticky top-0 z-30 flex items-center justify-between py-1 relative h-[50px] bg-[var(--color-background)]">
+        <div className="flex flex-col h-[calc(100vh-70px)] overflow-hidden pb-2 bg-[var(--color-background)]">
+            {/* BLOQUE SUPERIOR: FIJO */}
+            <div className="flex-none space-y-3 px-1 pb-4">
+                <div className="flex items-center justify-between py-1 relative h-[50px] bg-[var(--color-background)]">
                     <Button
                         variant="ghost"
                         onClick={onBack}
@@ -119,7 +117,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                             <Input
                                 type="date"
                                 value={fechaDesde}
-                                onChange={(e) => setFechaDesde(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFechaDesde(e.target.value)}
                                 className="w-full h-8 text-[11px] px-2 shadow-sm border-neutral-200 focus:border-primary"
                             />
                         </div>
@@ -130,7 +128,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                             <Input
                                 type="date"
                                 value={fechaHasta}
-                                onChange={(e) => setFechaHasta(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFechaHasta(e.target.value)}
                                 className="w-full h-8 text-[11px] px-2 shadow-sm border-neutral-200 focus:border-primary"
                             />
                         </div>
@@ -158,40 +156,40 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
             </div>
 
             {/* BLOQUE DE TABLA: CON SCROLL INDEPENDIENTE */}
-            <MaterialCard className="flex-1 min-h-[50vh] bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden flex flex-col mx-1">
-                <div className="overflow-y-auto flex-1 min-h-0 scroll-smooth">
+            <MaterialCard className="flex-1 min-h-0 bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden flex flex-col mx-1 h-full">
+                <div className="overflow-y-auto flex-1 min-h-0 h-full scroll-smooth">
                     <table className="account-statement-table w-full text-left border-separate border-spacing-0 min-w-[1100px]">
-                        <thead className="z-[30]">
+                        <thead className="sticky top-0 z-[30] shadow-sm">
                             <tr className="bg-[#E8EFF5] h-[30px]">
-                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 h-[60px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                <th rowSpan={2} className="p-3 h-[60px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
                                     <Text variant="caption" weight="bold" className="text-white text-[11px]">FECHA</Text>
                                 </th>
-                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 h-[60px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                <th rowSpan={2} className="p-3 h-[60px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
                                     <Text variant="caption" weight="bold" className="text-white text-[11px]">RADICADO</Text>
                                 </th>
-                                <th colSpan={2} className="sticky top-0 z-[30] py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                <th colSpan={2} className="py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
                                     <Text variant="caption" weight="bold" className="text-white text-[11px] leading-none">CONTABILIZADO</Text>
                                 </th>
-                                <th colSpan={2} className="sticky top-0 z-[30] py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                <th colSpan={2} className="py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
                                     <Text variant="caption" weight="bold" className="text-white text-[11px] leading-none">EN CANJE</Text>
                                 </th>
-                                <th colSpan={2} className="sticky top-0 z-[30] py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                <th colSpan={2} className="py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
                                     <Text variant="caption" weight="bold" className="text-white text-[11px] leading-none">PENDIENTES</Text>
                                 </th>
-                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 h-[60px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                <th rowSpan={2} className="p-3 h-[60px] border-r border-b border-white/20 bg-[#002060] text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
                                     <Text variant="caption" weight="bold" className="text-white text-[11px]">SALDO</Text>
                                 </th>
-                                <th rowSpan={2} className="sticky top-0 z-[30] p-3 h-[60px] border-b border-white/20 bg-[#002060] text-left shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
+                                <th rowSpan={2} className="p-3 h-[60px] border-b border-white/20 bg-[#002060] text-left shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">
                                     <Text variant="caption" weight="bold" className="text-white text-[11px]">OBSERVACIONES</Text>
                                 </th>
                             </tr>
                             <tr className="bg-[#002060] h-[30px]">
-                                <th style={{ position: 'sticky', top: '30px' }} className="sticky top-[30px] z-[30] py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Consignación</th>
-                                <th style={{ position: 'sticky', top: '30px' }} className="sticky top-[30px] z-[30] py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Legalización</th>
-                                <th style={{ position: 'sticky', top: '30px' }} className="sticky top-[30px] z-[30] py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Consignación</th>
-                                <th style={{ position: 'sticky', top: '30px' }} className="sticky top-[30px] z-[30] py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Legalización</th>
-                                <th style={{ position: 'sticky', top: '30px' }} className="sticky top-[30px] z-[30] py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Consignación</th>
-                                <th style={{ position: 'sticky', top: '30px' }} className="sticky top-[30px] z-[30] py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Legalización</th>
+                                <th className="py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Consignación</th>
+                                <th className="py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Legalización</th>
+                                <th className="py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Consignación</th>
+                                <th className="py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Legalización</th>
+                                <th className="py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Consignación</th>
+                                <th className="py-1 px-2 h-[30px] min-h-[30px] max-h-[30px] border-r border-b border-white/20 bg-[#002060] text-[10px] text-white/90 text-center font-bold uppercase leading-none align-middle shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]">Legalización</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-300">
@@ -210,7 +208,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                                         <Text color="text-secondary" weight="medium">No se encontraron movimientos registrados.</Text>
                                     </td>
                                 </tr>
-                            ) : movimientos.map((mov, i) => (
+                            ) : movimientos.map((mov: Movimiento, i: number) => (
                                 <tr key={i} className="hover:bg-blue-100 transition-colors group border-b border-neutral-300">
                                     <td className="p-3 border-r border-b border-neutral-300 whitespace-nowrap text-center bg-white group-hover:bg-transparent transition-colors">
                                         <Text variant="caption" weight="medium" color="inherit" className="text-[#374151]">{new Date(mov.fechaaplicacion).toLocaleDateString('es-CO')}</Text>
@@ -251,7 +249,6 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                 </div>
             </MaterialCard>
         </div>
-        </>
     );
 };
 

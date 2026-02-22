@@ -118,7 +118,7 @@ const ExecutiveReport: React.FC<{ darkMode?: boolean }> = ({ darkMode }) => {
             <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
               <thead className={darkMode ? 'bg-neutral-700' : 'bg-neutral-50'}>
                 <tr>
-                  {['Responsable', 'Total', 'Completados', 'En Progreso', 'Retrasos', 'SLA Cumplido'].map(header => (
+                  {['Responsable', 'Total', 'Completados', 'En Progreso', 'Retrasos', 'SLA Cumplido'].map((header: string) => (
                     <th key={header} scope="col" className="px-4 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">
                       {header}
                     </th>
