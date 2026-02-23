@@ -1,6 +1,31 @@
 # Guía de Mantenimiento y Despliegue - Gestor de Proyectos TI
 
-Esta guía contiene los comandos esenciales para administrar el servidor de producción (IP: 192.168.0.21) utilizando Docker y Git.
+Esta guía contiene los comandos esenciales para administrar el servidor de producción (IP: `192.168.0.21` - Interno servidor: `192.168.40.126`) utilizando Docker y Git.
+
+---
+
+## 0. Topología de Red y Accesos
+
+| Recurso | URL Interna DENTRO DE RED |
+|---------|-----|
+| **Aplicación (Gestor)** | http://192.168.40.126 |
+| **API / Documentación Swagger** | http://192.168.40.126:8000/docs |
+| **Adminer (Gestión DB)** | http://192.168.40.126:8085 |
+
+| Puerto | Servicio Interno en Docker |
+|--------|----------|
+| 80 | Nginx (Reverse Proxy & Frontend Web) |
+| 5433 | PostgreSQL Db (Expuesto externamente) |
+| 8000 | Backend FastAPI |
+| 8085 | Adminer GUI |
+
+**Apertura General de Firewall en Windows Admin:**
+```powershell
+netsh advfirewall firewall add rule name="Gestor TI - HTTP" dir=in action=allow protocol=TCP localport=80
+netsh advfirewall firewall add rule name="Gestor TI - Frontend" dir=in action=allow protocol=TCP localport=5173
+netsh advfirewall firewall add rule name="Gestor TI - API" dir=in action=allow protocol=TCP localport=8000
+netsh advfirewall firewall add rule name="Gestor TI - Adminer" dir=in action=allow protocol=TCP localport=8085
+```
 
 ## 1. Actualizar el Código (Git Pull)
 
@@ -29,6 +54,21 @@ git pull origin main
 ## 2. Administración de Docker (Ubuntu WSL2)
 
 Todos estos comandos se ejecutan dentro del terminal de **Ubuntu**.
+
+### 2.1 Auto-arranque de Docker y Persistencia (Windows Task Scheduler)
+Para que el sistema arranque solo cada vez que el servidor se encienda y **los contenedores de Docker no se apaguen al cerrar la terminal**, hemos implementado un script VBS silencioso (`mantener_docker_vivo.vbs`).
+
+Esta configuración ya está aplicada en el servidor, pero si necesitas recrearla, se hace ejecutando esto una sola vez:
+```powershell
+# Ejecutar en PowerShell como Administrador
+$action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "C:\GestorTI\mantener_docker_vivo.vbs"
+$trigger = New-ScheduledTaskTrigger -AtStartup
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+Register-ScheduledTask -TaskName "DockerGestorTI" -Action $action -Trigger $trigger -Principal $principal -Description "Mantiene vivo a Ubuntu y levanta los dockers silenciosamente"
+```
+*(Para comprobar el estado de la tarea instalada: `Get-ScheduledTask -TaskName "DockerGestorTI"`)*
+
+---
 
 ### Reiniciar el Sistema (Sin reconstruir)
 Si solo quieres reiniciar los servicios (por ejemplo, después de un cambio en el `.env` o un error temporal):

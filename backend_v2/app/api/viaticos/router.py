@@ -47,6 +47,15 @@ class ReporteViaticos(BaseModel):
 
 # --- Endpoints ---
 
+@router.get("/categorias", response_model=List[dict])
+def obtener_categorias_legalizacion(db_erp: Session = Depends(obtener_erp_db)):
+    """Obtiene las categorías de legalización disponibles en el ERP"""
+    try:
+        return ViaticosService.obtener_categorias_legalizacion(db_erp)
+    except Exception as e:
+        print(f"ERROR ERP categorias: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al consultar categorías: {str(e)}")
+
 @router.get("/ots", response_model=List[OTResponse])
 def buscar_ots(query: Optional[str] = None, db_erp: Session = Depends(obtener_erp_db)):
     """Busca OTs en la tabla otviaticos del ERP"""

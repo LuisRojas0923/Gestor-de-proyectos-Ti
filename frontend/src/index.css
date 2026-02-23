@@ -29,6 +29,12 @@
   --toast-border: var(--color-border);
 }
 
+.bg-main-wallpaper {
+  background-image: url('./assets/images/fondo - copia.png');
+  background-size: cover;
+  background-position: center 30%;
+}
+
 .dark {
   /* Mapeo de Aplicación - Modo Dark */
   --color-primary: var(--powder-blue);

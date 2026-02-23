@@ -89,21 +89,48 @@ export const useExpenseForm = () => {
 
     const [ots, setOts] = useState<OTData[]>([]);
     const [isSearchingOT, setIsSearchingOT] = useState<string | null>(null);
+    const [activeReporteId, setActiveReporteId] = useState<string | undefined>(() => {
+        const saved = localStorage.getItem(CACHE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return parsed.activeReporteId;
+            } catch (e) {
+                return undefined;
+            }
+        }
+        return undefined;
+    });
+
+    const [currentEstado, setCurrentEstado] = useState<string | undefined>(() => {
+        const saved = localStorage.getItem(CACHE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return parsed.currentEstado;
+            } catch (e) {
+                return undefined;
+            }
+        }
+        return undefined;
+    });
+
     const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
     const { addNotification } = useNotifications();
 
     // Auto-save cada vez que cambian los datos
     useEffect(() => {
         const saveTimeout = setTimeout(() => {
-            const dataToSave = { lineas, observacionesGral };
+            const dataToSave = { lineas, observacionesGral, activeReporteId, currentEstado };
             localStorage.setItem(CACHE_KEY, JSON.stringify(dataToSave));
             logMarina("💾 [DRAFT] Borrador actualizado en el almacenamiento local", {
                 items: lineas.length,
-                total: lineas.reduce((acc, l) => acc + Number(l.valorConFactura) + Number(l.valorSinFactura), 0)
+                reporteId: activeReporteId,
+                estado: currentEstado
             });
         }, 500); // Debounce de 500ms
         return () => clearTimeout(saveTimeout);
-    }, [lineas, observacionesGral]);
+    }, [lineas, observacionesGral, activeReporteId, currentEstado]);
 
     const addLinea = useCallback(() => {
         logMarina("➕ [UI] Agregando nueva línea de gasto");
@@ -158,7 +185,7 @@ export const useExpenseForm = () => {
         try {
             logMarina("🔎 [API] Buscando OTs", query);
             const res = await axios.get(`${API_BASE_URL}/viaticos/ots?query=${query}`);
-            const data = res.data;
+            const data = res.data as any[];
             setOts(data);
             if (data.length === 0) {
                 addNotification('info', `No se encontró la OT "${query}" o el cliente similar.`);
@@ -176,7 +203,7 @@ export const useExpenseForm = () => {
         try {
             logMarina("✅ [UI] OT Seleccionada", ot.numero);
             const res = await axios.get(`${API_BASE_URL}/viaticos/ot/${ot.numero}/combinaciones`);
-            const combinaciones: OTData[] = res.data;
+            const combinaciones = res.data as OTData[];
 
             const ccsUnicos = Array.from(new Set(combinaciones.map(c => c.centrocosto?.trim()).filter(Boolean)));
             const autoCC = ccsUnicos.length === 1 ? (ccsUnicos[0] || '') : '';
@@ -231,6 +258,8 @@ export const useExpenseForm = () => {
 
         setLineas(defaultLineas);
         setObservacionesGral('');
+        setActiveReporteId(undefined);
+        setCurrentEstado(undefined);
         setValidationErrors({}); // Limpiar errores visuales
 
         // Limpiar localStorage de raíz (solo caché actual, mantenemos backup para emergencias)
@@ -299,6 +328,10 @@ export const useExpenseForm = () => {
         setLineas,
         observacionesGral,
         setObservacionesGral,
+        activeReporteId,
+        setActiveReporteId,
+        currentEstado,
+        setCurrentEstado,
         ots,
         setOts,
         isSearchingOT,

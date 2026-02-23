@@ -1,5 +1,10 @@
--- Script de Inicialización de Base de Datos - Gestor de Proyectos TI v2
--- Generado automáticamente basado en los modelos de SQLAlchemy
+-- Script de Inicialización de Base de Datos Maestro - Gestor de Proyectos TI v2
+-- Contiene: Core, Tickets, Reservas de Salas y Datos Iniciales
+
+-- ==========================================
+-- Extensiones
+-- ==========================================
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ==========================================
 -- 1. Módulo de Autenticación
@@ -95,7 +100,7 @@ CREATE TABLE IF NOT EXISTS desarrollos (
 -- 3. Módulo de Soporte y Tickets
 -- ==========================================
 
--- Secuencia para IDs de tickets (TKT-0001, TKT-0002, ...). Requerida por backend_v2/app/services/ticket/servicio.py
+-- Secuencia para IDs de tickets (TKT-0001, TKT-0002, ...)
 CREATE SEQUENCE IF NOT EXISTS ticket_id_seq START WITH 1;
 
 CREATE TABLE IF NOT EXISTS categorias_ticket (
@@ -111,7 +116,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     id VARCHAR(50) PRIMARY KEY,
     categoria_id VARCHAR(50) NOT NULL REFERENCES categorias_ticket(id),
     
-    -- Datos del Solicitante (Snapshot al crear)
+    -- Datos del Solicitante
     creador_id VARCHAR(50) NOT NULL,
     nombre_creador VARCHAR(255),
     correo_creador VARCHAR(255),
@@ -124,6 +129,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     descripcion TEXT NOT NULL,
     prioridad VARCHAR(20) DEFAULT 'Media',
     estado VARCHAR(50) DEFAULT 'Nuevo',
+    sub_estado VARCHAR(50) DEFAULT 'Asignado', -- Agregado de add_sub_estado.sql
     
     -- Gestión
     asignado_a VARCHAR(255),
@@ -167,7 +173,104 @@ CREATE TABLE IF NOT EXISTS comentarios_ticket (
 );
 
 -- ==========================================
--- 4. Datos Semilla (Opcional - Básicos)
+-- 4. Módulo Reserva de Salas (Integrado)
+-- ==========================================
+
+-- Salas
+CREATE TABLE IF NOT EXISTS rooms (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    capacity INTEGER NOT NULL DEFAULT 1,
+    resources TEXT[] DEFAULT '{}',
+    is_active BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Series de reservas repetitivas (opcional, para uso futuro)
+CREATE TABLE IF NOT EXISTS reservation_series (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    pattern_type VARCHAR(20) NOT NULL,
+    pattern_interval INTEGER NOT NULL DEFAULT 1,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    created_by_name VARCHAR(255) NOT NULL,
+    created_by_document VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Reservas
+CREATE TABLE IF NOT EXISTS reservations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+    series_id UUID REFERENCES reservation_series(id) ON DELETE SET NULL,
+    start_datetime TIMESTAMPTZ NOT NULL,
+    end_datetime TIMESTAMPTZ NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'CANCELLED')),
+    created_by_name VARCHAR(255) NOT NULL,
+    created_by_document VARCHAR(100) NOT NULL,
+    updated_by_name VARCHAR(255),
+    updated_by_document VARCHAR(100),
+    cancelled_by_name VARCHAR(255),
+    cancelled_by_document VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT valid_range CHECK (end_datetime > start_datetime)
+);
+
+CREATE INDEX IF NOT EXISTS idx_reservations_room_id ON reservations(room_id);
+CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);
+CREATE INDEX IF NOT EXISTS idx_reservations_dates ON reservations(start_datetime, end_datetime);
+
+-- Tabla de auditoría (opcional)
+CREATE TABLE IF NOT EXISTS reservation_audit (
+    id SERIAL PRIMARY KEY,
+    reservation_id UUID NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+    action VARCHAR(50) NOT NULL,
+    changed_by_name VARCHAR(255),
+    changed_by_document VARCHAR(100),
+    old_data JSONB,
+    new_data JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Trigger para actualizar updated_at en rooms
+CREATE OR REPLACE FUNCTION update_rooms_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_rooms_updated_at ON rooms;
+CREATE TRIGGER trigger_rooms_updated_at
+    BEFORE UPDATE ON rooms
+    FOR EACH ROW EXECUTE PROCEDURE update_rooms_updated_at();
+
+-- Trigger para actualizar updated_at en reservations
+CREATE OR REPLACE FUNCTION update_reservations_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_reservations_updated_at ON reservations;
+CREATE TRIGGER trigger_reservations_updated_at
+    BEFORE UPDATE ON reservations
+    FOR EACH ROW EXECUTE PROCEDURE update_reservations_updated_at();
+
+
+-- ==========================================
+-- 5. Datos Semilla / Inserts Iniciales
 -- ==========================================
 
 -- Categorías por defecto
@@ -181,11 +284,22 @@ INSERT INTO categorias_ticket (id, nombre, tipo_formulario, descripcion) VALUES
 ('compra_licencias', 'Compra de Licencias', 'asset', 'Software licenciado')
 ON CONFLICT (id) DO NOTHING;
 
+-- Sala de Ejemplo
+INSERT INTO rooms (id, name, capacity, resources, is_active, notes)
+VALUES (
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,
+    'Sala de reuniones 1',
+    10,
+    ARRAY['Proyector', 'Pizarra'],
+    TRUE,
+    'Sala principal'
+) ON CONFLICT (id) DO NOTHING;
+
 
 -- ==========================================
--- 5. Permisos por Rol
+-- 6. Permisos por Rol Integrados
 -- ==========================================
--- 1. Forzar recreación de la tabla para asegurar estructura correcta
+-- Forzar recreación de la tabla para asegurar estructura correcta
 DROP TABLE IF EXISTS permisos_rol CASCADE;
 
 CREATE TABLE permisos_rol (
@@ -196,34 +310,81 @@ CREATE TABLE permisos_rol (
     UNIQUE(rol, modulo)
 );
 
--- 2. Insertar permisos iniciales
+-- Insertar permisos iniciales y consolidados
 INSERT INTO permisos_rol (rol, modulo, permitido) VALUES
+-- Core Dashboards y Ajustes
 ('admin', 'dashboard', true),
 ('analyst', 'dashboard', true),
 ('director', 'dashboard', true),
+('viaticante', 'dashboard', true),
+('admin', 'settings', true),
+('analyst', 'settings', true),
+('director', 'settings', true),
+
+-- Desarrollos e Indicadores
 ('admin', 'developments', true),
 ('analyst', 'developments', true),
 ('director', 'developments', true),
 ('admin', 'indicators', true),
 ('analyst', 'indicators', true),
 ('director', 'indicators', true),
+
+-- Gestión de Tickets y Reportes
 ('admin', 'ticket-management', true),
 ('analyst', 'ticket-management', true),
 ('director', 'ticket-management', true),
 ('admin', 'reports', true),
 ('analyst', 'reports', true),
 ('director', 'reports', true),
-('admin', 'chat', true),
-('analyst', 'chat', true),
-('director', 'chat', true),
+
+-- Service Portal (Público general)
 ('admin', 'service-portal', true),
 ('analyst', 'service-portal', true),
 ('director', 'service-portal', true),
 ('usuario', 'service-portal', true),
 ('user', 'service-portal', true),
+('viaticante', 'service-portal', true),
+
+-- Otros (Chat, Users, Catalog)
+('admin', 'chat', true),
+('analyst', 'chat', true),
+('director', 'chat', true),
 ('admin', 'user-admin', true),
-('admin', 'settings', true),
-('analyst', 'settings', true),
-('director', 'settings', true),
-('admin', 'design-catalog', true)
+('admin', 'design-catalog', true),
+
+-- Módulo: Gestión de Viáticos
+('viaticante', 'viaticos_gestion', true),
+('admin', 'viaticos_gestion', true),
+('director', 'viaticos_gestion', true),
+('analyst', 'viaticos_gestion', true),
+('user', 'viaticos_gestion', false),
+
+-- Módulo: Mis Solicitudes
+('viaticante', 'mis_solicitudes', true),
+('admin', 'mis_solicitudes', true),
+('director', 'mis_solicitudes', true),
+('analyst', 'mis_solicitudes', true),
+('user', 'mis_solicitudes', true),
+
+-- Módulo: Soporte Sistemas
+('viaticante', 'sistemas', true),
+('admin', 'sistemas', true),
+('director', 'sistemas', true),
+('analyst', 'sistemas', true),
+('user', 'sistemas', true),
+
+-- Módulo: Desarrollo Software
+('viaticante', 'desarrollo', false),
+('admin', 'desarrollo', true),
+('director', 'desarrollo', true),
+('analyst', 'desarrollo', true),
+('user', 'desarrollo', true),
+
+-- Módulo: Mejoramiento
+('viaticante', 'mejoramiento', false),
+('admin', 'mejoramiento', true),
+('director', 'mejoramiento', true),
+('analyst', 'mejoramiento', true),
+('user', 'mejoramiento', true)
+
 ON CONFLICT (rol, modulo) DO NOTHING;

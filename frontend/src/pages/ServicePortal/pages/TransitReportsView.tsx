@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, FileText, Trash2, Plus } from 'lucide-react';
-import { Button, Text, Title, MaterialCard, Spinner } from '../../../components/atoms';
+import { Button, Text, Title, MaterialCard, Spinner, Switch } from '../../../components/atoms';
 import { DeleteReportConfirmModal } from '../../../components/molecules';
 import axios from 'axios';
 import { API_CONFIG } from '../../../config/api';
@@ -32,21 +32,35 @@ interface TransitReportsViewProps {
     user: any;
     onBack: () => void;
     onNewReport: () => void;
-    onSelectReport: (reporteId: string) => void;
+    onSelectReport: (reporte: ReporteResumen) => void;
 }
+
+const getStatusBadgeClasses = (estado: string) => {
+    const est = estado?.toUpperCase().trim() || '';
+    if (est === 'BORRADOR') {
+        return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-400 dark:border-rose-800/50';
+    }
+    // Estados intermedios que requieren atención (Amarillo/Ámbar)
+    if (est === 'INICIAL' || est === 'PENDIENTE' || est === 'EN CANJE' || est === 'AMARILLO' || est === 'REVISIÓN') {
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50 shadow-sm';
+    }
+    // Procesados, Contabilizados o Completados (Verde/Esmeralda)
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:border-emerald-800/50';
+};
 
 const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, onNewReport, onSelectReport }) => {
     const [reportes, setReportes] = useState<ReporteResumen[]>([]);
     const [reportToDelete, setReportToDelete] = useState<ReporteResumen | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
     const { addNotification } = useNotifications();
 
     const fetchReportes = async () => {
         setIsLoading(true);
         try {
             const res = await axios.get(`${API_BASE_URL}/viaticos/reportes/${user.cedula || user.id}`);
-            setReportes(res.data);
+            setReportes(res.data as ReporteResumen[]);
         } catch (err) {
             console.error("Error fetching transit reports:", err);
         } finally {
@@ -77,6 +91,10 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
         }
     }, [user?.cedula, user?.id]);
 
+    const filteredReportes = showHistory
+        ? reportes
+        : reportes.filter(r => r.estado?.toUpperCase().trim() !== 'PROCESADO');
+
     return (
         <div className="space-y-6 pb-20">
             <div className="space-y-2 -mb-4">
@@ -99,7 +117,16 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                 </div>
 
                 {/* Botón NUEVO (0.5rem debajo del título) */}
-                <div className="flex items-center justify-end px-1">
+                <div className="flex items-center justify-between px-1">
+                    <div className="bg-white dark:bg-black/20 px-3 h-9 rounded-lg border border-slate-200 shadow-sm transition-all hover:border-slate-300 flex items-center justify-center">
+                        <Switch
+                            checked={showHistory}
+                            onChange={setShowHistory}
+                            label={showHistory ? 'HISTORIAL COMPLETO' : 'SOLO PENDIENTES'}
+                            className="font-bold uppercase tracking-wider text-slate-500 !text-[9px]"
+                        />
+                    </div>
+
                     <Button
                         variant="erp"
                         size="xs"
@@ -107,7 +134,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                         className="font-bold rounded-lg px-4 sm:px-5 py-1.5 text-[var(--color-primary)] text-[10px] sm:text-xs w-[132px] shadow-sm bg-white dark:bg-black/20 z-10 border border-slate-200 justify-center"
                     >
                         <Plus size={14} className="mr-1.5" />
-                        <span className="uppercase">NUEVO</span>
+                        <Text as="span" weight="bold" color="inherit" className="uppercase">NUEVO</Text>
                     </Button>
                 </div>
             </div>
@@ -126,7 +153,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                 <div className="space-y-4">
                     {/* Tarjetas Móviles */}
                     <div className="grid grid-cols-1 gap-4 lg:hidden">
-                        {reportes.map((reporte) => (
+                        {filteredReportes.map((reporte) => (
                             <MaterialCard key={reporte.reporte_id} className="p-3 border-[var(--color-border)] hover:border-blue-500/50 transition-all">
                                 <div className="flex justify-between items-center mb-2">
                                     <div className="flex items-center gap-2">
@@ -140,10 +167,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                         <Text
                                             variant="caption"
                                             weight="bold"
-                                            className={`px-1.5 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${reporte.estado === 'BORRADOR'
-                                                ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700/50'
-                                                : 'bg-amber-50 text-amber-900 border-amber-200/50 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800/50'
-                                                }`}
+                                            className={`px-1.5 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${getStatusBadgeClasses(reporte.estado)}`}
                                         >
                                             {reporte.estado}
                                         </Text>
@@ -154,20 +178,20 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                 <div className="flex flex-col gap-1 text-[11px] text-gray-600 dark:text-gray-400 mb-2">
                                     <div className="flex justify-between items-center w-full">
                                         <div className="flex flex-wrap gap-x-4">
-                                            <span>{reporte.fechaaplicacion}</span>
-                                            <span>{reporte.area} - {reporte.centrocosto}</span>
+                                            <Text as="span">{reporte.fechaaplicacion}</Text>
+                                            <Text as="span">{reporte.area} - {reporte.centrocosto}</Text>
                                         </div>
                                     </div>
                                     <div className="flex justify-between items-center w-full">
-                                        <span>{reporte.ciudad}</span>
-                                        <button
-                                            type="button"
+                                        <Text as="span">{reporte.ciudad}</Text>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() => setReportToDelete(reporte)}
-                                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border-none shadow-none"
                                             title="Eliminar Reporte"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                            icon={Trash2}
+                                        />
                                     </div>
                                 </div>
 
@@ -175,7 +199,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                     <Button
                                         variant="erp"
                                         size="sm"
-                                        onClick={() => onSelectReport(reporte.reporte_id)}
+                                        onClick={() => onSelectReport(reporte)}
                                         className="w-full font-bold"
                                     >
                                         Modificar
@@ -206,14 +230,14 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--color-border)]">
-                                {reportes.map((reporte) => (
+                                {filteredReportes.map((reporte) => (
                                     <tr key={reporte.reporte_id} className="hover:bg-[var(--color-primary)]/5 transition-colors text-[11px]">
                                         <td className="px-3 py-2 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
                                                 <Button
                                                     variant="erp"
                                                     size="xs"
-                                                    onClick={() => onSelectReport(reporte.reporte_id)}
+                                                    onClick={() => onSelectReport(reporte)}
                                                     className="font-bold px-4 py-1 text-[9px] uppercase tracking-tighter shadow-none border-slate-200"
                                                 >
                                                     modificar
@@ -237,10 +261,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                             <Text
                                                 variant="caption"
                                                 weight="bold"
-                                                className={`px-2 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${reporte.estado === 'BORRADOR'
-                                                    ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700/50'
-                                                    : 'bg-amber-50 text-amber-900 border-amber-200/50 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800/50'
-                                                    }`}
+                                                className={`px-2 py-0.5 rounded-full text-[8px] border uppercase tracking-tighter ${getStatusBadgeClasses(reporte.estado)}`}
                                             >
                                                 {reporte.estado}
                                             </Text>
@@ -252,7 +273,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                         <td className="px-2 py-2 italic opacity-50 text-[10px] truncate max-w-[120px]" title={reporte.cargo}>{reporte.cargo}</td>
                                         <td className="px-2 py-2 whitespace-nowrap opacity-70">
                                             <div className="flex items-center gap-2">
-                                                <span>{reporte.ciudad}</span>
+                                                <Text as="span">{reporte.ciudad}</Text>
                                                 <Button
                                                     variant="erp"
                                                     size="xs"

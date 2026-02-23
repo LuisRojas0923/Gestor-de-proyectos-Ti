@@ -16,6 +16,8 @@ interface ExpenseMobileCardProps {
     selectOT: (ot: any, id: string) => void;
     setLineas: React.Dispatch<React.SetStateAction<any[]>>;
     errors?: string[];
+    isReadOnly?: boolean;
+    categorias?: { label: string, value: string }[];
 }
 
 const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
@@ -28,7 +30,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
     handleOTSearch,
     selectOT,
     setLineas,
-    errors = []
+    errors = [],
+    isReadOnly = false,
+    categorias = []
 }) => {
     const { addNotification } = useNotifications();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -84,16 +88,18 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                     />
                     <Button
                         variant="ghost"
+                        disabled={isReadOnly}
                         onClick={() => fileInputRef.current?.click()}
                         className={`p-2 rounded-full transition-colors flex items-center justify-center !w-9 !h-9 ${linea.adjuntos && linea.adjuntos.length > 0 ? 'text-green-600 bg-green-50' : 'text-slate-400'
-                            }`}
+                            } disabled:opacity-20`}
                         icon={linea.adjuntos && linea.adjuntos.length > 0 ? CheckCircle2 : Paperclip}
                         title="Adjuntar factura"
                     />
                     <Button
                         variant="ghost"
+                        disabled={isReadOnly}
                         onClick={() => removeLinea(linea.id)}
-                        className="text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors flex items-center justify-center !w-9 !h-9"
+                        className="text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors flex items-center justify-center !w-9 !h-9 disabled:opacity-0"
                         icon={Trash2}
                     />
                 </div>
@@ -111,18 +117,12 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         <Select
                             value={linea.categoria}
                             size="xs"
+                            disabled={isReadOnly}
                             onChange={(e) => updateLinea(linea.id, 'categoria', e.target.value)}
-                            className={`bg-[var(--color-surface-variant)]/30 border-none rounded-xl ${errors.includes('categoria') ? 'ring-1 ring-red-500' : ''}`}
+                            className={`bg-[var(--color-surface-variant)]/30 border-none rounded-xl ${errors.includes('categoria') ? 'ring-1 ring-red-500' : ''} disabled:opacity-50`}
                             options={[
                                 { value: '', label: 'Seleccione...' },
-                                { value: 'Alimentación', label: 'Alimentación' },
-                                { value: 'Hospedaje', label: 'Hospedaje' },
-                                { value: 'Transporte Municipal', label: 'Transporte Mun.' },
-                                { value: 'Transporte Intermunicipal', label: 'Transporte Inter.' },
-                                { value: 'Peajes', label: 'Peajes' },
-                                { value: 'Combustible', label: 'Combustible' },
-                                { value: 'Papeleria', label: 'Papelería' },
-                                { value: 'Imprevistos', label: 'Imprevistos' },
+                                ...categorias
                             ]}
                         />
                     </div>
@@ -135,8 +135,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                             type="date"
                             value={linea.fecha}
                             size="xs"
+                            disabled={isReadOnly}
                             onChange={(e) => updateLinea(linea.id, 'fecha', e.target.value)}
-                            className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl"
+                            className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl disabled:opacity-50"
                             fullWidth
                         />
                     </div>
@@ -153,8 +154,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         placeholder="Buscar OT..."
                         value={linea.ot}
                         size="xs"
+                        disabled={isReadOnly}
                         onChange={(e) => handleOTSearch(e.target.value, linea.id)}
-                        className={`font-bold bg-[var(--color-surface-variant)]/30 border-none rounded-xl placeholder:font-normal placeholder:opacity-40 ${errors.includes('ot') ? 'ring-1 ring-red-500' : ''}`}
+                        className={`font-bold bg-[var(--color-surface-variant)]/30 border-none rounded-xl placeholder:font-normal placeholder:opacity-40 ${errors.includes('ot') ? 'ring-1 ring-red-500' : ''} disabled:opacity-50`}
                     />
                     {isSearchingOT === linea.id && ots.length > 0 && (
                         <div className="absolute top-full left-0 w-full z-[100] mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -189,53 +191,79 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                         <Text variant="caption" weight="bold" className="text-[9px] uppercase tracking-wider opacity-50 mb-1">C. Costo</Text>
-                        <Select
-                            value={linea.cc}
-                            size="xs"
-                            disabled={!linea.ot || linea.combinacionesCC.length === 0}
-                            onChange={(e) => {
-                                const newCC = e.target.value;
-                                const sccsDisp = linea.combinacionesCC
-                                    .filter((c: any) => c.centrocosto?.trim() === newCC)
-                                    .map((c: any) => c.subcentrocosto?.trim())
-                                    .filter(Boolean);
-                                const newSCC = sccsDisp.length === 1 ? (sccsDisp[0] || '') : '';
-                                setLineas(prevLineas => prevLineas.map((l: any) =>
-                                    l.id === linea.id
-                                        ? { ...l, cc: newCC, scc: newSCC }
-                                        : l
-                                ));
-                            }}
-                            className={`bg-[var(--color-surface-variant)]/30 border-none rounded-xl ${errors.includes('cc') ? 'ring-1 ring-red-500' : ''}`}
-                            options={[
-                                { value: '', label: '...' },
-                                ...Array.from(new Set(linea.combinacionesCC.map((c: any) => c.centrocosto?.trim()).filter(Boolean))).map((cc: any) => ({
-                                    value: cc || '',
-                                    label: cc || ''
-                                }))
-                            ]}
-                        />
+                        {linea.ot ? (
+                            <Select
+                                value={linea.cc}
+                                size="xs"
+                                disabled={isReadOnly || !linea.ot || linea.combinacionesCC.length === 0}
+                                onChange={(e) => {
+                                    const newCC = e.target.value;
+                                    const sccsDisp = linea.combinacionesCC
+                                        .filter((c: any) => c.centrocosto?.trim() === newCC)
+                                        .map((c: any) => c.subcentrocosto?.trim())
+                                        .filter(Boolean);
+                                    const newSCC = sccsDisp.length === 1 ? (sccsDisp[0] || '') : '';
+                                    setLineas(prevLineas => prevLineas.map((l: any) =>
+                                        l.id === linea.id
+                                            ? { ...l, cc: newCC, scc: newSCC }
+                                            : l
+                                    ));
+                                }}
+                                className={`bg-[var(--color-surface-variant)]/30 border-none rounded-xl ${errors.includes('cc') ? 'ring-1 ring-red-500' : ''} disabled:opacity-50`}
+                                options={[
+                                    { value: '', label: '...' },
+                                    ...Array.from(new Set(linea.combinacionesCC.map((c: any) => c.centrocosto?.trim()).filter(Boolean))).map((cc: any) => ({
+                                        value: cc || '',
+                                        label: cc || ''
+                                    }))
+                                ]}
+                            />
+                        ) : (
+                            <Input
+                                type="text"
+                                maxLength={4}
+                                placeholder="0000"
+                                value={linea.cc}
+                                size="xs"
+                                disabled={isReadOnly}
+                                onChange={(e) => updateLinea(linea.id, 'cc', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                className={`bg-[var(--color-surface-variant)]/30 border-none rounded-xl text-center font-mono ${errors.includes('cc') ? 'ring-1 ring-red-500' : ''} disabled:opacity-50`}
+                            />
+                        )}
                     </div>
                     <div className="space-y-1">
                         <Text variant="caption" weight="bold" className="text-[9px] uppercase tracking-wider opacity-50 mb-1">Subcentro</Text>
-                        <Select
-                            value={linea.scc}
-                            size="xs"
-                            disabled={!linea.cc}
-                            onChange={(e) => updateLinea(linea.id, 'scc', e.target.value)}
-                            className={`bg-[var(--color-surface-variant)]/30 border-none rounded-xl ${errors.includes('scc') ? 'ring-1 ring-red-500' : ''}`}
-                            options={[
-                                { value: '', label: '...' },
-                                ...linea.combinacionesCC
-                                    .filter((c: any) => c.centrocosto?.trim() === linea.cc)
-                                    .map((c: any) => c.subcentrocosto?.trim())
-                                    .filter(Boolean)
-                                    .map((scc: any) => ({
-                                        value: scc || '',
-                                        label: scc || ''
-                                    }))
-                            ]}
-                        />
+                        {linea.ot ? (
+                            <Select
+                                value={linea.scc}
+                                size="xs"
+                                disabled={isReadOnly || !linea.cc}
+                                onChange={(e) => updateLinea(linea.id, 'scc', e.target.value)}
+                                className={`bg-[var(--color-surface-variant)]/30 border-none rounded-xl ${errors.includes('scc') ? 'ring-1 ring-red-500' : ''} disabled:opacity-50`}
+                                options={[
+                                    { value: '', label: '...' },
+                                    ...linea.combinacionesCC
+                                        .filter((c: any) => c.centrocosto?.trim() === linea.cc)
+                                        .map((c: any) => c.subcentrocosto?.trim())
+                                        .filter(Boolean)
+                                        .map((scc: any) => ({
+                                            value: scc || '',
+                                            label: scc || ''
+                                        }))
+                                ]}
+                            />
+                        ) : (
+                            <Input
+                                type="text"
+                                maxLength={2}
+                                placeholder="00"
+                                value={linea.scc}
+                                size="xs"
+                                disabled={isReadOnly}
+                                onChange={(e) => updateLinea(linea.id, 'scc', e.target.value.replace(/\D/g, '').slice(0, 2))}
+                                className={`bg-[var(--color-surface-variant)]/30 border-none rounded-xl text-center font-mono ${errors.includes('scc') ? 'ring-1 ring-red-500' : ''} disabled:opacity-50`}
+                            />
+                        )}
                     </div>
                 </div>
 
@@ -249,8 +277,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         <CurrencyInput
                             value={(linea.valorConFactura ?? 0).toString()}
                             size="xs"
+                            disabled={isReadOnly}
                             onChange={(val: string) => updateLinea(linea.id, 'valorConFactura', val)}
-                            className={`!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3 ${errors.includes('valorConFactura') ? 'ring-1 ring-red-500' : ''}`}
+                            className={`!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3 ${errors.includes('valorConFactura') ? 'ring-1 ring-red-500' : ''} disabled:opacity-50`}
                         />
                     </div>
                     <div className="space-y-1">
@@ -261,8 +290,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         <CurrencyInput
                             value={(linea.valorSinFactura ?? 0).toString()}
                             size="xs"
+                            disabled={isReadOnly}
                             onChange={(val: string) => updateLinea(linea.id, 'valorSinFactura', val)}
-                            className={`!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3 ${errors.includes('valorSinFactura') ? 'ring-1 ring-red-500' : ''}`}
+                            className={`!h-8 text-right font-black bg-white dark:bg-black/20 border-none shadow-sm rounded-xl !px-3 ${errors.includes('valorSinFactura') ? 'ring-1 ring-red-500' : ''} disabled:opacity-50`}
                         />
                     </div>
                 </div>
@@ -275,8 +305,9 @@ const ExpenseMobileCard: React.FC<ExpenseMobileCardProps> = ({
                         placeholder="Ej: Almuerzo entrega proyecto..."
                         value={linea.observaciones}
                         size="xs"
+                        disabled={isReadOnly}
                         onChange={(e) => updateLinea(linea.id, 'observaciones', e.target.value)}
-                        className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl placeholder:opacity-30"
+                        className="bg-[var(--color-surface-variant)]/30 border-none rounded-xl placeholder:opacity-30 disabled:opacity-50"
                         fullWidth
                     />
                 </div>

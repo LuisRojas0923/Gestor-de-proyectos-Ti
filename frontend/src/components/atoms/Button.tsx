@@ -1,6 +1,7 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 import { Icon } from './Icon';
+import { Text } from './Text';
 
 interface ButtonProps {
   children?: React.ReactNode;
@@ -20,6 +21,12 @@ interface ButtonProps {
   tabIndex?: number;
 }
 
+/*
+ ## User Review Required
+
+> [!IMPORTANT]
+> **PROTECCIÓN DE TRADUCCIÓN:** El proyecto utiliza envolturas de nodos estables para evitar que traductores automáticos dañen el Virtual DOM de React. Esta protección se implementa de forma estándar a través del sistema de diseño usando el átomo Text (as="span") en lugar de etiquetas HTML directas.
+*/
 const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',
@@ -103,7 +110,11 @@ const Button: React.FC<ButtonProps> = ({
         />
       )}
 
-      {children && <span>{children}</span>}
+      {children && (
+        <Text as="span" color="inherit">
+          {children}
+        </Text>
+      )}
 
       {!loading && IconComponent && iconPosition === 'right' && (
         <Icon

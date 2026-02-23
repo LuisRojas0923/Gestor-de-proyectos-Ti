@@ -1,8 +1,7 @@
 services:
   nginx:
     image: nginx:alpine
-    container_name: gestor-de-proyectos-ti-nginx
-    restart: always
+    container_name: gestor-de-proyectos-ti-nginx-pruebas3
     ports:
       - "80:80"
     volumes:
@@ -17,15 +16,14 @@ services:
     build:
       context: ./backend_v2
       dockerfile: Dockerfile
-    restart: always
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager}
       - ERP_DATABASE_URL=${ERP_DATABASE_URL}
-      - ENVIRONMENT=production
+      - ENVIRONMENT=pruebas3
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
-      - APP_VERSION=${APP_VERSION:-v2.1.0-prod}
+      - APP_VERSION=${APP_VERSION:-v2.1.0-pruebas3}
       - FRONTEND_URL=http://${FRONTEND_HOST:-localhost}
       - TZ=America/Bogota
     depends_on:
@@ -40,7 +38,6 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_API_BASE_URL=/api/v2
-    restart: always
     environment:
       - VITE_API_BASE_URL=/api/v2
     depends_on:
@@ -50,10 +47,9 @@ services:
 
   db:
     image: postgres:15-alpine
-    container_name: gestor-de-proyectos-ti-db
-    restart: always
+    container_name: gestor-de-proyectos-ti-db-pruebas3
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_pruebas3:/var/lib/postgresql/data
       - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     environment:
       - POSTGRES_USER=${DB_USER:-user}
@@ -71,4 +67,4 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
+  postgres_data_pruebas3:

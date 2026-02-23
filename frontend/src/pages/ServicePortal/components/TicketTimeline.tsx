@@ -32,8 +32,8 @@ const TicketTimeline: React.FC<TicketTimelineProps> = ({ status, stages }) => {
 
                 {/* Línea de progreso activa */}
                 <div
-                    className="absolute left-0 h-[2px] bg-blue-500 top-4 -translate-y-1/2 -z-10 transition-all duration-1000 ease-out rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"
-                    style={{ width: `${(currentStageIndex >= 0 ? (currentStageIndex / (stages.length - 1)) * 100 : 0)}%` }}
+                    className="absolute left-0 h-[2px] bg-blue-500 top-4 -translate-y-1/2 -z-10 transition-all duration-1000 ease-out rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] w-[var(--w)]"
+                    style={{ '--w': `${(currentStageIndex >= 0 ? (currentStageIndex / (stages.length - 1)) * 100 : 0)}%` } as React.CSSProperties}
                 ></div>
 
                 {stages.map((stage, idx) => {
