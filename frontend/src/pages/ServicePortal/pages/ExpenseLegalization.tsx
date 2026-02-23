@@ -12,7 +12,7 @@ import ExpenseMobileCard from '../components/ExpenseMobileCard';
 import ExpenseTotals from '../components/ExpenseTotals';
 import { generateExpenseReportPDF } from '../../../utils/generateExpenseReportPDF';
 
-import { ExpenseConfirmModal, DeleteReportConfirmModal } from '../../../components/molecules';
+import { ExpenseConfirmModal, DeleteReportConfirmModal, ReportLockedModal } from '../../../components/molecules';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -110,6 +110,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
     const [categorias, setCategorias] = useState<{ label: string, value: string }[]>([]);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showDeleteReportModal, setShowDeleteReportModal] = useState(false);
+    const [showLockedModal, setShowLockedModal] = useState(false);
     const [isDeletingReport, setIsDeletingReport] = useState(false);
     const { addNotification } = useNotifications();
 
@@ -250,6 +251,11 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                 }
             }
             addNotification('error', errorMessage);
+
+            // Detectar reporte bloqueado/procesado para mostrar modal
+            if (errorMessage.toUpperCase().includes('PROCESADO') || errorMessage.toUpperCase().includes('BLOQUEADO')) {
+                setShowLockedModal(true);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -509,6 +515,12 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                 onConfirm={handleDeleteReport}
                 reportCode={activeReporteId}
                 isLoading={isDeletingReport}
+            />
+
+            <ReportLockedModal
+                isOpen={showLockedModal}
+                onClose={() => setShowLockedModal(false)}
+                reportId={activeReporteId || undefined}
             />
         </div>
     );

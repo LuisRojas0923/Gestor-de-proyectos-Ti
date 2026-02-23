@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MaterialCard, Title, Text, Button } from '../../components/atoms';
-import { Modal, DeleteConfirmModal, ExpenseConfirmModal, ClearReportConfirmModal } from '../../components/molecules';
+import { Modal, DeleteConfirmModal, ExpenseConfirmModal, ClearReportConfirmModal, DeleteReportConfirmModal, ReportLockedModal } from '../../components/molecules';
 import ViaticosAuthModal from '../ServicePortal/components/ViaticosAuthModal';
 import { useNotifications } from '../../components/notifications/NotificationsContext';
 
@@ -9,6 +9,8 @@ const ModalsSection: React.FC = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [showClearModal, setShowClearModal] = useState(false);
+    const [showDeleteReportModal, setShowDeleteReportModal] = useState(false);
+    const [showLockedModal, setShowLockedModal] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const { addNotification } = useNotifications();
 
@@ -33,6 +35,12 @@ const ModalsSection: React.FC = () => {
                         </Button>
                         <Button variant="primary" onClick={() => setShowAuthModal(true)}>
                             Autenticación de Viáticos (Marina)
+                        </Button>
+                        <Button variant="danger" onClick={() => setShowDeleteReportModal(true)}>
+                            Eliminar Reporte (Permanente)
+                        </Button>
+                        <Button className="!bg-amber-500 hover:!bg-amber-600 text-white" onClick={() => setShowLockedModal(true)}>
+                            Reporte Bloqueado
                         </Button>
                     </div>
                 </MaterialCard>
@@ -95,6 +103,22 @@ const ModalsSection: React.FC = () => {
                     addNotification('info', 'Reporte simulado como limpio');
                     setShowClearModal(false);
                 }}
+            />
+
+            <DeleteReportConfirmModal
+                isOpen={showDeleteReportModal}
+                onClose={() => setShowDeleteReportModal(false)}
+                onConfirm={() => {
+                    addNotification('success', 'Reporte eliminado correctamente');
+                    setShowDeleteReportModal(false);
+                }}
+                reportCode="WEB-L0012"
+            />
+
+            <ReportLockedModal
+                isOpen={showLockedModal}
+                onClose={() => setShowLockedModal(false)}
+                reportId="WEB-L0004"
             />
 
             {showAuthModal && (
