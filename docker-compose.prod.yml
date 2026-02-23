@@ -2,6 +2,7 @@ services:
   nginx:
     image: nginx:alpine
     container_name: gestor-de-proyectos-ti-nginx
+    restart: always
     ports:
       - "80:80"
     volumes:
@@ -16,6 +17,7 @@ services:
     build:
       context: ./backend_v2
       dockerfile: Dockerfile
+    restart: always
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager}
       - ERP_DATABASE_URL=${ERP_DATABASE_URL}
@@ -38,6 +40,7 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_API_BASE_URL=/api/v2
+    restart: always
     environment:
       - VITE_API_BASE_URL=/api/v2
     depends_on:
@@ -48,6 +51,7 @@ services:
   db:
     image: postgres:15-alpine
     container_name: gestor-de-proyectos-ti-db
+    restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
