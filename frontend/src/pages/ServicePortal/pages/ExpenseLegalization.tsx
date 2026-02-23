@@ -330,7 +330,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                         </Button>
                         {canDownloadPDF ? (
                             <Button
-                                onClick={() => generateExpenseReportPDF(user, lineas, observacionesGral)}
+                                onClick={() => generateExpenseReportPDF(activeReporteId || '', user, lineas, observacionesGral)}
                                 variant="erp"
                                 size="md"
                                 icon={Download}
@@ -378,7 +378,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                         <div className="w-1 h-4 bg-[var(--color-primary)] rounded-full hidden sm:block"></div>
                         <Title variant="h6" weight="bold" className="text-[10px] sm:text-xs tracking-tight uppercase whitespace-nowrap flex items-center gap-1">
-                            ÍTEMS <Text as="span" weight="bold" color="inherit" className="hidden sm:inline">DEL REPORTE</Text>
+                            ÍTEMS <span className="hidden sm:inline">DEL REPORTE</span>
                             <Text as="span" variant="caption" className="font-medium opacity-40 lowercase text-[9px] sm:text-[10px]">
                                 ({lineas.length})
                             </Text>
