@@ -101,6 +101,7 @@ from .api.etapas_router import router as etapas_router
 from .api.solid.router import router as solid_router
 from .api.viaticos.router import router as viaticos_router
 from .api.reserva_salas import router as reserva_salas_router
+from .api.requisiciones.router import router as requisiciones_router
 
 api_prefix = "/api/v2"
 
@@ -116,3 +117,4 @@ app.include_router(etapas_router, prefix=f"{api_prefix}/etapas", tags=["Etapas"]
 app.include_router(solid_router, prefix=f"{api_prefix}/solid", tags=["SOLID"])
 app.include_router(viaticos_router, prefix=api_prefix, tags=["Viaticos"])
 app.include_router(reserva_salas_router, prefix=f"{api_prefix}/reserva-salas", tags=["Reserva Salas"])
+app.include_router(requisiciones_router, prefix=f"{api_prefix}/requisiciones", tags=["Requisiciones"])

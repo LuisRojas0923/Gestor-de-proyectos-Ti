@@ -19,6 +19,7 @@ import ViaticosManagement from './ServicePortal/pages/ViaticosManagement';
 import AccountStatement from './ServicePortal/pages/AccountStatement';
 import TransitReportsView from './ServicePortal/pages/TransitReportsView';
 import ReservaSalasView from './ServicePortal/pages/ReservaSalasView';
+import RequisicionPersonalFormView from './ServicePortal/pages/RequisicionPersonalFormView';
 import PortalLayout from './ServicePortal/PortalLayout';
 
 import imgHardware from '../assets/images/categories/Soporte Hardware.png';
@@ -446,6 +447,7 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'categories') navigate('/service-portal/servicios');
                             else if (v === 'status') navigate('/service-portal/mis-tickets');
                             else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
+                            else if (v === 'requisicion_personal') navigate('/service-portal/requisicion-personal');
                         }}
                     />
                 } />
@@ -574,6 +576,27 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="reserva-salas" element={
                     <ReservaSalasView onBack={() => navigate('/service-portal/inicio')} />
+                } />
+
+                <Route path="requisicion-personal" element={
+                    <RequisicionPersonalFormView
+                        user={user}
+                        onBack={() => navigate('/service-portal/inicio')}
+                        onSubmit={async (data: any) => {
+                            try {
+                                setIsLoading(true);
+                                await axios.post(`${API_BASE_URL}/requisiciones/`, data);
+                                addNotification('success', "Requisición enviada correctamente.");
+                                navigate('/service-portal/inicio');
+                            } catch (err) {
+                                console.error("Error al enviar la requisición:", err);
+                                addNotification('error', "No se pudo enviar la requisición.");
+                            } finally {
+                                setIsLoading(false);
+                            }
+                        }}
+                        isLoading={isLoading}
+                    />
                 } />
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />

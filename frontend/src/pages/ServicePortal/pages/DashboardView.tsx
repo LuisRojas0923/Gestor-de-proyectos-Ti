@@ -1,5 +1,6 @@
 import { ActionCard } from '../../../components/molecules';
 import { Title, Text } from '../../../components/atoms';
+import { Plus } from 'lucide-react';
 
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
@@ -7,7 +8,7 @@ import imgReunion from '../../../assets/images/categories/Reunion.png';
 
 interface DashboardViewProps {
     user: any;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisicion_personal') => void;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, onNavigate }) => {
@@ -50,6 +51,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, onNavigate }) => {
                         onClick={() => onNavigate('viaticos_gestion')}
                     />
                 )}
+
+                <ActionCard
+                    title="Requisición de Personal"
+                    description="Solicita la creación de una nueva vacante o reemplazo para tu equipo."
+                    icon={<Plus className="w-8 h-8 text-[var(--color-primary)]" />}
+                    onClick={() => onNavigate('requisicion_personal')}
+                />
             </div>
         </div>
     );

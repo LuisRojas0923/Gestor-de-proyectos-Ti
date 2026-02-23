@@ -17,7 +17,7 @@ services:
       context: ./backend_v2
       dockerfile: Dockerfile
     ports:
-      - "8000:8000" # Re-expuesto para acceso directo por IP:8000
+      - "8000:8000" # Re-expuesto para acceso directo por localhost:8000
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager}
       - APP_VERSION=v2.1.0-DEV
@@ -42,10 +42,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.dev
     ports:
-      - "5173:5173" # Re-expuesto para acceso directo por IP:5173
+      - "5173:5173" # Re-expuesto para acceso directo por localhost:5173
     environment:
       # URL RELATIVA: Permite que funcione por IP o por Dominio automáticamente a través de Nginx (puerto 80)
-      - VITE_API_BASE_URL=/api/v2
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
     volumes:
