@@ -143,7 +143,7 @@ export const generateAccountStatementPDF = async (
 
         // === TABLA ===
         const tableData = movimientos.map((mov) => [
-            new Date(mov.fechaaplicacion).toLocaleDateString('es-CO'),
+            mov.fechaaplicacion ? mov.fechaaplicacion.split('T')[0].split('-').reverse().join('/') : '---',
             mov.radicado,
             mov.consignacion_contabilizado > 0 ? `$${mov.consignacion_contabilizado.toLocaleString('es-CO')}` : '',
             mov.legalizacion_contabilizado > 0 ? `$${mov.legalizacion_contabilizado.toLocaleString('es-CO')}` : '',

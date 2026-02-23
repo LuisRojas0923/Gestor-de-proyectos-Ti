@@ -20,6 +20,21 @@ interface TicketListViewProps {
 
 const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onViewDetail }) => {
 
+    const statusPriority: Record<string, number> = {
+        'Pendiente': 1,
+        'En proceso': 2,
+    };
+
+    const sortedTickets = [...tickets].sort((a, b) => {
+        // Priority 1: Status
+        const pA = statusPriority[a.estado] || 99;
+        const pB = statusPriority[b.estado] || 99;
+        if (pA !== pB) return pA - pB;
+
+        // Priority 2: Date (newest to oldest)
+        return new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime();
+    });
+
     return (
         <div className="space-y-8 py-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -49,7 +64,7 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
 
                 {tickets.length > 0 ? (
                     <div className="space-y-3">
-                        {tickets.map(ticket => (
+                        {sortedTickets.map(ticket => (
                             <div
                                 key={ticket.id}
                                 onClick={() => onViewDetail(ticket)}
@@ -57,20 +72,26 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
                             >
                                 <div className="p-4 sm:p-5">
                                     <div className="grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4">
-                                        <Text variant="caption" className="font-mono text-[var(--color-text-secondary)]/50 uppercase tracking-tighter bg-[var(--color-surface-variant)]/50 px-2 py-0.5 rounded-lg">{ticket.id}</Text>
+                                        <Text variant="body2" weight="bold" className="font-mono text-[var(--color-text-secondary)] uppercase tracking-tight bg-[var(--color-surface-variant)]/50 px-2.5 py-1 rounded-lg">
+                                            {ticket.id}
+                                        </Text>
 
-                                        <Title variant="h6" weight="bold" color="text-primary" className="leading-tight group-hover:text-[var(--color-primary)] transition-colors truncate">
+                                        <Title variant="h6" weight="bold" color="text-primary" className="leading-tight group-hover:text-[var(--color-primary)] transition-colors">
                                             {ticket.asunto}
                                         </Title>
 
-                                        <div className="hidden sm:flex items-center text-[10px] font-bold uppercase tracking-wider opacity-60 text-[var(--color-text-secondary)] whitespace-nowrap">
-                                            <Icon name={User} size="xs" className="mr-1.5" />
-                                            {ticket.asignado_a || 'Sin asignar'}
+                                        <div className="hidden sm:flex items-center gap-1.5">
+                                            <Icon name={User} size="sm" className="text-[var(--color-text-secondary)]/70 shrink-0" />
+                                            <Text variant="body2" color="text-secondary" weight="medium">
+                                                {ticket.asignado_a || 'Sin asignar'}
+                                            </Text>
                                         </div>
 
-                                        <div className="hidden sm:flex items-center text-[10px] font-bold uppercase tracking-wider opacity-60 text-[var(--color-text-secondary)] whitespace-nowrap">
-                                            <Icon name={Clock} size="xs" className="mr-1.5" />
-                                            {new Date(ticket.fecha_creacion).toLocaleDateString()}
+                                        <div className="hidden sm:flex items-center gap-1.5 whitespace-nowrap">
+                                            <Icon name={Clock} size="sm" className="text-[var(--color-text-secondary)]/70" />
+                                            <Text variant="body2" color="text-secondary" weight="medium">
+                                                {new Date(ticket.fecha_creacion).toLocaleDateString()}
+                                            </Text>
                                         </div>
 
                                         {(() => {
