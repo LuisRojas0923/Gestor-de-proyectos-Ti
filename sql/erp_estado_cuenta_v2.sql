@@ -8,7 +8,7 @@
 -- Configuración de parámetros para ejecución manual
 WITH params AS (
   SELECT
-    '1105613195'::text AS v_empleado,         -- Ejemplo: '94041597'-'1105613195'
+    '94041597'::text AS v_empleado,         -- Ejemplo: '94041597'-'1105613195'
     NULL::text AS v_nombreempleado,   -- Ejemplo: 'gladys'
     '2026-01-01'::date AS v_desde,    -- Fecha inicial
     '2026-12-31'::date AS v_hasta     -- Fecha final

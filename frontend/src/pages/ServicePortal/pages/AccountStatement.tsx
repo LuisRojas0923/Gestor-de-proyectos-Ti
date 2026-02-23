@@ -211,7 +211,9 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                             ) : movimientos.map((mov: Movimiento, i: number) => (
                                 <tr key={i} className="hover:bg-blue-100 transition-colors group border-b border-neutral-300">
                                     <td className="p-3 border-r border-b border-neutral-300 whitespace-nowrap text-center bg-white group-hover:bg-transparent transition-colors">
-                                        <Text variant="caption" weight="medium" color="inherit" className="text-[#374151]">{new Date(mov.fechaaplicacion).toLocaleDateString('es-CO')}</Text>
+                                        <Text variant="caption" weight="medium" color="inherit" className="text-[#374151]">
+                                            {mov.fechaaplicacion ? mov.fechaaplicacion.split('T')[0].split('-').reverse().join('/') : '---'}
+                                        </Text>
                                     </td>
                                     <td className="p-3 border-r border-b border-neutral-300 bg-white group-hover:bg-transparent transition-colors whitespace-nowrap">
                                         <Text variant="caption" weight="bold" color="inherit" className="text-[#1f2937]">{mov.radicado}</Text>
