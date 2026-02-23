@@ -55,16 +55,18 @@ git pull origin main
 
 Todos estos comandos se ejecutan dentro del terminal de **Ubuntu**.
 
-### 2.1 Auto-arranque de Docker (Windows Task Scheduler)
-Para que el sistema arranque solo cada vez que el servidor se encienda (sin abrir ninguna terminal), se debe crear una tarea de Windows (se hace solo una vez):
+### 2.1 Auto-arranque de Docker y Persistencia (Windows Task Scheduler)
+Para que el sistema arranque solo cada vez que el servidor se encienda y **los contenedores de Docker no se apaguen al cerrar la terminal**, hemos implementado un script VBS silencioso (`mantener_docker_vivo.vbs`).
+
+Esta configuración ya está aplicada en el servidor, pero si necesitas recrearla, se hace ejecutando esto una sola vez:
 ```powershell
 # Ejecutar en PowerShell como Administrador
-$action = New-ScheduledTaskAction -Execute "wsl.exe" -Argument "-d Ubuntu -e bash -c 'sudo docker compose -f /mnt/c/GestorTI/docker-compose.prod.yml up -d && sleep infinity'"
+$action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "C:\GestorTI\mantener_docker_vivo.vbs"
 $trigger = New-ScheduledTaskTrigger -AtStartup
 $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-Register-ScheduledTask -TaskName "DockerGestorTI" -Action $action -Trigger $trigger -Principal $principal -Description "Inicia Docker del Gestor TI al arrancar Windows"
+Register-ScheduledTask -TaskName "DockerGestorTI" -Action $action -Trigger $trigger -Principal $principal -Description "Mantiene vivo a Ubuntu y levanta los dockers silenciosamente"
 ```
-*(Para comprobar: `Get-ScheduledTask -TaskName "DockerGestorTI"`)*
+*(Para comprobar el estado de la tarea instalada: `Get-ScheduledTask -TaskName "DockerGestorTI"`)*
 
 ---
 
