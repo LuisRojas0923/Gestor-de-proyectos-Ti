@@ -330,7 +330,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                         </Button>
                         {canDownloadPDF ? (
                             <Button
-                                onClick={() => generateExpenseReportPDF(activeReporteId || '', user, lineas, observacionesGral)}
+                                onClick={() => generateExpenseReportPDF(activeReporteId || '', user, lineas)}
                                 variant="erp"
                                 size="md"
                                 icon={Download}

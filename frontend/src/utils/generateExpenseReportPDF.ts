@@ -29,8 +29,7 @@ interface User {
 export const generateExpenseReportPDF = async (
     reporteId: string,
     user: User,
-    lineas: ExpenseLine[],
-    observacionesGral: string = ''
+    lineas: ExpenseLine[]
 ): Promise<void> => {
     // Formato vertical (portrait)
     const doc = new jsPDF({
