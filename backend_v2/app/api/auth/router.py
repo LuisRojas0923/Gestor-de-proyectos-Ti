@@ -269,17 +269,50 @@ async def obtener_usuario_actual_db(
             )
         usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
         print(f"DEBUG: Usuario buscado en BD, encontrado={usuario is not None}")
+        
+        # Sincronización proactiva / Virtual User Creation para usuarios del portal
         if not usuario:
-            print(f"DEBUG: Usuario cedula={cedula} no encontrado en BD local")
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
+            print(f"DEBUG: Usuario cedula={cedula} no encontrado en BD local. Trayendo datos temporales del ERP...")
+            from app.database import SessionErp
+            from app.services.erp.empleados_service import EmpleadosService
             
-        # Sincronizar si falta información (Auto-parche)
-        # Sincronizar si falta información (Auto-parche)
-        if not usuario.area or not usuario.sede:
-            from app.database import SessionErp # Import local para evitar ciclos
             try:
-                # Usamos un bloque with síncrono para la conexión ERP
+                with SessionErp() as db_erp:
+                    empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula)
+                    
+                    if empleado:
+                        # Crear el objeto de usuario EN MEMORIA (sin db.add ni db.commit)
+                        # Esto permite que el resto del sistema lo vea como un objeto Usuario válido
+                        id_usuario = f"USR-P-{cedula}"
+                        hash_temporal = ServicioAuth.obtener_hash_contrasena(cedula)
+                        usuario = Usuario(
+                            id=id_usuario,
+                            cedula=cedula,
+                            nombre=empleado["nombre"],
+                            hash_contrasena=hash_temporal,
+                            rol="user",
+                            esta_activo=True,
+                            area=empleado.get("area"),
+                            cargo=empleado.get("cargo"),
+                            sede=empleado.get("ciudadcontratacion"),
+                            centrocosto=empleado.get("centrocosto"),
+                            viaticante=bool(empleado.get("viaticante")),
+                            baseviaticos=empleado.get("baseviaticos")
+                        )
+                        print(f"DEBUG: Usuario {cedula} instanciado virtualmente desde ERP (No guardado en DB).")
+                    else:
+                        print(f"DEBUG: Usuario {cedula} no existe ni en local ni en ERP.")
+                        raise HTTPException(status_code=404, detail="Usuario no encontrado en el sistema")
+            except HTTPException:
+                raise
+            except Exception as e:
+                print(f"DEBUG: Error contactando ERP para virtual user: {e}")
+                raise HTTPException(status_code=404, detail="Usuario no encontrado y ERP no disponible")
+            
+        # Sincronizar si falta información (Solo para usuarios que SÍ existen en BD local)
+        elif not usuario.area or not usuario.sede:
+            from app.database import SessionErp
+            try:
                 with SessionErp() as db_erp:
                     usuario = await ServicioAuth.sincronizar_perfil_desde_erp(db, db_erp, usuario)
             except Exception as e:
