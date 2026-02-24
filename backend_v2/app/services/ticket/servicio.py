@@ -7,13 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func as sa_func, text, or_
 from sqlalchemy.orm import joinedload
 from sqlmodel import select
-from datetime import datetime, timezone
 from fastapi import HTTPException
 import json
 
 from app.models.ticket.ticket import (
     Ticket,
-    ComentarioTicket,
     CategoriaTicket,
     SolicitudDesarrollo,
     ControlCambios,
@@ -42,7 +40,7 @@ class ServicioTicket:
             # 1. Obtener todos los analistas/admins activos
             result = await db.execute(
                 select(Usuario).where(
-                    Usuario.rol.in_(["analyst", "admin"]), Usuario.esta_activo == True
+                    Usuario.rol.in_(["analyst", "admin"]), Usuario.esta_activo
                 )
             )
             todos_analistas = result.scalars().all()
@@ -62,7 +60,7 @@ class ServicioTicket:
                 try:
                     especialidades = json.loads(a.especialidades or "[]")
                     areas = json.loads(a.areas_asignadas or "[]")
-                except:
+                except Exception:
                     especialidades = []
                     areas = []
 
@@ -471,7 +469,7 @@ class ServicioTicket:
                 try:
                     specs = json.loads(usuario_peticion.especialidades or "[]")
                     areas = json.loads(usuario_peticion.areas_asignadas or "[]")
-                except:
+                except Exception:
                     specs = []
                     areas = []
 

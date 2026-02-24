@@ -91,7 +91,7 @@ async def obtener_rendimiento(db: AsyncSession = Depends(obtener_db)):
     try:
         # Obtener lista de analistas unicos que tienen tickets asignados
         result = await db.execute(
-            select(Ticket.asignado_a).where(Ticket.asignado_a != None).distinct()
+            select(Ticket.asignado_a).where(Ticket.asignado_a.is_not(None)).distinct()
         )
         analistas = [a[0] for a in result.all()]
 
@@ -102,7 +102,7 @@ async def obtener_rendimiento(db: AsyncSession = Depends(obtener_db)):
                 select(Ticket.creado_en, Ticket.resuelto_en).where(
                     Ticket.asignado_a == nombre,
                     Ticket.estado.in_(["Resuelto", "Cerrado"]),
-                    Ticket.resuelto_en != None,
+                    Ticket.resuelto_en.is_not(None),
                 )
             )
             data_resueltos = result_resueltos.all()
