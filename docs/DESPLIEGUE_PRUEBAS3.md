@@ -39,12 +39,21 @@ ssh -T git@github.com
 
 Sigue estos comandos estrictamente en la terminal de **Ubuntu** del servidor:
 
-### Paso 1: Ir a la carpeta del proyecto
+### Paso 1: Crear e ingresar a la carpeta independiente
+Para que Pruebas 3 no afecte a Producción, usaremos una carpeta nueva:
 ```bash
-cd /mnt/c/GestorTI
+mkdir -p /mnt/c/GestorTI_Pruebas3
+cd /mnt/c/GestorTI_Pruebas3
 ```
 
-### Paso 2: Bajar el código nuevo
+### Paso 2: Clonar el repositorio (Solo la primera vez)
+Si la carpeta está vacía, clona el proyecto:
+```bash
+git clone git@github.com:LuisRojas0923/Gestor-de-proyectos-Ti.git .
+```
+
+### Paso 3: Bajar el código nuevo (Actualizaciones)
+Si ya lo tienes clonado, simplemente descarga los cambios:
 ```bash
 git pull origin main
 ```
