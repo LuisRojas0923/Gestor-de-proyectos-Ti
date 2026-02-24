@@ -188,7 +188,8 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => setReportToDelete(reporte)}
-                                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border-none shadow-none"
+                                            disabled={reporte.estado !== 'BORRADOR' && reporte.estado !== 'INICIAL'}
+                                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border-none shadow-none disabled:opacity-30"
                                             title="Eliminar Reporte"
                                             icon={Trash2}
                                         />
@@ -278,7 +279,8 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                                     variant="erp"
                                                     size="xs"
                                                     onClick={() => setReportToDelete(reporte)}
-                                                    className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30 px-2 shadow-none border-none"
+                                                    disabled={reporte.estado !== 'BORRADOR' && reporte.estado !== 'INICIAL'}
+                                                    className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30 px-2 shadow-none border-none disabled:opacity-30"
                                                     title="Eliminar"
                                                 >
                                                     <Trash2 size={12} />

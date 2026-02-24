@@ -27,27 +27,33 @@ netsh advfirewall firewall add rule name="Gestor TI - API" dir=in action=allow p
 netsh advfirewall firewall add rule name="Gestor TI - Adminer" dir=in action=allow protocol=TCP localport=8085
 ```
 
-## 1. Actualizar el Código (Git Pull)
+## 1. Desplegar Cambios en Producción (Paso a Paso)
 
-Cuando realices cambios en el repositorio de GitHub y quieras verlos reflejados en el servidor:
+Cada vez que apruebes cambios, hagas fusiones en GitHub o realices subidas de código, debes seguir exactamente estos pasos en el servidor para que los cambios se reflejen en vivo:
 
-### Paso A: Sincronizar desde PowerShell (Windows)
-Debido a que las llaves SSH están configuradas en Windows, es más fácil hacer el pull desde allí:
-1. Abre **PowerShell**.
-2. Ejecuta:
-   ```powershell
-   cd C:\GestorTI
-   git pull origin main
-   ```
+**Paso 1: Abrir la terminal de Linux**
+Abre la consola de **Ubuntu** en el servidor de Windows.
 
-### Paso B: Resolver Conflictos de Archivos Untracked
-Si el `git pull` falla porque un archivo local (como `docker-compose.prod.yml`) no está en Git:
-```powershell
-# Cambiar nombre al archivo que bloquea
-Rename-Item -Path "C:\GestorTI\docker-compose.prod.yml" -NewName "docker-compose.prod.yml.backup"
-# Reintentar el pull
+**Paso 2: Ir a la carpeta del proyecto**
+```bash
+cd /mnt/c/GestorTI
+```
+
+**Paso 3: Descargar el código más reciente**
+```bash
 git pull origin main
 ```
+*(Si te da error por el archivo `mantener_docker_vivo.vbs`, bórralo con `rm mantener_docker_vivo.vbs` y vuelve a hacer el pull).*
+
+**Paso 4: Reconstruir y levantar los contenedores**
+Este comando leerá el nuevo código y reconstruirá Docker automáticamente sin borrar la base de datos:
+```bash
+sudo docker compose -f docker-compose.prod.yml up -d --build
+```
+
+**Paso 5: Salir con seguridad**
+Una vez que la consola diga `[+] up 4/4` o te muestre que Nginx, Frontend, Backend y DB están "Running", **puedes presionar la "X" roja para cerrar la terminal de Ubuntu**.
+*(Tus contenedores no se apagarán porque el script de persistencia `mantener_docker_vivo.vbs` los estará sosteniendo vivitos y coleando en el fondo del servidor).*
 
 ---
 
@@ -74,7 +80,7 @@ Register-ScheduledTask -TaskName "DockerGestorTI" -Action $action -Trigger $trig
 Si solo quieres reiniciar los servicios (por ejemplo, después de un cambio en el `.env` o un error temporal):
 ```bash
 cd /mnt/c/GestorTI
-sudo docker-compose -f docker-compose.prod.yml restart
+sudo docker compose -f docker-compose.prod.yml restart
 ```
 
 ### ¿Cuándo reconstruir contenedores? (Rebuild)
@@ -85,14 +91,14 @@ Debes reconstruir (usar `--build`) cuando:
 
 **Comando para reconstruir y levantar:**
 ```bash
-sudo docker-compose -f docker-compose.prod.yml up -d --build
+sudo docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ### Limpieza profunda (Reset de Base de Datos)
 Si necesitas borrar la base de datos local y recrear las tablas de cero (Cuidado: borra datos):
 ```bash
-sudo docker-compose -f docker-compose.prod.yml down -v
-sudo docker-compose -f docker-compose.prod.yml up -d --build
+sudo docker compose -f docker-compose.prod.yml down -v
+sudo docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ---
