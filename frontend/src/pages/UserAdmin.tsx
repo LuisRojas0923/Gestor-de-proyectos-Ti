@@ -211,16 +211,22 @@ const UserAdmin: React.FC = () => {
                                 <div className="space-y-6">
                                     <div>
                                         <Text variant="caption" weight="bold" className="uppercase mb-2 block">Rol del Sistema</Text>
-                                        <div className="flex space-x-2">
-                                            {['analyst', 'admin_sistemas', 'admin', 'director', 'manager'].map(role => (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[
+                                                { id: 'analyst', label: 'Analista' },
+                                                { id: 'admin_sistemas', label: 'Sistemas' },
+                                                { id: 'admin', label: 'Admin' },
+                                                { id: 'director', label: 'Director' },
+                                                { id: 'manager', label: 'Manager' }
+                                            ].map(role => (
                                                 <Button
-                                                    key={role}
-                                                    variant={selectedUser.rol === role ? 'primary' : 'ghost'}
+                                                    key={role.id}
+                                                    variant={selectedUser.rol === role.id ? 'primary' : 'ghost'}
                                                     size="sm"
-                                                    onClick={() => setSelectedUser({ ...selectedUser, rol: role })}
-                                                    className={`flex-1 py-2 px-4 rounded-xl text-sm font-bold border-2 transition-all ${selectedUser.rol === role ? '' : 'border-gray-100 dark:border-neutral-800'}`}
+                                                    onClick={() => setSelectedUser({ ...selectedUser, rol: role.id })}
+                                                    className={`py-2 px-3 rounded-xl text-[10px] font-bold border-2 transition-all ${selectedUser.rol === role.id ? '' : 'border-gray-100 dark:border-neutral-800'}`}
                                                 >
-                                                    {role.toUpperCase()}
+                                                    {role.label.toUpperCase()}
                                                 </Button>
                                             ))}
                                         </div>
