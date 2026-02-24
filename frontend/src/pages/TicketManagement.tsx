@@ -255,10 +255,12 @@ const TicketManagement: React.FC = () => {
                         <Text variant="body1" color="text-secondary" weight="medium" className="tracking-tight">
                             Administración de solicitudes de soporte técnico
                         </Text>
-                        {user?.role === 'analyst' && (
+                        {(user?.role === 'analyst' || user?.role === 'admin_sistemas') && (
                             <div className="flex items-center px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800">
                                 <Icon name={UserCheck} size="xs" className="text-blue-500 mr-1" />
-                                <Text variant="caption" weight="bold" className="text-blue-600 dark:text-blue-400">Mis asignaciones</Text>
+                                <Text variant="caption" weight="bold" className="text-blue-600 dark:text-blue-400">
+                                    {user?.role === 'admin_sistemas' ? 'Vista Sistemas' : 'Mis asignaciones'}
+                                </Text>
                             </div>
                         )}
                     </div>

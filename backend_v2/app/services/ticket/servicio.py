@@ -1,6 +1,7 @@
 """
 Servicio de Tickets - Backend V2 (Async + SQLModel)
 """
+
 from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func as sa_func, text, or_
@@ -8,6 +9,7 @@ from sqlalchemy.orm import joinedload
 from sqlmodel import select
 from datetime import datetime, timezone
 from fastapi import HTTPException
+import json
 
 from app.models.ticket.ticket import (
     Ticket,
@@ -20,7 +22,7 @@ from app.models.ticket.ticket import (
     AdjuntoTicket,
     TicketCrear,
     TicketActualizar,
-    AdjuntoCrear
+    AdjuntoCrear,
 )
 from app.models.auth.usuario import Usuario
 from app.utils_date import get_bogota_now
@@ -28,24 +30,26 @@ from app.utils_date import get_bogota_now
 
 class ServicioTicket:
     """Servicio principal para gestion de tickets (Async)"""
-    
+
     @staticmethod
-    async def obtener_analista_menos_cargado(db: AsyncSession, categoria_id: str = None, area_solicitante: str = None) -> Optional[str]:
+    async def obtener_analista_menos_cargado(
+        db: AsyncSession, categoria_id: str = None, area_solicitante: str = None
+    ) -> Optional[str]:
         """Busca al analista o admin con menos tickets activos asignados, considerando especialidades y áreas (Async)"""
         try:
             import json
+
             # 1. Obtener todos los analistas/admins activos
             result = await db.execute(
                 select(Usuario).where(
-                    Usuario.rol.in_(["analyst", "admin"]),
-                    Usuario.esta_activo == True
+                    Usuario.rol.in_(["analyst", "admin"]), Usuario.esta_activo == True
                 )
             )
             todos_analistas = result.scalars().all()
-            
+
             if not todos_analistas:
                 return None
-            
+
             # 2. Filtrar por especialidad y área
             candidatos = []
             for a in todos_analistas:
@@ -53,7 +57,7 @@ class ServicioTicket:
                 if a.rol == "admin":
                     candidatos.append(a)
                     continue
-                
+
                 # Parsear JSON de especialidades y áreas
                 try:
                     especialidades = json.loads(a.especialidades or "[]")
@@ -64,32 +68,42 @@ class ServicioTicket:
 
                 # Lógica de ruteo:
                 # Si se especifica categoria_id, el analista debe tenerla en sus especialidades (o estar vacía para 'all')
-                cumple_especialidad = not categoria_id or (categoria_id in especialidades)
-                
+                cumple_especialidad = not categoria_id or (
+                    categoria_id in especialidades
+                )
+
                 # Si es soporte de mejoramiento, validamos el área
                 cumple_area = True
                 if categoria_id == "soporte_mejora" and area_solicitante:
                     cumple_area = not areas or (area_solicitante in areas)
-                
+
                 if cumple_especialidad and cumple_area:
                     candidatos.append(a)
 
             # Si no hay candidatos específicos, usamos todos los analistas como fallback
             if not candidatos:
                 candidatos = todos_analistas
-                
+
             # 3. Contar tickets activos por candidato
             conteo_carga = []
             for a in candidatos:
                 result_count = await db.execute(
                     select(sa_func.count(Ticket.id)).where(
                         Ticket.asignado_a == a.nombre,
-                        Ticket.estado.in_(["Abierto", "Asignado", "En Proceso", "Pendiente Info", "Escalado"])
+                        Ticket.estado.in_(
+                            [
+                                "Abierto",
+                                "Asignado",
+                                "En Proceso",
+                                "Pendiente Info",
+                                "Escalado",
+                            ]
+                        ),
                     )
                 )
                 carga = result_count.scalar() or 0
                 conteo_carga.append((a.nombre, carga))
-                
+
             # 4. Retornar el nombre del que tenga menos carga
             conteo_carga.sort(key=lambda x: x[1])
             return conteo_carga[0][0]
@@ -98,14 +112,21 @@ class ServicioTicket:
             return None
 
     @staticmethod
-    async def registrar_historial(db: AsyncSession, ticket_id: str, accion: str, detalle: str, usuario_id: str = None, nombre_usuario: str = None):
+    async def registrar_historial(
+        db: AsyncSession,
+        ticket_id: str,
+        accion: str,
+        detalle: str,
+        usuario_id: str = None,
+        nombre_usuario: str = None,
+    ):
         """Helper para registrar eventos en el historial del ticket (Async)"""
         log = HistorialTicket(
             ticket_id=ticket_id,
             accion=accion,
             detalle=detalle,
             usuario_id=usuario_id,
-            nombre_usuario=nombre_usuario
+            nombre_usuario=nombre_usuario,
         )
         db.add(log)
 
@@ -114,13 +135,29 @@ class ServicioTicket:
         """Obtiene estadisticas resumidas de tickets (Async)"""
         total = (await db.execute(select(sa_func.count(Ticket.id)))).scalar() or 0
         # Pendiente = tickets nuevos/asignados
-        pendiente = (await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.estado == "Pendiente"))).scalar() or 0
-        en_proceso = (await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.estado == "Proceso"))).scalar() or 0
-        cerrados = (await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.estado == "Cerrado"))).scalar() or 0
-        escalados = (await db.execute(select(sa_func.count(Ticket.id)).where(
-            Ticket.estado == "Cerrado", Ticket.sub_estado == "Escalado"
-        ))).scalar() or 0
-        
+        pendiente = (
+            await db.execute(
+                select(sa_func.count(Ticket.id)).where(Ticket.estado == "Pendiente")
+            )
+        ).scalar() or 0
+        en_proceso = (
+            await db.execute(
+                select(sa_func.count(Ticket.id)).where(Ticket.estado == "Proceso")
+            )
+        ).scalar() or 0
+        cerrados = (
+            await db.execute(
+                select(sa_func.count(Ticket.id)).where(Ticket.estado == "Cerrado")
+            )
+        ).scalar() or 0
+        escalados = (
+            await db.execute(
+                select(sa_func.count(Ticket.id)).where(
+                    Ticket.estado == "Cerrado", Ticket.sub_estado == "Escalado"
+                )
+            )
+        ).scalar() or 0
+
         return {
             "total": total,
             "nuevos": pendiente,
@@ -129,7 +166,7 @@ class ServicioTicket:
             "cerrados": cerrados,
             "escalados": escalados,
             "completion_rate": round((cerrados / total * 100) if total > 0 else 0, 1),
-            "total_tickets": total
+            "total_tickets": total,
         }
 
     @staticmethod
@@ -142,32 +179,32 @@ class ServicioTicket:
             )
         )
         tickets_cerrados = result.scalars().all()
-        
+
         tiempos = []
         for t in tickets_cerrados:
             if t.resuelto_en and t.creado_en:
                 tiempos.append((t.resuelto_en - t.creado_en).total_seconds() / 3600)
-        
+
         avg_resolution_time = round(sum(tiempos) / len(tiempos), 1) if tiempos else 0
-        
+
         sla_limit_hours = 48
         dentro_sla = sum(1 for t in tiempos if t <= sla_limit_hours)
         sla_percentage = round((dentro_sla / len(tiempos) * 100), 1) if tiempos else 100
-        
+
         prioridades_result = await db.execute(
-            select(Ticket.prioridad, sa_func.count(Ticket.id)).group_by(Ticket.prioridad)
+            select(Ticket.prioridad, sa_func.count(Ticket.id)).group_by(
+                Ticket.prioridad
+            )
         )
         prioridades = prioridades_result.all()
-        
+
         return {
             "avg_resolution_time": avg_resolution_time,
             "sla_compliance": sla_percentage,
             "total_resolved": len(tickets_cerrados),
             "priority_distribution": {p[0]: p[1] for p in prioridades},
-            "sla_limit_hours": sla_limit_hours
+            "sla_limit_hours": sla_limit_hours,
         }
-
-
 
     @classmethod
     async def crear_ticket(cls, db: AsyncSession, ticket_data: TicketCrear) -> Ticket:
@@ -178,7 +215,7 @@ class ServicioTicket:
             result_seq = await db.execute(text("SELECT nextval('ticket_id_seq')"))
             next_val = result_seq.scalar()
             ticket_id = f"TKT-{next_val:04d}"
-            
+
             nuevo_ticket = Ticket(
                 id=ticket_id,
                 categoria_id=ticket_data.categoria_id,
@@ -194,36 +231,48 @@ class ServicioTicket:
                 estado="Pendiente",
                 sub_estado="Asignado",
                 datos_extra=ticket_data.datos_extra,
-                areas_impactadas=ticket_data.areas_impactadas
+                areas_impactadas=ticket_data.areas_impactadas,
             )
-            
+
             analista = await cls.obtener_analista_menos_cargado(
-                db, 
+                db,
                 categoria_id=ticket_data.categoria_id,
-                area_solicitante=ticket_data.area_creador
+                area_solicitante=ticket_data.area_creador,
             )
             if analista:
                 nuevo_ticket.asignado_a = analista
             else:
                 nuevo_ticket.sub_estado = "Sin Asignar"
-            
+
             db.add(nuevo_ticket)
-            await cls.registrar_historial(db, ticket_id, "Creacion", f"Ticket creado por {ticket_data.nombre_creador}")
-            
+            await cls.registrar_historial(
+                db,
+                ticket_id,
+                "Creacion",
+                f"Ticket creado por {ticket_data.nombre_creador}",
+            )
+
             if analista:
-                await cls.registrar_historial(db, ticket_id, "Asignacion Automatica", f"Asignado a {analista} por balanceo de carga")
-            
+                await cls.registrar_historial(
+                    db,
+                    ticket_id,
+                    "Asignacion Automatica",
+                    f"Asignado a {analista} por balanceo de carga",
+                )
+
             if ticket_data.que_necesita or ticket_data.porque:
                 solicitud = SolicitudDesarrollo(
                     ticket_id=ticket_id,
                     que_necesita=ticket_data.que_necesita,
                     porque=ticket_data.porque,
                     paraque=ticket_data.paraque,
-                    justificacion_ia=ticket_data.justificacion_ia
+                    justificacion_ia=ticket_data.justificacion_ia,
                 )
                 db.add(solicitud)
-                
-            if ticket_data.categoria_id == "control_cambios" or (ticket_data.tipo_objeto and ticket_data.accion_requerida):
+
+            if ticket_data.categoria_id == "control_cambios" or (
+                ticket_data.tipo_objeto and ticket_data.accion_requerida
+            ):
                 control = ControlCambios(
                     ticket_id=ticket_id,
                     desarrollo_id=ticket_data.desarrollo_id,
@@ -233,21 +282,21 @@ class ServicioTicket:
                     accion_requerida=ticket_data.accion_requerida or "No especificada",
                     impacto_operativo=ticket_data.impacto_operativo or "Bajo",
                     justificacion=ticket_data.justificacion_cambio or "",
-                    descripcion_cambio=ticket_data.descripcion_cambio or ""
+                    descripcion_cambio=ticket_data.descripcion_cambio or "",
                 )
                 db.add(control)
-                
+
             if ticket_data.item_solicitado or ticket_data.especificaciones:
                 activo = SolicitudActivo(
                     ticket_id=ticket_id,
                     item_solicitado=ticket_data.item_solicitado or "PRODUCTO/SERVICIO",
                     especificaciones=ticket_data.especificaciones,
-                    cantidad=ticket_data.cantidad or 1
+                    cantidad=ticket_data.cantidad or 1,
                 )
                 db.add(activo)
-                
+
             await db.commit()
-            
+
             # Re-obtener con extensiones para evitar errores de lazy loading en la respuesta
             result = await db.execute(
                 select(Ticket)
@@ -255,7 +304,7 @@ class ServicioTicket:
                 .options(
                     joinedload(Ticket.solicitud_activo),
                     joinedload(Ticket.solicitud_desarrollo),
-                    joinedload(Ticket.control_cambios)
+                    joinedload(Ticket.control_cambios),
                 )
             )
             return result.scalars().first()
@@ -264,26 +313,42 @@ class ServicioTicket:
             raise e
 
     @classmethod
-    async def actualizar_ticket(cls, db: AsyncSession, ticket_id: str, ticket_in: TicketActualizar) -> Ticket:
+    async def actualizar_ticket(
+        cls, db: AsyncSession, ticket_id: str, ticket_in: TicketActualizar
+    ) -> Ticket:
         """Actualiza un ticket existente (Async)"""
         result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
         db_ticket = result.scalars().first()
         if not db_ticket:
             raise HTTPException(status_code=404, detail="Ticket no encontrado")
-            
+
         update_data = ticket_in.model_dump(exclude_unset=True)
-        
+
         # Track history
         user_id = update_data.pop("usuario_id", None)
         user_name = update_data.pop("usuario_nombre", None)
-        
+
         for field, value in update_data.items():
             old_value = getattr(db_ticket, field)
             if str(old_value) != str(value):
-                if field in ["estado", "sub_estado", "prioridad", "asignado_a", "resolucion", "causa_novedad"]:
-                    await cls.registrar_historial(db, ticket_id, f"Cambio de {field.capitalize()}", f"De '{old_value or 'Ninguno'}' a '{value}'", user_id, user_name)
+                if field in [
+                    "estado",
+                    "sub_estado",
+                    "prioridad",
+                    "asignado_a",
+                    "resolucion",
+                    "causa_novedad",
+                ]:
+                    await cls.registrar_historial(
+                        db,
+                        ticket_id,
+                        f"Cambio de {field.capitalize()}",
+                        f"De '{old_value or 'Ninguno'}' a '{value}'",
+                        user_id,
+                        user_name,
+                    )
                 setattr(db_ticket, field, value)
-        
+
         # Inteligencia de sub-estado para Pendiente
         if db_ticket.estado == "Pendiente":
             if db_ticket.asignado_a and db_ticket.asignado_a.strip():
@@ -293,16 +358,19 @@ class ServicioTicket:
 
         # Validación de Causa Obligatoria para sub_estado Resuelto
         if db_ticket.sub_estado == "Resuelto" and not db_ticket.causa_novedad:
-            raise HTTPException(status_code=400, detail="La 'Causa de la Novedad' es obligatoria para resolver el ticket.")
+            raise HTTPException(
+                status_code=400,
+                detail="La 'Causa de la Novedad' es obligatoria para resolver el ticket.",
+            )
 
         # Auto-dates for resolution
         if "estado" in update_data or "sub_estado" in update_data:
             now = get_bogota_now()
-            
+
             if db_ticket.estado == "Cerrado":
-                if not db_ticket.fecha_cierre: 
+                if not db_ticket.fecha_cierre:
                     db_ticket.fecha_cierre = now
-                if not db_ticket.resuelto_en: 
+                if not db_ticket.resuelto_en:
                     db_ticket.resuelto_en = now
             elif db_ticket.estado == "Proceso":
                 # Capturar fecha de atención inicial si es la primera vez
@@ -311,9 +379,9 @@ class ServicioTicket:
             else:
                 db_ticket.fecha_cierre = None
                 db_ticket.resuelto_en = None
-                
+
         await db.commit()
-        
+
         # Re-obtener con extensiones para evitar errores de lazy loading
         result = await db.execute(
             select(Ticket)
@@ -321,28 +389,37 @@ class ServicioTicket:
             .options(
                 joinedload(Ticket.solicitud_activo),
                 joinedload(Ticket.solicitud_desarrollo),
-                joinedload(Ticket.control_cambios)
+                joinedload(Ticket.control_cambios),
             )
         )
         return result.scalars().first()
 
     @classmethod
-    async def subir_adjunto(cls, db: AsyncSession, ticket_id: str, adjunto: AdjuntoCrear) -> AdjuntoTicket:
+    async def subir_adjunto(
+        cls, db: AsyncSession, ticket_id: str, adjunto: AdjuntoCrear
+    ) -> AdjuntoTicket:
         """Sube un archivo adjunto a un ticket (Async)"""
         nuevo_adjunto = AdjuntoTicket(
             ticket_id=ticket_id,
             nombre_archivo=adjunto.nombre_archivo,
             contenido_base64=adjunto.contenido_base64,
-            tipo_mime=adjunto.tipo_mime
+            tipo_mime=adjunto.tipo_mime,
         )
         db.add(nuevo_adjunto)
-        await cls.registrar_historial(db, ticket_id, "Archivo Adjunto", f"Se adjunto el archivo: {adjunto.nombre_archivo}")
+        await cls.registrar_historial(
+            db,
+            ticket_id,
+            "Archivo Adjunto",
+            f"Se adjunto el archivo: {adjunto.nombre_archivo}",
+        )
         await db.commit()
         await db.refresh(nuevo_adjunto)
         return nuevo_adjunto
 
     @staticmethod
-    async def obtener_ticket_por_id(db: AsyncSession, ticket_id: str) -> Optional[Ticket]:
+    async def obtener_ticket_por_id(
+        db: AsyncSession, ticket_id: str
+    ) -> Optional[Ticket]:
         """Obtiene un ticket por su ID con sus extensiones (Async)"""
         result = await db.execute(
             select(Ticket)
@@ -351,28 +428,29 @@ class ServicioTicket:
                 joinedload(Ticket.solicitud_activo),
                 joinedload(Ticket.solicitud_desarrollo),
                 joinedload(Ticket.control_cambios),
-                joinedload(Ticket.adjuntos)
+                joinedload(Ticket.adjuntos),
             )
         )
         return result.scalars().first()
 
     async def listar_tickets(
-        db: AsyncSession, 
-        skip: int = 0, 
+        db: AsyncSession,
+        skip: int = 0,
         limit: int = 100,
         creador_id: Optional[str] = None,
         estado: Optional[str] = None,
         asignado_a: Optional[str] = None,
         search: Optional[str] = None,
-        sub_estado: Optional[str] = None
+        sub_estado: Optional[str] = None,
+        usuario_peticion: Optional[Usuario] = None,
     ) -> List[Ticket]:
         """Lista tickets con paginacion, extensiones y filtros (Async)"""
         query = select(Ticket).options(
             joinedload(Ticket.solicitud_activo),
             joinedload(Ticket.solicitud_desarrollo),
-            joinedload(Ticket.control_cambios)
+            joinedload(Ticket.control_cambios),
         )
-        
+
         # Filtros básicos
         if creador_id:
             query = query.where(Ticket.creador_id == creador_id)
@@ -382,7 +460,45 @@ class ServicioTicket:
             query = query.where(Ticket.sub_estado == sub_estado)
         if asignado_a:
             query = query.where(Ticket.asignado_a == asignado_a)
-            
+
+        # Restricción por Rol y Permisos Granulares (Visibilidad Dinámica)
+        if usuario_peticion:
+            if usuario_peticion.rol == "admin":
+                # Admin ve absolutamente todo
+                pass
+            elif usuario_peticion.rol == "admin_sistemas":
+                # Admin Sistemas ve: sus especialidades, sus áreas, sus asignados y sus creados
+                try:
+                    specs = json.loads(usuario_peticion.especialidades or "[]")
+                    areas = json.loads(usuario_peticion.areas_asignadas or "[]")
+                except:
+                    specs = []
+                    areas = []
+
+                filtros_visibilidad = []
+                if specs:
+                    filtros_visibilidad.append(Ticket.categoria_id.in_(specs))
+                if areas:
+                    filtros_visibilidad.append(Ticket.area_creador.in_(areas))
+
+                # Inclusión por asignación o creación personal
+                filtros_visibilidad.append(Ticket.asignado_a == usuario_peticion.nombre)
+                filtros_visibilidad.append(Ticket.creador_id == usuario_peticion.id)
+
+                if filtros_visibilidad:
+                    query = query.where(or_(*filtros_visibilidad))
+
+            elif usuario_peticion.rol == "analyst":
+                # Analista estándar solo ve lo que tiene asignado o lo que el mismo creó
+                # A menos que se esté filtrando específicamente por creador_id (mis tickets)
+                if not creador_id:
+                    query = query.where(
+                        or_(
+                            Ticket.asignado_a == usuario_peticion.nombre,
+                            Ticket.creador_id == usuario_peticion.id,
+                        )
+                    )
+
         # Búsqueda global (Servidor)
         if search:
             search_pattern = f"%{search}%"
@@ -391,17 +507,19 @@ class ServicioTicket:
                     Ticket.id.ilike(search_pattern),
                     Ticket.asunto.ilike(search_pattern),
                     Ticket.nombre_creador.ilike(search_pattern),
-                    Ticket.area_creador.ilike(search_pattern)
+                    Ticket.area_creador.ilike(search_pattern),
                 )
             )
-            
+
         query = query.order_by(Ticket.creado_en.desc()).offset(skip).limit(limit)
-        
+
         result = await db.execute(query)
         return result.scalars().all()
 
     @staticmethod
-    async def listar_tickets_por_usuario(db: AsyncSession, usuario_id: str) -> List[Ticket]:
+    async def listar_tickets_por_usuario(
+        db: AsyncSession, usuario_id: str
+    ) -> List[Ticket]:
         """Lista tickets creados por un usuario con sus extensiones (Async)"""
         result = await db.execute(
             select(Ticket)
@@ -409,7 +527,7 @@ class ServicioTicket:
             .options(
                 joinedload(Ticket.solicitud_activo),
                 joinedload(Ticket.solicitud_desarrollo),
-                joinedload(Ticket.control_cambios)
+                joinedload(Ticket.control_cambios),
             )
         )
         return result.scalars().all()

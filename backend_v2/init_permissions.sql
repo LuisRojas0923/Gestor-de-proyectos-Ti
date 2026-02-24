@@ -38,5 +38,13 @@ INSERT INTO permisos_rol (rol, modulo, permitido) VALUES
 ('admin', 'settings', true),
 ('analyst', 'settings', true),
 ('director', 'settings', true),
-('admin', 'design-catalog', true)
+('admin', 'design-catalog', true),
+('admin_sistemas', 'dashboard', true),
+('admin_sistemas', 'developments', true),
+('admin_sistemas', 'indicators', true),
+('admin_sistemas', 'ticket-management', true),
+('admin_sistemas', 'reports', true),
+('admin_sistemas', 'chat', true),
+('admin_sistemas', 'service-portal', true),
+('admin_sistemas', 'settings', true)
 ON CONFLICT (rol, modulo) DO NOTHING;

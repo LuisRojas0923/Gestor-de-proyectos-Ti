@@ -1,6 +1,7 @@
 """
 Router de Tickets - Backend V2 (Async + SQLModel)
 """
+
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +21,7 @@ from app.models.ticket.ticket import (
     TicketActualizar,
     AdjuntoCrear,
     ComentarioCrear,
-    TicketPublico
+    TicketPublico,
 )
 from app.services.ticket.servicio import ServicioTicket
 from app.services.ticket.bi_service import TicketBIService
@@ -36,13 +37,15 @@ async def listar_categorias(db: AsyncSession = Depends(obtener_db)):
     cached_data = global_cache.get(cache_key)
     if cached_data:
         return cached_data
-        
+
     try:
         data = await ServicioTicket.listar_categorias(db)
         global_cache.set(cache_key, data)
         return data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener categorias: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error al obtener categorias: {str(e)}"
+        )
 
 
 @router.get("/estadisticas/resumen")
@@ -52,7 +55,7 @@ async def obtener_resumen_estadisticas(db: AsyncSession = Depends(obtener_db)):
     cached_data = global_cache.get(cache_key)
     if cached_data:
         return cached_data
-        
+
     try:
         data = await ServicioTicket.obtener_estadisticas_resumen(db)
         global_cache.set(cache_key, data)
@@ -77,6 +80,7 @@ async def obtener_data_bi(db: AsyncSession = Depends(obtener_db)):
         return await TicketBIService.obtener_data_analitica_bi(db)
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -90,7 +94,7 @@ async def obtener_rendimiento(db: AsyncSession = Depends(obtener_db)):
             select(Ticket.asignado_a).where(Ticket.asignado_a != None).distinct()
         )
         analistas = [a[0] for a in result.all()]
-        
+
         ranking = []
         for nombre in analistas:
             # Tickets finalizados para cálculo de tiempo real
@@ -98,49 +102,64 @@ async def obtener_rendimiento(db: AsyncSession = Depends(obtener_db)):
                 select(Ticket.creado_en, Ticket.resuelto_en).where(
                     Ticket.asignado_a == nombre,
                     Ticket.estado.in_(["Resuelto", "Cerrado"]),
-                    Ticket.resuelto_en != None
+                    Ticket.resuelto_en != None,
                 )
             )
             data_resueltos = result_resueltos.all()
             resueltos_analista = len(data_resueltos)
-            
+
             avg_h = 0
             if data_resueltos:
-                tiempos = [(t.resuelto_en - t.creado_en).total_seconds() / 3600 for t in data_resueltos if t.resuelto_en and t.creado_en]
+                tiempos = [
+                    (t.resuelto_en - t.creado_en).total_seconds() / 3600
+                    for t in data_resueltos
+                    if t.resuelto_en and t.creado_en
+                ]
                 avg_h = round(sum(tiempos) / len(tiempos), 1) if tiempos else 0
 
             # Carga activa actual (Operational Load)
             active_res = await db.execute(
                 select(sa_func.count(Ticket.id)).where(
                     Ticket.asignado_a == nombre,
-                    Ticket.estado.in_(["Abierto", "Asignado", "En Proceso", "Pendiente Info", "Escalado"])
+                    Ticket.estado.in_(
+                        [
+                            "Abierto",
+                            "Asignado",
+                            "En Proceso",
+                            "Pendiente Info",
+                            "Escalado",
+                        ]
+                    ),
                 )
             )
             carga_activa = active_res.scalar() or 0
-            
+
             # Conteo específico de tickets en proceso
             proceso_res = await db.execute(
                 select(sa_func.count(Ticket.id)).where(
-                    Ticket.asignado_a == nombre,
-                    Ticket.estado == "En Proceso"
+                    Ticket.asignado_a == nombre, Ticket.estado == "En Proceso"
                 )
             )
             en_proceso = proceso_res.scalar() or 0
-            
+
             # Score de desempeño histórico
-            total_hist_res = await db.execute(select(sa_func.count(Ticket.id)).where(Ticket.asignado_a == nombre))
+            total_hist_res = await db.execute(
+                select(sa_func.count(Ticket.id)).where(Ticket.asignado_a == nombre)
+            )
             total_hist = total_hist_res.scalar() or 1
-            score = (resueltos_analista / total_hist * 100)
-            
-            ranking.append({
-                "name": nombre,
-                "total": carga_activa,
-                "cerrados": resueltos_analista,
-                "en_proceso": en_proceso,
-                "avg_time": avg_h,
-                "performance_score": round(score, 1)
-            })
-        
+            score = resueltos_analista / total_hist * 100
+
+            ranking.append(
+                {
+                    "name": nombre,
+                    "total": carga_activa,
+                    "cerrados": resueltos_analista,
+                    "en_proceso": en_proceso,
+                    "avg_time": avg_h,
+                    "performance_score": round(score, 1),
+                }
+            )
+
         ranking.sort(key=lambda x: x["total"], reverse=True)
         return ranking
     except Exception:
@@ -166,34 +185,27 @@ async def listar_tickets(
     search: Optional[str] = None,
     sub_estado: Optional[str] = None,
     db: AsyncSession = Depends(obtener_db),
-    usuario_actual: Usuario = Depends(obtener_usuario_actual_db)
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Lista tickets de soporte con paginación, búsqueda avanzada y restricciones de visibilidad"""
     try:
-        # Restricción: Si es analista (no admin), solo ve lo que tiene asignado
-        # a menos que esté buscando sus propios tickets creados.
-        filtro_asignado = asignado_a
-        
-        if usuario_actual.rol == "analyst" and not creador_id:
-            # Si un analista pide la lista general, se la filtramos por si mismo
-            filtro_asignado = usuario_actual.nombre
-            
         return await ServicioTicket.listar_tickets(
-            db, 
-            creador_id=creador_id, 
-            estado=estado, 
-            asignado_a=filtro_asignado,
+            db,
+            creador_id=creador_id,
+            estado=estado,
+            asignado_a=asignado_a,
             skip=skip,
             limit=limite,
             search=search,
-            sub_estado=sub_estado
+            sub_estado=sub_estado,
+            usuario_peticion=usuario_actual,
         )
     except Exception as e:
         import logging
+
         logging.error(f"Error listando tickets: {type(e).__name__}: {e}")
         raise HTTPException(
-            status_code=500, 
-            detail=f"Error al listar tickets: {type(e).__name__}"
+            status_code=500, detail=f"Error al listar tickets: {type(e).__name__}"
         )
 
 
@@ -204,6 +216,7 @@ async def crear_ticket(ticket: TicketCrear, db: AsyncSession = Depends(obtener_d
         return await ServicioTicket.crear_ticket(db, ticket)
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"ERROR_CREAR_TICKET: {str(e)}")
 
@@ -219,14 +232,16 @@ async def obtener_ticket(ticket_id: str, db: AsyncSession = Depends(obtener_db))
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener ticket: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error al obtener ticket: {str(e)}"
+        )
 
 
 @router.post("/{ticket_id}/comentarios", response_model=ComentarioTicket)
 async def agregar_comentario(
     ticket_id: str,
     comentario_data: ComentarioCrear,
-    db: AsyncSession = Depends(obtener_db)
+    db: AsyncSession = Depends(obtener_db),
 ):
     """Agrega un comentario a un ticket"""
     try:
@@ -235,7 +250,7 @@ async def agregar_comentario(
             comentario=comentario_data.comentario,
             es_interno=comentario_data.es_interno,
             usuario_id=comentario_data.usuario_id,
-            nombre_usuario=comentario_data.nombre_usuario
+            nombre_usuario=comentario_data.nombre_usuario,
         )
         db.add(nuevo_comentario)
         await db.commit()
@@ -248,9 +263,7 @@ async def agregar_comentario(
 
 @router.patch("/{ticket_id}", response_model=TicketPublico)
 async def actualizar_ticket(
-    ticket_id: str,
-    ticket_in: TicketActualizar,
-    db: AsyncSession = Depends(obtener_db)
+    ticket_id: str, ticket_in: TicketActualizar, db: AsyncSession = Depends(obtener_db)
 ):
     """Actualiza campos de un ticket existente delegando al servicio"""
     try:
@@ -260,7 +273,9 @@ async def actualizar_ticket(
 
 
 @router.get("/{ticket_id}/historial", response_model=List[HistorialTicket])
-async def obtener_historial_ticket(ticket_id: str, db: AsyncSession = Depends(obtener_db)):
+async def obtener_historial_ticket(
+    ticket_id: str, db: AsyncSession = Depends(obtener_db)
+):
     """Retorna el log de actividades de un ticket"""
     try:
         result = await db.execute(
@@ -270,7 +285,9 @@ async def obtener_historial_ticket(ticket_id: str, db: AsyncSession = Depends(ob
         )
         return result.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener historial: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error al obtener historial: {str(e)}"
+        )
 
 
 @router.get("/{ticket_id}/adjuntos", response_model=List[AdjuntoTicket])
@@ -282,14 +299,14 @@ async def listar_adjuntos(ticket_id: str, db: AsyncSession = Depends(obtener_db)
         )
         return result.scalars().all()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al listar adjuntos: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error al listar adjuntos: {str(e)}"
+        )
 
 
 @router.post("/{ticket_id}/adjuntos", response_model=AdjuntoTicket)
 async def subir_adjunto(
-    ticket_id: str,
-    adjunto: AdjuntoCrear,
-    db: AsyncSession = Depends(obtener_db)
+    ticket_id: str, adjunto: AdjuntoCrear, db: AsyncSession = Depends(obtener_db)
 ):
     """Guarda un archivo adjunto delegando al servicio"""
     try:
@@ -312,4 +329,6 @@ async def obtener_adjunto(adjunto_id: int, db: AsyncSession = Depends(obtener_db
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener adjunto: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error al obtener adjunto: {str(e)}"
+        )
