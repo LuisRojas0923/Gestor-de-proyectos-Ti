@@ -212,7 +212,7 @@ const UserAdmin: React.FC = () => {
                                     <div>
                                         <Text variant="caption" weight="bold" className="uppercase mb-2 block">Rol del Sistema</Text>
                                         <div className="flex space-x-2">
-                                            {['analyst', 'admin', 'director', 'manager'].map(role => (
+                                            {['analyst', 'admin_sistemas', 'admin', 'director', 'manager'].map(role => (
                                                 <Button
                                                     key={role}
                                                     variant={selectedUser.rol === role ? 'primary' : 'ghost'}
