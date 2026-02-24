@@ -25,7 +25,7 @@ const AppRouter: React.FC = () => {
 
         {/* Rutas Administrativas (Analistas y Managers) */}
         <Route path="/" element={
-          <ProtectedRoute allowedRoles={['analyst', 'admin', 'director', 'manager']}>
+          <ProtectedRoute allowedRoles={['analyst', 'admin', 'director', 'manager', 'admin_sistemas']}>
             <Layout />
           </ProtectedRoute>
         }>

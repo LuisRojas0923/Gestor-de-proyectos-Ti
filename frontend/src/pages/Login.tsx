@@ -117,7 +117,7 @@ const Login: React.FC = () => {
             dispatch({ type: 'LOGIN', payload: userData });
 
             const userRole = userData.role?.toLowerCase();
-            if (userRole === 'analyst' || userRole === 'admin' || userRole === 'director') {
+            if (userRole === 'analyst' || userRole === 'admin' || userRole === 'director' || userRole === 'admin_sistemas') {
                 navigate('/');
             } else {
                 navigate('/service-portal/inicio');
