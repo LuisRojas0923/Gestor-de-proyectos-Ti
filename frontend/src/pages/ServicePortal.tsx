@@ -20,6 +20,8 @@ import AccountStatement from './ServicePortal/pages/AccountStatement';
 import TransitReportsView from './ServicePortal/pages/TransitReportsView';
 import ReservaSalasView from './ServicePortal/pages/ReservaSalasView';
 import RequisicionPersonalFormView from './ServicePortal/pages/RequisicionPersonalFormView';
+import RequisicionManagementView from './ServicePortal/pages/RequisicionManagementView';
+import RequisicionListView from './ServicePortal/pages/RequisicionListView';
 import PortalLayout from './ServicePortal/PortalLayout';
 
 import imgHardware from '../assets/images/categories/Soporte Hardware.png';
@@ -581,9 +583,19 @@ const ServicePortal: React.FC = () => {
                 } />
 
                 <Route path="requisicion-personal" element={
+                    <RequisicionManagementView
+                        onBack={() => navigate('/service-portal/inicio')}
+                        onNavigate={(v) => {
+                            if (v === 'nueva_requisicion') navigate('/service-portal/requisicion-personal/nueva');
+                            else if (v === 'lista_requisiciones') navigate('/service-portal/requisicion-personal/lista');
+                        }}
+                    />
+                } />
+
+                <Route path="requisicion-personal/nueva" element={
                     <RequisicionPersonalFormView
                         user={user}
-                        onBack={() => navigate('/service-portal/inicio')}
+                        onBack={() => navigate('/service-portal/requisicion-personal')}
                         onSubmit={async (data: any) => {
                             try {
                                 setIsLoading(true);
@@ -599,6 +611,10 @@ const ServicePortal: React.FC = () => {
                         }}
                         isLoading={isLoading}
                     />
+                } />
+
+                <Route path="requisicion-personal/lista" element={
+                    <RequisicionListView onBack={() => navigate('/service-portal/requisicion-personal')} />
                 } />
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />
