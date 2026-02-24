@@ -86,13 +86,19 @@ Para evitar choques con Producción y otros ambientes, **Pruebas 3** utiliza est
 | **API (Backend)** | **8001** | 8000 |
 | **Base de Datos** | **5435** | 5432 |
 
-### Apertura de Firewall (PowerShell como Administrador)
-Debes ejecutar esto en el **Windows** del servidor para permitir el tráfico:
+### 4.1 Apertura de Firewall y Túnel de Red (PowerShell como Administrador)
+Como Docker en WSL2 a veces solo escucha en `localhost` (127.0.0.1), debes ejecutar esto en **Windows** para que otros equipos puedan entrar:
+
 ```powershell
-# Permite tráfico de red hacia los puertos exclusivos de Pruebas 3
+# 1. Abrir los puertos en el Firewall de Windows
 netsh advfirewall firewall add rule name="Gestor TI - Pruebas 3 Web" dir=in action=allow protocol=TCP localport=8083
 netsh advfirewall firewall add rule name="Gestor TI - Pruebas 3 API" dir=in action=allow protocol=TCP localport=8001
 netsh advfirewall firewall add rule name="Gestor TI - Pruebas 3 DB" dir=in action=allow protocol=TCP localport=5435
+
+# 2. Crear el túnel (PortProxy) para que responda a la IP 192.168.0.21
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=8083 connectaddress=127.0.0.1 connectport=8083
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=8001 connectaddress=127.0.0.1 connectport=8001
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5435 connectaddress=127.0.0.1 connectport=5435
 ```
 
 ---

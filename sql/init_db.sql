@@ -273,16 +273,21 @@ CREATE TRIGGER trigger_reservations_updated_at
 -- 5. Datos Semilla / Inserts Iniciales
 -- ==========================================
 
--- Categorías por defecto
-INSERT INTO categorias_ticket (id, nombre, tipo_formulario, descripcion) VALUES
-('soporte_hardware', 'Soporte de Hardware', 'support', 'Problemas físicos con equipos'),
-('soporte_software', 'Soporte de Software', 'support', 'Instalación y errores de programas'),
-('soporte_impresoras', 'Soporte de Impresoras', 'support', 'Mantenimiento y consumibles'),
-('perifericos', 'Periféricos y Equipos', 'asset', 'Solicitud de nuevos equipos'),
-('soporte_mejora', 'Soporte Mejoramiento', 'support', 'Ajustes a sistemas existentes'),
-('nuevos_desarrollos_mejora', 'Nuevos Desarrollos', 'development', 'Nuevas funcionalidades o software'),
-('compra_licencias', 'Compra de Licencias', 'asset', 'Software licenciado')
-ON CONFLICT (id) DO NOTHING;
+-- Categorías por defecto (Sincronizadas con Producción)
+INSERT INTO categorias_ticket (id, nombre, descripcion, icono, tipo_formulario) VALUES
+('soporte_hardware', 'Soporte de Hardware', 'Problemas físicos con equipos (PCs, Monitores)', 'Cpu', 'support'),
+('soporte_software', 'Soporte de Software', 'Instalación y errores de programas', 'AppWindow', 'support'),
+('soporte_impresoras', 'Soporte de Impresoras', 'Mantenimiento y consumibles', 'Printer', 'support'),
+('perifericos', 'Periféricos y Equipos', 'Solicitud de nuevos equipos', 'Mouse', 'asset'),
+('compra_licencias', 'Compra de Licencias', 'Software licenciado', 'ShieldCheck', 'asset'),
+('soporte_mejora', 'Soporte Mejoramiento', 'Ajustes a sistemas existentes', 'Wrench', 'improvement_support'),
+('nuevos_desarrollos_solid', 'Nuevos desarrollos SOLID', NULL, 'Code', 'development'),
+('nuevos_desarrollos_mejora', 'Nuevas Herramientas', 'Nuevas funcionalidades o software', 'Wrench', 'support')
+ON CONFLICT (id) DO UPDATE SET
+    nombre = EXCLUDED.nombre,
+    descripcion = EXCLUDED.descripcion,
+    icono = EXCLUDED.icono,
+    tipo_formulario = EXCLUDED.tipo_formulario;
 
 -- Sala de Ejemplo
 INSERT INTO rooms (id, name, capacity, resources, is_active, notes)
@@ -385,6 +390,23 @@ INSERT INTO permisos_rol (rol, modulo, permitido) VALUES
 ('admin', 'mejoramiento', true),
 ('director', 'mejoramiento', true),
 ('analyst', 'mejoramiento', true),
-('user', 'mejoramiento', true)
+('user', 'mejoramiento', true),
+
+-- Módulo: Admin Sistemas (Nuevo Rol Consolidado)
+('admin_sistemas', 'dashboard', true),
+('admin_sistemas', 'settings', true),
+('admin_sistemas', 'developments', true),
+('admin_sistemas', 'indicators', true),
+('admin_sistemas', 'ticket-management', true),
+('admin_sistemas', 'reports', true),
+('admin_sistemas', 'service-portal', true),
+('admin_sistemas', 'chat', true),
+('admin_sistemas', 'user-admin', true),
+('admin_sistemas', 'design-catalog', true),
+('admin_sistemas', 'viaticos_gestion', true),
+('admin_sistemas', 'mis_solicitudes', true),
+('admin_sistemas', 'sistemas', true),
+('admin_sistemas', 'desarrollo', true),
+('admin_sistemas', 'mejoramiento', true)
 
 ON CONFLICT (rol, modulo) DO NOTHING;
