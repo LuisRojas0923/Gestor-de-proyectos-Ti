@@ -255,14 +255,14 @@ const UserAdmin: React.FC = () => {
                                         <Text variant="caption" weight="bold" className="uppercase mb-3 flex items-center">
                                             <MapPin size={14} className="mr-1" /> Áreas Asignadas (Mejoramiento)
                                         </Text>
-                                        <div className="flex flex-wrap gap-2">
+                                        <div className="grid grid-cols-2 gap-2">
                                             {areasList.map(area => (
                                                 <Button
                                                     key={area}
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => toggleSelection(area, 'areas_asignadas')}
-                                                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${JSON.parse(selectedUser.areas_asignadas || '[]').includes(area) ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-transparent border-gray-100'}`}
+                                                    className={`px-2 py-1.5 rounded-xl text-[9px] font-bold border transition-all ${JSON.parse(selectedUser.areas_asignadas || '[]').includes(area) ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-transparent border-gray-100'}`}
                                                 >
                                                     {area}
                                                 </Button>
