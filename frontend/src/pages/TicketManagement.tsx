@@ -62,9 +62,14 @@ const TicketManagement: React.FC = () => {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadMoreLoading, setIsLoadMoreLoading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('Todos');
-    const [subStatusFilter, setSubStatusFilter] = useState('Todos');
+
+    // Recuperar filtros de localStorage o usar valores por defecto
+    const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem('ticket_search') || '');
+    const [statusFilter, setStatusFilter] = useState(() => localStorage.getItem('ticket_status') || 'Todos');
+    const [subStatusFilter, setSubStatusFilter] = useState(() => localStorage.getItem('ticket_substatus') || 'Todos');
+    const [analystFilter, setAnalystFilter] = useState(() => localStorage.getItem('ticket_analyst') || 'Todos');
+
+    const [analystOptions, setAnalystOptions] = useState<{ value: string, label: string }[]>([]);
     const [skip, setSkip] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const LIMIT = 100;
@@ -85,6 +90,35 @@ const TicketManagement: React.FC = () => {
         ]
     };
 
+    // Cargar analistas para el filtro
+    const fetchAnalysts = async () => {
+        try {
+            const data = await get('/soporte/estadisticas/rendimiento');
+            if (data && Array.isArray(data)) {
+                const options = data.map((a: any) => ({
+                    value: a.name,
+                    label: formatName(a.name)
+                }));
+                // Filtrar duplicados o vacíos si es necesario, aunque el backend ya hace distinct
+                setAnalystOptions(options);
+            }
+        } catch (error) {
+            console.error("Error cargando analistas:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchAnalysts();
+    }, []);
+
+    // Guardar filtros en localStorage
+    useEffect(() => {
+        localStorage.setItem('ticket_search', searchTerm);
+        localStorage.setItem('ticket_status', statusFilter);
+        localStorage.setItem('ticket_substatus', subStatusFilter);
+        localStorage.setItem('ticket_analyst', analystFilter);
+    }, [searchTerm, statusFilter, subStatusFilter, analystFilter]);
+
     const fetchTickets = async (currentSkip: number, isNewSearch: boolean = false) => {
         try {
             if (isNewSearch) setIsLoading(true);
@@ -95,6 +129,7 @@ const TicketManagement: React.FC = () => {
             params.append('limite', LIMIT.toString());
             if (statusFilter !== 'Todos') params.append('estado', statusFilter);
             if (subStatusFilter !== 'Todos') params.append('sub_estado', subStatusFilter);
+            if (analystFilter !== 'Todos') params.append('asignado_a', analystFilter);
             if (searchTerm) params.append('search', searchTerm);
 
             const data = await get(`/soporte/?${params.toString()}`);
@@ -123,7 +158,7 @@ const TicketManagement: React.FC = () => {
         }, 500); // 500ms debounce
 
         return () => clearTimeout(timer);
-    }, [searchTerm, statusFilter, subStatusFilter]);
+    }, [searchTerm, statusFilter, subStatusFilter, analystFilter]);
 
     // Reset sub-estado al cambiar estado
     useEffect(() => {
@@ -199,6 +234,16 @@ const TicketManagement: React.FC = () => {
         }
     };
 
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setStatusFilter('Todos');
+        setSubStatusFilter('Todos');
+        setAnalystFilter('Todos');
+        addNotification('info', 'Filtros restablecidos');
+    };
+
+    const hasActiveFilters = searchTerm !== '' || statusFilter !== 'Todos' || analystFilter !== 'Todos';
+
     return (
         <div className="space-y-8 pb-10 font-sans">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -245,6 +290,18 @@ const TicketManagement: React.FC = () => {
                         />
                     </div>
 
+                    <div className="w-48">
+                        <Select
+                            value={analystFilter}
+                            onChange={(e) => setAnalystFilter(e.target.value)}
+                            options={[
+                                { value: "Todos", label: "Todos los analistas" },
+                                ...analystOptions
+                            ]}
+                            className="bg-[var(--color-surface)]"
+                        />
+                    </div>
+
                     {statusFilter !== 'Todos' && (
                         <div className="w-48 animate-in fade-in slide-in-from-left-2 duration-300">
                             <Select
@@ -257,6 +314,18 @@ const TicketManagement: React.FC = () => {
                                 className="bg-[var(--color-surface)]"
                             />
                         </div>
+                    )}
+
+                    {hasActiveFilters && (
+                        <Button
+                            variant="ghost"
+                            onClick={handleClearFilters}
+                            icon={FilterX}
+                            className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 shrink-0"
+                            title="Limpiar filtros"
+                        >
+                            Limpiar
+                        </Button>
                     )}
                 </div>
             </div>
