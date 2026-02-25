@@ -22,6 +22,8 @@ import ReservaSalasView from './ServicePortal/pages/ReservaSalasView';
 import RequisicionPersonalFormView from './ServicePortal/pages/RequisicionPersonalFormView';
 import RequisicionManagementView from './ServicePortal/pages/RequisicionManagementView';
 import RequisicionListView from './ServicePortal/pages/RequisicionListView';
+import RequisicionDetailView from './ServicePortal/pages/RequisicionDetailView';
+import { Title, Text, Button, Icon } from '../components/atoms';
 import PortalLayout from './ServicePortal/PortalLayout';
 
 import imgHardware from '../assets/images/categories/Soporte Hardware.png';
@@ -112,6 +114,57 @@ const TicketDetailWrapper: React.FC<{
             onUpdate={onUpdate}
         />
     );
+};
+
+const RequisicionDetailWrapper: React.FC<{
+    onBack: () => void
+}> = ({ onBack }) => {
+    const { requisicionId } = useParams<{ requisicionId: string }>();
+    const [requisicion, setRequisicion] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchDetail = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                console.log("Fetching requisition detail for ID:", requisicionId);
+                const token = localStorage.getItem('token');
+                const res = await axios.get(`${API_CONFIG.BASE_URL}/requisiciones/${requisicionId}`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {}
+                });
+                console.log("Requisition data received:", res.data);
+                setRequisicion(res.data);
+            } catch (err: any) {
+                console.error("Error fetching requisition detail:", err);
+                setError(err.response?.data?.detail || err.message || "Error desconocido al cargar los datos");
+            } finally {
+                setLoading(false);
+            }
+        };
+        if (requisicionId) {
+            fetchDetail();
+        }
+    }, [requisicionId]);
+
+    if (loading) return <div className="p-20 text-center flex flex-col items-center gap-4"><div className="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-[var(--color-primary)] rounded-full"></div><Text>Cargando detalles...</Text></div>;
+
+    if (error) return (
+        <div className="p-20 text-center space-y-4">
+            <div className="bg-red-50 dark:bg-red-900/10 p-8 rounded-[2rem] border border-red-100 dark:border-red-900/20 max-w-xl mx-auto">
+                <Title variant="h5" color="error" className="mb-2">Error al cargar los datos</Title>
+                <Text color="text-secondary" weight="medium">{error}</Text>
+                <div className="mt-6">
+                    <Button variant="primary" onClick={onBack}>Volver a la lista</Button>
+                </div>
+            </div>
+        </div>
+    );
+
+    if (!requisicion) return <div className="p-20 text-center"><Text color="text-secondary">No se encontró la requisición.</Text><Button variant="ghost" onClick={onBack} className="mt-4">Volver</Button></div>;
+
+    return <RequisicionDetailView requisicion={requisicion} onBack={onBack} />;
 };
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
@@ -599,9 +652,12 @@ const ServicePortal: React.FC = () => {
                         onSubmit={async (data: any) => {
                             try {
                                 setIsLoading(true);
-                                await axios.post(`${API_BASE_URL}/requisiciones/`, data);
+                                const token = localStorage.getItem('token');
+                                const res = await axios.post(`${API_BASE_URL}/requisiciones/`, data, {
+                                    headers: token ? { Authorization: `Bearer ${token}` } : {}
+                                });
                                 addNotification('success', "Requisición enviada correctamente.");
-                                navigate('/service-portal/inicio');
+                                navigate(`/service-portal/exito/${res.data.id}`);
                             } catch (err) {
                                 console.error("Error al enviar la requisición:", err);
                                 addNotification('error', "No se pudo enviar la requisición.");
@@ -614,7 +670,14 @@ const ServicePortal: React.FC = () => {
                 } />
 
                 <Route path="requisicion-personal/lista" element={
-                    <RequisicionListView onBack={() => navigate('/service-portal/requisicion-personal')} />
+                    <RequisicionListView
+                        onBack={() => navigate('/service-portal/requisicion-personal')}
+                        onViewDetail={(req) => navigate(`/service-portal/requisicion-personal/lista/${req.id}`)}
+                    />
+                } />
+
+                <Route path="requisicion-personal/lista/:requisicionId" element={
+                    <RequisicionDetailWrapper onBack={() => navigate('/service-portal/requisicion-personal/lista')} />
                 } />
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />

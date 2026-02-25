@@ -8,6 +8,8 @@ interface UserData {
     area: string;
     sede: string;
     email: string;
+    id?: string;
+    cedula?: string;
 }
 
 interface RequisicionPersonalFormViewProps {
@@ -279,8 +281,9 @@ const RequisicionPersonalFormView: React.FC<RequisicionPersonalFormViewProps> = 
             data.numero_personas = parseInt(data.numero_personas.toString(), 10) || 1;
         }
 
-        // id_creador (cedula)
-        data.id_creador = parseInt(user.cedula || user.id, 10) || null;
+        // id_creador se maneja en el backend desde el token, 
+        // pero lo enviamos como string si existe por compatibilidad
+        data.id_creador = user.cedula || user.id || null;
 
         onSubmit(data);
     };

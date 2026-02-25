@@ -5,6 +5,7 @@ Unifica modelos y schemas en una sola definicion
 from typing import Optional, List
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import func
 
 
 # --- Modelos de Base de Datos (table=True) ---
@@ -22,7 +23,7 @@ class Usuario(SQLModel, table=True):
     esta_activo: bool = Field(default=True)
     url_avatar: Optional[str] = Field(default=None, max_length=500)
     zona_horaria: str = Field(default="America/Bogota", max_length=50)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     actualizado_en: Optional[datetime] = Field(default=None)
     ultimo_login: Optional[datetime] = Field(default=None)
     
@@ -55,7 +56,7 @@ class Token(SQLModel, table=True):
     nombre: Optional[str] = Field(default=None, max_length=255)
     expira_en: datetime
     ultimo_uso_en: Optional[datetime] = Field(default=None)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     
     # Relaciones
     usuario: Optional[Usuario] = Relationship(back_populates="tokens")
@@ -71,7 +72,7 @@ class Sesion(SQLModel, table=True):
     direccion_ip: Optional[str] = Field(default=None, max_length=45)
     agente_usuario: Optional[str] = Field(default=None)
     expira_en: datetime
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     
     # Relaciones
     usuario: Optional[Usuario] = Relationship(back_populates="sesiones")

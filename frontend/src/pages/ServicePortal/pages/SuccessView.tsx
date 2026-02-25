@@ -5,12 +5,13 @@ import { Button, Title, Text, Icon } from '../../../components/atoms';
 
 interface SuccessViewProps {
     newTicketId: string | null;
+    formattedId?: string | null;
     onHome: () => void;
 }
 
-const SuccessView: React.FC<SuccessViewProps> = ({ newTicketId, onHome }) => {
+const SuccessView: React.FC<SuccessViewProps> = ({ newTicketId, formattedId, onHome }) => {
     const { ticketId } = useParams<{ ticketId: string }>();
-    const displayId = ticketId || newTicketId;
+    const displayId = formattedId || ticketId || newTicketId;
 
     return (
         <div className="py-20 text-center space-y-8 max-w-lg mx-auto">

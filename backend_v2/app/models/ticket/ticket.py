@@ -7,7 +7,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from pydantic import field_validator
 from sqlmodel import SQLModel, Field, Relationship, JSON
-from sqlalchemy import Column, Text
+from sqlalchemy import Column, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 
 
@@ -22,7 +22,7 @@ class CategoriaTicket(SQLModel, table=True):
     descripcion: Optional[str] = Field(default=None)
     icono: Optional[str] = Field(default=None, max_length=50)
     tipo_formulario: str = Field(max_length=50)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     
     # Relaciones
     tickets: List["Ticket"] = Relationship(back_populates="categoria")
@@ -64,11 +64,11 @@ class Ticket(SQLModel, table=True):
     
     # Fechas
     fecha_entrega_ideal: Optional[datetime] = Field(default=None)
-    fecha_creacion: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    fecha_creacion: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     fecha_cierre: Optional[datetime] = Field(default=None)
     resuelto_en: Optional[datetime] = Field(default=None)
     atendido_en: Optional[datetime] = Field(default=None)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     actualizado_en: Optional[datetime] = Field(default=None)
     
     # Relaciones
@@ -91,7 +91,7 @@ class SolicitudDesarrollo(SQLModel, table=True):
     porque: Optional[str] = Field(default=None)
     paraque: Optional[str] = Field(default=None)
     justificacion_ia: Optional[str] = Field(default=None)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     
     ticket: Optional[Ticket] = Relationship(back_populates="solicitud_desarrollo")
 
@@ -128,7 +128,7 @@ class SolicitudActivo(SQLModel, table=True):
     item_solicitado: str = Field(max_length=255) # E.g., "Mouse ergonómico", "Licencia Office"
     especificaciones: Optional[str] = Field(default=None, sa_column=Column(Text))
     cantidad: int = Field(default=1)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     
     ticket: Optional[Ticket] = Relationship(back_populates="solicitud_activo")
 
@@ -143,7 +143,7 @@ class ComentarioTicket(SQLModel, table=True):
     es_interno: bool = Field(default=False)
     usuario_id: Optional[str] = Field(default=None, max_length=50)
     nombre_usuario: Optional[str] = Field(default=None, max_length=255)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     
     ticket: Optional[Ticket] = Relationship(back_populates="comentarios")
 
@@ -158,7 +158,7 @@ class HistorialTicket(SQLModel, table=True):
     nombre_usuario: Optional[str] = Field(default=None, max_length=255)
     accion: str = Field(max_length=100)
     detalle: Optional[str] = Field(default=None)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     
     ticket: Optional[Ticket] = Relationship(back_populates="historial")
 
@@ -172,7 +172,7 @@ class AdjuntoTicket(SQLModel, table=True):
     nombre_archivo: str = Field(max_length=255)
     contenido_base64: str
     tipo_mime: Optional[str] = Field(default=None, max_length=100)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     
     ticket: Optional[Ticket] = Relationship(back_populates="adjuntos")
 

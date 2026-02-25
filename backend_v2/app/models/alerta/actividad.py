@@ -4,6 +4,7 @@ Modelos de Alertas y Actividades - Backend V2 (SQLModel)
 from typing import Optional
 from datetime import datetime, date
 from sqlmodel import SQLModel, Field
+from sqlalchemy import func
 
 
 # --- Modelos de Base de Datos (table=True) ---
@@ -25,7 +26,7 @@ class ActividadProxima(SQLModel, table=True):
     alerta_enviada: bool = Field(default=False)
     completado_en: Optional[datetime] = Field(default=None)
     creado_por: Optional[str] = Field(default=None, max_length=255)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     actualizado_en: Optional[datetime] = Field(default=None)
 
 
@@ -44,7 +45,7 @@ class RegistroActividad(SQLModel, table=True):
     tipo_actor: Optional[str] = Field(default=None, max_length=50)
     datos_dinamicos: Optional[str] = Field(default=None)  # JSON string
     creado_por: Optional[str] = Field(default=None, max_length=255)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     actualizado_en: Optional[datetime] = Field(default=None)
 
 

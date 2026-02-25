@@ -4,13 +4,13 @@ Modelos de Requisiciones de Personal - Backend V2 (SQLModel)
 from typing import Optional
 from datetime import datetime, date
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, Text, BigInteger
+from sqlalchemy import Column, Text, BigInteger, func
 
 class RequisicionPersonal(SQLModel, table=True):
     """Requisiciones de personal de la compañía"""
     __tablename__ = "requisiciones_personal"
     
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[str] = Field(default=None, primary_key=True, max_length=50)
     
     # Información del Solicitante
     solicitante_nombre: str = Field(max_length=255)
@@ -61,8 +61,7 @@ class RequisicionPersonal(SQLModel, table=True):
     
     # Metadatos
     estado: str = Field(default="Pendiente", max_length=50)
-    id_creador: Optional[int] = Field(default=None)
+    id_creador: Optional[str] = Field(default=None, max_length=50)
     fecha_creacion: datetime = Field(
-        default_factory=datetime.now,
-        sa_column_kwargs={"server_default": "now()"}
+        sa_column_kwargs={"server_default": func.now()}
     )

@@ -5,6 +5,7 @@ from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import func
 
 
 # --- Modelos de Base de Datos (table=True) ---
@@ -20,7 +21,7 @@ class FaseDesarrollo(SQLModel, table=True):
     descripcion: Optional[str] = Field(default=None)
     color: str = Field(default="#3498db", max_length=20)
     esta_activa: bool = Field(default=True)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     
     # Relaciones
     etapas: List["EtapaDesarrollo"] = Relationship(back_populates="fase")
@@ -41,7 +42,7 @@ class EtapaDesarrollo(SQLModel, table=True):
     porcentaje_inicio: Decimal = Field(default=Decimal("0.0"))
     porcentaje_fin: Decimal = Field(default=Decimal("100.0"))
     esta_activa: bool = Field(default=True)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     
     # Relaciones
     fase: Optional[FaseDesarrollo] = Relationship(back_populates="etapas")
@@ -74,7 +75,7 @@ class Desarrollo(SQLModel, table=True):
     fecha_real_fin: Optional[date] = Field(default=None)
     
     # Auditoria
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     actualizado_en: Optional[datetime] = Field(default=None)
     
     # Relaciones

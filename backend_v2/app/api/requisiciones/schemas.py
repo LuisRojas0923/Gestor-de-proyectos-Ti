@@ -3,7 +3,7 @@ Schemas de validación para Requisiciones de Personal
 """
 from typing import Optional
 from datetime import datetime, date
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
 class RequisicionBase(BaseModel):
     solicitante_nombre: str
@@ -44,7 +44,7 @@ class RequisicionCrear(RequisicionBase):
     pass
 
 class RequisicionPublica(RequisicionBase):
-    id: int
+    id: str
     estado: str
     fecha_creacion: datetime
     

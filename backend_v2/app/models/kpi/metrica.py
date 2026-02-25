@@ -5,6 +5,7 @@ from typing import Optional
 from datetime import datetime, date
 from decimal import Decimal
 from sqlmodel import SQLModel, Field
+from sqlalchemy import func
 
 
 # --- Modelos de Base de Datos (table=True) ---
@@ -22,8 +23,8 @@ class MetricaKpi(SQLModel, table=True):
     valor: Optional[Decimal] = Field(default=None)
     valor_objetivo: Optional[Decimal] = Field(default=None)
     calculado_por: Optional[str] = Field(default=None, max_length=255)
-    calculado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    calculado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
 
 
 class Funcionalidad(SQLModel, table=True):
@@ -41,7 +42,7 @@ class Funcionalidad(SQLModel, table=True):
     nivel_complejidad: str = Field(default="media", max_length=20)
     horas_estimadas: Optional[Decimal] = Field(default=None)
     horas_reales: Optional[Decimal] = Field(default=None)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     actualizado_en: Optional[datetime] = Field(default=None)
 
 
@@ -63,7 +64,7 @@ class HistorialEntrega(SQLModel, table=True):
     defectos_reportados: int = Field(default=0)
     defectos_resueltos: int = Field(default=0)
     notas_entrega: Optional[str] = Field(default=None)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
 
 
 # --- Schemas de Validacion ---

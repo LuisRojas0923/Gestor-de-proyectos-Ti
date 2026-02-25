@@ -5,7 +5,7 @@ from typing import Optional, Any
 from datetime import datetime, date
 from decimal import Decimal
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column
+from sqlalchemy import Column, func
 from sqlalchemy.dialects.postgresql import JSONB
 
 
@@ -23,7 +23,7 @@ class CacheContextoIA(SQLModel, table=True):
     expira_en: datetime
     conteo_accesos: int = Field(default=0)
     ultimo_acceso_en: Optional[datetime] = Field(default=None)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
 
 
 class HistorialAnalisisIA(SQLModel, table=True):
@@ -42,7 +42,7 @@ class HistorialAnalisisIA(SQLModel, table=True):
     usuario_id: Optional[str] = Field(default=None, max_length=50)
     puntaje_confianza: Optional[Decimal] = Field(default=None)
     fue_util: Optional[bool] = Field(default=None)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
 
 
 class RecomendacionIA(SQLModel, table=True):
@@ -65,7 +65,7 @@ class RecomendacionIA(SQLModel, table=True):
     implementado_en: Optional[datetime] = Field(default=None)
     retroalimentacion_resultados: Optional[str] = Field(default=None)
     generado_por: str = Field(max_length=50)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": func.now()})
     actualizado_en: Optional[datetime] = Field(default=None)
 
 
