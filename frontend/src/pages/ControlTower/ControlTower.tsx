@@ -10,9 +10,10 @@ import {
     CheckCircle2,
     BarChart3
 } from 'lucide-react';
-import { Title, Text, MaterialCard as Card, Button, Badge } from '../components/atoms';
-import { useApi } from '../hooks/useApi';
-import { useNotifications } from '../components/notifications/NotificationsContext';
+import { Title, Text, MaterialCard as Card, Button, Badge } from '../../components/atoms';
+import { useApi } from '../../hooks/useApi';
+import { useNotifications } from '../../components/notifications/NotificationsContext';
+import TrendChart from './TrendChart';
 
 interface AppStatus {
     usuarios: {
@@ -133,10 +134,10 @@ const ControlTower: React.FC = () => {
                     <Title variant="h2" weight="bold">
                         {isLoading ? "..." : `${Math.round(status?.servidor.ram_uso_mb || 0)} MB`}
                     </Title>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-2">
+                    <div className="w-full bg-[var(--color-border)] rounded-full h-1.5 mt-2">
                         <div
-                            className="bg-emerald-500 h-1.5 rounded-full"
-                            style={{ width: `${getRamPercentage()}%` }}
+                            ref={(el) => { if (el) el.style.width = `${getRamPercentage()}%`; }}
+                            className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
                         ></div>
                     </div>
                     <Text variant="caption" color="text-secondary" className="mt-1 block text-right">
@@ -172,17 +173,7 @@ const ControlTower: React.FC = () => {
                         </Text>
                     </div>
 
-                    <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-gray-900/20">
-                        <div className="text-center">
-                            <Activity size={48} className="mx-auto text-gray-300 dark:text-gray-700 mb-4 animate-pulse" />
-                            <Text variant="body2" color="text-secondary">
-                                El recolector de métricas históricas está compilando datos...
-                            </Text>
-                            <Text variant="caption" color="text-secondary">
-                                Los gráficos de tendencia aparecerán tras 24h de monitoreo continuo.
-                            </Text>
-                        </div>
-                    </div>
+                    <TrendChart autoRefresh={autoRefresh} />
                 </Card>
 
                 <div className="space-y-6">

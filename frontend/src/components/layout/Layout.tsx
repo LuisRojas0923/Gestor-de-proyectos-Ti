@@ -27,8 +27,8 @@ const Layout: React.FC = () => {
     // Latido inicial
     sendHeartbeat();
 
-    // Intervalo de 1 minuto
-    const interval = setInterval(sendHeartbeat, 60000);
+    // Intervalo de 1.5 minutos
+    const interval = setInterval(sendHeartbeat, 90000);
     return () => clearInterval(interval);
   }, [user, post]);
 

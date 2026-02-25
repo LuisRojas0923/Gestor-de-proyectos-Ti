@@ -47,7 +47,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                             onClick={onHome}
                         >
                             <Title variant="h2" weight="bold" color="white" className="tracking-tighter drop-shadow-2xl uppercase text-center font-black leading-tight italic whitespace-nowrap text-base sm:text-2xl md:text-3xl">
-                                <span className="hidden sm:inline">Portal de Servicios SOLID</span>
+                                <Text as="span" weight="bold" color="inherit" className="hidden sm:inline">Portal de Servicios SOLID</Text>
                                 <Text as="span" weight="bold" color="inherit" className="inline sm:hidden">Portal SOLID</Text>
                             </Title>
                         </div>

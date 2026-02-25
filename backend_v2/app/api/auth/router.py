@@ -3,7 +3,7 @@ API de Autenticacion - Backend V2 (Async + SQLModel)
 """
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -26,6 +26,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v2/auth/login")
 
 @router.post("/login")
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db_opcional),
@@ -69,6 +70,15 @@ async def login(
             datos={"sub": usuario.cedula, "rol": usuario.rol}
         )
 
+        # 6. Registrar sesion para monitoreo en tiempo real
+        await ServicioAuth.registrar_sesion(
+            db=db,
+            usuario_id=usuario.id,
+            token_jwt=token_acceso,
+            direccion_ip=request.client.host if request.client else None,
+            agente_usuario=request.headers.get("user-agent"),
+        )
+
         return {
             "access_token": token_acceso,
             "token_type": "bearer",
@@ -99,6 +109,7 @@ async def login(
 
 @router.post("/portal-login")
 async def portal_login(
+    request: Request,
     payload: dict,  # { "username": "..." }
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db_opcional),
@@ -128,7 +139,7 @@ async def portal_login(
             status_code=404, detail="Usuario no encontrado en el sistema"
         )
 
-    # 2. Obtener o crear objeto virtual para el token
+    # 2. Obtener usuario local (si existe)
     usuario_local = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
 
     # Preparamos los datos del usuario (ya sea del local o del ERP)
@@ -136,7 +147,7 @@ async def portal_login(
         "id": usuario_local.id if usuario_local else f"USR-P-{cedula}",
         "cedula": cedula,
         "nombre": empleado["nombre"],
-        "rol": usuario_local.rol if usuario_local else "user",
+        "rol": usuario_local.rol if usuario_local else "usuario",
         "area": empleado.get("area"),
         "cargo": empleado.get("cargo"),
         "sede": empleado.get("ciudadcontratacion"),
@@ -145,7 +156,7 @@ async def portal_login(
         "baseviaticos": empleado.get("baseviaticos"),
     }
 
-    # 3. Si el usuario existe localmente, sincronizamos sus datos de perfil (opcional/perezoso)
+    # 3. Si el usuario existe localmente, sincronizamos sus datos de perfil
     if usuario_local:
         try:
             usuario_local.area = user_data["area"]
@@ -171,6 +182,15 @@ async def portal_login(
     # 5. Generar token
     token_acceso = ServicioAuth.crear_token_acceso(
         datos={"sub": user_data["cedula"], "rol": user_data["rol"]}
+    )
+
+    # 6. Registrar sesion para monitoreo en tiempo real
+    await ServicioAuth.registrar_sesion(
+        db=db,
+        usuario_id=user_data["id"],
+        token_jwt=token_acceso,
+        direccion_ip=request.client.host if request.client else None,
+        agente_usuario=request.headers.get("user-agent"),
     )
 
     return {

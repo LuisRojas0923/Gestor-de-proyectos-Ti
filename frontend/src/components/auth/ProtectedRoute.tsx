@@ -20,11 +20,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
 
     // Normalizar rol del usuario de forma segura
     const userRole = (user.role || '').trim().toLowerCase();
-    const isAdminRole = ['analyst', 'admin', 'director'].includes(userRole);
+    const isAdminRole = ['analyst', 'admin', 'director', 'admin_sistemas'].includes(userRole);
 
     // 1. Nueva validación por módulo (RBAC Dinámico)
-    // Dashboard siempre permitido para roles administrativos para evitar bucles de redirección.
-    if (moduleCode === 'dashboard' && isAdminRole) {
+    // Dashboard y Torre de Control siempre permitidos para roles administrativos para evitar bloqueos por sincronización.
+    if ((moduleCode === 'dashboard' || moduleCode === 'control-tower') && isAdminRole) {
         return <>{children}</>;
     }
     // Solo bloqueamos si el arreglo de permisos EXISTE y el módulo NO está permitido.

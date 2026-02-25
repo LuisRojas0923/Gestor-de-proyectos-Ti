@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from sqlalchemy import func
-from typing import Any
+
 from datetime import timedelta
 from app.database import obtener_db
 from app.utils_cache import global_cache
@@ -379,3 +379,38 @@ async def obtener_estado_sistema(db: AsyncSession = Depends(obtener_db)):
 
         logging.error(f"Error en torre-control/estado: {e}")
         return {"error": str(e)}
+
+
+@router.get("/torre-control/historial")
+async def obtener_historial_metricas(
+    horas: int = 24, db: AsyncSession = Depends(obtener_db)
+):
+    """Retorna el historial de métricas para gráficas de tendencias"""
+    try:
+        from app.models.panel_control.metrica import MetricaSistema
+
+        ahora = get_bogota_now()
+        desde = ahora - timedelta(hours=horas)
+
+        result = await db.execute(
+            select(MetricaSistema)
+            .where(MetricaSistema.timestamp >= desde)
+            .order_by(MetricaSistema.timestamp.asc())
+        )
+        metricas = result.scalars().all()
+
+        return [
+            {
+                "timestamp": m.timestamp.isoformat(),
+                "cpu": m.cpu_uso_porcentaje,
+                "ram": m.ram_uso_mb,
+                "usuarios": m.usuarios_online,
+                "tickets": m.tickets_pendientes,
+            }
+            for m in metricas
+        ]
+    except Exception as e:
+        import logging
+
+        logging.error(f"Error en torre-control/historial: {e}")
+        return []

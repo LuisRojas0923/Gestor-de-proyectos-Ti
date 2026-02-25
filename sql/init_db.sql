@@ -38,13 +38,16 @@ CREATE TABLE IF NOT EXISTS tokens (
 
 CREATE TABLE IF NOT EXISTS sesiones (
     id SERIAL PRIMARY KEY,
-    usuario_id VARCHAR(50) NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    usuario_id VARCHAR(50) NOT NULL,
     token_sesion VARCHAR(255) UNIQUE NOT NULL,
     direccion_ip VARCHAR(45),
     agente_usuario TEXT,
-    expira_en TIMESTAMPTZ NOT NULL,
-    creado_en TIMESTAMPTZ DEFAULT NOW()
+    expira_en TIMESTAMP NOT NULL,
+    creado_en TIMESTAMP DEFAULT NOW(),
+    ultima_actividad_en TIMESTAMP DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_sesiones_usuario_id ON sesiones(usuario_id);
 
 -- ==========================================
 -- 2. Módulo de Desarrollo (Core)
@@ -173,7 +176,26 @@ CREATE TABLE IF NOT EXISTS comentarios_ticket (
 );
 
 -- ==========================================
--- 4. Módulo Reserva de Salas (Integrado)
+-- 4. Monitoreo y Observabilidad
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS metricas_sistema (
+    id SERIAL PRIMARY KEY,
+    timestamp TIMESTAMPTZ DEFAULT NOW(),
+    usuarios_online INTEGER DEFAULT 0,
+    usuarios_activos_24h INTEGER DEFAULT 0,
+    cpu_uso_porcentaje DECIMAL(5, 2) DEFAULT 0.0,
+    ram_uso_mb DECIMAL(12, 2) DEFAULT 0.0,
+    ram_total_mb DECIMAL(12, 2) DEFAULT 0.0,
+    tickets_pendientes INTEGER DEFAULT 0,
+    latencia_db_ms DECIMAL(10, 2) DEFAULT 0.0,
+    estado_servidor VARCHAR(50) DEFAULT 'ok'
+);
+
+CREATE INDEX IF NOT EXISTS idx_metricas_timestamp ON metricas_sistema(timestamp);
+
+-- ==========================================
+-- 5. Módulo Reserva de Salas (Integrado)
 -- ==========================================
 
 -- Salas
@@ -407,6 +429,8 @@ INSERT INTO permisos_rol (rol, modulo, permitido) VALUES
 ('admin_sistemas', 'mis_solicitudes', true),
 ('admin_sistemas', 'sistemas', true),
 ('admin_sistemas', 'desarrollo', true),
-('admin_sistemas', 'mejoramiento', true)
+('admin_sistemas', 'mejoramiento', true),
+('admin', 'control-tower', true),
+('admin_sistemas', 'control-tower', true)
 
 ON CONFLICT (rol, modulo) DO NOTHING;

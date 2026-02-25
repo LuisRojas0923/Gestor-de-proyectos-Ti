@@ -10,17 +10,20 @@ import {
     UserPlus,
     Clock
 } from 'lucide-react';
-import { Button } from '../components/atoms';
-import React, { useState, useEffect } from 'react';
+import { Button } from '../../components/atoms';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
-import { useNotifications } from '../components/notifications/NotificationsContext';
-import { useApi } from '../hooks/useApi';
-import { Select, Input, Title, Text, Icon } from '../components/atoms';
+import { useAppContext } from '../../context/AppContext';
+import { useNotifications } from '../../components/notifications/NotificationsContext';
+import { useApi } from '../../hooks/useApi';
+import { Select, Input, Title, Text, Icon } from '../../components/atoms';
+import TicketTooltip from './TicketTooltip';
+import TicketActionModal from './TicketActionModal';
 
 interface Ticket {
     id: string;
     asunto: string;
+    descripcion?: string;
     estado: string;
     sub_estado?: string;
     prioridad: string;
@@ -73,6 +76,32 @@ const TicketManagement: React.FC = () => {
     const [skip, setSkip] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const LIMIT = 100;
+
+    // Tooltip hover state
+    const [hoveredTicket, setHoveredTicket] = useState<Ticket | null>(null);
+    const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+    const [tooltipVisible, setTooltipVisible] = useState(false);
+    const hoverTimeout = React.useRef<NodeJS.Timeout | null>(null);
+
+    const handleTicketMouseEnter = useCallback((e: React.MouseEvent, ticket: Ticket) => {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        setTooltipPos({ x: rect.left, y: rect.bottom });
+        setHoveredTicket(ticket);
+        hoverTimeout.current = setTimeout(() => setTooltipVisible(true), 400);
+    }, []);
+
+    const handleTicketMouseLeave = useCallback(() => {
+        if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+        setTooltipVisible(false);
+        setHoveredTicket(null);
+    }, []);
+
+    // Modal de confirmación de acciones
+    const [actionModal, setActionModal] = useState<{
+        isOpen: boolean;
+        type: 'assign' | 'process';
+        ticketId: string;
+    }>({ isOpen: false, type: 'assign', ticketId: '' });
 
     const SUB_STATUS_OPTIONS: Record<string, { value: string, label: string }[]> = {
         'Todos': [],
@@ -199,38 +228,37 @@ const TicketManagement: React.FC = () => {
         cerrado: filteredTickets.filter(t => t.estado === 'Cerrado').length,
     };
 
-    const handleQuickAction = async (e: React.MouseEvent, ticketId: string, newStatus: string, newSubStatus: string) => {
+    const handleQuickAction = async (e: React.MouseEvent, ticketId: string, _newStatus: string, _newSubStatus: string) => {
         e.stopPropagation();
-        if (!confirm(`¿Estás seguro de cambiar el estado a ${newStatus} - ${newSubStatus}?`)) return;
-
-        try {
-            await patch(`/soporte/${ticketId}`, { estado: newStatus, sub_estado: newSubStatus });
-            addNotification('success', `Ticket actualizado a ${newStatus} - ${newSubStatus}`);
-            // Recargar tickets localmente
-            const updated = tickets.map(t => t.id === ticketId ? { ...t, estado: newStatus, sub_estado: newSubStatus } : t);
-            setTickets(updated);
-        } catch (error) {
-            console.error(error);
-            addNotification('error', 'Error al actualizar el ticket');
-        }
+        setActionModal({ isOpen: true, type: 'process', ticketId });
     };
 
     const handleAssignToMe = async (e: React.MouseEvent, ticketId: string) => {
         e.stopPropagation();
         if (!user) return;
-        if (!confirm(`¿Deseas asignarte este ticket?`)) return;
+        setActionModal({ isOpen: true, type: 'assign', ticketId });
+    };
+
+    const confirmAction = async () => {
+        const { type, ticketId } = actionModal;
+        setActionModal(prev => ({ ...prev, isOpen: false }));
 
         try {
-            // Asumimos que user tiene nombre.
-            const userName = (user as any).nombre || (user as any).name || (user as any).username || "Usuario Actual";
-            await patch(`/soporte/${ticketId}`, { asignado_a: userName, estado: 'Proceso', sub_estado: 'Proceso' });
-            addNotification('success', `Ticket asignado a ${userName}`);
-
-            const updated = tickets.map(t => t.id === ticketId ? { ...t, asignado_a: userName, estado: 'Proceso', sub_estado: 'Proceso' } : t);
-            setTickets(updated);
+            if (type === 'assign') {
+                const userName = (user as any)?.nombre || (user as any)?.name || 'Usuario Actual';
+                await patch(`/soporte/${ticketId}`, { asignado_a: userName, estado: 'Proceso', sub_estado: 'Proceso' });
+                addNotification('success', `Ticket asignado a ${userName}`);
+                const updated = tickets.map(t => t.id === ticketId ? { ...t, asignado_a: userName, estado: 'Proceso', sub_estado: 'Proceso' } : t);
+                setTickets(updated);
+            } else {
+                await patch(`/soporte/${ticketId}`, { estado: 'Proceso', sub_estado: 'Proceso' });
+                addNotification('success', 'Ticket actualizado a Proceso');
+                const updated = tickets.map(t => t.id === ticketId ? { ...t, estado: 'Proceso', sub_estado: 'Proceso' } : t);
+                setTickets(updated);
+            }
         } catch (error) {
             console.error(error);
-            addNotification('error', 'Error al asignar el ticket');
+            addNotification('error', 'Error al actualizar el ticket');
         }
     };
 
@@ -367,20 +395,20 @@ const TicketManagement: React.FC = () => {
                         <div className={`${COLUMN_WIDTHS.fecha} shrink-0 flex items-center justify-center py-2.5 border-r border-white/10`}>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Fecha</Text>
                         </div>
-                        <div className={`${COLUMN_WIDTHS.estado} shrink-0 flex items-center justify-center py-2.5 border-r border-white/10`}>
-                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Estado</Text>
-                        </div>
-                        <div className={`${COLUMN_WIDTHS.asunto} min-w-0 flex items-center px-6 py-2.5 border-r border-white/10`}>
-                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Asunto</Text>
+                        <div className={`${COLUMN_WIDTHS.area} shrink-0 flex items-center px-4 py-2.5 border-r border-white/10`}>
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Área</Text>
                         </div>
                         <div className={`${COLUMN_WIDTHS.solicitante} shrink-0 flex items-center px-6 py-2.5 border-r border-white/10`}>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Solicitante</Text>
                         </div>
-                        <div className={`${COLUMN_WIDTHS.area} shrink-0 flex items-center px-4 py-2.5 border-r border-white/10`}>
-                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Área Origen</Text>
+                        <div className={`${COLUMN_WIDTHS.asunto} min-w-0 flex items-center px-6 py-2.5 border-r border-white/10`}>
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Asunto</Text>
                         </div>
                         <div className={`${COLUMN_WIDTHS.prioridad} shrink-0 flex items-center justify-center py-2.5 border-r border-white/10`}>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Prioridad</Text>
+                        </div>
+                        <div className={`${COLUMN_WIDTHS.estado} shrink-0 flex items-center justify-center py-2.5 border-r border-white/10`}>
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Estado</Text>
                         </div>
                         <div className={`${COLUMN_WIDTHS.analista} shrink-0 flex items-center px-4 py-2.5 border-r border-white/10`}>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Analista</Text>
@@ -399,6 +427,8 @@ const TicketManagement: React.FC = () => {
                                 <div
                                     key={ticket.id}
                                     onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                    onMouseEnter={(e) => handleTicketMouseEnter(e, ticket)}
+                                    onMouseLeave={handleTicketMouseLeave}
                                     className="group bg-[var(--color-surface)] p-3 rounded-xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden"
                                 >
                                     {/* Borde izquierdo azul navy fijo */}
@@ -420,21 +450,10 @@ const TicketManagement: React.FC = () => {
                                             </Text>
                                         </div>
 
-                                        {/* Estado Col */}
-                                        <div className={`${COLUMN_WIDTHS.estado} shrink-0 flex items-center justify-center`}>
-                                            <Text
-                                                as="span"
-                                                weight="bold"
-                                                className={`px-3 py-1 rounded-lg text-[11px] tracking-wider border border-current/20 shrink-0 shadow-sm ${getStatusStyle(ticket.estado)}`}
-                                            >
-                                                {(ticket.estado || 'PENDIENTE').toUpperCase()}
-                                            </Text>
-                                        </div>
-
-                                        {/* Asunto (Flex-1) */}
-                                        <div className={`${COLUMN_WIDTHS.asunto} min-w-0 flex flex-col justify-center px-6`}>
-                                            <Text variant="body2" weight="bold" color="text-primary" className="truncate group-hover:text-[var(--color-primary)] transition-colors text-sm">
-                                                {ticket.asunto}
+                                        {/* Área Col */}
+                                        <div className={`${COLUMN_WIDTHS.area} shrink-0 flex items-center px-4`}>
+                                            <Text variant="body2" weight="bold" className="truncate text-[11px] max-w-full" title={ticket.area_creador}>
+                                                {ticket.area_creador || 'S/A'}
                                             </Text>
                                         </div>
 
@@ -446,13 +465,10 @@ const TicketManagement: React.FC = () => {
                                             </Text>
                                         </div>
 
-                                        {/* Área Col */}
-                                        <div className={`${COLUMN_WIDTHS.area} shrink-0 flex flex-col justify-center border-l border-gray-100 dark:border-gray-800 px-4 items-center md:items-start text-center md:text-left`}>
-                                            <Text variant="caption" weight="bold" className="text-[9px] uppercase opacity-40 mb-0.5 tracking-wider">
-                                                Área Solicitante
-                                            </Text>
-                                            <Text variant="body2" weight="bold" className="truncate text-[11px] max-w-full" title={ticket.area_creador}>
-                                                {ticket.area_creador || 'S/A'}
+                                        {/* Asunto (Flex-1) */}
+                                        <div className={`${COLUMN_WIDTHS.asunto} min-w-0 flex flex-col justify-center px-6`}>
+                                            <Text variant="body2" weight="bold" color="text-primary" className="truncate group-hover:text-[var(--color-primary)] transition-colors text-sm">
+                                                {ticket.asunto}
                                             </Text>
                                         </div>
 
@@ -461,6 +477,17 @@ const TicketManagement: React.FC = () => {
                                             <div className={`w-1.5 h-1.5 rounded-full ${getPriorityStyle(ticket.prioridad).replace('text', 'bg')}`}></div>
                                             <Text variant="caption" weight="bold" className={`text-[10px] ${getPriorityStyle(ticket.prioridad)}`}>
                                                 {ticket.prioridad}
+                                            </Text>
+                                        </div>
+
+                                        {/* Estado Col */}
+                                        <div className={`${COLUMN_WIDTHS.estado} shrink-0 flex items-center justify-center`}>
+                                            <Text
+                                                as="span"
+                                                weight="bold"
+                                                className={`px-3 py-1 rounded-lg text-[11px] tracking-wider border border-current/20 shrink-0 shadow-sm ${getStatusStyle(ticket.estado)}`}
+                                            >
+                                                {(ticket.estado || 'PENDIENTE').toUpperCase()}
                                             </Text>
                                         </div>
 
@@ -497,20 +524,6 @@ const TicketManagement: React.FC = () => {
                                                     icon={Play}
                                                 />
                                             )}
-
-                                            {ticket.estado !== 'Cerrado' && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/portal-servicios/ticket/${ticket.id}`);
-                                                    }}
-                                                    className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all border border-emerald-500/20"
-                                                    title="Ver Detalle"
-                                                    icon={CheckCircle}
-                                                />
-                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -536,6 +549,25 @@ const TicketManagement: React.FC = () => {
                             </div>
                         )}
                     </div>
+
+                    {/* Tooltip flotante */}
+                    {hoveredTicket && (
+                        <TicketTooltip
+                            ticket={hoveredTicket}
+                            position={tooltipPos}
+                            visible={tooltipVisible}
+                        />
+                    )}
+
+                    {/* Modal de confirmación */}
+                    <TicketActionModal
+                        isOpen={actionModal.isOpen}
+                        actionType={actionModal.type}
+                        ticketId={actionModal.ticketId}
+                        userName={(user as any)?.nombre || (user as any)?.name}
+                        onConfirm={confirmAction}
+                        onCancel={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
+                    />
                 </div>
             ) : (
                 <div className="py-20 text-center bg-[var(--color-surface)] rounded-[2.5rem] border border-[var(--color-border)] shadow-xl shadow-black/5">

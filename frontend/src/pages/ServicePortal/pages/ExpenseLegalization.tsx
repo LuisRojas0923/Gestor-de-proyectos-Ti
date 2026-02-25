@@ -384,7 +384,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                         <div className="w-1 h-4 bg-[var(--color-primary)] rounded-full hidden sm:block"></div>
                         <Title variant="h6" weight="bold" className="text-[10px] sm:text-xs tracking-tight uppercase whitespace-nowrap flex items-center gap-1">
-                            ÍTEMS <span className="hidden sm:inline">DEL REPORTE</span>
+                            ÍTEMS <Text as="span" className="hidden sm:inline">DEL REPORTE</Text>
                             <Text as="span" variant="caption" className="font-medium opacity-40 lowercase text-[9px] sm:text-[10px]">
                                 ({lineas.length})
                             </Text>
