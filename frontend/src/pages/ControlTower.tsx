@@ -5,13 +5,12 @@ import {
     Cpu,
     Database,
     HardDrive,
-    Clock,
     RefreshCw,
     AlertCircle,
     CheckCircle2,
     BarChart3
 } from 'lucide-react';
-import { Title, Text, Card, Button, Badge } from '../components/atoms';
+import { Title, Text, MaterialCard as Card, Button, Badge } from '../components/atoms';
 import { useApi } from '../hooks/useApi';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 
@@ -62,9 +61,9 @@ const ControlTower: React.FC = () => {
     }, [autoRefresh]);
 
     const getCpuColor = (load: number) => {
-        if (load > 8) return 'text-red-500';
-        if (load > 5) return 'text-yellow-500';
-        return 'text-green-500';
+        if (load > 8) return 'text-red-600 dark:text-red-400';
+        if (load > 5) return 'text-yellow-600 dark:text-yellow-400';
+        return 'text-green-600 dark:text-green-400';
     };
 
     const getRamPercentage = () => {
@@ -77,7 +76,7 @@ const ControlTower: React.FC = () => {
             <div className="flex justify-between items-center">
                 <div>
                     <Title variant="h3" weight="bold" color="text-primary" className="mb-1 flex items-center gap-2">
-                        <Activity className="text-blue-500" /> Torre de Control
+                        <Activity className="text-[var(--color-primary)]" /> Torre de Control
                     </Title>
                     <Text variant="body1" color="text-secondary">
                         Monitoreo preventivo del servidor y actividad de usuarios
@@ -98,7 +97,7 @@ const ControlTower: React.FC = () => {
 
             {/* Main Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-blue-500">
+                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-primary)]">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-500">
                             <Users size={24} />
@@ -111,7 +110,7 @@ const ControlTower: React.FC = () => {
                     </Text>
                 </Card>
 
-                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-purple-500">
+                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-secondary)]">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-500">
                             <Cpu size={24} />
@@ -125,7 +124,7 @@ const ControlTower: React.FC = () => {
                     </Text>
                 </Card>
 
-                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-emerald-500">
+                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-success)]">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-500">
                             <HardDrive size={24} />
@@ -145,7 +144,7 @@ const ControlTower: React.FC = () => {
                     </Text>
                 </Card>
 
-                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-orange-500">
+                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-warning)]">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-orange-500">
                             <Database size={24} />
@@ -214,12 +213,12 @@ const ControlTower: React.FC = () => {
                         </div>
                     </Card>
 
-                    <Card className="p-6 bg-blue-500 text-white">
+                    <Card className="p-6 bg-[var(--color-primary)] text-[var(--color-surface)] shadow-2xl">
                         <div className="flex items-start gap-4">
-                            <AlertCircle size={32} className="text-blue-100 shrink-0" />
+                            <AlertCircle size={32} className="text-[var(--color-surface)] opacity-80 shrink-0" />
                             <div>
-                                <Title variant="h5" weight="bold" className="text-white mb-2">Información Técnica</Title>
-                                <Text variant="body2" className="text-blue-50 opacity-90">
+                                <Title variant="h5" weight="bold" className="text-inherit mb-2">Información Técnica</Title>
+                                <Text variant="body2" className="text-inherit opacity-90">
                                     Esta vista es exclusiva para administradores. La latencia de red actual es de {Math.random() * 20 + 10 | 0}ms.
                                 </Text>
                             </div>
