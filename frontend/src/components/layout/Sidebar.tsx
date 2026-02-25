@@ -13,6 +13,7 @@ import {
   LogOut,
   Palette,
   Users,
+  Activity,
   X
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
@@ -59,6 +60,7 @@ const Sidebar: React.FC = () => {
     { id: 'user-admin', name: 'Gestión de Usuarios', href: '/admin/users', icon: Users },
     { id: 'rooms-admin', name: 'Gestión de Salas', href: '/admin/rooms', icon: DoorOpen },
     { id: 'settings', name: 'Configuración', href: '/settings', icon: Settings },
+    { id: 'control-tower', name: 'Torre de Control', href: '/admin/control-tower', icon: Activity },
     { id: 'design-catalog', name: 'Catálogo de Diseño', href: '/design-catalog', icon: Palette },
   ];
 
@@ -68,6 +70,9 @@ const Sidebar: React.FC = () => {
 
     // Gestión de Salas: solo rol admin
     if (item.id === 'rooms-admin') return userRole === 'admin' || userRole === 'manager';
+
+    // Torre de Control: admin y admin_sistemas
+    if (item.id === 'control-tower') return userRole === 'admin' || userRole === 'admin_sistemas';
 
     // Si el usuario no tiene cargados los permisos todavía (sesión antigua en caché)
     // permitimos ver todo lo que su rol tradicional permitía

@@ -93,6 +93,9 @@ class Sesion(SQLModel, table=True):
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": "now()"}
     )
+    ultima_actividad_en: Optional[datetime] = Field(
+        default=None, sa_column_kwargs={"server_default": "now()"}
+    )
 
     # Relaciones
     usuario: Optional[Usuario] = Relationship(back_populates="sesiones")

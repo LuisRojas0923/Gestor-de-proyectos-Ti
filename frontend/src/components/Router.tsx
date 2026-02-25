@@ -14,6 +14,7 @@ import DesignSystemCatalog from '../pages/DesignSystemCatalog';
 import Login from '../pages/Login';
 import UserAdmin from '../pages/UserAdmin';
 import RoomsPage from '../pages/RoomsPage';
+import ControlTower from '../pages/ControlTower';
 import Layout from './layout/Layout';
 import ProtectedRoute from './auth/ProtectedRoute';
 
@@ -39,6 +40,7 @@ const AppRouter: React.FC = () => {
           <Route path="ticket-management" element={<ProtectedRoute moduleCode="ticket-management"><TicketManagement /></ProtectedRoute>} />
           <Route path="admin/users" element={<ProtectedRoute moduleCode="user-admin"><UserAdmin /></ProtectedRoute>} />
           <Route path="admin/rooms" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><RoomsPage /></ProtectedRoute>} />
+          <Route path="admin/control-tower" element={<ProtectedRoute allowedRoles={['admin', 'admin_sistemas']}><ControlTower /></ProtectedRoute>} />
           <Route path="design-catalog" element={<ProtectedRoute moduleCode="design-catalog"><DesignSystemCatalog /></ProtectedRoute>} />
         </Route>
 

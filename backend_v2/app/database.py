@@ -1,6 +1,7 @@
 """
 Configuracion de Base de Datos - Backend V2 (Async + SQLModel)
 """
+
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import create_engine
@@ -22,10 +23,10 @@ async_engine = create_async_engine(
     ASYNC_DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
-    pool_size=40,          # Aumentado para soportar 2 workers y 400+ usuarios
-    max_overflow=80,       # Permite hasta 120 conexiones simultáneas
-    pool_timeout=60,       # Aumentado el tiempo de espera en cola
-    pool_recycle=1800
+    pool_size=40,  # Aumentado para soportar 2 workers y 400+ usuarios
+    max_overflow=80,  # Permite hasta 120 conexiones simultáneas
+    pool_timeout=60,  # Aumentado el tiempo de espera en cola
+    pool_recycle=1800,
 )
 
 # SessionMaker ASINCRONO
@@ -34,7 +35,7 @@ AsyncSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
     autocommit=False,
-    autoflush=False
+    autoflush=False,
 )
 
 # Engine SINCRONO para compatibilidad (migraciones, seed, etc.)
@@ -43,7 +44,7 @@ sync_engine = create_engine(
     pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,
-    connect_args={"options": "-c client_encoding=utf8"}
+    connect_args={"options": "-c client_encoding=utf8"},
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
@@ -57,10 +58,7 @@ engine = sync_engine
 # --- Configuracion ERP Externo (se mantiene sincrono) ---
 ERP_DATABASE_URL = config.erp_database_url
 erp_engine = create_engine(
-    ERP_DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10
+    ERP_DATABASE_URL, pool_pre_ping=True, pool_size=5, max_overflow=10
 )
 SessionErp = sessionmaker(autocommit=False, autoflush=False, bind=erp_engine)
 
@@ -110,24 +108,61 @@ async def init_db():
     async with async_engine.begin() as conn:
         # 1. Crear tablas si no existen
         await conn.run_sync(SQLModel.metadata.create_all)
-        
+
         # 2. Asegurar columnas de perfil (Migración manual segura)
         from sqlalchemy import text
+
         try:
-            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS area VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS sede VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS centrocosto VARCHAR(255)"))
-            
+            await conn.execute(
+                text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS area VARCHAR(255)")
+            )
+            await conn.execute(
+                text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo VARCHAR(255)")
+            )
+            await conn.execute(
+                text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS sede VARCHAR(255)")
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS centrocosto VARCHAR(255)"
+                )
+            )
+
             # Columnas de auditoría para reservas
-            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS updated_by_name VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS updated_by_document VARCHAR(100)"))
-            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_by_name VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_by_document VARCHAR(100)"))
+            await conn.execute(
+                text(
+                    "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS updated_by_name VARCHAR(255)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS updated_by_document VARCHAR(100)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_by_name VARCHAR(255)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_by_document VARCHAR(100)"
+                )
+            )
+
+            # Torre de Control: Actividad de sesiones
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS ultima_actividad_en TIMESTAMP"
+                )
+            )
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría: {e}")
 
-    # 3. Seed idempotente de sala por defecto
+    # 3. Importar modelos para asegurar que SQLModel los registre para create_all (si no están ya)
+    from .models.panel_control.metrica import MetricaSistema
+
+    # 3.1 Seed idempotente de sala por defecto
     try:
         import uuid
         from sqlmodel import select
@@ -136,7 +171,9 @@ async def init_db():
         default_room_id = uuid.UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 
         async with AsyncSessionLocal() as session:
-            result = await session.execute(select(Room).where(Room.id == default_room_id))
+            result = await session.execute(
+                select(Room).where(Room.id == default_room_id)
+            )
             if result.scalars().first() is None:
                 session.add(
                     Room(
@@ -158,7 +195,9 @@ async def init_db():
         from .services.auth.servicio import ServicioAuth
 
         async with AsyncSessionLocal() as session:
-            result = await session.execute(select(Usuario).where(Usuario.cedula == "admin"))
+            result = await session.execute(
+                select(Usuario).where(Usuario.cedula == "admin")
+            )
             if result.scalar_one_or_none() is None:
                 admin = Usuario(
                     id="admin-01",
