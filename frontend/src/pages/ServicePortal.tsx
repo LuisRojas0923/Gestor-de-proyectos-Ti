@@ -1,17 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
-import { useAppContext } from '../context/AppContext';
 import axios from 'axios';
-import {
-    Plus
-} from 'lucide-react';
 import { API_CONFIG } from '../config/api';
+
 import DashboardView from './ServicePortal/pages/DashboardView';
-import CategoryView, { Category } from './ServicePortal/pages/CategoryView';
-import TicketFormView from './ServicePortal/pages/TicketFormView';
 import TicketListView from './ServicePortal/pages/TicketListView';
-import TicketDetailView from './ServicePortal/pages/TicketDetailView';
 import SuccessView from './ServicePortal/pages/SuccessView';
 import ExpenseLegalization from './ServicePortal/pages/ExpenseLegalization';
 import AreaSelectionView from './ServicePortal/pages/AreaSelectionView';
@@ -22,416 +16,103 @@ import TransitReportsView from './ServicePortal/pages/TransitReportsView';
 import ReservaSalasView from './ServicePortal/pages/ReservaSalasView';
 import PortalLayout from './ServicePortal/PortalLayout';
 
-import imgHardware from '../assets/images/categories/Soporte Hardware.png';
-import imgSoftware from '../assets/images/categories/Soporte Software.png';
-import imgPerifericos from '../assets/images/categories/Soporte Perifericos.png';
-import imgImpresora from '../assets/images/categories/Soporte Impresora.png';
-import imgMejora from '../assets/images/categories/Soporte Mejoramiento.png';
-import imgDesarrollo from '../assets/images/categories/Nuevos desarrollos.png';
-import imgLicencias from '../assets/images/categories/Compra de Licencias.png';
-import imgControlCambios from '../assets/images/categories/Control de Cambios.png';
-
-// --- WRAPPERS DE NAVEGACIÓN (Definidos fuera para evitar re-montados innecesarios) ---
-
-const CategoryWrapper: React.FC<{
-    categories: Category[],
-    onSelect: (c: Category) => void,
-    onBack: () => void
-}> = ({ categories, onSelect, onBack }) => {
-    const { area } = useParams<{ area: string }>();
-
-    const filteredCategories = categories.filter(c => {
-        if (area === 'sistemas') return c.section === 'soporte';
-        if (area === 'mejoramiento') return c.id === 'soporte_mejora' || c.id === 'nuevos_desarrollos_mejora';
-        if (area === 'desarrollo') return c.id === 'control_cambios' || c.id === 'nuevos_desarrollos_solid';
-        return true;
-    });
-
-    return <CategoryView categories={filteredCategories} onSelect={onSelect} onBack={onBack} />;
-};
-
-const TicketFormWrapper: React.FC<{
-    selectedCategory: any,
-    categories: Category[],
-    user: any,
-    onSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>,
-    onBack: () => void,
-    isLoading: boolean,
-    selectedFiles: File[],
-    onFilesChange: React.Dispatch<React.SetStateAction<File[]>>
-}> = ({ selectedCategory, categories, user, onSubmit, onBack, isLoading, selectedFiles, onFilesChange }) => {
-    const { categoryId } = useParams<{ categoryId: string }>();
-    const category = selectedCategory || categories.find(c => c.id === categoryId);
-
-    if (!category && categories.length > 0) {
-        return <Navigate to="/service-portal/servicios" replace />;
-    }
-
-    if (categories.length === 0) {
-        return <div className="p-20 text-center"><div className="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-[var(--color-primary)] rounded-full" role="status"></div></div>;
-    }
-
-    return (
-        <TicketFormView
-            selectedCategory={category}
-            user={user as any}
-            onSubmit={onSubmit}
-            onBack={onBack}
-            isLoading={isLoading}
-            selectedFiles={selectedFiles}
-            onFilesChange={onFilesChange}
-        />
-    );
-};
-
-const TicketDetailWrapper: React.FC<{
-    selectedTicket: any,
-    tickets: any[],
-    user: any,
-    onBack: () => void,
-    onUpdate: (e: React.FormEvent<HTMLFormElement>) => Promise<void>
-}> = ({ selectedTicket, tickets, user, onBack, onUpdate }) => {
-    const { ticketId } = useParams<{ ticketId: string }>();
-    const ticket = selectedTicket || tickets.find(t => t.id === ticketId);
-
-    if (!ticket && tickets.length > 0) {
-        return <Navigate to="/service-portal/mis-tickets" replace />;
-    }
-
-    if (tickets.length === 0) {
-        return <div className="p-20 text-center"><div className="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-[var(--color-primary)] rounded-full" role="status"></div></div>;
-    }
-
-    return (
-        <TicketDetailView
-            selectedTicket={ticket}
-            user={user as any}
-            onBack={onBack}
-            onUpdate={onUpdate}
-        />
-    );
-};
+import {
+    CategoryWrapper,
+    TicketFormWrapper,
+    TicketDetailWrapper
+} from './ServicePortal/PortalWrappers';
+import { useServicePortal } from './ServicePortal/hooks/useServicePortal';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
 const ServicePortal: React.FC = () => {
-    const { state, dispatch } = useAppContext();
     const navigate = useNavigate();
-    const { user } = state;
     const { addNotification } = useNotifications();
+    const {
+        user,
+        dispatch,
+        categories,
+        selectedCategory,
+        setSelectedCategory,
+        selectedTicket,
+        setSelectedTicket,
+        tickets,
+        isLoading,
+        setIsLoading,
+        newTicketId,
+        selectedFiles,
+        setSelectedFiles,
+        handleSubmit,
+        handleSendUserFeedback,
+        fetchTickets
+    } = useServicePortal();
 
+    if (!user) return <div className="flex justify-center items-center h-screen">Cargando perfil...</div>;
 
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState<any>(null);
-    const [selectedTicket, setSelectedTicket] = useState<any>(null);
-    const [tickets, setTickets] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [newTicketId, setNewTicketId] = useState<string | null>(null);
-    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-
-
-    // Metadatos visuales: Mapeamos el ID de la categoría con su icono y sección
-    const categoryMetadata: Record<string, { icon: React.ReactNode; section: 'soporte' | 'mejoramiento' }> = {
-        soporte_hardware: {
-            icon: <img src={imgHardware} alt="Hardware" className="w-full h-full object-contain p-1" />,
-            section: 'soporte'
-        },
-        soporte_software: {
-            icon: <img src={imgSoftware} alt="Software" className="w-full h-full object-contain p-1" />,
-            section: 'soporte'
-        },
-        soporte_impresoras: {
-            icon: <img src={imgImpresora} alt="Impresoras" className="w-full h-full object-contain p-1" />,
-            section: 'soporte'
-        },
-        perifericos: {
-            icon: <img src={imgPerifericos} alt="Periféricos" className="w-full h-full object-contain p-1" />,
-            section: 'soporte'
-        },
-        compra_licencias: {
-            icon: <img src={imgLicencias} alt="Licencias" className="w-full h-full object-contain p-1" />,
-            section: 'soporte'
-        },
-        nuevos_desarrollos_mejora: {
-            icon: <img src={imgDesarrollo} alt="Nuevas Herramientas" className="w-full h-full object-contain p-2" />,
-            section: 'mejoramiento'
-        },
-        control_cambios: {
-            icon: <img src={imgControlCambios} alt="Control de Cambios" className="w-full h-full object-contain p-1" />,
-            section: 'mejoramiento'
-        },
-        soporte_mejora: {
-            icon: <img src={imgMejora} alt="Soporte Mejoramiento" className="w-full h-full object-contain p-1" />,
-            section: 'mejoramiento'
-        },
-        nuevos_desarrollos_solid: {
-            icon: <img src={imgDesarrollo} alt="Desarrollo SOLID" className="w-full h-full object-contain p-2" />,
-            section: 'mejoramiento' // Usamos mejoramiento como base para la lógica de visualización si es necesario, o lo filtramos por ID
+    const onFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        const ticketId = await handleSubmit(e);
+        if (ticketId) {
+            navigate(`/service-portal/exito/${ticketId}`);
         }
     };
 
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const res = await axios.get(`${API_BASE_URL}/soporte/categorias`);
-                const apiCats = res.data as any[];
-
-                // Mapeamos los datos de la API inyectando los iconos locales
-                const mappedCategories = apiCats.map((apiCat: any) => {
-                    const metadata = categoryMetadata[apiCat.id];
-                    return {
-                        id: apiCat.id,
-                        name: apiCat.nombre,
-                        description: apiCat.descripcion,
-                        form_type: apiCat.tipo_formulario,
-                        section: metadata ? metadata.section : 'soporte',
-                        icon: metadata ? metadata.icon : <Plus />
-                    };
-                });
-
-                setCategories(mappedCategories);
-            } catch (err) {
-                console.error("Error fetching categories:", err);
-                // Si falla la API, podrías poner un estado de error o cargar unos mínimos
-                addNotification('error', "Error al cargar el catálogo de servicios.");
-            }
-        };
-        fetchCategories();
-    }, []);
-
-    const hasRefreshed = React.useRef(false);
-    // Efecto para asegurar que el perfil del usuario tenga área/cargo/sede/centrocosto (Auto-sync para sesiones activas)
-    useEffect(() => {
-        const refreshUserProfile = async () => {
-            // Se dispara si falta área O sede O centrocosto Y no hemos intentado ya en este montaje
-            if (user && !hasRefreshed.current && (!user.area || !user.sede || !user.centrocosto || user.centrocosto === '---')) {
-                const token = localStorage.getItem('token');
-                if (!token) return;
-
-                try {
-                    hasRefreshed.current = true; // Marcar como intentado para evitar bucles
-                    const res = await axios.get(`${API_BASE_URL}/auth/yo`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-
-                    if (res.data) {
-                        const data = res.data as any;
-                        const updatedUser = {
-                            ...user,
-                            id: data.id || data.cedula || user?.id || '',
-                            cedula: data.cedula || data.id || user?.cedula || '',
-                            name: data.nombre || data.name || user?.name || '',
-                            role: data.rol || data.role || user?.role || 'usuario',
-                            email: data.email || user?.email || '',
-                            area: data.area || user?.area || 'Sin Área',
-                            cargo: data.cargo || user?.cargo || 'Sin Cargo',
-                            sede: data.sede || user?.sede || 'Principal',
-                            centrocosto: data.centrocosto || data.centro_costo || user?.centrocosto || '---',
-                            viaticante: data.viaticante ?? user?.viaticante ?? false,
-                            permissions: data.permissions || data.permisos || user?.permissions || []
-                        };
-
-                        // Solo despachar si algo cambió realmente para evitar loops
-                        if (updatedUser.area !== user.area || updatedUser.sede !== user.sede) {
-                            dispatch({ type: 'LOGIN', payload: updatedUser });
-                        }
-                    }
-                } catch (err) {
-                    console.error("No se pudo refrescar el perfil automáticamente:", err);
-                }
-            }
-        };
-        refreshUserProfile();
-    }, [user?.cedula, dispatch]); // Depender de un primitivo (cedula) en lugar del objeto completo
-
-    // Login logic removed
-
-    const fetchTickets = async (id: string) => {
-        try {
-            const res = await axios.get(`${API_BASE_URL}/soporte/mis-tickets/${id}`); // [CONTROLADO]
-            setTickets(res.data as any[]);
-        } catch (err) {
-            console.error("Error fetching user tickets:", err);
-            addNotification('error', "No se pudieron cargar tus tickets.");
-        }
+    const onFeedbackSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        const success = await handleSendUserFeedback(e);
+        if (success) navigate('/service-portal/mis-tickets');
     };
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault(); if (!selectedCategory || !user) return;
-        setIsLoading(true);
-        const fd = new FormData(e.currentTarget);
-
-        const fileToBase64 = (file: File): Promise<string> => {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => {
-                    const base64String = (reader.result as string).split(',')[1];
-                    resolve(base64String);
-                };
-                reader.onerror = error => reject(error);
-            });
-        };
-
+    const onSelectReport = async (reporte: any) => {
+        const rid = reporte.reporte_id;
         try {
-            let descripcionFinal = fd.get('descripcion_detallada') || 'Sin descripción';
-            let queNecesitaFinal = fd.get('que_necesita') || null;
-            let asuntoFinal = fd.get('asunto') || selectedCategory.name;
-            let finalCategoryId = selectedCategory.id;
+            setIsLoading(true);
+            const res = await axios.get(`${API_BASE_URL}/viaticos/reporte/${rid}/detalle`);
+            const resData = res.data as any[];
+            const lineasDetalle = resData.map((l: any) => ({
+                id: l.id || Math.random().toString(36).substring(7),
+                categoria: l.categoria,
+                fecha: l.fecharealgasto || l.fecha_gasto || l.fecha,
+                ot: l.ot,
+                cc: l.centrocosto || l.cc,
+                scc: l.subcentrocosto || l.scc,
+                valorConFactura: Number(l.valorconfactura !== undefined ? l.valorconfactura : l.valor_con_factura),
+                valorSinFactura: Number(l.valorsinfactura !== undefined ? l.valorsinfactura : l.valor_sin_factura),
+                observaciones: l.observaciones || l.observaciones_linea,
+                adjuntos: typeof l.adjuntos === 'string' ? JSON.parse(l.adjuntos) : (l.adjuntos || []),
+                combinacionesCC: []
+            }));
 
-            // Manejo de Categoría Virtual: Mapear al ID real seleccionado en el formulario
-            if (selectedCategory.id === 'soporte_tecnico_sistemas' || selectedCategory.id === 'soporte_tecnico') {
-                const subCatId = fd.get('sub_categoria_id');
-                if (subCatId) {
-                    finalCategoryId = subCatId.toString();
-                    // Intentar recuperar el nombre para el asunto si no hay uno específico
-                    if (!fd.get('asunto')) {
-                        const allSubCats = categories.find(c => c.id === selectedCategory.id)?.subCategories || [];
-                        const subCatName = allSubCats.find((sc: any) => sc.id === subCatId)?.name;
-                        asuntoFinal = subCatName ? `${subCatName}: ${fd.get('situacion_presentada') || 'Solicitud'}` : asuntoFinal;
-                    }
-                }
-            }
-
-            if (selectedCategory.form_type === 'development') {
-                const nombreProceso = fd.get('nombre_proceso');
-                asuntoFinal = nombreProceso ? `Desarrollo: ${nombreProceso}` : selectedCategory.name;
-
-                // Empaquetar el formulario de 6 secciones en un formato legible para el backend
-                const seccion1 = `=== 1. IDENTIFICACIÓN ===\nProceso: ${nombreProceso}\nUsuarios Estimados: ${fd.get('cantidad_usuarios_estimada')}\nÁrea: ${fd.get('area_solicitante')}\nLíder: ${fd.get('lider_requerimiento')}`;
-                const seccion2 = `=== 2. DIAGNÓSTICO ===\nHerramienta Excel: ${fd.get('existe_herramienta')}\nVolumen Datos: ${fd.get('volumen_datos_estimado')}\nRutas: ${fd.get('ruta_archivos')}\nLimitaciones: ${fd.get('limitaciones_actuales')}`;
-                const seccion3 = `=== 3. DATOS DE ENTRADA ===\nEvento: ${fd.get('evento_iniciador')}\nCampos: ${fd.get('campos_obligatorios')}\nValidaciones: ${fd.get('validaciones_seguridad')}`;
-                const seccion4 = `=== 4. FLUJO DE TRABAJO ===\nCiclo: ${fd.get('ciclo_vida')}\nActores: ${fd.get('actores_permisos')}\nRechazos: ${fd.get('gestion_rechazos')}`;
-                const seccion5 = `=== 5. REGLAS ===\nCálculos: ${fd.get('calculos_automaticos')}\nRestricciones: ${fd.get('reglas_restriccion')}\nInmutabilidad: ${fd.get('inmutabilidad')}`;
-                const seccion6 = `=== 6. INTEGRACIÓN Y ÉXITO ===\nImpacto: ${fd.get('impacto_modulos')}\nNotificaciones: ${fd.get('notificaciones_docs')}\nKPIs: ${fd.get('reportabilidad')}\nCriterio de Éxito: ${fd.get('criterio_exito')}`;
-
-                descripcionFinal = `${seccion1}\n\n${seccion2}\n\n${seccion3}`;
-                queNecesitaFinal = `${seccion4}\n\n${seccion5}\n\n${seccion6}`;
-            } else if (selectedCategory.section === 'mejoramiento') {
-                const necesidad = fd.get('necesidad_especifica');
-                asuntoFinal = necesidad ? `Mejora: ${necesidad.toString().substring(0, 40)}...` : `Mejora: ${selectedCategory.name}`;
-            } else if (selectedCategory.section === 'soporte') {
-                const situacion = fd.get('situacion_presentada');
-                asuntoFinal = situacion ? `Soporte: ${situacion}` : `Soporte: ${selectedCategory.name}`;
-            }
-
-            if (selectedCategory.form_type === 'change_control') {
-                asuntoFinal = fd.get('asunto') as string;
-                descripcionFinal = fd.get('descripcion_cambio') as string;
-            }
-
-            // Consolidador de datos para el backend
-            const formDataObj: Record<string, any> = {};
-            fd.forEach((value, key) => {
-                if (key !== 'archivos_adjuntos') {
-                    formDataObj[key] = value;
+            navigate('/service-portal/gastos/nuevo', {
+                state: {
+                    lineas: lineasDetalle,
+                    observaciones: resData[0]?.observaciones_gral,
+                    reporte_id: rid,
+                    estado: reporte.estado,
+                    from: 'reportes'
                 }
             });
-
-            const payload: any = {
-                categoria_id: finalCategoryId,
-                asunto: asuntoFinal,
-                descripcion: descripcionFinal,
-                creador_id: user.cedula || user.id,
-                nombre_creador: user.name,
-                correo_creador: user.email,
-                area_creador: user.area,
-                cargo_creador: user.cargo,
-                sede_creador: user.sede,
-                prioridad: (fd.get('nivel_prioridad') || 'Media') as string,
-                areas_impactadas: fd.get('areas_impactadas') ? JSON.parse(fd.get('areas_impactadas') as string) : [],
-                que_necesita: queNecesitaFinal,
-                datos_extra: formDataObj, // Guardamos TODO el formulario aquí por si acaso
-
-                // Campos específicos mapeados para compatibilidad
-                item_solicitado: fd.get('hardware_solicitado') || fd.get('item_solicitado') || (selectedCategory.id === 'compra_licencias' ? 'LICENCIA DE SOFTWARE' : null),
-                especificaciones: fd.get('especificaciones') || null,
-                cantidad: parseInt(fd.get('cantidad') as string) || 1,
-                fecha_entrega_ideal: fd.get('fecha_ideal') || null
-            };
-
-            // Validación de Áreas Impactadas
-            if (['development', 'change_control'].includes(selectedCategory.form_type)) {
-                if (!payload.areas_impactadas || payload.areas_impactadas.length === 0) {
-                    addNotification('warning', "Debe agregar al menos una área impactada.");
-                    setIsLoading(false);
-                    return;
-                }
-            }
-
-            if (user) {
-                const res = await axios.post(`${API_BASE_URL}/soporte/`, payload); // [CONTROLADO]
-                const createdTicketId = (res.data as any).id;
-
-                // 2. Subir adjuntos si existen
-                if (selectedFiles.length > 0) {
-                    for (const file of selectedFiles) {
-                        try {
-                            const base64 = await fileToBase64(file);
-                            await axios.post(`${API_BASE_URL}/soporte/${createdTicketId}/adjuntos`, { // [CONTROLADO]
-                                ticket_id: createdTicketId,
-                                nombre_archivo: file.name,
-                                contenido_base64: base64,
-                                tipo_mime: file.type
-                            });
-                        } catch (fileErr) {
-                            console.error(`Error subiendo archivo ${file.name}:`, fileErr);
-                        }
-                    }
-                }
-
-                setNewTicketId(createdTicketId);
-                navigate(`/service-portal/exito/${createdTicketId}`);
-                fetchTickets(user.cedula || user.id);
-                setSelectedFiles([]); // Limpiar archivos
-            }
-        } catch { addNotification('error', "Error al enviar ticket"); } finally { setIsLoading(false); }
-    };
-
-    const handleSendUserFeedback = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (!selectedTicket || !user) return;
-
-        setIsLoading(true);
-        const fd = new FormData(e.currentTarget);
-        const userResponse = fd.get('user_response') as string;
-
-        try {
-            await axios.patch(`${API_BASE_URL}/soporte/${selectedTicket.id}`, { // [CONTROLADO]
-                estado: 'En Proceso',
-                notas: (selectedTicket.notes || '') + `\n\n[USER ${new Date().toLocaleString()}] ${userResponse}`
-            });
-
-            addNotification('success', "Información enviada correctamente. El ticket vuelve a estar en proceso.");
-
-            // Actualizar lista y volver
-            fetchTickets(user.cedula || user.id);
-            navigate('/service-portal/mis-tickets');
         } catch (err) {
-            console.error("Error enviando feedback:", err);
-            addNotification('error', "No se pudo enviar la información.");
+            console.error("Error cargando detalle:", err);
+            addNotification('error', "No se pudo cargar el detalle del reporte.");
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Redirigir si no hay usuario (protección extra, aunque ProtectedRoute debería manejarlo)
-    useEffect(() => {
-        if (user?.cedula || user?.id) {
-            fetchTickets(user.cedula || user.id);
-        }
-    }, [user?.cedula, user?.id]);
-
-
-    if (!user) return <div className="flex justify-center items-center h-screen">Cargando perfil...</div>;
-
     return (
         <PortalLayout
             user={user}
             onHome={() => navigate('/service-portal/inicio')}
-            onLogout={() => {
-                dispatch({ type: 'LOGOUT' });
-                navigate('/login');
+            onLogout={async () => {
+                try {
+                    await axios.post(`${API_BASE_URL}/auth/logout`, {}, {
+                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                    });
+                } catch (err) {
+                    console.warn("Error notificando logout en portal:", err);
+                } finally {
+                    dispatch({ type: 'LOGOUT' });
+                    navigate('/login');
+                }
             }}
         >
             <Routes>
@@ -441,9 +122,7 @@ const ServicePortal: React.FC = () => {
                     <DashboardView
                         user={user}
                         onNavigate={async (v) => {
-                            if (v === 'viaticos_gestion') {
-                                navigate('/service-portal/gastos/gestion');
-                            }
+                            if (v === 'viaticos_gestion') navigate('/service-portal/gastos/gestion');
                             else if (v === 'categories') navigate('/service-portal/servicios');
                             else if (v === 'status') navigate('/service-portal/mis-tickets');
                             else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
@@ -472,7 +151,7 @@ const ServicePortal: React.FC = () => {
                         selectedCategory={selectedCategory}
                         categories={categories}
                         user={user}
-                        onSubmit={handleSubmit}
+                        onSubmit={onFormSubmit}
                         onBack={() => { navigate(-1); setSelectedFiles([]); }}
                         isLoading={isLoading}
                         selectedFiles={selectedFiles}
@@ -494,7 +173,7 @@ const ServicePortal: React.FC = () => {
                         tickets={tickets}
                         user={user}
                         onBack={() => navigate('/service-portal/mis-tickets')}
-                        onUpdate={handleSendUserFeedback}
+                        onUpdate={onFeedbackSubmit}
                     />
                 } />
 
@@ -526,56 +205,16 @@ const ServicePortal: React.FC = () => {
                         user={user}
                         onBack={() => navigate('/service-portal/gastos/gestion')}
                         onNewReport={() => navigate('/service-portal/gastos/nuevo', { state: { newReport: true } })}
-                        onSelectReport={async (reporte) => {
-                            const rid = reporte.reporte_id;
-                            try {
-                                setIsLoading(true);
-                                const res = await axios.get(`${API_BASE_URL}/viaticos/reporte/${rid}/detalle`);
-                                const resData = res.data as any[];
-                                const lineasDetalle = resData.map((l: any) => ({
-                                    id: l.id || Math.random().toString(36).substring(7),
-                                    categoria: l.categoria,
-                                    fecha: l.fecharealgasto || l.fecha_gasto || l.fecha,
-                                    ot: l.ot,
-                                    cc: l.centrocosto || l.cc,
-                                    scc: l.subcentrocosto || l.scc,
-                                    valorConFactura: Number(l.valorconfactura !== undefined ? l.valorconfactura : l.valor_con_factura),
-                                    valorSinFactura: Number(l.valorsinfactura !== undefined ? l.valorsinfactura : l.valor_sin_factura),
-                                    observaciones: l.observaciones || l.observaciones_linea,
-                                    adjuntos: typeof l.adjuntos === 'string' ? JSON.parse(l.adjuntos) : (l.adjuntos || []),
-                                    combinacionesCC: []
-                                }));
-
-                                navigate('/service-portal/gastos/nuevo', {
-                                    state: {
-                                        lineas: lineasDetalle,
-                                        observaciones: resData[0]?.observaciones_gral,
-                                        reporte_id: rid,
-                                        estado: reporte.estado,
-                                        from: 'reportes'
-                                    }
-                                });
-                            } catch (err) {
-                                console.error("Error cargando detalle:", err);
-                                addNotification('error', "No se pudo cargar el detalle del reporte.");
-                            } finally {
-                                setIsLoading(false);
-                            }
-                        }}
+                        onSelectReport={onSelectReport}
                     />
                 } />
 
                 <Route path="gastos/director" element={
-                    <DirectorExpensePanel
-                        onBack={() => navigate('/service-portal/gastos/gestion')}
-                    />
+                    <DirectorExpensePanel onBack={() => navigate('/service-portal/gastos/gestion')} />
                 } />
 
                 <Route path="gastos/estado" element={
-                    <AccountStatement
-                        user={user as any}
-                        onBack={() => navigate('/service-portal/gastos/gestion')}
-                    />
+                    <AccountStatement user={user as any} onBack={() => navigate('/service-portal/gastos/gestion')} />
                 } />
 
                 <Route path="exito/:ticketId" element={

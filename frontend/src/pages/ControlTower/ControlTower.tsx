@@ -33,17 +33,32 @@ interface AppStatus {
     timestamp: string;
 }
 
+interface SessionData {
+    id: number;
+    usuario_id: string;
+    nombre: string;
+    rol: string;
+    ip: string;
+    ultima_actividad: string;
+}
+
 const ControlTower: React.FC = () => {
-    const { get } = useApi<AppStatus>();
+    const { get } = useApi<any>();
     const { addNotification } = useNotifications();
     const [status, setStatus] = useState<AppStatus | null>(null);
+    const [sessions, setSessions] = useState<SessionData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [autoRefresh, setAutoRefresh] = useState(true);
 
     const fetchStatus = async () => {
         try {
-            const data = await get('/panel-control/torre-control/estado');
-            if (data) setStatus(data);
+            const [statusData, sessionsData] = await Promise.all([
+                get('/panel-control/torre-control/estado'),
+                get('/panel-control/torre-control/sesiones-activas')
+            ]);
+
+            if (statusData) setStatus(statusData);
+            if (sessionsData) setSessions(sessionsData);
         } catch (error) {
             console.error("Error fetching system status:", error);
             addNotification("error", "No se pudo conectar con el servicio de monitoreo");
@@ -205,8 +220,8 @@ const ControlTower: React.FC = () => {
             </div>
 
             {/* Health + Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="p-6 md:col-span-1">
                     <Title variant="h5" weight="bold" className="mb-4">Salud del Sistema</Title>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -233,6 +248,60 @@ const ControlTower: React.FC = () => {
                     </div>
                 </Card>
 
+                <Card className="p-6 md:col-span-2 overflow-hidden">
+                    <div className="flex justify-between items-center mb-4">
+                        <Title variant="h5" weight="bold">Sesiones Activas</Title>
+                        <Badge variant="info">{sessions.length} activas</Badge>
+                    </div>
+                    <div className="max-h-[220px] overflow-y-auto scrollbar-thin scrollbar-thumb-[var(--color-border)]">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="sticky top-0 bg-[var(--color-surface)] z-10">
+                                <tr>
+                                    <th className="pb-2 text-xs font-bold uppercase text-[var(--color-text-secondary)] opacity-60">Usuario</th>
+                                    <th className="pb-2 text-xs font-bold uppercase text-[var(--color-text-secondary)] opacity-60">Rol</th>
+                                    <th className="pb-2 text-xs font-bold uppercase text-[var(--color-text-secondary)] opacity-60">Estado</th>
+                                    <th className="pb-2 text-xs font-bold uppercase text-[var(--color-text-secondary)] opacity-60">IP</th>
+                                    <th className="pb-2 text-xs font-bold uppercase text-[var(--color-text-secondary)] opacity-60 text-right">Actividad</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--color-border)]">
+                                {sessions.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="py-8 text-center opacity-40 italic">No hay sesiones activas</td>
+                                    </tr>
+                                ) : (
+                                    sessions.map(s => (
+                                        <tr key={s.id} className="hover:bg-[var(--color-surface-variant)]/30 transition-colors">
+                                            <td className="py-3 pr-2">
+                                                <div className="flex flex-col">
+                                                    <Text variant="body2" weight="bold" className="leading-tight">{s.nombre}</Text>
+                                                    <Text variant="caption" className="opacity-60">{s.usuario_id}</Text>
+                                                </div>
+                                            </td>
+                                            <td className="py-3">
+                                                <Badge variant="default" className="text-[10px] py-0 px-1.5 uppercase">{s.rol}</Badge>
+                                            </td>
+                                            <td className="py-3">
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${(s as any).estado === 'Activa' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-yellow-500'}`}></div>
+                                                    <Text variant="caption" weight="medium" className={(s as any).estado === 'Activa' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
+                                                        {(s as any).estado || 'Activa'}
+                                                    </Text>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 opacity-60 text-xs font-mono">{s.ip || 'Local'}</td>
+                                            <td className="py-3 text-right">
+                                                <Text variant="caption" weight="medium">
+                                                    {new Date(s.ultima_actividad).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </Text>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
             </div>
         </div>
     );

@@ -13,8 +13,13 @@ from app.models.auth.usuario import Usuario, PermisoRol
 from app.services.erp import EmpleadosService
 
 
+from fastapi.security import OAuth2PasswordBearer
+
+
 class ServicioAuth:
     """Clase principal para logica de autenticacion (Async)"""
+
+    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v2/auth/login")
 
     @staticmethod
     def verificar_contrasena(contrasena_plana: str, contrasena_hasheada: str) -> bool:
@@ -222,11 +227,12 @@ class ServicioAuth:
         db: AsyncSession,
         usuario_id: str,
         token_jwt: str,
+        nombre_usuario: Optional[str] = None,
+        rol_usuario: Optional[str] = None,
         direccion_ip: Optional[str] = None,
         agente_usuario: Optional[str] = None,
     ) -> None:
-        """Registra una nueva sesión en la base de datos.
-        Usa su propia conexión para no corromper la sesión del endpoint."""
+        """Registra una nueva sesión en la base de datos."""
         from app.models.auth.usuario import Sesion
         from app.utils_date import get_bogota_now
         from app.database import AsyncSessionLocal
@@ -239,6 +245,8 @@ class ServicioAuth:
                 nueva_sesion = Sesion(
                     usuario_id=usuario_id,
                     token_sesion=token_jwt,
+                    nombre_usuario=nombre_usuario,
+                    rol_usuario=rol_usuario,
                     direccion_ip=direccion_ip,
                     agente_usuario=agente_usuario,
                     expira_en=expira,
@@ -249,3 +257,25 @@ class ServicioAuth:
             import logging
 
             logging.warning(f"No se pudo registrar sesion para {usuario_id}: {e}")
+
+    @staticmethod
+    async def marcar_fin_sesion(db: AsyncSession, token_jwt: str) -> bool:
+        """Marca el fin de una sesión (logout)."""
+        from app.models.auth.usuario import Sesion
+        from app.utils_date import get_bogota_now
+
+        try:
+            stmt = select(Sesion).where(Sesion.token_sesion == token_jwt)
+            result = await db.execute(stmt)
+            sesion = result.scalars().first()
+            if sesion:
+                sesion.fin_sesion = get_bogota_now()
+                await db.commit()
+                return True
+            return False
+        except Exception as e:
+            import logging
+
+            logging.error(f"Error al cerrar sesion: {e}")
+            await db.rollback()
+            return False

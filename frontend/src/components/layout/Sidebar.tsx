@@ -44,9 +44,15 @@ const Sidebar: React.FC = () => {
     fetchVersion();
   }, [get]);
 
-  const handleLogout = () => {
-    dispatch({ type: 'LOGOUT' });
-    // El router debería encargarse de la redirección al cambiar el estado del usuario
+  const handleLogout = async () => {
+    try {
+      // Intentar avisar al backend (sin esperar respuesta para no bloquear al usuario)
+      await get('/auth/logout');
+    } catch (err) {
+      console.warn("Error al notificar logout al backend:", err);
+    } finally {
+      dispatch({ type: 'LOGOUT' });
+    }
   };
 
   const navigation = [

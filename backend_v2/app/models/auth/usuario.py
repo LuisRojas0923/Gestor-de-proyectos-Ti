@@ -92,6 +92,9 @@ class Sesion(SQLModel, table=True):
     ultima_actividad_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": "now()"}
     )
+    nombre_usuario: Optional[str] = Field(default=None, max_length=255)
+    rol_usuario: Optional[str] = Field(default=None, max_length=50)
+    fin_sesion: Optional[datetime] = Field(default=None)
 
 
 class PermisoRol(SQLModel, table=True):

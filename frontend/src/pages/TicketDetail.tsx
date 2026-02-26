@@ -54,7 +54,7 @@ const TicketDetail: React.FC = () => {
         setAnalystForm((prev: Partial<Ticket>) => ({ ...prev, [field]: value }));
     };
 
-    const isAnalyst = user?.role === 'analyst' || user?.role === 'admin';
+    const isAnalyst = user?.role === 'analyst' || user?.role === 'admin' || user?.role === 'admin_sistemas';
 
     const handleAnalystSave = () => {
         if (!ticket) return;

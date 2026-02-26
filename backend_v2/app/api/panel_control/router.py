@@ -306,12 +306,19 @@ async def obtener_estado_sistema(db: AsyncSession = Depends(obtener_db)):
         from app.models.ticket.ticket import Ticket as TicketModel
 
         ahora = get_bogota_now()
-        hace_5_mins = ahora - timedelta(minutes=5)
+        hace_1_hora = ahora - timedelta(hours=1)
 
-        # 1. Usuarios en línea (actividad en últimos 5 mins)
+        # 1. Usuarios en línea (Únicos, sin Logout, actividad < 1h o nueva)
+        # Usamos func.count(distinct(Sesion.usuario_id)) para obtener el número real de personas
+        from sqlalchemy import or_, distinct
+
         res_online = await db.execute(
-            select(func.count(Sesion.id)).where(
-                Sesion.ultima_actividad_en >= hace_5_mins
+            select(func.count(distinct(Sesion.usuario_id))).where(
+                Sesion.fin_sesion.is_(None),
+                or_(
+                    Sesion.ultima_actividad_en.is_(None),
+                    Sesion.ultima_actividad_en >= hace_1_hora,
+                ),
             )
         )
         usuarios_online = res_online.scalar() or 0
@@ -413,4 +420,65 @@ async def obtener_historial_metricas(
         import logging
 
         logging.error(f"Error en torre-control/historial: {e}")
+        return []
+
+
+@router.get("/torre-control/sesiones-activas")
+async def obtener_sesiones_activas(db: AsyncSession = Depends(obtener_db)):
+    """Retorna lista de sesiones ÚNICAS por usuario que no han cerrado sesion"""
+    try:
+        from app.models.auth.usuario import Sesion
+        from sqlalchemy import or_
+
+        ahora = get_bogota_now()
+        hace_1_hora = ahora - timedelta(hours=1)
+
+        # Usamos DISTINCT ON (usuario_id) de PostgreSQL para obtener solo la mas reciente
+        # Nota: En SQLAlchemy/PostgreSQL, si usas DISTINCT ON, el primer ORDER BY debe ser la columna del DISTINCT
+        stmt = (
+            select(Sesion)
+            .distinct(Sesion.usuario_id)
+            .where(
+                Sesion.fin_sesion.is_(None),
+                or_(
+                    Sesion.ultima_actividad_en.is_(None),
+                    Sesion.ultima_actividad_en >= hace_1_hora,
+                ),
+            )
+            .order_by(Sesion.usuario_id, Sesion.creado_en.desc())
+        )
+
+        result = await db.execute(stmt)
+        sesiones = result.scalars().all()
+
+        respuesta = []
+        for s in sesiones:
+            # Lógica de semáforo de actividad
+            estado = "Activa"
+            if s.ultima_actividad_en:
+                mins_inactivo = (ahora - s.ultima_actividad_en).total_seconds() / 60
+                if mins_inactivo > 15:
+                    estado = "Inactiva (Idle)"
+
+            respuesta.append(
+                {
+                    "id": s.id,
+                    "usuario_id": s.usuario_id,
+                    "nombre": s.nombre_usuario or s.usuario_id,
+                    "rol": s.rol_usuario or "usuario",
+                    "ip": s.direccion_ip,
+                    "ultima_actividad": s.ultima_actividad_en.isoformat()
+                    if s.ultima_actividad_en
+                    else s.creado_en.isoformat(),
+                    "estado": estado,
+                }
+            )
+
+        # Ordenar respuesta final por actividad para el frontend
+        respuesta.sort(key=lambda x: x["ultima_actividad"], reverse=True)
+        return respuesta
+    except Exception as e:
+        import logging
+
+        logging.error(f"Error en torre-control/sesiones-activas: {e}")
         return []
