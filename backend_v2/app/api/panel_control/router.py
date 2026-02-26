@@ -456,7 +456,13 @@ async def obtener_sesiones_activas(db: AsyncSession = Depends(obtener_db)):
             # Lógica de semáforo de actividad
             estado = "Activa"
             if s.ultima_actividad_en:
-                mins_inactivo = (ahora - s.ultima_actividad_en).total_seconds() / 60
+                # Normalizar para comparación (ambos naive o ambos aware)
+                # Como get_bogota_now() es naive, pasamos el de la DB a naive
+                ult_act = s.ultima_actividad_en
+                if ult_act.tzinfo is not None:
+                    ult_act = ult_act.replace(tzinfo=None)
+
+                mins_inactivo = (ahora - ult_act).total_seconds() / 60
                 if mins_inactivo > 15:
                     estado = "Inactiva (Idle)"
 
