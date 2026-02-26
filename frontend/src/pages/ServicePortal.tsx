@@ -17,6 +17,7 @@ import ExpenseLegalization from './ServicePortal/pages/ExpenseLegalization';
 import AreaSelectionView from './ServicePortal/pages/AreaSelectionView';
 import ViaticosManagement from './ServicePortal/pages/ViaticosManagement';
 import AccountStatement from './ServicePortal/pages/AccountStatement';
+import DirectorExpensePanel from './ServicePortal/pages/DirectorExpensePanel';
 import TransitReportsView from './ServicePortal/pages/TransitReportsView';
 import ReservaSalasView from './ServicePortal/pages/ReservaSalasView';
 import PortalLayout from './ServicePortal/PortalLayout';
@@ -503,6 +504,7 @@ const ServicePortal: React.FC = () => {
                             if (v === 'legalizar_gastos') navigate('/service-portal/gastos/nuevo');
                             else if (v === 'viaticos_reportes') navigate('/service-portal/gastos/reportes');
                             else if (v === 'viaticos_estado') navigate('/service-portal/gastos/estado');
+                            else if (v === 'director_legalizaciones') navigate('/service-portal/gastos/director');
                         }}
                         onBack={() => navigate('/service-portal/inicio')}
                     />
@@ -560,6 +562,12 @@ const ServicePortal: React.FC = () => {
                                 setIsLoading(false);
                             }
                         }}
+                    />
+                } />
+
+                <Route path="gastos/director" element={
+                    <DirectorExpensePanel
+                        onBack={() => navigate('/service-portal/gastos/gestion')}
                     />
                 } />
 

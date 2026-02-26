@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ClipboardList } from 'lucide-react';
 import { Button, Text, Title } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 import { useAppContext } from '../../../context/AppContext';
@@ -8,13 +8,14 @@ import imgIngresar from '../../../assets/images/categories/Ingresar Reporte.png'
 import imgEstadoCuenta from '../../../assets/images/categories/estado de cuenta.png';
 
 interface ViaticosManagementProps {
-    onNavigate: (view: 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_estado') => void;
+    onNavigate: (view: 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_estado' | 'director_legalizaciones') => void;
     onBack: () => void;
 }
 
 const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onBack }) => {
     const { state, dispatch } = useAppContext();
     const { user, isViaticosVerified } = state;
+    const userRole = ((user as any)?.rol || user?.role || '').toLowerCase();
 
     if (!isViaticosVerified && user) {
         return (
@@ -33,10 +34,10 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                 <Button
                     variant="ghost"
                     onClick={onBack}
-                    className="text-neutral-700 hover:bg-white/10 dark:text-neutral-300 dark:hover:bg-neutral-800 px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
+                    className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
                 >
                     <ArrowLeft size={18} />
-                    <Text weight="medium" className="text-base font-medium text-left text-gray-900 dark:text-gray-100 hidden sm:inline">
+                    <Text weight="medium" className="text-base font-medium text-left text-[var(--color-text)] hidden sm:inline">
                         Volver
                     </Text>
                 </Button>
@@ -46,7 +47,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                 <div className="w-20"></div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 max-w-4xl mx-auto">
+            <div className={`grid grid-cols-1 ${['director', 'admin'].includes(userRole) ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8 mt-8 max-w-5xl mx-auto`}>
                 <ActionCard
                     title="Legalizacion de Gastos"
                     description="Registra y legaliza tus viáticos, adjuntando facturas y detalles por OT."
@@ -62,6 +63,16 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                     onClick={() => onNavigate('viaticos_estado')}
                     className="md:h-64"
                 />
+
+                {['director', 'admin'].includes(userRole) && (
+                    <ActionCard
+                        title="Panel de Legalizaciones"
+                        description="Consulta todas las legalizaciones reportadas y el flujo de información."
+                        icon={<ClipboardList size={40} />}
+                        onClick={() => onNavigate('director_legalizaciones')}
+                        className="md:h-64"
+                    />
+                )}
             </div>
         </div>
     );

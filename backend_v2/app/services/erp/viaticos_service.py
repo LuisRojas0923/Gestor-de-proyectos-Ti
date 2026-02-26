@@ -72,7 +72,7 @@ class ViaticosService:
                         # Extraer solo los números del string (p.ej. WEB-L0005 -> 5)
                         num_str = "".join(filter(str.isdigit, max_val))
                         nuevo_num = int(num_str) + 1 if num_str else 1
-                    except:
+                    except Exception:
                         # Fallback a conteo si falla el parseo numérico
                         sql_count = text("SELECT COUNT(*) FROM legalizaciones_transito")
                         nuevo_num = (db_erp.execute(sql_count).scalar() or 0) + 1
@@ -289,6 +289,22 @@ class ViaticosService:
         return [dict(row._mapping) for row in resultado]
 
     @staticmethod
+    def obtener_todas_legalizaciones(db_erp: Session) -> List[Dict]:
+        """Consulta todas las legalizaciones del portal (vista director)"""
+        sql = text("""
+            SELECT 
+                l.codigo, l.codigolegalizacion, l.fecha, l.hora, l.fechaaplicacion,
+                l.empleado, l.nombreempleado, l.area, l.valortotal, l.estado,
+                l.usuario, l.observaciones, l.anexo, l.centrocosto, l.cargo, l.ciudad,
+                l.reporte_id,
+                (SELECT COUNT(*) FROM transito_viaticos t WHERE t.reporte_id::text = l.reporte_id) as total_lineas
+            FROM legalizaciones_transito l
+            ORDER BY l.fecha DESC, l.hora DESC
+        """)
+        resultado = db_erp.execute(sql)
+        return [dict(row._mapping) for row in resultado]
+
+    @staticmethod
     def obtener_resumen_legalizaciones(db_erp: Session, cedula: str) -> List[Dict]:
         """Consulta el listado agrupado de legalizaciones desde la tabla de cabecera con todos los campos"""
         sql = text("""
@@ -328,6 +344,17 @@ class ViaticosService:
     def eliminar_reporte(db_erp: Session, reporte_id: str):
         """Elimina físicamente un reporte y sus líneas de las tablas de tránsito"""
         try:
+            # Validar estado actual antes de eliminar
+            sql_estado = text(
+                "SELECT estado FROM legalizaciones_transito WHERE reporte_id = :rid"
+            )
+            estado_actual = db_erp.execute(sql_estado, {"rid": reporte_id}).scalar()
+
+            if estado_actual and estado_actual.upper().strip() == "PROCESADO":
+                raise ValueError(
+                    f"El reporte {reporte_id} ya fue PROCESADO y no puede ser eliminado ni modificado."
+                )
+
             # Eliminar detalles
             db_erp.execute(
                 text("DELETE FROM transito_viaticos WHERE reporte_id = :rid"),
@@ -340,6 +367,8 @@ class ViaticosService:
             )
             db_erp.commit()
             print(f"REPORT_DELETE_SUCCESS | ID: {reporte_id}")
+        except ValueError:
+            raise
         except Exception as e:
             db_erp.rollback()
             raise e
