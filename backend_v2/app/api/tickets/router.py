@@ -184,6 +184,7 @@ async def listar_tickets(
     limite: int = 100,
     search: Optional[str] = None,
     sub_estado: Optional[str] = None,
+    categoria_id: Optional[str] = None,
     db: AsyncSession = Depends(obtener_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
 ):
@@ -198,6 +199,7 @@ async def listar_tickets(
             limit=limite,
             search=search,
             sub_estado=sub_estado,
+            categoria_id=categoria_id,
             usuario_peticion=usuario_actual,
         )
     except Exception as e:

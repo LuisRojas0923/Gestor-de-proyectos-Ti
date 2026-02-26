@@ -71,6 +71,7 @@ const TicketManagement: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState(() => localStorage.getItem('ticket_status') || 'Todos');
     const [subStatusFilter, setSubStatusFilter] = useState(() => localStorage.getItem('ticket_substatus') || 'Todos');
     const [analystFilter, setAnalystFilter] = useState(() => localStorage.getItem('ticket_analyst') || 'Todos');
+    const [categoryFilter, setCategoryFilter] = useState(() => localStorage.getItem('ticket_category') || 'Todos');
 
     const [analystOptions, setAnalystOptions] = useState<{ value: string, label: string }[]>([]);
     const [skip, setSkip] = useState(0);
@@ -146,7 +147,8 @@ const TicketManagement: React.FC = () => {
         localStorage.setItem('ticket_status', statusFilter);
         localStorage.setItem('ticket_substatus', subStatusFilter);
         localStorage.setItem('ticket_analyst', analystFilter);
-    }, [searchTerm, statusFilter, subStatusFilter, analystFilter]);
+        localStorage.setItem('ticket_category', categoryFilter);
+    }, [searchTerm, statusFilter, subStatusFilter, analystFilter, categoryFilter]);
 
     const fetchTickets = async (currentSkip: number, isNewSearch: boolean = false) => {
         try {
@@ -159,6 +161,7 @@ const TicketManagement: React.FC = () => {
             if (statusFilter !== 'Todos') params.append('estado', statusFilter);
             if (subStatusFilter !== 'Todos') params.append('sub_estado', subStatusFilter);
             if (analystFilter !== 'Todos') params.append('asignado_a', analystFilter);
+            if (categoryFilter !== 'Todos') params.append('categoria_id', categoryFilter);
             if (searchTerm) params.append('search', searchTerm);
 
             const data = await get(`/soporte/?${params.toString()}`);
@@ -187,7 +190,7 @@ const TicketManagement: React.FC = () => {
         }, 500); // 500ms debounce
 
         return () => clearTimeout(timer);
-    }, [searchTerm, statusFilter, subStatusFilter, analystFilter]);
+    }, [searchTerm, statusFilter, subStatusFilter, analystFilter, categoryFilter]);
 
     // Reset sub-estado al cambiar estado
     useEffect(() => {
@@ -295,6 +298,37 @@ const TicketManagement: React.FC = () => {
                 </div>
 
                 <div className="flex items-center space-x-3">
+                    {/* Botones de Especialidad */}
+                    <div className="flex bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm">
+                        <button
+                            onClick={() => setCategoryFilter('Todos')}
+                            className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${categoryFilter === 'Todos'
+                                    ? 'bg-[var(--color-primary)] text-white shadow-md'
+                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-background)]'
+                                }`}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            onClick={() => setCategoryFilter('soporte_mejora')}
+                            className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${categoryFilter === 'soporte_mejora'
+                                    ? 'bg-[var(--color-primary)] text-white shadow-md'
+                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-background)]'
+                                }`}
+                        >
+                            Mejoramiento
+                        </button>
+                        <button
+                            onClick={() => setCategoryFilter('soporte_tecnico')}
+                            className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${categoryFilter === 'soporte_tecnico'
+                                    ? 'bg-[var(--color-primary)] text-white shadow-md'
+                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-background)]'
+                                }`}
+                        >
+                            TI
+                        </button>
+                    </div>
+
                     <div className="relative w-64">
                         <Input
                             type="text"

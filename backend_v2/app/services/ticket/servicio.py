@@ -456,6 +456,7 @@ class ServicioTicket:
         asignado_a: Optional[str] = None,
         search: Optional[str] = None,
         sub_estado: Optional[str] = None,
+        categoria_id: Optional[str] = None,
         usuario_peticion: Optional[Usuario] = None,
     ) -> List[Ticket]:
         """Lista tickets con paginacion, extensiones y filtros (Async)"""
@@ -474,6 +475,8 @@ class ServicioTicket:
             query = query.where(Ticket.sub_estado == sub_estado)
         if asignado_a:
             query = query.where(Ticket.asignado_a == asignado_a)
+        if categoria_id:
+            query = query.where(Ticket.categoria_id == categoria_id)
 
         # Restricción por Rol y Permisos Granulares (Visibilidad Dinámica)
         if usuario_peticion:

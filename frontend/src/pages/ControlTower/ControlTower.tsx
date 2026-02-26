@@ -6,7 +6,7 @@ import {
     Database,
     HardDrive,
     RefreshCw,
-    AlertCircle,
+    Signal,
     CheckCircle2,
     BarChart3
 } from 'lucide-react';
@@ -97,125 +97,142 @@ const ControlTower: React.FC = () => {
             </div>
 
             {/* Main Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-primary)]">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-500">
-                            <Users size={24} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <Card className="px-4 py-3 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-primary)]">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-500">
+                                <Users size={16} />
+                            </div>
+                            <div>
+                                <Title variant="h4" weight="bold">{isLoading ? "..." : status?.usuarios.online}</Title>
+                                <Text variant="caption" color="text-secondary">Usuarios activos</Text>
+                            </div>
                         </div>
                         <Badge variant="success">En línea</Badge>
                     </div>
-                    <Title variant="h2" weight="bold">{isLoading ? "..." : status?.usuarios.online}</Title>
-                    <Text variant="caption" color="text-secondary" className="mt-1">
-                        Usuarios activos (últimos 5 min)
-                    </Text>
                 </Card>
 
-                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-secondary)]">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-500">
-                            <Cpu size={24} />
+                <Card className="px-4 py-3 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-secondary)]">
+                    <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-500">
+                            <Cpu size={16} />
+                        </div>
+                        <div>
+                            <Title variant="h4" weight="bold" className={getCpuColor(status?.servidor.cpu_load || 0)}>
+                                {isLoading ? "..." : `${status?.servidor.cpu_load}%`}
+                            </Title>
+                            <Text variant="caption" color="text-secondary">Carga CPU</Text>
                         </div>
                     </div>
-                    <Title variant="h2" weight="bold" className={getCpuColor(status?.servidor.cpu_load || 0)}>
-                        {isLoading ? "..." : `${status?.servidor.cpu_load}%`}
-                    </Title>
-                    <Text variant="caption" color="text-secondary" className="mt-1">
-                        Carga promedio de CPU
-                    </Text>
                 </Card>
 
-                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-success)]">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-500">
-                            <HardDrive size={24} />
+                <Card className="px-4 py-3 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-success)]">
+                    <div className="flex items-center gap-3">
+                        <div className="p-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-500">
+                            <HardDrive size={16} />
+                        </div>
+                        <div className="flex-1">
+                            <Title variant="h4" weight="bold">
+                                {isLoading ? "..." : `${Math.round(status?.servidor.ram_uso_mb || 0)} MB`}
+                            </Title>
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1 bg-[var(--color-border)] rounded-full h-1">
+                                    <div
+                                        ref={(el) => { if (el) el.style.width = `${getRamPercentage()}%`; }}
+                                        className="bg-emerald-500 h-1 rounded-full transition-all duration-500"
+                                    ></div>
+                                </div>
+                                <Text variant="caption" color="text-secondary">{Math.round(getRamPercentage())}%</Text>
+                            </div>
                         </div>
                     </div>
-                    <Title variant="h2" weight="bold">
-                        {isLoading ? "..." : `${Math.round(status?.servidor.ram_uso_mb || 0)} MB`}
-                    </Title>
-                    <div className="w-full bg-[var(--color-border)] rounded-full h-1.5 mt-2">
-                        <div
-                            ref={(el) => { if (el) el.style.width = `${getRamPercentage()}%`; }}
-                            className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
-                        ></div>
-                    </div>
-                    <Text variant="caption" color="text-secondary" className="mt-1 block text-right">
-                        RAM: {Math.round(getRamPercentage())}% de {Math.round(status?.servidor.ram_total_mb || 0 / 1024)}GB
-                    </Text>
                 </Card>
 
-                <Card className="p-6 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-warning)]">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-orange-500">
-                            <Database size={24} />
+                <Card className="px-4 py-3 transition-all hover:shadow-lg border-l-4 border-l-[var(--color-warning)]">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-orange-500">
+                                <Database size={16} />
+                            </div>
+                            <div>
+                                <Title variant="h4" weight="bold">{isLoading ? "..." : status?.operacion.tickets_pendientes}</Title>
+                                <Text variant="caption" color="text-secondary">Tickets pendientes</Text>
+                            </div>
                         </div>
                         <Badge variant={status?.operacion.db_status === 'online' ? 'success' : 'error'}>
                             {status?.operacion.db_status.toUpperCase()}
                         </Badge>
                     </div>
-                    <Title variant="h2" weight="bold">{isLoading ? "..." : status?.operacion.tickets_pendientes}</Title>
-                    <Text variant="caption" color="text-secondary" className="mt-1">
-                        Tickets pendientes de atención
-                    </Text>
                 </Card>
+
+                {(() => {
+                    const latencia = Math.random() * 20 + 10 | 0;
+                    const variant: 'success' | 'warning' | 'error' = latencia < 100 ? 'success' : latencia < 150 ? 'warning' : 'error';
+                    const borderColor = latencia < 100 ? 'border-l-green-500' : latencia < 150 ? 'border-l-yellow-500' : 'border-l-red-500';
+                    return (
+                        <Card className={`px-4 py-3 transition-all hover:shadow-lg border-l-4 ${borderColor}`}>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-1.5 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg text-cyan-500">
+                                        <Signal size={16} />
+                                    </div>
+                                    <div>
+                                        <Title variant="h4" weight="bold">{latencia}ms</Title>
+                                        <Text variant="caption" color="text-secondary">Latencia de red</Text>
+                                    </div>
+                                </div>
+                                <Badge variant={variant}>
+                                    {latencia < 100 ? 'ÓPTIMO' : latencia < 150 ? 'MEDIO' : 'ALTO'}
+                                </Badge>
+                            </div>
+                        </Card>
+                    );
+                })()}
             </div>
 
-            {/* Health Indicators */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Card className="col-span-1 lg:col-span-2 p-8">
-                    <div className="flex items-center justify-between mb-8">
-                        <Title variant="h4" weight="bold" className="flex items-center gap-2">
-                            <BarChart3 className="text-blue-500" /> Tendencia de Operación
-                        </Title>
-                        <Text variant="caption" color="text-secondary">
-                            Hora actual: {new Date().toLocaleTimeString()}
-                        </Text>
-                    </div>
+            {/* Tendencia de Operación - 4 Gráficas */}
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <Title variant="h4" weight="bold" className="flex items-center gap-2">
+                        <BarChart3 className="text-blue-500" /> Tendencia de Operación
+                    </Title>
+                    <Text variant="caption" color="text-secondary">
+                        Hora actual: {new Date().toLocaleTimeString()}
+                    </Text>
+                </div>
+                <TrendChart autoRefresh={autoRefresh} />
+            </div>
 
-                    <TrendChart autoRefresh={autoRefresh} />
+            {/* Health + Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="p-6">
+                    <Title variant="h5" weight="bold" className="mb-4">Salud del Sistema</Title>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                <Text variant="body2">Servidor API</Text>
+                            </div>
+                            <CheckCircle2 size={16} className="text-green-500" />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                <Text variant="body2">Base de Datos</Text>
+                            </div>
+                            <CheckCircle2 size={16} className="text-green-500" />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                <Text variant="body2">Sincronización ERP</Text>
+                            </div>
+                            <Badge variant="info">Standby</Badge>
+                        </div>
+                    </div>
                 </Card>
 
-                <div className="space-y-6">
-                    <Card className="p-6">
-                        <Title variant="h5" weight="bold" className="mb-4">Salud del Sistema</Title>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                    <Text variant="body2">Servidor API</Text>
-                                </div>
-                                <CheckCircle2 size={16} className="text-green-500" />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                    <Text variant="body2">Base de Datos</Text>
-                                </div>
-                                <CheckCircle2 size={16} className="text-green-500" />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                    <Text variant="body2">Sincronización ERP</Text>
-                                </div>
-                                <Badge variant="info">Standby</Badge>
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card className="p-6 bg-[var(--color-primary)] text-[var(--color-surface)] shadow-2xl">
-                        <div className="flex items-start gap-4">
-                            <AlertCircle size={32} className="text-[var(--color-surface)] opacity-80 shrink-0" />
-                            <div>
-                                <Title variant="h5" weight="bold" className="text-inherit mb-2">Información Técnica</Title>
-                                <Text variant="body2" className="text-inherit opacity-90">
-                                    Esta vista es exclusiva para administradores. La latencia de red actual es de {Math.random() * 20 + 10 | 0}ms.
-                                </Text>
-                            </div>
-                        </div>
-                    </Card>
-                </div>
             </div>
         </div>
     );

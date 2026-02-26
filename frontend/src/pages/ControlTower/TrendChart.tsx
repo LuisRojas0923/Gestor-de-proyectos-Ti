@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
-import { Activity } from 'lucide-react';
-import { Text } from '../../components/atoms';
+import { Activity, Cpu, MemoryStick, Ticket, Users } from 'lucide-react';
+import { Text, MaterialCard as Card } from '../../components/atoms';
 import { useApi } from '../../hooks/useApi';
 
 interface MetricaHistorial {
@@ -19,10 +19,10 @@ interface TrendChartProps {
 }
 
 const SERIES_CONFIG = [
-    { key: 'cpu', name: 'CPU %', color: '#8b5cf6' },
-    { key: 'usuarios', name: 'Usuarios', color: '#3b82f6' },
-    { key: 'tickets', name: 'Tickets', color: '#f59e0b' },
-    { key: 'ram', name: 'RAM (MB)', color: '#10b981' },
+    { key: 'cpu', name: 'CPU', unit: '%', color: '#8b5cf6', gradient: 'url(#gradCpu)', icon: Cpu },
+    { key: 'ram', name: 'RAM', unit: 'MB', color: '#10b981', gradient: 'url(#gradRam)', icon: MemoryStick },
+    { key: 'tickets', name: 'Tickets', unit: '', color: '#f59e0b', gradient: 'url(#gradTickets)', icon: Ticket },
+    { key: 'usuarios', name: 'Usuarios', unit: '', color: '#3b82f6', gradient: 'url(#gradUsuarios)', icon: Users },
 ];
 
 const formatHora = (timestamp: string) => {
@@ -34,21 +34,15 @@ const formatHora = (timestamp: string) => {
     }
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const MiniTooltip = ({ active, payload, label, unit }: any) => {
     if (!active || !payload?.length) return null;
     return (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3 shadow-lg">
-            <Text variant="caption" weight="bold" className="mb-2 block">
-                {formatHora(label)}
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 shadow-lg">
+            <Text variant="caption" color="text-secondary" className="block">{formatHora(label)}</Text>
+            <Text variant="caption" weight="bold">
+                {typeof payload[0].value === 'number' ? Math.round(payload[0].value * 10) / 10 : payload[0].value}
+                {unit ? ` ${unit}` : ''}
             </Text>
-            {payload.map((entry: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 py-0.5">
-                    <div ref={(el) => { if (el) el.style.backgroundColor = entry.color; }} className="w-2.5 h-2.5 rounded-full" />
-                    <Text variant="caption">
-                        {entry.name}: <strong>{typeof entry.value === 'number' ? Math.round(entry.value * 10) / 10 : entry.value}</strong>
-                    </Text>
-                </div>
-            ))}
         </div>
     );
 };
@@ -104,38 +98,63 @@ const TrendChart: React.FC<TrendChartProps> = ({ autoRefresh = true }) => {
         );
     }
 
+
     return (
-        <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.5} />
-                    <XAxis
-                        dataKey="timestamp"
-                        tickFormatter={formatHora}
-                        tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
-                        interval="preserveStartEnd"
-                    />
-                    <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                        iconType="circle"
-                        iconSize={8}
-                        wrapperStyle={{ fontSize: 12 }}
-                    />
-                    {SERIES_CONFIG.map(s => (
-                        <Line
-                            key={s.key}
-                            type="monotone"
-                            dataKey={s.key}
-                            name={s.name}
-                            stroke={s.color}
-                            strokeWidth={2}
-                            dot={false}
-                            activeDot={{ r: 4, strokeWidth: 0 }}
-                        />
-                    ))}
-                </LineChart>
-            </ResponsiveContainer>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {SERIES_CONFIG.map((s) => {
+                const Icon = s.icon;
+
+                return (
+                    <Card key={s.key} className="p-4 overflow-hidden">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div
+                                className="p-1.5 rounded-lg"
+                                style={{ backgroundColor: `${s.color}15` }}
+                            >
+                                <Icon size={14} style={{ color: s.color }} />
+                            </div>
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider">{s.name}</Text>
+                        </div>
+                        <div className="h-28">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={data} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id={`grad-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={s.color} stopOpacity={0.2} />
+                                            <stop offset="95%" stopColor={s.color} stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.3} vertical={false} />
+                                    <XAxis
+                                        dataKey="timestamp"
+                                        tickFormatter={formatHora}
+                                        tick={{ fontSize: 9, fill: 'var(--color-text-secondary)' }}
+                                        interval="preserveStartEnd"
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <YAxis
+                                        tick={{ fontSize: 9, fill: 'var(--color-text-secondary)' }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <Tooltip content={<MiniTooltip unit={s.unit} />} />
+                                    <Area
+                                        type="monotone"
+                                        dataKey={s.key}
+                                        name={s.name}
+                                        stroke={s.color}
+                                        strokeWidth={2}
+                                        fill={`url(#grad-${s.key})`}
+                                        dot={false}
+                                        activeDot={{ r: 3, strokeWidth: 0, fill: s.color }}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </Card>
+                );
+            })}
         </div>
     );
 };
