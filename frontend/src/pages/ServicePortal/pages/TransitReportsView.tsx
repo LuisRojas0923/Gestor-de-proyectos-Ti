@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, FileText, Trash2, Plus } from 'lucide-react';
 import { Button, Text, Title, MaterialCard, Spinner, Switch } from '../../../components/atoms';
-import { DeleteReportConfirmModal } from '../../../components/molecules';
+import { DeleteReportConfirmModal, ReportLockedModal } from '../../../components/molecules';
 import axios from 'axios';
 import { API_CONFIG } from '../../../config/api';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
@@ -68,6 +68,8 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
         }
     };
 
+    const [lockedReportId, setLockedReportId] = useState<string | null>(null);
+
     const handleDeleteReport = async () => {
         if (!reportToDelete) return;
 
@@ -76,9 +78,18 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
             await axios.delete(`${API_BASE_URL}/viaticos/reporte/${reportToDelete.reporte_id}`);
             addNotification('success', 'Reporte eliminado correctamente.');
             setReportes(prev => prev.filter(r => r.reporte_id !== reportToDelete.reporte_id));
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error deleting report:", err);
-            addNotification('error', 'Error al eliminar el reporte.');
+            const detail = err.response?.data?.detail || '';
+            if (detail.toUpperCase().includes('PROCESADO')) {
+                setLockedReportId(reportToDelete.reporte_id);
+                // Actualizar el estado local del reporte
+                setReportes(prev => prev.map(r =>
+                    r.reporte_id === reportToDelete.reporte_id ? { ...r, estado: 'PROCESADO' } : r
+                ));
+            } else {
+                addNotification('error', 'Error al eliminar el reporte.');
+            }
         } finally {
             setIsDeleting(false);
             setReportToDelete(null);
@@ -301,6 +312,12 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                 onConfirm={handleDeleteReport}
                 reportCode={reportToDelete?.codigolegalizacion}
                 isLoading={isDeleting}
+            />
+
+            <ReportLockedModal
+                isOpen={!!lockedReportId}
+                onClose={() => setLockedReportId(null)}
+                reportId={lockedReportId || undefined}
             />
         </div>
     );

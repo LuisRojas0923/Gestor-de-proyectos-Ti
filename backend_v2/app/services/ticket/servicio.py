@@ -33,80 +33,96 @@ class ServicioTicket:
     async def obtener_analista_menos_cargado(
         db: AsyncSession, categoria_id: str = None, area_solicitante: str = None
     ) -> Optional[str]:
-        """Busca al analista o admin con menos tickets activos asignados, considerando especialidades y áreas (Async)"""
+        """Busca al analista con menos tickets activos usando cascada de prioridad (Async)
+
+        Cascada:
+        1. analyst/admin_sistemas con especialidad + área (solo mejoramiento)
+        2. analyst/admin_sistemas con especialidad (sin filtro de área)
+        3. admin como último recurso
+        4. None → ticket queda "Sin Asignar"
+        """
         try:
             import json
 
-            # 1. Obtener todos los analistas/admins activos
+            # 1. Obtener todos los usuarios activos con roles válidos
             result = await db.execute(
                 select(Usuario).where(
-                    Usuario.rol.in_(["analyst", "admin"]), Usuario.esta_activo
+                    Usuario.rol.in_(["analyst", "admin_sistemas", "admin"]),
+                    Usuario.esta_activo,
                 )
             )
-            todos_analistas = result.scalars().all()
+            todos = result.scalars().all()
 
-            if not todos_analistas:
+            if not todos:
                 return None
 
-            # 2. Filtrar por especialidad y área
-            candidatos = []
-            for a in todos_analistas:
-                # Si es Admin, es candidato para todo
-                if a.rol == "admin":
-                    candidatos.append(a)
-                    continue
+            # 2. Separar por prioridad de rol
+            analistas = [u for u in todos if u.rol in ("analyst", "admin_sistemas")]
+            admins = [u for u in todos if u.rol == "admin"]
 
-                # Parsear JSON de especialidades y áreas
+            # 3. Filtrar analistas por especialidad
+            con_especialidad = []
+            for a in analistas:
                 try:
                     especialidades = json.loads(a.especialidades or "[]")
-                    areas = json.loads(a.areas_asignadas or "[]")
                 except Exception:
                     especialidades = []
-                    areas = []
 
-                # Lógica de ruteo:
-                # Si se especifica categoria_id, el analista debe tenerla en sus especialidades (o estar vacía para 'all')
-                cumple_especialidad = not categoria_id or (
-                    categoria_id in especialidades
-                )
+                # Solo considerar si tiene especialidades configuradas
+                if not especialidades:
+                    continue
 
-                # Si es soporte de mejoramiento, validamos el área
-                cumple_area = True
-                if categoria_id == "soporte_mejora" and area_solicitante:
-                    cumple_area = not areas or (area_solicitante in areas)
+                if categoria_id and categoria_id in especialidades:
+                    con_especialidad.append(a)
 
-                if cumple_especialidad and cumple_area:
-                    candidatos.append(a)
+            # 4. Aplicar filtro de área (solo para soporte_mejora)
+            candidatos = con_especialidad
+            if (
+                categoria_id == "soporte_mejora"
+                and area_solicitante
+                and con_especialidad
+            ):
+                # Intentar match por área
+                con_area = []
+                for a in con_especialidad:
+                    try:
+                        areas = json.loads(a.areas_asignadas or "[]")
+                    except Exception:
+                        areas = []
 
-            # Si no hay candidatos específicos, usamos todos los analistas como fallback
+                    if areas and area_solicitante in areas:
+                        con_area.append(a)
+
+                # Si hay match de área, usarlos; si no, relajar a todos los de mejoramiento
+                if con_area:
+                    candidatos = con_area
+                else:
+                    candidatos = con_especialidad
+
+            # 5. Fallback a admin si no hay candidatos
             if not candidatos:
-                candidatos = todos_analistas
+                candidatos = admins
 
-            # 3. Contar tickets activos por candidato
+            # 6. Sin candidatos → Sin Asignar
+            if not candidatos:
+                return None
+
+            # 7. Contar tickets activos y retornar el de menor carga
             conteo_carga = []
             for a in candidatos:
                 result_count = await db.execute(
                     select(sa_func.count(Ticket.id)).where(
                         Ticket.asignado_a == a.nombre,
-                        Ticket.estado.in_(
-                            [
-                                "Abierto",
-                                "Asignado",
-                                "En Proceso",
-                                "Pendiente Info",
-                                "Escalado",
-                            ]
-                        ),
+                        Ticket.estado.in_(["Pendiente", "Proceso"]),
                     )
                 )
                 carga = result_count.scalar() or 0
                 conteo_carga.append((a.nombre, carga))
 
-            # 4. Retornar el nombre del que tenga menos carga
             conteo_carga.sort(key=lambda x: x[1])
             return conteo_carga[0][0]
         except Exception as e:
-            print(f"Error en ruteo: {e}")
+            print(f"Error en ruteo de asignación: {e}")
             return None
 
     @staticmethod
