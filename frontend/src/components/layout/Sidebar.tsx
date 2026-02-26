@@ -27,7 +27,7 @@ const Sidebar: React.FC = () => {
   const { sidebarOpen, user } = state;
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [version, setVersion] = useState<string>('');
-  const { get } = useApi();
+  const { get, post } = useApi();
 
   useEffect(() => {
     const fetchVersion = async () => {
@@ -46,8 +46,8 @@ const Sidebar: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      // Intentar avisar al backend (sin esperar respuesta para no bloquear al usuario)
-      await get('/auth/logout');
+      // Intentar avisar al backend (POST)
+      await post('/auth/logout', {});
     } catch (err) {
       console.warn("Error al notificar logout al backend:", err);
     } finally {

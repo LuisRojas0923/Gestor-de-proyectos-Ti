@@ -36,18 +36,47 @@ CREATE TABLE IF NOT EXISTS tokens (
     creado_en TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Comandos de Migración para bases de datos existentes:
+-- ALTER TABLE sesiones ALTER COLUMN token_sesion TYPE VARCHAR(1000);
+-- ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS nombre_usuario VARCHAR(255);
+-- ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS rol_usuario VARCHAR(50);
+-- ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS fin_sesion TIMESTAMPTZ;
+-- ALTER TABLE sesiones ALTER COLUMN expira_en TYPE TIMESTAMPTZ;
+-- ALTER TABLE sesiones ALTER COLUMN creado_en TYPE TIMESTAMPTZ;
+-- ALTER TABLE sesiones ALTER COLUMN ultima_actividad_en TYPE TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS sesiones (
     id SERIAL PRIMARY KEY,
     usuario_id VARCHAR(50) NOT NULL,
-    token_sesion VARCHAR(255) UNIQUE NOT NULL,
+    token_sesion VARCHAR(1000) UNIQUE NOT NULL, -- Aumentado para JWTs largos
+    nombre_usuario VARCHAR(255),
+    rol_usuario VARCHAR(50),
     direccion_ip VARCHAR(45),
     agente_usuario TEXT,
-    expira_en TIMESTAMP NOT NULL,
-    creado_en TIMESTAMP DEFAULT NOW(),
-    ultima_actividad_en TIMESTAMP DEFAULT NOW()
+    expira_en TIMESTAMPTZ NOT NULL,
+    creado_en TIMESTAMPTZ DEFAULT NOW(),
+    ultima_actividad_en TIMESTAMPTZ DEFAULT NOW(),
+    fin_sesion TIMESTAMPTZ
 );
 
 CREATE INDEX IF NOT EXISTS idx_sesiones_usuario_id ON sesiones(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_sesiones_actividad_reciente ON sesiones(ultima_actividad_en DESC, fin_sesion);
+--==========================================
+--1.1 implementar en produccion para que funcione
+--==========================================
+-- Comandos de Migración para bases de datos existentes:
+ALTER TABLE sesiones ALTER COLUMN token_sesion TYPE VARCHAR(1000);
+ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS nombre_usuario VARCHAR(255);
+ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS rol_usuario VARCHAR(50);
+ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS fin_sesion TIMESTAMPTZ;
+ALTER TABLE sesiones ALTER COLUMN expira_en TYPE TIMESTAMPTZ;
+ALTER TABLE sesiones ALTER COLUMN creado_en TYPE TIMESTAMPTZ;
+ALTER TABLE sesiones ALTER COLUMN ultima_actividad_en TYPE TIMESTAMPTZ;
+
+-- El índice de actividad también es nuevo:
+CREATE INDEX IF NOT EXISTS idx_sesiones_actividad_reciente ON sesiones(ultima_actividad_en DESC, fin_sesion);
+--==========================================
+
 
 -- ==========================================
 -- 2. Módulo de Desarrollo (Core)
