@@ -2,7 +2,7 @@
 Servicio de Tickets - Backend V2 (Facade)
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, or_
 from sqlalchemy.orm import joinedload
@@ -12,14 +12,11 @@ import json
 
 from app.models.ticket.ticket import (
     Ticket,
-    CategoriaTicket,
     SolicitudDesarrollo,
     ControlCambios,
     SolicitudActivo,
-    AdjuntoTicket,
     TicketCrear,
     TicketActualizar,
-    AdjuntoCrear,
 )
 from app.models.auth.usuario import Usuario
 from app.utils_date import get_bogota_now
@@ -99,6 +96,7 @@ class ServicioTicket:
                 )
 
             # Extensiones
+            # Extensiones
             if ticket_data.que_necesita or ticket_data.porque:
                 db.add(
                     SolicitudDesarrollo(
@@ -128,14 +126,35 @@ class ServicioTicket:
                     )
                 )
 
-            if ticket_data.item_solicitado or ticket_data.especificaciones:
+            # Solicitud de Activo (Hardware, Software, Licencias)
+            # Busqueda robusta: raíz o datos_extra
+            item = ticket_data.item_solicitado
+            especs = ticket_data.especificaciones
+            cant = ticket_data.cantidad
+
+            if not item and ticket_data.datos_extra:
+                item = ticket_data.datos_extra.get(
+                    "hardware_solicitado"
+                ) or ticket_data.datos_extra.get("item_solicitado")
+
+            if not especs and ticket_data.datos_extra:
+                especs = ticket_data.datos_extra.get("especificaciones")
+
+            if (not cant or cant == 1) and ticket_data.datos_extra:
+                try:
+                    cant_extra = ticket_data.datos_extra.get("cantidad")
+                    if cant_extra:
+                        cant = int(cant_extra)
+                except (ValueError, TypeError):
+                    pass
+
+            if item or especs:
                 db.add(
                     SolicitudActivo(
                         ticket_id=ticket_id,
-                        item_solicitado=ticket_data.item_solicitado
-                        or "PRODUCTO/SERVICIO",
-                        especificaciones=ticket_data.especificaciones,
-                        cantidad=ticket_data.cantidad or 1,
+                        item_solicitado=item or "PRODUCTO/SERVICIO",
+                        especificaciones=especs,
+                        cantidad=cant or 1,
                     )
                 )
 
@@ -252,7 +271,24 @@ class ServicioTicket:
         if asignado_a:
             query = query.where(Ticket.asignado_a == asignado_a)
         if categoria_id:
-            query = query.where(Ticket.categoria_id == categoria_id)
+            if categoria_id == "grupo_ti":
+                categorias_ti = [
+                    "soporte_hardware",
+                    "soporte_software",
+                    "soporte_impresoras",
+                    "perifericos",
+                    "compra_licencias",
+                ]
+                query = query.where(Ticket.categoria_id.in_(categorias_ti))
+            elif categoria_id == "grupo_mejoramiento":
+                categorias_mejora = [
+                    "soporte_mejora",
+                    "nuevos_desarrollos_solid",
+                    "nuevos_desarrollos_mejora",
+                ]
+                query = query.where(Ticket.categoria_id.in_(categorias_mejora))
+            else:
+                query = query.where(Ticket.categoria_id == categoria_id)
 
         if usuario_peticion:
             if usuario_peticion.rol == "admin_sistemas":

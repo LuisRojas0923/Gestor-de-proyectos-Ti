@@ -2,7 +2,6 @@
 Configuracion de Base de Datos - Backend V2 (Async + SQLModel)
 """
 
-from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -153,14 +152,31 @@ async def init_db():
             # Torre de Control: Actividad de sesiones
             await conn.execute(
                 text(
-                    "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS ultima_actividad_en TIMESTAMP"
+                    "ALTER TABLE sesiones ALTER COLUMN token_sesion TYPE VARCHAR(1000)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS nombre_usuario VARCHAR(255)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS rol_usuario VARCHAR(50)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS fin_sesion TIMESTAMPTZ"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS ultima_actividad_en TIMESTAMPTZ DEFAULT NOW()"
                 )
             )
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría: {e}")
-
-    # 3. Importar modelos para asegurar que SQLModel los registre para create_all (si no están ya)
-    from .models.panel_control.metrica import MetricaSistema
 
     # 3.1 Seed idempotente de sala por defecto
     try:

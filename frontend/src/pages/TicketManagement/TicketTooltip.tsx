@@ -1,17 +1,10 @@
 import React from 'react';
 import { Title, Text, Badge } from '../../components/atoms';
 
+import { Ticket } from './hooks/useTicketManagement';
+
 interface TicketTooltipProps {
-    ticket: {
-        asunto: string;
-        prioridad: string;
-        descripcion?: string;
-        nombre_creador: string;
-        area_creador?: string;
-        fecha_creacion: string;
-        estado: string;
-        asignado_a?: string;
-    };
+    ticket: Ticket;
     position: { x: number; y: number };
     visible: boolean;
 }
@@ -68,6 +61,19 @@ const TicketTooltip: React.FC<TicketTooltipProps> = ({ ticket, position, visible
                         </Text>
                     )}
                 </div>
+
+                {/* Info de Hardware/Licencias (Trazabilidad) */}
+                {['compra_licencias', 'perifericos'].includes(ticket.categoria_id) && (
+                    <div className="mb-4 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/50 flex flex-col gap-1.5">
+                        <div className="flex justify-between items-center">
+                            <Text variant="caption" weight="bold" className="uppercase text-[9px] tracking-widest text-blue-600 dark:text-blue-400">Item Solicitado</Text>
+                            <Text variant="caption" weight="bold" className="bg-blue-100 dark:bg-blue-800 px-2 py-0.5 rounded-full text-blue-700 dark:text-blue-300 text-[10px]">Cant: {ticket.solicitud_activo?.cantidad || ticket.datos_extra?.cantidad || 1}</Text>
+                        </div>
+                        <Text variant="body2" weight="bold" className="text-blue-950 dark:text-blue-100">
+                            {ticket.solicitud_activo?.item_solicitado || ticket.datos_extra?.hardware_solicitado || 'No especificado'}
+                        </Text>
+                    </div>
+                )}
 
                 {/* Descripción */}
                 {ticket.descripcion && (

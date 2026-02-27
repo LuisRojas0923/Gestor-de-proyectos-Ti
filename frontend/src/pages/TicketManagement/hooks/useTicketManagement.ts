@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { useAppContext } from '../../../context/AppContext';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
@@ -14,6 +14,13 @@ export interface Ticket {
     area_creador?: string;
     fecha_creacion: string;
     asignado_a?: string;
+    categoria_id: string;
+    solicitud_activo?: {
+        item_solicitado: string;
+        cantidad: number;
+        especificaciones?: string;
+    };
+    datos_extra?: Record<string, any>;
 }
 
 export const formatName = (name: string) => {

@@ -76,3 +76,47 @@ git stash drop
 - **Visual Studio Code**: Editor oficial del equipo.
 - **SQLTools**: Extensión instalada directamente en VS Code para explorar la base de datos PostgreSQL sin salir del entorno.
 - **Postman / Thunder Client**: Para probar los endpoints de la API de FastAPI.
+
+---
+
+## 4. Mantenimiento y Verificación de Base de Datos
+
+Consultas útiles para verificar que el entorno de base de datos (Producción o Pruebas) esté correctamente configurado.
+
+### 4.1 Verificación de Estructura (Sesiones)
+Comprueba que las columnas y tipos de datos coincidan con la última versión del sistema:
+```sql
+SELECT 
+    column_name, 
+    data_type, 
+    character_maximum_length, 
+    column_default 
+FROM information_schema.columns 
+WHERE table_name = 'sesiones'
+ORDER BY ordinal_position;
+```
+
+### 4.2 Verificación de Índices
+Asegura que existan los índices necesarios para el rendimiento de la Torre de Control:
+```sql
+SELECT indexname, indexdef 
+FROM pg_indexes 
+WHERE tablename = 'sesiones';
+```
+
+### 4.3 Verificación de Permisos (Roles Críticos)
+Valida que los administradores tengan acceso a los módulos de control:
+```sql
+SELECT * FROM permisos_rol 
+WHERE modulo = 'control-tower' 
+AND rol IN ('admin', 'admin_sistemas');
+```
+
+### 4.4 Monitoreo de Sesiones Recientes
+Valida si el servidor está registrando correctamente los metadatos de usuario:
+```sql
+SELECT id, usuario_id, nombre_usuario, rol_usuario, ultima_actividad_en, fin_sesion 
+FROM sesiones 
+ORDER BY creado_en DESC 
+LIMIT 10;
+```

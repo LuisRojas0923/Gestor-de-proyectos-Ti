@@ -108,10 +108,10 @@ const TrendChart: React.FC<TrendChartProps> = ({ autoRefresh = true }) => {
                     <Card key={s.key} className="p-4 overflow-hidden">
                         <div className="flex items-center gap-2 mb-2">
                             <div
-                                className="p-1.5 rounded-lg"
-                                style={{ backgroundColor: `${s.color}15` }}
+                                className="p-1.5 rounded-lg bg-[var(--metric-color)]/10"
+                                style={{ '--metric-color': s.color } as React.CSSProperties}
                             >
-                                <Icon size={14} style={{ color: s.color }} />
+                                <Icon size={14} className="text-[var(--metric-color)]" />
                             </div>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider">{s.name}</Text>
                         </div>

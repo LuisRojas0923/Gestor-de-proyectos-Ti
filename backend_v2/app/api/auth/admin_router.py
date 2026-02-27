@@ -1,8 +1,10 @@
+import json
+import logging
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
-import json
 
 from app.database import obtener_db, obtener_erp_db
 from app.models.auth.usuario import Usuario, UsuarioPublico, PermisoRol, AnalistaCrear
@@ -38,39 +40,45 @@ async def listar_analistas(
             status_code=403, detail="No tiene permisos para ver esta lista"
         )
 
-    # Consulta base para roles operativos
-    stmt = select(Usuario).where(
-        Usuario.rol.in_(["analyst", "admin_sistemas", "admin", "director", "manager"])
-    )
-
-    result = await db.execute(stmt)
-    usuarios = result.scalars().all()
-
-    if actual.rol == "admin":
-        return usuarios
-
-    # Lógica de filtrado para admin_sistemas (por especialidad)
     try:
-        mis_especialidades = set(json.loads(actual.especialidades or "[]"))
-    except Exception:
-        mis_especialidades = set()
+        # Consulta base para roles operativos
+        stmt = select(Usuario).where(
+            Usuario.rol.in_(
+                ["analyst", "admin_sistemas", "admin", "director", "manager"]
+            )
+        )
 
-    if not mis_especialidades:
-        # Si no tiene especialidades, solo se ve a sí mismo por seguridad
-        return [u for u in usuarios if u.id == actual.id]
+        result = await db.execute(stmt)
+        usuarios = result.scalars().all()
 
-    filtrados = []
-    for u in usuarios:
+        if actual.rol == "admin":
+            return usuarios
+
+        # Lógica de filtrado para admin_sistemas (por especialidad)
         try:
-            sus_especialidades = set(json.loads(u.especialidades or "[]"))
+            mis_especialidades = set(json.loads(actual.especialidades or "[]"))
         except Exception:
-            sus_especialidades = set()
+            mis_especialidades = set()
 
-        # Si comparten al menos una especialidad o es el mismo usuario
-        if mis_especialidades.intersection(sus_especialidades) or u.id == actual.id:
-            filtrados.append(u)
+        if not mis_especialidades:
+            return [u for u in usuarios if u.id == actual.id]
 
-    return filtrados
+        filtrados = []
+        for u in usuarios:
+            try:
+                sus_especialidades = set(json.loads(u.especialidades or "[]"))
+            except Exception:
+                sus_especialidades = set()
+
+            if mis_especialidades.intersection(sus_especialidades) or u.id == actual.id:
+                filtrados.append(u)
+
+        return filtrados
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error en GET /analistas: {e}")
+        raise HTTPException(status_code=500, detail="Error al consultar analistas")
 
 
 @router.patch("/analistas/{usuario_id}", response_model=UsuarioPublico)
@@ -86,23 +94,30 @@ async def actualizar_analista(
             status_code=403, detail="No tiene permisos para modificar usuarios"
         )
 
-    result = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
-    usuario = result.scalars().first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    try:
+        result = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
+        usuario = result.scalars().first()
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    if "rol" in datos:
-        usuario.rol = datos["rol"]
-    if "especialidades" in datos:
-        usuario.especialidades = json.dumps(datos["especialidades"])
-    if "areas_asignadas" in datos:
-        usuario.areas_asignadas = json.dumps(datos["areas_asignadas"])
-    if "esta_activo" in datos:
-        usuario.esta_activo = datos["esta_activo"]
+        if "rol" in datos:
+            usuario.rol = datos["rol"]
+        if "especialidades" in datos:
+            usuario.especialidades = json.dumps(datos["especialidades"])
+        if "areas_asignadas" in datos:
+            usuario.areas_asignadas = json.dumps(datos["areas_asignadas"])
+        if "esta_activo" in datos:
+            usuario.esta_activo = datos["esta_activo"]
 
-    await db.commit()
-    await db.refresh(usuario)
-    return usuario
+        await db.commit()
+        await db.refresh(usuario)
+        return usuario
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logging.error(f"Error en PATCH /analistas/{usuario_id}: {e}")
+        raise HTTPException(status_code=500, detail="Error al actualizar analista")
 
 
 @router.get("/permisos")
@@ -116,8 +131,12 @@ async def listar_permisos(
             status_code=403, detail="No tiene permisos para ver esta lista"
         )
 
-    result = await db.execute(select(PermisoRol))
-    return result.scalars().all()
+    try:
+        result = await db.execute(select(PermisoRol))
+        return result.scalars().all()
+    except Exception as e:
+        logging.error(f"Error en GET /permisos: {e}")
+        raise HTTPException(status_code=500, detail="Error al consultar permisos")
 
 
 @router.post("/permisos")
@@ -132,20 +151,29 @@ async def actualizar_permisos(
             status_code=403, detail="No tiene permisos para modificar permisos"
         )
 
-    for p in permisos:
-        result = await db.execute(
-            select(PermisoRol).where(
-                PermisoRol.rol == p["rol"], PermisoRol.modulo == p["modulo"]
+    try:
+        for p in permisos:
+            result = await db.execute(
+                select(PermisoRol).where(
+                    PermisoRol.rol == p["rol"], PermisoRol.modulo == p["modulo"]
+                )
             )
-        )
-        permiso_db = result.scalars().first()
+            permiso_db = result.scalars().first()
 
-        if permiso_db:
-            permiso_db.permitido = p["permitido"]
-        else:
-            db.add(
-                PermisoRol(rol=p["rol"], modulo=p["modulo"], permitido=p["permitido"])
-            )
+            if permiso_db:
+                permiso_db.permitido = p["permitido"]
+            else:
+                db.add(
+                    PermisoRol(
+                        rol=p["rol"], modulo=p["modulo"], permitido=p["permitido"]
+                    )
+                )
 
-    await db.commit()
-    return {"mensaje": "Permisos actualizados correctamente"}
+        await db.commit()
+        return {"mensaje": "Permisos actualizados correctamente"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logging.error(f"Error en POST /permisos: {e}")
+        raise HTTPException(status_code=500, detail="Error al actualizar permisos")

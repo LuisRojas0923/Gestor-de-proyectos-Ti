@@ -114,17 +114,15 @@ const TicketManagement: React.FC = () => {
                 <div className="flex items-center space-x-3">
                     {/* Botones de Especialidad */}
                     <div className="flex bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm">
-                        {['Todos', 'soporte_mejora', 'soporte_tecnico'].map((cat) => (
-                            <button
+                        {['Todos', 'grupo_mejoramiento', 'grupo_ti'].map((cat) => (
+                            <Button
                                 key={cat}
+                                variant={categoryFilter === cat ? 'primary' : 'ghost'}
+                                size="sm"
                                 onClick={() => setCategoryFilter(cat)}
-                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${categoryFilter === cat
-                                    ? 'bg-[var(--color-primary)] text-white shadow-md'
-                                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-background)]'
-                                    }`}
                             >
-                                {cat === 'Todos' ? 'Todos' : cat === 'soporte_mejora' ? 'Mejoramiento' : 'TI'}
-                            </button>
+                                {cat === 'Todos' ? 'Todos' : cat === 'grupo_mejoramiento' ? 'Mejoramiento' : 'TI'}
+                            </Button>
                         ))}
                     </div>
 

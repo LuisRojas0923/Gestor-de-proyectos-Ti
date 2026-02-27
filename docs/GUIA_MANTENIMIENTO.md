@@ -102,5 +102,60 @@ sudo docker exec -it gestor-de-proyectos-ti-db psql -U user -d project_manager -
 
 ---
 
+## 🔍 6. Verificación de Base de Datos (Diagnóstico)
+
+Consultas para validar que la base de datos esté correctamente configurada después de un despliegue o migración.
+
+### 6.1 Estructura de la Tabla Sesiones
+Verifica que las columnas y los tipos de datos coincidan con la última versión:
+```sql
+SELECT 
+    column_name, 
+    data_type, 
+    character_maximum_length, 
+    column_default 
+FROM information_schema.columns 
+WHERE table_name = 'sesiones'
+ORDER BY ordinal_position;
+```
+**Resultado esperado:** 11 columnas incluyendo `nombre_usuario`, `rol_usuario`, `ultima_actividad_en` y `fin_sesion`. El campo `token_sesion` debe tener longitud máxima de **1000**.
+
+### 6.2 Índices de Rendimiento
+Asegura que los índices necesarios para la Torre de Control existan:
+```sql
+SELECT indexname, indexdef 
+FROM pg_indexes 
+WHERE tablename = 'sesiones';
+```
+**Resultado esperado:** Debe existir `idx_sesiones_actividad_reciente`.
+
+### 6.3 Permisos de Torre de Control
+Valida que los roles administrativos tengan acceso al módulo:
+```sql
+SELECT * FROM permisos_rol 
+WHERE modulo = 'control-tower' 
+AND rol IN ('admin', 'admin_sistemas');
+```
+**Resultado esperado:** 2 registros con `permitido = true`. 
+Si no existen, ejecuta:
+```sql
+INSERT INTO permisos_rol (rol, modulo, permitido) VALUES
+('admin', 'control-tower', true),
+('admin_sistemas', 'control-tower', true)
+ON CONFLICT (rol, modulo) DO UPDATE SET permitido = true;
+```
+
+### 6.4 Monitoreo de Sesiones en Tiempo Real
+Valida que el backend esté guardando los metadatos correctamente:
+```sql
+SELECT id, usuario_id, nombre_usuario, rol_usuario, ultima_actividad_en, fin_sesion 
+FROM sesiones 
+ORDER BY creado_en DESC 
+LIMIT 10;
+```
+**Resultado esperado:** Las columnas `nombre_usuario` y `rol_usuario` deben tener datos (no NULL) para sesiones recientes.
+
+---
+
 > [!IMPORTANT]
 > Nunca modifiques el archivo `.env` directamente en producción sin antes tener una copia de respaldo. Es la "llave" de acceso a todas las bases de datos.
