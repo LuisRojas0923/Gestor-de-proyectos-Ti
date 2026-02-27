@@ -42,12 +42,31 @@ export const getStatusStyle = (status: string) => {
     }
 };
 
+export const getStatusVariant = (status: string): 'info' | 'warning' | 'success' | 'default' => {
+    switch (status) {
+        case 'Pendiente': return 'info';
+        case 'Proceso': return 'warning';
+        case 'Cerrado': return 'success';
+        default: return 'default';
+    }
+};
+
 export const getPriorityStyle = (priority: string) => {
     switch (priority) {
         case 'Alta':
         case 'Crítica': return 'text-red-500';
         case 'Media': return 'text-yellow-500';
         default: return 'text-green-500';
+    }
+};
+
+export const getPriorityVariant = (priority: string): 'error' | 'warning' | 'success' | 'default' => {
+    switch (priority) {
+        case 'Alta':
+        case 'Crítica': return 'error';
+        case 'Media': return 'warning';
+        case 'Baja': return 'success';
+        default: return 'default';
     }
 };
 

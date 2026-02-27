@@ -1,5 +1,5 @@
 import React from 'react';
-import { Title, Text, Badge } from '../../components/atoms';
+import { Text } from '../../components/atoms';
 
 import { Ticket } from './hooks/useTicketManagement';
 
@@ -8,13 +8,6 @@ interface TicketTooltipProps {
     position: { x: number; y: number };
     visible: boolean;
 }
-
-const getPriorityVariant = (prioridad: string): 'error' | 'warning' | 'info' => {
-    const p = (prioridad || '').toLowerCase();
-    if (p === 'alta') return 'error';
-    if (p === 'media') return 'warning';
-    return 'info';
-};
 
 const TicketTooltip: React.FC<TicketTooltipProps> = ({ ticket, position, visible }) => {
     if (!visible) return null;
@@ -35,33 +28,6 @@ const TicketTooltip: React.FC<TicketTooltipProps> = ({ ticket, position, visible
             className="fixed z-50 pointer-events-none opacity-100 scale-100 transition-all duration-150 ease-out"
         >
             <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 shadow-2xl">
-                {/* Header: Asunto + Prioridad */}
-                <div className="flex items-start justify-between mb-3 gap-3">
-                    <Title variant="h5" weight="bold" className="line-clamp-2">
-                        {ticket.asunto}
-                    </Title>
-                    <Badge variant={getPriorityVariant(ticket.prioridad)}>
-                        {ticket.prioridad}
-                    </Badge>
-                </div>
-
-                {/* Info rápida */}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
-                    <Text variant="caption" color="text-secondary">
-                        <strong>Solicitante:</strong> {ticket.nombre_creador}
-                    </Text>
-                    {ticket.area_creador && (
-                        <Text variant="caption" color="text-secondary">
-                            <strong>Área:</strong> {ticket.area_creador}
-                        </Text>
-                    )}
-                    {ticket.asignado_a && (
-                        <Text variant="caption" color="text-secondary">
-                            <strong>Analista:</strong> {ticket.asignado_a}
-                        </Text>
-                    )}
-                </div>
-
                 {/* Info de Hardware/Licencias (Trazabilidad) */}
                 {['compra_licencias', 'perifericos'].includes(ticket.categoria_id) && (
                     <div className="mb-4 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/50 flex flex-col gap-1.5">

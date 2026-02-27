@@ -16,7 +16,8 @@ import {
     Input,
     Title,
     Text,
-    Icon
+    Icon,
+    Badge
 } from '../../components/atoms';
 
 import TicketTooltip from './TicketTooltip';
@@ -26,8 +27,8 @@ import { useTicketManagement, formatName, Ticket } from './hooks/useTicketManage
 import {
     COLUMN_WIDTHS,
     SUB_STATUS_OPTIONS,
-    getStatusStyle,
-    getPriorityStyle,
+    getStatusVariant,
+    getPriorityVariant,
     STATS_CARDS
 } from './constants';
 
@@ -213,8 +214,8 @@ const TicketManagement: React.FC = () => {
                 </div>
             ) : tickets.length > 0 ? (
                 <div className="relative">
-                    <div className="hidden md:flex items-stretch gap-0 mb-3 bg-[var(--deep-navy)] rounded-2xl border border-[var(--color-border)] shadow-xl overflow-hidden sticky top-0 z-20">
-                        <HeaderCell width={COLUMN_WIDTHS.id} label="ID" className="pl-6" />
+                    <div className="hidden md:flex items-stretch gap-0 mb-3 bg-[var(--deep-navy)] rounded-2xl border border-[var(--color-border)] shadow-xl overflow-hidden sticky top-0 z-20 px-3">
+                        <HeaderCell width={COLUMN_WIDTHS.id} label="ID" className="pl-4" />
                         <HeaderCell width={COLUMN_WIDTHS.fecha} label="Fecha" centered />
                         <HeaderCell width={COLUMN_WIDTHS.area} label="Área" />
                         <HeaderCell width={COLUMN_WIDTHS.solicitante} label="Solicitante" className="px-6" />
@@ -298,17 +299,15 @@ const TicketRow: React.FC<{
     return (
         <div
             onClick={() => navigate(`/tickets/${ticket.id}`)}
-            onMouseEnter={(e) => onMouseEnter(e, ticket)}
-            onMouseLeave={onMouseLeave}
             className="group bg-[var(--color-surface)] p-3 rounded-xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden"
         >
             <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-900 dark:bg-blue-800"></div>
             <div className="flex flex-col md:flex-row md:items-center gap-0">
-                <div className={`${COLUMN_WIDTHS.id} shrink-0 pl-6 flex items-center`}>
-                    <Text variant="caption" className="font-mono text-[10px] text-gray-400">#TKT-{cleanId}</Text>
+                <div className={`${COLUMN_WIDTHS.id} shrink-0 pl-4 flex items-center`}>
+                    <Text variant="caption" className="font-mono text-xs text-gray-400 whitespace-nowrap">#TKT-{cleanId}</Text>
                 </div>
 
-                <div className={`${COLUMN_WIDTHS.fecha} shrink-0 flex items-center justify-center text-gray-400`}>
+                <div className={`${COLUMN_WIDTHS.fecha} shrink-0 flex items-center justify-center text-gray-400 px-4`}>
                     <Icon name={Clock} size="xs" className="mr-1.5" />
                     <Text variant="caption" color="text-secondary" className="text-[10px]">
                         {new Date(ticket.fecha_creacion).toLocaleDateString()}
@@ -326,23 +325,26 @@ const TicketRow: React.FC<{
                     <Text variant="caption" color="text-secondary" className="truncate text-[10px] uppercase">{ticket.nombre_creador}</Text>
                 </div>
 
-                <div className={`${COLUMN_WIDTHS.asunto} min-w-0 flex flex-col justify-center px-6`}>
+                <div
+                    className={`${COLUMN_WIDTHS.asunto} min-w-0 flex flex-col justify-center px-6`}
+                    onMouseEnter={(e) => onMouseEnter(e, ticket)}
+                    onMouseLeave={onMouseLeave}
+                >
                     <Text variant="body2" weight="bold" color="text-primary" className="truncate group-hover:text-[var(--color-primary)] transition-colors text-sm">
                         {ticket.asunto}
                     </Text>
                 </div>
 
-                <div className={`${COLUMN_WIDTHS.prioridad} shrink-0 flex items-center justify-center gap-1.5`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${getPriorityStyle(ticket.prioridad).replace('text', 'bg')}`}></div>
-                    <Text variant="caption" weight="bold" className={`text-[10px] ${getPriorityStyle(ticket.prioridad)}`}>
+                <div className={`${COLUMN_WIDTHS.prioridad} shrink-0 flex items-center justify-center px-4`}>
+                    <Badge variant={getPriorityVariant(ticket.prioridad)} size="sm">
                         {ticket.prioridad}
-                    </Text>
+                    </Badge>
                 </div>
 
-                <div className={`${COLUMN_WIDTHS.estado} shrink-0 flex items-center justify-center`}>
-                    <Text as="span" weight="bold" className={`px-3 py-1 rounded-lg text-[11px] tracking-wider border border-current/20 shrink-0 shadow-sm ${getStatusStyle(ticket.estado)}`}>
-                        {(ticket.estado || 'PENDIENTE').toUpperCase()}
-                    </Text>
+                <div className={`${COLUMN_WIDTHS.estado} shrink-0 flex items-center justify-center px-4`}>
+                    <Badge variant={getStatusVariant(ticket.estado)} size="sm" className="uppercase tracking-wider">
+                        {ticket.estado || 'PENDIENTE'}
+                    </Badge>
                 </div>
 
                 <div className={`${COLUMN_WIDTHS.analista} shrink-0 flex items-center px-4 gap-2`}>
@@ -354,7 +356,7 @@ const TicketRow: React.FC<{
                     </Text>
                 </div>
 
-                <div className={`flex items-center justify-center ${COLUMN_WIDTHS.acciones} gap-2`}>
+                <div className={`flex items-center justify-center ${COLUMN_WIDTHS.acciones} gap-2 px-4`}>
                     {(!ticket.asignado_a || (user && ticket.asignado_a !== (user as any).nombre)) && ticket.estado !== 'Cerrado' && (
                         <Button
                             variant="ghost"
