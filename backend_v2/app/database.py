@@ -175,6 +175,12 @@ async def init_db():
                     "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS ultima_actividad_en TIMESTAMPTZ DEFAULT NOW()"
                 )
             )
+            # Eliminar restricción de llave foránea para permitir usuarios del portal sin registro local
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones DROP CONSTRAINT IF EXISTS sesiones_usuario_id_fkey"
+                )
+            )
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría: {e}")
 
