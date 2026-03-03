@@ -145,11 +145,9 @@ async def portal_login(
             print(f"DEBUG: Error sincronizando usuario local existente: {e}")
             await db.rollback()
 
-    permisos = (
-        await ServicioAuth.obtener_permisos_por_rol(db, usuario_local.rol)
-        if usuario_local
-        else ["service-portal"]
-    )
+    permisos = await ServicioAuth.obtener_permisos_por_rol(db, user_data["rol"])
+    if not permisos and (user_data["rol"] == "usuario" or user_data["rol"] == "user"):
+        permisos = ["service-portal"]
 
     token_acceso = ServicioAuth.crear_token_acceso(
         datos={"sub": user_data["cedula"], "rol": user_data["rol"]}
