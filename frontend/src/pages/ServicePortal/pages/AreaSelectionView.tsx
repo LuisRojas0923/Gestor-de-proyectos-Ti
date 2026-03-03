@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, MonitorDot, Code, Lightbulb, ClipboardCheck } from 'lucide-react';
+import { ArrowLeftIcon as ArrowLeft, ComputerDesktopIcon as MonitorDot, CodeBracketIcon as Code, LightBulbIcon as Lightbulb, ClipboardDocumentCheckIcon as ClipboardCheck } from '@heroicons/react/24/outline';
 import { Title, Text, Button, Badge } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 

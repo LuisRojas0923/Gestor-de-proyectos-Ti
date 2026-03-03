@@ -1,16 +1,16 @@
 import React from 'react';
 import {
-    Plus,
-    Cpu,
-    AppWindow,
-    Printer,
-    Keyboard,
-    Key,
-    Code2,
-    GitCommit,
-    Lightbulb,
-    Layers
-} from 'lucide-react';
+    PlusIcon as Plus,
+    CpuChipIcon as Cpu,
+    WindowIcon as AppWindow,
+    PrinterIcon as Printer,
+    ComputerDesktopIcon as Keyboard,
+    KeyIcon as Key,
+    CodeBracketSquareIcon as Code2,
+    ArrowPathIcon as GitCommit,
+    LightBulbIcon as Lightbulb,
+    Square3Stack3DIcon as Layers
+} from '@heroicons/react/24/outline';
 
 export const categoryMetadata: Record<string, { icon: React.ReactNode; section: 'soporte' | 'mejoramiento' }> = {
     soporte_hardware: {

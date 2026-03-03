@@ -1,13 +1,12 @@
 import React from 'react';
-import { LucideIcon } from 'lucide-react';
 import { materialDesignTokens } from '../tokens';
 import { Text } from './Text';
 
 export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 
 export interface IconProps {
-    /** El componente del icono de lucide-react */
-    name: LucideIcon;
+    /** El componente del icono de React (Lucide, Heroicons, etc) */
+    name: React.ElementType<React.SVGProps<SVGSVGElement>> | any;
     /** Tamaño predefinido basado en el sistema de diseño */
     size?: IconSize;
     /** Color basado en el sistema de diseño o CSS válido */
@@ -55,9 +54,11 @@ export const Icon: React.FC<IconProps> = ({
             color="inherit"
         >
             <IconComponent
-                size={finalSize}
-                color={finalColor}
+                width={finalSize}
+                height={finalSize}
+                style={{ color: finalColor }}
                 strokeWidth={2}
+                className={className}
             />
         </Text>
     );

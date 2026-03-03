@@ -1,5 +1,4 @@
 import React from 'react';
-import { LucideIcon } from 'lucide-react';
 import { Icon } from './Icon';
 import { Text } from './Text';
 
@@ -9,7 +8,7 @@ interface ButtonProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
-  icon?: LucideIcon;
+  icon?: React.ElementType<React.SVGProps<SVGSVGElement>> | any;
   iconPosition?: 'left' | 'right';
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void;

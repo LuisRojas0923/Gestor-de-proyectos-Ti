@@ -1,7 +1,7 @@
 import { ActionCard } from '../../../components/molecules';
 import { Title, Text } from '../../../components/atoms';
 
-import { Headset, CalendarDays, ClipboardList, Briefcase } from 'lucide-react';
+import { PhoneIcon as Headset, CalendarDaysIcon as CalendarDays, ClipboardDocumentListIcon as ClipboardList, BriefcaseIcon as Briefcase } from '@heroicons/react/24/outline';
 
 interface DashboardViewProps {
     user: any;

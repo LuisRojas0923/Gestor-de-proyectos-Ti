@@ -1,4 +1,4 @@
-import { ArrowLeft, ClipboardList, ShieldCheck, ReceiptText, Wallet } from 'lucide-react';
+import { ArrowLeftIcon as ArrowLeft, ClipboardDocumentListIcon as ClipboardList, ShieldCheckIcon as ShieldCheck, DocumentTextIcon as ReceiptText, WalletIcon as Wallet } from '@heroicons/react/24/outline';
 import { Button, Text, Title } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 import { useAppContext } from '../../../context/AppContext';
@@ -44,7 +44,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                     onClick={onBack}
                     className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
                 >
-                    <ArrowLeft size={18} />
+                    <ArrowLeft className="w-5 h-5" />
                     <Text weight="medium" className="text-base font-medium text-left text-[var(--color-text)] hidden sm:inline">
                         Volver
                     </Text>
@@ -60,7 +60,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                 <div className="max-w-4xl mx-auto mt-6 p-6 rounded-[2rem] bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200/50 dark:border-amber-800/30 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
                         <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 shrink-0">
-                            <ShieldCheck size={32} />
+                            <ShieldCheck className="w-8 h-8" />
                         </div>
                         <div className="space-y-1">
                             <Title variant="h5" weight="bold" className="text-amber-900 dark:text-amber-100">
