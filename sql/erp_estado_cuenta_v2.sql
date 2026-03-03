@@ -76,6 +76,7 @@ SELECT
 FROM movimientos m
 CROSS JOIN params p
 WHERE 1=1
+  AND m.estado_limpio != 'ANULADO'
   AND (p.v_empleado IS NULL OR m.empleado = p.v_empleado)
   AND (
         p.v_nombreempleado IS NULL
