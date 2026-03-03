@@ -19,10 +19,10 @@ interface TrendChartProps {
 }
 
 const SERIES_CONFIG = [
-    { key: 'cpu', name: 'CPU', unit: '%', color: '#8b5cf6', gradient: 'url(#gradCpu)', icon: Cpu },
-    { key: 'ram', name: 'RAM', unit: 'MB', color: '#10b981', gradient: 'url(#gradRam)', icon: MemoryStick },
-    { key: 'tickets', name: 'Tickets', unit: '', color: '#f59e0b', gradient: 'url(#gradTickets)', icon: Ticket },
-    { key: 'usuarios', name: 'Usuarios', unit: '', color: '#3b82f6', gradient: 'url(#gradUsuarios)', icon: Users },
+    { key: 'cpu', name: 'CPU', unit: '%', color: '#8b5cf6', gradient: 'url(#gradCpu)', icon: Cpu, bgClass: 'bg-violet-500/10', textClass: 'text-violet-500' },
+    { key: 'ram', name: 'RAM', unit: 'MB', color: '#10b981', gradient: 'url(#gradRam)', icon: MemoryStick, bgClass: 'bg-emerald-500/10', textClass: 'text-emerald-500' },
+    { key: 'tickets', name: 'Tickets', unit: '', color: '#f59e0b', gradient: 'url(#gradTickets)', icon: Ticket, bgClass: 'bg-amber-500/10', textClass: 'text-amber-500' },
+    { key: 'usuarios', name: 'Usuarios', unit: '', color: '#3b82f6', gradient: 'url(#gradUsuarios)', icon: Users, bgClass: 'bg-blue-500/10', textClass: 'text-blue-500' },
 ];
 
 const formatHora = (timestamp: string) => {
@@ -107,11 +107,8 @@ const TrendChart: React.FC<TrendChartProps> = ({ autoRefresh = true }) => {
                 return (
                     <Card key={s.key} className="p-4 overflow-hidden">
                         <div className="flex items-center gap-2 mb-2">
-                            <div
-                                className="p-1.5 rounded-lg bg-[var(--metric-color)]/10"
-                                style={{ '--metric-color': s.color } as React.CSSProperties}
-                            >
-                                <Icon size={14} className="text-[var(--metric-color)]" />
+                            <div className={`p-1.5 rounded-lg ${s.bgClass}`}>
+                                <Icon size={14} className={s.textClass} />
                             </div>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider">{s.name}</Text>
                         </div>

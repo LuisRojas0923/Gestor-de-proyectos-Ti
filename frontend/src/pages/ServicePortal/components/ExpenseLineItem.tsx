@@ -265,7 +265,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
 
             {/* Adjunto */}
             <td className="px-2 py-2 border-b border-[var(--color-border)] text-center">
-                {/* DS-EXCEPTION: input file oculto, trigger programático */}
+                {/* DS-EXCEPTION: Se usa un input nativo oculto para manejar la carga múltiple de archivos, accionado programáticamente mediante un átomo Button. */}
                 <input
                     type="file"
                     ref={fileInputRef}

@@ -7,7 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.database import obtener_db, obtener_erp_db
-from app.models.auth.usuario import Usuario, UsuarioPublico, PermisoRol, AnalistaCrear
+from app.models.auth.usuario import (
+    Usuario,
+    UsuarioPublico,
+    PermisoRol,
+    AnalistaCrear,
+    RolSistema,
+    RolCrear,
+    RolPublico,
+)
 from app.services.auth.servicio import ServicioAuth
 from .profile_router import obtener_usuario_actual_db
 
@@ -41,10 +49,19 @@ async def listar_analistas(
         )
 
     try:
-        # Consulta base para roles operativos
+        # Consulta base para todos los roles
         stmt = select(Usuario).where(
             Usuario.rol.in_(
-                ["analyst", "admin_sistemas", "admin", "director", "manager"]
+                [
+                    "analyst",
+                    "admin_sistemas",
+                    "admin",
+                    "director",
+                    "manager",
+                    "usuario",
+                    "viaticante",
+                    "user",
+                ]
             )
         )
 
@@ -177,3 +194,110 @@ async def actualizar_permisos(
         await db.rollback()
         logging.error(f"Error en POST /permisos: {e}")
         raise HTTPException(status_code=500, detail="Error al actualizar permisos")
+
+
+# --- Endpoints de Gestión de Roles ---
+
+
+@router.get("/roles", response_model=List[RolPublico])
+async def listar_roles(
+    db: AsyncSession = Depends(obtener_db),
+    actual: Usuario = Depends(obtener_usuario_actual_db),
+):
+    """Retorna lista de todos los roles configurados"""
+    if actual.rol not in ["admin", "admin_sistemas"]:
+        raise HTTPException(status_code=403, detail="No tiene permisos")
+
+    try:
+        result = await db.execute(select(RolSistema).order_by(RolSistema.id))
+        roles_db = result.scalars().all()
+
+        # Si no hay roles, inicializamos con los básicos (Idempotente)
+        if not roles_db:
+            basicos = [
+                RolSistema(id="admin", nombre="Administrador", es_sistema=True),
+                RolSistema(id="admin_sistemas", nombre="Sistemas", es_sistema=True),
+                RolSistema(id="manager", nombre="Gerente", es_sistema=True),
+                RolSistema(id="analyst", nombre="Analista TI", es_sistema=True),
+                RolSistema(id="director", nombre="Director Proyectos", es_sistema=True),
+                RolSistema(id="viaticante", nombre="Viaticante", es_sistema=True),
+                RolSistema(id="usuario", nombre="Usuario Estándar", es_sistema=True),
+            ]
+            for r in basicos:
+                db.add(r)
+            await db.commit()
+            result = await db.execute(select(RolSistema).order_by(RolSistema.id))
+            roles_db = result.scalars().all()
+
+        return roles_db
+    except Exception as e:
+        logging.error(f"Error en GET /roles: {e}")
+        raise HTTPException(status_code=500, detail="Error al listar roles")
+
+
+@router.post("/roles", response_model=RolPublico)
+async def crear_rol(
+    datos: RolCrear,
+    db: AsyncSession = Depends(obtener_db),
+    actual: Usuario = Depends(obtener_usuario_actual_db),
+):
+    """Crea un nuevo rol en el sistema"""
+    if actual.rol != "admin":
+        raise HTTPException(status_code=403, detail="Solo Admin puede crear roles")
+
+    try:
+        # Verificar si ya existe
+        result = await db.execute(
+            select(RolSistema).where(RolSistema.id == datos.id.lower())
+        )
+        if result.scalars().first():
+            raise HTTPException(status_code=400, detail="El ID del rol ya existe")
+
+        nuevo_rol = RolSistema(
+            id=datos.id.lower().replace(" ", "_"),
+            nombre=datos.nombre,
+            descripcion=datos.descripcion,
+            es_sistema=False,
+        )
+        db.add(nuevo_rol)
+        await db.commit()
+        await db.refresh(nuevo_rol)
+        return nuevo_rol
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logging.error(f"Error en POST /roles: {e}")
+        raise HTTPException(status_code=500, detail="Error al crear rol")
+
+
+@router.delete("/roles/{rol_id}")
+async def eliminar_rol(
+    rol_id: str,
+    db: AsyncSession = Depends(obtener_db),
+    actual: Usuario = Depends(obtener_usuario_actual_db),
+):
+    """Elimina un rol (No se pueden borrar roles de sistema)"""
+    if actual.rol != "admin":
+        raise HTTPException(status_code=403, detail="Permiso denegado")
+
+    try:
+        result = await db.execute(select(RolSistema).where(RolSistema.id == rol_id))
+        rol = result.scalars().first()
+
+        if not rol:
+            raise HTTPException(status_code=404, detail="Rol no encontrado")
+        if rol.es_sistema:
+            raise HTTPException(
+                status_code=400, detail="No se pueden eliminar roles del sistema"
+            )
+
+        await db.delete(rol)
+        await db.commit()
+        return {"mensaje": f"Rol {rol_id} eliminado exitosamente"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logging.error(f"Error en DELETE /roles/{rol_id}: {e}")
+        raise HTTPException(status_code=500, detail="Error al eliminar rol")

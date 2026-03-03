@@ -17,6 +17,8 @@ from .services.panel_control.metrica_service import MetricaService
 # Importar routers
 from .api.auth import router as auth_router
 from .api.desarrollos import router as desarrollos_router
+from .api.desarrollos.actividades_router import router as actividades_router
+from .api.desarrollos.plantillas_router import router as plantillas_router
 from .api.kpis import router as kpis_router
 from .api.alertas import router as alertas_router
 from .api.tickets import router as tickets_router
@@ -26,6 +28,7 @@ from .api.panel_control import router as panel_control_router
 from .api.etapas_router import router as etapas_router
 from .api.solid.router import router as solid_router
 from .api.viaticos.router import router as viaticos_router
+from .api.auth.config_router import router as config_router
 from .api.reserva_salas import router as reserva_salas_router
 
 # Configurar logging basico
@@ -132,6 +135,14 @@ app.include_router(auth_router, prefix=f"{api_prefix}/auth", tags=["Autenticacio
 app.include_router(
     desarrollos_router, prefix=f"{api_prefix}/desarrollos", tags=["Desarrollos"]
 )
+app.include_router(
+    actividades_router, prefix=f"{api_prefix}/actividades", tags=["Actividades WBS"]
+)
+app.include_router(
+    plantillas_router,
+    prefix=f"{api_prefix}/desarrollos/plantillas",
+    tags=["Plantillas WBS"],
+)
 app.include_router(kpis_router, prefix=f"{api_prefix}/kpis", tags=["KPIs"])
 app.include_router(alertas_router, prefix=f"{api_prefix}/alertas", tags=["Alertas"])
 app.include_router(tickets_router, prefix=f"{api_prefix}/soporte", tags=["Tickets"])
@@ -146,3 +157,4 @@ app.include_router(viaticos_router, prefix=api_prefix, tags=["Viaticos"])
 app.include_router(
     reserva_salas_router, prefix=f"{api_prefix}/reserva-salas", tags=["Reserva Salas"]
 )
+app.include_router(config_router, prefix=api_prefix, tags=["Configuracion Global"])

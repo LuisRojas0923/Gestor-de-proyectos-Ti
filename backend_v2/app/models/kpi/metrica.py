@@ -1,18 +1,22 @@
 """
 Modelos de KPI - Backend V2 (SQLModel)
 """
+
 from typing import Optional
 from datetime import datetime, date
 from decimal import Decimal
 from sqlmodel import SQLModel, Field
+from sqlalchemy import text
 
 
 # --- Modelos de Base de Datos (table=True) ---
 
+
 class MetricaKpi(SQLModel, table=True):
     """Metricas de KPI por desarrollo"""
+
     __tablename__ = "metricas_kpi"
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     desarrollo_id: str = Field(max_length=50)
     tipo_metrica: str = Field(max_length=100)
@@ -22,14 +26,19 @@ class MetricaKpi(SQLModel, table=True):
     valor: Optional[Decimal] = Field(default=None)
     valor_objetivo: Optional[Decimal] = Field(default=None)
     calculado_por: Optional[str] = Field(default=None, max_length=255)
-    calculado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    calculado_en: Optional[datetime] = Field(
+        default=None, sa_column_kwargs={"server_default": text("now()")}
+    )
+    creado_en: Optional[datetime] = Field(
+        default=None, sa_column_kwargs={"server_default": text("now()")}
+    )
 
 
 class Funcionalidad(SQLModel, table=True):
     """Funcionalidades de un desarrollo"""
+
     __tablename__ = "funcionalidades"
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     desarrollo_id: str = Field(max_length=50)
     nombre_funcionalidad: str = Field(max_length=255)
@@ -41,14 +50,17 @@ class Funcionalidad(SQLModel, table=True):
     nivel_complejidad: str = Field(default="media", max_length=20)
     horas_estimadas: Optional[Decimal] = Field(default=None)
     horas_reales: Optional[Decimal] = Field(default=None)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(
+        default=None, sa_column_kwargs={"server_default": text("now()")}
+    )
     actualizado_en: Optional[datetime] = Field(default=None)
 
 
 class HistorialEntrega(SQLModel, table=True):
     """Historial de entregas de un desarrollo"""
+
     __tablename__ = "historial_entregas"
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     desarrollo_id: str = Field(max_length=50)
     version_entrega: Optional[str] = Field(default=None, max_length=50)
@@ -63,13 +75,17 @@ class HistorialEntrega(SQLModel, table=True):
     defectos_reportados: int = Field(default=0)
     defectos_resueltos: int = Field(default=0)
     notas_entrega: Optional[str] = Field(default=None)
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(
+        default=None, sa_column_kwargs={"server_default": text("now()")}
+    )
 
 
 # --- Schemas de Validacion ---
 
+
 class MetricaKpiCrear(SQLModel):
     """Schema para crear una metrica KPI"""
+
     desarrollo_id: str
     tipo_metrica: str
     proveedor: Optional[str] = None
@@ -82,6 +98,7 @@ class MetricaKpiCrear(SQLModel):
 
 class FuncionalidadCrear(SQLModel):
     """Schema para crear una funcionalidad"""
+
     desarrollo_id: str
     nombre_funcionalidad: str
     codigo_funcionalidad: Optional[str] = None
@@ -96,6 +113,7 @@ class FuncionalidadCrear(SQLModel):
 
 class HistorialEntregaCrear(SQLModel):
     """Schema para crear un historial de entrega"""
+
     desarrollo_id: str
     version_entrega: Optional[str] = None
     tipo_entrega: Optional[str] = None

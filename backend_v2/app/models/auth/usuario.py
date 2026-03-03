@@ -6,6 +6,7 @@ Unifica modelos y schemas en una sola definicion
 from typing import Optional, List
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import text
 
 
 # --- Modelos de Base de Datos (table=True) ---
@@ -26,7 +27,7 @@ class Usuario(SQLModel, table=True):
     url_avatar: Optional[str] = Field(default=None, max_length=500)
     zona_horaria: str = Field(default="America/Bogota", max_length=50)
     creado_en: Optional[datetime] = Field(
-        default=None, sa_column_kwargs={"server_default": "now()"}
+        default=None, sa_column_kwargs={"server_default": text("now()")}
     )
     actualizado_en: Optional[datetime] = Field(default=None)
     ultimo_login: Optional[datetime] = Field(default=None)
@@ -68,7 +69,7 @@ class Token(SQLModel, table=True):
     expira_en: datetime
     ultimo_uso_en: Optional[datetime] = Field(default=None)
     creado_en: Optional[datetime] = Field(
-        default=None, sa_column_kwargs={"server_default": "now()"}
+        default=None, sa_column_kwargs={"server_default": text("now()")}
     )
 
     # Relaciones
@@ -87,10 +88,10 @@ class Sesion(SQLModel, table=True):
     agente_usuario: Optional[str] = Field(default=None)
     expira_en: datetime
     creado_en: Optional[datetime] = Field(
-        default=None, sa_column_kwargs={"server_default": "now()"}
+        default=None, sa_column_kwargs={"server_default": text("now()")}
     )
     ultima_actividad_en: Optional[datetime] = Field(
-        default=None, sa_column_kwargs={"server_default": "now()"}
+        default=None, sa_column_kwargs={"server_default": text("now()")}
     )
     nombre_usuario: Optional[str] = Field(default=None, max_length=255)
     rol_usuario: Optional[str] = Field(default=None, max_length=50)
@@ -105,12 +106,79 @@ class PermisoRol(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     rol: str = Field(
         index=True, max_length=50
-    )  # 'admin', 'admin_sistemas', 'analyst', 'user', 'director'
+    )  # 'admin', 'admin_sistemas', 'analyst', 'usuario', 'director'
     modulo: str = Field(index=True, max_length=100)  # ID del componente/pantalla
     permitido: bool = Field(default=True)
 
 
+class RolSistema(SQLModel, table=True):
+    """Modelo para definir roles dinámicamente en el sistema"""
+
+    __tablename__ = "roles_sistema"
+
+    id: str = Field(primary_key=True, max_length=50)  # 'admin', 'supervisor', etc.
+    nombre: str = Field(max_length=100)
+    descripcion: Optional[str] = Field(default=None, max_length=255)
+    es_sistema: bool = Field(default=False)  # Roles que no deben borrarse
+    creado_en: Optional[datetime] = Field(
+        default=None, sa_column_kwargs={"server_default": text("now()")}
+    )
+
+
+class ModuloSistema(SQLModel, table=True):
+    """Modelo para habilitar/deshabilitar módulos globalmente"""
+
+    __tablename__ = "modulos_sistema"
+
+    id: str = Field(primary_key=True, max_length=100)  # 'viaticos_gestion', etc.
+    nombre: str = Field(max_length=100)
+    categoria: str = Field(max_length=50)  # 'portal', 'analistas', 'panel'
+    descripcion: Optional[str] = Field(default=None, max_length=255)
+    esta_activo: bool = Field(default=True)
+    es_critico: bool = Field(
+        default=False
+    )  # Módulos que no deberían desactivarse fácil
+    actualizado_en: Optional[datetime] = Field(default=None)
+
+
 # --- Schemas de Validacion (table=False, por defecto) ---
+
+
+class RolCrear(SQLModel):
+    """Schema para crear un nuevo rol"""
+
+    id: str = Field(max_length=50)
+    nombre: str = Field(max_length=100)
+    descripcion: Optional[str] = None
+
+
+class RolPublico(SQLModel):
+    """Schema para respuesta de roles"""
+
+    id: str
+    nombre: str
+    descripcion: Optional[str] = None
+    es_sistema: bool
+    creado_en: datetime
+
+
+class ModuloToggleRequest(SQLModel):
+    """Schema para alternar el estado de un módulo"""
+
+    esta_activo: bool
+    password_verificacion: str
+
+
+class ModuloPublico(SQLModel):
+    """Schema para respuesta pública de módulos"""
+
+    id: str
+    nombre: str
+    categoria: str
+    descripcion: Optional[str] = None
+    esta_activo: bool
+    es_critico: bool
+    actualizado_en: Optional[datetime] = None
 
 
 class UsuarioCrear(SQLModel):

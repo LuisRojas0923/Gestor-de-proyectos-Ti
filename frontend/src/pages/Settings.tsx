@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Title } from '../components/atoms';
+import { Power, ShieldCheck } from 'lucide-react';
+import { Title, MaterialCard, Button, Text } from '../components/atoms';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 
 import ProfileSection from './Settings/components/ProfileSection';
@@ -8,6 +9,8 @@ import NotificationSection from './Settings/components/NotificationSection';
 import SecuritySection from './Settings/components/SecuritySection';
 import AdminSection from './Settings/components/AdminSection';
 import ApiTokenSection from './Settings/components/ApiTokenSection';
+import AdminLoginLock from './Settings/components/AdminLoginLock';
+import ModuleMasterPanel from './Settings/components/ModuleMasterPanel';
 
 import { useProfileSettings } from './Settings/hooks/useProfileSettings';
 import { useSecuritySettings } from './Settings/hooks/useSecuritySettings';
@@ -17,6 +20,12 @@ const Settings: React.FC = () => {
   const { addNotification } = useNotifications();
   const { t, i18n } = useTranslation();
   const { profile, setProfile, handleProfileUpdate, darkMode, toggleDarkMode, user } = useProfileSettings();
+
+  // Estados para el Panel Maestro
+  const [showAdminLock, setShowAdminLock] = useState(false);
+  const [isPanelUnlocked, setIsPanelUnlocked] = useState(false);
+  const [adminVerifyPassword, setAdminVerifyPassword] = useState('');
+
   const {
     analystCedula, setAnalystCedula, isCreatingAnalyst, handleCreateAnalyst,
     passwordForm, setPasswordForm, isChangingPassword, handleChangePassword
@@ -38,6 +47,12 @@ const Settings: React.FC = () => {
     { value: 'Europe/Madrid', label: 'Madrid (GMT+1)' },
     { value: 'Asia/Tokyo', label: 'Tokio (GMT+9)' },
   ];
+
+  const handleUnlockAdmin = (password: string) => {
+    setAdminVerifyPassword(password);
+    setIsPanelUnlocked(true);
+    setShowAdminLock(false);
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -65,6 +80,45 @@ const Settings: React.FC = () => {
           isCreatingAnalyst={isCreatingAnalyst} handleCreateAnalyst={handleCreateAnalyst}
         />
       )}
+
+      {user?.role === 'admin' && (
+        <MaterialCard className="p-6 border-2 border-red-500/10 bg-red-50/5">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-red-100 dark:bg-red-900/20 text-red-600">
+                <Power size={24} />
+              </div>
+              <div>
+                <Title variant="h5" weight="bold">Zona de Seguridad Global</Title>
+                <Text variant="body2" color="text-secondary">Control maestro de módulos y disponibilidad del sistema.</Text>
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              className="!bg-red-600 hover:!bg-red-700 !rounded-xl px-8 shadow-lg shadow-red-500/20"
+              onClick={() => setShowAdminLock(true)}
+              icon={ShieldCheck}
+            >
+              Abrir Panel Maestro
+            </Button>
+          </div>
+
+          {isPanelUnlocked && (
+            <div className="mt-8 pt-8 border-t border-[var(--color-border)]">
+              <ModuleMasterPanel
+                adminPassword={adminVerifyPassword}
+                onClose={() => { setIsPanelUnlocked(false); setAdminVerifyPassword(''); }}
+              />
+            </div>
+          )}
+        </MaterialCard>
+      )}
+
+      <AdminLoginLock
+        isOpen={showAdminLock}
+        onUnlock={handleUnlockAdmin}
+        onClose={() => setShowAdminLock(false)}
+      />
 
       <ApiTokenSection
         apiTokens={apiTokens} showTokenForm={showTokenForm} setShowTokenForm={setShowTokenForm}

@@ -354,7 +354,37 @@ VALUES (
 
 
 -- ==========================================
--- 6. Permisos por Rol Integrados
+-- 6. Maestro de Módulos (Configuración Global)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS modulos_sistema (
+    id VARCHAR(100) PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    categoria VARCHAR(50) NOT NULL, -- 'portal', 'analistas', 'panel', 'otros'
+    descripcion VARCHAR(255),
+    esta_activo BOOLEAN DEFAULT TRUE,
+    es_critico BOOLEAN DEFAULT FALSE,
+    actualizado_en TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Semilla de Módulos Iniciales
+INSERT INTO modulos_sistema (id, nombre, categoria, esta_activo, es_critico) VALUES
+-- Portal
+('mis_solicitudes', 'Mis Solicitudes', 'portal', true, true),
+('viaticos_gestion', 'Gestión de Viáticos', 'portal', true, false),
+('sistemas', 'Soporte Sistemas', 'portal', true, false),
+('mejoramiento', 'Mejoramiento TI', 'portal', true, false),
+('chat', 'Asistente IA', 'portal', true, false),
+-- Analistas
+('dashboard', 'Tablero Principal', 'analistas', true, true),
+('ticket-management', 'Gestión de Tickets', 'analistas', true, false),
+('developments', 'Gestión de Actividades', 'analistas', true, false),
+-- Panel
+('control-tower', 'Torre de Control', 'panel', true, true),
+('user-admin', 'Administración de Usuarios', 'panel', true, true)
+ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- 7. Permisos por Rol Integrados
 -- ==========================================
 -- Forzar recreación de la tabla para asegurar estructura correcta
 DROP TABLE IF EXISTS permisos_rol CASCADE;

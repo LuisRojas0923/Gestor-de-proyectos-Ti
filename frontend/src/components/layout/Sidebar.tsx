@@ -14,7 +14,8 @@ import {
   Palette,
   Users,
   Activity,
-  X
+  X,
+  ListTodo
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -57,7 +58,7 @@ const Sidebar: React.FC = () => {
 
   const navigation = [
     { id: 'dashboard', name: 'Tablero', href: '/', icon: LayoutDashboard },
-    { id: 'developments', name: 'Mis Desarrollos', href: '/developments', icon: Briefcase },
+    { id: 'developments', name: 'Gestión de Actividades', href: '/developments', icon: Briefcase },
     { id: 'indicators', name: 'Indicadores', href: '/indicators', icon: BarChart3 },
     { id: 'ticket-management', name: 'Gestión de Tickets', href: '/ticket-management', icon: Ticket },
     { id: 'reports', name: 'Reportes', href: '/reports', icon: ClipboardList },
@@ -66,6 +67,7 @@ const Sidebar: React.FC = () => {
     { id: 'user-admin', name: 'Gestión de Usuarios', href: '/admin/users', icon: Users },
     { id: 'rooms-admin', name: 'Gestión de Salas', href: '/admin/rooms', icon: DoorOpen },
     { id: 'settings', name: 'Configuración', href: '/settings', icon: Settings },
+    { id: 'wbs-templates', name: 'Plantillas WBS', href: '/admin/wbs-templates', icon: ListTodo },
     { id: 'control-tower', name: 'Torre de Control', href: '/admin/control-tower', icon: Activity },
     { id: 'design-catalog', name: 'Catálogo de Diseño', href: '/design-catalog', icon: Palette },
   ];
@@ -79,6 +81,9 @@ const Sidebar: React.FC = () => {
 
     // Torre de Control: admin y admin_sistemas
     if (item.id === 'control-tower') return userRole === 'admin' || userRole === 'admin_sistemas';
+
+    // Plantillas WBS: admin y manager
+    if (item.id === 'wbs-templates') return userRole === 'admin' || userRole === 'manager';
 
     // Si el usuario no tiene cargados los permisos todavía (sesión antigua en caché)
     // permitimos ver todo lo que su rol tradicional permitía
