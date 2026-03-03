@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import obtener_db
+from app.database import obtener_db, obtener_erp_db_opcional
 from app.models.auth.usuario import Usuario, UsuarioPublico, PasswordCambiar
 from app.services.auth.servicio import ServicioAuth
 
@@ -11,6 +11,7 @@ router = APIRouter()
 async def obtener_usuario_actual_db(
     token: str = Depends(ServicioAuth.oauth2_scheme),
     db: AsyncSession = Depends(obtener_db),
+    db_erp=Depends(obtener_erp_db_opcional),
 ):
     """Dependencia para obtener el objeto usuario completo del token y sincronizar si es necesario"""
     try:
@@ -22,19 +23,50 @@ async def obtener_usuario_actual_db(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+
         if not usuario:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            # Usuario estándar: existe en ERP pero no persiste localmente (Rol usuario)
+            if not db_erp:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Servicio ERP no disponible para validar perfil de usuario",
+                )
+            from app.services.erp.empleados_service import EmpleadosService
 
-        if not usuario.area or not usuario.sede:
-            from app.database import SessionErp
+            empleado = await EmpleadosService.obtener_empleado_por_cedula(
+                db_erp, cedula
+            )
+            if not empleado:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Usuario no encontrado en la base local ni en el ERP",
+                )
 
+            # Instanciar modelo en memoria para responder al Auth profile
+            usuario = Usuario(
+                id=f"USR-P-{cedula}",
+                cedula=cedula,
+                nombre=empleado.get("nombre", "Usuario Portal"),
+                hash_contrasena="N/A",
+                rol="usuario",  # Asumimos rol usuario para portal estándar
+                esta_activo=True,
+                area=empleado.get("area"),
+                cargo=empleado.get("cargo"),
+                sede=empleado.get("ciudadcontratacion"),
+                centrocosto=empleado.get("centrocosto"),
+                viaticante=bool(empleado.get("viaticante")),
+                baseviaticos=empleado.get("baseviaticos"),
+            )
+            return usuario
+
+        # Si el usuario es local y no tiene area/sede pero hay ERP disponible, sincronizar:
+        if db_erp and (not usuario.area or not usuario.sede):
             try:
-                with SessionErp() as db_erp:
-                    usuario = await ServicioAuth.sincronizar_perfil_desde_erp(
-                        db, db_erp, usuario
-                    )
+                usuario = await ServicioAuth.sincronizar_perfil_desde_erp(
+                    db, db_erp, usuario
+                )
             except Exception as e:
-                print(f"DEBUG: ERP no disponible o fallo en sincronizacion: {e}")
+                print(f"DEBUG: ERP no disponible o fallo en sincronizacion local: {e}")
 
         return usuario
     except HTTPException:
