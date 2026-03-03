@@ -8,7 +8,7 @@ import imgReunion from '../../../assets/images/categories/Reunion.png';
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones') => void;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
@@ -21,6 +21,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         permissions.includes('sistemas') ||
         permissions.includes('mejoramiento') ||
         permissions.includes('desarrollo') ||
+        permissions.includes('desarrollo') ||
+        ['admin', 'director'].includes(userRole)
+    );
+
+    const canSeeRequisiciones = moduleStatus['mis_solicitudes'] !== false && (
+        permissions.includes('mis_solicitudes') ||
         ['admin', 'director'].includes(userRole)
     );
 
@@ -60,6 +66,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                         description="Reserva salas de reuniones y espacios para tu equipo."
                         icon={<img src={imgReunion} alt="Reserva de salas" className="w-full h-full object-contain p-2" />}
                         onClick={() => onNavigate('reserva_salas')}
+                    />
+                )}
+
+                {canSeeRequisiciones && (
+                    <ActionCard
+                        title="Sistema de Solicitudes"
+                        description="Gestión de Requisiciones (Almacén, Suministros, Presupuesto)."
+                        icon={<img src={imgSolicitar} alt="Sistema de Solicitudes" className="w-full h-full object-contain p-2 filter hue-rotate-180" />}
+                        onClick={() => onNavigate('requisiciones')}
                     />
                 )}
 

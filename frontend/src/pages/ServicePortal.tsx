@@ -14,6 +14,10 @@ import AccountStatement from './ServicePortal/pages/AccountStatement';
 import DirectorExpensePanel from './ServicePortal/pages/DirectorExpensePanel';
 import TransitReportsView from './ServicePortal/pages/TransitReportsView';
 import ReservaSalasView from './ServicePortal/pages/ReservaSalasView';
+import RequestPortalView from './ServicePortal/pages/Requests/RequestPortalView';
+import AlmacenSubAreaView from './ServicePortal/pages/Requests/AlmacenSubAreaView';
+import AlmacenFormView from './ServicePortal/pages/Requests/AlmacenFormView';
+import MisRequisicionesView from './ServicePortal/pages/Requests/MisRequisicionesView';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import PortalLayout from './ServicePortal/PortalLayout';
 
@@ -128,10 +132,42 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'categories') navigate('/service-portal/servicios');
                             else if (v === 'status') navigate('/service-portal/mis-tickets');
                             else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
+                            else if (v === 'requisiciones') navigate('/service-portal/requisiciones');
                         }}
                     />
                 } />
 
+                {/* --- NUEVAS RUTAS DE REQUISICIONES / ALMACEN ERP --- */}
+                <Route path="requisiciones" element={
+                    <ProtectedRoute moduleCode="mis_solicitudes">
+                        <RequestPortalView
+                            user={user}
+                            onSelectArea={(area) => navigate(`/service-portal/requisiciones/${area}`)}
+                            onConsultStatus={() => navigate('/service-portal/requisiciones/mis-solicitudes')}
+                            onBack={() => navigate('/service-portal/inicio')}
+                        />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="requisiciones/almacen" element={
+                    <ProtectedRoute moduleCode="mis_solicitudes">
+                        <AlmacenSubAreaView />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="requisiciones/almacen/crear/:especialidad" element={
+                    <ProtectedRoute moduleCode="mis_solicitudes">
+                        <AlmacenFormView user={user} />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="requisiciones/mis-solicitudes" element={
+                    <ProtectedRoute moduleCode="mis_solicitudes">
+                        <MisRequisicionesView />
+                    </ProtectedRoute>
+                } />
+
+                {/* --- RUTAS EXISTENTES DE SOPORTE TI --- */}
                 <Route path="servicios" element={
                     <ProtectedRoute moduleCode="mis_solicitudes">
                         <AreaSelectionView
