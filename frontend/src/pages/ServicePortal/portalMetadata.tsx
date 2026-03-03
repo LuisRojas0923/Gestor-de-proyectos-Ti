@@ -1,56 +1,58 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
-
-import imgHardware from '../../assets/images/categories/Soporte Hardware.png';
-import imgSoftware from '../../assets/images/categories/Soporte Software.png';
-import imgPerifericos from '../../assets/images/categories/Soporte Perifericos.png';
-import imgImpresora from '../../assets/images/categories/Soporte Impresora.png';
-import imgMejora from '../../assets/images/categories/Soporte Mejoramiento.png';
-import imgDesarrollo from '../../assets/images/categories/Nuevos desarrollos.png';
-import imgLicencias from '../../assets/images/categories/Compra de Licencias.png';
-import imgControlCambios from '../../assets/images/categories/Control de Cambios.png';
+import {
+    Plus,
+    Cpu,
+    AppWindow,
+    Printer,
+    Keyboard,
+    Key,
+    Code2,
+    GitCommit,
+    Lightbulb,
+    Layers
+} from 'lucide-react';
 
 export const categoryMetadata: Record<string, { icon: React.ReactNode; section: 'soporte' | 'mejoramiento' }> = {
     soporte_hardware: {
-        icon: <img src={imgHardware} alt="Hardware" className="w-full h-full object-contain p-1" />,
+        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-blue-500/10"><Cpu className="w-8 h-8 text-blue-500" /></div>,
         section: 'soporte'
     },
     soporte_software: {
-        icon: <img src={imgSoftware} alt="Software" className="w-full h-full object-contain p-1" />,
+        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-indigo-500/10"><AppWindow className="w-8 h-8 text-indigo-500" /></div>,
         section: 'soporte'
     },
     soporte_impresoras: {
-        icon: <img src={imgImpresora} alt="Impresoras" className="w-full h-full object-contain p-1" />,
+        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-cyan-500/10"><Printer className="w-8 h-8 text-cyan-500" /></div>,
         section: 'soporte'
     },
     perifericos: {
-        icon: <img src={imgPerifericos} alt="Periféricos" className="w-full h-full object-contain p-1" />,
+        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-teal-500/10"><Keyboard className="w-8 h-8 text-teal-500" /></div>,
         section: 'soporte'
     },
     compra_licencias: {
-        icon: <img src={imgLicencias} alt="Licencias" className="w-full h-full object-contain p-1" />,
+        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-amber-500/10"><Key className="w-8 h-8 text-amber-500" /></div>,
         section: 'soporte'
     },
     nuevos_desarrollos_mejora: {
-        icon: <img src={imgDesarrollo} alt="Nuevas Herramientas" className="w-full h-full object-contain p-2" />,
+        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-purple-500/10"><Code2 className="w-8 h-8 text-purple-500" /></div>,
         section: 'mejoramiento'
     },
     control_cambios: {
-        icon: <img src={imgControlCambios} alt="Control de Cambios" className="w-full h-full object-contain p-1" />,
+        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-rose-500/10"><GitCommit className="w-8 h-8 text-rose-500" /></div>,
         section: 'mejoramiento'
     },
     soporte_mejora: {
-        icon: <img src={imgMejora} alt="Soporte Mejoramiento" className="w-full h-full object-contain p-1" />,
+        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-yellow-500/10"><Lightbulb className="w-8 h-8 text-yellow-500" /></div>,
         section: 'mejoramiento'
     },
     nuevos_desarrollos_solid: {
-        icon: <img src={imgDesarrollo} alt="Desarrollo SOLID" className="w-full h-full object-contain p-2" />,
+        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-emerald-500/10"><Layers className="w-8 h-8 text-emerald-500" /></div>,
         section: 'mejoramiento'
     }
 };
 
 export const getCategoryIcon = (id: string) => {
-    return categoryMetadata[id]?.icon || <Plus />;
+    return categoryMetadata[id]?.icon || <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-gray-500/10"><Plus className="w-8 h-8 text-gray-500" /></div>;
 };
 
 export const getCategorySection = (id: string): 'soporte' | 'mejoramiento' => {

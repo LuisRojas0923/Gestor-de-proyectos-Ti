@@ -1,11 +1,8 @@
-import { ArrowLeft, ClipboardList, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ClipboardList, ShieldCheck, ReceiptText, Wallet } from 'lucide-react';
 import { Button, Text, Title } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 import { useAppContext } from '../../../context/AppContext';
 import ViaticosAuthModal from '../components/ViaticosAuthModal';
-
-import imgIngresar from '../../../assets/images/categories/Ingresar Reporte.png';
-import imgEstadoCuenta from '../../../assets/images/categories/estado de cuenta.png';
 
 interface ViaticosManagementProps {
     onNavigate: (view: 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_estado' | 'director_legalizaciones') => void;
@@ -87,7 +84,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                             <ActionCard
                                 title="Legalizacion de Gastos"
                                 description="Registra y legaliza tus viáticos, adjuntando facturas y detalles por OT."
-                                icon={<img src={imgIngresar} alt="Legalizacion de Gastos" className="w-full h-full object-contain p-2" />}
+                                icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-blue-500/10"><ReceiptText className="w-12 h-12 text-blue-500" /></div>}
                                 onClick={() => onNavigate('viaticos_reportes')}
                                 className="md:h-64"
                             />
@@ -97,7 +94,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                             <ActionCard
                                 title="Estado de Cuenta"
                                 description="Consulta tus movimientos, saldos y el histórico oficial desde el ERP."
-                                icon={<img src={imgEstadoCuenta} alt="Estado de Cuenta" className="w-full h-full object-contain p-2" />}
+                                icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-emerald-500/10"><Wallet className="w-12 h-12 text-emerald-500" /></div>}
                                 onClick={() => onNavigate('viaticos_estado')}
                                 className="md:h-64"
                             />
@@ -109,7 +106,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                     <ActionCard
                         title="Panel de Legalizaciones"
                         description="Consulta todas las legalizaciones reportadas y el flujo de información."
-                        icon={<ClipboardList size={40} />}
+                        icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-purple-500/10"><ClipboardList className="w-12 h-12 text-purple-500" /></div>}
                         onClick={() => onNavigate('director_legalizaciones')}
                         className="md:h-64"
                     />

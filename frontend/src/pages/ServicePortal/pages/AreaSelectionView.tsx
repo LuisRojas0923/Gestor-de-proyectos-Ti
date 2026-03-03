@@ -1,13 +1,7 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MonitorDot, Code, Lightbulb, ClipboardCheck } from 'lucide-react';
 import { Title, Text, Button, Badge } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
-
-// Imágenes para las áreas (reutilizando activos si existen o iconos representativos)
-import imgSistemas from '../../../assets/images/categories/Soporte Hardware.png';
-import imgDesarrollo from '../../../assets/images/categories/Nuevos desarrollos.png';
-import imgMejora from '../../../assets/images/categories/Soporte Mejoramiento.png';
-import imgMisSolicitudes from '../../../assets/images/categories/Mis Solicitudes.png';
 
 interface AreaSelectionViewProps {
     user: any;
@@ -59,7 +53,7 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ user, onSelectAre
                     <ActionCard
                         title="Soporte Sistemas"
                         description="Hardware, Software, Impresoras e Infraestructura tecnológica."
-                        icon={<img src={imgSistemas} alt="Sistemas" className="w-full h-full object-contain p-2" />}
+                        icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-blue-500/10"><MonitorDot className="w-12 h-12 text-blue-500" /></div>}
                         onClick={() => onSelectArea('sistemas')}
                     />
                 )}
@@ -68,7 +62,7 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ user, onSelectAre
                     <ActionCard
                         title="Desarrollo Software"
                         description="Solicitud de nuevos módulos o funcionalidades en SOLID."
-                        icon={<img src={imgDesarrollo} alt="Desarrollo" className="w-full h-full object-contain p-2" />}
+                        icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-indigo-500/10"><Code className="w-12 h-12 text-indigo-500" /></div>}
                         onClick={() => onSelectArea('desarrollo')}
                     />
                 )}
@@ -77,7 +71,7 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ user, onSelectAre
                     <ActionCard
                         title="Mejoramiento"
                         description="Ajustes a herramientas de Excel y procesos existentes."
-                        icon={<img src={imgMejora} alt="Mejoramiento" className="w-full h-full object-contain p-2" />}
+                        icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-amber-500/10"><Lightbulb className="w-12 h-12 text-amber-500" /></div>}
                         onClick={() => onSelectArea('mejoramiento')}
                     />
                 )}
@@ -86,7 +80,7 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ user, onSelectAre
                     <ActionCard
                         title="Mis Solicitudes"
                         description="Consulta el estado y progreso de tus tickets activos."
-                        icon={<img src={imgMisSolicitudes} alt="Mis Solicitudes" className="w-full h-full object-contain p-2" />}
+                        icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-[var(--color-primary)]/10"><ClipboardCheck className="w-12 h-12 text-[var(--color-primary)]" /></div>}
                         onClick={onConsultStatus}
                         variant="primary_light"
                     />
