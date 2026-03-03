@@ -252,6 +252,7 @@ class ViaticosService:
                 'CONSIGNACION' AS tipo, UPPER(TRIM(estado)) AS estado_limpio, 
                 observaciones 
             FROM consignacion
+            WHERE UPPER(TRIM(estado)) != 'ANULADO'
             UNION ALL
             SELECT 
                 codigo, fechaaplicacion, empleado, nombreempleado, 
@@ -259,6 +260,7 @@ class ViaticosService:
                 'LEGALIZACION' AS tipo, UPPER(TRIM(estado)) AS estado_limpio, 
                 observaciones 
             FROM legalizacion
+            WHERE UPPER(TRIM(estado)) != 'ANULADO'
         )
         SELECT 
             m.codigo, m.fechaaplicacion, m.empleado, m.nombreempleado, m.radicado,
