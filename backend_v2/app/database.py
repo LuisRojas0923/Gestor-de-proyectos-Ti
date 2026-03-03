@@ -235,29 +235,177 @@ async def init_db():
                 await session.commit()
                 print("DEBUG: Usuario administrador creado (admin / admin123)")
 
-            # 4.2 SINCRONIZACIÓN DINÁMICA DE MÓDULOS
-            # Descubrir IDs de módulos desde los permisos existentes
-            result_modulos = await session.execute(select(PermisoRol.modulo).distinct())
-            modulos_descubiertos = result_modulos.scalars().all()
+            # 4.2 SINCRONIZACIÓN Y SEMILLADO DE MÓDULOS
+            # IMPORTANTE: Esta lista es solo para el semillado inicial de módulos críticos.
+            # Los módulos nuevos DEBEN registrarse a través de la interfaz administrativa
+            # (Panel Maestro) y no añadiéndolos aquí manualmente para evitar redundancias.
+            modulos_core = [
+                {
+                    "id": "service-portal",
+                    "nombre": "Portal de Servicios (Shell)",
+                    "categoria": "portal",
+                    "critico": True,
+                },
+                {
+                    "id": "mis_solicitudes",
+                    "nombre": "Mis Solicitudes",
+                    "categoria": "portal",
+                    "critico": True,
+                },
+                {
+                    "id": "viaticos_gestion",
+                    "nombre": "Gestión de Viáticos",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "viaticos_reportes",
+                    "nombre": "Legalización de Gastos",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "viaticos_estado",
+                    "nombre": "Estado de Cuenta (Viáticos)",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "viaticos_director_panel",
+                    "nombre": "Panel de Legalizaciones (Director)",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "sistemas",
+                    "nombre": "Soporte Sistemas",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "mejoramiento",
+                    "nombre": "Mejoramiento TI",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "desarrollo",
+                    "nombre": "Software Factory",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "chat",
+                    "nombre": "Asistente IA",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "reserva_salas",
+                    "nombre": "Reserva de Salas",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "dashboard",
+                    "nombre": "Tablero Principal",
+                    "categoria": "analistas",
+                    "critico": True,
+                },
+                {
+                    "id": "ticket-management",
+                    "nombre": "Gestión de Tickets",
+                    "categoria": "analistas",
+                    "critico": False,
+                },
+                {
+                    "id": "developments",
+                    "nombre": "Gestión de Actividades",
+                    "categoria": "analistas",
+                    "critico": False,
+                },
+                {
+                    "id": "control-tower",
+                    "nombre": "Torre de Control",
+                    "categoria": "panel",
+                    "critico": True,
+                },
+                {
+                    "id": "user-admin",
+                    "nombre": "Administración de Usuarios",
+                    "categoria": "panel",
+                    "critico": True,
+                },
+                {
+                    "id": "settings",
+                    "nombre": "Parámetros del Sistema",
+                    "categoria": "analistas",
+                    "critico": False,
+                },
+                {
+                    "id": "indicators",
+                    "nombre": "Indicadores Globales (BI)",
+                    "categoria": "analistas",
+                    "critico": False,
+                },
+                {
+                    "id": "reports",
+                    "nombre": "Reportería Avanzada",
+                    "categoria": "analistas",
+                    "critico": False,
+                },
+                {
+                    "id": "design-catalog",
+                    "nombre": "Catálogo de Diseño UI/UX",
+                    "categoria": "panel",
+                    "critico": False,
+                },
+            ]
 
-            for mod_id in modulos_descubiertos:
+            for m_data in modulos_core:
+                m_result = await session.execute(
+                    select(ModuloSistema).where(ModuloSistema.id == m_data["id"])
+                )
+                existing = m_result.scalar_one_or_none()
+                if not existing:
+                    session.add(
+                        ModuloSistema(
+                            id=m_data["id"],
+                            nombre=m_data["nombre"],
+                            categoria=m_data["categoria"],
+                            esta_activo=True,
+                            es_critico=m_data["critico"],
+                        )
+                    )
+                else:
+                    # Opcional: Actualizar metadatos si el nombre o categoría cambió en el código
+                    existing.nombre = m_data["nombre"]
+                    existing.categoria = m_data["categoria"]
+                    existing.es_critico = m_data["critico"]
+
+            # Discovery Dinámico para el resto (módulos que solo están en permisos_rol)
+            result_permisos = await session.execute(
+                select(PermisoRol.modulo).distinct()
+            )
+            modulos_en_permisos = result_permisos.scalars().all()
+
+            for mod_id in modulos_en_permisos:
                 if not mod_id:
                     continue
-                # Verificar si ya está en el maestro para no sobrescribir estado manual
                 m_result = await session.execute(
                     select(ModuloSistema).where(ModuloSistema.id == mod_id)
                 )
                 if m_result.scalar_one_or_none() is None:
-                    # Registrar nuevo módulo descubierto automáticamente
-                    nuevo_m = ModuloSistema(
-                        id=mod_id,
-                        nombre=mod_id.replace("_", " ").replace("-", " ").title(),
-                        categoria="otros",
-                        esta_activo=True,
-                        es_critico=False,
+                    session.add(
+                        ModuloSistema(
+                            id=mod_id,
+                            nombre=mod_id.replace("_", " ").replace("-", " ").title(),
+                            categoria="otros",
+                            esta_activo=True,
+                            es_critico=False,
+                        )
                     )
-                    session.add(nuevo_m)
-                    print(f"DEBUG: Módulo nuevo descubierto e iniciado: {mod_id}")
+                    print(f"DEBUG: Módulo nuevo descubierto: {mod_id}")
 
             await session.commit()
 

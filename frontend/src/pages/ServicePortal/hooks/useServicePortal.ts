@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
 import { useAppContext } from '../../../context/AppContext';
-import { API_CONFIG } from '../../../config/api';
+import { API_CONFIG, API_ENDPOINTS } from '../../../config/api';
 import { Category } from '../pages/CategoryView';
 import { getCategoryIcon, getCategorySection } from '../portalMetadata';
 
@@ -20,12 +20,24 @@ export const useServicePortal = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [newTicketId, setNewTicketId] = useState<string | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [moduleStatus, setModuleStatus] = useState<Record<string, boolean>>({});
 
     const hasRefreshed = useRef(false);
 
+    const fetchModuleStatus = useCallback(async () => {
+        try {
+            // Nota: este endpoint es público, se añadió recientemente
+            const res = await axios.get(`${API_BASE_URL}/config/public/check-modules`);
+            setModuleStatus(res.data as Record<string, boolean>);
+        } catch (err) {
+            console.error("Error fetching module status:", err);
+        }
+    }, []);
+
     const fetchCategories = useCallback(async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/soporte/categorias`);
+            // Usar el endpoint estandarizado en API_ENDPOINTS (/soporte/categorias)
+            const res = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.TICKET_CATEGORIES}`);
             const apiCats = res.data as any[];
 
             const mappedCategories = apiCats.map((apiCat: any) => ({
@@ -46,7 +58,7 @@ export const useServicePortal = () => {
 
     const fetchTickets = useCallback(async (id: string) => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/soporte/mis-tickets/${id}`);
+            const res = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.TICKET_MY_TICKETS(id)}`);
             setTickets(res.data as any[]);
         } catch (err) {
             console.error("Error fetching user tickets:", err);
@@ -61,7 +73,7 @@ export const useServicePortal = () => {
 
             try {
                 hasRefreshed.current = true;
-                const res = await axios.get(`${API_BASE_URL}/auth/yo`, {
+                const res = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.AUTH_ME}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
@@ -93,9 +105,10 @@ export const useServicePortal = () => {
     }, [user, dispatch]);
 
     useEffect(() => {
+        fetchModuleStatus();
         fetchCategories();
         refreshUserProfile();
-    }, [fetchCategories, refreshUserProfile]);
+    }, [fetchModuleStatus, fetchCategories, refreshUserProfile]);
 
     useEffect(() => {
         if (user?.cedula || user?.id) {
@@ -198,13 +211,14 @@ export const useServicePortal = () => {
                 }
             }
 
-            const res = await axios.post(`${API_BASE_URL}/soporte/`, payload);
+            const res = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.TICKET_CREATE}`, payload);
             const createdTicketId = (res.data as any).id;
 
             if (selectedFiles.length > 0) {
                 for (const file of selectedFiles) {
                     try {
                         const base64 = await fileToBase64(file);
+                        // No hay un endpoint específico en API_ENDPOINTS para adjuntos, usamos la ruta estandarizada
                         await axios.post(`${API_BASE_URL}/soporte/${createdTicketId}/adjuntos`, {
                             ticket_id: createdTicketId,
                             nombre_archivo: file.name,
@@ -239,9 +253,9 @@ export const useServicePortal = () => {
         const userResponse = fd.get('user_response') as string;
 
         try {
-            await axios.patch(`${API_BASE_URL}/soporte/${selectedTicket.id}`, {
+            await axios.patch(`${API_BASE_URL}${API_ENDPOINTS.TICKET_UPDATE(selectedTicket.id)}`, {
                 estado: 'En Proceso',
-                notas: (selectedTicket.notes || '') + `\n\n[USER ${new Date().toLocaleString()}] ${userResponse}`
+                notas: (selectedTicket.notes || '') + `\n\n[USUARIO ${new Date().toLocaleString()}] ${userResponse}`
             });
 
             addNotification('success', "Información enviada correctamente. El ticket vuelve a estar en proceso.");
@@ -265,6 +279,7 @@ export const useServicePortal = () => {
         selectedTicket,
         setSelectedTicket,
         tickets,
+        moduleStatus,
         isLoading,
         setIsLoading,
         newTicketId,

@@ -99,6 +99,42 @@ async def toggle_modulo_global(
     return modulo
 
 
+@router.post("/modulos", response_model=ModuloPublico)
+async def crear_modulo_sistema(
+    payload: dict,
+    db: AsyncSession = Depends(obtener_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
+):
+    """Registra manualmente un nuevo módulo en el sistema."""
+    if usuario_actual.rol != "admin":
+        raise HTTPException(status_code=403, detail="Permisos insuficientes")
+
+    modulo_id = payload.get("id")
+    if not modulo_id:
+        raise HTTPException(status_code=400, detail="ID de módulo requerido")
+
+    # Verificar si ya existe
+    existe = await db.get(ModuloSistema, modulo_id)
+    if existe:
+        raise HTTPException(
+            status_code=400, detail="El ID del módulo ya está registrado"
+        )
+
+    nuevo_modulo = ModuloSistema(
+        id=modulo_id,
+        nombre=payload.get("nombre", modulo_id.title()),
+        categoria=payload.get("categoria", "otros"),
+        descripcion=payload.get("descripcion"),
+        esta_activo=payload.get("esta_activo", True),
+        es_critico=payload.get("es_critico", False),
+    )
+
+    db.add(nuevo_modulo)
+    await db.commit()
+    await db.refresh(nuevo_modulo)
+    return nuevo_modulo
+
+
 @router.post("/init-modulos")
 async def inicializar_modulos_sistema(
     db: AsyncSession = Depends(obtener_db),
@@ -133,6 +169,17 @@ async def inicializar_modulos_sistema(
 
     await db.commit()
     return {"message": f"Se sincronizaron {count} módulos nuevos descubiertos."}
+
+
+@router.get("/public/check-modules")
+async def consultar_estado_modulos_publico(
+    db: AsyncSession = Depends(obtener_db),
+):
+    """Retorna el estado de activación global de todos los módulos (Público)."""
+    result = await db.execute(select(ModuloSistema))
+    modulos = result.scalars().all()
+    # Retornamos un diccionario simple para fácil consumo en el frontend
+    return {m.id: m.esta_activo for m in modulos}
 
 
 @router.patch("/modulos/{modulo_id}/metadata", response_model=ModuloPublico)

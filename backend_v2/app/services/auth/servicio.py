@@ -171,13 +171,19 @@ class ServicioAuth:
 
     @staticmethod
     async def obtener_permisos_por_rol(db: AsyncSession, rol: str) -> list[str]:
-        """Obtiene la lista de módulos permitidos para un rol (Insensible a mayúsculas)."""
+        """Obtiene la lista de módulos permitidos para un rol que estén activos globalmente."""
         from sqlalchemy import func
+        from app.models.auth.usuario import ModuloSistema
 
+        # Unimos PermisoRol con ModuloSistema para filtrar por su estado global 'esta_activo'
         result = await db.execute(
-            select(PermisoRol.modulo).where(
+            select(PermisoRol.modulo)
+            .join(ModuloSistema, PermisoRol.modulo == ModuloSistema.id)
+            .where(
                 func.lower(PermisoRol.rol) == rol.lower().strip(),
-                PermisoRol.permitido,
+                PermisoRol.permitido == True,
+                ModuloSistema.esta_activo
+                == True,  # REFUERZO: El módulo debe estar activo globalmente
             )
         )
         return list(result.scalars().all())

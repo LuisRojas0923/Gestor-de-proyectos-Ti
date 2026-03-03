@@ -28,6 +28,7 @@ const PermissionsMatrix: React.FC = () => {
     const { addNotification } = useNotifications();
     const { roles: dynamicRoles } = useUserAdmin();
     const [permisos, setPermisos] = useState<Permiso[]>([]);
+    const [dynamicModulos, setDynamicModulos] = useState<Modulo[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -46,41 +47,34 @@ const PermissionsMatrix: React.FC = () => {
         }
     }, [dynamicRoles, roles, selectedRoleId]);
 
-    const modulos: Modulo[] = [
-        { id: 'mis_solicitudes', label: 'Mis Solicitudes', category: 'portal' },
-        { id: 'viaticos_gestion', label: 'Gestión de Viáticos', category: 'portal' },
-        { id: 'sistemas', label: 'Soporte Sistemas', category: 'portal' },
-        { id: 'mejoramiento', label: 'Mejoramiento TI', category: 'portal' },
-        { id: 'chat', label: 'Asistente IA', category: 'portal' },
-        { id: 'desarrollo', label: 'Software Factory', category: 'portal' },
-
-        { id: 'service-portal', label: 'Portal de Servicios', category: 'analistas' },
-        { id: 'dashboard', label: 'Tablero Principal', category: 'analistas' },
-        { id: 'ticket-management', label: 'Gestión de Tickets', category: 'analistas' },
-        { id: 'developments', label: 'Gestión de Actividades', category: 'analistas' },
-        { id: 'settings', label: 'Parámetros del Sistema', category: 'analistas' },
-        { id: 'indicators', label: 'Indicadores Globales (BI)', category: 'analistas' },
-
-        { id: 'control-tower', label: 'Torre de Control', category: 'panel' },
-        { id: 'design-catalog', label: 'Catálogo de Diseño UI/UX', category: 'panel' },
-        { id: 'user-admin', label: 'Administración de Usuarios', category: 'panel' },
-        { id: 'reports', label: 'Reportería Avanzada', category: 'panel' }
-    ];
-
-    const fetchPermisos = async () => {
+    const fetchInitialData = async () => {
         setIsLoading(true);
         try {
-            const data = await get('/auth/permisos');
-            if (data) setPermisos(data);
+            // Cargar permisos y módulos en paralelo
+            const [permisosData, modulosData] = await Promise.all([
+                get('/auth/permisos'),
+                get('/config/modulos')
+            ]);
+
+            if (permisosData) setPermisos(permisosData);
+            if (modulosData) {
+                // Adaptar el formato del backend (id, nombre, categoria) al frontend (id, label, category)
+                const normalizedModulos = modulosData.map((m: any) => ({
+                    id: m.id,
+                    label: m.nombre,
+                    category: m.categoria
+                }));
+                setDynamicModulos(normalizedModulos);
+            }
         } catch (error) {
-            addNotification('error', 'Error al cargar matriz de permisos');
+            addNotification('error', 'Error al cargar matriz de permisos o catálogo de módulos');
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchPermisos();
+        fetchInitialData();
     }, []);
 
     const togglePermiso = (rol: string, modulo: string) => {
@@ -100,7 +94,7 @@ const PermissionsMatrix: React.FC = () => {
     const toggleAllForRole = (rol: string, val: boolean) => {
         if (!isEditMode) return;
         const updatedPermisos = [...permisos];
-        modulos.forEach(mod => {
+        dynamicModulos.forEach((mod: Modulo) => {
             const idx = updatedPermisos.findIndex(p => p.rol === rol && p.modulo === mod.id);
             if (idx >= 0) {
                 updatedPermisos[idx].permitido = val;
@@ -131,7 +125,7 @@ const PermissionsMatrix: React.FC = () => {
             await post('/auth/permisos', permisos);
             addNotification('success', 'Matriz de seguridad actualizada globalmente');
             setIsEditMode(false);
-            fetchPermisos();
+            fetchInitialData();
         } catch (error) {
             addNotification('error', 'Error al guardar permisos');
         } finally {
@@ -149,7 +143,7 @@ const PermissionsMatrix: React.FC = () => {
         );
     };
 
-    const filteredModulos = modulos.filter(m =>
+    const filteredModulos = dynamicModulos.filter((m: Modulo) =>
         m.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
         m.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -268,7 +262,7 @@ const PermissionsMatrix: React.FC = () => {
                     </thead>
                     <tbody>
                         {Object.entries(CATEGORIES).map(([catId, catLabel]) => {
-                            const catModulos = filteredModulos.filter(m => m.category === catId);
+                            const catModulos = filteredModulos.filter((m: Modulo) => m.category === catId);
                             if (catModulos.length === 0) return null;
                             const isExpanded = expandedCategories.includes(catId);
 
@@ -287,7 +281,7 @@ const PermissionsMatrix: React.FC = () => {
                                             </div>
                                         </td>
                                     </tr>
-                                    {isExpanded && catModulos.map(mod => (
+                                    {isExpanded && catModulos.map((mod: Modulo) => (
                                         <tr key={mod.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group">
                                             <td className="p-5 border-b border-[var(--color-border)]/50 pl-10 border-r border-[var(--color-border)]/10">
                                                 <div className="flex justify-between items-center pr-2">

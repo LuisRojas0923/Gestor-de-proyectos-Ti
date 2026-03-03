@@ -14,6 +14,7 @@ import AccountStatement from './ServicePortal/pages/AccountStatement';
 import DirectorExpensePanel from './ServicePortal/pages/DirectorExpensePanel';
 import TransitReportsView from './ServicePortal/pages/TransitReportsView';
 import ReservaSalasView from './ServicePortal/pages/ReservaSalasView';
+import ProtectedRoute from '../components/auth/ProtectedRoute';
 import PortalLayout from './ServicePortal/PortalLayout';
 
 import {
@@ -37,14 +38,14 @@ const ServicePortal: React.FC = () => {
         selectedTicket,
         setSelectedTicket,
         tickets,
+        moduleStatus,
         isLoading,
         setIsLoading,
         newTicketId,
         selectedFiles,
         setSelectedFiles,
         handleSubmit,
-        handleSendUserFeedback,
-        fetchTickets
+        handleSendUserFeedback
     } = useServicePortal();
 
     if (!user) return <div className="flex justify-center items-center h-screen">Cargando perfil...</div>;
@@ -121,6 +122,7 @@ const ServicePortal: React.FC = () => {
                 <Route path="inicio" element={
                     <DashboardView
                         user={user}
+                        moduleStatus={moduleStatus}
                         onNavigate={async (v) => {
                             if (v === 'viaticos_gestion') navigate('/service-portal/gastos/gestion');
                             else if (v === 'categories') navigate('/service-portal/servicios');
@@ -131,90 +133,112 @@ const ServicePortal: React.FC = () => {
                 } />
 
                 <Route path="servicios" element={
-                    <AreaSelectionView
-                        onSelectArea={(area) => navigate(`/service-portal/servicios/${area}`)}
-                        onConsultStatus={() => navigate('/service-portal/mis-tickets')}
-                        onBack={() => navigate('/service-portal/inicio')}
-                    />
+                    <ProtectedRoute moduleCode="mis_solicitudes">
+                        <AreaSelectionView
+                            user={user}
+                            onSelectArea={(area) => navigate(`/service-portal/servicios/${area}`)}
+                            onConsultStatus={() => navigate('/service-portal/mis-tickets')}
+                            onBack={() => navigate('/service-portal/inicio')}
+                        />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="servicios/:area" element={
-                    <CategoryWrapper
-                        categories={categories}
-                        onSelect={(c) => { setSelectedCategory(c); navigate(`/service-portal/crear/${c.id}`); }}
-                        onBack={() => navigate('/service-portal/servicios')}
-                    />
+                    <ProtectedRoute moduleCode="mis_solicitudes">
+                        <CategoryWrapper
+                            categories={categories}
+                            onSelect={(c) => { setSelectedCategory(c); navigate(`/service-portal/crear/${c.id}`); }}
+                            onBack={() => navigate('/service-portal/servicios')}
+                        />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="crear/:categoryId" element={
-                    <TicketFormWrapper
-                        selectedCategory={selectedCategory}
-                        categories={categories}
-                        user={user}
-                        onSubmit={onFormSubmit}
-                        onBack={() => { navigate(-1); setSelectedFiles([]); }}
-                        isLoading={isLoading}
-                        selectedFiles={selectedFiles}
-                        onFilesChange={setSelectedFiles}
-                    />
+                    <ProtectedRoute moduleCode="mis_solicitudes">
+                        <TicketFormWrapper
+                            selectedCategory={selectedCategory}
+                            categories={categories}
+                            user={user}
+                            onSubmit={onFormSubmit}
+                            onBack={() => { navigate(-1); setSelectedFiles([]); }}
+                            isLoading={isLoading}
+                            selectedFiles={selectedFiles}
+                            onFilesChange={setSelectedFiles}
+                        />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="mis-tickets" element={
-                    <TicketListView
-                        tickets={tickets}
-                        onBack={() => navigate('/service-portal/servicios')}
-                        onViewDetail={(t) => { setSelectedTicket(t); navigate(`/service-portal/mis-tickets/${t.id}`); }}
-                    />
+                    <ProtectedRoute moduleCode="mis_solicitudes">
+                        <TicketListView
+                            tickets={tickets}
+                            onBack={() => navigate('/service-portal/servicios')}
+                            onViewDetail={(t) => { setSelectedTicket(t); navigate(`/service-portal/mis-tickets/${t.id}`); }}
+                        />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="mis-tickets/:ticketId" element={
-                    <TicketDetailWrapper
-                        selectedTicket={selectedTicket}
-                        tickets={tickets}
-                        user={user}
-                        onBack={() => navigate('/service-portal/mis-tickets')}
-                        onUpdate={onFeedbackSubmit}
-                    />
+                    <ProtectedRoute moduleCode="mis_solicitudes">
+                        <TicketDetailWrapper
+                            selectedTicket={selectedTicket}
+                            tickets={tickets}
+                            user={user}
+                            onBack={() => navigate('/service-portal/mis-tickets')}
+                            onUpdate={onFeedbackSubmit}
+                        />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="gastos/gestion" element={
-                    <ViaticosManagement
-                        onNavigate={(v) => {
-                            if (v === 'legalizar_gastos') navigate('/service-portal/gastos/nuevo');
-                            else if (v === 'viaticos_reportes') navigate('/service-portal/gastos/reportes');
-                            else if (v === 'viaticos_estado') navigate('/service-portal/gastos/estado');
-                            else if (v === 'director_legalizaciones') navigate('/service-portal/gastos/director');
-                        }}
-                        onBack={() => navigate('/service-portal/inicio')}
-                    />
+                    <ProtectedRoute moduleCode="viaticos_gestion">
+                        <ViaticosManagement
+                            moduleStatus={moduleStatus}
+                            onNavigate={(v) => {
+                                if (v === 'legalizar_gastos') navigate('/service-portal/gastos/nuevo');
+                                else if (v === 'viaticos_reportes') navigate('/service-portal/gastos/reportes');
+                                else if (v === 'viaticos_estado') navigate('/service-portal/gastos/estado');
+                                else if (v === 'director_legalizaciones') navigate('/service-portal/gastos/director');
+                            }}
+                            onBack={() => navigate('/service-portal/inicio')}
+                        />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="gastos/nuevo" element={
-                    <ExpenseLegalization
-                        user={user}
-                        onBack={() => navigate('/service-portal/gastos/reportes')}
-                        onSuccess={() => {
-                            navigate('/service-portal/gastos/reportes');
-                            addNotification('success', 'Operación realizada correctamente.');
-                        }}
-                    />
+                    <ProtectedRoute moduleCode="viaticos_reportes">
+                        <ExpenseLegalization
+                            user={user}
+                            onBack={() => navigate('/service-portal/gastos/reportes')}
+                            onSuccess={() => {
+                                navigate('/service-portal/gastos/reportes');
+                                addNotification('success', 'Operación realizada correctamente.');
+                            }}
+                        />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="gastos/reportes" element={
-                    <TransitReportsView
-                        user={user}
-                        onBack={() => navigate('/service-portal/gastos/gestion')}
-                        onNewReport={() => navigate('/service-portal/gastos/nuevo', { state: { newReport: true } })}
-                        onSelectReport={onSelectReport}
-                    />
+                    <ProtectedRoute moduleCode="viaticos_reportes">
+                        <TransitReportsView
+                            user={user}
+                            onBack={() => navigate('/service-portal/gastos/gestion')}
+                            onNewReport={() => navigate('/service-portal/gastos/nuevo', { state: { newReport: true } })}
+                            onSelectReport={onSelectReport}
+                        />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="gastos/director" element={
-                    <DirectorExpensePanel onBack={() => navigate('/service-portal/gastos/gestion')} />
+                    <ProtectedRoute moduleCode="viaticos_director_panel">
+                        <DirectorExpensePanel onBack={() => navigate('/service-portal/gastos/gestion')} />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="gastos/estado" element={
-                    <AccountStatement user={user as any} onBack={() => navigate('/service-portal/gastos/gestion')} />
+                    <ProtectedRoute moduleCode="viaticos_estado">
+                        <AccountStatement user={user as any} onBack={() => navigate('/service-portal/gastos/gestion')} />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="exito/:ticketId" element={
@@ -222,7 +246,9 @@ const ServicePortal: React.FC = () => {
                 } />
 
                 <Route path="reserva-salas" element={
-                    <ReservaSalasView onBack={() => navigate('/service-portal/inicio')} />
+                    <ProtectedRoute moduleCode="reserva_salas">
+                        <ReservaSalasView onBack={() => navigate('/service-portal/inicio')} />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />

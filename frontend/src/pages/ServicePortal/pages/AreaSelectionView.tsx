@@ -10,12 +10,21 @@ import imgMejora from '../../../assets/images/categories/Soporte Mejoramiento.pn
 import imgMisSolicitudes from '../../../assets/images/categories/Mis Solicitudes.png';
 
 interface AreaSelectionViewProps {
+    user: any;
     onSelectArea: (area: 'sistemas' | 'desarrollo' | 'mejoramiento') => void;
     onConsultStatus: () => void;
     onBack: () => void;
 }
 
-const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onConsultStatus, onBack }) => {
+const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ user, onSelectArea, onConsultStatus, onBack }) => {
+    const userRole = (user?.rol || user?.role || '').toLowerCase();
+    const permissions = user?.permissions || [];
+
+    const canSeeSistemas = permissions.includes('sistemas') || ['admin', 'director'].includes(userRole);
+    const canSeeDesarrollo = permissions.includes('desarrollo') || ['admin', 'director'].includes(userRole);
+    const canSeeMejoramiento = permissions.includes('mejoramiento') || ['admin', 'director'].includes(userRole);
+    const canSeeMisSolicitudes = permissions.includes('mis_solicitudes') || ['admin', 'director'].includes(userRole);
+
     return (
         <div className="space-y-12 py-6">
             <div className="flex items-center space-x-4">
@@ -46,34 +55,42 @@ const AreaSelectionView: React.FC<AreaSelectionViewProps> = ({ onSelectArea, onC
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-                <ActionCard
-                    title="Soporte Sistemas"
-                    description="Hardware, Software, Impresoras e Infraestructura tecnológica."
-                    icon={<img src={imgSistemas} alt="Sistemas" className="w-full h-full object-contain p-2" />}
-                    onClick={() => onSelectArea('sistemas')}
-                />
+                {canSeeSistemas && (
+                    <ActionCard
+                        title="Soporte Sistemas"
+                        description="Hardware, Software, Impresoras e Infraestructura tecnológica."
+                        icon={<img src={imgSistemas} alt="Sistemas" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onSelectArea('sistemas')}
+                    />
+                )}
 
-                <ActionCard
-                    title="Desarrollo Software"
-                    description="Solicitud de nuevos módulos o funcionalidades en SOLID."
-                    icon={<img src={imgDesarrollo} alt="Desarrollo" className="w-full h-full object-contain p-2" />}
-                    onClick={() => onSelectArea('desarrollo')}
-                />
+                {canSeeDesarrollo && (
+                    <ActionCard
+                        title="Desarrollo Software"
+                        description="Solicitud de nuevos módulos o funcionalidades en SOLID."
+                        icon={<img src={imgDesarrollo} alt="Desarrollo" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onSelectArea('desarrollo')}
+                    />
+                )}
 
-                <ActionCard
-                    title="Mejoramiento"
-                    description="Ajustes a herramientas de Excel y procesos existentes."
-                    icon={<img src={imgMejora} alt="Mejoramiento" className="w-full h-full object-contain p-2" />}
-                    onClick={() => onSelectArea('mejoramiento')}
-                />
+                {canSeeMejoramiento && (
+                    <ActionCard
+                        title="Mejoramiento"
+                        description="Ajustes a herramientas de Excel y procesos existentes."
+                        icon={<img src={imgMejora} alt="Mejoramiento" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onSelectArea('mejoramiento')}
+                    />
+                )}
 
-                <ActionCard
-                    title="Mis Solicitudes"
-                    description="Consulta el estado y progreso de tus tickets activos."
-                    icon={<img src={imgMisSolicitudes} alt="Mis Solicitudes" className="w-full h-full object-contain p-2" />}
-                    onClick={onConsultStatus}
-                    variant="primary_light"
-                />
+                {canSeeMisSolicitudes && (
+                    <ActionCard
+                        title="Mis Solicitudes"
+                        description="Consulta el estado y progreso de tus tickets activos."
+                        icon={<img src={imgMisSolicitudes} alt="Mis Solicitudes" className="w-full h-full object-contain p-2" />}
+                        onClick={onConsultStatus}
+                        variant="primary_light"
+                    />
+                )}
             </div>
         </div>
     );
