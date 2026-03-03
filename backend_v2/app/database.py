@@ -213,10 +213,12 @@ async def init_db():
 
     # 4. Usuario administrador por defecto (si no existe)
     try:
-        from .models.auth.usuario import Usuario
+        from .models.auth.usuario import Usuario, ModuloSistema, PermisoRol
         from .services.auth.servicio import ServicioAuth
+        from sqlmodel import select
 
         async with AsyncSessionLocal() as session:
+            # 4.1 Crear admin
             result = await session.execute(
                 select(Usuario).where(Usuario.cedula == "admin")
             )
@@ -232,5 +234,32 @@ async def init_db():
                 session.add(admin)
                 await session.commit()
                 print("DEBUG: Usuario administrador creado (admin / admin123)")
+
+            # 4.2 SINCRONIZACIÓN DINÁMICA DE MÓDULOS
+            # Descubrir IDs de módulos desde los permisos existentes
+            result_modulos = await session.execute(select(PermisoRol.modulo).distinct())
+            modulos_descubiertos = result_modulos.scalars().all()
+
+            for mod_id in modulos_descubiertos:
+                if not mod_id:
+                    continue
+                # Verificar si ya está en el maestro para no sobrescribir estado manual
+                m_result = await session.execute(
+                    select(ModuloSistema).where(ModuloSistema.id == mod_id)
+                )
+                if m_result.scalar_one_or_none() is None:
+                    # Registrar nuevo módulo descubierto automáticamente
+                    nuevo_m = ModuloSistema(
+                        id=mod_id,
+                        nombre=mod_id.replace("_", " ").replace("-", " ").title(),
+                        categoria="otros",
+                        esta_activo=True,
+                        es_critico=False,
+                    )
+                    session.add(nuevo_m)
+                    print(f"DEBUG: Módulo nuevo descubierto e iniciado: {mod_id}")
+
+            await session.commit()
+
     except Exception as e:
-        print(f"DEBUG: Error creando usuario admin: {e}")
+        print(f"DEBUG: Error en post-inicialización (admin/módulos): {e}")
