@@ -139,7 +139,7 @@ const ServicePortal: React.FC = () => {
 
                 {/* --- NUEVAS RUTAS DE REQUISICIONES / ALMACEN ERP --- */}
                 <Route path="requisiciones" element={
-                    <ProtectedRoute moduleCode="mis_solicitudes">
+                    <ProtectedRoute moduleCode="requisiciones">
                         <RequestPortalView
                             user={user}
                             onSelectArea={(area) => navigate(`/service-portal/requisiciones/${area}`)}
@@ -150,19 +150,19 @@ const ServicePortal: React.FC = () => {
                 } />
 
                 <Route path="requisiciones/almacen" element={
-                    <ProtectedRoute moduleCode="mis_solicitudes">
+                    <ProtectedRoute moduleCode="requisiciones">
                         <AlmacenSubAreaView />
                     </ProtectedRoute>
                 } />
 
                 <Route path="requisiciones/almacen/crear/:especialidad" element={
-                    <ProtectedRoute moduleCode="mis_solicitudes">
+                    <ProtectedRoute moduleCode="requisiciones">
                         <AlmacenFormView user={user} />
                     </ProtectedRoute>
                 } />
 
                 <Route path="requisiciones/mis-solicitudes" element={
-                    <ProtectedRoute moduleCode="mis_solicitudes">
+                    <ProtectedRoute moduleCode="requisiciones">
                         <MisRequisicionesView />
                     </ProtectedRoute>
                 } />

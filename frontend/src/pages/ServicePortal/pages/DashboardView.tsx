@@ -23,8 +23,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         ['admin', 'director'].includes(userRole)
     );
 
-    const canSeeRequisiciones = moduleStatus['mis_solicitudes'] !== false && (
-        permissions.includes('mis_solicitudes') ||
+    const canSeeRequisiciones = moduleStatus['requisiciones'] !== false && (
+        permissions.includes('requisiciones') ||
         ['admin', 'director'].includes(userRole)
     );
 
