@@ -84,6 +84,11 @@ async def obtener_usuario_actual(
 ):
     """Endpoint para obtener los datos del usuario actual con sus permisos"""
     permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
+
+    # Fallback para el rol 'usuario' (estándar del portal) si no hay permisos configurados implícitamente
+    if not permisos and (usuario.rol == "usuario" or usuario.rol == "user"):
+        permisos = ["service-portal"]
+
     user_data = usuario.model_dump()
     user_data["permissions"] = permisos
     return user_data
