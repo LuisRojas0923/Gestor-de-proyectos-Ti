@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LockClosedIcon as Lock, ArrowRightOnRectangleIcon as LogIn, ArrowRightIcon as ArrowRight } from '@heroicons/react/24/outline';
+import { LockClosedIcon as Lock, ArrowRightOnRectangleIcon as LogIn, ArrowRightIcon as ArrowRight, UserIcon } from '@heroicons/react/24/outline';
 import { useAppContext } from '../context/AppContext';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
