@@ -1,52 +1,50 @@
 import React from 'react';
-import {
-    PlusIcon as Plus,
-    CpuChipIcon as Cpu,
-    WindowIcon as AppWindow,
-    PrinterIcon as Printer,
-    ComputerDesktopIcon as Keyboard,
-    KeyIcon as Key,
-    CodeBracketSquareIcon as Code2,
-    ArrowPathIcon as GitCommit,
-    LightBulbIcon as Lightbulb,
-    Square3Stack3DIcon as Layers
-} from '@heroicons/react/24/outline';
+import { PlusIcon as Plus } from '@heroicons/react/24/outline';
+
+import imgHardware from '../../assets/images/categories/Soporte Hardware.png';
+import imgSoftware from '../../assets/images/categories/Soporte Software.png';
+import imgPerifericos from '../../assets/images/categories/Soporte Perifericos.png';
+import imgImpresora from '../../assets/images/categories/Soporte Impresora.png';
+import imgMejora from '../../assets/images/categories/Soporte Mejoramiento.png';
+import imgDesarrollo from '../../assets/images/categories/Nuevos desarrollos.png';
+import imgLicencias from '../../assets/images/categories/Compra de Licencias.png';
+import imgControlCambios from '../../assets/images/categories/Control de Cambios.png';
 
 export const categoryMetadata: Record<string, { icon: React.ReactNode; section: 'soporte' | 'mejoramiento' }> = {
     soporte_hardware: {
-        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-blue-500/10"><Cpu className="w-8 h-8 text-blue-500" /></div>,
+        icon: <img src={imgHardware} alt="Hardware" className="w-full h-full object-contain p-1" />,
         section: 'soporte'
     },
     soporte_software: {
-        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-indigo-500/10"><AppWindow className="w-8 h-8 text-indigo-500" /></div>,
+        icon: <img src={imgSoftware} alt="Software" className="w-full h-full object-contain p-1" />,
         section: 'soporte'
     },
     soporte_impresoras: {
-        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-cyan-500/10"><Printer className="w-8 h-8 text-cyan-500" /></div>,
+        icon: <img src={imgImpresora} alt="Impresoras" className="w-full h-full object-contain p-1" />,
         section: 'soporte'
     },
     perifericos: {
-        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-teal-500/10"><Keyboard className="w-8 h-8 text-teal-500" /></div>,
+        icon: <img src={imgPerifericos} alt="Periféricos" className="w-full h-full object-contain p-1" />,
         section: 'soporte'
     },
     compra_licencias: {
-        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-amber-500/10"><Key className="w-8 h-8 text-amber-500" /></div>,
+        icon: <img src={imgLicencias} alt="Licencias" className="w-full h-full object-contain p-1" />,
         section: 'soporte'
     },
     nuevos_desarrollos_mejora: {
-        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-purple-500/10"><Code2 className="w-8 h-8 text-purple-500" /></div>,
+        icon: <img src={imgDesarrollo} alt="Nuevas Herramientas" className="w-full h-full object-contain p-2" />,
         section: 'mejoramiento'
     },
     control_cambios: {
-        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-rose-500/10"><GitCommit className="w-8 h-8 text-rose-500" /></div>,
+        icon: <img src={imgControlCambios} alt="Control de Cambios" className="w-full h-full object-contain p-1" />,
         section: 'mejoramiento'
     },
     soporte_mejora: {
-        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-yellow-500/10"><Lightbulb className="w-8 h-8 text-yellow-500" /></div>,
+        icon: <img src={imgMejora} alt="Soporte Mejoramiento" className="w-full h-full object-contain p-1" />,
         section: 'mejoramiento'
     },
     nuevos_desarrollos_solid: {
-        icon: <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 bg-emerald-500/10"><Layers className="w-8 h-8 text-emerald-500" /></div>,
+        icon: <img src={imgDesarrollo} alt="Desarrollo SOLID" className="w-full h-full object-contain p-2" />,
         section: 'mejoramiento'
     }
 };

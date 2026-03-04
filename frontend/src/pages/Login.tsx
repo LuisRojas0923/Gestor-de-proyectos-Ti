@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LockClosedIcon as Lock, ArrowRightOnRectangleIcon as LogIn, UserIcon, ArrowRightIcon as ArrowRight, ShieldCheckIcon as ShieldCheck } from '@heroicons/react/24/outline';
+import { LockClosedIcon as Lock, ArrowRightOnRectangleIcon as LogIn, ArrowRightIcon as ArrowRight } from '@heroicons/react/24/outline';
 import { useAppContext } from '../context/AppContext';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
+import imgUserLogin from '../assets/images/categories/Usuario Inicio Sesion.png';
+import imgAdminLogin from '../assets/images/categories/icons8-usuario-administrador-96.png';
 
 const Login: React.FC = () => {
     const { state, dispatch } = useAppContext();
@@ -160,11 +162,11 @@ const Login: React.FC = () => {
                             : 'bg-blue-600/10 text-blue-600 shadow-xl shadow-blue-500/10' // Cambié bg admin para que se vea la img si es transparente, o dejar blanco. 
                         // Si las imagenes tienen fondo transparente, un bg suave queda bien.
                         }`}>
-                        {loginMode === 'portal' ? (
-                            <UserIcon className="w-12 h-12" />
-                        ) : (
-                            <ShieldCheck className="w-12 h-12" />
-                        )}
+                        <img
+                            src={loginMode === 'portal' ? imgUserLogin : imgAdminLogin}
+                            alt={loginMode === 'portal' ? "Login Usuario" : "Login Admin"}
+                            className="w-12 h-12 object-contain"
+                        />
                     </div>
 
                     <Title variant="h4" weight="bold" color={loginMode === 'portal' || !darkMode ? 'text-primary' : 'text-primary'}>

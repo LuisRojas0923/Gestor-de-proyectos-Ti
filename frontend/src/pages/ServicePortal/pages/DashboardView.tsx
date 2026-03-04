@@ -1,8 +1,8 @@
 import { ActionCard } from '../../../components/molecules';
 import { Title, Text } from '../../../components/atoms';
-
-import { PhoneIcon as Headset, CalendarDaysIcon as CalendarDays, ClipboardDocumentListIcon as ClipboardList, BriefcaseIcon as Briefcase } from '@heroicons/react/24/outline';
-
+import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
+import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
+import imgReunion from '../../../assets/images/categories/Reunion.png';
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
@@ -53,7 +53,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                     <ActionCard
                         title="Gestión de Solicitudes TI"
                         description="Crea nuevos requerimientos o consulta el estado de tus tickets actuales."
-                        icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-[var(--color-primary)]/10"><Headset className="w-12 h-12 text-[var(--color-primary)]" /></div>}
+                        icon={<img src={imgSolicitar} alt="Solicitar Servicio" className="w-full h-full object-contain p-2" />}
                         onClick={() => onNavigate('categories')}
                     />
                 )}
@@ -62,7 +62,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                     <ActionCard
                         title="Reserva de salas"
                         description="Reserva salas de reuniones y espacios para tu equipo."
-                        icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-indigo-500/10"><CalendarDays className="w-12 h-12 text-indigo-500" /></div>}
+                        icon={<img src={imgReunion} alt="Reserva de salas" className="w-full h-full object-contain p-2" />}
                         onClick={() => onNavigate('reserva_salas')}
                     />
                 )}
@@ -71,7 +71,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                     <ActionCard
                         title="Sistema de Solicitudes"
                         description="Gestión de Requisiciones (Almacén, Suministros, Presupuesto)."
-                        icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-[var(--warm-orange)]/10"><ClipboardList className="w-12 h-12 text-[var(--warm-orange)]" /></div>}
+                        icon={<img src={imgSolicitar} alt="Sistema de Solicitudes" className="w-full h-full object-contain p-2 filter hue-rotate-180" />}
                         onClick={() => onNavigate('requisiciones')}
                     />
                 )}
@@ -80,7 +80,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                     <ActionCard
                         title="Gestión de Viáticos"
                         description="Reporte de gastos y consulta de estado de cuenta detallado."
-                        icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-emerald-500/10"><Briefcase className="w-12 h-12 text-emerald-500" /></div>}
+                        icon={<img src={imgGestionViaticos} alt="Gestión de Viáticos" className="w-full h-full object-contain p-2" />}
                         onClick={() => onNavigate('viaticos_gestion')}
                     />
                 )}
