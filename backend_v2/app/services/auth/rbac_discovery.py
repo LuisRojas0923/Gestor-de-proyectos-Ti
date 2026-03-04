@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.core.rbac_manifest import SYSTEM_MODULES_REGISTRY
-from app.models.auth.usuario import ModuloSistema
+from app.models.auth.usuario import ModuloSistema, PermisoRol
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,13 @@ async def sincronizar_manifiesto_rbac(db: AsyncSession):
         result = await db.execute(stmt)
         modulos_existentes = {m.id for m in result.scalars().all()}
 
+        # Obtenemos todos los permisos del rol 'admin' existentes
+        stmt_permisos = select(PermisoRol).where(PermisoRol.rol == "admin")
+        result_permisos = await db.execute(stmt_permisos)
+        permisos_admin_existentes = {p.modulo for p in result_permisos.scalars().all()}
+
         nuevos_insertados = 0
+        permisos_admin_reparados = 0
 
         # Iteramos sobre la SSOT (Manifiesto) para agregar los faltantes
         for modulo_definido in SYSTEM_MODULES_REGISTRY:
@@ -42,13 +48,21 @@ async def sincronizar_manifiesto_rbac(db: AsyncSession):
                     esta_activo=True,
                 )
                 db.add(nuevo_mod)
-
                 nuevos_insertados += 1
 
-        if nuevos_insertados > 0:
+            # Garantizar que el rol "admin" SIEMPRE tenga permiso para los módulos del manifiesto
+            if mod_id not in permisos_admin_existentes:
+                logger.info(
+                    f"Asignando permiso huérfano a 'admin' para el módulo: '{mod_id}'"
+                )
+                permiso_admin = PermisoRol(rol="admin", modulo=mod_id, permitido=True)
+                db.add(permiso_admin)
+                permisos_admin_reparados += 1
+
+        if nuevos_insertados > 0 or permisos_admin_reparados > 0:
             await db.commit()
             logger.info(
-                f"Auto-Discovery exitoso: {nuevos_insertados} módulos nuevos sincronizados."
+                f"Auto-Discovery exitoso: {nuevos_insertados} módulos nuevos, {permisos_admin_reparados} permisos de admin recuperados/asignados."
             )
         else:
             logger.info(
