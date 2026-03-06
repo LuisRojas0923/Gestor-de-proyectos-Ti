@@ -106,7 +106,12 @@ async def init_db():
     """Inicializa las tablas de la base de datos usando SQLModel y asegura columnas de perfil"""
     async with async_engine.begin() as conn:
         # 1. Crear tablas si no existen
-        await conn.run_sync(SQLModel.metadata.create_all)
+        try:
+            await conn.run_sync(SQLModel.metadata.create_all)
+        except Exception as e:
+            # En producción con múltiples workers (Gunicorn/Uvicorn),
+            # ocurre concurrencia creando tablas simultáneamente.
+            print(f"DEBUG: Error concurrente en create_all (posible multi-worker): {e}")
 
         # 2. Asegurar columnas de perfil (Migración manual segura)
         from sqlalchemy import text
