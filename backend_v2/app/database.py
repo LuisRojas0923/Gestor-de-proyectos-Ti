@@ -367,6 +367,10 @@ async def init_db():
                 },
             ]
 
+            # Para evitar que en esta misma transacción intentemos insertar el mismo módulo dos veces
+            # (una por modulos_core y otra por modulos_en_permisos), llevamos un control en memoria:
+            modulos_en_memoria_esta_tx = set()
+
             for m_data in modulos_core:
                 m_result = await session.execute(
                     select(ModuloSistema).where(ModuloSistema.id == m_data["id"])
@@ -382,6 +386,7 @@ async def init_db():
                             es_critico=m_data["critico"],
                         )
                     )
+                    modulos_en_memoria_esta_tx.add(m_data["id"])
                 else:
                     # Opcional: Actualizar metadatos si el nombre o categoría cambió en el código
                     existing.nombre = m_data["nombre"]
@@ -395,7 +400,7 @@ async def init_db():
             modulos_en_permisos = result_permisos.scalars().all()
 
             for mod_id in modulos_en_permisos:
-                if not mod_id:
+                if not mod_id or mod_id in modulos_en_memoria_esta_tx:
                     continue
                 m_result = await session.execute(
                     select(ModuloSistema).where(ModuloSistema.id == mod_id)
@@ -410,9 +415,16 @@ async def init_db():
                             es_critico=False,
                         )
                     )
+                    modulos_en_memoria_esta_tx.add(mod_id)
                     print(f"DEBUG: Módulo nuevo descubierto: {mod_id}")
 
-            await session.commit()
+            try:
+                await session.commit()
+            except Exception as commit_err:
+                await session.rollback()
+                print(
+                    f"DEBUG: Error de concurrencia al semillar módulos en bd (ignorado, otro worker lo hizo): {commit_err}"
+                )
 
     except Exception as e:
         print(f"DEBUG: Error en post-inicialización (admin/módulos): {e}")
