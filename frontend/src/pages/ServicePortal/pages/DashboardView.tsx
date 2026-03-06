@@ -3,6 +3,7 @@ import { Title, Text } from '../../../components/atoms';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
+import sistemasolicitudes from '../../../assets/images/categories/logistico.png';
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
@@ -71,7 +72,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                     <ActionCard
                         title="Sistema de Solicitudes"
                         description="Gestión de Requisiciones (Almacén, Suministros, Presupuesto)."
-                        icon={<img src={imgSolicitar} alt="Sistema de Solicitudes" className="w-full h-full object-contain p-2 filter hue-rotate-180" />}
+                        icon={<img src={sistemasolicitudes} alt="Sistema de Solicitudes" className="w-full h-full object-contain p-2" />}
                         onClick={() => onNavigate('requisiciones')}
                     />
                 )}
