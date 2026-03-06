@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Trash2, Paperclip, CheckCircle2 } from 'lucide-react';
 import { Text, Input, Select, MaterialCard, Button } from '../../../components/atoms';
 import { CurrencyInput } from '../../../components/atoms/CurrencyInput';
@@ -35,7 +36,41 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
     categorias = []
 }) => {
     const { addNotification } = useNotifications();
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const otInputContainerRef = useRef<HTMLDivElement>(null);
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+
+    useEffect(() => {
+        if (isSearchingOT === linea.id && otInputContainerRef.current) {
+            const updatePosition = () => {
+                if (!otInputContainerRef.current) return;
+                const rect = otInputContainerRef.current.getBoundingClientRect();
+                setDropdownPosition({
+                    top: rect.bottom,
+                    left: rect.left,
+                    width: Math.max(400, rect.width)
+                });
+            };
+
+            updatePosition();
+            window.addEventListener('resize', updatePosition);
+
+            // Escuchar resize en el div que hace scroll o en el document para que siga dinámico
+            const scrollContainer = otInputContainerRef.current.closest('.overflow-auto');
+            if (scrollContainer) {
+                scrollContainer.addEventListener('scroll', updatePosition);
+            }
+            window.addEventListener('scroll', updatePosition);
+
+            return () => {
+                window.removeEventListener('resize', updatePosition);
+                window.removeEventListener('scroll', updatePosition);
+                if (scrollContainer) {
+                    scrollContainer.removeEventListener('scroll', updatePosition);
+                }
+            };
+        }
+    }, [isSearchingOT, linea.id, ots.length]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -109,7 +144,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
 
             {/* OT / OS */}
             <td className={`px-2 py-2 border-b border-[var(--color-border)] ${errors.includes('ot') ? 'bg-red-50/50' : ''}`}>
-                <div className="relative">
+                <div className="relative" ref={otInputContainerRef}>
                     <Input
                         type="text"
                         placeholder="Buscar OT..."
@@ -119,32 +154,40 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                         onChange={(e) => handleOTSearch(e.target.value, linea.id)}
                         className={`!border-none !bg-transparent !shadow-none !px-2 font-bold placeholder:font-normal placeholder:opacity-40 ${errors.includes('ot') ? 'ring-1 ring-red-500 rounded-lg' : ''} disabled:opacity-50`}
                     />
-                    {isSearchingOT === linea.id && ots.length > 0 && (
-                        <div className="absolute top-full left-0 w-[400px] z-[100] mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                            <MaterialCard elevation={4} className="!rounded-2xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]/95 backdrop-blur-md shadow-2xl">
-                                <div className="max-h-60 overflow-y-auto py-1">
+                    {isSearchingOT === linea.id && ots.length > 0 && typeof window !== 'undefined' && createPortal(
+                        <div
+                            className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-200"
+                            style={{
+                                top: dropdownPosition.top,
+                                left: dropdownPosition.left,
+                                width: dropdownPosition.width
+                            }}
+                        >
+                            <MaterialCard elevation={8} className="!rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]/95 backdrop-blur-md shadow-2xl">
+                                <div className="max-h-60 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--color-border)]">
                                     {ots.map((ot) => (
                                         <div
                                             key={ot.numero}
-                                            className="px-4 py-2.5 hover:bg-[var(--color-primary)]/10 cursor-pointer border-b border-[var(--color-border)]/50 last:border-none transition-colors group"
+                                            className="px-3 py-2 hover:bg-[var(--color-primary)]/10 cursor-pointer border-b border-[var(--color-border)]/50 last:border-none transition-colors group"
                                             onClick={() => selectOT(ot, linea.id)}
                                         >
                                             <div className="flex items-center justify-between mb-0.5">
-                                                <Text variant="body2" weight="bold" color="text-primary" className="font-mono">
+                                                <Text variant="body2" weight="bold" color="text-primary" className="font-mono text-[11px]">
                                                     {ot.numero}
                                                 </Text>
-                                                <Text variant="caption" weight="bold" color="primary" className="opacity-0 group-hover:opacity-100 uppercase tracking-tighter">
+                                                <Text variant="caption" weight="bold" color="primary" className="opacity-0 group-hover:opacity-100 uppercase tracking-tighter text-[9px]">
                                                     Seleccionar
                                                 </Text>
                                             </div>
-                                            <Text variant="caption" color="text-secondary" className="truncate uppercase font-medium">
+                                            <Text variant="caption" color="text-secondary" className="truncate uppercase font-medium text-[9px]">
                                                 {ot.cliente}
                                             </Text>
                                         </div>
                                     ))}
                                 </div>
                             </MaterialCard>
-                        </div>
+                        </div>,
+                        document.body
                     )}
                 </div>
             </td>

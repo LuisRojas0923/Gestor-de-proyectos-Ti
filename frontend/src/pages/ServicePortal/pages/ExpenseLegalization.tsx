@@ -68,7 +68,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
     }, [initialLineas, initialObservaciones, state, loadLineas, clearForm, setActiveReporteId, setCurrentEstado]);
 
     return (
-        <div className="space-y-1 pb-28 max-w-[1300px] mx-auto">
+        <div className="space-y-1 max-w-[1300px] mx-auto">
             <ExpenseHeader onBack={onBack} />
             <UserSummaryCard user={user} reporteId={activeReporteId} />
             <ExpenseActionCenter

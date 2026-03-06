@@ -6,6 +6,10 @@ import { LineaGasto } from './useExpenseForm';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
+// Caché en memoria a nivel de módulo para evitar llamadas duplicadas a /categorias
+let categoriasCache: { label: string; value: string }[] | null = null;
+let categoriasFetchPromise: Promise<{ label: string; value: string }[]> | null = null;
+
 interface UseExpenseSubmissionProps {
     user: any;
     lineas: LineaGasto[];
@@ -43,14 +47,38 @@ export const useExpenseSubmission = ({
 
     useEffect(() => {
         const fetchCategorias = async () => {
-            try {
-                const response = await axios.get(`${API_BASE_URL}/viaticos/categorias`);
-                if (Array.isArray(response.data)) {
-                    setCategorias(response.data);
-                }
-            } catch (err) {
-                console.error("Error loading categorías:", err);
+            // Si ya tenemos las categorías en caché, usarlas directamente
+            if (categoriasCache) {
+                setCategorias(categoriasCache);
+                return;
             }
+
+            // Si ya hay un fetch en vuelo, esperarlo en vez de duplicar
+            if (categoriasFetchPromise) {
+                try {
+                    const data = await categoriasFetchPromise;
+                    setCategorias(data);
+                } catch (err) {
+                    console.error("Error loading categorías (cache):", err);
+                }
+                return;
+            }
+
+            // Primera vez: crear la promesa y cachearla
+            categoriasFetchPromise = Promise.resolve(axios.get(`${API_BASE_URL}/viaticos/categorias`))
+                .then(response => {
+                    const data = Array.isArray(response.data) ? response.data : [];
+                    categoriasCache = data;
+                    return data;
+                })
+                .catch((err): { label: string; value: string }[] => {
+                    console.error("Error loading categorías:", err);
+                    categoriasFetchPromise = null; // Permitir reintento si falla
+                    return [];
+                });
+
+            const data = await categoriasFetchPromise;
+            if (data) setCategorias(data);
         };
         fetchCategorias();
     }, []);

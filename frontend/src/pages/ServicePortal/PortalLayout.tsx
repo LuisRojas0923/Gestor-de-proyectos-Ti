@@ -1,5 +1,4 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { Button, Text, Title } from '../../components/atoms';
 import ThemeToggle from '../../components/atoms/ThemeToggle';
@@ -14,9 +13,6 @@ interface PortalLayoutProps {
 }
 
 const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onLogout }) => {
-    const { pathname } = useLocation();
-    const isEstadoCuenta = pathname.includes('gastos/estado');
-    const footerFixed = !isEstadoCuenta;
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
@@ -90,11 +86,11 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                     </div>
                 </div>
             </header>
-            <main className="flex-grow max-w-[1300px] w-full mx-auto p-4 sm:px-8 sm:py-2 pb-24">
+            <main className="flex-grow max-w-[1300px] w-full mx-auto p-4 sm:px-8 sm:py-2">
                 {children}
             </main>
 
-            <footer className={`w-full h-[60px] py-2 z-40 bg-[var(--color-surface)] border-t border-[var(--color-border)] opacity-60 hover:opacity-100 transition-opacity duration-500 flex items-center ${footerFixed ? 'fixed bottom-0 left-0 right-0' : 'relative'}`}>
+            <footer className="w-full h-[60px] py-2 z-40 bg-[var(--color-surface)] border-t border-[var(--color-border)] opacity-60 hover:opacity-100 transition-opacity duration-500 flex items-center relative">
                 <div className="max-w-[1300px] mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex flex-col items-center mx-auto">
                         <Text variant="caption" weight="medium" className="uppercase tracking-[0.2em] text-[var(--color-text-secondary)] text-[10px]">

@@ -56,22 +56,22 @@ const ExpenseDesktopTable: React.FC<ExpenseDesktopTableProps> = ({
             </div>
         </div>
 
-        <div className={`hidden md:block bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm ${isSearchingOT ? 'overflow-visible' : 'overflow-hidden'}`}>
-            <div className={`max-h-[470px] scrollbar-thin scrollbar-thumb-[var(--color-border)] scrollbar-track-transparent ${isSearchingOT ? 'overflow-visible' : 'overflow-auto'}`}>
-                <table className="w-full border-separate border-spacing-0">
+        <div className="hidden md:block bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
+            <div className="scrollbar-thin scrollbar-thumb-[var(--color-border)] scrollbar-track-transparent max-h-[470px] overflow-auto">
+                <table className="w-full border-separate border-spacing-0 transition-all">
                     <thead className="bg-[#002060] sticky top-0 z-[40] shadow-sm">
                         <tr>
-                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-10 border-b border-white/10">#</th>
-                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white min-w-[150px] border-b border-white/10">Categoría</th>
-                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-40 border-b border-white/10">Fecha</th>
-                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white min-w-[120px] border-b border-white/10">OT / OS</th>
-                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-32 border-b border-white/10">C. Costo</th>
-                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-32 border-b border-white/10">Subcentro</th>
-                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white w-36 border-b border-white/10">Val. Factura</th>
-                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white w-36 border-b border-white/10">Val. Sin Fac.</th>
-                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white border-b border-white/10">Observaciones</th>
-                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white w-12 border-b border-white/10">Adj.</th>
-                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white w-16 border-b border-white/10"></th>
+                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-10 border-b border-white/10 first:rounded-tl-2xl last:rounded-tr-2xl">#</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white min-w-[150px] border-b border-white/10 first:rounded-tl-2xl last:rounded-tr-2xl">Categoría</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-40 border-b border-white/10 first:rounded-tl-2xl last:rounded-tr-2xl">Fecha</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white min-w-[120px] border-b border-white/10 first:rounded-tl-2xl last:rounded-tr-2xl">OT / OS</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-32 border-b border-white/10 first:rounded-tl-2xl last:rounded-tr-2xl">C. Costo</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white w-32 border-b border-white/10 first:rounded-tl-2xl last:rounded-tr-2xl">Subcentro</th>
+                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white w-36 border-b border-white/10 first:rounded-tl-2xl last:rounded-tr-2xl">Val. Factura</th>
+                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white w-36 border-b border-white/10 first:rounded-tl-2xl last:rounded-tr-2xl">Val. Sin Fac.</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white border-b border-white/10 first:rounded-tl-2xl last:rounded-tr-2xl">Observaciones</th>
+                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white w-12 border-b border-white/10 first:rounded-tl-2xl last:rounded-tr-2xl">Adj.</th>
+                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white w-16 border-b border-white/10 first:rounded-tl-2xl last:rounded-tr-2xl"></th>
                         </tr>
                     </thead>
                     <tbody className="bg-transparent">

@@ -298,22 +298,25 @@ export const useExpenseForm = () => {
         const otsUnicas = Array.from(new Set(lineasNormalizadas.map(l => l.ot).filter(Boolean)));
         const lineasConCombos = [...lineasNormalizadas];
 
-        logMarina("🔄 [LOAD] Normalizando y recuperando combinaciones para OTs:", otsUnicas);
+        logMarina("🔄 [LOAD] Normalizando y recuperando combinaciones para OTs (paralelo):", otsUnicas);
 
-        for (const otNum of otsUnicas) {
-            try {
-                const res = await axios.get(`${API_BASE_URL}/viaticos/ot/${otNum}/combinaciones`);
-                const combos = res.data;
-                // Asignar combos a todas las líneas que tengan esta OT
-                lineasConCombos.forEach((l, idx) => {
-                    if (l.ot === otNum) {
-                        lineasConCombos[idx] = { ...l, combinacionesCC: combos };
-                    }
-                });
-            } catch (err) {
-                console.error(`Error recuperando combos para OT ${otNum}:`, err);
-            }
-        }
+        // Disparar TODAS las peticiones de OT en paralelo en vez de secuencial
+        const promesasOT = otsUnicas.map(otNum =>
+            axios.get(`${API_BASE_URL}/viaticos/ot/${otNum}/combinaciones`)
+                .then(res => ({ ot: otNum, combos: res.data }))
+                .catch(err => { console.error(`Error recuperando combos para OT ${otNum}:`, err); return { ot: otNum, combos: [] }; })
+        );
+
+        const resultadosOT = await Promise.all(promesasOT);
+
+        // Aplicar los combos obtenidos en bloque
+        resultadosOT.forEach(({ ot, combos }) => {
+            lineasConCombos.forEach((l, idx) => {
+                if (l.ot === ot) {
+                    lineasConCombos[idx] = { ...l, combinacionesCC: combos };
+                }
+            });
+        });
 
         setLineas(lineasConCombos);
         if (observaciones !== undefined) {
