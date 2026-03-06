@@ -367,64 +367,54 @@ async def init_db():
                 },
             ]
 
-            # Para evitar que en esta misma transacción intentemos insertar el mismo módulo dos veces
-            # (una por modulos_core y otra por modulos_en_permisos), llevamos un control en memoria:
-            modulos_en_memoria_esta_tx = set()
+            # ── UPSERT nativo PostgreSQL (inmune a concurrencia) ──
+            from sqlalchemy import text as sa_text
+
+            upsert_sql = sa_text("""
+                INSERT INTO modulos_sistema (id, nombre, categoria, esta_activo, es_critico)
+                VALUES (:id, :nombre, :categoria, TRUE, :es_critico)
+                ON CONFLICT (id) DO UPDATE SET
+                    nombre     = EXCLUDED.nombre,
+                    categoria  = EXCLUDED.categoria,
+                    es_critico = EXCLUDED.es_critico,
+                    esta_activo = TRUE
+            """)
 
             for m_data in modulos_core:
-                m_result = await session.execute(
-                    select(ModuloSistema).where(ModuloSistema.id == m_data["id"])
+                await session.execute(
+                    upsert_sql,
+                    {
+                        "id": m_data["id"],
+                        "nombre": m_data["nombre"],
+                        "categoria": m_data["categoria"],
+                        "es_critico": m_data["critico"],
+                    },
                 )
-                existing = m_result.scalar_one_or_none()
-                if not existing:
-                    session.add(
-                        ModuloSistema(
-                            id=m_data["id"],
-                            nombre=m_data["nombre"],
-                            categoria=m_data["categoria"],
-                            esta_activo=True,
-                            es_critico=m_data["critico"],
-                        )
-                    )
-                    modulos_en_memoria_esta_tx.add(m_data["id"])
-                else:
-                    # Opcional: Actualizar metadatos si el nombre o categoría cambió en el código
-                    existing.nombre = m_data["nombre"]
-                    existing.categoria = m_data["categoria"]
-                    existing.es_critico = m_data["critico"]
 
-            # Discovery Dinámico para el resto (módulos que solo están en permisos_rol)
+            # Discovery Dinámico: módulos que solo están en permisos_rol
             result_permisos = await session.execute(
                 select(PermisoRol.modulo).distinct()
             )
             modulos_en_permisos = result_permisos.scalars().all()
+            ids_core = {m["id"] for m in modulos_core}
 
             for mod_id in modulos_en_permisos:
-                if not mod_id or mod_id in modulos_en_memoria_esta_tx:
+                if not mod_id or mod_id in ids_core:
                     continue
-                m_result = await session.execute(
-                    select(ModuloSistema).where(ModuloSistema.id == mod_id)
+                await session.execute(
+                    upsert_sql,
+                    {
+                        "id": mod_id,
+                        "nombre": mod_id.replace("_", " ").replace("-", " ").title(),
+                        "categoria": "otros",
+                        "es_critico": False,
+                    },
                 )
-                if m_result.scalar_one_or_none() is None:
-                    session.add(
-                        ModuloSistema(
-                            id=mod_id,
-                            nombre=mod_id.replace("_", " ").replace("-", " ").title(),
-                            categoria="otros",
-                            esta_activo=True,
-                            es_critico=False,
-                        )
-                    )
-                    modulos_en_memoria_esta_tx.add(mod_id)
-                    print(f"DEBUG: Módulo nuevo descubierto: {mod_id}")
 
-            try:
-                await session.commit()
-            except Exception as commit_err:
-                await session.rollback()
-                print(
-                    f"DEBUG: Error de concurrencia al semillar módulos en bd (ignorado, otro worker lo hizo): {commit_err}"
-                )
+            await session.commit()
+            print(
+                "DEBUG: Semillado de módulos completado exitosamente (upsert nativo PG)."
+            )
 
     except Exception as e:
         print(f"DEBUG: Error en post-inicialización (admin/módulos): {e}")
