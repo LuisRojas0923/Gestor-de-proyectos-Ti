@@ -60,10 +60,16 @@ async def sincronizar_manifiesto_rbac(db: AsyncSession):
                 permisos_admin_reparados += 1
 
         if nuevos_insertados > 0 or permisos_admin_reparados > 0:
-            await db.commit()
-            logger.info(
-                f"Auto-Discovery exitoso: {nuevos_insertados} módulos nuevos, {permisos_admin_reparados} permisos de admin recuperados/asignados."
-            )
+            try:
+                await db.commit()
+                logger.info(
+                    f"Auto-Discovery exitoso: {nuevos_insertados} módulos nuevos, {permisos_admin_reparados} permisos de admin recuperados/asignados."
+                )
+            except Exception as commit_error:
+                await db.rollback()
+                logger.warning(
+                    f"Error de concurrencia al guardar manifiesto RBAC (ignorado, otro worker lo insertó): {commit_error}"
+                )
         else:
             logger.info(
                 "Auto-Discovery finalizado: Ningún módulo nuevo detectado. DB está al día."
@@ -72,4 +78,3 @@ async def sincronizar_manifiesto_rbac(db: AsyncSession):
     except Exception as e:
         await db.rollback()
         logger.error(f"Error crítico durante el Auto-Discovery RBAC: {e}")
-        # Nunca detenemos la app porque puede seguir funcionando con los que ya tiene
