@@ -90,16 +90,20 @@ def obtener_erp_db():
 
 
 def obtener_erp_db_opcional():
-    """Sesion ERP opcional: si la conexion falla, devuelve None (evita 500 en login)."""
+    """Generador de sesión ERP opcional corregido para estabilidad de FastAPI."""
+    db = None
     try:
         db = SessionErp()
-        try:
-            yield db
-        finally:
-            db.close()
+        yield db
     except Exception as e:
-        print(f"DEBUG: ERP no disponible: {e}")
-        yield None
+        # Si ocurre un error lanzando desde el endpoint (ej: HTTPException 403), 
+        # o en la conexión inicial, lo manejamos silenciosamente para el generador.
+        print(f"DEBUG: ERP no disponible o interrumpido: {e}")
+        if db is None:
+            yield None
+    finally:
+        if db:
+            db.close()
 
 
 async def init_db():

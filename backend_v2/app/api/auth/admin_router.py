@@ -42,8 +42,8 @@ async def listar_analistas(
     db: AsyncSession = Depends(obtener_db),
     actual: Usuario = Depends(obtener_usuario_actual_db),
 ):
-    """Retorna lista de analistas y administradores (Admin ve todo, Admin Sistemas ve su rama)"""
-    if actual.rol not in ["admin", "admin_sistemas"]:
+    """Retorna lista de analistas y administradores (Admin ve todo, Roles especializados ven su rama)"""
+    if actual.rol not in ["admin", "admin_sistemas", "admin_mejoramiento"]:
         raise HTTPException(
             status_code=403, detail="No tiene permisos para ver esta lista"
         )
@@ -205,7 +205,7 @@ async def listar_roles(
     actual: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Retorna lista de todos los roles configurados"""
-    if actual.rol not in ["admin", "admin_sistemas"]:
+    if actual.rol not in ["admin", "admin_sistemas", "admin_mejoramiento"]:
         raise HTTPException(status_code=403, detail="No tiene permisos")
 
     try:
