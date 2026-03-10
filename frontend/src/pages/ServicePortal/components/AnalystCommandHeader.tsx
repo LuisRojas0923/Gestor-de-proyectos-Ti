@@ -95,8 +95,8 @@ const AnalystCommandHeader: React.FC<AnalystCommandHeaderProps> = ({
                         <div className="absolute left-0 right-0 h-[1.5px] bg-slate-100 dark:bg-slate-800 top-5 -translate-y-1/2 -z-0 rounded-full"></div>
                         {/* Línea de progreso */}
                         <div
-                            className="absolute left-0 h-[1.5px] bg-indigo-500 top-5 -translate-y-1/2 -z-10 transition-all duration-1000 ease-out rounded-full shadow-[0_0_8px_rgba(99,102,241,0.3)] w-[var(--w)]"
-                            style={{ '--w': `${progressWidth}%` } as React.CSSProperties}
+                            ref={(el) => { if (el) el.style.width = `${progressWidth}%`; }}
+                            className="absolute left-0 h-[1.5px] bg-indigo-500 top-5 -translate-y-1/2 -z-10 transition-all duration-1000 ease-out rounded-full shadow-[0_0_8px_rgba(99,102,241,0.3)]"
                         ></div>
 
                         {stages.map((stage, idx) => {

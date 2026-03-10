@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, LogIn, User as UserIcon, ArrowRight } from 'lucide-react';
+import { LockClosedIcon as Lock, ArrowRightOnRectangleIcon as LogIn, ArrowRightIcon as ArrowRight, UserIcon } from '@heroicons/react/24/outline';
 import { useAppContext } from '../context/AppContext';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
@@ -117,7 +117,7 @@ const Login: React.FC = () => {
             dispatch({ type: 'LOGIN', payload: userData });
 
             const userRole = userData.role?.toLowerCase();
-            if (userRole === 'analyst' || userRole === 'admin' || userRole === 'director') {
+            if (userRole === 'analyst' || userRole === 'admin' || userRole === 'director' || userRole === 'admin_sistemas') {
                 navigate('/');
             } else {
                 navigate('/service-portal/inicio');

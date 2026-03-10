@@ -196,7 +196,7 @@ const MyDevelopments: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <Title variant="h1">
-          Desarrollos
+          Gestión de Actividades
         </Title>
       </div>
 

@@ -13,7 +13,9 @@ import {
   LogOut,
   Palette,
   Users,
-  X
+  Activity,
+  X,
+  ListTodo
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -26,7 +28,7 @@ const Sidebar: React.FC = () => {
   const { sidebarOpen, user } = state;
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [version, setVersion] = useState<string>('');
-  const { get } = useApi();
+  const { get, post } = useApi();
 
   useEffect(() => {
     const fetchVersion = async () => {
@@ -43,14 +45,20 @@ const Sidebar: React.FC = () => {
     fetchVersion();
   }, [get]);
 
-  const handleLogout = () => {
-    dispatch({ type: 'LOGOUT' });
-    // El router debería encargarse de la redirección al cambiar el estado del usuario
+  const handleLogout = async () => {
+    try {
+      // Intentar avisar al backend (POST)
+      await post('/auth/logout', {});
+    } catch (err) {
+      console.warn("Error al notificar logout al backend:", err);
+    } finally {
+      dispatch({ type: 'LOGOUT' });
+    }
   };
 
   const navigation = [
     { id: 'dashboard', name: 'Tablero', href: '/', icon: LayoutDashboard },
-    { id: 'developments', name: 'Mis Desarrollos', href: '/developments', icon: Briefcase },
+    { id: 'developments', name: 'Gestión de Actividades', href: '/developments', icon: Briefcase },
     { id: 'indicators', name: 'Indicadores', href: '/indicators', icon: BarChart3 },
     { id: 'ticket-management', name: 'Gestión de Tickets', href: '/ticket-management', icon: Ticket },
     { id: 'reports', name: 'Reportes', href: '/reports', icon: ClipboardList },
@@ -59,6 +67,8 @@ const Sidebar: React.FC = () => {
     { id: 'user-admin', name: 'Gestión de Usuarios', href: '/admin/users', icon: Users },
     { id: 'rooms-admin', name: 'Gestión de Salas', href: '/admin/rooms', icon: DoorOpen },
     { id: 'settings', name: 'Configuración', href: '/settings', icon: Settings },
+    { id: 'wbs-templates', name: 'Plantillas WBS', href: '/admin/wbs-templates', icon: ListTodo },
+    { id: 'control-tower', name: 'Torre de Control', href: '/admin/control-tower', icon: Activity },
     { id: 'design-catalog', name: 'Catálogo de Diseño', href: '/design-catalog', icon: Palette },
   ];
 
@@ -68,6 +78,12 @@ const Sidebar: React.FC = () => {
 
     // Gestión de Salas: solo rol admin
     if (item.id === 'rooms-admin') return userRole === 'admin' || userRole === 'manager';
+
+    // Torre de Control: admin, admin_sistemas y admin_mejoramiento
+    if (item.id === 'control-tower') return userRole === 'admin' || userRole === 'admin_sistemas' || userRole === 'admin_mejoramiento';
+
+    // Plantillas WBS: admin y manager
+    if (item.id === 'wbs-templates') return userRole === 'admin' || userRole === 'manager';
 
     // Si el usuario no tiene cargados los permisos todavía (sesión antigua en caché)
     // permitimos ver todo lo que su rol tradicional permitía

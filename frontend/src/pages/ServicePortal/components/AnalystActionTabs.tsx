@@ -51,7 +51,7 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
     const excludedKeys = [
         'nombre', 'area', 'sede', 'email', 'asunto', 'descripcion_detallada',
         'nivel_prioridad', 'fecha_ideal',
-        'archivos_adjuntos', 'hardware_solicitado', 'especificaciones'
+        'archivos_adjuntos', 'hardware_solicitado', 'especificaciones', 'cantidad'
     ];
 
     return (
@@ -74,7 +74,7 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                 </div>
                 <div className="border-l-2 border-blue-500 pl-4 py-1">
                     <Text variant="body2" color="text-secondary" className="italic leading-relaxed">
-                        "{ticket.descripcion}"
+                        "{ticket.descripcion || 'Sin descripción'}"
                     </Text>
                 </div>
             </div>
@@ -125,12 +125,44 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                     {/* TAB DIAGNÓSTICO */}
                     {activeTab === 'diagnostico' && (
                         <>
-                            {/* Información del Formulario (Datos Extra) */}
+                            {/* Información de Solicitud de Activo (Trazabilidad) */}
+                            {(ticket.solicitud_activo || ticket.datos_extra?.hardware_solicitado) && (
+                                <div className="bg-blue-50/50 dark:bg-blue-900/10 p-5 rounded-2xl border border-blue-100 dark:border-blue-800 animate-in fade-in duration-500 shadow-sm transition-all hover:shadow-md">
+                                    <div className="flex items-center gap-2 mb-4 text-blue-600 dark:text-blue-400">
+                                        <Plus size={16} />
+                                        <Text variant="caption" weight="bold" className="uppercase tracking-widest leading-none text-blue-600 dark:text-blue-400">Detalle del Pedido</Text>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                                        <div className="flex flex-col gap-0.5 border-b border-blue-100/50 dark:border-blue-800/50 pb-1.5 last:border-0">
+                                            <Text as="span" variant="caption" weight="bold" className="uppercase text-[9px] tracking-wider text-blue-500 dark:text-blue-400">Item Solicitado</Text>
+                                            <Text variant="body2" weight="bold" className="text-[13px] text-blue-950 dark:text-blue-100">
+                                                {ticket.solicitud_activo?.item_solicitado || ticket.datos_extra?.hardware_solicitado}
+                                            </Text>
+                                        </div>
+                                        <div className="flex flex-col gap-0.5 border-b border-blue-100/50 dark:border-blue-800/50 pb-1.5 last:border-0">
+                                            <Text as="span" variant="caption" weight="bold" className="uppercase text-[9px] tracking-wider text-blue-500 dark:text-blue-400">Cantidad</Text>
+                                            <Text variant="body2" weight="bold" className="text-[13px] text-blue-950 dark:text-blue-100">
+                                                {ticket.solicitud_activo?.cantidad || ticket.datos_extra?.cantidad || 1}
+                                            </Text>
+                                        </div>
+                                        {(ticket.solicitud_activo?.especificaciones || ticket.datos_extra?.especificaciones) && (
+                                            <div className="flex flex-col gap-0.5 pt-1.5 col-span-1 sm:col-span-2">
+                                                <Text as="span" variant="caption" weight="bold" className="uppercase text-[9px] tracking-wider text-blue-400 dark:text-blue-500">Especificaciones Técnicas</Text>
+                                                <Text variant="body2" className="text-[12px] text-blue-800/80 dark:text-blue-200/70 whitespace-pre-line">
+                                                    {ticket.solicitud_activo?.especificaciones || ticket.datos_extra?.especificaciones}
+                                                </Text>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Información del Formulario (Datos Extra Restantes) */}
                             {ticket.datos_extra && Object.entries(ticket.datos_extra).some(([k]) => !excludedKeys.includes(k)) && (
                                 <div className="bg-slate-100/50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in duration-500 shadow-inner">
                                     <div className="flex items-center gap-2 mb-4 text-slate-600 dark:text-slate-400">
                                         <Settings size={16} />
-                                        <Text variant="caption" weight="bold" color="navy" className="uppercase tracking-widest leading-none">Información del Formulario</Text>
+                                        <Text variant="caption" weight="bold" color="navy" className="uppercase tracking-widest leading-none">Información Adicional</Text>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                                         {Object.entries(ticket.datos_extra).map(([key, value]) => {

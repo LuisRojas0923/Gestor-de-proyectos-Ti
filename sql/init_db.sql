@@ -36,15 +36,48 @@ CREATE TABLE IF NOT EXISTS tokens (
     creado_en TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Comandos de Migración para bases de datos existentes:
+-- ALTER TABLE sesiones ALTER COLUMN token_sesion TYPE VARCHAR(1000);
+-- ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS nombre_usuario VARCHAR(255);
+-- ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS rol_usuario VARCHAR(50);
+-- ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS fin_sesion TIMESTAMPTZ;
+-- ALTER TABLE sesiones ALTER COLUMN expira_en TYPE TIMESTAMPTZ;
+-- ALTER TABLE sesiones ALTER COLUMN creado_en TYPE TIMESTAMPTZ;
+-- ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS ultima_actividad_en TIMESTAMPTZ DEFAULT NOW();
+-- ALTER TABLE sesiones ALTER COLUMN ultima_actividad_en TYPE TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS sesiones (
     id SERIAL PRIMARY KEY,
-    usuario_id VARCHAR(50) NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-    token_sesion VARCHAR(255) UNIQUE NOT NULL,
+    usuario_id VARCHAR(50) NOT NULL,
+    token_sesion VARCHAR(1000) UNIQUE NOT NULL, -- Aumentado para JWTs largos
+    nombre_usuario VARCHAR(255),
+    rol_usuario VARCHAR(50),
     direccion_ip VARCHAR(45),
     agente_usuario TEXT,
     expira_en TIMESTAMPTZ NOT NULL,
-    creado_en TIMESTAMPTZ DEFAULT NOW()
+    creado_en TIMESTAMPTZ DEFAULT NOW(),
+    ultima_actividad_en TIMESTAMPTZ DEFAULT NOW(),
+    fin_sesion TIMESTAMPTZ
 );
+
+CREATE INDEX IF NOT EXISTS idx_sesiones_usuario_id ON sesiones(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_sesiones_actividad_reciente ON sesiones(ultima_actividad_en DESC, fin_sesion);
+--==========================================
+--1.1 implementar en produccion para que funcione
+--==========================================
+-- Comandos de Migración para bases de datos existentes:
+ALTER TABLE sesiones ALTER COLUMN token_sesion TYPE VARCHAR(1000);
+ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS nombre_usuario VARCHAR(255);
+ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS rol_usuario VARCHAR(50);
+ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS fin_sesion TIMESTAMPTZ;
+ALTER TABLE sesiones ALTER COLUMN expira_en TYPE TIMESTAMPTZ;
+ALTER TABLE sesiones ALTER COLUMN creado_en TYPE TIMESTAMPTZ;
+ALTER TABLE sesiones ALTER COLUMN ultima_actividad_en TYPE TIMESTAMPTZ;
+
+-- El índice de actividad también es nuevo:
+CREATE INDEX IF NOT EXISTS idx_sesiones_actividad_reciente ON sesiones(ultima_actividad_en DESC, fin_sesion);
+--==========================================
+
 
 -- ==========================================
 -- 2. Módulo de Desarrollo (Core)
@@ -173,7 +206,26 @@ CREATE TABLE IF NOT EXISTS comentarios_ticket (
 );
 
 -- ==========================================
--- 4. Módulo Reserva de Salas (Integrado)
+-- 4. Monitoreo y Observabilidad
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS metricas_sistema (
+    id SERIAL PRIMARY KEY,
+    timestamp TIMESTAMPTZ DEFAULT NOW(),
+    usuarios_online INTEGER DEFAULT 0,
+    usuarios_activos_24h INTEGER DEFAULT 0,
+    cpu_uso_porcentaje DECIMAL(5, 2) DEFAULT 0.0,
+    ram_uso_mb DECIMAL(12, 2) DEFAULT 0.0,
+    ram_total_mb DECIMAL(12, 2) DEFAULT 0.0,
+    tickets_pendientes INTEGER DEFAULT 0,
+    latencia_db_ms DECIMAL(10, 2) DEFAULT 0.0,
+    estado_servidor VARCHAR(50) DEFAULT 'ok'
+);
+
+CREATE INDEX IF NOT EXISTS idx_metricas_timestamp ON metricas_sistema(timestamp);
+
+-- ==========================================
+-- 5. Módulo Reserva de Salas (Integrado)
 -- ==========================================
 
 -- Salas
@@ -273,16 +325,21 @@ CREATE TRIGGER trigger_reservations_updated_at
 -- 5. Datos Semilla / Inserts Iniciales
 -- ==========================================
 
--- Categorías por defecto
-INSERT INTO categorias_ticket (id, nombre, tipo_formulario, descripcion) VALUES
-('soporte_hardware', 'Soporte de Hardware', 'support', 'Problemas físicos con equipos'),
-('soporte_software', 'Soporte de Software', 'support', 'Instalación y errores de programas'),
-('soporte_impresoras', 'Soporte de Impresoras', 'support', 'Mantenimiento y consumibles'),
-('perifericos', 'Periféricos y Equipos', 'asset', 'Solicitud de nuevos equipos'),
-('soporte_mejora', 'Soporte Mejoramiento', 'support', 'Ajustes a sistemas existentes'),
-('nuevos_desarrollos_mejora', 'Nuevos Desarrollos', 'development', 'Nuevas funcionalidades o software'),
-('compra_licencias', 'Compra de Licencias', 'asset', 'Software licenciado')
-ON CONFLICT (id) DO NOTHING;
+-- Categorías por defecto (Sincronizadas con Producción)
+INSERT INTO categorias_ticket (id, nombre, descripcion, icono, tipo_formulario) VALUES
+('soporte_hardware', 'Soporte de Hardware', 'Problemas físicos con equipos (PCs, Monitores)', 'Cpu', 'support'),
+('soporte_software', 'Soporte de Software', 'Instalación y errores de programas', 'AppWindow', 'support'),
+('soporte_impresoras', 'Soporte de Impresoras', 'Mantenimiento y consumibles', 'Printer', 'support'),
+('perifericos', 'Periféricos y Equipos', 'Solicitud de nuevos equipos', 'Mouse', 'asset'),
+('compra_licencias', 'Compra de Licencias', 'Software licenciado', 'ShieldCheck', 'asset'),
+('soporte_mejora', 'Soporte Mejoramiento', 'Ajustes a sistemas existentes', 'Wrench', 'improvement_support'),
+('nuevos_desarrollos_solid', 'Nuevos desarrollos SOLID', NULL, 'Code', 'development'),
+('nuevos_desarrollos_mejora', 'Nuevas Herramientas', 'Nuevas funcionalidades o software', 'Wrench', 'support')
+ON CONFLICT (id) DO UPDATE SET
+    nombre = EXCLUDED.nombre,
+    descripcion = EXCLUDED.descripcion,
+    icono = EXCLUDED.icono,
+    tipo_formulario = EXCLUDED.tipo_formulario;
 
 -- Sala de Ejemplo
 INSERT INTO rooms (id, name, capacity, resources, is_active, notes)
@@ -297,7 +354,37 @@ VALUES (
 
 
 -- ==========================================
--- 6. Permisos por Rol Integrados
+-- 6. Maestro de Módulos (Configuración Global)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS modulos_sistema (
+    id VARCHAR(100) PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    categoria VARCHAR(50) NOT NULL, -- 'portal', 'analistas', 'panel', 'otros'
+    descripcion VARCHAR(255),
+    esta_activo BOOLEAN DEFAULT TRUE,
+    es_critico BOOLEAN DEFAULT FALSE,
+    actualizado_en TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Semilla de Módulos Iniciales
+INSERT INTO modulos_sistema (id, nombre, categoria, esta_activo, es_critico) VALUES
+-- Portal
+('mis_solicitudes', 'Mis Solicitudes', 'portal', true, true),
+('viaticos_gestion', 'Gestión de Viáticos', 'portal', true, false),
+('sistemas', 'Soporte Sistemas', 'portal', true, false),
+('mejoramiento', 'Mejoramiento TI', 'portal', true, false),
+('chat', 'Asistente IA', 'portal', true, false),
+-- Analistas
+('dashboard', 'Tablero Principal', 'analistas', true, true),
+('ticket-management', 'Gestión de Tickets', 'analistas', true, false),
+('developments', 'Gestión de Actividades', 'analistas', true, false),
+-- Panel
+('control-tower', 'Torre de Control', 'panel', true, true),
+('user-admin', 'Administración de Usuarios', 'panel', true, true)
+ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- 7. Permisos por Rol Integrados
 -- ==========================================
 -- Forzar recreación de la tabla para asegurar estructura correcta
 DROP TABLE IF EXISTS permisos_rol CASCADE;
@@ -385,6 +472,63 @@ INSERT INTO permisos_rol (rol, modulo, permitido) VALUES
 ('admin', 'mejoramiento', true),
 ('director', 'mejoramiento', true),
 ('analyst', 'mejoramiento', true),
-('user', 'mejoramiento', true)
+('user', 'mejoramiento', true),
+
+-- Módulo: Admin Sistemas (Nuevo Rol Consolidado)
+('admin_sistemas', 'dashboard', true),
+('admin_sistemas', 'settings', true),
+('admin_sistemas', 'developments', true),
+('admin_sistemas', 'indicators', true),
+('admin_sistemas', 'ticket-management', true),
+('admin_sistemas', 'reports', true),
+('admin_sistemas', 'service-portal', true),
+('admin_sistemas', 'chat', true),
+('admin_sistemas', 'user-admin', true),
+('admin_sistemas', 'design-catalog', true),
+('admin_sistemas', 'viaticos_gestion', true),
+('admin_sistemas', 'mis_solicitudes', true),
+('admin_sistemas', 'sistemas', true),
+('admin_sistemas', 'desarrollo', true),
+('admin_sistemas', 'mejoramiento', true),
+('admin_sistemas', 'control-tower', true),
+
+-- Módulo: Admin Mejoramiento (Nuevo Rol Basado en Admin Sistemas)
+('admin_mejoramiento', 'dashboard', true),
+('admin_mejoramiento', 'settings', true),
+('admin_mejoramiento', 'developments', true),
+('admin_mejoramiento', 'indicators', true),
+('admin_mejoramiento', 'ticket-management', true),
+('admin_mejoramiento', 'reports', true),
+('admin_mejoramiento', 'service-portal', true),
+('admin_mejoramiento', 'chat', true),
+('admin_mejoramiento', 'viaticos_gestion', true),
+('admin_mejoramiento', 'mis_solicitudes', true),
+('admin_mejoramiento', 'sistemas', true),
+('admin_mejoramiento', 'desarrollo', true),
+('admin_mejoramiento', 'mejoramiento', true),
+('admin_mejoramiento', 'control-tower', true),
+
+-- General Admin
+('admin', 'control-tower', true)
 
 ON CONFLICT (rol, modulo) DO NOTHING;
+
+-- ==========================================
+-- 8. Registro Formal de Roles
+-- ==========================================
+CREATE TABLE IF NOT EXISTS roles_sistema (
+    id VARCHAR(50) PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion VARCHAR(255),
+    es_sistema BOOLEAN DEFAULT FALSE,
+    creado_en TIMESTAMPTZ DEFAULT NOW()
+);
+
+INSERT INTO roles_sistema (id, nombre, descripcion, es_sistema) VALUES
+('admin', 'Administrador Global', 'Control total del sistema', true),
+('admin_sistemas', 'Administrador de Sistemas', 'Gestión técnica y de soporte TI', true),
+('admin_mejoramiento', 'Administrador de Mejoramiento', 'Gestión de procesos y mejora continua', true),
+('analyst', 'Analista TI', 'Resolución de tickets y actividades', true),
+('director', 'Director de Área', 'Supervisión y reportes', true),
+('usuario', 'Usuario Colaborador', 'Solicitante de servicios', true)
+ON CONFLICT (id) DO NOTHING;

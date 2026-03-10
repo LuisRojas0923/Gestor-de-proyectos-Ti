@@ -285,9 +285,102 @@ export const generateExpenseReportPDF = async (
         const finalRubroY = (doc as any).lastAutoTable.finalY;
 
         // ==========================================
+        // 3.5. MATRIZ DE GASTOS: DÍA vs RUBRO
+        // ==========================================
+        const matrixY = Math.max(finalOTY, finalCCY, finalRubroY) + 5;
+
+        // Estructura: Map<Fecha, Map<Rubro, Valor>>
+        const dayRubroMap = new Map<string, Map<string, number>>();
+        const categoriasSet = new Set<string>();
+
+        lineas.forEach(l => {
+            const vTotal = (safeNum((l as any).valorConFactura) || safeNum((l as any).valorconfactura) || 0) +
+                (safeNum((l as any).valorSinFactura) || safeNum((l as any).valorsinfactura) || 0);
+
+            let fStr = Object(l).fechaaplicacion || l.fecha || '';
+            if (fStr.includes('T')) fStr = fStr.split('T')[0];
+
+            const catKey = l.categoria || 'Sin Categoría';
+            categoriasSet.add(catKey);
+
+            if (!dayRubroMap.has(fStr)) {
+                dayRubroMap.set(fStr, new Map<string, number>());
+            }
+            const catMap = dayRubroMap.get(fStr)!;
+            catMap.set(catKey, (catMap.get(catKey) || 0) + vTotal);
+        });
+
+        // Ordenar fechas (filas) y categorías (columnas)
+        const sortedFechas = Array.from(dayRubroMap.keys()).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+        const sortedCategorias = Array.from(categoriasSet).sort();
+
+        // Determinar tamaños dinámicos de fuente y padding según el número de columnas de rubros
+        const catLength = sortedCategorias.length;
+        const dynamicFontSize = catLength > 8 ? 5 : (catLength > 5 ? 6 : 7);
+        const dynamicPadding = catLength > 8 ? 0.3 : (catLength > 5 ? 0.5 : 1);
+
+        // Construir encabezados de la matriz (Partir palabras largas si existen)
+        const formatHeader = (str: string) => {
+            if (str.length > 12 && !str.includes(' ')) {
+                return str.substring(0, 8) + '-\n' + str.substring(8);
+            }
+            return str;
+        };
+
+        const matrixHeaders = ['FECHA /\nRUBRO', ...sortedCategorias.map(formatHeader), 'TOTAL'];
+
+        // Construir cuerpo de la matriz
+        const matrixBody: any[] = [];
+        const categoriasTotales = new Map<string, number>();
+        let granTotalMatriz = 0;
+
+        sortedFechas.forEach(fecha => {
+            const catMap = dayRubroMap.get(fecha)!;
+            const fila: any[] = [{ content: fecha, styles: { fillColor: [220, 220, 220] as [number, number, number], fontStyle: 'normal' } }];
+            let totalDia = 0;
+
+            sortedCategorias.forEach(cat => {
+                const valor = catMap.get(cat) || 0;
+                // Reemplazamos $0 por un guión sutil para evitar ruido visual y compresión
+                fila.push(valor > 0 ? `$ ${valor.toLocaleString('es-CO')}` : '-');
+                totalDia += valor;
+
+                // Acumular para totales inferiores
+                categoriasTotales.set(cat, (categoriasTotales.get(cat) || 0) + valor);
+            });
+
+            fila.push({ content: `$ ${totalDia.toLocaleString('es-CO')}`, styles: { fontStyle: 'bold', fillColor: [220, 220, 220] as [number, number, number] } });
+            granTotalMatriz += totalDia;
+            matrixBody.push(fila);
+        });
+
+        // Fila de TOTALES (Inferior)
+        const filaTotales: any[] = [{ content: 'TOTAL', styles: { fontStyle: 'bold', fillColor: navyBlue, textColor: 255 } }];
+        sortedCategorias.forEach(cat => {
+            const valorTotalCat = categoriasTotales.get(cat) || 0;
+            filaTotales.push({ content: `$ ${valorTotalCat.toLocaleString('es-CO')}`, styles: { fontStyle: 'bold', fillColor: navyBlue, textColor: 255 } });
+        });
+        filaTotales.push({ content: `$ ${granTotalMatriz.toLocaleString('es-CO')}`, styles: { fontStyle: 'bold', fillColor: navyBlue, textColor: 255 } });
+        matrixBody.push(filaTotales);
+
+        autoTable(doc, {
+            startY: matrixY,
+            margin: { left: margin, right: margin },
+            theme: 'grid',
+            headStyles: { fillColor: navyBlue, textColor: 255, halign: 'center', fontStyle: 'bold', fontSize: dynamicFontSize, cellPadding: dynamicPadding, lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 },
+            bodyStyles: { fontSize: dynamicFontSize, halign: 'right', cellPadding: dynamicPadding, lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 },
+            alternateRowStyles: { fillColor: [235, 235, 235] as [number, number, number] },
+            head: [matrixHeaders],
+            body: matrixBody,
+            columnStyles: { 0: { halign: 'center', cellWidth: 16 } } // Fijar ancho de la columna fecha
+        });
+
+        const finalMatrixY = (doc as any).lastAutoTable.finalY;
+
+        // ==========================================
         // 4. TABLA DETALLADA PRINCIPAL
         // ==========================================
-        const detailY = Math.max(finalOTY, finalCCY, finalRubroY) + 3;
+        const detailY = finalMatrixY + 5;
 
         const tableData = lineas.map(l => {
             const vcf = safeNum((l as any).valorConFactura) || safeNum((l as any).valorconfactura) || 0;
@@ -352,7 +445,47 @@ export const generateExpenseReportPDF = async (
         });
 
         // ==========================================
-        // 5. MARCA DE AGUA (WATERMARK) EN CADA PÁGINA
+        // 5. SECCIÓN DE FIRMAS (AL FINAL DEL DOCUMENTO)
+        // ==========================================
+        let finalY = (doc as any).lastAutoTable.finalY + 15; // Espacio mínimo antes de las líneas
+        const spaceNeeded = 15; // 15mm de alto necesario para pintar línea y texto
+
+        // Si no hay suficiente espacio para las firmas en la página actual, agregamos una nueva
+        if (finalY + spaceNeeded > pageHeight - 15) {
+            doc.addPage();
+            finalY = 40; // Empezamos desde arriba en la nueva página
+        }
+
+        const usableFillWidth = pageWidth - (margin * 2);
+        const signatureWidth = 45; // Ancho de la línea física de cada firma
+
+        // Distribuimos equitativamente los X para 3 columnas centradas
+        const col1X = margin + (usableFillWidth * 0.16) - (signatureWidth / 2);
+        const col2X = margin + (usableFillWidth * 0.50) - (signatureWidth / 2);
+        const col3X = margin + (usableFillWidth * 0.84) - (signatureWidth / 2);
+
+        // Estilos para la línea y texto
+        doc.setDrawColor(0, 0, 0); // Línea negra sólida
+        doc.setLineWidth(0.3);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(0, 0, 0);
+
+        // 1. Firma Viaticante (Izquierda)
+        doc.line(col1X, finalY, col1X + signatureWidth, finalY);
+        doc.text("Firma Viaticante", col1X + (signatureWidth / 2), finalY + 5, { align: 'center' });
+
+        // 2. Firma Regional (Centro)
+        doc.line(col2X, finalY, col2X + signatureWidth, finalY);
+        doc.text("Firma Regional", col2X + (signatureWidth / 2), finalY + 5, { align: 'center' });
+
+        // 3. Firma Gerencia (Derecha)
+        doc.line(col3X, finalY, col3X + signatureWidth, finalY);
+        doc.text("Firma Gerencia", col3X + (signatureWidth / 2), finalY + 5, { align: 'center' });
+
+
+        // ==========================================
+        // 6. MARCA DE AGUA (WATERMARK) EN CADA PÁGINA
         // ==========================================
         const pageCount = (doc as any).internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {

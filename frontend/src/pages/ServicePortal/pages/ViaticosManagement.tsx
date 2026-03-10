@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon as ArrowLeft, ClipboardDocumentListIcon as ClipboardList, ShieldCheckIcon as ShieldCheck } from '@heroicons/react/24/outline';
 import { Button, Text, Title } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 import { useAppContext } from '../../../context/AppContext';
@@ -8,13 +8,24 @@ import imgIngresar from '../../../assets/images/categories/Ingresar Reporte.png'
 import imgEstadoCuenta from '../../../assets/images/categories/estado de cuenta.png';
 
 interface ViaticosManagementProps {
-    onNavigate: (view: 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_estado') => void;
+    onNavigate: (view: 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_estado' | 'director_legalizaciones') => void;
     onBack: () => void;
+    moduleStatus?: Record<string, boolean>;
 }
 
-const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onBack }) => {
+const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onBack, moduleStatus = {} }) => {
     const { state, dispatch } = useAppContext();
     const { user, isViaticosVerified } = state;
+    const userRole = ((user as any)?.rol || user?.role || '').toLowerCase();
+    const permissions = (user as any)?.permissions || [];
+    const isAdmin = ['admin', 'director', 'manager'].includes(userRole);
+
+    // Lógicas de visibilidad granular (RBAC + Master Switch Global + Viaticante)
+    const isViaticante = user?.viaticante === true;
+    const hasGestionPermission = (permissions.includes('viaticos_gestion') || isAdmin || isViaticante) && moduleStatus['viaticos_gestion'] !== false;
+    const canSeeReportes = (permissions.includes('viaticos_reportes') || isAdmin || isViaticante) && moduleStatus['viaticos_reportes'] !== false;
+    const canSeeEstado = (permissions.includes('viaticos_estado') || isAdmin || isViaticante) && moduleStatus['viaticos_estado'] !== false;
+    const canSeeDirectorPanel = (permissions.includes('viaticos_director_panel') || isAdmin) && moduleStatus['viaticos_director_panel'] !== false;
 
     if (!isViaticosVerified && user) {
         return (
@@ -27,16 +38,17 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
             />
         );
     }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <Button
                     variant="ghost"
                     onClick={onBack}
-                    className="text-neutral-700 hover:bg-white/10 dark:text-neutral-300 dark:hover:bg-neutral-800 px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
+                    className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
                 >
-                    <ArrowLeft size={18} />
-                    <Text weight="medium" className="text-base font-medium text-left text-gray-900 dark:text-gray-100 hidden sm:inline">
+                    <ArrowLeft className="w-5 h-5" />
+                    <Text weight="medium" className="text-base font-medium text-left text-[var(--color-text)] hidden sm:inline">
                         Volver
                     </Text>
                 </Button>
@@ -46,22 +58,62 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                 <div className="w-20"></div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 max-w-4xl mx-auto">
-                <ActionCard
-                    title="Legalizacion de Gastos"
-                    description="Registra y legaliza tus viáticos, adjuntando facturas y detalles por OT."
-                    icon={<img src={imgIngresar} alt="Legalizacion de Gastos" className="w-full h-full object-contain p-2" />}
-                    onClick={() => onNavigate('viaticos_reportes')}
-                    className="md:h-64"
-                />
+            {/* Mensaje Informativo si es viaticante pero no tiene permiso administrativo */}
+            {!hasGestionPermission && user?.viaticante && (
+                <div className="max-w-4xl mx-auto mt-6 p-6 rounded-[2rem] bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200/50 dark:border-amber-800/30 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+                        <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 shrink-0">
+                            <ShieldCheck className="w-8 h-8" />
+                        </div>
+                        <div className="space-y-1">
+                            <Title variant="h5" weight="bold" className="text-amber-900 dark:text-amber-100">
+                                Acceso Restringido por Administración
+                            </Title>
+                            <Text variant="body1" className="text-amber-800/80 dark:text-amber-200/60 leading-relaxed">
+                                Hemos validado tu identidad correctamente. Sin embargo, tu acceso a los módulos funcionales de viáticos
+                                (Legalización y Estado de Cuenta) está actualmente **restringido** por la administración del sistema.
+                                <br />
+                                <span className="text-xs font-semibold opacity-70">Por favor contacta al área administrativa si crees que esto es un error.</span>
+                            </Text>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                <ActionCard
-                    title="Estado de Cuenta"
-                    description="Consulta tus movimientos, saldos y el histórico oficial desde el ERP."
-                    icon={<img src={imgEstadoCuenta} alt="Estado de Cuenta" className="w-full h-full object-contain p-2" />}
-                    onClick={() => onNavigate('viaticos_estado')}
-                    className="md:h-64"
-                />
+            <div className={`grid grid-cols-1 ${['director', 'admin'].includes(userRole) ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8 mt-8 max-w-5xl mx-auto`}>
+                {hasGestionPermission && (
+                    <>
+                        {canSeeReportes && (
+                            <ActionCard
+                                title="Legalizacion de Gastos"
+                                description="Registra y legaliza tus viáticos, adjuntando facturas y detalles por OT."
+                                icon={<img src={imgIngresar} alt="Legalizacion de Gastos" className="w-full h-full object-contain p-2" />}
+                                onClick={() => onNavigate('viaticos_reportes')}
+                                className="md:h-64"
+                            />
+                        )}
+
+                        {canSeeEstado && (
+                            <ActionCard
+                                title="Estado de Cuenta"
+                                description="Consulta tus movimientos, saldos y el histórico oficial desde el ERP."
+                                icon={<img src={imgEstadoCuenta} alt="Estado de Cuenta" className="w-full h-full object-contain p-2" />}
+                                onClick={() => onNavigate('viaticos_estado')}
+                                className="md:h-64"
+                            />
+                        )}
+                    </>
+                )}
+
+                {canSeeDirectorPanel && (
+                    <ActionCard
+                        title="Panel de Legalizaciones"
+                        description="Consulta todas las legalizaciones reportadas y el flujo de información."
+                        icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-purple-500/10"><ClipboardList className="w-12 h-12 text-purple-500" /></div>}
+                        onClick={() => onNavigate('director_legalizaciones')}
+                        className="md:h-64"
+                    />
+                )}
             </div>
         </div>
     );

@@ -1,0 +1,121 @@
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database import obtener_db, obtener_erp_db_opcional
+from app.models.auth.usuario import Usuario, UsuarioPublico, PasswordCambiar
+from app.services.auth.servicio import ServicioAuth
+
+router = APIRouter()
+
+
+async def obtener_usuario_actual_db(
+    token: str = Depends(ServicioAuth.oauth2_scheme),
+    db: AsyncSession = Depends(obtener_db),
+    db_erp=Depends(obtener_erp_db_opcional),
+):
+    """Dependencia para obtener el objeto usuario completo del token y sincronizar si es necesario"""
+    try:
+        cedula = ServicioAuth.obtener_cedula_desde_token(token)
+        if not cedula:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token invalido o expirado",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+
+        if not usuario:
+            # Usuario estándar: existe en ERP pero no persiste localmente (Rol usuario)
+            if not db_erp:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Servicio ERP no disponible para validar perfil de usuario",
+                )
+            from app.services.erp.empleados_service import EmpleadosService
+
+            empleado = await EmpleadosService.obtener_empleado_por_cedula(
+                db_erp, cedula
+            )
+            if not empleado:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Usuario no encontrado en la base local ni en el ERP",
+                )
+
+            # Instanciar modelo en memoria para responder al Auth profile
+            usuario = Usuario(
+                id=f"USR-P-{cedula}",
+                cedula=cedula,
+                nombre=empleado.get("nombre", "Usuario Portal"),
+                hash_contrasena="N/A",
+                rol="usuario",  # Asumimos rol usuario para portal estándar
+                esta_activo=True,
+                area=empleado.get("area"),
+                cargo=empleado.get("cargo"),
+                sede=empleado.get("ciudadcontratacion"),
+                centrocosto=empleado.get("centrocosto"),
+                viaticante=bool(empleado.get("viaticante")),
+                baseviaticos=empleado.get("baseviaticos"),
+            )
+            return usuario
+
+        # Si el usuario es local y no tiene area/sede pero hay ERP disponible, sincronizar:
+        if db_erp and (not usuario.area or not usuario.sede):
+            try:
+                usuario = await ServicioAuth.sincronizar_perfil_desde_erp(
+                    db, db_erp, usuario
+                )
+            except Exception as e:
+                print(f"DEBUG: ERP no disponible o fallo en sincronizacion local: {e}")
+
+        return usuario
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error al validar usuario: {str(e)}"
+        )
+
+
+@router.get("/yo")
+async def obtener_usuario_actual(
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
+):
+    """Endpoint para obtener los datos del usuario actual con sus permisos"""
+    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
+
+    # Fallback para el rol 'usuario' (estándar del portal) si no hay permisos configurados implícitamente
+    if not permisos and (usuario.rol == "usuario" or usuario.rol == "user"):
+        permisos = ["service-portal"]
+
+    user_data = usuario.model_dump()
+    user_data["permissions"] = permisos
+    return user_data
+
+
+@router.patch("/password", response_model=UsuarioPublico)
+async def cambiar_contrasena(
+    datos: PasswordCambiar,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
+):
+    """Cambia la contrasena del usuario actual"""
+    try:
+        if not ServicioAuth.verificar_contrasena(
+            datos.contrasena_actual, usuario.hash_contrasena
+        ):
+            raise HTTPException(
+                status_code=400, detail="La contrasena actual es incorrecta"
+            )
+        return await ServicioAuth.cambiar_contrasena(
+            db, usuario.id, datos.nueva_contrasena
+        )
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error al cambiar contrasena: {str(e)}"
+        )
