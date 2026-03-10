@@ -31,6 +31,7 @@ from .api.solid.router import router as solid_router
 from .api.viaticos.router import router as viaticos_router
 from .api.auth.config_router import router as config_router
 from .api.reserva_salas import router as reserva_salas_router
+from .api.novedades_nomina.nomina_router import router as nomina_router
 
 # Configurar logging basico
 logger = logging.getLogger(__name__)
