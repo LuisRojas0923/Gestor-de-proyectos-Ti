@@ -59,9 +59,19 @@ class RequisicionPersonal(SQLModel, table=True):
     auxilio_alimentacion: Optional[int] = Field(default=None, sa_column=Column(BigInteger))
     auxilio_vivienda: Optional[int] = Field(default=None, sa_column=Column(BigInteger))
     
-    # Metadatos
-    estado: str = Field(default="Pendiente", max_length=50)
+    # Metadatos y Auditoría
+    estado: str = Field(default="Pendiente de Jefe", max_length=50) # Pendiente de Jefe, Pendiente de GH, Aprobada, Rechazada
     id_creador: Optional[str] = Field(default=None, max_length=50)
     fecha_creacion: datetime = Field(
         sa_column_kwargs={"server_default": func.now()}
     )
+    
+    # Aprobación Nivel 1 (Jefe de Área)
+    id_jefe_aprobador: Optional[str] = Field(default=None, max_length=50)
+    fecha_revision_jefe: Optional[datetime] = Field(default=None)
+    comentario_revision_jefe: Optional[str] = Field(default=None, sa_column=Column(Text))
+    
+    # Aprobación Nivel 2 (Gestión Humana)
+    id_gh_aprobador: Optional[str] = Field(default=None, max_length=50)
+    fecha_revision_gh: Optional[datetime] = Field(default=None)
+    comentario_revision_gh: Optional[str] = Field(default=None, sa_column=Column(Text))

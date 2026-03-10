@@ -13,7 +13,8 @@ import {
   LogOut,
   Palette,
   Users,
-  X
+  X,
+  ClipboardCheck
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -58,6 +59,7 @@ const Sidebar: React.FC = () => {
     { id: 'service-portal', name: 'Portal de Servicios', href: '/service-portal', icon: Share2 },
     { id: 'user-admin', name: 'Gestión de Usuarios', href: '/admin/users', icon: Users },
     { id: 'rooms-admin', name: 'Gestión de Salas', href: '/admin/rooms', icon: DoorOpen },
+    { id: 'requisicion-admin', name: 'Gest. Requisiciones', href: '/admin/requisiciones', icon: ClipboardCheck },
     { id: 'settings', name: 'Configuración', href: '/settings', icon: Settings },
     { id: 'design-catalog', name: 'Catálogo de Diseño', href: '/design-catalog', icon: Palette },
   ];
@@ -66,8 +68,10 @@ const Sidebar: React.FC = () => {
     // Normalizar rol para comparaciones
     const userRole = (user?.role || '').trim().toLowerCase();
 
-    // Gestión de Salas: solo rol admin
+    // Gestión de Salas
     if (item.id === 'rooms-admin') return userRole === 'admin' || userRole === 'manager';
+    // Gestión de Requisiciones
+    if (item.id === 'requisicion-admin') return ['admin', 'manager', 'director'].includes(userRole);
 
     // Si el usuario no tiene cargados los permisos todavía (sesión antigua en caché)
     // permitimos ver todo lo que su rol tradicional permitía

@@ -43,9 +43,26 @@ class RequisicionBase(BaseModel):
 class RequisicionCrear(RequisicionBase):
     pass
 
+class RequisicionRevisionJefe(BaseModel):
+    aprobado: bool
+    comentario: Optional[str] = None
+
+class RequisicionRevisionGH(BaseModel):
+    aprobado: bool
+    comentario: Optional[str] = None
+
 class RequisicionPublica(RequisicionBase):
     id: str
     estado: str
     fecha_creacion: datetime
+    id_creador: Optional[str] = None
+    
+    id_jefe_aprobador: Optional[str] = None
+    fecha_revision_jefe: Optional[datetime] = None
+    comentario_revision_jefe: Optional[str] = None
+    
+    id_gh_aprobador: Optional[str] = None
+    fecha_revision_gh: Optional[datetime] = None
+    comentario_revision_gh: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)

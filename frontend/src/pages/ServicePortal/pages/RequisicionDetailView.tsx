@@ -3,6 +3,11 @@ import { ArrowLeft, User, Briefcase, MapPin, ClipboardList, Laptop, DollarSign, 
 import { StatusBadge } from './Common';
 import { Button, Title, Text, Icon } from '../../../components/atoms';
 import { formatFriendlyDate } from '../../../utils/dateUtils';
+import { useAppContext } from '../../../context/AppContext';
+import { useNotifications } from '../../../components/notifications/NotificationsContext';
+import axios from 'axios';
+import { API_CONFIG } from '../../../config/api';
+import { useState } from 'react';
 
 interface Requisicion {
     id: string;
@@ -49,6 +54,52 @@ interface RequisicionDetailViewProps {
 }
 
 const RequisicionDetailView: React.FC<RequisicionDetailViewProps> = ({ requisicion, onBack }) => {
+    const { state } = useAppContext();
+    const { user } = state;
+    const { addNotification } = useNotifications();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [rejectComment, setRejectComment] = useState('');
+    const [showRejectInput, setShowRejectInput] = useState(false);
+    const [successAction, setSuccessAction] = useState(false);
+
+    const userAreas = JSON.parse(user?.areas_asignadas || '[]') as string[];
+    const userEspecialidades = JSON.parse(user?.especialidades || '[]') as string[];
+
+    const canApproveJefe = requisicion.estado === 'Pendiente de Jefe' && userAreas.includes(requisicion.area_destino);
+    const canApproveGH = requisicion.estado === 'Pendiente de GH' && userEspecialidades.includes('gestion_humana');
+    const canApproveAdmin = user?.rol === 'admin' && (requisicion.estado === 'Pendiente de Jefe' || requisicion.estado === 'Pendiente de GH');
+
+    const isApprover = canApproveJefe || canApproveGH || canApproveAdmin;
+
+    const handleApproval = async (approved: boolean, level: 'jefe' | 'gh') => {
+        if (!approved && !rejectComment) {
+            setShowRejectInput(true);
+            addNotification('warning', 'Por favor, ingresa un motivo para rechazar.');
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            const token = localStorage.getItem('token');
+            const endpoint = level === 'jefe' ? 'revision-jefe' : 'revision-gh';
+            await axios.patch(`${API_CONFIG.BASE_URL}/requisiciones/${requisicion.id}/${endpoint}`, {
+                aprobado: approved,
+                comentario: rejectComment || null
+            }, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
+
+            addNotification('success', `Requisición ${approved ? 'aprobada' : 'rechazada'} exitosamente`);
+            setSuccessAction(true);
+            setTimeout(() => {
+                onBack(); // Volver a la vista de lista
+            }, 1000);
+        } catch (error) {
+            addNotification('error', `Error al procesar la ${approved ? 'aprobación' : 'rechazo'}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const InfoSection = ({ title, icon, children }: { title: string, icon: any, children: React.ReactNode }) => (
         <div className="space-y-4">
@@ -107,6 +158,56 @@ const RequisicionDetailView: React.FC<RequisicionDetailViewProps> = ({ requisici
 
                 <div className="p-8 space-y-10">
                     <div className="grid grid-cols-1 gap-10">
+
+                        {/* Approval Panel */}
+                        {isApprover && !successAction && (
+                            <div className="bg-amber-50 dark:bg-amber-900/10 p-6 md:p-8 rounded-3xl border border-amber-200 dark:border-amber-800/30">
+                                <Title variant="h5" weight="bold" color="text-amber-800" className="flex items-center gap-2 mb-2">
+                                    <Icon name={ClipboardList} />
+                                    Acción Requerida: Revisión
+                                </Title>
+                                <Text variant="body2" className="text-amber-700 dark:text-amber-500 mb-6">Esta requisición está esperando tu revisión. Por favor, verifica los detalles antes de dar tu veredicto.</Text>
+
+                                {showRejectInput && (
+                                    <div className="mb-6 space-y-2">
+                                        <Text variant="caption" weight="bold" className="text-amber-800 dark:text-amber-400">Motivo del rechazo (Obligatorio):</Text>
+                                        <textarea
+                                            className="w-full h-24 p-3 rounded-xl border border-amber-200 bg-white dark:bg-neutral-800 dark:border-amber-800/50 resize-none focus:border-red-400 focus:ring focus:ring-red-400/20 text-sm"
+                                            placeholder="Escribe aquí las razones del rechazo..."
+                                            value={rejectComment}
+                                            onChange={(e) => setRejectComment(e.target.value)}
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <Button
+                                        variant="primary"
+                                        onClick={() => handleApproval(true, requisicion.estado === 'Pendiente de Jefe' ? 'jefe' : 'gh')}
+                                        loading={isSubmitting}
+                                        className="flex-1 bg-green-600 hover:bg-green-700 h-12 text-white border-transparent"
+                                    >
+                                        Aprobar Requisición
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => handleApproval(false, requisicion.estado === 'Pendiente de Jefe' ? 'jefe' : 'gh')}
+                                        loading={isSubmitting}
+                                        className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/10 h-12"
+                                    >
+                                        {showRejectInput ? 'Confirmar Rechazo' : 'Rechazar...'}
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {successAction && (
+                            <div className="bg-green-50 dark:bg-green-900/10 p-6 rounded-3xl border border-green-200 text-center animate-in fade-in zoom-in duration-300">
+                                <Title variant="h6" className="text-green-700 font-bold">¡Revisión enviada!</Title>
+                                <Text variant="caption" className="text-green-600">Volviendo a la lista...</Text>
+                            </div>
+                        )}
 
                         {/* 1. Información del Solicitante */}
                         <InfoSection title="Información del Solicitante" icon={User}>

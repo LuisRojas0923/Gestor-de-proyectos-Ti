@@ -74,6 +74,8 @@ async def login(
                 "centrocosto": usuario.centrocosto,
                 "viaticante": usuario.viaticante,
                 "baseviaticos": usuario.baseviaticos,
+                "especialidades": usuario.especialidades,
+                "areas_asignadas": usuario.areas_asignadas,
                 "permissions": permisos
             }
         }
@@ -176,6 +178,8 @@ async def portal_login(
             "centrocosto": user_data["centrocosto"],
             "viaticante": user_data["viaticante"],
             "baseviaticos": user_data["baseviaticos"],
+            "especialidades": usuario_local.especialidades if usuario_local else "[]",
+            "areas_asignadas": usuario_local.areas_asignadas if usuario_local else "[]",
             "permissions": permisos
         }
     }
@@ -388,7 +392,7 @@ async def listar_analistas(
         raise HTTPException(status_code=403, detail="No tiene permisos para ver esta lista")
     
     result = await db.execute(
-        select(Usuario).where(Usuario.rol.in_(["analyst", "admin", "director", "manager"]))
+        select(Usuario)
     )
     return result.scalars().all()
 
