@@ -44,6 +44,42 @@ class EmpleadosService:
         return None
 
     @staticmethod
+    def consultar_empleados_bulk(db_erp: Session, cedulas: List[str]) -> Dict[str, Dict]:
+        """
+        Consulta masiva al ERP: devuelve {cedula: {nombre, estado, empresa}}
+        para todas las cédulas proporcionadas (activos e inactivos).
+        """
+        if not cedulas:
+            return {}
+
+        # Construir placeholders dinámicos para IN clause
+        placeholders = ", ".join(f":c{i}" for i in range(len(cedulas)))
+        params = {f"c{i}": ced for i, ced in enumerate(cedulas)}
+
+        query = text(f"""
+            SELECT DISTINCT ON (E.nrocedula)
+                E.nrocedula      AS "nrocedula",
+                E.nombre::text   AS "nombre",
+                C.estado::text   AS "estado",
+                C.empresa::text  AS "empresa"
+            FROM establecimiento E
+            LEFT JOIN contrato C
+                ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+            WHERE TRIM(CAST(E.nrocedula AS TEXT)) IN ({placeholders})
+            ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST
+        """)
+
+        resultados = db_erp.execute(query, params).fetchall()
+        mapa: Dict[str, Dict] = {}
+        for r in resultados:
+            mapa[str(r.nrocedula).strip()] = {
+                "nombre": r.nombre,
+                "estado": r.estado or "Desconocido",
+                "empresa": r.empresa or "",
+            }
+        return mapa
+
+    @staticmethod
     async def consultar_solicitudes_externas(empresa: Optional[str] = None) -> List[Dict]:
         """Consulta directa al API del ERP (Mock inicial)"""
         return [

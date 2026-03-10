@@ -94,15 +94,19 @@ def obtener_erp_db():
 
 def obtener_erp_db_opcional():
     """Sesion ERP opcional: si la conexion falla, devuelve None (evita 500 en login)."""
+    db = None
     try:
         db = SessionErp()
-        try:
-            yield db
-        finally:
-            db.close()
+        yield db
     except Exception as e:
         print(f"DEBUG: ERP no disponible: {e}")
+        # Solo yield None si no se ha cedido el control aún (esto es difícil en este patrón)
+        # Una mejor forma es manejarlo antes:
         yield None
+    finally:
+        if db:
+            db.close()
+
 
 
 async def init_db():
@@ -156,6 +160,7 @@ async def init_db():
     try:
         from .models.auth.usuario import Usuario
         from .services.auth.servicio import ServicioAuth
+        from .models.novedades_nomina.nomina import NominaArchivo, NominaRegistroCrudo, NominaRegistroNormalizado, NominaConcepto
 
         async with AsyncSessionLocal() as session:
             result = await session.execute(select(Usuario).where(Usuario.cedula == "admin"))
@@ -173,3 +178,10 @@ async def init_db():
                 print("DEBUG: Usuario administrador creado (admin / admin123)")
     except Exception as e:
         print(f"DEBUG: Error creando usuario admin: {e}")
+
+    # 5. Seed de Conceptos de Nómina
+    try:
+        from .services.novedades_nomina.seed import seed_nomina_conceptos
+        await seed_nomina_conceptos()
+    except Exception as e:
+        print(f"DEBUG: Error seed conceptos nomina: {e}")

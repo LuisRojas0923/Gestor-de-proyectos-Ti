@@ -1,5 +1,6 @@
 import { ActionCard } from '../../../components/molecules';
 import { Title, Text } from '../../../components/atoms';
+import { Plus } from 'lucide-react';
 
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
@@ -48,6 +49,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, onNavigate }) => {
                         description="Reporte de gastos y consulta de estado de cuenta detallado."
                         icon={<img src={imgGestionViaticos} alt="Gestión de Viáticos" className="w-full h-full object-contain p-2" />}
                         onClick={() => onNavigate('viaticos_gestion')}
+                    />
+                )}
+
+                {(userRole === 'admin' || userRole === 'director') && (
+                    <ActionCard
+                        title="Descuentos de Nómina"
+                        description="Carga y procesamiento de descuentos para SOLID."
+                        icon={<div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-teal-500/20 to-blue-500/20 rounded-xl"><Plus className="w-12 h-12 text-teal-600" /></div>}
+                        onClick={() => onNavigate('nomina')}
                     />
                 )}
             </div>

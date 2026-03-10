@@ -20,6 +20,25 @@ import AccountStatement from './ServicePortal/pages/AccountStatement';
 import TransitReportsView from './ServicePortal/pages/TransitReportsView';
 import ReservaSalasView from './ServicePortal/pages/ReservaSalasView';
 import PortalLayout from './ServicePortal/PortalLayout';
+import NominaDashboard from './ServicePortal/pages/NOVEDADES_NOMINA/NominaDashboard';
+import NominaUploadView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaUploadView';
+import NominaPreviewView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaPreviewView';
+import NominaSummaryView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaSummaryView';
+import NominaHistorialView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaHistorialView';
+import GrancoopPreview from './ServicePortal/pages/NOVEDADES_NOMINA/GrancoopPreview';
+import BeneficiarPreview from './ServicePortal/pages/NOVEDADES_NOMINA/BeneficiarPreview';
+import HdiPreview from './ServicePortal/pages/NOVEDADES_NOMINA/HdiPreview';
+import BogotaLibranzaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/BogotaLibranzaPreview';
+import DaviviendaLibranzaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/DaviviendaLibranzaPreview';
+import OccidenteLibranzaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/OccidenteLibranzaPreview';
+import CamposantoPreview from './ServicePortal/pages/NOVEDADES_NOMINA/CamposantoPreview';
+import RecordarPreview from './ServicePortal/pages/NOVEDADES_NOMINA/RecordarPreview';
+import PolizasVehiculosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/PolizasVehiculosPreview';
+import MedicinaPrepagadaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/MedicinaPrepagadaPreview';
+import OtrosGerenciaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/OtrosGerenciaPreview';
+import ControlDescuentosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosPreview';
+import CelularesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/CelularesPreview';
+import EmbargosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/EmbargosPreview';
 
 import imgHardware from '../assets/images/categories/Soporte Hardware.png';
 import imgSoftware from '../assets/images/categories/Soporte Software.png';
@@ -29,6 +48,8 @@ import imgMejora from '../assets/images/categories/Soporte Mejoramiento.png';
 import imgDesarrollo from '../assets/images/categories/Nuevos desarrollos.png';
 import imgLicencias from '../assets/images/categories/Compra de Licencias.png';
 import imgControlCambios from '../assets/images/categories/Control de Cambios.png';
+import imgControlDescuentos from '../assets/images/categories/CONTROL_DESCUENTOS.png';
+import imgCelulares from '../assets/images/categories/CELULARES.png';
 
 // --- WRAPPERS DE NAVEGACIÓN (Definidos fuera para evitar re-montados innecesarios) ---
 
@@ -166,6 +187,14 @@ const ServicePortal: React.FC = () => {
         nuevos_desarrollos_solid: {
             icon: <img src={imgDesarrollo} alt="Desarrollo SOLID" className="w-full h-full object-contain p-2" />,
             section: 'mejoramiento' // Usamos mejoramiento como base para la lógica de visualización si es necesario, o lo filtramos por ID
+        },
+        control_descuentos: {
+            icon: <img src={imgControlDescuentos} alt="Control Descuentos" className="w-full h-full object-contain p-1" />,
+            section: 'mejoramiento'
+        },
+        celulares: {
+            icon: <img src={imgCelulares} alt="Celulares" className="w-full h-full object-contain p-1" />,
+            section: 'mejoramiento'
         }
     };
 
@@ -446,6 +475,7 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'categories') navigate('/service-portal/servicios');
                             else if (v === 'status') navigate('/service-portal/mis-tickets');
                             else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
+                            else if (v === 'nomina') navigate('/service-portal/novedades-nomina');
                         }}
                     />
                 } />
@@ -577,6 +607,26 @@ const ServicePortal: React.FC = () => {
                 <Route path="reserva-salas" element={
                     <ReservaSalasView onBack={() => navigate('/service-portal/inicio')} />
                 } />
+
+                <Route path="novedades-nomina" element={<NominaDashboard />} />
+                <Route path="novedades-nomina/LIBRANZAS/BOGOTA LIBRANZA" element={<BogotaLibranzaPreview />} />
+                <Route path="novedades-nomina/LIBRANZAS/DAVIVIENDA LIBRANZA" element={<DaviviendaLibranzaPreview />} />
+                <Route path="novedades-nomina/LIBRANZAS/OCCIDENTE LIBRANZA" element={<OccidenteLibranzaPreview />} />
+                <Route path="novedades-nomina/COOPERATIVAS/GRANCOOP" element={<GrancoopPreview />} />
+                <Route path="novedades-nomina/COOPERATIVAS/BENEFICIAR" element={<BeneficiarPreview />} />
+                <Route path="novedades-nomina/OTROS/SEGUROS HDI" element={<HdiPreview />} />
+                <Route path="novedades-nomina/FUNEBRES/CAMPOSANTO" element={<CamposantoPreview />} />
+                <Route path="novedades-nomina/FUNEBRES/RECORDAR" element={<RecordarPreview />} />
+                <Route path="novedades-nomina/OTROS/POLIZAS VEHICULOS" element={<PolizasVehiculosPreview />} />
+                <Route path="novedades-nomina/OTROS/MEDICINA PREPAGADA" element={<MedicinaPrepagadaPreview />} />
+                <Route path="novedades-nomina/OTROS/OTROS GERENCIA" element={<OtrosGerenciaPreview />} />
+                <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS" element={<ControlDescuentosPreview />} />
+                <Route path="novedades-nomina/DESCUENTOS/CELULARES" element={<CelularesPreview />} />
+                <Route path="novedades-nomina/DESCUENTOS/EMBARGOS" element={<EmbargosPreview />} />
+                <Route path="novedades-nomina/:category/:subcategory" element={<NominaUploadView />} />
+                <Route path="novedades-nomina/preview/:archivoId" element={<NominaPreviewView />} />
+                <Route path="novedades-nomina/resumen" element={<NominaSummaryView />} />
+                <Route path="novedades-nomina/historial" element={<NominaHistorialView />} />
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />
             </Routes>

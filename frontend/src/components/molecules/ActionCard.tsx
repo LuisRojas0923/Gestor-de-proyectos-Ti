@@ -33,7 +33,11 @@ export const ActionCard: React.FC<ActionCardProps> = ({
         >
             <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 ${iconContainerStyles}`}>
                 {/* Render icon directly if it's a node, or wrap it if it's a function/component pattern */}
-                {React.isValidElement(icon) ? icon : <Icon name={icon as any} size="xl" className="w-10 h-10" />}
+                {icon ? (
+                    React.isValidElement(icon) ? icon : <Icon name={icon as any} size="xl" className="w-10 h-10" />
+                ) : (
+                    <div className="w-10 h-10 bg-slate-200 rounded-lg animate-pulse" />
+                )}
             </div>
             <Title variant="h5" weight="bold" color="text-primary">{title}</Title>
             <Text variant="body1" color="text-secondary" weight="medium">{description}</Text>
