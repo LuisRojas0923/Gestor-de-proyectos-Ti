@@ -13,7 +13,7 @@ interface Props {
     prioridadStats: Record<string, number>;
 }
 
-const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analistaStats, matriz, headers, prioridadStats }) => {
+const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analistaStats, matriz: _matriz, headers: _headers, prioridadStats }) => {
     const pData = [
         { label: 'Media', color: 'bg-blue-900', key: 'Media' },
         { label: 'Alta', color: 'bg-blue-800', key: 'Alta' },
@@ -114,9 +114,8 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                     <Text weight="bold" className="mb-2 text-blue-900 dark:text-blue-300">{val}</Text>
                                     <div
                                         className={`${p.color} w-full rounded-t-lg transition-all hover:opacity-80`}
-                                        style={{ '--h': `${Math.max(height, 20)}px` } as React.CSSProperties}
                                     >
-                                        <div className="h-[var(--h)] w-full" />
+                                        <div ref={(el) => { if (el) el.style.height = `${Math.max(height, 20)}px`; }} className="w-full" />
                                     </div>
                                     <Text weight="bold" color="white" className="bg-blue-900 dark:bg-blue-800 w-full text-center py-1 text-[10px] tracking-tight mt-1 rounded-b-sm block uppercase">
                                         {p.label}

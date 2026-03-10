@@ -1,7 +1,7 @@
 """
 Configuracion de Base de Datos - Backend V2 (Async + SQLModel)
 """
-from contextlib import asynccontextmanager
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -22,10 +22,10 @@ async_engine = create_async_engine(
     ASYNC_DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
-    pool_size=40,          # Aumentado para soportar 2 workers y 400+ usuarios
-    max_overflow=80,       # Permite hasta 120 conexiones simultáneas
-    pool_timeout=60,       # Aumentado el tiempo de espera en cola
-    pool_recycle=1800
+    pool_size=40,  # Aumentado para soportar 2 workers y 400+ usuarios
+    max_overflow=80,  # Permite hasta 120 conexiones simultáneas
+    pool_timeout=60,  # Aumentado el tiempo de espera en cola
+    pool_recycle=1800,
 )
 
 # SessionMaker ASINCRONO
@@ -34,7 +34,7 @@ AsyncSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
     autocommit=False,
-    autoflush=False
+    autoflush=False,
 )
 
 # Engine SINCRONO para compatibilidad (migraciones, seed, etc.)
@@ -43,7 +43,7 @@ sync_engine = create_engine(
     pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,
-    connect_args={"options": "-c client_encoding=utf8"}
+    connect_args={"options": "-c client_encoding=utf8"},
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
@@ -57,10 +57,7 @@ engine = sync_engine
 # --- Configuracion ERP Externo (se mantiene sincrono) ---
 ERP_DATABASE_URL = config.erp_database_url
 erp_engine = create_engine(
-    ERP_DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10
+    ERP_DATABASE_URL, pool_pre_ping=True, pool_size=5, max_overflow=10
 )
 SessionErp = sessionmaker(autocommit=False, autoflush=False, bind=erp_engine)
 
@@ -93,41 +90,110 @@ def obtener_erp_db():
 
 
 def obtener_erp_db_opcional():
-    """Sesion ERP opcional: si la conexion falla, devuelve None (evita 500 en login)."""
+    """Generador de sesión ERP opcional corregido para estabilidad de FastAPI."""
+    db = None
     try:
         db = SessionErp()
-        try:
-            yield db
-        finally:
-            db.close()
+        yield db
     except Exception as e:
-        print(f"DEBUG: ERP no disponible: {e}")
-        yield None
+        # Si ocurre un error lanzando desde el endpoint (ej: HTTPException 403), 
+        # o en la conexión inicial, lo manejamos silenciosamente para el generador.
+        print(f"DEBUG: ERP no disponible o interrumpido: {e}")
+        if db is None:
+            yield None
+    finally:
+        if db:
+            db.close()
 
 
 async def init_db():
     """Inicializa las tablas de la base de datos usando SQLModel y asegura columnas de perfil"""
     async with async_engine.begin() as conn:
         # 1. Crear tablas si no existen
-        await conn.run_sync(SQLModel.metadata.create_all)
-        
+        try:
+            await conn.run_sync(SQLModel.metadata.create_all)
+        except Exception as e:
+            # En producción con múltiples workers (Gunicorn/Uvicorn),
+            # ocurre concurrencia creando tablas simultáneamente.
+            print(f"DEBUG: Error concurrente en create_all (posible multi-worker): {e}")
+
         # 2. Asegurar columnas de perfil (Migración manual segura)
         from sqlalchemy import text
+
         try:
-            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS area VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS sede VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS centrocosto VARCHAR(255)"))
-            
+            await conn.execute(
+                text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS area VARCHAR(255)")
+            )
+            await conn.execute(
+                text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cargo VARCHAR(255)")
+            )
+            await conn.execute(
+                text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS sede VARCHAR(255)")
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS centrocosto VARCHAR(255)"
+                )
+            )
+
             # Columnas de auditoría para reservas
-            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS updated_by_name VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS updated_by_document VARCHAR(100)"))
-            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_by_name VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_by_document VARCHAR(100)"))
+            await conn.execute(
+                text(
+                    "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS updated_by_name VARCHAR(255)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS updated_by_document VARCHAR(100)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_by_name VARCHAR(255)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancelled_by_document VARCHAR(100)"
+                )
+            )
+
+            # Torre de Control: Actividad de sesiones
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones ALTER COLUMN token_sesion TYPE VARCHAR(1000)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS nombre_usuario VARCHAR(255)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS rol_usuario VARCHAR(50)"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS fin_sesion TIMESTAMPTZ"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS ultima_actividad_en TIMESTAMPTZ DEFAULT NOW()"
+                )
+            )
+            # Eliminar restricción de llave foránea para permitir usuarios del portal sin registro local
+            await conn.execute(
+                text(
+                    "ALTER TABLE sesiones DROP CONSTRAINT IF EXISTS sesiones_usuario_id_fkey"
+                )
+            )
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría: {e}")
 
-    # 3. Seed idempotente de sala por defecto
+    # 3.1 Seed idempotente de sala por defecto
     try:
         import uuid
         from sqlmodel import select
@@ -136,7 +202,9 @@ async def init_db():
         default_room_id = uuid.UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 
         async with AsyncSessionLocal() as session:
-            result = await session.execute(select(Room).where(Room.id == default_room_id))
+            result = await session.execute(
+                select(Room).where(Room.id == default_room_id)
+            )
             if result.scalars().first() is None:
                 session.add(
                     Room(
@@ -154,11 +222,15 @@ async def init_db():
 
     # 4. Usuario administrador por defecto (si no existe)
     try:
-        from .models.auth.usuario import Usuario
+        from .models.auth.usuario import Usuario, ModuloSistema, PermisoRol
         from .services.auth.servicio import ServicioAuth
+        from sqlmodel import select
 
         async with AsyncSessionLocal() as session:
-            result = await session.execute(select(Usuario).where(Usuario.cedula == "admin"))
+            # 4.1 Crear admin
+            result = await session.execute(
+                select(Usuario).where(Usuario.cedula == "admin")
+            )
             if result.scalar_one_or_none() is None:
                 admin = Usuario(
                     id="admin-01",
@@ -171,5 +243,182 @@ async def init_db():
                 session.add(admin)
                 await session.commit()
                 print("DEBUG: Usuario administrador creado (admin / admin123)")
+
+            # 4.2 SINCRONIZACIÓN Y SEMILLADO DE MÓDULOS
+            # IMPORTANTE: Esta lista es solo para el semillado inicial de módulos críticos.
+            # Los módulos nuevos DEBEN registrarse a través de la interfaz administrativa
+            # (Panel Maestro) y no añadiéndolos aquí manualmente para evitar redundancias.
+            modulos_core = [
+                {
+                    "id": "service-portal",
+                    "nombre": "Portal de Servicios (Shell)",
+                    "categoria": "portal",
+                    "critico": True,
+                },
+                {
+                    "id": "mis_solicitudes",
+                    "nombre": "Mis Solicitudes",
+                    "categoria": "portal",
+                    "critico": True,
+                },
+                {
+                    "id": "viaticos_gestion",
+                    "nombre": "Gestión de Viáticos",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "viaticos_reportes",
+                    "nombre": "Legalización de Gastos",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "viaticos_estado",
+                    "nombre": "Estado de Cuenta (Viáticos)",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "viaticos_director_panel",
+                    "nombre": "Panel de Legalizaciones (Director)",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "sistemas",
+                    "nombre": "Soporte Sistemas",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "mejoramiento",
+                    "nombre": "Mejoramiento TI",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "desarrollo",
+                    "nombre": "Software Factory",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "chat",
+                    "nombre": "Asistente IA",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "reserva_salas",
+                    "nombre": "Reserva de Salas",
+                    "categoria": "portal",
+                    "critico": False,
+                },
+                {
+                    "id": "dashboard",
+                    "nombre": "Tablero Principal",
+                    "categoria": "analistas",
+                    "critico": True,
+                },
+                {
+                    "id": "ticket-management",
+                    "nombre": "Gestión de Tickets",
+                    "categoria": "analistas",
+                    "critico": False,
+                },
+                {
+                    "id": "developments",
+                    "nombre": "Gestión de Actividades",
+                    "categoria": "analistas",
+                    "critico": False,
+                },
+                {
+                    "id": "control-tower",
+                    "nombre": "Torre de Control",
+                    "categoria": "panel",
+                    "critico": True,
+                },
+                {
+                    "id": "user-admin",
+                    "nombre": "Administración de Usuarios",
+                    "categoria": "panel",
+                    "critico": True,
+                },
+                {
+                    "id": "settings",
+                    "nombre": "Parámetros del Sistema",
+                    "categoria": "analistas",
+                    "critico": False,
+                },
+                {
+                    "id": "indicators",
+                    "nombre": "Indicadores Globales (BI)",
+                    "categoria": "analistas",
+                    "critico": False,
+                },
+                {
+                    "id": "reports",
+                    "nombre": "Reportería Avanzada",
+                    "categoria": "analistas",
+                    "critico": False,
+                },
+                {
+                    "id": "design-catalog",
+                    "nombre": "Catálogo de Diseño UI/UX",
+                    "categoria": "panel",
+                    "critico": False,
+                },
+            ]
+
+            # ── UPSERT nativo PostgreSQL (inmune a concurrencia) ──
+            from sqlalchemy import text as sa_text
+
+            upsert_sql = sa_text("""
+                INSERT INTO modulos_sistema (id, nombre, categoria, esta_activo, es_critico)
+                VALUES (:id, :nombre, :categoria, TRUE, :es_critico)
+                ON CONFLICT (id) DO UPDATE SET
+                    nombre     = EXCLUDED.nombre,
+                    categoria  = EXCLUDED.categoria,
+                    es_critico = EXCLUDED.es_critico,
+                    esta_activo = TRUE
+            """)
+
+            for m_data in modulos_core:
+                await session.execute(
+                    upsert_sql,
+                    {
+                        "id": m_data["id"],
+                        "nombre": m_data["nombre"],
+                        "categoria": m_data["categoria"],
+                        "es_critico": m_data["critico"],
+                    },
+                )
+
+            # Discovery Dinámico: módulos que solo están en permisos_rol
+            result_permisos = await session.execute(
+                select(PermisoRol.modulo).distinct()
+            )
+            modulos_en_permisos = result_permisos.scalars().all()
+            ids_core = {m["id"] for m in modulos_core}
+
+            for mod_id in modulos_en_permisos:
+                if not mod_id or mod_id in ids_core:
+                    continue
+                await session.execute(
+                    upsert_sql,
+                    {
+                        "id": mod_id,
+                        "nombre": mod_id.replace("_", " ").replace("-", " ").title(),
+                        "categoria": "otros",
+                        "es_critico": False,
+                    },
+                )
+
+            await session.commit()
+            print(
+                "DEBUG: Semillado de módulos completado exitosamente (upsert nativo PG)."
+            )
+
     except Exception as e:
-        print(f"DEBUG: Error creando usuario admin: {e}")
+        print(f"DEBUG: Error en post-inicialización (admin/módulos): {e}")

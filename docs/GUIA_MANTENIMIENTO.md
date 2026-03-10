@@ -1,254 +1,161 @@
-# Guía de Mantenimiento y Despliegue - Gestor de Proyectos TI
+# Guía de Mantenimiento y Operación - Producción 🚀
 
-Esta guía contiene los comandos esenciales para administrar el servidor de producción (IP: `192.168.0.21` - Interno servidor: `192.168.40.126`) utilizando Docker y Git.
+Este manual operativo detalla los procedimientos esenciales para el despliegue, mantenimiento y monitoreo del servidor de **Producción** (IP: `192.168.0.21`).
 
 ---
 
-## 0. Topología de Red y Accesos
+## 🏗️ 1. Instalación Inicial (Setup desde Cero)
 
-| Recurso | URL Interna DENTRO DE RED |
-|---------|-----|
-| **Aplicación (Gestor)** | http://192.168.40.126 |
-| **API / Documentación Swagger** | http://192.168.40.126:8000/docs |
-| **Adminer (Gestión DB)** | http://192.168.40.126:8085 |
+Sigue estos pasos en la terminal de **Ubuntu (WSL2)** si necesitas recrear el ambiente en el servidor:
 
-| Puerto | Servicio Interno en Docker |
-|--------|----------|
-| 80 | Nginx (Reverse Proxy & Frontend Web) |
-| 5433 | PostgreSQL Db (Expuesto externamente) |
-| 8000 | Backend FastAPI |
-| 8085 | Adminer GUI |
-
-**Apertura General de Firewall en Windows Admin:**
-```powershell
-netsh advfirewall firewall add rule name="Gestor TI - HTTP" dir=in action=allow protocol=TCP localport=80
-netsh advfirewall firewall add rule name="Gestor TI - Frontend" dir=in action=allow protocol=TCP localport=5173
-netsh advfirewall firewall add rule name="Gestor TI - API" dir=in action=allow protocol=TCP localport=8000
-netsh advfirewall firewall add rule name="Gestor TI - Adminer" dir=in action=allow protocol=TCP localport=8085
+### Paso 1: Crear e ingresar a la carpeta
+```bash
+mkdir -p /mnt/c/GestorTI   # Crea el directorio en el disco C: de Windows desde Linux
+cd /mnt/c/GestorTI          # Entra a la carpeta de trabajo
 ```
 
-## 1. Desplegar Cambios en Producción (Paso a Paso)
+### Paso 2: Clonar el repositorio
+El servidor utiliza una **Deploy Key** para conectarse de forma segura:
+```bash
+# git clone: Descarga el proyecto completo en la carpeta actual
+git clone git@github.com:LuisRojas0923/Gestor-de-proyectos-Ti.git .
+```
 
-Cada vez que apruebes cambios, hagas fusiones en GitHub o realices subidas de código, debes seguir exactamente estos pasos en el servidor para que los cambios se reflejen en vivo:
+### Paso 3: Inicializar Base de Datos (SQL Maestro)
+Si la base de datos está vacía, carga el script con toda la estructura y roles:
+```bash
+# Copia el script al contenedor de Postgres
+sudo docker cp ./sql/init_db.sql gestor-de-proyectos-ti-db:/tmp/
 
-**Paso 1: Abrir la terminal de Linux**
-Abre la consola de **Ubuntu** en el servidor de Windows.
+# Ejecuta el motor SQL para aplicar los cambios (Roles, Permisos, Categorías)
+sudo docker exec -it gestor-de-proyectos-ti-db psql -U user -d project_manager -f /tmp/init_db.sql
+```
 
-**Paso 2: Ir a la carpeta del proyecto**
+---
+
+## 🔄 2. Actualización de Código (Despliegue de Cambios)
+
+Cuando el equipo de desarrollo sube mejoras a GitHub, aplícalas así:
+
+### Paso 1: Descargar cambios
 ```bash
 cd /mnt/c/GestorTI
+git pull origin main    # Trae y combina las últimas mejoras desde GitHub
 ```
 
-**Paso 3: Descargar el código más reciente**
+### Paso 2: Levantar Contenedores
 ```bash
-git pull origin main
-```
-*(Si te da error por el archivo `mantener_docker_vivo.vbs`, bórralo con `rm mantener_docker_vivo.vbs` y vuelve a hacer el pull).*
-
-**Paso 4: Reconstruir y levantar los contenedores**
-Este comando leerá el nuevo código y reconstruirá Docker automáticamente sin borrar la base de datos:
-```bash
-sudo docker compose -f docker-compose.prod.yml up -d --build
-```
-
-**Paso 5: Salir con seguridad**
-Una vez que la consola diga `[+] up 4/4` o te muestre que Nginx, Frontend, Backend y DB están "Running", **puedes presionar la "X" roja para cerrar la terminal de Ubuntu**.
-*(Tus contenedores no se apagarán porque el script de persistencia `mantener_docker_vivo.vbs` los estará sosteniendo vivitos y coleando en el fondo del servidor).*
-
----
-
-## 2. Administración de Docker (Ubuntu WSL2)
-
-Todos estos comandos se ejecutan dentro del terminal de **Ubuntu**.
-
-### 2.1 Auto-arranque de Docker y Persistencia (Windows Task Scheduler)
-Para que el sistema arranque solo cada vez que el servidor se encienda y **los contenedores de Docker no se apaguen al cerrar la terminal**, hemos implementado un script VBS silencioso (`mantener_docker_vivo.vbs`).
-
-Esta configuración ya está aplicada en el servidor, pero si necesitas recrearla, se hace ejecutando esto una sola vez:
-```powershell
-# Ejecutar en PowerShell como Administrador
-$action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "C:\GestorTI\mantener_docker_vivo.vbs"
-$trigger = New-ScheduledTaskTrigger -AtStartup
-$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-Register-ScheduledTask -TaskName "DockerGestorTI" -Action $action -Trigger $trigger -Principal $principal -Description "Mantiene vivo a Ubuntu y levanta los dockers silenciosamente"
-```
-*(Para comprobar el estado de la tarea instalada: `Get-ScheduledTask -TaskName "DockerGestorTI"`)*
-
----
-
-### Reiniciar el Sistema (Sin reconstruir)
-Si solo quieres reiniciar los servicios (por ejemplo, después de un cambio en el `.env` o un error temporal):
-```bash
-cd /mnt/c/GestorTI
-sudo docker compose -f docker-compose.prod.yml restart
-```
-
-### ¿Cuándo reconstruir contenedores? (Rebuild)
-Debes reconstruir (usar `--build`) cuando:
-1. Hayas hecho un `git pull` con cambios en el código de Python (Backend) o React (Frontend).
-2. Hayas modificado un `Dockerfile`.
-3. Hayas agregado nuevas librerías en `requirements.txt` o `package.json`.
-
-**Comando para reconstruir y levantar:**
-```bash
-sudo docker compose -f docker-compose.prod.yml up -d --build
-```
-
-### Limpieza profunda (Reset de Base de Datos)
-Si necesitas borrar la base de datos local y recrear las tablas de cero (Cuidado: borra datos):
-```bash
-sudo docker compose -f docker-compose.prod.yml down -v
+# --build: Reconstruye las imágenes con el código nuevo descargado
+# -d: Mantiene los servicios corriendo en segundo plano
 sudo docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ---
 
-## 3. Monitoreo de Logs (Ubuntu)
+## 🛡️ 3. Persistencia y Scripts Especiales
 
-Para ver qué está pasando "dentro" de los servicios y detectar errores:
+### 3.1 Mantener Docker Vivo (Persistencia)
+Para evitar que los contenedores se apaguen al cerrar la terminal de Ubuntu, asegúrate de que el script `.vbs` esté activo en el **Programador de Tareas** de Windows:
 
-### Ver Logs del Backend (API)
+- **Ubicación del script**: `C:\GestorTI\mantener_docker_vivo.vbs`
+- **Función**: Inicia Ubuntu silenciosamente al arrancar el servidor y sostiene la ejecución de Docker.
+
+### 3.2 Administración de Servicios
 ```bash
-# Ver logs en tiempo real (seguimiento)
-sudo docker compose -f docker-compose.prod.yml logs -f backend
-```
-
-### Ver Logs de la Base de Datos (Postgres)
-```bash
-sudo docker compose -f docker-compose.prod.yml logs -f db
-```
-
-### Ver Logs del Servidor Web (Nginx)
-```bash
-sudo docker compose -f docker-compose.prod.yml logs -f nginx
-```
-
-### Ver Logs del Frontend
-```bash
-sudo docker compose -f docker-compose.prod.yml logs -f frontend
+sudo docker compose -f docker-compose.prod.yml restart # Reinicio rápido (sin reconstruir)
+sudo docker compose -f docker-compose.prod.yml down    # Apaga todo el sistema
 ```
 
 ---
 
-## 5. Carga de Datos Iniciales (Seed)
+## 📊 4. Monitoreo y Logs (Troubleshooting)
 
-Si notas que el sistema está vacío (no hay categorías de tickets, no hay permisos en el menú, etc.), ejecuta el script maestro de inicialización:
+Si algo no funciona correctamente, inspecciona el interior de los contenedores:
 
+| Comando | Función |
+|---------|---------|
+| `sudo docker ps` | Lista qué contenedores están corriendo actualmente |
+| `sudo docker compose -f docker-compose.prod.yml logs -f backend` | Ver errores del API en tiempo real |
+| `sudo docker compose -f docker-compose.prod.yml logs -f nginx` | Ver logs de peticiones web y certificados |
+| `sudo docker compose -f docker-compose.prod.yml logs -f db` | Ver errores de conexión a la base de datos |
+
+---
+
+## 🛠️ 5. Utilidades y Scripts de Mantenimiento
+
+En la carpeta `./sql/` encontrarás scripts especializados para tareas administrativas comunes:
+
+### 🧹 Limpieza de Datos
+- **[util_limpiar_tickets.sql](file:///c:/Users/amejoramiento6/Gestor-de-proyectos-Ti/sql/util_limpiar_tickets.sql)**: Borra los tickets de prueba pero mantiene la configuración de categorías.
+
+### 🔧 Reparación Técnica
+- **[util_reparar_secuencias.sql](file:///c:/Users/amejoramiento6/Gestor-de-proyectos-Ti/sql/util_reparar_secuencias.sql)**: Corrige errores de ID cuando un insert manual falla o los números no coinciden.
+
+### 🔗 Sincronización ERP
+- **[erp_alineacion_viaticos.sql](file:///c:/Users/amejoramiento6/Gestor-de-proyectos-Ti/sql/erp_alineacion_viaticos.sql)**: Ajusta los saldos de viáticos con la base de datos de Solid.
+
+**¿Cómo ejecutar una utilidad?**
 ```bash
-# Copia el script al contenedor de la base de datos
-sudo docker cp /mnt/c/GestorTI/INICIALIZAR_DATOS_SISTEMA.sql gestor-de-proyectos-ti-db:/tmp/
-
-# Ejecuta el script dentro de PostgreSQL
-sudo docker exec -it gestor-de-proyectos-ti-db psql -U user -d project_manager -f /tmp/INICIALIZAR_DATOS_SISTEMA.sql
-```
-
-Esto activará:
-- ✅ **Categorías de Soporte** (Hardware, Software, etc.)
-- ✅ **Matriz de Permisos** (Habilita el menú lateral)
-- ✅ **Etapas de Desarrollo**
-- ✅ **Salas de Reuniones**
-
----
-
-## 6. Acceso Externo desde Clientes (DBeaver / pgAdmin)
-
-Como el puerto **5432** del servidor ya está ocupado por tu ERP, hemos configurado Docker para que la base de datos del proyecto sea accesible por el puerto **5433**.
-
-### Pasos para conectar desde otro equipo:
-
-1. **Configurar el Túnel en Windows Server (PowerShell Admin):**
-   Debes mapear el puerto de Windows hacia Linux/WSL2:
-   ```powershell
-   # 1. Obtener la IP de WSL
-   wsl -d Ubuntu hostname -I
-   
-   # 2. Crear el proxy (reemplaza <IP_WSL> con el resultado del comando anterior)
-   netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5433 connectaddress=<IP_WSL> connectport=5433
-   ```
-
-2. **Abrir el Puerto en Firewall (PowerShell Admin):**
-   ```powershell
-   New-NetFirewallRule -DisplayName "Docker DB External Access" -Direction Inbound -LocalPort 5433 -Protocol TCP -Action Allow
-   ```
-
-3. **Datos de Conexión en tu Cliente (DBeaver/pgAdmin):**
-   - **Host:** `192.168.0.21`
-   - **Puerto:** `5433`
-   - **Base de Datos:** `project_manager`
-   - **Usuario:** `user`
-   - **Contraseña:** (La que está en tu archivo .env)
-
----
-
-> [!NOTE]
-> Recuerda que el archivo `.env` en `C:\GestorTI\.env` es la fuente de verdad para las credenciales y configuraciones de producción.
-
-
-
-
----
-
-## 7. Gestión de Versiones (SemVer)
-
-El sistema utiliza **Git Tags** y variables de entorno para mostrar la versión actual en la interfaz.
-
-### ¿Cómo subir de versión el sistema?
-Cuando el equipo de desarrollo finaliza una fase importante:
-
-1. **Crear una etiqueta (Tag)** en el repositorio (desde tu PC o el servidor):
-   ```bash
-   git tag -a v2.1.0 -m "Lanzamiento oficial v2.1.0"
-   git push origin v2.1.0
-   ```
-
-2. **Desplegar con la versión** en el servidor `SRV-BD`:
-   ```bash
-   # Asegúrate de haber hecho git pull primero
-   APP_VERSION=$(git describe --tags --always) sudo docker compose -f docker-compose.prod.yml up -d --build
-   ```
-
-### Limpieza de Versiones "Atascadas"
-Si el Sidebar muestra una versión antigua que no coincide con GitHub, puede que haya un archivo residual. Ejecuta:
-```bash
-cd /mnt/c/GestorTI
-rm backend_v2/.git_hash
-sudo docker compose -f docker-compose.prod.yml up -d
+sudo docker cp ./sql/NOMBRE_DEL_SCRIPT.sql gestor-de-proyectos-ti-db:/tmp/
+sudo docker exec -it gestor-de-proyectos-ti-db psql -U user -d project_manager -f /tmp/NOMBRE_DEL_SCRIPT.sql
 ```
 
 ---
 
-## 8. Consejos de Administración Rápida
+## 🔍 6. Verificación de Base de Datos (Diagnóstico)
 
-### Aplicar cambios en el `.env`
-Si cambias una variable en el archivo `.env`, no necesitas reconstruir todo. Solo ejecuta:
-```bash
-cd /mnt/c/GestorTI
-sudo docker compose -f docker-compose.prod.yml up -d
+Consultas para validar que la base de datos esté correctamente configurada después de un despliegue o migración.
+
+### 6.1 Estructura de la Tabla Sesiones
+Verifica que las columnas y los tipos de datos coincidan con la última versión:
+```sql
+SELECT 
+    column_name, 
+    data_type, 
+    character_maximum_length, 
+    column_default 
+FROM information_schema.columns 
+WHERE table_name = 'sesiones'
+ORDER BY ordinal_position;
 ```
-Docker detectará el cambio y recreará solo el contenedor necesario en segundos.
+**Resultado esperado:** 11 columnas incluyendo `nombre_usuario`, `rol_usuario`, `ultima_actividad_en` y `fin_sesion`. El campo `token_sesion` debe tener longitud máxima de **1000**.
 
-### Reconstruir solo el Frontend
-Si cambiaste algo de diseño o texto en React y quieres actualizarlo:
-```bash
-cd /mnt/c/GestorTI
-sudo docker compose -f docker-compose.prod.yml up -d --build frontend
+### 6.2 Índices de Rendimiento
+Asegura que los índices necesarios para la Torre de Control existan:
+```sql
+SELECT indexname, indexdef 
+FROM pg_indexes 
+WHERE tablename = 'sesiones';
+```
+**Resultado esperado:** Debe existir `idx_sesiones_actividad_reciente`.
+
+### 6.3 Permisos de Torre de Control
+Valida que los roles administrativos tengan acceso al módulo:
+```sql
+SELECT * FROM permisos_rol 
+WHERE modulo = 'control-tower' 
+AND rol IN ('admin', 'admin_sistemas');
+```
+**Resultado esperado:** 2 registros con `permitido = true`. 
+Si no existen, ejecuta:
+```sql
+INSERT INTO permisos_rol (rol, modulo, permitido) VALUES
+('admin', 'control-tower', true),
+('admin_sistemas', 'control-tower', true)
+ON CONFLICT (rol, modulo) DO UPDATE SET permitido = true;
 ```
 
-
-### 🔄 Sincronización Total (Traer cambios de GitHub y Reiniciar)
-
-Si hiciste cambios en el código desde tu PC local y los subiste a GitHub, sigue este flujo en la terminal de **Ubuntu del servidor** para actualizar todo el sistema:
-
-```bash
-cd /mnt/c/GestorTI
-
-# 1. Traer las últimas mejoras de GitHub
-git pull origin main
-
-# 2. Reconstruir y levantar todo (Backend y Frontend)
-# Se recomienda inyectar la versión actual de Git Tags
-APP_VERSION=$(git describe --tags --always) sudo docker compose -f docker-compose.prod.yml up -d --build
+### 6.4 Monitoreo de Sesiones en Tiempo Real
+Valida que el backend esté guardando los metadatos correctamente:
+```sql
+SELECT id, usuario_id, nombre_usuario, rol_usuario, ultima_actividad_en, fin_sesion 
+FROM sesiones 
+ORDER BY creado_en DESC 
+LIMIT 10;
 ```
+**Resultado esperado:** Las columnas `nombre_usuario` y `rol_usuario` deben tener datos (no NULL) para sesiones recientes.
 
-> [!TIP]
-> Si el cambio fue solo en la base de datos (SQL), recuerda que el `git pull` bajará el archivo `.sql`, pero deberás ejecutarlo manualmente en tu cliente (Adminer) para que se aplique a los datos reales.
+---
+
+> [!IMPORTANT]
+> Nunca modifiques el archivo `.env` directamente en producción sin antes tener una copia de respaldo. Es la "llave" de acceso a todas las bases de datos.

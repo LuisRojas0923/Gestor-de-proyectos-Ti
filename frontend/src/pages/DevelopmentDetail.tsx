@@ -13,10 +13,12 @@ import { Button, Title, Text } from '../components/atoms';
 // Sub-componentes
 import GeneralInfoTab from './DevelopmentDetail/GeneralInfoTab';
 import ActivityLogTab from './DevelopmentDetail/ActivityLogTab';
+import WbsTab from './DevelopmentDetail/WbsTab';
 
 const tabs = [
   { key: 'detalle', label: 'Detalle' },
   { key: 'bitacora', label: 'Bitácora' },
+  { key: 'actividades', label: 'WBS / Tareas' },
   { key: 'fases', label: 'Fases' },
   { key: 'requerimientos', label: 'Requerimientos' },
 ];
@@ -244,7 +246,9 @@ const DevelopmentDetail: React.FC = () => {
           />
         )}
 
-
+        {activeTab === 'actividades' && developmentId && (
+          <WbsTab developmentId={developmentId} darkMode={darkMode} />
+        )}
 
         {activeTab === 'fases' && (
           <Text color="text-secondary">Contenido de Fases (pendiente de integrar).</Text>

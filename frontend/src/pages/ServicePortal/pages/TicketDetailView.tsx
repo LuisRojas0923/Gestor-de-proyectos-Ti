@@ -63,7 +63,7 @@ const TicketDetailView: React.FC<TicketDetailViewProps> = ({ selectedTicket, onB
     const excludedKeys = [
         'nombre', 'area', 'sede', 'email', 'asunto', 'descripcion_detallada',
         'nivel_prioridad', 'fecha_ideal', 'justificacion_prioridad',
-        'archivos_adjuntos', 'hardware_solicitado', 'especificaciones'
+        'archivos_adjuntos'
     ];
 
     useEffect(() => {
@@ -160,22 +160,32 @@ const TicketDetailView: React.FC<TicketDetailViewProps> = ({ selectedTicket, onB
                                 </div>
                             </div>
 
-                            {selectedTicket.solicitud_activo && (
+                            {(selectedTicket.solicitud_activo || selectedTicket.datos_extra?.hardware_solicitado) && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-700">
                                     <div className="flex items-center space-x-3 text-blue-500/60">
                                         <Icon name={Plus} size="sm" /><Title variant="h6" className="font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Detalle del Pedido</Title>
                                         <div className="flex-grow border-t border-blue-100 dark:border-blue-900/30"></div>
                                     </div>
                                     <div className="bg-blue-50/50 dark:bg-blue-900/10 p-6 rounded-3xl border border-blue-100 dark:border-blue-800 shadow-sm transition-all hover:shadow-md">
-                                        <div className="grid grid-cols-1 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
                                                 <Text variant="caption" weight="bold" className="text-blue-600 dark:text-blue-400 uppercase mb-1 block">Item Solicitado</Text>
-                                                <Text variant="body1" weight="bold" className="text-blue-950 dark:text-blue-100">{selectedTicket.solicitud_activo.item_solicitado}</Text>
+                                                <Text variant="body1" weight="bold" className="text-blue-950 dark:text-blue-100">
+                                                    {selectedTicket.solicitud_activo?.item_solicitado || selectedTicket.datos_extra?.hardware_solicitado}
+                                                </Text>
                                             </div>
-                                            {selectedTicket.solicitud_activo.especificaciones && (
-                                                <div className="pt-2 border-t border-blue-100/50 dark:border-blue-800/50">
+                                            <div>
+                                                <Text variant="caption" weight="bold" className="text-blue-600 dark:text-blue-400 uppercase mb-1 block">Cantidad</Text>
+                                                <Text variant="body1" weight="bold" className="text-blue-950 dark:text-blue-100">
+                                                    {selectedTicket.solicitud_activo?.cantidad || selectedTicket.datos_extra?.cantidad || 1}
+                                                </Text>
+                                            </div>
+                                            {(selectedTicket.solicitud_activo?.especificaciones || selectedTicket.datos_extra?.especificaciones) && (
+                                                <div className="pt-2 border-t border-blue-100/50 dark:border-blue-800/50 md:col-span-2">
                                                     <Text variant="caption" weight="bold" className="text-blue-400 dark:text-blue-500 uppercase mb-1 block">Especificaciones Técnicas</Text>
-                                                    <Text variant="body2" className="text-blue-800/80 dark:text-blue-200/70 whitespace-pre-line">{selectedTicket.solicitud_activo.especificaciones}</Text>
+                                                    <Text variant="body2" className="text-blue-800/80 dark:text-blue-200/70 whitespace-pre-line">
+                                                        {selectedTicket.solicitud_activo?.especificaciones || selectedTicket.datos_extra?.especificaciones}
+                                                    </Text>
                                                 </div>
                                             )}
                                         </div>

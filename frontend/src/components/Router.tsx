@@ -15,6 +15,8 @@ import Login from '../pages/Login';
 import UserAdmin from '../pages/UserAdmin';
 import RequisicionAdminView from '../pages/RequisicionAdminView';
 import RoomsPage from '../pages/RoomsPage';
+import ControlTower from '../pages/ControlTower';
+import WbsTemplatesAdmin from '../pages/WbsTemplatesAdmin/WbsTemplatesAdmin';
 import Layout from './layout/Layout';
 import ProtectedRoute from './auth/ProtectedRoute';
 
@@ -26,7 +28,7 @@ const AppRouter: React.FC = () => {
 
         {/* Rutas Administrativas (Analistas y Managers) */}
         <Route path="/" element={
-          <ProtectedRoute allowedRoles={['analyst', 'admin', 'director', 'manager']}>
+          <ProtectedRoute allowedRoles={['analyst', 'admin', 'director', 'manager', 'admin_sistemas', 'admin_mejoramiento']}>
             <Layout />
           </ProtectedRoute>
         }>
@@ -41,17 +43,19 @@ const AppRouter: React.FC = () => {
           <Route path="admin/users" element={<ProtectedRoute moduleCode="user-admin"><UserAdmin /></ProtectedRoute>} />
           <Route path="admin/requisiciones" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'director']}><RequisicionAdminView /></ProtectedRoute>} />
           <Route path="admin/rooms" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><RoomsPage /></ProtectedRoute>} />
+          <Route path="admin/control-tower" element={<ProtectedRoute moduleCode="control-tower"><ControlTower /></ProtectedRoute>} />
+          <Route path="admin/wbs-templates" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><WbsTemplatesAdmin /></ProtectedRoute>} />
           <Route path="design-catalog" element={<ProtectedRoute moduleCode="design-catalog"><DesignSystemCatalog /></ProtectedRoute>} />
         </Route>
 
         {/* Rutas del Portal (Usuarios Finales) */}
         <Route path="/service-portal/*" element={
-          <ProtectedRoute moduleCode="service-portal">
+          <ProtectedRoute>
             <ServicePortal />
           </ProtectedRoute>
         } />
         <Route path="/tickets/:ticketId" element={
-          <ProtectedRoute moduleCode="service-portal">
+          <ProtectedRoute>
             <TicketDetail />
           </ProtectedRoute>
         } />

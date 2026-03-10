@@ -5,19 +5,42 @@ import { Plus } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
-
+import sistemasolicitudes from '../../../assets/images/categories/logistico.png';
 interface DashboardViewProps {
     user: any;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisicion_personal') => void;
+    moduleStatus: Record<string, boolean>;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'requisicion_personal') => void;
 }
 
-const DashboardView: React.FC<DashboardViewProps> = ({ user, onNavigate }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
     const userRole = (user?.rol || user?.role || '').toLowerCase();
-    const canLegalize =
+    const permissions = user?.permissions || [];
+
+    // Lógica de visibilidad por tarjeta (RBAC + Estado Global)
+    const canSeeSolicitudes = moduleStatus['mis_solicitudes'] !== false && (
+        permissions.includes('mis_solicitudes') ||
+        permissions.includes('sistemas') ||
+        permissions.includes('mejoramiento') ||
+        permissions.includes('desarrollo') ||
+        permissions.includes('desarrollo') ||
+        ['admin', 'director'].includes(userRole)
+    );
+
+    const canSeeRequisiciones = moduleStatus['requisiciones'] !== false && (
+        permissions.includes('requisiciones') ||
+        ['admin', 'director'].includes(userRole)
+    );
+
+    const canSeeReservaSalas = moduleStatus['reserva_salas'] !== false && (
+        permissions.includes('reserva_salas') ||
+        ['admin', 'director'].includes(userRole)
+    );
+
+    const canSeeViaticos = moduleStatus['viaticos_gestion'] !== false && (
+        permissions.includes('viaticos_gestion') ||
         user?.viaticante === true ||
-        userRole === 'admin' ||
-        userRole === 'director' ||
-        user?.permissions?.includes('legalizar-gastos');
+        ['admin', 'director', 'manager'].includes(userRole)
+    );
 
     return (
         <div className="space-y-12 py-6">
@@ -29,21 +52,34 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, onNavigate }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <ActionCard
-                    title="Gestión de Solicitudes TI"
-                    description="Crea nuevos requerimientos o consulta el estado de tus tickets actuales."
-                    icon={<img src={imgSolicitar} alt="Solicitar Servicio" className="w-full h-full object-contain p-2" />}
-                    onClick={() => onNavigate('categories')}
-                />
+                {canSeeSolicitudes && (
+                    <ActionCard
+                        title="Gestión de Solicitudes TI"
+                        description="Crea nuevos requerimientos o consulta el estado de tus tickets actuales."
+                        icon={<img src={imgSolicitar} alt="Solicitar Servicio" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onNavigate('categories')}
+                    />
+                )}
 
-                <ActionCard
-                    title="Reserva de salas"
-                    description="Reserva salas de reuniones y espacios para tu equipo."
-                    icon={<img src={imgReunion} alt="Reserva de salas" className="w-full h-full object-contain p-2" />}
-                    onClick={() => onNavigate('reserva_salas')}
-                />
+                {canSeeReservaSalas && (
+                    <ActionCard
+                        title="Reserva de salas"
+                        description="Reserva salas de reuniones y espacios para tu equipo."
+                        icon={<img src={imgReunion} alt="Reserva de salas" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onNavigate('reserva_salas')}
+                    />
+                )}
 
-                {canLegalize && (
+                {canSeeRequisiciones && (
+                    <ActionCard
+                        title="Sistema de Solicitudes"
+                        description="Gestión de Requisiciones (Almacén, Suministros, Presupuesto)."
+                        icon={<img src={sistemasolicitudes} alt="Sistema de Solicitudes" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onNavigate('requisiciones')}
+                    />
+                )}
+
+                {canSeeViaticos && (
                     <ActionCard
                         title="Gestión de Viáticos"
                         description="Reporte de gastos y consulta de estado de cuenta detallado."

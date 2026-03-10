@@ -17,6 +17,7 @@ export * from './chat';
 
 // Tipos de actividades
 export * from './activity';
+export * from './wbs';
 
 // Tipos comunes y utilitarios
 export interface ApiResponse<T> {

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",
@@ -16,6 +17,7 @@
     "@fullcalendar/react": "^6.1.20",
     "@fullcalendar/timegrid": "^6.1.20",
     "@headlessui/react": "^2.2.7",
+    "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.2.1",
     "@types/axios": "^0.9.36",
     "@types/node": "^24.3.0",

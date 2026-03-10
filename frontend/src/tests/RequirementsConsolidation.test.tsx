@@ -1,14 +1,17 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../i18n';
+import { vi, describe, test, expect, beforeEach } from 'vitest';
+import { NotificationsProvider } from '../components/notifications/NotificationsContext';
 import MyDevelopments from '../pages/MyDevelopments';
-import { AppContextProvider } from '../context/AppContext';
+import { AppProvider } from '../context/AppContext';
 
 // Mock the API hook
-jest.mock('../hooks/useApi', () => ({
+vi.mock('../hooks/useApi', () => ({
   useApi: () => ({
-    get: jest.fn().mockResolvedValue([
+    get: vi.fn().mockResolvedValue([
       {
         id: 'FD-001',
         name: 'Test Development',
@@ -24,21 +27,21 @@ jest.mock('../hooks/useApi', () => ({
 }));
 
 // Mock the development updates hook
-jest.mock('../hooks/useDevelopmentUpdates', () => ({
+vi.mock('../hooks/useDevelopmentUpdates', () => ({
   useDevelopmentUpdates: () => ({
     loading: false,
-    updateDevelopment: jest.fn().mockResolvedValue({}),
+    updateDevelopment: vi.fn().mockResolvedValue({}),
   }),
 }));
 
 // Mock the observations hook
-jest.mock('../hooks/useObservations', () => ({
+vi.mock('../hooks/useObservations', () => ({
   useObservations: () => ({
     observations: [],
     loading: false,
     error: null,
-    createObservation: jest.fn().mockResolvedValue({}),
-    refreshObservations: jest.fn().mockResolvedValue({}),
+    createObservation: vi.fn().mockResolvedValue({}),
+    refreshObservations: vi.fn().mockResolvedValue({}),
   }),
 }));
 
@@ -46,9 +49,11 @@ const renderWithProviders = (component: React.ReactElement) => {
   return render(
     <BrowserRouter>
       <I18nextProvider i18n={i18n}>
-        <AppContextProvider>
-          {component}
-        </AppContextProvider>
+        <AppProvider>
+          <NotificationsProvider>
+            {component}
+          </NotificationsProvider>
+        </AppProvider>
       </I18nextProvider>
     </BrowserRouter>
   );
@@ -56,15 +61,15 @@ const renderWithProviders = (component: React.ReactElement) => {
 
 describe('Requirements Consolidation Integration Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('complete requirements workflow integration', async () => {
     renderWithProviders(<MyDevelopments />);
-    
+
     // 1. Navigate to developments page
     await waitFor(() => {
-      expect(screen.getByText('Mis Desarrollos')).toBeInTheDocument();
+      expect(screen.getByText('Gestión de Actividades')).toBeInTheDocument();
     });
 
     // 2. Select a development
@@ -132,9 +137,9 @@ describe('Requirements Consolidation Integration Tests', () => {
     });
 
     renderWithProviders(<MyDevelopments />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText('Mis Desarrollos')).toBeInTheDocument();
+      expect(screen.getByText('Gestión de Actividades')).toBeInTheDocument();
     });
 
     const viewButton = screen.getByRole('button', { name: /ver detalles/i });
@@ -158,9 +163,9 @@ describe('Requirements Consolidation Integration Tests', () => {
 
   test('requirements tab dark mode compatibility', async () => {
     renderWithProviders(<MyDevelopments />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText('Mis Desarrollos')).toBeInTheDocument();
+      expect(screen.getByText('Gestión de Actividades')).toBeInTheDocument();
     });
 
     const viewButton = screen.getByRole('button', { name: /ver detalles/i });
@@ -184,9 +189,9 @@ describe('Requirements Consolidation Integration Tests', () => {
 
   test('requirements tab accessibility', async () => {
     renderWithProviders(<MyDevelopments />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText('Mis Desarrollos')).toBeInTheDocument();
+      expect(screen.getByText('Gestión de Actividades')).toBeInTheDocument();
     });
 
     const viewButton = screen.getByRole('button', { name: /ver detalles/i });
@@ -210,7 +215,7 @@ describe('Requirements Consolidation Integration Tests', () => {
 
     // Test tab navigation
     fireEvent.keyDown(searchInput, { key: 'Tab' });
-    
+
     // Verify accessibility attributes
     expect(screen.getByRole('button', { name: 'Nuevo Requerimiento' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Todos los estados' })).toBeInTheDocument();
@@ -220,17 +225,17 @@ describe('Requirements Consolidation Integration Tests', () => {
   test('requirements tab error handling', async () => {
     // Mock API error
     const mockApi = {
-      get: jest.fn().mockRejectedValue(new Error('API Error')),
+      get: vi.fn().mockRejectedValue(new Error('API Error')),
     };
 
-    jest.doMock('../hooks/useApi', () => ({
+    vi.doMock('../hooks/useApi', () => ({
       useApi: () => mockApi,
     }));
 
     renderWithProviders(<MyDevelopments />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText('Mis Desarrollos')).toBeInTheDocument();
+      expect(screen.getByText('Gestión de Actividades')).toBeInTheDocument();
     });
 
     const viewButton = screen.getByRole('button', { name: /ver detalles/i });
@@ -252,17 +257,17 @@ describe('Requirements Consolidation Integration Tests', () => {
   test('requirements tab loading states', async () => {
     // Mock loading state
     const mockApi = {
-      get: jest.fn().mockImplementation(() => new Promise(() => {})), // Never resolves
+      get: vi.fn().mockImplementation(() => new Promise(() => { })), // Never resolves
     };
 
-    jest.doMock('../hooks/useApi', () => ({
+    vi.doMock('../hooks/useApi', () => ({
       useApi: () => mockApi,
     }));
 
     renderWithProviders(<MyDevelopments />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText('Mis Desarrollos')).toBeInTheDocument();
+      expect(screen.getByText('Gestión de Actividades')).toBeInTheDocument();
     });
 
     const viewButton = screen.getByRole('button', { name: /ver detalles/i });

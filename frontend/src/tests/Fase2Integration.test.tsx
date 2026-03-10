@@ -4,7 +4,13 @@
  */
 
 import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NotificationsProvider } from '../components/notifications/NotificationsContext';
+import { AppProvider } from '../context/AppContext';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '../i18n';
 import { useDevelopmentUpdates } from '../hooks/useDevelopmentUpdates';
 import { useObservations } from '../hooks/useObservations';
 import MyDevelopments from '../pages/MyDevelopments';
@@ -13,7 +19,16 @@ import MyDevelopments from '../pages/MyDevelopments';
 vi.mock('../hooks/useObservations');
 vi.mock('../hooks/useDevelopmentUpdates');
 vi.mock('../hooks/useApi');
-vi.mock('../context/AppContext');
+vi.mock('../context/AppContext', async (importOriginal) => {
+  const actual = await importOriginal() as any;
+  return {
+    ...actual,
+    useAppContext: vi.fn(() => ({
+      state: { darkMode: false },
+      dispatch: vi.fn()
+    }))
+  };
+});
 
 // Mock de los componentes
 vi.mock('../components/common/ExcelImporter', () => ({
@@ -36,7 +51,7 @@ describe('Fase 2 - Integración Frontend-Backend', () => {
       observation_date: '2025-01-15T10:00:00Z',
       is_current: true,
       created_at: '2025-01-15T10:00:00Z',
-      updated_at: null
+      updated_at: undefined
     }
   ];
 
@@ -87,18 +102,27 @@ describe('Fase 2 - Integración Frontend-Backend', () => {
       })
     }));
 
-    // Mock de useAppContext
-    vi.mock('../context/AppContext', () => ({
-      useAppContext: () => ({
-        state: { darkMode: false }
-      })
-    }));
+    // Eliminado el mock local para no interferir con el global
   });
+
+  const renderWithProviders = (component: React.ReactNode) => {
+    return render(
+      <MemoryRouter>
+        <I18nextProvider i18n={i18n}>
+          <AppProvider>
+            <NotificationsProvider>
+              {component}
+            </NotificationsProvider>
+          </AppProvider>
+        </I18nextProvider>
+      </MemoryRouter>
+    );
+  };
 
   describe('Hook useObservations', () => {
     it('debería cargar observaciones correctamente', () => {
       const { observations, loading, error } = useObservations('INC000004924201');
-      
+
       expect(observations).toEqual(mockObservations);
       expect(loading).toBe(false);
       expect(error).toBeNull();
@@ -106,7 +130,7 @@ describe('Fase 2 - Integración Frontend-Backend', () => {
 
     it('debería crear observaciones correctamente', async () => {
       const { createObservation } = useObservations('INC000004924201');
-      
+
       const newObservation = {
         observation_type: 'seguimiento' as const,
         content: 'Nueva actividad de prueba',
@@ -115,7 +139,7 @@ describe('Fase 2 - Integración Frontend-Backend', () => {
       };
 
       const result = await createObservation(newObservation);
-      
+
       expect(result).toEqual(mockObservations[0]);
     });
   });
@@ -123,28 +147,28 @@ describe('Fase 2 - Integración Frontend-Backend', () => {
   describe('Hook useDevelopmentUpdates', () => {
     it('debería actualizar desarrollos correctamente', async () => {
       const { updateDevelopment } = useDevelopmentUpdates();
-      
+
       const updateData = {
         name: 'Macro De Saldos Actualizado',
         general_status: 'Completado' as const
       };
 
       const result = await updateDevelopment('INC000004924201', updateData);
-      
+
       expect(result).toEqual(mockDevelopment);
     });
   });
 
   describe('Componente MyDevelopments', () => {
     it('debería renderizar correctamente', () => {
-      render(<MyDevelopments />);
-      
-      expect(screen.getByText('Mis Desarrollos')).toBeInTheDocument();
+      renderWithProviders(<MyDevelopments />);
+
+      expect(screen.getByText('Gestión de Actividades')).toBeInTheDocument();
     });
 
     it('debería mostrar observaciones cuando se selecciona un desarrollo', async () => {
-      render(<MyDevelopments />);
-      
+      renderWithProviders(<MyDevelopments />);
+
       // Simular selección de desarrollo (esto requeriría más setup del mock)
       // Por ahora, verificamos que el hook se está usando correctamente
       expect(useObservations).toHaveBeenCalled();
@@ -162,8 +186,8 @@ describe('Fase 2 - Integración Frontend-Backend', () => {
         refreshObservations: vi.fn()
       });
 
-      render(<MyDevelopments />);
-      
+      renderWithProviders(<MyDevelopments />);
+
       // Aquí se probaría la funcionalidad de agregar actividades
       // Requeriría más setup del componente y mocks
       expect(mockCreateObservation).toBeDefined();
@@ -207,7 +231,7 @@ describe('Fase 2 - Integración Frontend-Backend', () => {
       });
 
       const { createObservation } = useObservations('INC000004924201');
-      
+
       await createObservation({
         observation_type: 'seguimiento',
         content: 'Actividad persistida',
@@ -232,7 +256,7 @@ describe('Fase 2 - Integración Frontend-Backend', () => {
       });
 
       const { updateDevelopment } = useDevelopmentUpdates();
-      
+
       await updateDevelopment('INC000004924201', {
         name: 'Desarrollo Actualizado',
         general_status: 'En curso'
@@ -243,31 +267,30 @@ describe('Fase 2 - Integración Frontend-Backend', () => {
         general_status: 'En curso'
       });
     });
-  });
-});
+    // Tests de validación de tipos
+    describe('Validación de Tipos TypeScript', () => {
+      it('debería tener tipos correctos para observaciones', () => {
+        const observation = mockObservations[0];
 
-// Tests de validación de tipos
-describe('Validación de Tipos TypeScript', () => {
-  it('debería tener tipos correctos para observaciones', () => {
-    const observation = mockObservations[0];
-    
-    expect(typeof observation.id).toBe('number');
-    expect(typeof observation.development_id).toBe('string');
-    expect(['estado', 'seguimiento', 'problema', 'acuerdo']).toContain(observation.observation_type);
-    expect(typeof observation.content).toBe('string');
-    expect(typeof observation.author).toBe('string');
-    expect(typeof observation.is_current).toBe('boolean');
-  });
+        expect(typeof observation.id).toBe('number');
+        expect(typeof observation.development_id).toBe('string');
+        expect(['estado', 'seguimiento', 'problema', 'acuerdo']).toContain(observation.observation_type);
+        expect(typeof observation.content).toBe('string');
+        expect(typeof observation.author).toBe('string');
+        expect(typeof observation.is_current).toBe('boolean');
+      });
 
-  it('debería tener tipos correctos para actualizaciones de desarrollo', () => {
-    const updateData = {
-      name: 'Nuevo Nombre',
-      general_status: 'En curso' as const,
-      description: 'Nueva descripción'
-    };
+      it('debería tener tipos correctos para actualizaciones de desarrollo', () => {
+        const updateData = {
+          name: 'Nuevo Nombre',
+          general_status: 'En curso' as const,
+          description: 'Nueva descripción'
+        };
 
-    expect(typeof updateData.name).toBe('string');
-    expect(['Pendiente', 'En curso', 'Completado', 'Cancelado']).toContain(updateData.general_status);
-    expect(typeof updateData.description).toBe('string');
+        expect(typeof updateData.name).toBe('string');
+        expect(['Pendiente', 'En curso', 'Completado', 'Cancelado']).toContain(updateData.general_status);
+        expect(typeof updateData.description).toBe('string');
+      });
+    });
   });
 });
