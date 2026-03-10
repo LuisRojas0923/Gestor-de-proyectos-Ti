@@ -75,6 +75,21 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": True,
         "descripcion": "Vista para aprobar legalizaciones de subalternos.",
     },
+    # Módulos de Operaciones TI
+    {
+        "id": "sistemas",
+        "nombre": "Soporte Sistemas",
+        "categoria": "portal",
+        "es_critico": False,
+        "descripcion": "Acceso al portal de soporte técnico de sistemas.",
+    },
+    {
+        "id": "mejoramiento",
+        "nombre": "Mejoramiento TI",
+        "categoria": "portal",
+        "es_critico": False,
+        "descripcion": "Acceso al portal de requerimientos de mejoramiento.",
+    },
     # Módulos Administrativos
     {
         "id": "panel_maestro",

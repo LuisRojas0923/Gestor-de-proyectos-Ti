@@ -490,7 +490,45 @@ INSERT INTO permisos_rol (rol, modulo, permitido) VALUES
 ('admin_sistemas', 'sistemas', true),
 ('admin_sistemas', 'desarrollo', true),
 ('admin_sistemas', 'mejoramiento', true),
-('admin', 'control-tower', true),
-('admin_sistemas', 'control-tower', true)
+('admin_sistemas', 'control-tower', true),
+
+-- Módulo: Admin Mejoramiento (Nuevo Rol Basado en Admin Sistemas)
+('admin_mejoramiento', 'dashboard', true),
+('admin_mejoramiento', 'settings', true),
+('admin_mejoramiento', 'developments', true),
+('admin_mejoramiento', 'indicators', true),
+('admin_mejoramiento', 'ticket-management', true),
+('admin_mejoramiento', 'reports', true),
+('admin_mejoramiento', 'service-portal', true),
+('admin_mejoramiento', 'chat', true),
+('admin_mejoramiento', 'viaticos_gestion', true),
+('admin_mejoramiento', 'mis_solicitudes', true),
+('admin_mejoramiento', 'sistemas', true),
+('admin_mejoramiento', 'desarrollo', true),
+('admin_mejoramiento', 'mejoramiento', true),
+('admin_mejoramiento', 'control-tower', true),
+
+-- General Admin
+('admin', 'control-tower', true)
 
 ON CONFLICT (rol, modulo) DO NOTHING;
+
+-- ==========================================
+-- 8. Registro Formal de Roles
+-- ==========================================
+CREATE TABLE IF NOT EXISTS roles_sistema (
+    id VARCHAR(50) PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion VARCHAR(255),
+    es_sistema BOOLEAN DEFAULT FALSE,
+    creado_en TIMESTAMPTZ DEFAULT NOW()
+);
+
+INSERT INTO roles_sistema (id, nombre, descripcion, es_sistema) VALUES
+('admin', 'Administrador Global', 'Control total del sistema', true),
+('admin_sistemas', 'Administrador de Sistemas', 'Gestión técnica y de soporte TI', true),
+('admin_mejoramiento', 'Administrador de Mejoramiento', 'Gestión de procesos y mejora continua', true),
+('analyst', 'Analista TI', 'Resolución de tickets y actividades', true),
+('director', 'Director de Área', 'Supervisión y reportes', true),
+('usuario', 'Usuario Colaborador', 'Solicitante de servicios', true)
+ON CONFLICT (id) DO NOTHING;

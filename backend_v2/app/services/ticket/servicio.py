@@ -291,7 +291,7 @@ class ServicioTicket:
                 query = query.where(Ticket.categoria_id == categoria_id)
 
         if usuario_peticion:
-            if usuario_peticion.rol == "admin_sistemas":
+            if usuario_peticion.rol in ["admin_sistemas", "admin_mejoramiento"]:
                 specs = json.loads(usuario_peticion.especialidades or "[]")
                 areas = json.loads(usuario_peticion.areas_asignadas or "[]")
                 filtros_visibilidad = [

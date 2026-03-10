@@ -79,8 +79,8 @@ const Sidebar: React.FC = () => {
     // Gestión de Salas: solo rol admin
     if (item.id === 'rooms-admin') return userRole === 'admin' || userRole === 'manager';
 
-    // Torre de Control: admin y admin_sistemas
-    if (item.id === 'control-tower') return userRole === 'admin' || userRole === 'admin_sistemas';
+    // Torre de Control: admin, admin_sistemas y admin_mejoramiento
+    if (item.id === 'control-tower') return userRole === 'admin' || userRole === 'admin_sistemas' || userRole === 'admin_mejoramiento';
 
     // Plantillas WBS: admin y manager
     if (item.id === 'wbs-templates') return userRole === 'admin' || userRole === 'manager';

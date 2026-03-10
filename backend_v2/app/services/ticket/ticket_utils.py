@@ -36,7 +36,7 @@ class TicketUtils:
             # 1. Obtener todos los usuarios activos con roles válidos
             result = await db.execute(
                 select(Usuario).where(
-                    Usuario.rol.in_(["analyst", "admin_sistemas", "admin"]),
+                    Usuario.rol.in_(["analyst", "admin_sistemas", "admin_mejoramiento", "admin"]),
                     Usuario.esta_activo,
                 )
             )
@@ -46,7 +46,7 @@ class TicketUtils:
                 return None
 
             # 2. Separar por prioridad de rol
-            analistas = [u for u in todos if u.rol in ("analyst", "admin_sistemas")]
+            analistas = [u for u in todos if u.rol in ("analyst", "admin_sistemas", "admin_mejoramiento")]
             admins = [u for u in todos if u.rol == "admin"]
 
             # 3. Filtrar analistas por especialidad
