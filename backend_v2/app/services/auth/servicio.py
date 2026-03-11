@@ -180,10 +180,9 @@ class ServicioAuth:
             select(PermisoRol.modulo)
             .join(ModuloSistema, PermisoRol.modulo == ModuloSistema.id)
             .where(
-                func.lower(PermisoRol.rol) == rol.lower().strip(),
-                PermisoRol.permitido == True,
-                ModuloSistema.esta_activo
-                == True,  # REFUERZO: El módulo debe estar activo globalmente
+                PermisoRol.modulo == ModuloSistema.id,
+                PermisoRol.permitido,
+                ModuloSistema.esta_activo,  # REFUERZO: El módulo debe estar activo globalmente
             )
         )
         return list(result.scalars().all())
@@ -206,20 +205,19 @@ class ServicioAuth:
         id_usuario = f"USR-P-{cedula}"
         hash_pwd = ServicioAuth.obtener_hash_contrasena(contrasena)
 
+        viaticante_val = bool(datos_erp.get("viaticante"))
         nuevo_usuario = Usuario(
             id=id_usuario,
             cedula=cedula,
             nombre=datos_erp["nombre"],
             hash_contrasena=hash_pwd,
-            rol="usuario",  # Rol estándar del portal
+            rol="viaticante" if viaticante_val else "usuario",
             esta_activo=True,
             area=datos_erp.get("area"),
             cargo=datos_erp.get("cargo"),
             sede=datos_erp.get("ciudadcontratacion"),
             centrocosto=datos_erp.get("centrocosto"),
-            viaticante=bool(datos_erp.get("viaticante"))
-            if datos_erp.get("viaticante") is not None
-            else False,
+            viaticante=viaticante_val,
             baseviaticos=datos_erp.get("baseviaticos"),
         )
 

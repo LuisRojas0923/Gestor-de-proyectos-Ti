@@ -222,7 +222,7 @@ async def init_db():
 
     # 4. Usuario administrador por defecto (si no existe)
     try:
-        from .models.auth.usuario import Usuario, PermisoRol
+        from .models.auth.usuario import Usuario
         from .services.auth.servicio import ServicioAuth
         from sqlmodel import select
 

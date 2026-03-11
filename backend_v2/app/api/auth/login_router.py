@@ -118,16 +118,17 @@ async def portal_login(
 
     usuario_local = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
 
+    is_viaticante = bool(empleado.get("viaticante"))
     user_data = {
         "id": usuario_local.id if usuario_local else f"USR-P-{cedula}",
         "cedula": cedula,
         "nombre": empleado["nombre"],
-        "rol": usuario_local.rol if usuario_local else "usuario",
+        "rol": usuario_local.rol if (usuario_local and usuario_local.rol not in ["usuario", "viaticante", "user"]) else ("viaticante" if is_viaticante else "usuario"),
         "area": empleado.get("area"),
         "cargo": empleado.get("cargo"),
         "sede": empleado.get("ciudadcontratacion"),
         "centrocosto": empleado.get("centrocosto"),
-        "viaticante": bool(empleado.get("viaticante")),
+        "viaticante": is_viaticante,
         "baseviaticos": empleado.get("baseviaticos"),
     }
 
@@ -140,6 +141,9 @@ async def portal_login(
             usuario_local.nombre = user_data["nombre"]
             usuario_local.viaticante = user_data["viaticante"]
             usuario_local.baseviaticos = user_data["baseviaticos"]
+            # Sincronización de rol automática para perfiles de portal
+            if usuario_local.rol in ["usuario", "viaticante", "user"]:
+                usuario_local.rol = user_data["rol"]
             await db.commit()
         except Exception as e:
             print(f"DEBUG: Error sincronizando usuario local existente: {e}")
@@ -212,7 +216,7 @@ async def portal_init(
 
     id_usuario = f"USR-P-{cedula}"
     hash_temporal = ServicioAuth.obtener_hash_contrasena(cedula)
-
+    is_viaticante = bool(empleado.get("viaticante"))
     try:
         from app.models.auth.usuario import Usuario
 
@@ -221,7 +225,7 @@ async def portal_init(
             cedula=cedula,
             nombre=empleado["nombre"],
             hash_contrasena=hash_temporal,
-            rol="user",
+            rol="viaticante" if is_viaticante else "usuario",
             esta_activo=True,
             area=empleado.get("area"),
             cargo=empleado.get("cargo"),
