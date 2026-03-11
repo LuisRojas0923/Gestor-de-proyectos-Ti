@@ -28,6 +28,7 @@ class FaseDesarrollo(SQLModel, table=True):
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
 
+
     # Relaciones
     etapas: List["EtapaDesarrollo"] = Relationship(back_populates="fase")
     desarrollos: List["Desarrollo"] = Relationship(back_populates="fase_actual")
@@ -51,6 +52,7 @@ class EtapaDesarrollo(SQLModel, table=True):
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
+
 
     # Relaciones
     fase: Optional[FaseDesarrollo] = Relationship(back_populates="etapas")

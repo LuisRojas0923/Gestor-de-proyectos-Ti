@@ -16,6 +16,8 @@ interface User {
   centrocosto?: string;
   viaticante?: boolean;
   permissions?: string[];
+  especialidades?: string;
+  areas_asignadas?: string;
 }
 
 interface Requirement {
@@ -263,7 +265,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             sede: data.sede,
             centrocosto: data.centrocosto || data.centro_costo || '',
             viaticante: typeof data.viaticante === 'boolean' ? data.viaticante : String(data.viaticante).toLowerCase() === 'true',
-            permissions: data.permissions || data.permisos || []
+            permissions: data.permissions || data.permisos || [],
+            especialidades: data.especialidades,
+            areas_asignadas: data.areas_asignadas
           });
 
           const normalizedUser = normalizeUser(response.data);

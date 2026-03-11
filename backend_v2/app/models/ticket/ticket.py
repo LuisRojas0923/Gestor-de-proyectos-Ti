@@ -29,6 +29,7 @@ class CategoriaTicket(SQLModel, table=True):
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
 
+
     # Relaciones
     tickets: List["Ticket"] = Relationship(back_populates="categoria")
 
@@ -121,6 +122,7 @@ class SolicitudDesarrollo(SQLModel, table=True):
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
 
+
     ticket: Optional[Ticket] = Relationship(back_populates="solicitud_desarrollo")
 
 
@@ -168,6 +170,7 @@ class SolicitudActivo(SQLModel, table=True):
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
 
+
     ticket: Optional[Ticket] = Relationship(back_populates="solicitud_activo")
 
 
@@ -185,6 +188,7 @@ class ComentarioTicket(SQLModel, table=True):
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
+
 
     ticket: Optional[Ticket] = Relationship(back_populates="comentarios")
 
@@ -204,6 +208,7 @@ class HistorialTicket(SQLModel, table=True):
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
 
+
     ticket: Optional[Ticket] = Relationship(back_populates="historial")
 
 
@@ -220,6 +225,7 @@ class AdjuntoTicket(SQLModel, table=True):
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
+
 
     ticket: Optional[Ticket] = Relationship(back_populates="adjuntos")
 

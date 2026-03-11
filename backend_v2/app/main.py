@@ -31,7 +31,7 @@ from .api.solid.router import router as solid_router
 from .api.viaticos.router import router as viaticos_router
 from .api.auth.config_router import router as config_router
 from .api.reserva_salas import router as reserva_salas_router
-
+from .api.requisiciones.router import router as requisiciones_router
 # Configurar logging basico
 logger = logging.getLogger(__name__)
 
@@ -133,6 +133,7 @@ async def verificar_salud():
     return {"estado": "saludable", "version": VERSION_SISTEMA}
 
 
+
 api_prefix = "/api/v2"
 
 app.include_router(auth_router, prefix=f"{api_prefix}/auth", tags=["Autenticacion"])
@@ -161,4 +162,5 @@ app.include_router(viaticos_router, prefix=api_prefix, tags=["Viaticos"])
 app.include_router(
     reserva_salas_router, prefix=f"{api_prefix}/reserva-salas", tags=["Reserva Salas"]
 )
+app.include_router(requisiciones_router, prefix=f"{api_prefix}/requisiciones", tags=["Requisiciones"])
 app.include_router(config_router, prefix=api_prefix, tags=["Configuracion Global"])

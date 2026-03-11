@@ -72,6 +72,8 @@ async def login(
                 "centrocosto": usuario.centrocosto,
                 "viaticante": usuario.viaticante,
                 "baseviaticos": usuario.baseviaticos,
+                "especialidades": usuario.especialidades,
+                "areas_asignadas": usuario.areas_asignadas,
                 "permissions": permisos,
             },
         }
@@ -178,6 +180,8 @@ async def portal_login(
             "centrocosto": user_data["centrocosto"],
             "viaticante": user_data["viaticante"],
             "baseviaticos": user_data["baseviaticos"],
+            "especialidades": usuario_local.especialidades if usuario_local else "[]",
+            "areas_asignadas": usuario_local.areas_asignadas if usuario_local else "[]",
             "permissions": permisos,
         },
     }

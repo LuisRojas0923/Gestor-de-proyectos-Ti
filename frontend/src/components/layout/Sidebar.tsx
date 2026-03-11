@@ -14,8 +14,9 @@ import {
   Palette,
   Users,
   Activity,
-  X,
-  ListTodo
+  ClipboardCheck,
+  ListTodo,
+  X
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -66,6 +67,7 @@ const Sidebar: React.FC = () => {
     { id: 'service-portal', name: 'Portal de Servicios', href: '/service-portal', icon: Share2 },
     { id: 'user-admin', name: 'Gestión de Usuarios', href: '/admin/users', icon: Users },
     { id: 'rooms-admin', name: 'Gestión de Salas', href: '/admin/rooms', icon: DoorOpen },
+    { id: 'requisicion-admin', name: 'Gest. Requisiciones', href: '/admin/requisiciones', icon: ClipboardCheck },
     { id: 'settings', name: 'Configuración', href: '/settings', icon: Settings },
     { id: 'wbs-templates', name: 'Plantillas WBS', href: '/admin/wbs-templates', icon: ListTodo },
     { id: 'control-tower', name: 'Torre de Control', href: '/admin/control-tower', icon: Activity },
@@ -76,8 +78,10 @@ const Sidebar: React.FC = () => {
     // Normalizar rol para comparaciones
     const userRole = (user?.role || '').trim().toLowerCase();
 
-    // Gestión de Salas: solo rol admin
+    // Gestión de Salas
     if (item.id === 'rooms-admin') return userRole === 'admin' || userRole === 'manager';
+    // Gestión de Requisiciones
+    if (item.id === 'requisicion-admin') return ['admin', 'manager', 'director'].includes(userRole);
 
     // Torre de Control: admin, admin_sistemas y admin_mejoramiento
     if (item.id === 'control-tower') return userRole === 'admin' || userRole === 'admin_sistemas' || userRole === 'admin_mejoramiento';

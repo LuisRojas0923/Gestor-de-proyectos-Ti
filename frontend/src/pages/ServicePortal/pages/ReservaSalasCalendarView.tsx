@@ -168,83 +168,94 @@ export const ReservaSalasCalendarView: React.FC<ReservaSalasCalendarViewProps> =
   }
 
   return (
-    <div className="space-y-6 py-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onBack} icon={ArrowLeft} className="font-bold p-0">Volver</Button>
-          <div className="flex items-center gap-2">
-            <Icon name={Calendar} size="lg" color="primary" />
-            <Title variant="h3" weight="bold" className="text-[var(--deep-navy)] dark:text-white">
-              Calendario de reservas
-            </Title>
+    <div className="space-y-8 py-4">
+      <Button variant="ghost" onClick={onBack} icon={ArrowLeft} className="font-bold p-0"> Volver al Dashboard </Button>
+
+      <div className="bg-[var(--color-surface)] rounded-[2.5rem] shadow-xl border border-[var(--color-border)] overflow-hidden transition-colors duration-300">
+        <div className="bg-[var(--deep-navy)] p-8 text-white flex items-center justify-between">
+          <div>
+            <Text variant="caption" color="inherit" className="text-[var(--powder-blue)] font-bold uppercase tracking-widest mb-1">RESERVA DE ESPACIOS</Text>
+            <Title variant="h3" weight="bold" color="white">Calendario de Reservas</Title>
+          </div>
+          <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md h-20 w-20 flex items-center justify-center">
+            <Calendar size={40} className="text-white" />
           </div>
         </div>
-        <Button variant="primary" icon={Plus} onClick={() => { setSelectedDate(null); setShowCreateModal(true); }}>
-          Nueva reserva
-        </Button>
-      </div>
 
-      <div className="flex flex-wrap items-center gap-3 w-full max-w-lg">
-        <Text as="label" variant="body2" weight="bold" color="text-secondary" className="min-w-[56px]">
-          Sala:
-        </Text>
-        <div className="flex-1">
-          <Select
-            value={selectedRoom?.id ?? ''}
-            onChange={(e) => {
-              const r = rooms.find((x) => x.id === e.target.value);
-              setSelectedRoom(r ?? null);
-            }}
-            options={rooms.map((room) => ({
-              value: room.id,
-              label: `${room.name} (Capacidad: ${room.capacity})`,
-            }))}
-          />
+        <div className="p-8 space-y-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3 w-full max-w-lg">
+              <Text as="label" variant="body2" weight="bold" color="text-secondary" className="min-w-[56px]">
+                Sala:
+              </Text>
+              <div className="flex-1">
+                <Select
+                  value={selectedRoom?.id ?? ''}
+                  onChange={(e) => {
+                    const r = rooms.find((x) => x.id === e.target.value);
+                    setSelectedRoom(r ?? null);
+                  }}
+                  options={rooms.map((room) => ({
+                    value: room.id,
+                    label: `${room.name} (Capacidad: ${room.capacity})`,
+                  }))}
+                />
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              icon={Plus}
+              onClick={() => { setSelectedDate(null); setShowCreateModal(true); }}
+            >
+              Nueva reserva
+            </Button>
+          </div>
+
+          <div className="reserva-salas-calendar rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2">
+            <FullCalendar
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView="timeGridWeek"
+              headerToolbar={{
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay',
+              }}
+              slotMinTime="07:00:00"
+              slotMaxTime="19:00:00"
+              allDaySlot={false}
+              slotDuration="00:30:00"
+              locale="es"
+              buttonText={{ today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día' }}
+              events={calendarEvents}
+              dateClick={handleDateClick}
+              eventClick={handleEventClick}
+              editable
+              eventDrop={handleEventDrop}
+              eventResize={handleEventResize}
+              eventOverlap={false}
+              height="auto"
+            />
+          </div>
+
+          {showCreateModal && selectedRoom && (
+            <ReservationModal
+              room={selectedRoom}
+              initialDate={selectedDate}
+              onClose={() => { setShowCreateModal(false); setSelectedDate(null); }}
+              onSuccess={handleReservationCreated}
+            />
+          )}
+
+          {showDetailModal && selectedReservation && (
+            <ReservationDetailModal
+              reservation={selectedReservation}
+              onClose={() => { setShowDetailModal(false); setSelectedReservation(null); }}
+              onUpdate={handleReservationUpdated}
+            />
+          )}
         </div>
       </div>
-
-      <div className="reserva-salas-calendar rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 overflow-hidden">
-        <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="timeGridWeek"
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay',
-          }}
-          slotMinTime="07:00:00"
-          slotMaxTime="19:00:00"
-          allDaySlot={false}
-          slotDuration="00:30:00"
-          locale="es"
-          buttonText={{ today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día' }}
-          events={calendarEvents}
-          dateClick={handleDateClick}
-          eventClick={handleEventClick}
-          editable
-          eventDrop={handleEventDrop}
-          eventResize={handleEventResize}
-          eventOverlap={false}
-          height="auto"
-        />
-      </div>
-
-      {showCreateModal && selectedRoom && (
-        <ReservationModal
-          room={selectedRoom}
-          initialDate={selectedDate}
-          onClose={() => { setShowCreateModal(false); setSelectedDate(null); }}
-          onSuccess={handleReservationCreated}
-        />
-      )}
-
-      {showDetailModal && selectedReservation && (
-        <ReservationDetailModal
-          reservation={selectedReservation}
-          onClose={() => { setShowDetailModal(false); setSelectedReservation(null); }}
-          onUpdate={handleReservationUpdated}
-        />
-      )}
     </div>
   );
 };

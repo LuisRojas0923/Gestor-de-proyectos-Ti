@@ -54,6 +54,10 @@ class Usuario(SQLModel, table=True):
         back_populates="usuario",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+    sesiones: List["Sesion"] = Relationship(
+        back_populates="usuario",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
 
 
 class Token(SQLModel, table=True):
@@ -72,6 +76,7 @@ class Token(SQLModel, table=True):
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
 
+
     # Relaciones
     usuario: Optional[Usuario] = Relationship(back_populates="tokens")
 
@@ -82,7 +87,7 @@ class Sesion(SQLModel, table=True):
     __tablename__ = "sesiones"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    usuario_id: str = Field(max_length=50, index=True)
+    usuario_id: str = Field(foreign_key="usuarios.id", max_length=50, index=True)
     token_sesion: str = Field(unique=True, max_length=255)
     direccion_ip: Optional[str] = Field(default=None, max_length=45)
     agente_usuario: Optional[str] = Field(default=None)
@@ -96,6 +101,9 @@ class Sesion(SQLModel, table=True):
     nombre_usuario: Optional[str] = Field(default=None, max_length=255)
     rol_usuario: Optional[str] = Field(default=None, max_length=50)
     fin_sesion: Optional[datetime] = Field(default=None)
+
+    # Relaciones
+    usuario: Optional[Usuario] = Relationship(back_populates="sesiones")
 
 
 class PermisoRol(SQLModel, table=True):

@@ -1,0 +1,197 @@
+-- Tabla para áreas (opcional, pero recomendada para integridad)
+CREATE TABLE IF NOT EXISTS areas_compania (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) UNIQUE NOT NULL
+);
+
+-- Tabla para los cargos por área
+CREATE TABLE IF NOT EXISTS cargos (
+    id SERIAL PRIMARY KEY,
+    area_nombre VARCHAR(100), -- O FK a areas_compania si se prefiere
+    nombre_cargo VARCHAR(150) NOT NULL,
+    UNIQUE(area_nombre, nombre_cargo)
+);
+
+-- Tabla para almacenar las requisiciones de personal
+CREATE TABLE IF NOT EXISTS requisiciones_personal (
+    id SERIAL PRIMARY KEY,
+    
+    -- Información del Solicitante
+    solicitante_nombre VARCHAR(255) NOT NULL,
+    solicitante_area VARCHAR(100) NOT NULL,
+    solicitante_sede VARCHAR(100) NOT NULL,
+    solicitante_email VARCHAR(255) NOT NULL,
+    
+    -- Información de la Orden
+    ciudad_contratacion VARCHAR(100) NOT NULL,
+    orden_trabajo VARCHAR(50) NOT NULL,
+    nombre_proyecto VARCHAR(255) NOT NULL,
+    direccion_proyecto VARCHAR(255) NOT NULL,
+    encargado_sitio VARCHAR(255) NOT NULL,
+    
+    -- Información de la Vacante
+    area_destino VARCHAR(100) NOT NULL,
+    cargo_nombre VARCHAR(150) NOT NULL,
+    numero_personas INTEGER NOT NULL DEFAULT 1,
+    trabajo_alturas VARCHAR(20) NOT NULL, -- 'aplica', 'no_aplica'
+    duracion_contrato VARCHAR(50) NOT NULL,
+    fecha_ingreso DATE NOT NULL,
+    centro_costo VARCHAR(50) NOT NULL,
+    
+    -- Perfil
+    causal_requisicion VARCHAR(100) NOT NULL,
+    perfil_o TEXT NOT NULL,
+    
+    -- Requisitos Generales (Equipos y Otros)
+    equipos_oficina VARCHAR(2) NOT NULL, -- 'si', 'no'
+    equipos_detalle TEXT, -- Comma separated list (opcional si es 'no')
+    equipos_tecnologicos VARCHAR(2) NOT NULL, -- 'si', 'no'
+    tecnologia_detalle TEXT, -- Comma separated list (opcional si es 'no')
+    sim_card_requerida VARCHAR(2) NOT NULL, -- 'si', 'no'
+    sim_card_plan VARCHAR(100),
+    programas_especiales_requeridos VARCHAR(2) NOT NULL, -- 'si', 'no'
+    programas_especiales_detalle TEXT,
+    
+    -- Condiciones de Contratación
+    salario_asignado BIGINT NOT NULL, -- Almacenado sin puntos
+    horas_extra VARCHAR(2) NOT NULL, -- 'si', 'no'
+    modalidad_contratacion VARCHAR(100) NOT NULL,
+    tipo_contratacion VARCHAR(100) NOT NULL,
+    
+    -- Auxilios (Opcionales según petición usuario)
+    auxilio_movilizacion BIGINT,
+    auxilio_alimentacion BIGINT,
+    auxilio_vivienda BIGINT,
+    
+    -- Metadatos
+    estado VARCHAR(50) NOT NULL DEFAULT 'Pendiente',
+    id_creador INTEGER, 
+    fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insertar Áreas
+INSERT INTO areas_compania (nombre) VALUES 
+('ADMINISTRACION'), ('ADN'), ('COMERCIAL'), ('LOGISTICA'), ('OPERACIONES'), ('PRODUCCION'), ('PROYECTOS'), ('YAK')
+ON CONFLICT (nombre) DO NOTHING;
+
+-- Insertar Cargos Reales por Área
+-- ADN
+INSERT INTO cargos (area_nombre, nombre_cargo) VALUES 
+('ADN', 'AYUDANTE DE REFRIGERACIÓN ADN'),
+('ADN', 'COORDINADOR ADMINISTRATIVO OPERACIONES ADN'),
+('ADN', 'COORDINADOR DE PLANEACIÓN ADN'),
+('ADN', 'COORDINADOR LOGÍSTICO ADN'),
+('ADN', 'COORDINADOR REGIONAL ADN'),
+('ADN', 'DIRECTOR REGIONAL ADN'),
+('ADN', 'INGENIERO DE PROYECTOS Y PRESUPUESTOS JUNIOR ADN'),
+('ADN', 'INGENIERO DE PROYECTOS Y PRESUPUESTOS SENIOR ADN'),
+('ADN', 'INGENIERO DE SOPORTE TÉCNICO ADN'),
+('ADN', 'INGENIERO DE DISEÑO Y PRESUPUESTO ADN'),
+('ADN', 'INGENIERO REGIONAL ADN'),
+('ADN', 'INGENIERO RESIDENTE ADN'),
+('ADN', 'JEFE ADMINISTRATIVA ADN'),
+('ADN', 'JEFE NACIONAL DE OPERACIONES ADN'),
+('ADN', 'LIDER COMERCIAL ADN'),
+('ADN', 'SUPERVISOR SST ADN'),
+('ADN', 'SUPERVISOR TÉCNICO ADN'),
+('ADN', 'TECNICO DE ARMADO ADN'),
+('ADN', 'TECNICO DE REFRIGERACIÓN ADN'),
+('ADN', 'TÉCNICO ELECTRICISTA ADN');
+
+-- COMERCIAL
+INSERT INTO cargos (area_nombre, nombre_cargo) VALUES 
+('COMERCIAL', 'ASESOR DE VENTA CONSULTIVA'),
+('COMERCIAL', 'ASISTENTE ADMINISTRATIVA RCE'),
+('COMERCIAL', 'ASISTENTE COMERCIAL'),
+('COMERCIAL', 'ASISTENTE DE MERCADEO'),
+('COMERCIAL', 'DIBUJANTE COMERCIAL'),
+('COMERCIAL', 'DIRECTOR COMERCIAL NACIONAL SEMI-INDUSTRIAL'),
+('COMERCIAL', 'DIRECTOR DE NEGOCIOS ESTRATÉGICOS'),
+('COMERCIAL', 'INGENIERO DE DISEÑO Y PRESUPUESTOS (MASTER-JUNIOR-SENIOR)');
+
+-- PRODUCCION
+INSERT INTO cargos (area_nombre, nombre_cargo) VALUES 
+('PRODUCCION', 'AUXILIAR ADMINISTRATIVO DE PRODUCCIÓN'),
+('PRODUCCION', 'AYUDANTE DE PRODUCCIÓN'),
+('PRODUCCION', 'AYUDANTE DE SOLDADURA'),
+('PRODUCCION', 'COORDINADOR ADMINISTRATIVO DE PLANTA'),
+('PRODUCCION', 'COORDINADOR DE MANTENIMIENTOS'),
+('PRODUCCION', 'COORDINADOR OPERATIVO DE PLANTA'),
+('PRODUCCION', 'DIRECTOR DE PLANTA'),
+('PRODUCCION', 'LÍDER DE UNIDADES Y EQ. ESPECIALES'),
+('PRODUCCION', 'OPERARIO DE AISLAMIENTO'),
+('PRODUCCION', 'OPERARIO DE FONTANERÍA'),
+('PRODUCCION', 'OPERARIO DE MANTENIMIENTO'),
+('PRODUCCION', 'OPERARIO DE PINTURA Y ACABADOS'),
+('PRODUCCION', 'OPERARIO DE TABLEROS ELÉCTRICOS'),
+('PRODUCCION', 'OPERARIO DE UNIDADES Y EQ. ESPECIALES'),
+('PRODUCCION', 'PLANEADOR DE PRODUCCIÓN'),
+('PRODUCCION', 'SISO DE PLANTA 2'),
+('PRODUCCION', 'SISO DE PLANTA'),
+('PRODUCCION', 'SOLDADOR'),
+('PRODUCCION', 'SUPERVISOR DE PLANTA');
+
+-- PROYECTOS
+INSERT INTO cargos (area_nombre, nombre_cargo) VALUES 
+('PROYECTOS', 'COORDINADOR GESTIÓN PROCURA'),
+('PROYECTOS', 'DIRECTOR DE PROYECTOS'),
+('PROYECTOS', 'SCRUM MASTER'),
+('PROYECTOS', 'INGENIERO DE PROYECTOS CIVILES');
+
+-- LOGISTICA
+INSERT INTO cargos (area_nombre, nombre_cargo) VALUES 
+('LOGISTICA', 'ANALISTA ADMINISTRATIVO LOGÍSTICO'),
+('LOGISTICA', 'AUXILIAR DE ALMACEN L'),
+('LOGISTICA', 'AUXILIAR DE ALMACEN LL'),
+('LOGISTICA', 'AUXILIAR DE ALMACEN LLL'),
+('LOGISTICA', 'CONDUCTOR-MENSAJERO'),
+('LOGISTICA', 'COORDINADOR ADMINISTRATIVO LOGÍSTICO'),
+('LOGISTICA', 'COORDINADOR DE SUMINISTROS Y DESPACHOS'),
+('LOGISTICA', 'COORDINADOR OPERATIVO ALMACEN'),
+('LOGISTICA', 'LIDER DE ALMACEN'),
+('LOGISTICA', 'LIDER DE DESPACHOS'),
+('LOGISTICA', 'LIDER DE SUMINISTROS');
+
+-- OPERACIONES
+INSERT INTO cargos (area_nombre, nombre_cargo) VALUES 
+('OPERACIONES', 'ASISTENTE DE OPERACIONES'),
+('OPERACIONES', 'AYUDANTE CALIFICADO'),
+('OPERACIONES', 'AYUDANTE DE AISLAMIENTO'),
+('OPERACIONES', 'AYUDANTE DE ARMADO'),
+('OPERACIONES', 'AYUDANTE DE SOLDADURA'),
+('OPERACIONES', 'AYUDANTE ELÉCTRICO'),
+('OPERACIONES', 'COORDINADOR DE OBRA'),
+('OPERACIONES', 'DIRECTOR DE OPERACIONES'),
+('OPERACIONES', 'INGENIERO REGIONAL'),
+('OPERACIONES', 'INGENIERO RESIDENTE'),
+('OPERACIONES', 'JEFE TÉCNICO DE AISLAMIENTO TÉRMICO'),
+('OPERACIONES', 'JEFE TÉCNICO DE REFRIGERACIÓN'),
+('OPERACIONES', 'OPERARIO DE SOLDADURA'),
+('OPERACIONES', 'PAILERO'),
+('OPERACIONES', 'SUPERVISOR SISO PROYECTOS'),
+('OPERACIONES', 'TECNICO DE AISLAMIENTO TÉRMICO'),
+('OPERACIONES', 'TECNICO ELECTRICISTA'),
+('OPERACIONES', 'TECNICO DE REFRIGERACIÓN LÍNEA'),
+('OPERACIONES', 'TUBERO');
+
+-- YAK
+INSERT INTO cargos (area_nombre, nombre_cargo) VALUES 
+('YAK', 'ASESOR COMERCIAL YAK'),
+('YAK', 'DIRECTOR U.E.N'),
+('YAK', 'INGENIERO DE PROYECTOS YAK'),
+('YAK', 'INGENIERO DISEÑO Y PRESUPUESTO JUNIOR'),
+('YAK', 'INGENIERO DISEÑO Y PRESUPUESTO SENIOR'),
+('YAK', 'INGENIERO DISEÑO Y PRESUPUESTO YAK');
+
+-- ADMINISTRACION (Ejemplos típicos si no estaban completos en el frontend)
+INSERT INTO cargos (area_nombre, nombre_cargo) VALUES 
+('ADMINISTRACION', 'AUXILIAR ADMINISTRATIVO'),
+('ADMINISTRACION', 'CONTADOR'),
+('ADMINISTRACION', 'ANALISTA DE TESORERIA'),
+('ADMINISTRACION', 'JEFE DE RECURSOS HUMANOS');
+
+-- Índices para búsqueda rápida
+CREATE INDEX IF NOT EXISTS idx_requisiciones_solicitante_email ON requisiciones_personal(solicitante_email);
+CREATE INDEX IF NOT EXISTS idx_requisiciones_estado ON requisiciones_personal(estado);
+CREATE INDEX IF NOT EXISTS idx_requisiciones_fecha ON requisiciones_personal(fecha_creacion);
+CREATE INDEX IF NOT EXISTS idx_cargos_area ON cargos(area_nombre);
