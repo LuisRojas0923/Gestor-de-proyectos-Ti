@@ -112,4 +112,18 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": True,
         "descripcion": "Matriz maestra de control de acceso (RBAC).",
     },
+    {
+        "id": "reserva_salas_admin",
+        "nombre": "Administración de Salas",
+        "categoria": "panel",
+        "es_critico": False,
+        "descripcion": "Configuración de recursos y disponibilidad de salas.",
+    },
+    {
+        "id": "wbs_templates",
+        "nombre": "Plantillas de Proyectos (WBS)",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Gestión de estructuras de desglose de trabajo.",
+    },
 ]

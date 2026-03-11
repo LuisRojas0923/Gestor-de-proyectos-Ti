@@ -222,7 +222,7 @@ async def init_db():
 
     # 4. Usuario administrador por defecto (si no existe)
     try:
-        from .models.auth.usuario import Usuario, ModuloSistema, PermisoRol
+        from .models.auth.usuario import Usuario, PermisoRol
         from .services.auth.servicio import ServicioAuth
         from sqlmodel import select
 
@@ -245,180 +245,12 @@ async def init_db():
                 print("DEBUG: Usuario administrador creado (admin / admin123)")
 
             # 4.2 SINCRONIZACIÓN Y SEMILLADO DE MÓDULOS
-            # IMPORTANTE: Esta lista es solo para el semillado inicial de módulos críticos.
-            # Los módulos nuevos DEBEN registrarse a través de la interfaz administrativa
-            # (Panel Maestro) y no añadiéndolos aquí manualmente para evitar redundancias.
-            modulos_core = [
-                {
-                    "id": "service-portal",
-                    "nombre": "Portal de Servicios (Shell)",
-                    "categoria": "portal",
-                    "critico": True,
-                },
-                {
-                    "id": "mis_solicitudes",
-                    "nombre": "Mis Solicitudes",
-                    "categoria": "portal",
-                    "critico": True,
-                },
-                {
-                    "id": "viaticos_gestion",
-                    "nombre": "Gestión de Viáticos",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "viaticos_reportes",
-                    "nombre": "Legalización de Gastos",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "viaticos_estado",
-                    "nombre": "Estado de Cuenta (Viáticos)",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "viaticos_director_panel",
-                    "nombre": "Panel de Legalizaciones (Director)",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "sistemas",
-                    "nombre": "Soporte Sistemas",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "mejoramiento",
-                    "nombre": "Mejoramiento TI",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "desarrollo",
-                    "nombre": "Software Factory",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "chat",
-                    "nombre": "Asistente IA",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "reserva_salas",
-                    "nombre": "Reserva de Salas",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "dashboard",
-                    "nombre": "Tablero Principal",
-                    "categoria": "analistas",
-                    "critico": True,
-                },
-                {
-                    "id": "ticket-management",
-                    "nombre": "Gestión de Tickets",
-                    "categoria": "analistas",
-                    "critico": False,
-                },
-                {
-                    "id": "developments",
-                    "nombre": "Gestión de Actividades",
-                    "categoria": "analistas",
-                    "critico": False,
-                },
-                {
-                    "id": "control-tower",
-                    "nombre": "Torre de Control",
-                    "categoria": "panel",
-                    "critico": True,
-                },
-                {
-                    "id": "user-admin",
-                    "nombre": "Administración de Usuarios",
-                    "categoria": "panel",
-                    "critico": True,
-                },
-                {
-                    "id": "settings",
-                    "nombre": "Parámetros del Sistema",
-                    "categoria": "analistas",
-                    "critico": False,
-                },
-                {
-                    "id": "indicators",
-                    "nombre": "Indicadores Globales (BI)",
-                    "categoria": "analistas",
-                    "critico": False,
-                },
-                {
-                    "id": "reports",
-                    "nombre": "Reportería Avanzada",
-                    "categoria": "analistas",
-                    "critico": False,
-                },
-                {
-                    "id": "design-catalog",
-                    "nombre": "Catálogo de Diseño UI/UX",
-                    "categoria": "panel",
-                    "critico": False,
-                },
-            ]
+            # Ya no se realiza semillado manual aquí. El sistema usa rbac_discovery.py
+            # cargando desde rbac_manifest.py para mantener una única fuente de verdad.
+            pass
 
-            # ── UPSERT nativo PostgreSQL (inmune a concurrencia) ──
-            from sqlalchemy import text as sa_text
-
-            upsert_sql = sa_text("""
-                INSERT INTO modulos_sistema (id, nombre, categoria, esta_activo, es_critico)
-                VALUES (:id, :nombre, :categoria, TRUE, :es_critico)
-                ON CONFLICT (id) DO UPDATE SET
-                    nombre     = EXCLUDED.nombre,
-                    categoria  = EXCLUDED.categoria,
-                    es_critico = EXCLUDED.es_critico,
-                    esta_activo = TRUE
-            """)
-
-            for m_data in modulos_core:
-                await session.execute(
-                    upsert_sql,
-                    {
-                        "id": m_data["id"],
-                        "nombre": m_data["nombre"],
-                        "categoria": m_data["categoria"],
-                        "es_critico": m_data["critico"],
-                    },
-                )
-
-            # Discovery Dinámico: módulos que solo están en permisos_rol
-            result_permisos = await session.execute(
-                select(PermisoRol.modulo).distinct()
-            )
-            modulos_en_permisos = result_permisos.scalars().all()
-            ids_core = {m["id"] for m in modulos_core}
-
-            for mod_id in modulos_en_permisos:
-                if not mod_id or mod_id in ids_core:
-                    continue
-                await session.execute(
-                    upsert_sql,
-                    {
-                        "id": mod_id,
-                        "nombre": mod_id.replace("_", " ").replace("-", " ").title(),
-                        "categoria": "otros",
-                        "es_critico": False,
-                    },
-                )
-
-            await session.commit()
-            print(
-                "DEBUG: Semillado de módulos completado exitosamente (upsert nativo PG)."
-            )
+    except Exception as e:
+        print(f"DEBUG: Error en post-inicialización (admin/módulos): {e}")
 
     except Exception as e:
         print(f"DEBUG: Error en post-inicialización (admin/módulos): {e}")

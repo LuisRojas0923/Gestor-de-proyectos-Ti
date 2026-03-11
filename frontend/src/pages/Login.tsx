@@ -116,8 +116,13 @@ const Login: React.FC = () => {
 
             dispatch({ type: 'LOGIN', payload: userData });
 
-            const userRole = userData.role?.toLowerCase();
-            if (userRole === 'analyst' || userRole === 'admin' || userRole === 'director' || userRole === 'admin_sistemas') {
+            // Redirección dinámica basada en permisos (RBAC)
+            const permissions = userData.permissions || [];
+            const isAdminPath = permissions.some((p: string) => 
+                ['dashboard', 'control-tower', 'admin_usuarios', 'admin_roles', 'panel_maestro'].includes(p)
+            );
+
+            if (isAdminPath) {
                 navigate('/');
             } else {
                 navigate('/service-portal/inicio');

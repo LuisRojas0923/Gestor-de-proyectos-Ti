@@ -64,41 +64,27 @@ const Sidebar: React.FC = () => {
     { id: 'reports', name: 'Reportes', href: '/reports', icon: ClipboardList },
     { id: 'chat', name: 'Chat IA', href: '/chat', icon: MessageSquare },
     { id: 'service-portal', name: 'Portal de Servicios', href: '/service-portal', icon: Share2 },
-    { id: 'user-admin', name: 'Gestión de Usuarios', href: '/admin/users', icon: Users },
-    { id: 'rooms-admin', name: 'Gestión de Salas', href: '/admin/rooms', icon: DoorOpen },
+    { id: 'admin_usuarios', name: 'Gestión de Usuarios', href: '/admin/users', icon: Users },
+    { id: 'reserva_salas_admin', name: 'Gestión de Salas', href: '/admin/rooms', icon: DoorOpen },
     { id: 'settings', name: 'Configuración', href: '/settings', icon: Settings },
-    { id: 'wbs-templates', name: 'Plantillas WBS', href: '/admin/wbs-templates', icon: ListTodo },
+    { id: 'wbs_templates', name: 'Plantillas WBS', href: '/admin/wbs-templates', icon: ListTodo },
     { id: 'control-tower', name: 'Torre de Control', href: '/admin/control-tower', icon: Activity },
     { id: 'design-catalog', name: 'Catálogo de Diseño', href: '/design-catalog', icon: Palette },
   ];
 
   const filteredNavigation = navigation.filter(item => {
-    // Normalizar rol para comparaciones
-    const userRole = (user?.role || '').trim().toLowerCase();
-
-    // Gestión de Salas: solo rol admin
-    if (item.id === 'rooms-admin') return userRole === 'admin' || userRole === 'manager';
-
-    // Torre de Control: admin, admin_sistemas y admin_mejoramiento
-    if (item.id === 'control-tower') return userRole === 'admin' || userRole === 'admin_sistemas' || userRole === 'admin_mejoramiento';
-
-    // Plantillas WBS: admin y manager
-    if (item.id === 'wbs-templates') return userRole === 'admin' || userRole === 'manager';
-
-    // Si el usuario no tiene cargados los permisos todavía (sesión antigua en caché)
-    // permitimos ver todo lo que su rol tradicional permitía
+    // Si no hay permisos todavía (sesión antigua o error de carga), 
+    // usamos el rol como fallback de emergencia para no dejar el sidebar vacío.
     if (!user?.permissions) {
+      const userRole = (user?.role || '').trim().toLowerCase();
       if (userRole === 'admin') return true;
-      if (['analyst', 'director', 'manager'].includes(userRole)) {
-        return !['user-admin', 'design-catalog'].includes(item.id);
+      if (['analyst', 'admin_sistemas', 'admin_mejoramiento', 'director', 'manager'].includes(userRole)) {
+        return !['admin_usuarios', 'admin_roles', 'design-catalog'].includes(item.id);
       }
-      if (userRole === 'user' || userRole === 'usuario') {
-        return item.id === 'service-portal';
-      }
-      return false;
+      return item.id === 'service-portal';
     }
 
-    // Si ya tiene permisos dinámicos, filtramos estrictamente por ellos
+    // Lógica 100% RBAC: Si el ID está en el array de permisos, se muestra.
     return user.permissions.includes(item.id);
   });
 
