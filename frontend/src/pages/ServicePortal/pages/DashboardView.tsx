@@ -1,7 +1,7 @@
+import React from 'react';
 import { ActionCard } from '../../../components/molecules';
 import { Title, Text } from '../../../components/atoms';
 import { Plus } from 'lucide-react';
-
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';

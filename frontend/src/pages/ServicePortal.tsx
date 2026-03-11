@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
