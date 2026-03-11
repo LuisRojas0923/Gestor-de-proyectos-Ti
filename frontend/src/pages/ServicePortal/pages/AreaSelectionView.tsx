@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeftIcon as ArrowLeft } from '@heroicons/react/24/outline';
+import { ArrowLeft } from 'lucide-react';
 import { Title, Text, Button, Badge } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 
