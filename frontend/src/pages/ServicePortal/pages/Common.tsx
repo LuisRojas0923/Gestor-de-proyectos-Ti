@@ -17,7 +17,7 @@ export const StatusBadge: React.FC<{ status: TicketStatus | string }> = ({ statu
     };
 
     return (
-        <Badge variant={getVariant(status)} size="sm" className="font-bold uppercase tracking-wider">
+        <Badge variant={getVariant(status)} size="sm" className="font-bold uppercase tracking-wider whitespace-nowrap">
             {status}
         </Badge>
     );

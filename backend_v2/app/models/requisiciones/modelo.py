@@ -68,10 +68,12 @@ class RequisicionPersonal(SQLModel, table=True):
     
     # Aprobación Nivel 1 (Jefe de Área)
     id_jefe_aprobador: Optional[str] = Field(default=None, max_length=50)
+    nombre_jefe_aprobador: Optional[str] = Field(default=None, max_length=255)
     fecha_revision_jefe: Optional[datetime] = Field(default=None)
     comentario_revision_jefe: Optional[str] = Field(default=None, sa_column=Column(Text))
     
     # Aprobación Nivel 2 (Gestión Humana)
     id_gh_aprobador: Optional[str] = Field(default=None, max_length=50)
+    nombre_gh_aprobador: Optional[str] = Field(default=None, max_length=255)
     fecha_revision_gh: Optional[datetime] = Field(default=None)
     comentario_revision_gh: Optional[str] = Field(default=None, sa_column=Column(Text))

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Search, Clock, User, Briefcase, ChevronRight, Info } from 'lucide-react';
+import { ArrowLeft, Search, Clock, User, Briefcase, ChevronRight, Info, MapPin } from 'lucide-react';
 import axios from 'axios';
 import { StatusBadge } from './Common';
 import { Button, Input, Title, Text, Icon } from '../../../components/atoms';
@@ -55,7 +55,7 @@ const RequisicionListView: React.FC<RequisicionListViewProps> = ({ onBack, onVie
     const userEspecialidades = JSON.parse(user?.especialidades || '[]') as string[];
     const isJefe = userAreas.length > 0;
     const isGH = userEspecialidades.includes('gestion_humana');
-    const hasApprovalRights = isJefe || isGH || user?.rol === 'admin';
+    const hasApprovalRights = isJefe || isGH || user?.role === 'admin';
 
     // Set default tab to 'aprobar' if they are approvers and have no created requests? 
     // Usually 'mias' is fine. We'll leave it 'mias'.
@@ -73,7 +73,7 @@ const RequisicionListView: React.FC<RequisicionListViewProps> = ({ onBack, onVie
         if (activeTab === 'mias') {
             return req.id_creador === user?.id || !req.id_creador; // if no creator let it show or strict match
         } else if (activeTab === 'aprobar') {
-            if (user?.rol === 'admin') return true;
+            if (user?.role === 'admin') return true;
 
             // Para "Aprobaciones e Historial" mostramos todo lo relacionado al área o GH
             if (isJefe && userAreas.includes(req.area_destino)) return true;
@@ -156,16 +156,18 @@ const RequisicionListView: React.FC<RequisicionListViewProps> = ({ onBack, onVie
                                                     {req.nombre_proyecto}
                                                 </Title>
                                             </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <Icon name={Briefcase} size="xs" className="text-[var(--color-text-secondary)]/50 shrink-0" />
-                                                <Text variant="caption" color="text-secondary" className="uppercase font-medium tracking-wide truncate">
-                                                    {req.cargo_nombre}
-                                                </Text>
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Icon name={Briefcase} size="xs" className="text-[var(--color-text-secondary)]/50 shrink-0" />
+                                                    <Text variant="caption" color="text-secondary" className="uppercase font-medium tracking-wide truncate">
+                                                        {req.cargo_nombre}
+                                                    </Text>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Solicitante - Flex 1.5 */}
-                                        <div className="hidden md:flex flex-[1.5] items-center gap-3 min-w-0">
+                                        {/* Solicitante - Flex 2 */}
+                                        <div className="hidden md:flex flex-[2] items-center gap-3 min-w-0 lg:pl-6">
                                             <div className="w-9 h-9 rounded-xl bg-[var(--color-primary)]/5 flex items-center justify-center shrink-0 border border-[var(--color-primary)]/10">
                                                 <Icon name={User} size="sm" className="text-[var(--color-primary)]/70" />
                                             </div>
@@ -177,12 +179,25 @@ const RequisicionListView: React.FC<RequisicionListViewProps> = ({ onBack, onVie
                                             </div>
                                         </div>
 
+                                        {/* Área Destino - Flex 1.5 - Push text rightwards slightly */}
+                                        <div className="hidden lg:flex flex-[1.5] items-center gap-2.5 min-w-0 lg:pl-4">
+                                            <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0">
+                                                <Icon name={MapPin} size="xs" className="text-neutral-500" />
+                                            </div>
+                                            <div className="flex flex-col min-w-0">
+                                                <Text variant="caption" color="text-secondary" className="uppercase text-[9px] font-bold tracking-widest opacity-50 mb-0.5">Área</Text>
+                                                <Text variant="body2" color="text-primary" weight="medium" className="truncate leading-tight">
+                                                    {req.area_destino}
+                                                </Text>
+                                            </div>
+                                        </div>
+
                                         {/* Fecha - Flex 1 */}
-                                        <div className="hidden sm:flex flex-[1] items-center gap-2.5 shrink-0">
+                                        <div className="hidden sm:flex flex-[1] items-center justify-end sm:justify-center gap-2.5 shrink-0 pr-4 sm:pr-0">
                                             <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0">
                                                 <Icon name={Clock} size="xs" className="text-neutral-500" />
                                             </div>
-                                            <div className="flex flex-col">
+                                             <div className="flex flex-col">
                                                 <Text variant="caption" color="text-secondary" className="uppercase text-[9px] font-bold tracking-widest opacity-50 mb-0.5">Fecha</Text>
                                                 <Text variant="body2" color="text-primary" weight="medium">
                                                     {new Date(req.fecha_creacion).toLocaleDateString()}
@@ -213,7 +228,7 @@ const RequisicionListView: React.FC<RequisicionListViewProps> = ({ onBack, onVie
                             {searchTerm ? 'No se encontraron requisiciones que coincidan con tu búsqueda.' : 'No tienes requisiciones registradas aún.'}
                         </Text>
                         {searchTerm && (
-                            <Button variant="ghost" onClick={() => setSearchTerm('')} color="primary" size="sm">Limpiar búsqueda</Button>
+                            <Button variant="ghost" onClick={() => setSearchTerm('')} size="sm">Limpiar búsqueda</Button>
                         )}
                     </div>
                 )}

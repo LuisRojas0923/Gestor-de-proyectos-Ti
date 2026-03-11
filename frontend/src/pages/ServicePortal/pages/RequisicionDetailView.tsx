@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, User, Briefcase, MapPin, ClipboardList, Laptop, DollarSign, Info } from 'lucide-react';
+import { ArrowLeft, User, Briefcase, MapPin, ClipboardList, Laptop, DollarSign, Info, FileDown } from 'lucide-react';
 import { StatusBadge } from './Common';
 import { Button, Title, Text, Icon } from '../../../components/atoms';
 import { formatFriendlyDate } from '../../../utils/dateUtils';
@@ -8,6 +8,7 @@ import { useNotifications } from '../../../components/notifications/Notification
 import axios from 'axios';
 import { API_CONFIG } from '../../../config/api';
 import { useState } from 'react';
+import { generateRequisicionPDF, RequisicionParaPDF } from '../../../utils/generateRequisicionPDF';
 
 interface Requisicion {
     id: string;
@@ -61,6 +62,7 @@ const RequisicionDetailView: React.FC<RequisicionDetailViewProps> = ({ requisici
     const [rejectComment, setRejectComment] = useState('');
     const [showRejectInput, setShowRejectInput] = useState(false);
     const [successAction, setSuccessAction] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     const userAreas = JSON.parse(user?.areas_asignadas || '[]') as string[];
     const userEspecialidades = JSON.parse(user?.especialidades || '[]') as string[];
@@ -129,16 +131,41 @@ const RequisicionDetailView: React.FC<RequisicionDetailViewProps> = ({ requisici
         );
     };
 
+    const handleExportPDF = async () => {
+        try {
+            setIsExporting(true);
+            addNotification('info', 'Generando documento PDF...');
+            await generateRequisicionPDF(requisicion as RequisicionParaPDF);
+            addNotification('success', 'PDF generado correctamente');
+        } catch (error) {
+            addNotification('error', 'Error al generar el PDF');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div className="space-y-8 py-4">
-            <Button
-                variant="ghost"
-                onClick={onBack}
-                icon={ArrowLeft}
-                className="font-bold p-0"
-            >
-                Volver a la lista
-            </Button>
+            <div className="flex justify-between items-center">
+                <Button
+                    variant="ghost"
+                    onClick={onBack}
+                    icon={ArrowLeft}
+                    className="font-bold p-0"
+                >
+                    Volver a la lista
+                </Button>
+                
+                <Button
+                    variant="outline"
+                    onClick={handleExportPDF}
+                    icon={FileDown}
+                    loading={isExporting}
+                    className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                >
+                    Descargar PDF
+                </Button>
+            </div>
 
             <div className="bg-[var(--color-surface)] rounded-[2.5rem] shadow-xl border border-[var(--color-border)] overflow-hidden transition-all duration-300">
                 {/* Header Section */}

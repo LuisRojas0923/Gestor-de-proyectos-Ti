@@ -58,10 +58,12 @@ class RequisicionPublica(RequisicionBase):
     id_creador: Optional[str] = None
     
     id_jefe_aprobador: Optional[str] = None
+    nombre_jefe_aprobador: Optional[str] = None
     fecha_revision_jefe: Optional[datetime] = None
     comentario_revision_jefe: Optional[str] = None
     
     id_gh_aprobador: Optional[str] = None
+    nombre_gh_aprobador: Optional[str] = None
     fecha_revision_gh: Optional[datetime] = None
     comentario_revision_gh: Optional[str] = None
     

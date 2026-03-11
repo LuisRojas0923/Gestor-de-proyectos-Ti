@@ -165,6 +165,7 @@ async def revision_jefe(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permiso para aprobar en esta área")
         
     requisicion.id_jefe_aprobador = usuario_actual.id
+    requisicion.nombre_jefe_aprobador = usuario_actual.nombre
     requisicion.fecha_revision_jefe = datetime.now()
     requisicion.comentario_revision_jefe = revision.comentario
     
@@ -207,6 +208,7 @@ async def revision_gh(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permiso de Gestión Humana")
         
     requisicion.id_gh_aprobador = usuario_actual.id
+    requisicion.nombre_gh_aprobador = usuario_actual.nombre
     requisicion.fecha_revision_gh = datetime.now()
     requisicion.comentario_revision_gh = revision.comentario
     
