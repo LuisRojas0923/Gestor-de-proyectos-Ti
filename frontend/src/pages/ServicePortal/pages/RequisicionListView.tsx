@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, Clock, User, Briefcase, ChevronRight, Info, MapPin } from 'lucide-react';
 import axios from 'axios';
 import { StatusBadge } from './Common';
-import { Button, Input, Title, Text, Icon } from '../../../components/atoms';
+import { Button, Input, Title, Text, Icon, Select } from '../../../components/atoms';
 import { API_CONFIG } from '../../../config/api';
 import { useAppContext } from '../../../context/AppContext';
 
@@ -31,6 +31,7 @@ const RequisicionListView: React.FC<RequisicionListViewProps> = ({ onBack, onVie
     const [requisiciones, setRequisiciones] = useState<Requisicion[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
     const [activeTab, setActiveTab] = useState<'mias' | 'aprobar'>('mias');
 
     useEffect(() => {
@@ -69,6 +70,9 @@ const RequisicionListView: React.FC<RequisicionListViewProps> = ({ onBack, onVie
 
         if (!matchesSearch) return false;
 
+        // Status Filter
+        if (statusFilter !== 'all' && req.estado !== statusFilter) return false;
+
         // Tab Filter
         if (activeTab === 'mias') {
             return req.id_creador === user?.id || !req.id_creador; // if no creator let it show or strict match
@@ -96,15 +100,33 @@ const RequisicionListView: React.FC<RequisicionListViewProps> = ({ onBack, onVie
                 >
                     Volver
                 </Button>
-                <div className="w-full sm:w-64">
-                    <Input
-                        type="text"
-                        placeholder="Buscar requisición..."
-                        icon={Search}
-                        size="sm"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                    <div className="w-full sm:w-52">
+                        <Select
+                            name="estado_filtro"
+                            label=""
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            options={[
+                                { value: 'all', label: 'Todos los estados' },
+                                { value: 'Pendiente de Jefe', label: 'Pendiente de Jefe' },
+                                { value: 'Pendiente de GH', label: 'Pendiente de GH' },
+                                { value: 'Aprobada', label: 'Aprobada' },
+                                { value: 'Rechazada', label: 'Rechazada' },
+                            ]}
+                            className="!mb-0" // remove default bottom margin if any
+                        />
+                    </div>
+                    <div className="w-full sm:w-64">
+                        <Input
+                            type="text"
+                            placeholder="Buscar requisición..."
+                            icon={Search}
+                            size="sm"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
 
