@@ -200,11 +200,11 @@ const DetalleAgenciasView: React.FC = () => {
                         </button>
                         <Button
                             onClick={handleSave}
-                            disabled={isSaving}
+                            loading={isSaving}
+                            icon={Save}
                             className={`inline-flex items-center gap-2 px-5 py-2 text-sm font-black rounded-xl border border-black transition-all whitespace-nowrap ${saved ? 'bg-green-500 text-white' : 'bg-[#0a192f] text-white hover:bg-[#1a3a5c]'
                                 }`}
                         >
-                            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                             {saved ? '¡Guardado!' : 'Guardar'}
                         </Button>
                     </div>
