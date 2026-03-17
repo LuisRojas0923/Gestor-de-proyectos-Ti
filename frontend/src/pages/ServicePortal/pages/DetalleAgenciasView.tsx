@@ -211,27 +211,27 @@ const DetalleAgenciasView: React.FC = () => {
                 </div>
 
                 {/* Info card del RP */}
-                <div className="bg-white dark:bg-[#1a1d23] rounded-2xl border border-black p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div><span className="text-[10px] uppercase text-neutral-400 font-bold block">Cargo</span><span className="font-semibold uppercase">{req.cargo_nombre}</span></div>
-                    <div><span className="text-[10px] uppercase text-neutral-400 font-bold block">Solicitante</span><span className="font-semibold">{req.solicitante_nombre}</span></div>
-                    <div><span className="text-[10px] uppercase text-neutral-400 font-bold block">Área</span><span className="font-semibold">{req.area_destino}</span></div>
-                    <div><span className="text-[10px] uppercase text-neutral-400 font-bold block">Ciudad</span><span className="font-semibold">{req.ciudad_contratacion}</span></div>
-                    <div><span className="text-[10px] uppercase text-neutral-400 font-bold block">OT</span><span className="font-mono font-semibold">{req.orden_trabajo}</span></div>
-                    <div><span className="text-[10px] uppercase text-neutral-400 font-bold block">Proyecto</span><span className="font-semibold">{req.nombre_proyecto}</span></div>
-                    <div><span className="text-[10px] uppercase text-neutral-400 font-bold block">Vacantes</span><span className="font-semibold">{req.numero_personas}</span></div>
-                    <div><span className="text-[10px] uppercase text-neutral-400 font-bold block">Fecha Req.</span><span className="font-semibold">{new Date(req.fecha_creacion).toLocaleDateString('es-CO')}</span></div>
+                <div className="bg-white dark:bg-[#1a1d23] rounded-2xl border border-black px-5 py-2.5 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1.5 text-xs">
+                    <div className="flex flex-col"><span className="text-[12px] uppercase text-neutral-400 font-bold leading-none">Cargo</span><span className="font-bold uppercase truncate">{req.cargo_nombre}</span></div>
+                    <div className="flex flex-col"><span className="text-[12px] uppercase text-neutral-400 font-bold leading-none">Solicitante</span><span className="font-bold truncate">{req.solicitante_nombre}</span></div>
+                    <div className="flex flex-col"><span className="text-[12px] uppercase text-neutral-400 font-bold leading-none">Área</span><span className="font-bold truncate">{req.area_destino}</span></div>
+                    <div className="flex flex-col"><span className="text-[12px] uppercase text-neutral-400 font-bold leading-none">Ciudad</span><span className="font-bold truncate">{req.ciudad_contratacion}</span></div>
+                    <div className="flex flex-col"><span className="text-[12px] uppercase text-neutral-400 font-bold leading-none">OT</span><span className="font-mono font-bold">{req.orden_trabajo}</span></div>
+                    <div className="flex flex-col"><span className="text-[12px] uppercase text-neutral-400 font-bold leading-none">Proyecto</span><span className="font-bold truncate">{req.nombre_proyecto}</span></div>
+                    <div className="flex flex-col"><span className="text-[12px] uppercase text-neutral-400 font-bold leading-none">Vacantes</span><span className="font-bold">{req.numero_personas}</span></div>
+                    <div className="flex flex-col"><span className="text-[12px] uppercase text-neutral-400 font-bold leading-none">Fecha Req.</span><span className="font-bold">{new Date(req.fecha_creacion).toLocaleDateString('es-CO')}</span></div>
                 </div>
 
                 {/* Campos comunes del RP */}
-                <div className="bg-white dark:bg-[#1a1d23] rounded-2xl border border-black p-5">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-neutral-500 mb-4">Campos Comunes del RP</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-[#1a1d23] rounded-2xl border border-black px-5 py-3">
+                    <h3 className="text-[12px] font-black uppercase tracking-widest text-neutral-500 mb-2">Campos Comunes del RP</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2">
                         <div>
-                            <label className="text-[10px] uppercase font-bold text-neutral-500 block mb-1">Estado RP</label>
+                            <label className="text-[9px] uppercase font-bold text-neutral-500 block mb-0.5">Estado RP</label>
                             <select
                                 value={estadoRp}
                                 onChange={e => setEstadoRp(e.target.value)}
-                                className="w-full border border-black rounded-lg p-2 text-sm font-bold bg-transparent"
+                                className="w-full border border-black rounded-lg p-1.5 text-xs font-bold bg-transparent"
                             >
                                 <option value="EN PROCESO">EN PROCESO</option>
                                 <option value="FINALIZADA">FINALIZADA</option>
@@ -239,42 +239,45 @@ const DetalleAgenciasView: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="text-[10px] uppercase font-bold text-neutral-500 block mb-1">Recibido GH</label>
+                            <label className="text-[9px] uppercase font-bold text-neutral-500 block mb-0.5">Recibido GH</label>
                             <input type="date" value={fechaRecibo} onChange={e => setFechaRecibo(e.target.value)}
-                                className="w-full border border-black rounded-lg p-2 text-sm bg-transparent" />
+                                className="w-full border border-black rounded-lg p-1.5 text-xs bg-transparent" />
                         </div>
                         <div>
-                            <label className="text-[10px] uppercase font-bold text-neutral-500 block mb-1">Mejora Salarial</label>
+                            <label className="text-[9px] uppercase font-bold text-neutral-500 block mb-0.5">Mejora Salarial</label>
                             <input type="number" min={0} value={mejora} onChange={e => setMejora(parseInt(e.target.value) || 0)}
-                                className="w-full border border-black rounded-lg p-2 text-sm bg-transparent font-mono" />
+                                className="w-full border border-black rounded-lg p-1.5 text-xs bg-transparent font-mono" />
                         </div>
                         <div>
-                            <label className="text-[10px] uppercase font-bold text-neutral-500 block mb-1">Envío Temporal</label>
+                            <label className="text-[9px] uppercase font-bold text-neutral-500 block mb-0.5">Envío Temporal</label>
                             <input type="date" value={fechaEnvTemporal} onChange={e => setFechaEnvTemporal(e.target.value)}
-                                className="w-full border border-black rounded-lg p-2 text-sm bg-transparent" />
+                                className="w-full border border-black rounded-lg p-1.5 text-xs bg-transparent" />
                         </div>
                     </div>
                     {/* Resumen salarial */}
-                    <div className="mt-4 flex flex-wrap gap-4 text-[11px]">
-                        <span><span className="text-neutral-500">Salario Base:</span> <span className="font-mono font-bold">{formatCurrency(req.salario_asignado)}</span></span>
-                        <span><span className="text-neutral-500">Aux. Alimentación:</span> <span className="font-mono font-bold text-green-700">{formatCurrency(req.auxilio_alimentacion)}</span></span>
-                        <span><span className="text-neutral-500">Aux. Movilización:</span> <span className="font-mono font-bold text-green-700">{formatCurrency(req.auxilio_movilizacion)}</span></span>
-                        <span className="ml-auto"><span className="text-neutral-500">Total Salario:</span> <span className="font-mono font-black text-primary text-sm">{formatCurrency(totalSalario)}</span></span>
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-6 gap-y-1 text-[12px] font-bold">
+                        <span><span className="text-neutral-500 uppercase mr-1">Base:</span> <span className="font-mono">{formatCurrency(req.salario_asignado)}</span></span>
+                        <span><span className="text-neutral-500 uppercase mr-1">Alim:</span> <span className="font-mono text-green-700">{formatCurrency(req.auxilio_alimentacion)}</span></span>
+                        <span><span className="text-neutral-500 uppercase mr-1">Mov:</span> <span className="font-mono text-green-700">{formatCurrency(req.auxilio_movilizacion)}</span></span>
+                        <div className="ml-auto flex items-center gap-2">
+                             <span className="text-neutral-500 uppercase">Total Salario:</span> 
+                             <span className="font-mono font-black text-primary">{formatCurrency(totalSalario)}</span>
+                        </div>
                     </div>
                 </div>
 
                 {/* Tabla por agencia */}
                 <div className="bg-white dark:bg-[#1a1d23] rounded-2xl border border-black overflow-hidden">
-                    <div className="px-5 py-4 border-b border-black">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-neutral-500">Detalle por Agencia</h3>
+                    <div className="px-5 py-2 border-b border-black">
+                        <h3 className="text-[12px] font-black uppercase tracking-widest text-neutral-500">Detalle por Agencia</h3>
                     </div>
                     <div className="overflow-x-auto">
-                        <div style={{ width: '1730px' }}>
+                        <div style={{ width: '1675px' }}>
                             {/* Label DESISTE alineado externamente */}
                             <div className="flex border-b border-black">
-                                <div style={{ width: '240px' }} className="flex-shrink-0" /> {/* Margen: Agencia (100) + Fecha (140) */}
+                                <div style={{ width: '215px' }} className="flex-shrink-0" /> {/* Margen: Agencia (100) + Fecha (115) */}
                                 <div
-                                    style={{ width: '750px' }} // 10 columnas * 75px
+                                    style={{ width: '720px' }} // 8 * 75px + 2 * 60px
                                     className="bg-[#0a192f] text-white text-center py-1.5 uppercase font-black text-[11px] tracking-[0.4em] border-x border-black border-t border-t-black rounded-t-lg"
                                 >
                                     DESISTE
@@ -285,9 +288,9 @@ const DetalleAgenciasView: React.FC = () => {
                                 <thead>
                                     <tr className="bg-[#0a192f] text-white">
                                         <th style={{ width: '100px' }} className="p-3 border border-black font-bold uppercase text-[9px] text-center">Agencia</th>
-                                        <th style={{ width: '140px' }} className="p-3 border border-black font-bold uppercase text-[9px] text-center text-blue-300">Fecha Envio HV por Empresa</th>
-                                        <th style={{ width: '75px' }} className="p-3 border border-black font-bold uppercase text-[9px] text-center">N/A</th>
-                                        <th style={{ width: '75px' }} className="p-3 border border-black font-bold uppercase text-[9px] text-center">A</th>
+                                        <th style={{ width: '115px' }} className="p-3 border border-black font-bold uppercase text-[9px] text-center text-blue-300">Fecha Envio HV por Empresa</th>
+                                        <th style={{ width: '60px' }} className="p-3 border border-black font-bold uppercase text-[9px] text-center">N/A</th>
+                                        <th style={{ width: '60px' }} className="p-3 border border-black font-bold uppercase text-[9px] text-center">A</th>
                                         <th style={{ width: '75px' }} className="p-3 border border-black font-bold uppercase text-[9px] text-center">Cancelada O.Tiempo</th>
                                         <th style={{ width: '75px' }} className="p-3 border border-black font-bold uppercase text-[9px] text-center">Cancelada por Referido</th>
                                         <th style={{ width: '75px' }} className="p-3 border border-black font-bold uppercase text-[9px] text-center">Cancelada por Mov.Inter</th>
@@ -314,7 +317,7 @@ const DetalleAgenciasView: React.FC = () => {
                                                     {idx === 0 && (
                                                         <td rowSpan={agenciaState[agencia].length} className="p-3 border border-black vertical-middle bg-neutral-50 dark:bg-neutral-900/50">
                                                             <div className="flex flex-col gap-2 items-center">
-                                                                <span className={`text-[10px] font-black px-3 py-1 rounded-full border block text-center w-full ${getAgenciaStyle(agencia)}`}>
+                                                                <span className={`text-[10px] font-black px-3 py-1 rounded-full border text-center ${getAgenciaStyle(agencia)}`}>
                                                                     {agencia}
                                                                 </span>
                                                                 <Button 
@@ -324,7 +327,7 @@ const DetalleAgenciasView: React.FC = () => {
                                                                     size="xs"
                                                                     icon={Plus}
                                                                     variant="primary"
-                                                                    className="w-full !px-1 !py-0.5 !text-[9px] text-white font-bold hover:scale-105 transition-transform"
+                                                                    className="!px-1.5 !py-0 !text-[8px] text-white font-bold hover:scale-105 transition-transform h-5"
                                                                 >
                                                                     Nueva
                                                                 </Button>
@@ -348,7 +351,7 @@ const DetalleAgenciasView: React.FC = () => {
                                                         ['cancel_mov', 'Mov.'], ['nc_exp', 'EXP'], ['nc_em', 'EM'],
                                                         ['nc_entrev', 'Ent.'], ['nc_antcd', 'Ant.'], ['nc_vial', 'Vial']
                                                     ] as const).map(([field]) => (
-                                                        <td key={field} className="p-2 border border-black w-[75px]">
+                                                        <td key={field} className={`p-2 border border-black ${(field === 'na' || field === 'a') ? 'w-[60px]' : 'w-[75px]'}`}>
                                                             <input type="number" min={0}
                                                                 className="w-full border border-black rounded-lg p-2 text-[13px] text-center bg-transparent font-bold"
                                                                 value={fila[field as keyof AgenciaLocalState] as number}

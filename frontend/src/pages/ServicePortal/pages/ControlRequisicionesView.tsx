@@ -43,6 +43,7 @@ const ControlRequisicionesView: React.FC<ControlRequisicionesViewProps> = ({ onB
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [estadoFilter, setEstadoFilter] = useState('TODOS');
 
     // Estado local mutable por RP (edición libre en la tabla)
     const [localState, setLocalState] = useState<Record<string, LocalRpState>>({});
@@ -143,12 +144,19 @@ const ControlRequisicionesView: React.FC<ControlRequisicionesViewProps> = ({ onB
     const formatCurrency = (amount: number) =>
         new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount || 0);
 
-    const filteredRequisiciones = requisiciones.filter(req =>
-        req.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.cargo_nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.nombre_proyecto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.solicitante_nombre?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredRequisiciones = requisiciones.filter(req => {
+        const matchesSearch = 
+            req.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            req.cargo_nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            req.nombre_proyecto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            req.solicitante_nombre?.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const local = localState[req.id];
+        const currentEstado = local?.estado_rp || 'EN PROCESO';
+        const matchesStatus = estadoFilter === 'TODOS' || currentEstado === estadoFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
 
 
 
@@ -191,11 +199,25 @@ const ControlRequisicionesView: React.FC<ControlRequisicionesViewProps> = ({ onB
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
                             <input
                                 type="text"
-                                placeholder="Buscar por RP, Cargo, Proyecto, Solicitante..."
+                                placeholder="Buscar por RP, Cargo..."
                                 className="w-full pl-10 pr-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase font-bold text-neutral-400 hidden lg:block">Estado RP:</span>
+                            <select
+                                value={estadoFilter}
+                                onChange={(e) => setEstadoFilter(e.target.value)}
+                                className="bg-neutral-100 dark:bg-neutral-800 border-none rounded-xl text-sm px-3 py-2.5 focus:ring-2 focus:ring-primary/20 transition-all outline-none font-bold"
+                            >
+                                <option value="TODOS">TODOS LOS ESTADOS</option>
+                                <option value="EN PROCESO">EN PROCESO</option>
+                                <option value="FINALIZADA">FINALIZADA</option>
+                                <option value="CANCELADA">CANCELADA</option>
+                            </select>
                         </div>
 
                         {/* BOTÓN GLOBAL DE GUARDAR */}
@@ -205,7 +227,7 @@ const ControlRequisicionesView: React.FC<ControlRequisicionesViewProps> = ({ onB
                             className={`
                                 flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-200
                                 ${hasPendingChanges
-                                    ? 'bg-primary text-white shadow-lg shadow-primary/30 hover:brightness-110 active:scale-95 animate-pulse-soft'
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700 active:scale-95 animate-pulse-soft'
                                     : 'bg-neutral-200 text-neutral-400 dark:bg-neutral-700 dark:text-neutral-500 cursor-not-allowed'
                                 }
                             `}
