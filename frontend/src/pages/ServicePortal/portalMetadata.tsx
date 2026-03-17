@@ -1,5 +1,4 @@
-import React from 'react';
-import { PlusIcon as Plus } from '@heroicons/react/24/outline';
+import { Plus } from 'lucide-react';
 
 import imgHardware from '../../assets/images/categories/Soporte Hardware.png';
 import imgSoftware from '../../assets/images/categories/Soporte Software.png';
