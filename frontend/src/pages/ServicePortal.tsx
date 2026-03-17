@@ -88,6 +88,7 @@ const ServicePortal: React.FC = () => {
 
             navigate('/service-portal/gastos/nuevo', {
                 state: {
+                    ...reporte,
                     lineas: lineasDetalle,
                     observaciones: resData[0]?.observaciones_gral,
                     reporte_id: rid,

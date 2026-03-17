@@ -214,7 +214,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                         onClick={() => onSelectReport(reporte)}
                                         className="w-full font-bold"
                                     >
-                                        Modificar
+                                        {['BORRADOR', 'INICIAL'].includes(reporte.estado?.toUpperCase().trim()) ? 'Modificar' : 'VER'}
                                     </Button>
                                 </div>
                             </MaterialCard>
@@ -252,7 +252,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
                                                     onClick={() => onSelectReport(reporte)}
                                                     className="font-bold px-4 py-1 text-[9px] uppercase tracking-tighter shadow-none border-slate-200"
                                                 >
-                                                    modificar
+                                                    {['BORRADOR', 'INICIAL'].includes(reporte.estado?.toUpperCase().trim()) ? 'modificar' : 'VER'}
                                                 </Button>
                                             </div>
                                         </td>
