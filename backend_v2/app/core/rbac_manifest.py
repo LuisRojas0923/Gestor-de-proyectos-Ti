@@ -9,7 +9,14 @@ from typing import List, Dict, Any
 # ==========================================
 
 SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
-    # Módulos del Portal de Usuarios
+    # --- CATEGORÍA: PORTAL (Módulos de Cara al Usuario) ---
+    {
+        "id": "service-portal",
+        "nombre": "Portal de Servicios (Shell)",
+        "categoria": "portal",
+        "es_critico": True,
+        "descripcion": "Contenedor principal del portal de servicios.",
+    },
     {
         "id": "mis_solicitudes",
         "nombre": "Gestión de Solicitudes TI",
@@ -31,7 +38,6 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": True,
         "descripcion": "Gestión Master de Requisiciones.",
     },
-    # Sub-Módulos de Requisiciones
     {
         "id": "requisiciones.almacen",
         "nombre": "Requisiciones - Almacén",
@@ -46,7 +52,6 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": False,
         "descripcion": "Control presupuestal y aprobación de gastos mayores.",
     },
-    # Módulos de Viáticos
     {
         "id": "viaticos_gestion",
         "nombre": "Gestión de Viáticos",
@@ -55,27 +60,12 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "descripcion": "Portal general para el manejo de viáticos.",
     },
     {
-        "id": "viaticos_reportes",
-        "nombre": "Reportes de Tránsito",
-        "categoria": "analistas",
-        "es_critico": False,
-        "descripcion": "Generación y envío de legalizaciones.",
-    },
-    {
         "id": "viaticos_estado",
         "nombre": "Estado de Cuenta",
         "categoria": "portal",
         "es_critico": True,
         "descripcion": "Saldos pendientes del empleado con Tesorería.",
     },
-    {
-        "id": "viaticos_director_panel",
-        "nombre": "Panel de Aprobación (Directores)",
-        "categoria": "panel",
-        "es_critico": True,
-        "descripcion": "Vista para aprobar legalizaciones de subalternos.",
-    },
-    # Módulos de Operaciones TI
     {
         "id": "sistemas",
         "nombre": "Soporte Sistemas",
@@ -90,7 +80,87 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": False,
         "descripcion": "Acceso al portal de requerimientos de mejoramiento.",
     },
-    # Módulos Administrativos
+    {
+        "id": "desarrollo",
+        "nombre": "Software Factory",
+        "categoria": "portal",
+        "es_critico": False,
+        "descripcion": "Módulo de desarrollo de software a medida.",
+    },
+    {
+        "id": "chat",
+        "nombre": "Asistente IA",
+        "categoria": "portal",
+        "es_critico": False,
+        "descripcion": "Herramienta de asistencia basada en Inteligencia Artificial.",
+    },
+
+    # --- CATEGORÍA: ANALISTAS (Herramientas de Operación TI) ---
+    {
+        "id": "dashboard",
+        "nombre": "Tablero Principal",
+        "categoria": "analistas",
+        "es_critico": True,
+        "descripcion": "Vista consolidada de indicadores y estado del sistema.",
+    },
+    {
+        "id": "ticket-management",
+        "nombre": "Gestión de Tickets",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Administración y resolución de tickets de soporte.",
+    },
+    {
+        "id": "developments",
+        "nombre": "Gestión de Actividades",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Control de cronogramas y actividades de desarrollo.",
+    },
+    {
+        "id": "indicators",
+        "nombre": "Indicadores Globales (BI)",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Visualización de métricas de rendimiento del departamento.",
+    },
+    {
+        "id": "reports",
+        "nombre": "Reportería Avanzada",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Generación de informes detallados y exportaciones.",
+    },
+    {
+        "id": "settings",
+        "nombre": "Parámetros del Sistema",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Configuraciones generales de operación.",
+    },
+    {
+        "id": "viaticos_reportes",
+        "nombre": "Reportes de Tránsito",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Generación y envío de legalizaciones.",
+    },
+    {
+        "id": "wbs_templates",
+        "nombre": "Plantillas de Proyectos (WBS)",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Gestión de estructuras de desglose de trabajo.",
+    },
+
+    # --- CATEGORÍA: PANEL (Administración de Control) ---
+    {
+        "id": "control-tower",
+        "nombre": "Torre de Control",
+        "categoria": "panel",
+        "es_critico": True,
+        "descripcion": "Monitoreo en tiempo real de servicios y salud del sistema.",
+    },
     {
         "id": "panel_maestro",
         "nombre": "Panel Maestro",
@@ -106,11 +176,25 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "descripcion": "Asignación de roles y estados.",
     },
     {
+        "id": "user-admin",
+        "nombre": "Administración de Usuarios",
+        "categoria": "panel",
+        "es_critico": True,
+        "descripcion": "Módulo extendido para gestión granular de perfiles.",
+    },
+    {
         "id": "admin_roles",
         "nombre": "Gestor de Roles y Permisos",
         "categoria": "panel",
         "es_critico": True,
         "descripcion": "Matriz maestra de control de acceso (RBAC).",
+    },
+    {
+        "id": "viaticos_director_panel",
+        "nombre": "Panel de Aprobación (Directores)",
+        "categoria": "panel",
+        "es_critico": True,
+        "descripcion": "Vista para aprobar legalizaciones de subalternos.",
     },
     {
         "id": "reserva_salas_admin",
@@ -120,10 +204,10 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "descripcion": "Configuración de recursos y disponibilidad de salas.",
     },
     {
-        "id": "wbs_templates",
-        "nombre": "Plantillas de Proyectos (WBS)",
-        "categoria": "analistas",
+        "id": "design-catalog",
+        "nombre": "Catálogo de Diseño UI/UX",
+        "categoria": "panel",
         "es_critico": False,
-        "descripcion": "Gestión de estructuras de desglose de trabajo.",
+        "descripcion": "Guía de estilos y componentes del sistema de diseño.",
     },
 ]
