@@ -317,14 +317,17 @@ const DetalleAgenciasView: React.FC = () => {
                                                                 <span className={`text-[10px] font-black px-3 py-1 rounded-full border block text-center w-full ${getAgenciaStyle(agencia)}`}>
                                                                     {agencia}
                                                                 </span>
-                                                                <button 
+                                                                <Button 
                                                                     onClick={() => setAgenciaState(prev => ({ 
                                                                         ...prev, [agencia]: [...prev[agencia], emptyState(agencia)] 
                                                                     }))}
-                                                                    className="p-1 px-2 bg-primary text-white rounded-md flex items-center gap-1 text-[9px] font-bold hover:scale-105 transition-transform"
+                                                                    size="xs"
+                                                                    icon={Plus}
+                                                                    variant="primary"
+                                                                    className="w-full text-white font-bold hover:scale-105 transition-transform"
                                                                 >
-                                                                    <Plus size={10} /> Nueva
-                                                                </button>
+                                                                    Nueva
+                                                                </Button>
                                                             </div>
                                                         </td>
                                                     )}
@@ -438,7 +441,7 @@ const DetalleAgenciasView: React.FC = () => {
                                                         />
                                                     </td>
                                                     <td className="p-2 border border-black text-center">
-                                                        <button 
+                                                        <Button 
                                                             onClick={() => {
                                                                 const newRows = [...agenciaState[agencia]];
                                                                 if (newRows.length > 1 || fila.id) {
@@ -447,11 +450,12 @@ const DetalleAgenciasView: React.FC = () => {
                                                                     setAgenciaState(prev => ({ ...prev, [agencia]: newRows }));
                                                                 }
                                                             }}
-                                                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                            variant="ghost"
+                                                            size="xs"
+                                                            icon={Trash2}
+                                                            className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                                                             title="Eliminar fila"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
+                                                        />
                                                     </td>
                                                 </tr>
                                             ))}
