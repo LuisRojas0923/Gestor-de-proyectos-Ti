@@ -46,8 +46,8 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
         setCurrentEstado, clearForm, onSuccess, onBack, setValidationErrors, logMarina
     });
 
-    const isReadOnly = currentEstado !== undefined && currentEstado !== 'BORRADOR' && currentEstado !== 'INICIAL';
-    const canDownloadPDF = currentEstado === 'INICIAL' || currentEstado === 'PROCESADO';
+    const isReadOnly = (currentEstado !== undefined && currentEstado !== 'BORRADOR' && currentEstado !== 'INICIAL') || state?.readonly;
+    const canDownloadPDF = (currentEstado === 'INICIAL' || currentEstado === 'PROCESADO') || state?.readonly;
     const hasLoadedInitial = React.useRef(false);
 
     React.useEffect(() => {

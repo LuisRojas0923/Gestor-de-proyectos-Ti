@@ -92,7 +92,8 @@ const ServicePortal: React.FC = () => {
                     observaciones: resData[0]?.observaciones_gral,
                     reporte_id: rid,
                     estado: reporte.estado,
-                    from: 'reportes'
+                    readonly: reporte.readonly || false,
+                    from: reporte.readonly ? 'director' : 'reportes'
                 }
             });
         } catch (err) {
@@ -245,7 +246,7 @@ const ServicePortal: React.FC = () => {
                     <ProtectedRoute moduleCode="viaticos_reportes">
                         <ExpenseLegalization
                             user={user}
-                            onBack={() => navigate('/service-portal/gastos/reportes')}
+                            onBack={() => navigate(-1)}
                             onSuccess={() => {
                                 navigate('/service-portal/gastos/reportes');
                                 addNotification('success', 'Operación realizada correctamente.');
@@ -267,7 +268,10 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="gastos/director" element={
                     <ProtectedRoute moduleCode="viaticos_director_panel">
-                        <DirectorExpensePanel onBack={() => navigate('/service-portal/gastos/gestion')} />
+                        <DirectorExpensePanel 
+                            onBack={() => navigate('/service-portal/gastos/gestion')}
+                            onSelectReport={(rep) => onSelectReport({ ...rep, readonly: true })}
+                        />
                     </ProtectedRoute>
                 } />
 
