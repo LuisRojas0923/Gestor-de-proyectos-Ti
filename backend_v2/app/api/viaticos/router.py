@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional, Union
 from datetime import date
@@ -139,6 +140,30 @@ def obtener_estado_cuenta(
         print(f"ERROR ERP Estado Cuenta: {e}")
         raise HTTPException(
             status_code=500, detail=f"Error al obtener estado de cuenta: {str(e)}"
+        )
+
+
+@router.get("/estado-cuenta/xlsx")
+def exportar_estado_cuenta_xlsx(
+    cedula: str,
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    db_erp: Session = Depends(obtener_erp_db),
+):
+    """Genera y descarga el estado de cuenta en formato XLSX"""
+    try:
+        buffer = ViaticosService.exportar_estado_cuenta_xlsx(db_erp, cedula, desde, hasta)
+        filename = f"Estado_Cuenta_{cedula}_{date.today().strftime('%Y%m%d')}.xlsx"
+
+        return StreamingResponse(
+            buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        print(f"ERROR ERP Export XLSX: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error al generar archivo XLSX: {str(e)}"
         )
 
 

@@ -4,6 +4,11 @@ from sqlalchemy import text
 from datetime import date
 import uuid
 import json
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+
 
 
 class ViaticosService:
@@ -263,7 +268,7 @@ class ViaticosService:
             WHERE UPPER(TRIM(estado)) != 'ANULADO'
         )
         SELECT 
-            m.codigo, m.fechaaplicacion, m.empleado, m.nombreempleado, m.radicado,
+            m.codigo, m.fechaaplicacion, m.empleado, m.nombreempleado, m.radicado, m.tipo,
             CASE WHEN m.tipo = 'CONSIGNACION' AND m.estado_limpio = 'CONTABILIZADO' THEN m.valor ELSE 0 END AS consignacion_contabilizado,
             CASE WHEN m.tipo = 'LEGALIZACION' AND m.estado_limpio = 'CONTABILIZADO' THEN m.valor ELSE 0 END AS legalizacion_contabilizado,
             CASE WHEN m.tipo = 'CONSIGNACION' AND m.estado_limpio = 'EN FIRME' THEN m.valor ELSE 0 END AS consignacion_firmadas,
@@ -374,3 +379,92 @@ class ViaticosService:
         except Exception as e:
             db_erp.rollback()
             raise e
+
+    @staticmethod
+    def exportar_estado_cuenta_xlsx(
+        db_erp: Session,
+        cedula: str,
+        desde: Optional[date] = None,
+        hasta: Optional[date] = None,
+    ) -> io.BytesIO:
+        """Genera un archivo XLSX con el estado de cuenta y lo devuelve como un flujo de bytes"""
+
+        # 1. Obtener la data usando el método existente
+        data = ViaticosService.obtener_estado_cuenta(db_erp, cedula, desde, hasta)
+
+        # 2. Crear el libro y la hoja
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Estado de Cuenta"
+
+        # Estilos
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(
+            start_color="1F4E78", end_color="1F4E78", fill_type="solid"
+        )
+        header_alignment = Alignment(
+            horizontal="center", vertical="center", wrap_text=True
+        )
+        border = Border(
+            left=Side(style="thin"),
+            right=Side(style="thin"),
+            top=Side(style="thin"),
+            bottom=Side(style="thin"),
+        )
+
+        # 3. Definir Encabezados
+        headers = [
+            "Fecha Aplicación",
+            "Radicado",
+            "Tipo",
+            "Observaciones",
+            "Consignaciones (Contab.)",
+            "Legalizaciones (Contab.)",
+            "Consignaciones (Firmas)",
+            "Legalizaciones (Firmas)",
+            "Consignaciones (Pend.)",
+            "Legalizaciones (Pend.)",
+            "Saldo",
+        ]
+
+        # Escribir encabezados
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = border
+
+        # 4. Escribir Datos
+        for row_idx, item in enumerate(data, 2):
+            ws.cell(row=row_idx, column=1, value=item["fechaaplicacion"]).border = border
+            ws.cell(row=row_idx, column=2, value=item["radicado"]).border = border
+            ws.cell(row=row_idx, column=3, value=item["tipo"]).border = border
+            ws.cell(row=row_idx, column=4, value=item["observaciones"]).border = border
+
+            # Valores Monetarios
+            cols_money = [
+                "consignacion_contabilizado",
+                "legalizacion_contabilizado",
+                "consignacion_firmadas",
+                "legalizacion_firmadas",
+                "consignacion_pendientes",
+                "legalizacion_pendientes",
+                "saldo",
+            ]
+
+            for i, key in enumerate(cols_money, 5):
+                cell = ws.cell(row=row_idx, column=i, value=float(item[key] or 0))
+                cell.number_format = '"$"#,##0'
+                cell.border = border
+
+        # 5. Ajustar ancho de columnas
+        for col in range(1, len(headers) + 1):
+            ws.column_dimensions[get_column_letter(col)].width = 20
+
+        # 6. Guardar en buffer
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        return output

@@ -1,4 +1,4 @@
-import { ArrowLeftIcon as ArrowLeft, ClipboardDocumentListIcon as ClipboardList, ShieldCheckIcon as ShieldCheck } from '@heroicons/react/24/outline';
+import { ArrowLeft, ClipboardList, ShieldCheck } from 'lucide-react';
 import { Button, Text, Title } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 import { useAppContext } from '../../../context/AppContext';

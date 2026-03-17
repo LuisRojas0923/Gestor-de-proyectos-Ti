@@ -68,6 +68,23 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
         }
     };
 
+    const handleExportExcel = async () => {
+        try {
+            const params = new URLSearchParams({
+                cedula: (user.cedula || user.id) as string,
+                desde: fechaDesde,
+                hasta: fechaHasta
+            }).toString();
+            
+            const url = `${API_BASE_URL}/viaticos/estado-cuenta/xlsx?${params}`;
+            
+            // Crear un link temporal para la descarga
+            window.location.href = url;
+        } catch (err) {
+            console.error("Error exporting Excel:", err);
+        }
+    };
+
     useEffect(() => {
         fetchEstadoCuenta();
     }, []);
@@ -147,9 +164,19 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                             onClick={() => generateAccountStatementPDF(user, movimientos)}
                             disabled={movimientos.length === 0 || isLoading}
                             icon={Download}
-                            className="h-8 shadow-sm font-bold ml-auto md:ml-0"
+                            className="h-8 shadow-sm font-bold bg-red-600 hover:bg-red-700 ml-auto md:ml-0"
                         >
                             Descargar PDF
+                        </Button>
+                        <Button
+                            variant="erp"
+                            size="sm"
+                            onClick={handleExportExcel}
+                            disabled={movimientos.length === 0 || isLoading}
+                            icon={Download}
+                            className="h-8 shadow-sm font-bold bg-green-700 hover:bg-green-800"
+                        >
+                            Exportar Excel
                         </Button>
                     </div>
                 </MaterialCard>
