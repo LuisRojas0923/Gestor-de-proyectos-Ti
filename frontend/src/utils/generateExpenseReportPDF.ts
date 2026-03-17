@@ -445,16 +445,74 @@ export const generateExpenseReportPDF = async (
         });
 
         // ==========================================
+        // 4.5 SECCIÓN DE VERIFICACIÓN (RESPONSABLE)
+        // ==========================================
+        let verificationY = (doc as any).lastAutoTable.finalY + 10;
+        const verificationHeight = 25; // Altura estimada para la tabla de verificación
+        const signaturesSpaceNeeded = 25; // Espacio para las firmas
+        const totalFooterSpace = verificationHeight + signaturesSpaceNeeded;
+
+        // Si no hay suficiente espacio para la verificación + firmas en la página actual, agregamos una nueva
+        if (verificationY + totalFooterSpace > pageHeight - 15) {
+            doc.addPage();
+            verificationY = 20;
+        }
+
+        autoTable(doc, {
+            startY: verificationY,
+            margin: { left: margin, right: margin },
+            theme: 'grid',
+            styles: {
+                lineColor: [0, 0, 0] as [number, number, number],
+                lineWidth: 0.1,
+            },
+            headStyles: {
+                fillColor: navyBlue,
+                textColor: 255,
+                halign: 'center',
+                fontStyle: 'bold',
+                fontSize: 9,
+                cellPadding: 2
+            },
+            bodyStyles: {
+                fontSize: 8,
+                textColor: 0,
+                cellPadding: 2
+            },
+            head: [[{ content: 'Espacio para ser usado por el responsable de verificación del reporte', colSpan: 3 }]],
+            body: [
+                [
+                    {
+                        content: '',
+                        rowSpan: 2,
+                        styles: { cellWidth: 'auto' }
+                    },
+                    {
+                        content: 'TOTAL APROBADO DESPUÉS DE REVISIÓN DE SOPORTES',
+                        styles: { cellWidth: 50, fillColor: [220, 220, 220] as [number, number, number], fontStyle: 'bold', fontSize: 7 }
+                    },
+                    {
+                        content: '$',
+                        styles: { cellWidth: 40, halign: 'left', fontSize: 12 }
+                    }
+                ],
+                [
+                    {
+                        content: 'VALOR PENDIENTE POR LEGALIZAR',
+                        styles: { cellWidth: 50, fillColor: [220, 220, 220] as [number, number, number], fontStyle: 'bold', fontSize: 7 }
+                    },
+                    {
+                        content: '$',
+                        styles: { cellWidth: 40, halign: 'left', fontSize: 12 }
+                    }
+                ]
+            ]
+        });
+
+        // ==========================================
         // 5. SECCIÓN DE FIRMAS (AL FINAL DEL DOCUMENTO)
         // ==========================================
-        let finalY = (doc as any).lastAutoTable.finalY + 15; // Espacio mínimo antes de las líneas
-        const spaceNeeded = 15; // 15mm de alto necesario para pintar línea y texto
-
-        // Si no hay suficiente espacio para las firmas en la página actual, agregamos una nueva
-        if (finalY + spaceNeeded > pageHeight - 15) {
-            doc.addPage();
-            finalY = 40; // Empezamos desde arriba en la nueva página
-        }
+        let finalY = (doc as any).lastAutoTable.finalY + 20; // Espacio después de la tabla de verificación
 
         const usableFillWidth = pageWidth - (margin * 2);
         const signatureWidth = 45; // Ancho de la línea física de cada firma
@@ -477,7 +535,7 @@ export const generateExpenseReportPDF = async (
 
         // 2. Firma Regional (Centro)
         doc.line(col2X, finalY, col2X + signatureWidth, finalY);
-        doc.text("Firma Regional", col2X + (signatureWidth / 2), finalY + 5, { align: 'center' });
+        doc.text("Firma Jefe Inmediato", col2X + (signatureWidth / 2), finalY + 5, { align: 'center' });
 
         // 3. Firma Gerencia (Derecha)
         doc.line(col3X, finalY, col3X + signatureWidth, finalY);
