@@ -179,9 +179,9 @@ class ServicioAuth:
             select(PermisoRol.modulo)
             .join(ModuloSistema, PermisoRol.modulo == ModuloSistema.id)
             .where(
-                PermisoRol.modulo == ModuloSistema.id,
-                PermisoRol.permitido,
-                ModuloSistema.esta_activo,  # REFUERZO: El módulo debe estar activo globalmente
+                PermisoRol.rol == rol,  # FILTRO CRÍTICO: Solo permisos del rol solicitado
+                PermisoRol.permitido == True,
+                ModuloSistema.esta_activo == True,  # REFUERZO: El módulo debe estar activo globalmente
             )
         )
         return list(result.scalars().all())
