@@ -115,22 +115,36 @@ export const useExpenseForm = () => {
         return undefined;
     });
 
+    const [radicado, setRadicado] = useState<string | undefined>(() => {
+        const saved = localStorage.getItem(CACHE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return parsed.radicado;
+            } catch (e) {
+                return undefined;
+            }
+        }
+        return undefined;
+    });
+
     const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
     const { addNotification } = useNotifications();
 
     // Auto-save cada vez que cambian los datos
     useEffect(() => {
         const saveTimeout = setTimeout(() => {
-            const dataToSave = { lineas, observacionesGral, activeReporteId, currentEstado };
+            const dataToSave = { lineas, observacionesGral, activeReporteId, currentEstado, radicado };
             localStorage.setItem(CACHE_KEY, JSON.stringify(dataToSave));
             logMarina("💾 [DRAFT] Borrador actualizado en el almacenamiento local", {
                 items: lineas.length,
                 reporteId: activeReporteId,
-                estado: currentEstado
+                estado: currentEstado,
+                radicado
             });
         }, 500); // Debounce de 500ms
         return () => clearTimeout(saveTimeout);
-    }, [lineas, observacionesGral, activeReporteId, currentEstado]);
+    }, [lineas, observacionesGral, activeReporteId, currentEstado, radicado]);
 
     const addLinea = useCallback(() => {
         logMarina("➕ [UI] Agregando nueva línea de gasto");
@@ -260,6 +274,7 @@ export const useExpenseForm = () => {
         setObservacionesGral('');
         setActiveReporteId(undefined);
         setCurrentEstado(undefined);
+        setRadicado(undefined);
         setValidationErrors({}); // Limpiar errores visuales
 
         // Limpiar localStorage de raíz (solo caché actual, mantenemos backup para emergencias)
@@ -275,7 +290,7 @@ export const useExpenseForm = () => {
             (!l.adjuntos || l.adjuntos.length === 0);
     }, []);
 
-    const loadLineas = useCallback(async (nuevasLineas: LineaGasto[], observaciones?: string) => {
+    const loadLineas = useCallback(async (nuevasLineas: LineaGasto[], observaciones?: string, radicadoIn?: string) => {
         if (!nuevasLineas || nuevasLineas.length === 0) return;
 
         logMarina("📥 [LOAD] Solicitud de carga de datos externos", { count: nuevasLineas.length });
@@ -322,6 +337,9 @@ export const useExpenseForm = () => {
         if (observaciones !== undefined) {
             setObservacionesGral(observaciones);
         }
+        if (radicadoIn !== undefined) {
+            setRadicado(radicadoIn);
+        }
     }, [isFormEmpty, lineas, observacionesGral]);
 
 
@@ -335,6 +353,8 @@ export const useExpenseForm = () => {
         setActiveReporteId,
         currentEstado,
         setCurrentEstado,
+        radicado,
+        setRadicado,
         ots,
         setOts,
         isSearchingOT,

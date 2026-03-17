@@ -191,7 +191,7 @@ const DirectorExpensePanel: React.FC<DirectorExpensePanelProps> = ({ onBack, onS
                             >
                                 <Text variant="caption" weight="bold" className="font-mono w-24 shrink-0">{leg.codigolegalizacion || leg.reporte_id}</Text>
                                 <Text variant="caption" weight="medium" className="w-24 shrink-0 hidden md:block whitespace-nowrap">{formatDate(leg.fecha)}</Text>
-                                <Text variant="caption" weight="bold" className="flex-1 min-w-0 truncate text-center">{leg.nombreempleado}</Text>
+                                <Text variant="caption" weight="bold" className="flex-1 min-w-0 truncate text-left pl-6">{leg.nombreempleado}</Text>
                                 <Text variant="caption" weight="medium" className="w-32 shrink-0 hidden lg:block truncate">{leg.area || '—'}</Text>
                                 <Text variant="caption" weight="bold" className="w-28 shrink-0 text-right">{formatCurrency(leg.valortotal)}</Text>
                                 <div className="w-24 shrink-0 text-center">

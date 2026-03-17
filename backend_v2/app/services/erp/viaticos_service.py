@@ -297,15 +297,20 @@ class ViaticosService:
 
     @staticmethod
     def obtener_todas_legalizaciones(db_erp: Session) -> List[Dict]:
-        """Consulta todas las legalizaciones del portal (vista director)"""
+        """Consulta todas las legalizaciones del portal (vista director) con valores finales si están procesadas"""
         sql = text("""
             SELECT 
                 l.codigo, l.codigolegalizacion, l.fecha, l.hora, l.fechaaplicacion,
-                l.empleado, l.nombreempleado, l.area, l.valortotal, l.estado,
-                l.usuario, l.observaciones, l.anexo, l.centrocosto, l.cargo, l.ciudad,
+                l.empleado, l.nombreempleado, l.area, 
+                COALESCE(e.valortotal, l.valortotal) as valortotal, 
+                l.estado,
+                l.usuario, 
+                COALESCE(e.observaciones, l.observaciones) as observaciones, 
+                l.anexo, l.centrocosto, l.cargo, l.ciudad,
                 l.reporte_id,
                 (SELECT COUNT(*) FROM transito_viaticos t WHERE t.reporte_id::text = l.reporte_id) as total_lineas
             FROM legalizaciones_transito l
+            LEFT JOIN legalizacion e ON l.codigolegalizacion = e.codigolegalizacion
             ORDER BY l.fecha DESC, l.hora DESC
         """)
         resultado = db_erp.execute(sql)
@@ -313,23 +318,74 @@ class ViaticosService:
 
     @staticmethod
     def obtener_resumen_legalizaciones(db_erp: Session, cedula: str) -> List[Dict]:
-        """Consulta el listado agrupado de legalizaciones desde la tabla de cabecera con todos los campos"""
+        """Consulta el listado agrupado de legalizaciones con valores finales del ERP si están procesadas"""
         sql = text("""
             SELECT 
-                codigo, codigolegalizacion, fecha, hora, fechaaplicacion,
-                empleado, nombreempleado, area, valortotal, estado,
-                usuario, observaciones, anexo, centrocosto, cargo, ciudad,
-                reporte_id
-            FROM legalizaciones_transito 
-            WHERE empleado = :cedula
-            ORDER BY fecha DESC, hora DESC
+                l.codigo, l.codigolegalizacion, l.fecha, l.hora, l.fechaaplicacion,
+                l.empleado, l.nombreempleado, l.area, 
+                COALESCE(e.valortotal, l.valortotal) as valortotal, 
+                l.estado,
+                l.usuario, 
+                COALESCE(e.observaciones, l.observaciones) as observaciones, 
+                l.anexo, l.centrocosto, l.cargo, l.ciudad,
+                l.reporte_id
+            FROM legalizaciones_transito l
+            LEFT JOIN legalizacion e ON l.codigolegalizacion = e.codigolegalizacion
+            WHERE l.empleado = :cedula
+            ORDER BY l.fecha DESC, l.hora DESC
         """)
         resultado = db_erp.execute(sql, {"cedula": cedula})
         return [dict(row._mapping) for row in resultado]
 
     @staticmethod
     def obtener_detalle_reporte(db_erp: Session, reporte_id: str) -> List[Dict]:
-        """Obtiene todas las líneas y detalles de un reporte_id específico"""
+        """
+        Obtiene todas las líneas y detalles de un reporte_id específico.
+        Si el reporte está PROCESADO, intenta traer la info de las tablas finales (legalizacion/linealegalizacion).
+        """
+        # 1. Verificar estado actual en tránsito
+        sql_estado = text(
+            "SELECT codigolegalizacion, estado FROM legalizaciones_transito WHERE reporte_id = :rid"
+        )
+        res_info = db_erp.execute(sql_estado, {"rid": reporte_id}).first()
+
+        estado = str(res_info.estado).upper().strip() if res_info else "BORRADOR"
+        radicado = res_info.codigolegalizacion if res_info else None
+
+        # 2. Si está PROCESADO, buscar en tablas finales oficiales
+        if estado == "PROCESADO" and radicado:
+            print(f"DEBUG_ERP: Reporte {reporte_id} PROCESADO. Buscando radicado {radicado} en tablas finales.")
+            
+            # Buscar ID interno en la tabla de cabecera final
+            sql_final_head = text("SELECT codigo FROM legalizacion WHERE codigolegalizacion = :rad")
+            id_final = db_erp.execute(sql_final_head, {"rad": radicado}).scalar()
+
+            if id_final:
+                # Obtener líneas desde linealegalizacion con JOIN robusto para categorías
+                # l.categoria puede ser ID (ej. '10') o Texto (ej. 'Alquilables').
+                # Unimos c.codigo::text para evitar errores de casteo y usamos COALESCE.
+                sql_final_lines = text("""
+                    SELECT 
+                        l.fecharealgasto,
+                        COALESCE(c.descripcion, l.categoria) as categoria,
+                        l.ot,
+                        l.centrocosto,
+                        l.subcentrocosto,
+                        l.valorconfactura,
+                        l.valorsinfactura,
+                        l.observaciones
+                    FROM linealegalizacion l
+                    LEFT JOIN categorialegalizacion c ON l.categoria = c.codigo::text
+                    WHERE l.legalizacion = :lid
+                    ORDER BY l.codigo ASC
+                """)
+                resultado = db_erp.execute(sql_final_lines, {"lid": id_final}).all()
+                
+                if resultado:
+                    print(f"DEBUG_ERP: Cargando {len(resultado)} líneas (procesadas) para radicado {radicado}")
+                    return [dict(row._mapping) for row in resultado]
+
+        # 3. Fallback: Consultar en tablas de tránsito (Comportamiento original)
         sql = text("SELECT * FROM transito_viaticos WHERE reporte_id = :reporte_id")
         resultado = db_erp.execute(sql, {"reporte_id": reporte_id})
         return [dict(row._mapping) for row in resultado]
