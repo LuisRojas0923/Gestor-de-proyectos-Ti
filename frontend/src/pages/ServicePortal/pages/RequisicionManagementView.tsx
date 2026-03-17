@@ -1,10 +1,10 @@
 import React from 'react';
-import { ArrowLeft, UserPlus, ClipboardList } from 'lucide-react';
+import { ArrowLeft, UserPlus, ClipboardList, Building2 } from 'lucide-react';
 import { Button, Text, Title } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 
 interface RequisicionManagementViewProps {
-    onNavigate: (view: 'nueva_requisicion' | 'lista_requisiciones') => void;
+    onNavigate: (view: 'nueva_requisicion' | 'lista_requisiciones' | 'control_requisiciones') => void;
     onBack: () => void;
 }
 
@@ -28,7 +28,7 @@ const RequisicionManagementView: React.FC<RequisicionManagementViewProps> = ({ o
                 <div className="w-20"></div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8 max-w-6xl mx-auto">
                 <ActionCard
                     title="Nueva Requisición"
                     description="Inicia un nuevo proceso de solicitud de personal para tu equipo."
@@ -42,7 +42,15 @@ const RequisicionManagementView: React.FC<RequisicionManagementViewProps> = ({ o
                     description="Consulta el estado y el historial de las requisiciones que has realizado."
                     icon={<div className="p-3 bg-indigo-100 dark:bg-indigo-900/40 rounded-2xl text-indigo-600 dark:text-indigo-400"><ClipboardList size={40} /></div>}
                     onClick={() => onNavigate('lista_requisiciones')}
-                    className="md:h-64"
+                    className="h-64"
+                />
+
+                <ActionCard
+                    title="Control Requisiciones"
+                    description="Módulo de gestión y seguimiento administrativo de vacantes."
+                    icon={<div className="p-3 bg-emerald-100 dark:bg-emerald-900/40 rounded-2xl text-emerald-600 dark:text-emerald-400"><Building2 size={40} /></div>}
+                    onClick={() => onNavigate('control_requisiciones')}
+                    className="h-64"
                 />
             </div>
         </div>

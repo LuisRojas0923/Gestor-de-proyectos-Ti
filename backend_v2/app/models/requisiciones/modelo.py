@@ -1,10 +1,10 @@
-"""
-Modelos de Requisiciones de Personal - Backend V2 (SQLModel)
-"""
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from datetime import datetime, date
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, Text, BigInteger, func
+
+if TYPE_CHECKING:
+    from .detalles import RequisicionAgenciaDetalle
 
 class RequisicionPersonal(SQLModel, table=True):
     """Requisiciones de personal de la compañía"""
@@ -54,10 +54,21 @@ class RequisicionPersonal(SQLModel, table=True):
     modalidad_contratacion: str = Field(max_length=100)
     tipo_contratacion: str = Field(max_length=100)
     
-    # Auxilios
+    # Auxilios y Mejoras
     auxilio_movilizacion: Optional[int] = Field(default=None, sa_column=Column(BigInteger))
     auxilio_alimentacion: Optional[int] = Field(default=None, sa_column=Column(BigInteger))
     auxilio_vivienda: Optional[int] = Field(default=None, sa_column=Column(BigInteger))
+    
+    # Seguimiento Centralizado GH
+    fecha_recibo_gh: Optional[date] = Field(default=None)
+    estado_rp: Optional[str] = Field(default="EN PROCESO", max_length=50) # EN PROCESO, FINALIZADA, CANCELADA
+    
+    # Control de Temporales Centralizado
+    mejora: Optional[float] = Field(default=0.0)
+    fecha_env_temporal: Optional[date] = Field(default=None)
+    
+
+    unidad_negocio: Optional[str] = Field(default=None, max_length=100)
     
     # Metadatos y Auditoría
     estado: str = Field(default="Pendiente de Jefe", max_length=50) # Pendiente de Jefe, Pendiente de GH, Aprobada, Rechazada
@@ -77,3 +88,11 @@ class RequisicionPersonal(SQLModel, table=True):
     nombre_gh_aprobador: Optional[str] = Field(default=None, max_length=255)
     fecha_revision_gh: Optional[datetime] = Field(default=None)
     comentario_revision_gh: Optional[str] = Field(default=None, sa_column=Column(Text))
+
+    # Relación con Detalles de Agencias (Multi-fila)
+    detalles_agencias: list["RequisicionAgenciaDetalle"] = Relationship(
+        back_populates="requisicion", 
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
+
+from .detalles import RequisicionAgenciaDetalle

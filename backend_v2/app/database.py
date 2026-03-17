@@ -82,11 +82,13 @@ def obtener_db_sync():
 
 def obtener_erp_db():
     """Generador de sesion para la base de datos del ERP (sincrono)"""
-    db = SessionErp()
+    db = None
     try:
+        db = SessionErp()
         yield db
     finally:
-        db.close()
+        if db:
+            db.close()
 
 
 def obtener_erp_db_opcional():
@@ -190,6 +192,26 @@ async def init_db():
                     "ALTER TABLE sesiones DROP CONSTRAINT IF EXISTS sesiones_usuario_id_fkey"
                 )
             )
+
+            # --- Migración Control Requisiciones ---
+            commands = [
+                "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS fecha_rec_gh_summar DATE",
+                "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS mejora_summar BIGINT DEFAULT 0",
+                "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS fecha_env_summar DATE",
+                "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS fecha_rec_gh_multi DATE",
+                "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS mejora_multi BIGINT DEFAULT 0",
+                "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS fecha_env_multi DATE",
+                "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS fecha_rec_gh_directo DATE",
+                "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS mejora_directo BIGINT DEFAULT 0",
+                "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS fecha_env_directo DATE",
+                "ALTER TABLE requisiciones_personal DROP COLUMN IF EXISTS mejora_salario",
+                "ALTER TABLE requisiciones_personal DROP COLUMN IF EXISTS agencia_temporal",
+                "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS fecha_recibo_gh DATE",
+                "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS estado_rp VARCHAR(50) DEFAULT 'EN PROCESO'",
+                "ALTER TABLE requisiciones_personal DROP COLUMN IF EXISTS fecha_envio_temporal"
+            ]
+            for cmd in commands:
+                await conn.execute(text(cmd))
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría: {e}")
 
