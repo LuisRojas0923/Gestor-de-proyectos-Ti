@@ -64,12 +64,25 @@ const RequisicionDetailView: React.FC<RequisicionDetailViewProps> = ({ requisici
     const [successAction, setSuccessAction] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
 
+    // Mappers
+    const tipoContratacionMap: Record<string, string> = {
+        'fijo_inferior_1_anio': 'CONTRATO FIJO INFERIOR A 1 AÑO',
+        'obra_labor': 'CONTRATO OBRA LABOR',
+        'indefinido': 'CONTRATO INDEFINIDO',
+    };
+
+    const modalidadMap: Record<string, string> = {
+        'directo_refridcol': 'DIRECTO POR REFRIDCOL',
+        'agencia_temporal': 'AGENCIA TEMPORAL',
+        'aprendiz_sena': 'APRENDIZ CONVENIO SENA',
+    };
+
     const userAreas = JSON.parse(user?.areas_asignadas || '[]') as string[];
     const userEspecialidades = JSON.parse(user?.especialidades || '[]') as string[];
 
     const canApproveJefe = requisicion.estado === 'Pendiente de Jefe' && userAreas.includes(requisicion.area_destino);
     const canApproveGH = requisicion.estado === 'Pendiente de GH' && userEspecialidades.includes('gestion_humana');
-    const canApproveAdmin = user?.rol === 'admin' && (requisicion.estado === 'Pendiente de Jefe' || requisicion.estado === 'Pendiente de GH');
+    const canApproveAdmin = user?.role === 'admin' && (requisicion.estado === 'Pendiente de Jefe' || requisicion.estado === 'Pendiente de GH');
 
     const isApprover = canApproveJefe || canApproveGH || canApproveAdmin;
 
@@ -155,7 +168,7 @@ const RequisicionDetailView: React.FC<RequisicionDetailViewProps> = ({ requisici
                 >
                     Volver a la lista
                 </Button>
-                
+
                 <Button
                     variant="outline"
                     onClick={handleExportPDF}
@@ -269,8 +282,8 @@ const RequisicionDetailView: React.FC<RequisicionDetailViewProps> = ({ requisici
                         <InfoSection title="Condiciones y Beneficios" icon={DollarSign}>
                             <DataField label="Salario Asignado" value={`$ ${new Intl.NumberFormat('es-CO').format(requisicion.salario_asignado)}`} />
                             <DataField label="Horas Extra / Recargos" value={requisicion.horas_extra === 'si' ? 'SÍ' : 'NO'} />
-                            <DataField label="Modalidad" value={requisicion.modalidad_contratacion} />
-                            <DataField label="Tipo de Contrato" value={requisicion.tipo_contratacion} />
+                            <DataField label="Modalidad" value={modalidadMap[requisicion.modalidad_contratacion] || requisicion.modalidad_contratacion} />
+                            <DataField label="Tipo de Contrato" value={tipoContratacionMap[requisicion.tipo_contratacion] || requisicion.tipo_contratacion} />
                             {requisicion.auxilio_movilizacion ? <DataField label="Auxilio Movilización" value={`$ ${new Intl.NumberFormat('es-CO').format(requisicion.auxilio_movilizacion)}`} /> : null}
                             {requisicion.auxilio_alimentacion ? <DataField label="Auxilio Alimentación" value={`$ ${new Intl.NumberFormat('es-CO').format(requisicion.auxilio_alimentacion)}`} /> : null}
                             {requisicion.auxilio_vivienda ? <DataField label="Auxilio Vivienda" value={`$ ${new Intl.NumberFormat('es-CO').format(requisicion.auxilio_vivienda)}`} /> : null}

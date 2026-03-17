@@ -1,7 +1,4 @@
-"""
-Schemas de validación para Requisiciones de Personal
-"""
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, date
 from pydantic import BaseModel, ConfigDict, computed_field
 
@@ -39,6 +36,140 @@ class RequisicionBase(BaseModel):
     auxilio_movilizacion: Optional[int] = None
     auxilio_alimentacion: Optional[int] = None
     auxilio_vivienda: Optional[int] = None
+    unidad_negocio: Optional[str] = None
+    fecha_recibo_gh: Optional[date] = None
+    estado_rp: Optional[str] = "EN PROCESO"
+    
+    # Control de Temporales Centralizado
+    mejora: Optional[float] = 0.0
+    fecha_env_temporal: Optional[date] = None
+    
+    # Control SUMMAR
+    fecha_rec_gh_summar: Optional[date] = None
+    mejora_summar: Optional[int] = 0
+    fecha_env_summar: Optional[date] = None
+    
+    # Control MULTIEMPLEOS
+    fecha_rec_gh_multi: Optional[date] = None
+    mejora_multi: Optional[int] = 0
+    fecha_env_multi: Optional[date] = None
+    
+    # Control DIRECTO
+    fecha_rec_gh_directo: Optional[date] = None
+    mejora_directo: Optional[int] = 0
+    fecha_env_directo: Optional[date] = None
+
+    # Métricas Detalladas por Agencia
+    # SUMMAR
+    fecha_envio_hv_summar: Optional[date] = None
+    na_summar: Optional[int] = 0
+    a_summar: Optional[int] = 0
+    cancel_tiempo_summar: Optional[int] = 0
+    cancel_referido_summar: Optional[int] = 0
+    cancel_mov_summar: Optional[int] = 0
+    nc_exp_summar: Optional[int] = 0
+    nc_em_summar: Optional[int] = 0
+    nc_entrev_summar: Optional[int] = 0
+    nc_antcd_summar: Optional[int] = 0
+    nc_vial_summar: Optional[int] = 0
+    salario_final_summar: Optional[int] = 0
+    tiempo_summar: Optional[int] = 0
+    tipo_contrato_summar: Optional[str] = None
+    tema_personal_summar: Optional[int] = 0
+    no_asistio_entrev_summar: Optional[int] = 0
+    contratado_summar: Optional[int] = 0
+    obs_summar: Optional[str] = None
+
+    # MULTIEMPLEOS
+    fecha_envio_hv_multi: Optional[date] = None
+    na_multi: Optional[int] = 0
+    a_multi: Optional[int] = 0
+    cancel_tiempo_multi: Optional[int] = 0
+    cancel_referido_multi: Optional[int] = 0
+    cancel_mov_multi: Optional[int] = 0
+    nc_exp_multi: Optional[int] = 0
+    nc_em_multi: Optional[int] = 0
+    nc_entrev_multi: Optional[int] = 0
+    nc_antcd_multi: Optional[int] = 0
+    nc_vial_multi: Optional[int] = 0
+    salario_final_multi: Optional[int] = 0
+    tiempo_multi: Optional[int] = 0
+    tipo_contrato_multi: Optional[str] = None
+    tema_personal_multi: Optional[int] = 0
+    no_asistio_entrev_multi: Optional[int] = 0
+    contratado_multi: Optional[int] = 0
+    obs_multi: Optional[str] = None
+
+    # DIRECTO
+    fecha_envio_hv_directo: Optional[date] = None
+    na_directo: Optional[int] = 0
+    a_directo: Optional[int] = 0
+    cancel_tiempo_directo: Optional[int] = 0
+    cancel_referido_directo: Optional[int] = 0
+    cancel_mov_directo: Optional[int] = 0
+    nc_exp_directo: Optional[int] = 0
+    nc_em_directo: Optional[int] = 0
+    nc_entrev_directo: Optional[int] = 0
+    nc_antcd_directo: Optional[int] = 0
+    nc_vial_directo: Optional[int] = 0
+    salario_final_directo: Optional[int] = 0
+    tiempo_directo: Optional[int] = 0
+    tipo_contrato_directo: Optional[str] = None
+    tema_personal_directo: Optional[int] = 0
+    no_asistio_entrev_directo: Optional[int] = 0
+    contratado_directo: Optional[int] = 0
+    obs_directo: Optional[str] = None
+
+class RequisicionAgenciaDetalleBase(BaseModel):
+    agencia: str
+    fecha_envio_hv: Optional[date] = None
+    na: int = 0
+    a: int = 0
+    cancel_tiempo: int = 0
+    cancel_referido: int = 0
+    cancel_mov: int = 0
+    nc_exp: int = 0
+    nc_em: int = 0
+    nc_entrev: int = 0
+    nc_antcd: int = 0
+    nc_vial: int = 0
+    salario_final: int = 0
+    tiempo: int = 0
+    tipo_contrato: Optional[str] = None
+    tema_personal: int = 0
+    no_asistio_entrev: int = 0
+    contratado: int = 0
+    obs: Optional[str] = None
+
+class RequisicionAgenciaDetalleCreate(RequisicionAgenciaDetalleBase):
+    pass
+
+class RequisicionAgenciaDetalleUpdate(BaseModel):
+    id: Optional[int] = None # Si tiene ID, se actualiza; si no, se crea
+    agencia: Optional[str] = None
+    fecha_envio_hv: Optional[date] = None
+    na: Optional[int] = None
+    a: Optional[int] = None
+    cancel_tiempo: Optional[int] = None
+    cancel_referido: Optional[int] = None
+    cancel_mov: Optional[int] = None
+    nc_exp: Optional[int] = None
+    nc_em: Optional[int] = None
+    nc_entrev: Optional[int] = None
+    nc_antcd: Optional[int] = None
+    nc_vial: Optional[int] = None
+    salario_final: Optional[int] = None
+    tiempo: Optional[int] = None
+    tipo_contrato: Optional[str] = None
+    tema_personal: Optional[int] = None
+    no_asistio_entrev: Optional[int] = None
+    contratado: Optional[int] = None
+    obs: Optional[str] = None
+
+class RequisicionAgenciaDetalleRead(RequisicionAgenciaDetalleBase):
+    id: int
+    requisicion_id: str
+    model_config = ConfigDict(from_attributes=True)
 
 class RequisicionCrear(RequisicionBase):
     pass
@@ -66,5 +197,7 @@ class RequisicionPublica(RequisicionBase):
     nombre_gh_aprobador: Optional[str] = None
     fecha_revision_gh: Optional[datetime] = None
     comentario_revision_gh: Optional[str] = None
+    
+    detalles_agencias: List[RequisicionAgenciaDetalleRead] = []
     
     model_config = ConfigDict(from_attributes=True)

@@ -46,6 +46,13 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": False,
         "descripcion": "Control presupuestal y aprobación de gastos mayores.",
     },
+    {
+        "id": "requisiciones.control",
+        "nombre": "Control Requisiciones de Personal",
+        "categoria": "portal",
+        "es_critico": True,
+        "descripcion": "Módulo de gestión y seguimiento de requisiciones de personal.",
+    },
     # Módulos de Viáticos
     {
         "id": "viaticos_gestion",

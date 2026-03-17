@@ -24,17 +24,28 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
 
     // 1. Validación por módulo (RBAC Dinámico)
     // El Dashboard administrativo y la Torre de Control están permitidos para roles administrativos.
-    if ((moduleCode === 'dashboard' || moduleCode === 'control-tower') && isAdminRole) {
+    const isSpecialModule = ['dashboard', 'control-tower', 'requisiciones.control'].includes(moduleCode || '');
+    if (isSpecialModule && isAdminRole) {
         return <>{children}</>;
     }
 
     // Validación estricta de permisos si se requiere un moduleCode
-    if (moduleCode && user.permissions) {
+    if (moduleCode) {
         // Excepción Base: Si es "viaticante", se le permite acceso a las funciones base de viáticos
         const isViaticosBasicModule = ['viaticos_gestion', 'viaticos_reportes', 'viaticos_estado'].includes(moduleCode);
         const hasViaticanteBypass = isViaticosBasicModule && user.viaticante === true;
+        
+        // Excepción para Control de Requisiciones: GH tiene acceso
+        let isGH = false;
+        try {
+            const specs = JSON.parse(user.especialidades || '[]');
+            isGH = specs.includes('gestion_humana');
+        } catch (e) { /* ignore */ }
+        
+        const hasControlBypass = moduleCode === 'requisiciones.control' && isGH;
 
-        if (!user.permissions.includes(moduleCode) && !hasViaticanteBypass) {
+        const permissions = user.permissions || [];
+        if (!permissions.includes(moduleCode) && !hasViaticanteBypass && !hasControlBypass) {
             // Si el usuario NO tiene permiso para este módulo y NO aplica la excepción de viaticante:
 
             // Caso 1: Usuario estándar intentando entrar a ruta administrativa -> Redirigir al inicio del Portal

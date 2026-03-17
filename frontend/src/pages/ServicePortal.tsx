@@ -18,6 +18,8 @@ import RequisicionPersonalFormView from './ServicePortal/pages/RequisicionPerson
 import RequisicionManagementView from './ServicePortal/pages/RequisicionManagementView';
 import RequisicionListView from './ServicePortal/pages/RequisicionListView';
 import RequisicionDetailView from './ServicePortal/pages/RequisicionDetailView';
+import ControlRequisicionesView from './ServicePortal/pages/ControlRequisicionesView';
+import DetalleAgenciasView from './ServicePortal/pages/DetalleAgenciasView';
 import { Title, Text, Button, Icon } from '../components/atoms';
 import RequestPortalView from './ServicePortal/pages/Requests/RequestPortalView';
 import AlmacenSubAreaView from './ServicePortal/pages/Requests/AlmacenSubAreaView';
@@ -350,6 +352,7 @@ const ServicePortal: React.FC = () => {
                         onNavigate={(v) => {
                             if (v === 'nueva_requisicion') navigate('/service-portal/requisicion-personal/nueva');
                             else if (v === 'lista_requisiciones') navigate('/service-portal/requisicion-personal/lista');
+                            else if (v === 'control_requisiciones') navigate('/service-portal/requisicion-personal/control');
                         }}
                     />
                 } />
@@ -387,6 +390,18 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="requisicion-personal/lista/:requisicionId" element={
                     <RequisicionDetailWrapper onBack={() => navigate('/service-portal/requisicion-personal/lista')} />
+                } />
+
+                <Route path="requisicion-personal/control" element={
+                    <ProtectedRoute moduleCode="requisiciones.control">
+                        <ControlRequisicionesView onBack={() => navigate('/service-portal/requisicion-personal')} />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="requisicion-personal/control/:rpId" element={
+                    <ProtectedRoute moduleCode="requisiciones.control">
+                        <DetalleAgenciasView />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />
