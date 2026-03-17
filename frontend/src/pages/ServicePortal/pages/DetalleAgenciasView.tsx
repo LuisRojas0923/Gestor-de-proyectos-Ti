@@ -324,7 +324,7 @@ const DetalleAgenciasView: React.FC = () => {
                                                                     size="xs"
                                                                     icon={Plus}
                                                                     variant="primary"
-                                                                    className="w-full text-white font-bold hover:scale-105 transition-transform"
+                                                                    className="w-full !px-1 !py-0.5 !text-[9px] text-white font-bold hover:scale-105 transition-transform"
                                                                 >
                                                                     Nueva
                                                                 </Button>
