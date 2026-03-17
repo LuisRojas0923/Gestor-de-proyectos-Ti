@@ -32,7 +32,12 @@ from .api.viaticos.router import router as viaticos_router
 from .api.auth.config_router import router as config_router
 from .api.reserva_salas import router as reserva_salas_router
 
-# Configurar logging basico
+# Configurar logging centralizado
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler()]
+)
 logger = logging.getLogger(__name__)
 
 
