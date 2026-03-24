@@ -1,5 +1,6 @@
-import React from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Button, Text, Title } from '../../components/atoms';
 import ThemeToggle from '../../components/atoms/ThemeToggle';
 import imgLogoRefridcol from '../../assets/images/Logo Refridcol Solo.png';
@@ -13,6 +14,16 @@ interface PortalLayoutProps {
 }
 
 const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onLogout }) => {
+    const navigate = useNavigate();
+    const [fromAdmin, setFromAdmin] = useState(false);
+
+    useEffect(() => {
+        // Detectar si venimos del panel administrativo en esta sesión
+        const isFromAdmin = sessionStorage.getItem('fromAdmin') === 'true';
+        setFromAdmin(isFromAdmin);
+    }, []);
+
+    const isAdmin = ['analyst', 'admin', 'director', 'manager', 'admin_sistemas', 'admin_mejoramiento'].includes(user?.role?.toLowerCase());
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
@@ -22,7 +33,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                 <div className="h-full bg-black/10 transition-colors duration-300">
                     <div className="w-full px-4 sm:px-10 h-full flex items-center justify-between text-white relative py-0">
                         {/* 1. SECCIÓN IZQUIERDA (Logo Refridcol - Extremo Izquierdo y Alto Total) */}
-                        <div className="flex items-center justify-start shrink-0 h-full py-2">
+                        <div className="flex items-center justify-start shrink-0 h-full py-2 gap-4">
                             <Button
                                 variant="ghost"
                                 onClick={onHome}
@@ -35,6 +46,19 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                                     className="h-20 w-auto object-contain block"
                                 />
                             </Button>
+
+                            {fromAdmin && isAdmin && (
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => navigate('/')}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all shadow-lg backdrop-blur-md group animate-in slide-in-from-left-4 duration-500"
+                                    icon={ArrowLeft}
+                                >
+                                    <Text weight="bold" color="white" className="hidden sm:inline uppercase tracking-widest text-[10px]">
+                                        Regresar al Panel
+                                    </Text>
+                                </Button>
+                            )}
                         </div>
 
                         {/* 2. SECCIÓN CENTRAL (Identidad del Portal - Centrado Relativo en Móvil, Absoluto en Desktop) */}

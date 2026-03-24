@@ -29,9 +29,13 @@ async def login(
             form_data.password, usuario.hash_contrasena
         ):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciales incorrectas",
                 headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not usuario.esta_activo:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="La cuenta está desactivada. Por favor, contacte al administrador.",
             )
 
         if db_erp and (not usuario.area or not usuario.sede):
@@ -131,6 +135,12 @@ async def portal_login(
         "viaticante": is_viaticante,
         "baseviaticos": empleado.get("baseviaticos"),
     }
+
+    if usuario_local and not usuario_local.esta_activo:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="La cuenta está desactivada para acceso al portal."
+        )
 
     if usuario_local:
         try:

@@ -77,7 +77,7 @@ export const useTicketManagement = () => {
 
     useEffect(() => {
         fetchAnalysts();
-    }, [fetchAnalysts]);
+    }, [fetchAnalysts, state.refreshKey]);
 
     useEffect(() => {
         localStorage.setItem('ticket_search', searchTerm);
@@ -126,7 +126,7 @@ export const useTicketManagement = () => {
         }, 500);
 
         return () => clearTimeout(timer);
-    }, [fetchTickets]);
+    }, [fetchTickets, state.refreshKey]);
 
     useEffect(() => {
         setSubStatusFilter('Todos');

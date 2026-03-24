@@ -26,6 +26,7 @@ import { AlertPanel } from '../components/alerts';
 import { MetricCard } from '../components/molecules';
 import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
+import { useAppContext } from '../context/AppContext';
 
 interface DashboardMetrics {
   total_desarrollos: number;
@@ -124,6 +125,9 @@ const Dashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const { state } = useAppContext();
+  const { refreshKey } = state;
+
   useEffect(() => {
     // Load dashboard data
     const loadDashboardData = async () => {
@@ -161,7 +165,7 @@ const Dashboard: React.FC = () => {
       }
     };
     loadDashboardData();
-  }, [get, post]);
+  }, [get, post, refreshKey]);
 
   return (
     <div className="space-y-6">

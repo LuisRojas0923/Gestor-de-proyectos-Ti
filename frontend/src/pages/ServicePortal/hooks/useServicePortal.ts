@@ -108,13 +108,13 @@ export const useServicePortal = () => {
         fetchModuleStatus();
         fetchCategories();
         refreshUserProfile();
-    }, [fetchModuleStatus, fetchCategories, refreshUserProfile]);
+    }, [fetchModuleStatus, fetchCategories, refreshUserProfile, state.refreshKey]);
 
     useEffect(() => {
         if (user?.cedula || user?.id) {
             fetchTickets(user.cedula || user.id);
         }
-    }, [user?.cedula, user?.id, fetchTickets]);
+    }, [user?.cedula, user?.id, fetchTickets, state.refreshKey]);
 
     const fileToBase64 = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
