@@ -39,6 +39,7 @@ async def crear_analista(
 
 @router.get("/analistas", response_model=List[UsuarioPublico])
 async def listar_analistas(
+    solo_asignables: bool = False,
     db: AsyncSession = Depends(obtener_db),
     actual: Usuario = Depends(obtener_usuario_actual_db),
 ):
@@ -49,21 +50,32 @@ async def listar_analistas(
         )
 
     try:
-        # Consulta base para todos los roles
-        stmt = select(Usuario).where(
-            Usuario.rol.in_(
-                [
-                    "analyst",
-                    "admin_sistemas",
-                    "admin",
-                    "director",
-                    "manager",
-                    "usuario",
-                    "viaticante",
-                    "user",
-                ]
+        # Consulta base
+        stmt = select(Usuario)
+
+        if solo_asignables:
+            # Filtros estrictos para asignación de tickets
+            stmt = stmt.where(
+                Usuario.esta_activo,
+                Usuario.viaticante == False,
+                Usuario.rol.in_(["analyst", "admin_sistemas", "admin", "director", "manager"])
             )
-        )
+        else:
+            # Consulta original para gestión de usuarios
+            stmt = stmt.where(
+                Usuario.rol.in_(
+                    [
+                        "analyst",
+                        "admin_sistemas",
+                        "admin",
+                        "director",
+                        "manager",
+                        "usuario",
+                        "viaticante",
+                        "user",
+                    ]
+                )
+            )
 
         result = await db.execute(stmt)
         usuarios = result.scalars().all()
