@@ -19,7 +19,7 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
 
     return (
         <div className="space-y-6">
-            {/* Información General del Desarrollo */}
+            {/* Información General de la Actividad */}
             <MaterialCard elevation={2}>
                 <MaterialCard.Header>
                     <Title variant="h5" className="mb-2">
@@ -30,7 +30,7 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                             <Text variant="subtitle2" color="text-secondary" className="mb-2">
-                                Nombre del Desarrollo
+                                Nombre de la Actividad
                             </Text>
                             <Text variant="body1">
                                 {development?.name || 'No especificado'}
@@ -38,7 +38,7 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
                         </div>
                         <div>
                             <Text variant="subtitle2" color="text-secondary" className="mb-2">
-                                ID del Desarrollo
+                                ID de la Actividad
                             </Text>
                             <Text variant="body1">
                                 {development?.id || 'No especificado'}
@@ -137,19 +137,12 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
             <MaterialCard elevation={2}>
                 <MaterialCard.Header>
                     <Title variant="h5" className="mb-2">
-                        👥 Responsables y Proveedores
+                        👥 Responsables
                     </Title>
                 </MaterialCard.Header>
                 <MaterialCard.Content>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div>
-                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
-                                Proveedor
-                            </Text>
-                            <Text variant="body1">
-                                {development?.provider || 'No especificado'}
-                            </Text>
-                        </div>
+
                         <div>
                             <Text variant="subtitle2" color="text-secondary" className="mb-2">
                                 Responsable

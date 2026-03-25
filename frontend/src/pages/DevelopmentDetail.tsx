@@ -171,9 +171,9 @@ const DevelopmentDetail: React.FC = () => {
             onClick={() => navigate('/developments')}
             className="p-0 h-auto font-medium"
           >
-            ← Volver a desarrollos
+            ← Volver a actividades
           </Button>
-          <Title variant="h3" weight="bold" color="text-primary" className="mt-2">{development?.name || (loading ? 'Cargando...' : 'Desarrollo')}</Title>
+          <Title variant="h3" weight="bold" color="text-primary" className="mt-2">{development?.name || (loading ? 'Cargando...' : 'Actividad')}</Title>
           <Text variant="caption" color="text-secondary">{development?.id}</Text>
         </div>
 
@@ -194,7 +194,7 @@ const DevelopmentDetail: React.FC = () => {
             disabled={loading || !development}
             className="w-full sm:w-auto min-h-[44px]"
           >
-            ✏️ Editar Desarrollo
+            ✏️ Editar Actividad
           </Button>
         </div>
       </div>

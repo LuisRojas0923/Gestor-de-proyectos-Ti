@@ -16,6 +16,7 @@ import UserAdmin from '../pages/UserAdmin';
 import RoomsPage from '../pages/RoomsPage';
 import ControlTower from '../pages/ControlTower';
 import WbsTemplatesAdmin from '../pages/WbsTemplatesAdmin/WbsTemplatesAdmin';
+import { CorporateLinesManager } from '../pages/CorporateLines/CorporateLinesManager';
 import Layout from './layout/Layout';
 import ProtectedRoute from './auth/ProtectedRoute';
 
@@ -44,6 +45,7 @@ const AppRouter: React.FC = () => {
           <Route path="admin/control-tower" element={<ProtectedRoute moduleCode="control-tower"><ControlTower /></ProtectedRoute>} />
           <Route path="admin/wbs-templates" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><WbsTemplatesAdmin /></ProtectedRoute>} />
           <Route path="design-catalog" element={<ProtectedRoute moduleCode="design-catalog"><DesignSystemCatalog /></ProtectedRoute>} />
+          <Route path="lineas-corporativas" element={<ProtectedRoute moduleCode="lineas_corporativas"><CorporateLinesManager /></ProtectedRoute>} />
         </Route>
 
         {/* Rutas del Portal (Usuarios Finales) */}
