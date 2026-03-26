@@ -156,12 +156,12 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                     />
                     {isSearchingOT === linea.id && ots.length > 0 && typeof window !== 'undefined' && createPortal(
                         <div
-                            className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-200"
+                            className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-200 w-[var(--drop-width)] left-[var(--drop-left)] top-[var(--drop-top)]"
                             style={{
-                                top: dropdownPosition.top,
-                                left: dropdownPosition.left,
-                                width: dropdownPosition.width
-                            }}
+                                '--drop-top': `${dropdownPosition.top}px`,
+                                '--drop-left': `${dropdownPosition.left}px`,
+                                '--drop-width': `${dropdownPosition.width}px`
+                            } as React.CSSProperties}
                         >
                             <MaterialCard elevation={8} className="!rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]/95 backdrop-blur-md shadow-2xl">
                                 <div className="max-h-60 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--color-border)]">

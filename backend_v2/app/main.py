@@ -31,6 +31,7 @@ from .api.solid.router import router as solid_router
 from .api.viaticos.router import router as viaticos_router
 from .api.auth.config_router import router as config_router
 from .api.reserva_salas import router as reserva_salas_router
+from .api.inventario.router import router as inventario_router
 
 # Configurar logging centralizado
 logging.basicConfig(
@@ -165,5 +166,8 @@ app.include_router(solid_router, prefix=f"{api_prefix}/solid", tags=["SOLID"])
 app.include_router(viaticos_router, prefix=api_prefix, tags=["Viaticos"])
 app.include_router(
     reserva_salas_router, prefix=f"{api_prefix}/reserva-salas", tags=["Reserva Salas"]
+)
+app.include_router(
+    inventario_router, prefix=f"{api_prefix}/inventario", tags=["Inventario 2026"]
 )
 app.include_router(config_router, prefix=api_prefix, tags=["Configuracion Global"])

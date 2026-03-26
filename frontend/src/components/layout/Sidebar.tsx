@@ -15,7 +15,8 @@ import {
   Users,
   Activity,
   X,
-  ListTodo
+  ListTodo,
+  Warehouse
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -66,6 +67,7 @@ const Sidebar: React.FC = () => {
     { id: 'service-portal', name: 'Portal de Servicios', href: '/service-portal', icon: Share2 },
     { id: 'admin_usuarios', name: 'Gestión de Usuarios', href: '/admin/users', icon: Users },
     { id: 'reserva_salas_admin', name: 'Gestión de Salas', href: '/admin/rooms', icon: DoorOpen },
+    { id: 'inventario_anual', name: 'Inventario Anual', href: '/admin/inventario', icon: Warehouse },
     { id: 'settings', name: 'Configuración', href: '/settings', icon: Settings },
     { id: 'wbs_templates', name: 'Plantillas WBS', href: '/admin/wbs-templates', icon: ListTodo },
     { id: 'control-tower', name: 'Torre de Control', href: '/admin/control-tower', icon: Activity },

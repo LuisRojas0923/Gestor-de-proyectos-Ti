@@ -4,10 +4,12 @@ import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.p
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
 import sistemasolicitudes from '../../../assets/images/categories/logistico.png';
+import imgInventario from '../../../assets/images/categories/Consultar Reportes.png';
+
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario') => void;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
@@ -38,6 +40,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         permissions.includes('viaticos_gestion') ||
         user?.viaticante === true ||
         ['admin', 'director', 'manager'].includes(userRole)
+    );
+
+    const canSeeInventario = moduleStatus['inventario_2026'] !== false && (
+        permissions.includes('inventario_2026') ||
+        ['admin', 'director'].includes(userRole)
     );
 
     return (
@@ -83,6 +90,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                         description="Reporte de gastos y consulta de estado de cuenta detallado."
                         icon={<img src={imgGestionViaticos} alt="Gestión de Viáticos" className="w-full h-full object-contain p-2" />}
                         onClick={() => onNavigate('viaticos_gestion')}
+                    />
+                )}
+
+                {canSeeInventario && (
+                    <ActionCard
+                        title="Inventario 2026"
+                        description="Toma física de inventario y carga masiva de conteos."
+                        icon={<img src={imgInventario} alt="Inventario 2026" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onNavigate('inventario')}
                     />
                 )}
             </div>

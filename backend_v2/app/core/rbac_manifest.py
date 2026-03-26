@@ -210,4 +210,18 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": False,
         "descripcion": "Guía de estilos y componentes del sistema de diseño.",
     },
+    {
+        "id": "inventario_anual",
+        "nombre": "Inventario Anual",
+        "categoria": "panel",
+        "es_critico": True,
+        "descripcion": "Configuración y administración de tomas físicas de inventario.",
+    },
+    {
+        "id": "inventario_2026",
+        "nombre": "Inventario 2026 (Digitalización)",
+        "categoria": "portal",
+        "es_critico": True,
+        "descripcion": "Vista de digitalización para operarios en el portal.",
+    },
 ]

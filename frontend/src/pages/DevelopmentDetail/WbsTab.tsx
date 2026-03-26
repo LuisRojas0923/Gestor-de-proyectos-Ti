@@ -59,10 +59,9 @@ const WbsNode: React.FC<{
                     <div className="w-24 text-right">
                         <Text variant="caption" color="text-secondary">{node.porcentaje_avance}%</Text>
                         <div className="w-full bg-neutral-200 dark:bg-neutral-600 h-1.5 rounded-full mt-1 overflow-hidden flex">
-                            {/* DS-EXCEPTION: Se usa style inline para el ancho dinámico del progreso ya que no hay un átomo Progress que soporte esta lógica reactiva de datos. */}
                             <div
-                                className={`h-full ${node.porcentaje_avance === 100 ? 'bg-green-500' : 'bg-blue-500'}`}
-                                style={{ width: `${node.porcentaje_avance}%` }}
+                                className={`h-full ${node.porcentaje_avance === 100 ? 'bg-green-500' : 'bg-blue-500'} w-[var(--progress-width)] transition-all duration-500`}
+                                style={{ '--progress-width': `${node.porcentaje_avance}%` } as React.CSSProperties}
                             />
                         </div>
                     </div>

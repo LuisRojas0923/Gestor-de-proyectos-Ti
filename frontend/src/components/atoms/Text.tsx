@@ -88,6 +88,7 @@ export const Text: React.FC<TextProps> = ({
         ${weightStyles[weight]}
         ${alignStyles[align]}
         ${colorStyles[color] || ''}
+        m-0
         ${onClick ? 'cursor-pointer hover:opacity-80' : ''}
         ${className}
       `}

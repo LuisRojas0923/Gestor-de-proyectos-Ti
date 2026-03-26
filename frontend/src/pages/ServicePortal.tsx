@@ -3,6 +3,7 @@ import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
+import { Title, Text, Button } from '../components/atoms';
 
 import DashboardView from './ServicePortal/pages/DashboardView';
 import TicketListView from './ServicePortal/pages/TicketListView';
@@ -18,6 +19,7 @@ import RequestPortalView from './ServicePortal/pages/Requests/RequestPortalView'
 import AlmacenSubAreaView from './ServicePortal/pages/Requests/AlmacenSubAreaView';
 import AlmacenFormView from './ServicePortal/pages/Requests/AlmacenFormView';
 import MisRequisicionesView from './ServicePortal/pages/Requests/MisRequisicionesView';
+import InventarioView from './ServicePortal/pages/InventarioView';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import PortalLayout from './ServicePortal/PortalLayout';
 
@@ -135,6 +137,7 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'status') navigate('/service-portal/mis-tickets');
                             else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
                             else if (v === 'requisiciones') navigate('/service-portal/requisiciones');
+                            else if (v === 'inventario') navigate('/service-portal/inventario');
                         }}
                     />
                 } />
@@ -289,6 +292,12 @@ const ServicePortal: React.FC = () => {
                 <Route path="reserva-salas" element={
                     <ProtectedRoute moduleCode="reserva_salas">
                         <ReservaSalasView onBack={() => navigate('/service-portal/inicio')} />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="inventario" element={
+                    <ProtectedRoute moduleCode="inventario_2026">
+                        <InventarioView onBack={() => navigate('/service-portal/inicio')} />
                     </ProtectedRoute>
                 } />
 

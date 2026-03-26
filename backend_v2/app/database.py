@@ -196,8 +196,9 @@ async def init_db():
     # 3.1 Seed idempotente de sala por defecto
     try:
         import uuid
-        from sqlmodel import select
+        from sqlalchemy import select
         from .models.reserva_salas.models import Room
+        from .models.inventario.conteo import ConteoInventario, AsignacionInventario
 
         default_room_id = uuid.UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 

@@ -16,6 +16,7 @@ import UserAdmin from '../pages/UserAdmin';
 import RoomsPage from '../pages/RoomsPage';
 import ControlTower from '../pages/ControlTower';
 import WbsTemplatesAdmin from '../pages/WbsTemplatesAdmin/WbsTemplatesAdmin';
+import InventarioAdmin from '../pages/InventarioAdmin/InventarioAdmin';
 import Layout from './layout/Layout';
 import ProtectedRoute from './auth/ProtectedRoute';
 
@@ -43,6 +44,7 @@ const AppRouter: React.FC = () => {
           <Route path="admin/rooms" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><RoomsPage /></ProtectedRoute>} />
           <Route path="admin/control-tower" element={<ProtectedRoute moduleCode="control-tower"><ControlTower /></ProtectedRoute>} />
           <Route path="admin/wbs-templates" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><WbsTemplatesAdmin /></ProtectedRoute>} />
+          <Route path="admin/inventario" element={<ProtectedRoute moduleCode="inventario_anual"><InventarioAdmin /></ProtectedRoute>} />
           <Route path="design-catalog" element={<ProtectedRoute moduleCode="design-catalog"><DesignSystemCatalog /></ProtectedRoute>} />
         </Route>
 
