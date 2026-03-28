@@ -69,12 +69,12 @@ class ServicioInventario:
                 continue
             
             try:
-                # Datos del Excel
-                bodega_val = str(row[1]) if row[1] is not None else ""
-                bloque_val = str(row[2]) if row[2] is not None else ""
-                estante_val = str(row[3]) if row[3] is not None else ""
-                nivel_val = str(row[4]) if row[4] is not None else ""
-                codigo_val = str(row[5]) if row[5] is not None else ""
+                # Datos del Excel con limpieza de espacios
+                bodega_val = str(row[1]).strip() if row[1] is not None else ""
+                bloque_val = str(row[2]).strip() if row[2] is not None else ""
+                estante_val = str(row[3]).strip() if row[3] is not None else ""
+                nivel_val = str(row[4]).strip() if row[4] is not None else ""
+                codigo_val = str(row[5]).strip() if row[5] is not None else ""
                 cant_sist_val = float(row[8]) if row[8] is not None else 0.0
                 legalizar_val = float(row[9]) if len(row) > 9 and row[9] is not None else 0.0
 

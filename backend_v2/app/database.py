@@ -284,6 +284,18 @@ async def init_db():
                 SET cantidad_final = (COALESCE(cantidad_sistema, 0) + COALESCE(invporlegalizar, 0))
                 WHERE cantidad_final = 0 AND (cantidad_sistema > 0 OR invporlegalizar > 0);
             """))
+
+            # --- SANEAMIENTO DE DATOS (Robustez para Staging) ---
+            # 1. Asegurar que el estado no sea NULL (Causa de invisibilidad en portal)
+            await conn.execute(text("UPDATE conteoinventario SET estado = 'PENDIENTE' WHERE estado IS NULL;"))
+            
+            # 2. Normalizar Bodega, Bloque y Estante (Eliminar espacios accidentales)
+            await conn.execute(text("UPDATE conteoinventario SET bodega = TRIM(bodega), bloque = TRIM(bloque), estante = TRIM(estante);"))
+            await conn.execute(text("UPDATE asignacioninventario SET bodega = TRIM(bodega), bloque = TRIM(bloque), estante = TRIM(estante);"))
+            
+            # 3. Inicializar campos numéricos para evitar errores de tipo
+            await conn.execute(text("UPDATE conteoinventario SET invporlegalizar = 0 WHERE invporlegalizar IS NULL;"))
+            await conn.execute(text("UPDATE conteoinventario SET diferencia_total = 0 WHERE diferencia_total IS NULL AND (cant_c1 IS NULL OR cant_c1 = 0);"))
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría: {e}")
 

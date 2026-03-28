@@ -230,36 +230,45 @@ async def obtener_mis_asignaciones(
 ) -> List[Dict[str, Any]]:
     """Obtiene los productos asignados al usuario actual filtrando por estado."""
     try:
-        cedula_usuario = usuario.cedula
+        # 1. Normalización de Cédula (Ignorar ceros a la izquierda y espacios)
+        cedula_usuario_norm = usuario.cedula.strip().lstrip('0')
+        print(f"DEBUG: Buscando asignación para cédula normalizada: {cedula_usuario_norm}")
 
-        # 1. Buscar asignación
-        stmt_asig = select(AsignacionInventario).where(AsignacionInventario.cedula == cedula_usuario)
+        # 1.1 Buscar asignación usando normalización
+        stmt_asig = select(AsignacionInventario).where(
+            func.ltrim(func.trim(AsignacionInventario.cedula), '0') == cedula_usuario_norm
+        )
         result_asig = await db.execute(stmt_asig)
         asignacion = result_asig.scalar_one_or_none()
 
         if not asignacion:
+            print(f"DEBUG: No se encontró asignación para usuario {usuario.cedula}")
             return []
 
-        # El operario solo ve lo que esté marcado como PENDIENTE o RECONTEO
-        # Si estante o nivel están vacíos en la asignación, actúa como comodín (ve todo el bloque/estante)
+        print(f"DEBUG: Asignación hallada: {asignacion.bodega} - {asignacion.bloque}")
+
+        # 2. Filtrado robusto (Ignorar espacios y mayúsculas)
         stmt_inv = select(ConteoInventario).where(and_(
-            ConteoInventario.bodega == asignacion.bodega,
-            ConteoInventario.bloque == asignacion.bloque,
+            func.trim(func.upper(ConteoInventario.bodega)) == func.trim(func.upper(asignacion.bodega)),
+            func.trim(func.upper(ConteoInventario.bloque)) == func.trim(func.upper(asignacion.bloque)),
             ConteoInventario.estado.in_(["PENDIENTE", "RECONTEO"])
         ))
         
+        # Filtros opcionales (Estante/Nivel) también normalizados
         if asignacion.estante and asignacion.estante.strip():
-            estantes_lista = [e.strip() for e in asignacion.estante.split(',') if e.strip()]
+            estantes_lista = [e.strip().upper() for e in asignacion.estante.split(',') if e.strip()]
             if len(estantes_lista) > 1:
-                stmt_inv = stmt_inv.where(ConteoInventario.estante.in_(estantes_lista))
+                stmt_inv = stmt_inv.where(func.trim(func.upper(ConteoInventario.estante)).in_(estantes_lista))
             else:
-                stmt_inv = stmt_inv.where(ConteoInventario.estante == estantes_lista[0])
+                stmt_inv = stmt_inv.where(func.trim(func.upper(ConteoInventario.estante)) == estantes_lista[0])
             
         if asignacion.nivel and asignacion.nivel.strip():
-            stmt_inv = stmt_inv.where(ConteoInventario.nivel == asignacion.nivel)
+            stmt_inv = stmt_inv.where(func.trim(func.upper(ConteoInventario.nivel)) == asignacion.nivel.strip().upper())
             
         result_inv = await db.execute(stmt_inv)
         productos = result_inv.scalars().all()
+        
+        print(f"DEBUG: Se enviarán {len(productos)} productos al operario")
         
         return [
             {
