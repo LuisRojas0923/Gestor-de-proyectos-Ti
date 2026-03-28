@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useApi } from '../../hooks/useApi';
-import { Title, Text, Button, Badge } from '../../components/atoms';
+import { Title, Text, Button, Badge, ProgressBar } from '../../components/atoms';
 import { WbsActivityTree } from '../../types/wbs';
 import { Plus, ChevronDown, ChevronRight, Download } from 'lucide-react';
 import { WbsNodeModal } from './WbsNodeModal';
@@ -58,12 +58,11 @@ const WbsNode: React.FC<{
                 <div className="flex items-center gap-4 flex-shrink-0">
                     <div className="w-24 text-right">
                         <Text variant="caption" color="text-secondary">{node.porcentaje_avance}%</Text>
-                        <div className="w-full bg-neutral-200 dark:bg-neutral-600 h-1.5 rounded-full mt-1 overflow-hidden flex">
-                            <div
-                                className={`h-full ${node.porcentaje_avance === 100 ? 'bg-green-500' : 'bg-blue-500'} w-[var(--progress-width)] transition-all duration-500`}
-                                style={{ '--progress-width': `${node.porcentaje_avance}%` } as React.CSSProperties}
-                            />
-                        </div>
+                        <ProgressBar 
+                            progress={node.porcentaje_avance} 
+                            variant={node.porcentaje_avance === 100 ? 'success' : 'primary'} 
+                            className="h-1.5 mt-1" 
+                        />
                     </div>
 
                     <div className="w-24">
@@ -220,7 +219,6 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
                             <div className="w-24 font-bold text-xs uppercase tracking-wider text-neutral-500">Estado</div>
                             <div className="w-[120px] font-bold text-xs uppercase tracking-wider text-neutral-500 text-center">Acciones</div>
                         </div>
-                        {/* Lista de Nodos */}
                         <div className="flex flex-col w-full pb-4">
                             {tree.map(node => (
                                 <WbsNode

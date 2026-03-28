@@ -316,11 +316,15 @@ export const useExpenseForm = () => {
         logMarina("🔄 [LOAD] Normalizando y recuperando combinaciones para OTs (paralelo):", otsUnicas);
 
         // Disparar TODAS las peticiones de OT en paralelo en vez de secuencial
-        const promesasOT = otsUnicas.map(otNum =>
-            axios.get(`${API_BASE_URL}/viaticos/ot/${otNum}/combinaciones`)
-                .then(res => ({ ot: otNum, combos: res.data }))
-                .catch(err => { console.error(`Error recuperando combos para OT ${otNum}:`, err); return { ot: otNum, combos: [] }; })
-        );
+        const promesasOT = otsUnicas.map(async (otNum) => {
+            try {
+                const res = await axios.get(`${API_BASE_URL}/viaticos/ot/${otNum}/combinaciones`);
+                return { ot: otNum, combos: res.data };
+            } catch (err) {
+                console.error(`Error recuperando combos para OT ${otNum}:`, err);
+                return { ot: otNum, combos: [] };
+            }
+        });
 
         const resultadosOT = await Promise.all(promesasOT);
 

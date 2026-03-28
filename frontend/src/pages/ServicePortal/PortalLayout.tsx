@@ -1,5 +1,5 @@
 import { LogOut, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Button, Text, Title } from '../../components/atoms';
 import ThemeToggle from '../../components/atoms/ThemeToggle';
@@ -15,7 +15,10 @@ interface PortalLayoutProps {
 
 const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onLogout }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [fromAdmin, setFromAdmin] = useState(false);
+
+    const isInventario = location.pathname.includes('/inventario');
 
     useEffect(() => {
         // Detectar si venimos del panel administrativo en esta sesión
@@ -27,7 +30,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
-            <header className="bg-transparent border-b border-white/20 sticky top-0 z-50 transition-all duration-300 h-20 shadow-lg">
+            <header className={`bg-transparent border-b border-white/20 sticky top-0 z-50 transition-all duration-300 h-20 shadow-lg ${isInventario ? 'md:hidden' : ''}`}>
                 <div className="absolute inset-0 bg-main-wallpaper transition-opacity duration-500 opacity-100 -z-10" />
 
                 <div className="h-full bg-black/10 transition-colors duration-300">
@@ -108,6 +111,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                 {children}
             </main>
 
+            {!isInventario && (
             <footer className="w-full h-[60px] py-2 z-40 bg-[var(--color-surface)] border-t border-[var(--color-border)] opacity-60 hover:opacity-100 transition-opacity duration-500 flex items-center sticky bottom-0 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
                 <div className="w-full mx-auto px-8 flex flex-col items-center justify-center gap-1">
                     <Text variant="caption" weight="medium" className="uppercase tracking-[0.2em] text-[var(--color-text-secondary)] text-[10px]">
@@ -123,6 +127,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                     </div>
                 </div>
             </footer>
+            )}
         </div>
     );
 };

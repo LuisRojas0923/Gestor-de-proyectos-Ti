@@ -3,8 +3,6 @@ import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
-import { Title, Text, Button } from '../components/atoms';
-
 import DashboardView from './ServicePortal/pages/DashboardView';
 import TicketListView from './ServicePortal/pages/TicketListView';
 import SuccessView from './ServicePortal/pages/SuccessView';
@@ -19,7 +17,7 @@ import RequestPortalView from './ServicePortal/pages/Requests/RequestPortalView'
 import AlmacenSubAreaView from './ServicePortal/pages/Requests/AlmacenSubAreaView';
 import AlmacenFormView from './ServicePortal/pages/Requests/AlmacenFormView';
 import MisRequisicionesView from './ServicePortal/pages/Requests/MisRequisicionesView';
-import InventarioView from './ServicePortal/pages/InventarioView';
+import InventarioView from './ServicePortal/pages/Inventario';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import PortalLayout from './ServicePortal/PortalLayout';
 

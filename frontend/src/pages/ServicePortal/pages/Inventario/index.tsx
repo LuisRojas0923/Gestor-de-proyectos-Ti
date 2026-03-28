@@ -1,0 +1,209 @@
+import React from 'react';
+import { Title, Text, Button, ProgressBar } from '../../../../components/atoms';
+import { ArrowLeft, Loader2, FileText, Save } from 'lucide-react';
+import { useNotifications } from '../../../../components/notifications/NotificationsContext';
+import { TableRow } from './components/TableRow';
+import { MobileItemCard } from './components/MobileItemCard';
+import { FilterHeader } from './components/FilterHeader';
+import { useInventarioData } from './hooks/useInventarioData';
+import { useInventarioPDF } from './hooks/useInventarioPDF';
+
+interface InventarioViewProps {
+    onBack: () => void;
+}
+
+const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
+    const { addNotification } = useNotifications();
+    const {
+        isLoading,
+        ronda,
+        changes,
+        isSigning,
+        validationErrors,
+        filteredItems,
+        handleInputChange,
+        handleSignAll,
+        handleSaveSingle,
+        columnFilters,
+        getUniqueValues,
+        handleColumnFilterChange,
+        stats
+    } = useInventarioData(addNotification);
+
+    const { handleGeneratePDF } = useInventarioPDF({ filteredItems, ronda, addNotification });
+
+    const userData = React.useMemo(() => {
+        const raw = localStorage.getItem('user');
+        if (!raw) return { nombre: 'Usuario', cedula: '---' };
+        const parsed = JSON.parse(raw);
+        return {
+            nombre: (parsed.nombre || parsed.name || 'Usuario').toUpperCase(),
+            cedula: parsed.cedula || parsed.nrocedula || parsed.id || '---'
+        };
+    }, []);
+
+    return (
+        <div className="max-w-7xl mx-auto space-y-4 py-2 animate-in fade-in duration-500">
+            {/* Header Card */}
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] py-2 px-6 rounded-3xl shadow-sm flex flex-col items-stretch relative overflow-hidden min-h-[64px]">
+                <div className="flex flex-col md:flex-row items-center justify-start gap-4 w-full z-10">
+                    <div className="flex flex-1 items-center gap-2 w-full md:w-auto">
+                        <Button variant="ghost" onClick={onBack} icon={ArrowLeft} className="rounded-xl shrink-0 !p-1" />
+                        <div className="flex flex-col justify-center shrink-0">
+                            <Title variant="h5" weight="bold" className="leading-tight text-xs">Inventario 2026</Title>
+                        </div>
+
+                        {/* User identity */}
+                        <div className="flex flex-col border-l border-neutral-200 dark:border-neutral-700 pl-3 ml-1">
+                            <Text variant="caption" weight="bold" className="text-[10px] leading-none text-neutral-800 dark:text-neutral-200">{userData.nombre}</Text>
+                            <Text variant="caption" className="text-[7px] text-neutral-500 uppercase font-black tracking-widest">{userData.cedula}</Text>
+                        </div>
+
+                        {/* Desktop-only Progress (Visible on md+) */}
+                        <div className="hidden md:flex flex-1 items-center gap-3 bg-neutral-50/50 dark:bg-neutral-900/30 p-1.5 px-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 h-9 mx-4">
+                            <div className="flex flex-col shrink-0">
+                                <Text variant="caption" weight="bold" className="text-[6px] text-primary-500 uppercase tracking-tighter leading-none mb-0.5">Items</Text>
+                                <div className="flex items-baseline gap-0.5">
+                                    <Text variant="body2" weight="bold" className="text-[10px] leading-none text-neutral-900 dark:text-neutral-100">{stats.counted}</Text>
+                                    <Text variant="caption" className="text-[8px] opacity-40 font-bold">/{stats.total}</Text>
+                                </div>
+                            </div>
+                            <div className="flex-1 pt-0.5">
+                                <ProgressBar progress={stats.percent} variant="accent" className="h-1.5 shadow-inner" />
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0 ml-1">
+                                <Text variant="caption" weight="bold" className="text-[7px] text-primary-500 uppercase tracking-tighter leading-none whitespace-nowrap"># E:</Text>
+                                <Text variant="body2" weight="bold" className="text-[7px] leading-none text-neutral-900 dark:text-neutral-100">{stats.estantes}</Text>
+                            </div>
+                        </div>
+
+                        {/* Ronda pill (Desktop & Mobile) */}
+                        <div className="flex items-center justify-start gap-2 bg-neutral-50 dark:bg-neutral-800/50 p-1 px-3 rounded-xl border border-[var(--color-border)] ml-auto md:ml-0">
+                            <Text variant="caption" weight="bold" className="text-primary-600 dark:text-primary-400 text-[10px]">C{ronda}</Text>
+                        </div>
+
+                        {/* Action Buttons (Desktop Version - Icon Only) */}
+                        <div className="hidden md:flex items-center gap-2 ml-2">
+                            <Button
+                                variant="primary"
+                                onClick={handleSignAll}
+                                disabled={isSigning || Object.keys(changes).length === 0}
+                                className="w-10 rounded-2xl h-8 p-0 flex items-center justify-center shadow-lg shadow-primary-500/20"
+                            >
+                                {isSigning ? <Loader2 className="animate-spin text-white" size={12} /> : <Save size={16} />}
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={handleGeneratePDF}
+                                className="w-10 rounded-2xl flex items-center justify-center border border-primary-500/10 text-primary-600 h-8 shrink-0 bg-neutral-50/50"
+                            >
+                                <FileText size={16} />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Mobile Actions & Progress (Visible on mobile only) */}
+                <div className="mt-2 flex items-center gap-2 md:hidden">
+                    <div className="flex-1 flex items-center gap-3 bg-neutral-50/50 dark:bg-neutral-900/30 p-1.5 px-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 h-9">
+                        <div className="flex flex-col shrink-0">
+                            <Text variant="caption" weight="bold" className="text-[6px] text-primary-500 uppercase tracking-tighter leading-none mb-0.5">Items</Text>
+                            <div className="flex items-baseline gap-0.5">
+                                <Text variant="body2" weight="bold" className="text-[10px] leading-none text-neutral-900 dark:text-neutral-100">{stats.counted}</Text>
+                                <Text variant="caption" className="text-[8px] opacity-40 font-bold">/{stats.total}</Text>
+                            </div>
+                        </div>
+                        <div className="flex-1 pt-0.5">
+                            <ProgressBar progress={stats.percent} variant="accent" className="h-1.5 shadow-inner" />
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0 ml-1">
+                            <Text variant="caption" weight="bold" className="text-[7px] text-primary-500 uppercase tracking-tighter leading-none whitespace-nowrap">#. E:</Text>
+                            <Text variant="body2" weight="bold" className="text-[10px] leading-none text-neutral-900 dark:text-neutral-100">{stats.estantes}</Text>
+                        </div>
+                    </div>
+
+                    <Button
+                        variant="primary"
+                        onClick={handleSignAll}
+                        disabled={isSigning || Object.keys(changes).length === 0}
+                        className="w-10 rounded-2xl h-9 p-0 flex items-center justify-center shadow-lg shadow-primary-500/20"
+                    >
+                        {isSigning ? <Loader2 className="animate-spin text-white" size={14} /> : <Save size={16} />}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        onClick={handleGeneratePDF}
+                        className="w-10 rounded-2xl flex items-center justify-center border border-primary-500/10 text-primary-600 h-9 shrink-0 bg-neutral-50/50"
+                    >
+                        <FileText size={16} />
+                    </Button>
+                </div>
+            </div>
+
+            {/* Mobile View */}
+            <div className="grid grid-cols-1 gap-4 md:hidden pb-20">
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                        <Loader2 className="animate-spin text-primary-500" size={32} />
+                        <Text variant="caption">Cargando asignaciones...</Text>
+                    </div>
+                ) : filteredItems.map((item) => (
+                    <MobileItemCard
+                        key={item.id}
+                        item={item}
+                        value={changes[item.id]?.cant ?? (item[`user_c${ronda}`] ? String(item[`cant_c${ronda}`] ?? '') : '')}
+                        obs={changes[item.id]?.obs ?? String(item[`obs_c${ronda}`] || '')}
+                        onChange={(field: 'cant' | 'obs', val: string) => handleInputChange(item.id, field, val)}
+                        onSave={handleSaveSingle}
+                        isSaving={isSigning}
+                        isInvalid={validationErrors.has(item.id)}
+                        isSaved={!!item[`user_c${ronda}`] && !changes[item.id]}
+                    />
+                ))}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden md:block bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm relative overflow-auto max-h-[calc(100vh-160px)] scrollbar-thin scrollbar-thumb-neutral-200 dark:scrollbar-thumb-neutral-700">
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                        <Loader2 className="animate-spin text-primary-500" size={32} />
+                        <Text variant="caption">Cargando tabla...</Text>
+                    </div>
+                ) : (
+                    <table className="w-full text-left table-separate min-w-[750px]">
+                        <thead>
+                            <tr className="bg-navy border-none">
+                                <FilterHeader label="BDG." col="bodega" minWidth="20px" columnFilters={columnFilters} getUniqueValues={getUniqueValues} onFilterChange={handleColumnFilterChange} />
+                                <FilterHeader label="Blq." col="bloque" minWidth="20px" align="center" columnFilters={columnFilters} getUniqueValues={getUniqueValues} onFilterChange={handleColumnFilterChange} />
+                                <FilterHeader label="Est." col="estante" minWidth="20px" align="center" columnFilters={columnFilters} getUniqueValues={getUniqueValues} onFilterChange={handleColumnFilterChange} />
+                                <FilterHeader label="Niv." col="nivel" minWidth="20px" align="center" columnFilters={columnFilters} getUniqueValues={getUniqueValues} onFilterChange={handleColumnFilterChange} />
+                                <th className="p-1 px-1 text-[12px] font-bold uppercase tracking-tighter text-white w-[45px] sticky top-0 z-20 bg-navy ios-sticky-fix">Código</th>
+                                <th className="p-1 px-1 text-[12px] font-bold uppercase tracking-tighter text-white w-[180px] sticky top-0 z-20 bg-navy ios-sticky-fix">Descripción</th>
+                                <th className="p-1 px-1 text-[12px] font-bold uppercase tracking-tighter text-white text-center w-[30px] sticky top-0 z-20 bg-navy ios-sticky-fix">Und.</th>
+                                <FilterHeader label={`Cant`} col={`cant_c${ronda}`} minWidth="55px" align="center" columnFilters={columnFilters} getUniqueValues={getUniqueValues} onFilterChange={handleColumnFilterChange} />
+                                <th className="p-1 px-1 text-[12px] font-bold uppercase tracking-tighter text-white w-[150px] sticky top-0 z-20 bg-navy ios-sticky-fix">OBSERVACIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--color-border)] bg-[var(--color-surface)]">
+                            {filteredItems.map((item) => (
+                                <TableRow
+                                    key={item.id}
+                                    item={item}
+                                    value={changes[item.id]?.cant ?? (item[`user_c${ronda}`] ? String(item[`cant_c${ronda}`] ?? '') : '')}
+                                    obs={changes[item.id]?.obs ?? String(item[`obs_c${ronda}`] || '')}
+                                    onChange={(field: 'cant' | 'obs', val: string) => handleInputChange(item.id, field, val)}
+                                    isInvalid={validationErrors.has(item.id)}
+                                    isSaved={!!item[`user_c${ronda}`] && !changes[item.id]}
+                                />
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default InventarioView;

@@ -15,6 +15,8 @@ export { Title } from './Title';
 export { Subtitle } from './Subtitle';
 export { Icon } from './Icon';
 export { default as ThemeToggle } from './ThemeToggle';
+export { ProgressBar } from './ProgressBar';
+export { MultiSelect } from './MultiSelect';
 
 // Componentes de Material Design (Legacy - Preferir versiones estándar)
 // Componentes de Material Design (Legacy - Preferir versiones estándar)

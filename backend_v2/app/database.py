@@ -190,6 +190,51 @@ async def init_db():
                     "ALTER TABLE sesiones DROP CONSTRAINT IF EXISTS sesiones_usuario_id_fkey"
                 )
             )
+
+            # --- MIGRACIÓN INVENTARIO 2026 ---
+            await conn.execute(
+                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS estado VARCHAR(20) DEFAULT 'PENDIENTE'")
+            )
+            await conn.execute(
+                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS diferencia FLOAT DEFAULT 0.0")
+            )
+            await conn.execute(
+                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS invporlegalizar FLOAT DEFAULT 0.0")
+            )
+            
+            # Tablas Adicionales
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS asignacioninventario (
+                    id SERIAL PRIMARY KEY,
+                    bodega VARCHAR(100),
+                    bloque VARCHAR(50),
+                    estante VARCHAR(50),
+                    nivel VARCHAR(50),
+                    cedula VARCHAR(50),
+                    nombre VARCHAR(255),
+                    cargo VARCHAR(100),
+                    creado_en TIMESTAMP DEFAULT NOW()
+                );
+            """))
+            
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS transitoinventario (
+                    id SERIAL PRIMARY KEY,
+                    sku VARCHAR(100),
+                    documento VARCHAR(100),
+                    cantidad FLOAT DEFAULT 0.0,
+                    fecha_proceso TIMESTAMP DEFAULT NOW()
+                );
+            """))
+            
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS configuracioninventario (
+                    id SERIAL PRIMARY KEY,
+                    ronda_activa INTEGER DEFAULT 1,
+                    conteo_nombre VARCHAR(100),
+                    ultima_actualizacion TIMESTAMP DEFAULT NOW()
+                );
+            """))
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría: {e}")
 
@@ -198,7 +243,6 @@ async def init_db():
         import uuid
         from sqlalchemy import select
         from .models.reserva_salas.models import Room
-        from .models.inventario.conteo import ConteoInventario, AsignacionInventario
 
         default_room_id = uuid.UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 

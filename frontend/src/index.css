@@ -62,6 +62,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===================================================
+   SISTEMA DE DISEÑO: Componente Tag Badge (Etiqueta)
+   Usado para valores compactos en tablas (ubicaciones,
+   cantidades, identifiers). Garantiza estilo uniforme.
+   =================================================== */
+@layer utilities {
+  .tag-badge {
+    display: inline-block;
+    background-color: #f5f5f5; /* neutral-100 */
+    border-radius: 0.125rem;   /* rounded */
+    padding: 0.125rem 0.125rem; /* px-0.5 py-0.5 */
+    font-size: 9px !important; /* text-[9px] */
+    font-weight: 700 !important; /* font-bold */
+    letter-spacing: -0.05em !important; /* tracking-tighter */
+    color: #111827;            /* gray-900 */
+    line-height: 1;
+    white-space: nowrap;
+  }
+}
+
+.dark .tag-badge {
+  background-color: #262626; /* neutral-800 */
+  color: #f9fafb; /* gray-100 */
+}
+
+/* Variante grande para tablas de monitoreo admin */
+.tag-badge-lg {
+  display: inline-block;
+  background-color: #f5f5f5;
+  border-radius: 0.125rem;
+  padding: 0.125rem 0.25rem;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.05em !important;
+  color: #111827;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dark .tag-badge-lg {
+  background-color: #262626;
+  color: #f9fafb;
+}
+
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
 }
@@ -94,6 +138,18 @@ body {
   color: var(--color-primary);
 }
 .reserva-salas-calendar .fc-toolbar-title {
+/* Estabilización de Sticky Headers para iOS Safari */
+.ios-sticky-fix {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.table-separate {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
   color: var(--color-primary);
   font-weight: 700;
 }

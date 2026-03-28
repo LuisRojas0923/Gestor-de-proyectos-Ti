@@ -38,6 +38,7 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
     const { addNotification } = useNotifications();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const otInputContainerRef = useRef<HTMLDivElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
     useEffect(() => {
@@ -71,6 +72,14 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
             };
         }
     }, [isSearchingOT, linea.id, ots.length]);
+
+    useEffect(() => {
+        if (isSearchingOT === linea.id && dropdownRef.current) {
+            dropdownRef.current.style.top = `${dropdownPosition.top}px`;
+            dropdownRef.current.style.left = `${dropdownPosition.left}px`;
+            dropdownRef.current.style.width = `${dropdownPosition.width}px`;
+        }
+    }, [dropdownPosition, isSearchingOT, linea.id]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -156,12 +165,8 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
                     />
                     {isSearchingOT === linea.id && ots.length > 0 && typeof window !== 'undefined' && createPortal(
                         <div
-                            className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-200 w-[var(--drop-width)] left-[var(--drop-left)] top-[var(--drop-top)]"
-                            style={{
-                                '--drop-top': `${dropdownPosition.top}px`,
-                                '--drop-left': `${dropdownPosition.left}px`,
-                                '--drop-width': `${dropdownPosition.width}px`
-                            } as React.CSSProperties}
+                            ref={dropdownRef}
+                            className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-200"
                         >
                             <MaterialCard elevation={8} className="!rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]/95 backdrop-blur-md shadow-2xl">
                                 <div className="max-h-60 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-[var(--color-border)]">
@@ -309,13 +314,14 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
             {/* Adjunto */}
             <td className="px-2 py-2 border-b border-[var(--color-border)] text-center">
                 {/* DS-EXCEPTION: Se usa un input nativo oculto para manejar la carga múltiple de archivos, accionado programáticamente mediante un átomo Button. */}
-                <input
+                <Input
                     type="file"
                     ref={fileInputRef}
                     className="hidden"
                     onChange={handleFileChange}
                     accept="image/*,application/pdf"
                     multiple
+                    fullWidth={false}
                 />
                 <Button
                     variant="ghost"
