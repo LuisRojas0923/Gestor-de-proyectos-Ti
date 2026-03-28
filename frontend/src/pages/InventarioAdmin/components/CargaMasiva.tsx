@@ -1,5 +1,5 @@
 import React from 'react';
-import { Title, Text, Button, Icon, Input, ProgressBar } from '../../../components/atoms';
+import { Text, Button, Icon, Input, ProgressBar } from '../../../components/atoms';
 import { FileUp, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 interface CargaMasivaProps {
@@ -16,8 +16,6 @@ interface CargaMasivaProps {
     setUploadResult: (res: any) => void;
     limpiarPrevio: boolean;
     setLimpiarPrevio: (val: boolean) => void;
-    /** Descripción entre la fila de herramientas y la fila de ronda/archivo/nombre */
-    inventoryHeaderSlot?: React.ReactNode;
     /** Selector de ronda (C1–C4), antes del archivo y el nombre de conteo */
     rondaSlot?: React.ReactNode;
     uploadProgress: number;
@@ -37,22 +35,13 @@ const CargaMasiva: React.FC<CargaMasivaProps> = ({
     setUploadResult,
     limpiarPrevio,
     setLimpiarPrevio,
-    inventoryHeaderSlot,
     rondaSlot,
     uploadProgress
 }) => {
     return (
         <div className="flex flex-col gap-4 w-full group/master">
-            {/* Cabecera Técnica */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                        <Title variant="h6" weight="bold" className="text-sm tracking-tight text-primary-600 dark:text-primary-400">Panel de Operaciones</Title>
-                        <div className="h-1 w-1 rounded-full bg-neutral-300 dark:bg-neutral-600" />
-                        <Text variant="caption" color="text-secondary" className="font-medium uppercase tracking-widest text-[9px] opacity-70">Inventario 2026</Text>
-                    </div>
-                    {inventoryHeaderSlot}
-                </div>
+            {/* Cabecera Técnica Simplificada */}
+            <div className="flex flex-col md:flex-row md:items-center justify-end gap-3">
                 {rondaSlot}
             </div>
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios, { AxiosProgressEvent } from 'axios';
 import { API_CONFIG } from '../../../config/api';
+import { useNotifications } from '../../../components/notifications/NotificationsContext';
+import { usePlanillaManualPDF } from './usePlanillaManualPDF';
 
 export interface InventoryConfig {
     ronda_activa: number;
@@ -13,6 +15,9 @@ export interface ERP_Empleado {
 }
 
 export const useInventarioAdmin = () => {
+    const { addNotification } = useNotifications();
+    const { handleGeneratePlanilla0 } = usePlanillaManualPDF({ addNotification });
+
     // Carga Masiva
     const [file, setFile] = useState<File | null>(null);
     const [conteoName, setConteoName] = useState('');
@@ -28,6 +33,8 @@ export const useInventarioAdmin = () => {
         cedula: '', 
         nombre: '', 
         cargo: '', 
+        cedula_companero: '',
+        nombre_companero: '',
         bodega: '', 
         bloque: '', 
         estante: '', // Se guardará como string separado por comas: "1, 2, 3"
@@ -40,14 +47,64 @@ export const useInventarioAdmin = () => {
     const [editingAsigId, setEditingAsigId] = useState<number | null>(null);
     
     // Estadísticas, Cobertura y Monitoreo
-    const [stats, setStats] = useState({ total: 0, conciliados: 0, erroneos: 0, discrepantes: 0, pendientes: 0, reconteo: 0, porcentaje_avance: 0 });
-    const [coverage, setCoverage] = useState<{cobertura: number, total_ubicaciones_pendientes: number, cubiertos: number, faltantes: string[]}>({cobertura: 0, total_ubicaciones_pendientes: 0, cubiertos: 0, faltantes: []});
+    const [stats, setStats] = useState({ 
+        total: 0, 
+        conciliados: 0, 
+        erroneos: 0, 
+        discrepantes: 0, 
+        pendientes: 0, 
+        pendientes_c1: 0,
+        pendientes_c2: 0,
+        pendientes_c3: 0,
+        reconteo: 0, 
+        porcentaje_avance: 0 
+    });
+    const [coverage, setCoverage] = useState<{
+        cobertura: number, 
+        total_ubicaciones_pendientes: number, 
+        cubiertos: number, 
+        faltantes: string[],
+        desglose_bodega?: Record<string, { total: number, cubiertos: number, porcentaje: number }>
+    }>({cobertura: 0, total_ubicaciones_pendientes: 0, cubiertos: 0, faltantes: []});
     const [inventoryList, setInventoryList] = useState<any[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(false);
-    const [filters, setFilters] = useState({ bodega: '', estado: '', search: '' });
+    // Persistencia de Filtros y Navegación
+    const STORAGE_KEY_FILTERS = 'inventario_admin_filters';
+    const STORAGE_KEY_TAB = 'inventario_admin_tab';
+    const STORAGE_KEY_COL_FILTERS = 'inventario_admin_col_filters';
 
-    // Navegación por Pestañas
-    const [activeTab, setActiveTab] = useState<'config' | 'monitor' | 'validation'>('monitor');
+    // Inicialización de filtros desde localStorage
+    const [filters, setFilters] = useState(() => {
+        const saved = localStorage.getItem(STORAGE_KEY_FILTERS);
+        return saved ? JSON.parse(saved) : { bodega: '', estado: '', search: '' };
+    });
+
+    // Inicialización de filtros de columna desde localStorage
+    const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>(() => {
+        const saved = localStorage.getItem(STORAGE_KEY_COL_FILTERS);
+        return saved ? JSON.parse(saved) : {};
+    });
+
+    // Inicialización de pestaña activa desde localStorage
+    const [activeTab, setActiveTab] = useState<'config' | 'monitor' | 'validation'>(() => {
+        const saved = localStorage.getItem(STORAGE_KEY_TAB);
+        return (saved as any) || 'monitor';
+    });
+
+    // Sincronización de Filtros a LocalStorage
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY_FILTERS, JSON.stringify(filters));
+    }, [filters]);
+
+    // Sincronización de Filtros de Columna a LocalStorage
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY_COL_FILTERS, JSON.stringify(columnFilters));
+    }, [columnFilters]);
+
+    // Sincronización de Pestaña a LocalStorage
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEY_TAB, activeTab);
+    }, [activeTab]);
 
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
 
@@ -69,11 +126,20 @@ export const useInventarioAdmin = () => {
     useEffect(() => {
         if (newAsig.cedula.length >= 6) {
             const timer = setTimeout(() => {
-                buscarEmpleadoERP(newAsig.cedula);
+                buscarEmpleadoERP(newAsig.cedula, 'titular');
             }, 800);
             return () => clearTimeout(timer);
         }
     }, [newAsig.cedula]);
+
+    useEffect(() => {
+        if (newAsig.cedula_companero && newAsig.cedula_companero.length >= 6) {
+            const timer = setTimeout(() => {
+                buscarEmpleadoERP(newAsig.cedula_companero, 'companero');
+            }, 800);
+            return () => clearTimeout(timer);
+        }
+    }, [newAsig.cedula_companero]);
 
     const fetchConfig = async () => {
         try {
@@ -98,7 +164,7 @@ export const useInventarioAdmin = () => {
         try {
             const res = await axios.post(`${API_CONFIG.BASE_URL}/inventario/cargar-excel`, formData, {
                 headers: { ...headers, 'Content-Type': 'multipart/form-data' },
-                onUploadProgress: (progressEvent) => {
+                onUploadProgress: (progressEvent: AxiosProgressEvent) => {
                     const progress = progressEvent.total ? Math.round((progressEvent.loaded * 100) / progressEvent.total) : 0;
                     setUploadProgress(progress);
                 }
@@ -127,7 +193,7 @@ export const useInventarioAdmin = () => {
         try {
             const res = await axios.post(`${API_CONFIG.BASE_URL}/inventario/cargar-transito`, formData, {
                 headers: { ...headers, 'Content-Type': 'multipart/form-data' },
-                onUploadProgress: (progressEvent) => {
+                onUploadProgress: (progressEvent: AxiosProgressEvent) => {
                     const progress = progressEvent.total ? Math.round((progressEvent.loaded * 100) / progressEvent.total) : 0;
                     setUploadProgress(progress);
                 }
@@ -180,6 +246,14 @@ export const useInventarioAdmin = () => {
                     item.descripcion.toLowerCase().includes(s)
                 );
             }
+            
+            // Ordenamiento por ubicación (Bodega -> Bloque -> Estante -> Nivel)
+            data.sort((a, b) => {
+                const locA = `${a.bodega}-${a.bloque}-${a.estante}-${a.nivel || ''}`;
+                const locB = `${b.bodega}-${b.bloque}-${b.estante}-${b.nivel || ''}`;
+                return locA.localeCompare(locB, undefined, { numeric: true });
+            });
+            
             setInventoryList(data);
         } catch (error) {
             console.error("Error fetching inventory list", error);
@@ -207,14 +281,17 @@ export const useInventarioAdmin = () => {
         try {
             if (editingAsigId) {
                 await axios.patch(`${API_CONFIG.BASE_URL}/inventario/asignar/${editingAsigId}`, newAsig, { headers });
+                addNotification('success', "Asignación actualizada con éxito.");
                 setEditingAsigId(null);
             } else {
                 await axios.post(`${API_CONFIG.BASE_URL}/inventario/asignar`, newAsig, { headers });
+                addNotification('success', "Personal asignado correctamente.");
             }
-            setNewAsig({ cedula: '', nombre: '', cargo: '', bodega: '', bloque: '', estante: '', nivel: '' });
+            setNewAsig({ cedula: '', nombre: '', cargo: '', cedula_companero: '', nombre_companero: '', bodega: '', bloque: '', estante: '', nivel: '' });
             fetchAsignaciones();
-        } catch (error) {
-            alert(editingAsigId ? "Error al actualizar asignación" : "Error al guardar asignación");
+        } catch (error: any) {
+            const msg = error.response?.data?.detail || "Error en la operación de asignación";
+            addNotification('error', msg);
         } finally {
             setIsSavingAsig(false);
         }
@@ -226,6 +303,8 @@ export const useInventarioAdmin = () => {
             cedula: asig.cedula,
             nombre: asig.nombre,
             cargo: asig.cargo || '',
+            cedula_companero: asig.cedula_companero || '',
+            nombre_companero: asig.nombre_companero || '',
             bodega: asig.bodega,
             bloque: asig.bloque,
             estante: asig.estante || '',
@@ -235,7 +314,7 @@ export const useInventarioAdmin = () => {
 
     const cancelEdit = () => {
         setEditingAsigId(null);
-        setNewAsig({ cedula: '', nombre: '', cargo: '', bodega: '', bloque: '', estante: '', nivel: '' });
+        setNewAsig({ cedula: '', nombre: '', cargo: '', cedula_companero: '', nombre_companero: '', bodega: '', bloque: '', estante: '', nivel: '' });
     };
 
     const handleDeleteAsig = async (id: number) => {
@@ -248,16 +327,23 @@ export const useInventarioAdmin = () => {
         }
     };
 
-    const buscarEmpleadoERP = async (cedula: string) => {
+    const buscarEmpleadoERP = async (cedula: string, tipo: 'titular' | 'companero') => {
         setIsSearchingEmpleado(true);
         try {
             const response = await axios.get<ERP_Empleado>(`${API_CONFIG.BASE_URL}/erp/empleado/${cedula}`, { headers });
             if (response.data) {
-                setNewAsig(prev => ({
-                    ...prev,
-                    nombre: response.data.nombre || '',
-                    cargo: response.data.cargo || ''
-                }));
+                if (tipo === 'titular') {
+                    setNewAsig(prev => ({
+                        ...prev,
+                        nombre: response.data.nombre || '',
+                        cargo: response.data.cargo || ''
+                    }));
+                } else {
+                    setNewAsig(prev => ({
+                        ...prev,
+                        nombre_companero: response.data.nombre || ''
+                    }));
+                }
             }
         } catch (error) {
             console.warn("Empleado no encontrado o error en ERP");
@@ -281,27 +367,45 @@ export const useInventarioAdmin = () => {
         }
     };
 
-    // Helpers para Opciones de Selectores (Cascada)
+    // --- PREVENCIÓN DE DOBLE ASIGNACIÓN (Requerimiento v4.2) ---
+    // Filtros dinámicos que ocultan lo ya asignado para evitar duplicidad.
     const getBodegaOptions = () => {
         const unique = Array.from(new Set(inventoryList.map(i => i.bodega))).filter(Boolean);
+        unique.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
         return [{ value: '', label: 'Seleccionar Bodega' }, ...unique.map(b => ({ value: b, label: b }))];
     };
 
     const getBloqueOptions = (bodega: string) => {
         if (!bodega) return [{ value: '', label: 'Bodega requerida' }];
-        const unique = Array.from(new Set(inventoryList.filter(i => i.bodega === bodega).map(i => i.bloque))).filter(Boolean);
-        return [{ value: '', label: 'Seleccionar Bloque' }, ...unique.map(b => ({ value: b, label: b }))];
+        const allBlocks = Array.from(new Set(inventoryList.filter(i => i.bodega === bodega).map(i => i.bloque))).filter(Boolean);
+        allBlocks.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const availableBlocks = allBlocks.filter(bl => {
+            if (editingAsigId) return true; 
+            const isFullyAssigned = asignaciones.some(asig => 
+                asig.bodega === bodega && asig.bloque === bl && (!asig.estante || asig.estante.trim() === "")
+            );
+            return !isFullyAssigned;
+        });
+        return [{ value: '', label: 'Seleccionar Bloque' }, ...availableBlocks.map(b => ({ value: b, label: b }))];
     };
 
     const getEstanteOptions = (bodega: string, bloque: string) => {
         if (!bloque) return [{ value: '', label: 'Bloque requerido' }];
-        const unique = Array.from(new Set(inventoryList.filter(i => i.bodega === bodega && i.bloque === bloque).map(i => i.estante))).filter(Boolean);
-        return [{ value: '', label: 'Seleccionar Estante' }, ...unique.map(e => ({ value: e, label: e }))];
+        const allEstantes = Array.from(new Set(inventoryList.filter(i => i.bodega === bodega && i.bloque === bloque).map(i => i.estante))).filter(Boolean);
+        allEstantes.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const availableEstantes = allEstantes.filter(est => {
+            if (editingAsigId) return true;
+            return !asignaciones.some(asig => 
+                asig.bodega === bodega && asig.bloque === bloque && (asig.estante || "").split(',').map((s:string)=>s.trim()).includes(est)
+            );
+        });
+        return [{ value: '', label: 'Seleccionar Estante' }, ...availableEstantes.map(e => ({ value: e, label: e }))];
     };
 
     const getNivelOptions = (bodega: string, bloque: string, estante: string) => {
         if (!estante) return [{ value: '', label: 'Estante requerido' }];
         const unique = Array.from(new Set(inventoryList.filter(i => i.bodega === bodega && i.bloque === bloque && i.estante === estante).map(i => i.nivel))).filter(Boolean);
+        unique.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
         return [{ value: '', label: 'Seleccionar Nivel' }, ...unique.map(n => ({ value: n, label: n }))];
     };
 
@@ -325,6 +429,7 @@ export const useInventarioAdmin = () => {
         inventoryList,
         isLoadingData,
         filters, setFilters,
+        columnFilters, setColumnFilters,
         activeTab, setActiveTab,
         editingAsigId,
         // Handlers
@@ -337,6 +442,7 @@ export const useInventarioAdmin = () => {
         handleUpdateRonda,
         fetchStats,
         fetchInventoryList,
+        handleGeneratePlanilla0,
         // Helpers
         getBodegaOptions,
         getBloqueOptions,

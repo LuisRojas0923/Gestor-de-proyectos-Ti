@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
-from sqlmodel import select, and_, func
+from sqlmodel import select, and_, or_, func
 from ...database import obtener_db
 from ..auth.profile_router import (
     obtener_usuario_actual_db,
@@ -41,6 +41,8 @@ class AsignacionBase(BaseModel):
     bloque: str
     estante: Optional[str] = ""
     nivel: Optional[str] = ""
+    cedula_companero: Optional[str] = None
+    nombre_companero: Optional[str] = None
 
 
 @router.get("/config")
@@ -116,6 +118,34 @@ async def obtener_estadisticas_inventario(db: AsyncSession = Depends(obtener_db)
         )
         erroneos = (await db.execute(stmt_erroneos)).scalar()
 
+        # Pendientes Globales (Sin ningún conteo aún)
+        stmt_pendientes = select(func.count(ConteoInventario.id)).where(
+            ConteoInventario.estado == "PENDIENTE"
+        )
+        pendientes = (await db.execute(stmt_pendientes)).scalar()
+
+        # Pendientes C1: Sin usuario asignado en C1
+        stmt_pc1 = select(func.count(ConteoInventario.id)).where(
+            ConteoInventario.user_c1.is_(None)
+        )
+        pc1 = (await db.execute(stmt_pc1)).scalar()
+
+        # Pendientes C2: Estado RECONTEO y sin usuario en C2
+        stmt_pc2 = select(func.count(ConteoInventario.id)).where(
+            and_(ConteoInventario.estado == "RECONTEO", ConteoInventario.user_c2.is_(None))
+        )
+        pc2 = (await db.execute(stmt_pc2)).scalar()
+
+        # Pendientes C3: Estado RECONTEO, con C2 ya hecho, pero sin usuario en C3
+        stmt_pc3 = select(func.count(ConteoInventario.id)).where(
+            and_(
+                ConteoInventario.estado == "RECONTEO", 
+                ConteoInventario.user_c2.is_not(None), 
+                ConteoInventario.user_c3.is_(None)
+            )
+        )
+        pc3 = (await db.execute(stmt_pc3)).scalar()
+
         porcentaje = round((conciliados / total * 100), 2) if total > 0 else 0
 
         return {
@@ -124,6 +154,10 @@ async def obtener_estadisticas_inventario(db: AsyncSession = Depends(obtener_db)
             "erroneos": erroneos,
             "discrepantes": discrepantes,
             "reconteo": reconteo,
+            "pendientes": pendientes,
+            "pendientes_c1": pc1,
+            "pendientes_c2": pc2,
+            "pendientes_c3": pc3,
             "porcentaje_avance": porcentaje,
         }
     except SQLAlchemyError as e:
@@ -166,11 +200,40 @@ async def obtener_asignaciones(db: AsyncSession = Depends(obtener_db)):
 @router.post("/asignar")
 async def crear_asignacion(data: AsignacionBase, db: AsyncSession = Depends(obtener_db)):
     try:
-        nueva = AsignacionInventario(**data.dict())
+        # 1. Validar si ya existe una asignación para esta ubicación exacta
+        # (Considerando bodega, bloque, estante y nivel)
+        stmt_conflicto = select(AsignacionInventario).where(and_(
+            func.trim(func.upper(AsignacionInventario.bodega)) == func.trim(func.upper(data.bodega)),
+            func.trim(func.upper(AsignacionInventario.bloque)) == func.trim(func.upper(data.bloque or "")),
+            func.trim(func.upper(AsignacionInventario.estante)) == func.trim(func.upper(data.estante or "")),
+            func.trim(func.upper(AsignacionInventario.nivel)) == func.trim(func.upper(data.nivel or ""))
+        ))
+        res_conflicto = await db.execute(stmt_conflicto)
+        conflicto = res_conflicto.scalar_one_or_none()
+        
+        if conflicto:
+            raise HTTPException(
+                status_code=409, 
+                detail=f"Esta ubicación ya está asignada a la pareja #{conflicto.numero_pareja or '?'}: {conflicto.nombre}"
+            )
+
+        # 2. Calcular número de pareja consecutivo
+        stmt_max = select(func.max(AsignacionInventario.numero_pareja))
+        res_max = await db.execute(stmt_max)
+        max_pareja = res_max.scalar() or 0
+        nuevo_numero = max_pareja + 1
+
+        # 3. Crear asignación
+        nueva = AsignacionInventario(
+            **data.dict(),
+            numero_pareja=nuevo_numero
+        )
         db.add(nueva)
         await db.commit()
         await db.refresh(nueva)
         return nueva
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
         await db.rollback()
         print(f"Error DB en crear_asignacion: {e}")
@@ -213,6 +276,8 @@ async def actualizar_asignacion(
         asig.bloque = data.bloque
         asig.estante = data.estante
         asig.nivel = data.nivel
+        asig.cedula_companero = data.cedula_companero
+        asig.nombre_companero = data.nombre_companero
 
         await db.commit()
         await db.refresh(asig)
@@ -234,10 +299,11 @@ async def obtener_mis_asignaciones(
         cedula_usuario_norm = usuario.cedula.strip().lstrip('0')
         print(f"DEBUG: Buscando asignación para cédula normalizada: {cedula_usuario_norm}")
 
-        # 1.1 Buscar asignación usando normalización
-        stmt_asig = select(AsignacionInventario).where(
-            func.ltrim(func.trim(AsignacionInventario.cedula), '0') == cedula_usuario_norm
-        )
+        # 1.1 Buscar asignación usando normalización (Titular o Compañero)
+        stmt_asig = select(AsignacionInventario).where(or_(
+            func.ltrim(func.trim(AsignacionInventario.cedula), '0') == cedula_usuario_norm,
+            func.ltrim(func.trim(AsignacionInventario.cedula_companero), '0') == cedula_usuario_norm
+        ))
         result_asig = await db.execute(stmt_asig)
         asignacion = result_asig.scalar_one_or_none()
 
@@ -247,12 +313,29 @@ async def obtener_mis_asignaciones(
 
         print(f"DEBUG: Asignación hallada: {asignacion.bodega} - {asignacion.bloque}")
 
-        # 2. Filtrado robusto (Ignorar espacios y mayúsculas)
+        # 2. Obtener configuración para saber la ronda activa
+        stmt_config = select(ConfiguracionInventario).where(ConfiguracionInventario.id == 1)
+        res_config = await db.execute(stmt_config)
+        config = res_config.scalar_one_or_none()
+        r_activa = config.ronda_activa if config else 1
+
+        # 3. Filtrado dinámico según ronda
+        # Si es Ronda 1: Mostrar todo lo asignado (permitir correcciones)
+        # Si es Ronda > 1: Ocultar los que ya quedaron conciliados en rondas previas
         stmt_inv = select(ConteoInventario).where(and_(
             func.trim(func.upper(ConteoInventario.bodega)) == func.trim(func.upper(asignacion.bodega)),
             func.trim(func.upper(ConteoInventario.bloque)) == func.trim(func.upper(asignacion.bloque)),
-            ConteoInventario.estado.in_(["PENDIENTE", "RECONTEO"])
         ))
+
+        if r_activa > 1:
+            # En rondas avanzadas, solo vemos lo que falta O lo que estamos trabajando en esta ronda
+            user_col = getattr(ConteoInventario, f"user_c{r_activa}")
+            stmt_inv = stmt_inv.where(or_(
+                ConteoInventario.estado.in_(["PENDIENTE", "RECONTEO", "DISCREPANTE"]),
+                user_col.is_not(None)
+            ))
+
+        # Filtros opcionales (Estante/Nivel) también normalizados
         
         # Filtros opcionales (Estante/Nivel) también normalizados
         if asignacion.estante and asignacion.estante.strip():
@@ -349,12 +432,50 @@ async def obtener_cobertura_asignacion(db: AsyncSession = Depends(obtener_db)):
                 
         total = len(ubicaciones_fisicas)
         porcentaje = round((cubiertas / total * 100), 1) if total > 0 else 0
+
+        # 4. Desglose detallado por bodega (Requerimiento v4.2)
+        desglose_bodega = {}
+        ubicaciones_por_bodega = {}
+        for u in ubicaciones_fisicas:
+            b = u.split('-')[0]
+            ubicaciones_por_bodega.setdefault(b, []).append(u)
+        
+        for b, ubics in ubicaciones_por_bodega.items():
+            b_total = len(ubics)
+            b_cubiertas = 0
+            for u in ubics:
+                parts = u.split('-')
+                if len(parts) < 3: 
+                    continue # Salto si la ubicación no tiene al menos Bodega-Bloque-Estante
+                
+                bod = parts[0]
+                bl = parts[1]
+                es = parts[2]
+                ni = parts[3] if len(parts) > 3 else ""
+                
+                for asig in asignaciones:
+                    # Validar correspondencia jerárquica
+                    asig_estantes = [e.strip() for e in (asig.estante or "").split(',') if e.strip()]
+                    
+                    if (asig.bodega == bod and 
+                        (not asig.bloque or asig.bloque == bl) and 
+                        (not asig_estantes or es in asig_estantes) and
+                        (not asig.nivel or asig.nivel == ni)):
+                        b_cubiertas += 1
+                        break
+            
+            desglose_bodega[b] = {
+                "total": b_total,
+                "cubiertos": b_cubiertas,
+                "porcentaje": round((b_cubiertas / b_total * 100), 1) if b_total > 0 else 0
+            }
         
         return {
             "cobertura": porcentaje,
             "total_ubicaciones_pendientes": total,
             "cubiertos": cubiertas,
-            "faltantes": pendientes[:50] # Top 50 para no saturar respuesta
+            "faltantes": pendientes[:50],
+            "desglose_bodega": desglose_bodega
         }
     except SQLAlchemyError as e:
         print(f"Error DB en obtener_cobertura_asignacion: {e}")
@@ -455,18 +576,15 @@ async def guardar_conteo(
         
         for r_sku in rows_sku:
             r_sku.diferencia_total = dif_global_final
-            
             if abs(dif_global_final) < 0.01:
-                # Si el balance global es cero, todo el código está CONCILIADO
                 r_sku.estado = "CONCILIADO"
-            else:
-                if r_sku.id == item.id:
-                    # El ítem actual sigue la lógica de rondas normal o "UBICACIÓN ERRÓNEA"
-                    # Si el local no cuadra pero el global sí (ya checado arriba),
-                    # pero aquí dif_global_final != 0, entonces evaluamos el estado calculado antes.
-                    r_sku.estado = nuevo_estado
+            elif r_sku.id == item.id:
+                r_sku.estado = nuevo_estado
 
-        item.estado = nuevo_estado
+        if abs(dif_global_final) < 0.01:
+            item.estado = "CONCILIADO"
+        else:
+            item.estado = nuevo_estado
         await db.commit()
         return {
             "exito": True,
@@ -516,10 +634,7 @@ async def cargar_transito(
         raise HTTPException(status_code=400, detail="El archivo debe ser un Excel")
 
     content = await file.read()
-    # 1. Truncar tabla de tránsito antes de nueva carga (usualmente se reemplaza el reporte de tránsito)
-    await db.execute(text("TRUNCATE TABLE transitoinventario"))
-
-    # 2. Importar usando el servicio
+    # 2. Importar usando el servicio (El servicio ya limpia la tabla interna)
     return await ServicioInventario.importar_transito_excel(content, db)
 
 

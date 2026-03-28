@@ -232,7 +232,7 @@ const Dashboard: React.FC = () => {
           <Title variant="h6" weight="bold" className="mb-6" color="text-primary">
             Carga Operativa por Analista
           </Title>
-          <div className="h-[300px] w-full">
+          <div className="h-[300px] w-full min-h-[300px]">
             {isMounted && analystData.length > 0 && (
               <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
                 <BarChart data={analystData}>

@@ -143,13 +143,27 @@ class ServicioInventario:
         }
 
     @staticmethod
+    def _parse_float(val: Any) -> float:
+        """Limpia y parsea números que pueden venir con comas o como strings."""
+        if val is None:
+            return 0.0
+        if isinstance(val, (int, float)):
+            return float(val)
+        try:
+            # Reemplazar coma por punto y quitar espacios
+            clean_val = str(val).replace(',', '.').replace(' ', '').strip()
+            return float(clean_val)
+        except (ValueError, TypeError):
+            return 0.0
+
+    @staticmethod
     async def importar_transito_excel(
         file_content: bytes, 
         db: AsyncSession
     ) -> Dict[str, Any]:
         """
         Procesa un archivo Excel de tránsito (Modelo B).
-        Estructura esperada: SKU / Codigo | Documento | Cantidad
+        Estructura esperada por usuario: Codigo / SKU (0) | Documento (1) | Cantidad (2)
         """
         wb = openpyxl.load_workbook(BytesIO(file_content), data_only=True)
         sheet = wb.active
@@ -157,19 +171,23 @@ class ServicioInventario:
         registros_creados = 0
         errores = []
         
+        # 1. Limpiar tabla previa de tránsito (Se asume carga fresca)
+        await db.execute(text("TRUNCATE TABLE transitoinventario"))
+
         for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
             if not any(row):
                 continue
             
             try:
-                # Mapeo Real Usuario: 0: SKU, 3: Cantidad (SALDO PRODUCTO), 4: JUSTIFICACION
-                # row[0]: CODIGO
-                # row[3]: SALDO PRODUCTO
-                # row[4]: JUSTIFICACION
+                # Mapeo según archivo usuario: 0: SKU/Codigo, 1: Documento, 2: Cantidad
+                sku_val = str(row[0]).strip() if row[0] is not None else ""
+                doc_val = str(row[1]).strip() if len(row) > 1 and row[1] is not None else "TRANSITO_S_D"
+                cant_val = ServicioInventario._parse_float(row[2]) if len(row) > 2 else 0.0
+
                 transito = TransitoInventario(
-                    sku=str(row[0]) if row[0] is not None else "",
-                    documento=str(row[4]) if len(row) > 4 and row[4] is not None else "TRANSITO_S_D",
-                    cantidad=float(row[3]) if len(row) > 3 and row[3] is not None else 0.0
+                    sku=sku_val,
+                    documento=doc_val,
+                    cantidad=cant_val
                 )
                 db.add(transito)
                 registros_creados += 1
@@ -179,12 +197,46 @@ class ServicioInventario:
         
         if registros_creados > 0:
             await db.commit()
+            # 2. Sincronizar automáticamente con la tabla maestra
+            await ServicioInventario.sincronizar_transito_con_maestra(db)
             
         return {
             "exito": len(errores) == 0,
             "creados": registros_creados,
             "errores": errores
         }
+
+    @staticmethod
+    async def sincronizar_transito_con_maestra(db: AsyncSession):
+        """
+        Calcula la suma de tránsito por SKU y actualiza la tabla conteoinventario globalmente.
+        """
+        # 1. Agrupar tránsito por SKU en la DB
+        q_sum = text("""
+            SELECT sku, SUM(cantidad) as total_transito
+            FROM transitoinventario
+            GROUP BY sku
+        """)
+        res_sum = await db.execute(q_sum)
+        transito_dict = {row[0]: float(row[1]) for row in res_sum.fetchall()}
+
+        # 2. Resetear todos los 'invporlegalizar' a 0 antes de aplicar los nuevos
+        await db.execute(text("UPDATE conteoinventario SET invporlegalizar = 0"))
+
+        # 3. Actualizar registros existentes en maestra
+        # Nota: Se hace por SKU, puede haber múltiples ubicaciones por SKU
+        for sku, total in transito_dict.items():
+            # Actualizar todos los registros que coincidan con el SKU
+            stmt = text("""
+                UPDATE conteoinventario 
+                SET invporlegalizar = :total,
+                    cantidad_final = cantidad_sistema + :total,
+                    diferencia_total = -(cantidad_sistema + :total)
+                WHERE codigo = :sku
+            """)
+            await db.execute(stmt, {"total": total, "sku": sku})
+        
+        await db.commit()
 
     @staticmethod
     def generar_plantilla_maestra() -> BytesIO:

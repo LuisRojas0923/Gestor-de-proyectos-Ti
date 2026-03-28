@@ -11,13 +11,14 @@ import { API_CONFIG } from '../../config/api';
 export const InventarioAdmin: React.FC = () => {
     const {
         stats, inventoryList, isLoadingData, filters, setFilters, fetchStats, fetchInventoryList,
+        columnFilters, setColumnFilters,
         conteoName, setConteoName, file, setFile, handleUploadMaestra, isUploading,
         handleUploadTransito, isUploadingTransito, uploadResult, setUploadResult,
         limpiarPrevio, setLimpiarPrevio, rondaActiva, isUpdatingConfig, handleUpdateRonda,
         coverage, newAsig, setNewAsig, isSearchingEmpleado, isSavingAsig, asignaciones,
         handleSaveAsig, handleDeleteAsig, handleEditAsig, cancelEdit, editingAsigId,
         getBodegaOptions, getBloqueOptions, getEstanteOptions, getNivelOptions,
-        uploadProgress, activeTab, setActiveTab
+        uploadProgress, activeTab, setActiveTab, handleGeneratePlanilla0
     } = useInventarioAdmin();
 
     // Autosincronización cada 1 minuto
@@ -82,12 +83,12 @@ export const InventarioAdmin: React.FC = () => {
                             {...{conteoName, setConteoName, file, setFile, handleUploadMaestra, isUploading, 
                                 handleUploadTransito, isUploadingTransito, uploadResult, setUploadResult, 
                                 limpiarPrevio, setLimpiarPrevio, rondaActiva, isUpdatingConfig, handleUpdateRonda,
-                                uploadProgress}}
+                                uploadProgress, handleGeneratePlanilla0}}
                         />
                         <AsignacionSeccion 
                             {...{coverage, newAsig, setNewAsig, isSearchingEmpleado, isSavingAsig, asignaciones,
                                 handleSaveAsig, handleDeleteAsig, handleEditAsig, cancelEdit, editingAsigId,
-                                getBodegaOptions, getBloqueOptions, getEstanteOptions, getNivelOptions}}
+                                getBodegaOptions, getBloqueOptions, getEstanteOptions, getNivelOptions, inventoryList}}
                         />
                     </div>
                 )}
@@ -95,7 +96,7 @@ export const InventarioAdmin: React.FC = () => {
                 {/* Tab: Monitor Maestro */}
                 {activeTab === 'monitor' && (
                     <MonitorMaestroTab 
-                        {...{stats, inventoryList, isLoadingData, filters, setFilters, fetchStats, fetchInventoryList, rondaActiva}}
+                        {...{stats, inventoryList, isLoadingData, filters, setFilters, columnFilters, setColumnFilters, fetchStats, fetchInventoryList, rondaActiva}}
                     />
                 )}
 

@@ -296,8 +296,18 @@ async def init_db():
             # 3. Inicializar campos numéricos para evitar errores de tipo
             await conn.execute(text("UPDATE conteoinventario SET invporlegalizar = 0 WHERE invporlegalizar IS NULL;"))
             await conn.execute(text("UPDATE conteoinventario SET diferencia_total = 0 WHERE diferencia_total IS NULL AND (cant_c1 IS NULL OR cant_c1 = 0);"))
+            
+            # --- AUTO-MIGRACIÓN: Soporte de Parejas (Requerimiento v4.2) ---
+            # Asegurar que existan las columnas en asignacioninventario
+            await conn.execute(text('ALTER TABLE "asignacioninventario" ADD COLUMN IF NOT EXISTS "cedula_companero" VARCHAR;'))
+            await conn.execute(text('ALTER TABLE "asignacioninventario" ADD COLUMN IF NOT EXISTS "nombre_companero" VARCHAR;'))
+            await conn.execute(text('ALTER TABLE "asignacioninventario" ADD COLUMN IF NOT EXISTS "numero_pareja" INTEGER;'))
+            
+            # Inicializar numero_pareja si es NULL (opcional but safe)
+            await conn.execute(text('UPDATE "asignacioninventario" SET "numero_pareja" = 1 WHERE "numero_pareja" IS NULL;'))
+
         except Exception as e:
-            print(f"DEBUG: Error al asegurar columnas de perfil/auditoría: {e}")
+            print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario: {e}")
 
     # 3.1 Seed idempotente de sala por defecto
     try:

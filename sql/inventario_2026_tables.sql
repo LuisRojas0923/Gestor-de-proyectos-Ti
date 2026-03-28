@@ -53,6 +53,9 @@ CREATE TABLE IF NOT EXISTS AsignacionInventario (
     nivel VARCHAR(50),
     cedula VARCHAR(50),
     nombre VARCHAR(255),
+    cedula_companero VARCHAR(50),
+    nombre_companero VARCHAR(255),
+    numero_pareja INTEGER,
     cargo VARCHAR(100),
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
