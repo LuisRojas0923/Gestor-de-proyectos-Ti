@@ -75,6 +75,7 @@ class ServicioInventario:
                 estante_val = str(row[3]).strip() if row[3] is not None else ""
                 nivel_val = str(row[4]).strip() if row[4] is not None else ""
                 codigo_val = str(row[5]).strip() if row[5] is not None else ""
+                descripcion_val = str(row[6]).strip() if row[6] is not None else ""
                 cant_sist_val = float(row[8]) if row[8] is not None else 0.0
                 legalizar_val = float(row[9]) if len(row) > 9 and row[9] is not None else 0.0
 
@@ -101,6 +102,9 @@ class ServicioInventario:
                             item_existente.diferencia_total = -cant_f
                             
                         item_existente.conteo = nombre_conteo
+                        item_existente.descripcion = descripcion_val
+                        item_existente.unidad = str(row[7]) if row[7] is not None else ""
+                        
                         # Si estaba CONCILIADO, lo regresamos a PENDIENTE si el teórico cambió
                         if item_existente.estado == "CONCILIADO":
                             item_existente.estado = "PENDIENTE"
@@ -115,6 +119,7 @@ class ServicioInventario:
                     estante=estante_val,
                     nivel=nivel_val,
                     codigo=codigo_val,
+                    descripcion=descripcion_val,
                     unidad=str(row[7]) if row[7] is not None else "",
                     cantidad_sistema=cant_sist_val,
                     invporlegalizar=legalizar_val,
