@@ -14,7 +14,6 @@ from ...models.inventario.conteo import (
     ConteoInventario,
     AsignacionInventario,
     ConfiguracionInventario,
-    TransitoInventario,
 )
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
@@ -388,10 +387,17 @@ async def guardar_conteo(
             item.obs_c4 = actualizacion.observaciones
             item.user_c4 = usuario.cedula
 
-        # 2. Lógica de Estado (Local + Global + Legalizar)
+        # 2. Lógica de Estado e Inteligencia Persistente
         # Valor teórico local
         teorico_local = (item.cantidad_sistema or 0.0) + (item.invporlegalizar or 0.0)
+        item.cantidad_final = teorico_local
         item.diferencia = cant - teorico_local
+
+        # Obtener configuración para saber la ronda activa global
+        stmt_config = select(ConfiguracionInventario).where(ConfiguracionInventario.id == 1)
+        res_config = await db.execute(stmt_config)
+        config = res_config.scalar_one_or_none()
+        r_activa = config.ronda_activa if config else 1
 
         # 2.1 Validación por Rondas (Humano vs Humano / Humano vs Sistema)
         if r == 1:
@@ -407,40 +413,49 @@ async def guardar_conteo(
         else:  # r == 4
             nuevo_estado = "CONCILIADO"
 
-        # 3. Inteligencia Global: ¿Está en otra ubicación?
-        # Solo aplicamos lógica de 'UBICACIÓN ERRÓNEA' si no es CONCILIADO localmente
-        if nuevo_estado != "CONCILIADO":
-            # Buscar balances globales para este SKU
-            stmt_sku = select(ConteoInventario).where(
-                ConteoInventario.codigo == item.codigo
-            )
-            result_sku = await db.execute(stmt_sku)
-            all_locations = result_sku.scalars().all()
+        # --- Actualización masiva de diferencia_total para este código (dentro del mismo inventario) ---
+        stmt_sku_all = select(ConteoInventario).where(
+            ConteoInventario.codigo == item.codigo,
+            ConteoInventario.conteo == item.conteo
+        )
+        result_sku_all = await db.execute(stmt_sku_all)
+        rows_sku = result_sku_all.scalars().all()
+        
+        sum_fisico_global = 0.0
+        teorico_unido = 0.0
+        
+        for r_sku in rows_sku:
+            f_val = 0.0
+            if r_activa == 1:
+                f_val = r_sku.cant_c1 or 0.0
+            elif r_activa == 2:
+                f_val = r_sku.cant_c2 or 0.0
+            elif r_activa == 3:
+                f_val = r_sku.cant_c3 or 0.0
+            elif r_activa == 4:
+                f_val = r_sku.cant_c4 or 0.0
+            
+            if r_sku.id == item.id:
+                f_val = cant
+                
+            sum_fisico_global += f_val
+            if teorico_unido == 0:
+                teorico_unido = (r_sku.cantidad_sistema or 0.0) + (r_sku.invporlegalizar or 0.0)
 
-            # Buscar TRÁNSITO GLOBAL para este SKU (Modelo B)
-            stmt_transito = select(func.sum(TransitoInventario.cantidad)).where(
-                TransitoInventario.sku == item.codigo
-            )
-            result_transito = await db.execute(stmt_transito)
-            total_transito = result_transito.scalar() or 0.0
-
-            global_total_fisico = 0.0
-            global_total_teorico = 0.0
-
-            for loc in all_locations:
-                fisico_loc = loc.cant_c4 or loc.cant_c3 or loc.cant_c2 or loc.cant_c1 or 0.0
-                if loc.id == item.id:
-                    fisico_loc = cant
-
-                global_total_fisico += fisico_loc
-                global_total_teorico += loc.cantidad_sistema or 0.0
-
-            # El teórico global es: Stocks en sedes + Mercancía en tránsito/por legalizar
-            global_total_teorico += total_transito
-
-            # Si el balance global es cero, pero el local no, marcamos como ubicación errónea
-            if abs(global_total_fisico - global_total_teorico) < 0.01:
-                nuevo_estado = "UBICACIÓN ERRÓNEA"
+        dif_global_final = sum_fisico_global - teorico_unido
+        
+        for r_sku in rows_sku:
+            r_sku.diferencia_total = dif_global_final
+            
+            if abs(dif_global_final) < 0.01:
+                # Si el balance global es cero, todo el código está CONCILIADO
+                r_sku.estado = "CONCILIADO"
+            else:
+                if r_sku.id == item.id:
+                    # El ítem actual sigue la lógica de rondas normal o "UBICACIÓN ERRÓNEA"
+                    # Si el local no cuadra pero el global sí (ya checado arriba),
+                    # pero aquí dif_global_final != 0, entonces evaluamos el estado calculado antes.
+                    r_sku.estado = nuevo_estado
 
         item.estado = nuevo_estado
         await db.commit()

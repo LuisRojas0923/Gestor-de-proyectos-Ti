@@ -39,8 +39,12 @@ class ConteoInventario(SQLModel, table=True):
     
     # Control de Estado e Inteligencia
     estado: str = Field(default="PENDIENTE", max_length=20) # PENDIENTE, CONCILIADO, DISCREPANTE
-    diferencia: float = Field(default=0.0)
+    diferencia: float = Field(default=0.0) # Diferencia local de la ubicación
     invporlegalizar: float = Field(default=0.0)
+    
+    # --- Nuevos campos analíticos persistentes ---
+    cantidad_final: float = Field(default=0.0) # Cantidad Sistema + Inv. Por Legalizar
+    diferencia_total: float = Field(default=0.0) # Diferencia Global del código (Balance Multi-ubicación)
     
     fecha_creacion: datetime = Field(
         default_factory=datetime.utcnow,
@@ -115,6 +119,8 @@ class ConteoHistorico(SQLModel, table=True):
     conteo: str = Field(max_length=100)
     estado: str = Field(max_length=20)
     invporlegalizar: float = Field(default=0.0)
+    cantidad_final: float = Field(default=0.0)
+    diferencia_total: float = Field(default=0.0)
     
     snapshot_at: datetime = Field(
         default_factory=datetime.now,

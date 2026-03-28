@@ -196,10 +196,21 @@ async def init_db():
                 text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS estado VARCHAR(20) DEFAULT 'PENDIENTE'")
             )
             await conn.execute(
-                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS diferencia FLOAT DEFAULT 0.0")
+                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS invporlegalizar FLOAT DEFAULT 0.0")
             )
             await conn.execute(
-                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS invporlegalizar FLOAT DEFAULT 0.0")
+                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS cantidad_final FLOAT DEFAULT 0.0")
+            )
+            await conn.execute(
+                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS diferencia_total FLOAT DEFAULT 0.0")
+            )
+            
+            # --- MIGRACIÓN HISTÓRICO ---
+            await conn.execute(
+                text("ALTER TABLE conteohistorico ADD COLUMN IF NOT EXISTS cantidad_final FLOAT DEFAULT 0.0")
+            )
+            await conn.execute(
+                text("ALTER TABLE conteohistorico ADD COLUMN IF NOT EXISTS diferencia_total FLOAT DEFAULT 0.0")
             )
             
             # Tablas Adicionales
@@ -234,6 +245,44 @@ async def init_db():
                     conteo_nombre VARCHAR(100),
                     ultima_actualizacion TIMESTAMP DEFAULT NOW()
                 );
+            """))
+
+            # --- CORRECCIÓN DE INTEGRIDAD (Aislamiento de Historia) ---
+            # 1. Obtener el nombre del inventario activo
+            config_res = await conn.execute(text("SELECT conteo_nombre, ronda_activa FROM configuracioninventario LIMIT 1;"))
+            config_row = config_res.fetchone()
+            
+            if config_row and config_row[0]:
+                active_conteo = config_row[0]
+                r_act = config_row[1] or 1
+                col_fisica = f"cant_c{r_act}"
+                
+                print(f"DEBUG: Corrigiendo balance para inventario activo: {active_conteo} (Ronda {r_act})")
+                
+                # Paso A: Resetear diferencia_total para el inventario activo basándose solo en su ronda actual
+                # Usamos una subconsulta para obtener la suma física por SKU DENTRO DEL MISMO INVENTARIO
+                await conn.execute(text(f"""
+                    WITH total_fisico AS (
+                        SELECT codigo, conteo, SUM(COALESCE({col_fisica}, 0)) as suma_f
+                        FROM conteoinventario
+                        WHERE conteo = :c_name
+                        GROUP BY codigo, conteo
+                    )
+                    UPDATE conteoinventario i
+                    SET diferencia_total = tf.suma_f - (COALESCE(i.cantidad_sistema, 0) + COALESCE(i.invporlegalizar, 0)),
+                        estado = CASE 
+                            WHEN ABS(tf.suma_f - (COALESCE(i.cantidad_sistema, 0) + COALESCE(i.invporlegalizar, 0))) < 0.01 THEN 'CONCILIADO'
+                            ELSE i.estado
+                        END
+                    FROM total_fisico tf
+                    WHERE i.codigo = tf.codigo AND i.conteo = tf.conteo AND i.conteo = :c_name;
+                """), {"c_name": active_conteo})
+            
+            # Paso B: Asegurar que cantidad_final esté poblada para todos
+            await conn.execute(text("""
+                UPDATE conteoinventario 
+                SET cantidad_final = (COALESCE(cantidad_sistema, 0) + COALESCE(invporlegalizar, 0))
+                WHERE cantidad_final = 0 AND (cantidad_sistema > 0 OR invporlegalizar > 0);
             """))
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría: {e}")

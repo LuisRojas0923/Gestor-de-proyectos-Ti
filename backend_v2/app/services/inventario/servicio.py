@@ -32,7 +32,9 @@ class ServicioInventario:
                 cant_c4=item.cant_c4,
                 conteo=item.conteo,
                 estado=item.estado,
-                invporlegalizar=item.invporlegalizar
+                invporlegalizar=item.invporlegalizar,
+                cantidad_final=item.cantidad_final,
+                diferencia_total=item.diferencia_total
             )
             db.add(hist)
         
@@ -92,6 +94,12 @@ class ServicioInventario:
                         # Actualizar solo saldos teóricos y metadata
                         item_existente.cantidad_sistema = cant_sist_val
                         item_existente.invporlegalizar = legalizar_val
+                        cant_f = cant_sist_val + legalizar_val
+                        item_existente.cantidad_final = cant_f
+                        # Si no ha sido contado, la diferencia total es el negativo del teórico
+                        if item_existente.cant_c1 is None and item_existente.cant_c2 is None:
+                            item_existente.diferencia_total = -cant_f
+                            
                         item_existente.conteo = nombre_conteo
                         # Si estaba CONCILIADO, lo regresamos a PENDIENTE si el teórico cambió
                         if item_existente.estado == "CONCILIADO":
@@ -107,10 +115,11 @@ class ServicioInventario:
                     estante=estante_val,
                     nivel=nivel_val,
                     codigo=codigo_val,
-                    descripcion=str(row[6]) if row[6] is not None else "",
                     unidad=str(row[7]) if row[7] is not None else "",
                     cantidad_sistema=cant_sist_val,
                     invporlegalizar=legalizar_val,
+                    cantidad_final=cant_sist_val + legalizar_val,
+                    diferencia_total=-(cant_sist_val + legalizar_val),
                     conteo=nombre_conteo
                 )
                 

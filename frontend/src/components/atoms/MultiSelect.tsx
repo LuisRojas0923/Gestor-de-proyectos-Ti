@@ -128,7 +128,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                 onKeyDown={(e) => !disabled && (e.key === 'Enter' || e.key === ' ') && toggleDropdown()}
                 className={`flex items-center justify-center transition-all group
                     ${minimal 
-                        ? 'p-1 hover:bg-white/10 rounded-md text-[12px] h-full w-full' 
+                        ? `p-1 rounded-md text-[12px] h-full w-full ${value.length > 0 ? 'bg-white/10 shadow-sm' : 'hover:bg-white/10'}` 
                         : `flex items-center justify-between w-full px-3 py-1 text-left bg-white dark:bg-neutral-800 border rounded-xl 
                            ${size === 'md' ? 'h-10 text-xs' : size === 'sm' ? 'h-8 text-[11px]' : 'h-6 text-[9px] px-2'}
                            ${isOpen ? 'border-primary-500 ring-1 ring-primary-500/20' : 'border-neutral-200 dark:border-neutral-700'}
@@ -155,11 +155,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                                 className={`transition-colors ${isOpen || value.length > 0 ? 'text-white' : 'text-white/40 group-hover:text-white/70'}`} 
                             />
                         )}
-                        {value.length > 0 && (
-                            <Text as="span" className="absolute -top-1 -right-2.5 bg-red-500 text-white text-[7px] font-bold w-3 h-3 flex items-center justify-center rounded-full border border-navy shadow-lg">
-                                {value.length}
-                            </Text>
-                        )}
+                        {/* Red Badge Removed - Using Shading Instead */}
                     </div>
                 ) : (
                     <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary-500' : 'text-neutral-400'}`} />
