@@ -474,7 +474,7 @@ async def guardar_conteo(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/cargar-maestra-inventario")
+@router.post("/cargar-excel")
 async def cargar_maestra_inventario(
     file: UploadFile = File(...),
     conteo: str = Form("Anual_2026"),
@@ -484,8 +484,10 @@ async def cargar_maestra_inventario(
     try:
         if not file.filename.endswith((".xlsx", ".xls")):
             raise HTTPException(status_code=400, detail="El archivo debe ser un Excel")
-        servicio = ServicioInventario(db)
-        resultado = await servicio.procesar_excel_maestra(file, conteo, limpiar_previo)
+        file_content = await file.read()
+        resultado = await ServicioInventario.importar_conteo_excel(
+            file_content, conteo, db, limpiar_previo
+        )
         return resultado
     except SQLAlchemyError as e:
         await db.rollback()
