@@ -94,49 +94,49 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
                                 />
                             )}
                         </div>
+                    </div>
 
-                        {/* Conteo Toggle (C1/C2) */}
-                        <div className="flex items-center gap-1 bg-neutral-50 dark:bg-neutral-800/50 p-1 rounded-2xl border border-[var(--color-border)] ml-auto md:ml-0 overflow-hidden shadow-inner">
-                            <button
-                                onClick={() => setConteoActivo('C1')}
-                                className={`px-3 py-1 text-[10px] font-bold rounded-xl transition-all duration-300 ${conteoActivo === 'C1' ? 'bg-primary-500 text-white shadow-md' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700'}`}
-                            >
-                                C1
-                            </button>
-                            <button
-                                onClick={() => {
-                                    if (progresoC1 < 100) {
-                                        addNotification('error', `BLOQUEADO: Debes completar el Conteo 1 al 100% (Actual: ${progresoC1}%) antes de pasar al Reconteo.`);
-                                        return;
-                                    }
-                                    setConteoActivo('C2');
-                                }}
-                                title={progresoC1 < 100 ? "Complete el Conteo 1 para habilitar" : ""}
-                                className={`px-3 py-1 text-[10px] font-bold rounded-xl transition-all duration-300 flex items-center gap-1.5 ${conteoActivo === 'C2' ? 'bg-primary-500 text-white shadow-md' : progresoC1 < 100 ? 'opacity-40 grayscale cursor-not-allowed text-neutral-400' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700'}`}
-                            >
-                                {progresoC1 < 100 && <Lock size={10} className="mb-0.5" />}
-                                C2
-                            </button>
-                        </div>
+                    {/* Conteo Toggle (C1/C2) - Ahora fuera para permitir apilamiento en móvil */}
+                    <div className="flex items-center gap-1 bg-neutral-50 dark:bg-neutral-800/50 p-1 rounded-2xl border border-[var(--color-border)] w-full md:w-auto overflow-hidden shadow-inner">
+                        <button
+                            onClick={() => setConteoActivo('C1')}
+                            className={`flex-1 md:flex-none px-4 py-1.5 md:py-1 text-[10px] font-bold rounded-xl transition-all duration-300 ${conteoActivo === 'C1' ? 'bg-primary-500 text-white shadow-md' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700'}`}
+                        >
+                            C1
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (progresoC1 < 100) {
+                                    addNotification('error', `BLOQUEADO: Debes completar el Conteo 1 al 100% (Actual: ${progresoC1}%) antes de pasar al Reconteo.`);
+                                    return;
+                                }
+                                setConteoActivo('C2');
+                            }}
+                            title={progresoC1 < 100 ? "Complete el Conteo 1 para habilitar" : ""}
+                            className={`flex-1 md:flex-none px-4 py-1.5 md:py-1 text-[10px] font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 ${conteoActivo === 'C2' ? 'bg-primary-500 text-white shadow-md' : progresoC1 < 100 ? 'opacity-40 grayscale cursor-not-allowed text-neutral-400' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700'}`}
+                        >
+                            {progresoC1 < 100 && <Lock size={10} className="mb-0.5" />}
+                            C2
+                        </button>
+                    </div>
 
-                        {/* Action Buttons (Desktop Version - Icon Only) */}
-                        <div className="hidden md:flex items-center gap-2 ml-2">
-                            <Button
-                                variant="primary"
-                                onClick={handleSignAll}
-                                disabled={isSigning || Object.keys(changes).length === 0}
-                                className="w-10 rounded-2xl h-8 p-0 flex items-center justify-center shadow-lg shadow-primary-500/20"
-                            >
-                                {isSigning ? <Loader2 className="animate-spin text-white" size={12} /> : <Save size={16} />}
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                onClick={handleGeneratePDF}
-                                className="w-10 rounded-2xl flex items-center justify-center border border-primary-500/10 text-primary-600 h-8 shrink-0 bg-neutral-50/50"
-                            >
-                                <FileText size={16} />
-                            </Button>
-                        </div>
+                    {/* Action Buttons (Desktop Version - Icon Only) */}
+                    <div className="hidden md:flex items-center gap-2">
+                        <Button
+                            variant="primary"
+                            onClick={handleSignAll}
+                            disabled={isSigning || Object.keys(changes).length === 0}
+                            className="w-10 rounded-2xl h-8 p-0 flex items-center justify-center shadow-lg shadow-primary-500/20"
+                        >
+                            {isSigning ? <Loader2 className="animate-spin text-white" size={12} /> : <Save size={16} />}
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={handleGeneratePDF}
+                            className="w-10 rounded-2xl flex items-center justify-center border border-primary-500/10 text-primary-600 h-8 shrink-0 bg-neutral-50/50"
+                        >
+                            <FileText size={16} />
+                        </Button>
                     </div>
                 </div>
 

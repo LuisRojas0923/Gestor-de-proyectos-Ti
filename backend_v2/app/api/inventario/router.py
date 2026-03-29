@@ -249,14 +249,36 @@ async def actualizar_ronda_vista(
     db: AsyncSession = Depends(obtener_db),
     usuario: Any = Depends(obtener_usuario_actual_db)
 ):
-    """Actualiza la ronda que el operario está visualizando actualmente."""
+    """Actualiza la ronda que el operario está visualizando actualmente con validación de progreso."""
     try:
-        from app.models.inventario.conteo import AsignacionInventario
-        cedula = usuario.get("cedula")
+        cedula = usuario.cedula if hasattr(usuario, "cedula") else None
         if not cedula:
             raise HTTPException(status_code=400, detail="Usuario sin cédula válida")
 
-        # Actualizar todas las asignaciones de este usuario en esta sesión
+        # 1. Obtener la ronda actual para validar si es un avance
+        stmt_actual = select(AsignacionInventario.ronda_vista).where(
+            or_(AsignacionInventario.cedula == cedula, AsignacionInventario.cedula_companero == cedula)
+        ).limit(1)
+        res_actual = await db.execute(stmt_actual)
+        current_ronda = res_actual.scalar() or 1
+
+        # 2. Si intenta avanzar, corregir validación de 100% de progreso
+        if ronda > current_ronda:
+            res_progreso = await ServicioInventario.obtener_productos_por_operario(cedula, db)
+            
+            # Validar según la ronda que intenta dejar
+            if current_ronda == 1 and res_progreso.get("progreso_c1", 0) < 100:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Debes terminar el Conteo 1 al 100% antes de pasar a la siguiente ronda."
+                )
+            elif current_ronda == 2 and res_progreso.get("progreso_c2", 0) < 100:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Debes terminar el Conteo 2 al 100% antes de pasar a la siguiente ronda."
+                )
+
+        # 3. Actualizar todas las asignaciones de este usuario en esta sesión
         stmt = (
             update(AsignacionInventario)
             .where(or_(AsignacionInventario.cedula == cedula, AsignacionInventario.cedula_companero == cedula))
@@ -265,6 +287,8 @@ async def actualizar_ronda_vista(
         await db.execute(stmt)
         await db.commit()
         return {"status": "ok", "ronda": ronda}
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         print(f"Error al actualizar ronda vista: {e}")

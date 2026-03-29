@@ -163,10 +163,13 @@ class ServicioInventario:
             ]
             items_c2_acum.extend(chk_c2)
 
-        # Cálculo de progreso C1 para la UI
+        # Cálculo de progreso para la UI y validaciones de negocio
         contados_c1 = sum(1 for p in items_c1_acum if p.user_c1 is not None)
         progreso_c1 = round(contados_c1 / len(items_c1_acum) * 100) if items_c1_acum else 0
-
+        
+        contados_c2 = sum(1 for p in items_c2_acum if p.user_c2 is not None)
+        progreso_c2 = round(contados_c2 / len(items_c2_acum) * 100) if items_c2_acum else 100
+        
         def _to_dict(p):
             return {
                 "id": p.id, "bodega": p.bodega, "bloque": p.bloque, "estante": p.estante, "nivel": p.nivel,
@@ -184,6 +187,7 @@ class ServicioInventario:
             "items_c1": [_to_dict(p) for p in items_c1_acum],
             "items_c2": [_to_dict(p) for p in items_c2_acum],
             "progreso_c1": progreso_c1,
+            "progreso_c2": progreso_c2,
             "ronda_vista": ronda_vista,
             "bodega": bodega_label,
             "numero_pareja": mi_pareja_num
