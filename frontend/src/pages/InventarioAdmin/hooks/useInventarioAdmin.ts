@@ -40,6 +40,7 @@ export const useInventarioAdmin = () => {
     });
     const [isSearchingEmpleado, setIsSearchingEmpleado] = useState(false);
     const [asignaciones, setAsignaciones] = useState<any[]>([]);
+    const [asignacionesResumen, setAsignacionesResumen] = useState<any[]>([]);
     const [isSavingAsig, setIsSavingAsig] = useState(false);
     const [isUploadingTransito, setIsUploadingTransito] = useState(false);
     const [editingAsigId, setEditingAsigId] = useState<number | null>(null);
@@ -62,7 +63,18 @@ export const useInventarioAdmin = () => {
         total_ubicaciones_pendientes: number, 
         cubiertos: number, 
         faltantes: string[],
-        desglose_bodega?: Record<string, { total: number, cubiertos: number, porcentaje: number }>
+        desglose_bodega?: Record<string, { 
+            total: number, 
+            cubiertos: number, 
+            porcentaje: number,
+            hechos_c1: number,
+            p_c1: number,
+            hechos_c2: number,
+            p_c2: number,
+            parejas: number,
+            items_por_pareja: number,
+            discrepancias: number
+        }>
     }>({cobertura: 0, total_ubicaciones_pendientes: 0, cubiertos: 0, faltantes: []});
     const [inventoryList, setInventoryList] = useState<any[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(false);
@@ -111,6 +123,7 @@ export const useInventarioAdmin = () => {
         fetchStats();
         fetchInventoryList();
         fetchAsignaciones();
+        fetchAsignacionesResumen();
         fetchCoverage();
     }, []);
 
@@ -272,6 +285,15 @@ export const useInventarioAdmin = () => {
         }
     };
 
+    const fetchAsignacionesResumen = async () => {
+        try {
+            const response = await axios.get(`${API_CONFIG.BASE_URL}/inventario/asignaciones/resumen`, { headers });
+            setAsignacionesResumen(response.data as any[]);
+        } catch (error) {
+            console.error("Error fetching asignaciones resumen", error);
+        }
+    };
+
     const handleSaveAsig = async () => {
         if (!newAsig.cedula || !newAsig.bodega) {
             alert("Selecciona al menos el Personal y la Bodega");
@@ -297,6 +319,7 @@ export const useInventarioAdmin = () => {
             }
             setNewAsig({ cedula: '', nombre: '', cargo: '', cedula_companero: '', nombre_companero: '', bodega: '' });
             fetchAsignaciones();
+            fetchAsignacionesResumen();
         } catch (error: any) {
             const msg = error.response?.data?.detail || "Error en la operación de asignación";
             addNotification('error', msg);
@@ -342,6 +365,7 @@ export const useInventarioAdmin = () => {
                 addNotification('warning', `Finalizado con ${failCount} errores. Revisa las asignaciones manuales.`);
             }
             fetchAsignaciones();
+            fetchAsignacionesResumen();
         } catch (error: any) {
              addNotification('error', "Error general en asignación masiva");
         } finally {
@@ -441,6 +465,7 @@ export const useInventarioAdmin = () => {
         }
     };
 
+
     const buscarEmpleadoERP = async (cedula: string, tipo: 'titular' | 'companero') => {
         setIsSearchingEmpleado(true);
         try {
@@ -507,6 +532,7 @@ export const useInventarioAdmin = () => {
         stats,
         coverage,
         inventoryList,
+        asignacionesResumen,
         isLoadingData,
         filters, setFilters,
         columnFilters, setColumnFilters,
@@ -524,6 +550,7 @@ export const useInventarioAdmin = () => {
         handleUpdateRonda,
         fetchStats,
         fetchInventoryList,
+        fetchAsignacionesResumen,
         handleGeneratePlanilla0,
         // Helpers
         getBodegaOptions,

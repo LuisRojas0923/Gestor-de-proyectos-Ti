@@ -65,6 +65,7 @@ class AsignacionInventario(SQLModel, table=True):
     cedula_companero: Optional[str] = Field(default=None, max_length=50)
     nombre_companero: Optional[str] = Field(default=None, max_length=255)
     numero_pareja: Optional[int] = Field(default=None)
+    ronda_vista: int = Field(default=1) # 1 o 2 (Ronda que el usuario tiene abierta actualmente)
     cargo: str = Field(max_length=100)
     creado_en: datetime = Field(
         default_factory=datetime.now,

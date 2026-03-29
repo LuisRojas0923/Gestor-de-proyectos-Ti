@@ -19,7 +19,8 @@ export const InventarioAdmin: React.FC = () => {
         handleSaveAsig, handleDeleteAsig, handleEditAsig, cancelEdit, editingAsigId,
         getBodegaOptions,
         uploadProgress, activeTab, setActiveTab, handleGeneratePlanilla0, buscarEmpleadoERP,
-        handleBulkSaveAsignaciones, exportAsignacionesExcel
+        handleBulkSaveAsignaciones, exportAsignacionesExcel,
+        asignacionesResumen, fetchAsignacionesResumen
     } = useInventarioAdmin();
 
     // Autosincronización cada 1 minuto
@@ -27,9 +28,10 @@ export const InventarioAdmin: React.FC = () => {
         const interval = setInterval(() => {
             fetchStats();
             fetchInventoryList();
+            fetchAsignacionesResumen();
         }, 60000);
         return () => clearInterval(interval);
-    }, [fetchStats, fetchInventoryList]);
+    }, [fetchStats, fetchInventoryList, fetchAsignacionesResumen]);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 px-2 pb-10">
@@ -90,6 +92,7 @@ export const InventarioAdmin: React.FC = () => {
                         <AsignacionSeccion
                             {...{
                                 coverage, newAsig, setNewAsig, isSearchingEmpleado, isSavingAsig, asignaciones,
+                                asignacionesResumen,
                                 handleSaveAsig, handleDeleteAsig, handleEditAsig, cancelEdit, editingAsigId,
                                 getBodegaOptions, inventoryList,
                                 buscarEmpleadoERP, handleBulkSaveAsignaciones, exportAsignacionesExcel
@@ -101,7 +104,7 @@ export const InventarioAdmin: React.FC = () => {
                 {/* Tab: Monitor Maestro */}
                 {activeTab === 'monitor' && (
                     <MonitorMaestroTab
-                        {...{ stats, inventoryList, isLoadingData, filters, setFilters, columnFilters, setColumnFilters, fetchStats, fetchInventoryList, rondaActiva }}
+                        {...{ stats, inventoryList, isLoadingData, filters, setFilters, columnFilters, setColumnFilters, fetchStats, fetchInventoryList, coverage }}
                     />
                 )}
 

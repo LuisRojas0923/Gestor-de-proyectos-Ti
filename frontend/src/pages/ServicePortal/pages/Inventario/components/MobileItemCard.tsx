@@ -10,11 +10,12 @@ interface MobileItemCardProps {
     isSaving: boolean;
     isInvalid: boolean;
     isSaved: boolean;
+    readOnly?: boolean;
 }
 
-export const MobileItemCard = ({ item, value, obs, onChange, onSave, isSaving, isInvalid, isSaved }: MobileItemCardProps) => {
+export const MobileItemCard = ({ item, value, obs, onChange, onSave, isSaving, isInvalid, isSaved, readOnly }: MobileItemCardProps) => {
     return (
-        <div className={`bg-[var(--color-surface)] border rounded-3xl p-4 space-y-3 shadow-sm transition-all ${isInvalid ? 'border-red-500 ring-1 ring-red-500/50 bg-red-50/5 dark:bg-red-900/5' : isSaved ? 'border-green-500/30 bg-green-500/5 ring-1 ring-green-500/10' : 'border-[var(--color-border)]'}`}>
+        <div className={`bg-[var(--color-surface)] border rounded-3xl p-4 space-y-3 shadow-sm transition-all ${readOnly ? 'opacity-70 grayscale-[0.2]' : ''} ${isInvalid ? 'border-red-500 ring-1 ring-red-500/50 bg-red-50/5 dark:bg-red-900/5' : isSaved ? 'border-green-500/30 bg-green-500/5 ring-1 ring-green-500/10' : 'border-[var(--color-border)]'}`}>
             <div className="flex flex-wrap gap-1">
                 <div className="bg-primary-500/5 px-1.5 py-0.5 rounded-md flex items-center gap-1 border border-primary-500/10">
                     <Text variant="caption" className="text-[7px] uppercase text-primary-600">BOD</Text>
@@ -59,7 +60,8 @@ export const MobileItemCard = ({ item, value, obs, onChange, onSave, isSaving, i
                             if (sanitized.split('.').length > 2) return;
                             onChange('cant', sanitized);
                         }}
-                        className="text-right font-bold text-sm rounded-2xl h-10 w-full transition-all"
+                        disabled={readOnly}
+                        className="text-right font-bold text-sm rounded-2xl h-10 w-full transition-all disabled:bg-neutral-50 dark:disabled:bg-neutral-800/50"
                         placeholder=""
                     />
                 </div>
@@ -69,13 +71,14 @@ export const MobileItemCard = ({ item, value, obs, onChange, onSave, isSaving, i
                         value={obs}
                         onChange={(e) => onChange('obs', e.target.value)}
                         placeholder="..."
-                        className="rounded-2xl h-10 text-xs w-full"
+                        disabled={readOnly}
+                        className="rounded-2xl h-10 text-xs w-full disabled:bg-neutral-50 dark:disabled:bg-neutral-800/50"
                     />
                 </div>
                 <Button
                     variant="primary"
                     onClick={() => onSave(item.id)}
-                    disabled={isSaving}
+                    disabled={isSaving || readOnly}
                     className="rounded-xl h-10 px-3 shrink-0 shadow-md"
                 >
                     <Save size={14} />

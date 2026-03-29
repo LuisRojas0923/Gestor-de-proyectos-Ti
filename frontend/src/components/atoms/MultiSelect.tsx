@@ -146,7 +146,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                 {minimal ? (
                     <div className="relative flex items-center justify-center gap-1 w-full h-full">
                         {triggerLabel ? (
-                            <Text as="span" weight="bold" className={`text-[10px] uppercase tracking-wider leading-none transition-colors ${isOpen || value.length > 0 ? 'text-primary-400 font-black underline decoration-2' : 'text-white/70'}`}>
+                            <Text as="span" align="center" weight="bold" className={`text-[10px] uppercase tracking-wider leading-none transition-colors ${isOpen || value.length > 0 ? 'text-primary-400 font-black underline decoration-2' : 'text-white/70'}`}>
                                 {triggerLabel}
                             </Text>
                         ) : (

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Title, Text, Button, ProgressBar } from '../../../../components/atoms';
-import { ArrowLeft, Loader2, FileText, Save, FilterX } from 'lucide-react';
+import { ArrowLeft, Loader2, FileText, Save, FilterX, Lock } from 'lucide-react';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import { TableRow } from './components/TableRow';
 import { MobileItemCard } from './components/MobileItemCard';
@@ -17,6 +17,10 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
     const {
         isLoading,
         ronda,
+        conteoActivo,
+        setConteoActivo,
+        progresoC1,
+        puedeEditarC2,
         changes,
         isSigning,
         validationErrors,
@@ -91,9 +95,28 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
                             )}
                         </div>
 
-                        {/* Ronda pill (Desktop & Mobile) */}
-                        <div className="flex items-center justify-start gap-2 bg-neutral-50 dark:bg-neutral-800/50 p-1 px-3 rounded-xl border border-[var(--color-border)] ml-auto md:ml-0">
-                            <Text variant="caption" weight="bold" className="text-primary-600 dark:text-primary-400 text-[10px]">C{ronda}</Text>
+                        {/* Conteo Toggle (C1/C2) */}
+                        <div className="flex items-center gap-1 bg-neutral-50 dark:bg-neutral-800/50 p-1 rounded-2xl border border-[var(--color-border)] ml-auto md:ml-0 overflow-hidden shadow-inner">
+                            <button
+                                onClick={() => setConteoActivo('C1')}
+                                className={`px-3 py-1 text-[10px] font-bold rounded-xl transition-all duration-300 ${conteoActivo === 'C1' ? 'bg-primary-500 text-white shadow-md' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700'}`}
+                            >
+                                C1
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (progresoC1 < 100) {
+                                        addNotification('error', `BLOQUEADO: Debes completar el Conteo 1 al 100% (Actual: ${progresoC1}%) antes de pasar al Reconteo.`);
+                                        return;
+                                    }
+                                    setConteoActivo('C2');
+                                }}
+                                title={progresoC1 < 100 ? "Complete el Conteo 1 para habilitar" : ""}
+                                className={`px-3 py-1 text-[10px] font-bold rounded-xl transition-all duration-300 flex items-center gap-1.5 ${conteoActivo === 'C2' ? 'bg-primary-500 text-white shadow-md' : progresoC1 < 100 ? 'opacity-40 grayscale cursor-not-allowed text-neutral-400' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700'}`}
+                            >
+                                {progresoC1 < 100 && <Lock size={10} className="mb-0.5" />}
+                                C2
+                            </button>
                         </div>
 
                         {/* Action Buttons (Desktop Version - Icon Only) */}
@@ -166,12 +189,36 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
                 </div>
             </div>
 
+            {/* Aviso de bloqueo C2 */}
+            {conteoActivo === 'C2' && !puedeEditarC2 && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-3 rounded-xl animate-in slide-in-from-top-2 duration-300 mx-1">
+                    <div className="flex items-center gap-3">
+                        <Loader2 className="text-yellow-600 dark:text-yellow-400 shrink-0" size={18} />
+                        <Text variant="caption" weight="bold" className="text-yellow-800 dark:text-yellow-200 text-[10px]">
+                            RECONTEO BLOQUEADO: Debes completar el Conteo 1 al 100% ({progresoC1}%) para habilitar la edición en C2.
+                        </Text>
+                    </div>
+                </div>
+            )}
+
             {/* Mobile View */}
             <div className="grid grid-cols-1 gap-4 md:hidden pb-20">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-4">
                         <Loader2 className="animate-spin text-primary-500" size={32} />
                         <Text variant="caption">Cargando asignaciones...</Text>
+                    </div>
+                ) : filteredItems.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 px-10 text-center bg-neutral-50 dark:bg-neutral-900/40 rounded-3xl border border-dashed border-neutral-200 dark:border-neutral-800">
+                        <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mb-4">
+                            <FileText className="text-neutral-300" size={32} />
+                        </div>
+                        <Title variant="h6" weight="bold" className="mb-2">¡Todo al día!</Title>
+                        <Text variant="caption" color="text-secondary" className="max-w-[200px]">
+                            {conteoActivo === 'C1' 
+                                ? '¡Excelente! Has completado el 100% de tu Conteo 1. Ya puedes pasar al Reconteo (C2).' 
+                                : 'No tienes ítems asignados para reconteo en esta zona.'}
+                        </Text>
                     </div>
                 ) : filteredItems.map((item) => (
                     <MobileItemCard
@@ -184,6 +231,7 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
                         isSaving={isSigning}
                         isInvalid={validationErrors.has(item.id)}
                         isSaved={!!item[`user_c${ronda}`] && !changes[item.id]}
+                        readOnly={conteoActivo === 'C2' && !puedeEditarC2}
                     />
                 ))}
             </div>
@@ -194,6 +242,18 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
                     <div className="flex flex-col items-center justify-center py-20 gap-4">
                         <Loader2 className="animate-spin text-primary-500" size={32} />
                         <Text variant="caption">Cargando tabla...</Text>
+                    </div>
+                ) : filteredItems.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-32 gap-3">
+                        <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center">
+                            <FileText className="text-neutral-300" size={24} />
+                        </div>
+                        <Text variant="body1" weight="bold" color="text-primary">No hay asignaciones pendientes</Text>
+                        <Text variant="caption" color="text-secondary" className="max-w-xs text-center">
+                            {conteoActivo === 'C1' 
+                                ? 'Has completado el 100% de tu Conteo 1. Ya puedes alternar al Reconteo (C2).' 
+                                : 'No se encontraron ítems para reconteo en tu zona.'}
+                        </Text>
                     </div>
                 ) : (
                     <table className="w-full text-left table-separate min-w-[750px]">
@@ -220,6 +280,7 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
                                     onChange={(field: 'cant' | 'obs', val: string) => handleInputChange(item.id, field, val)}
                                     isInvalid={validationErrors.has(item.id)}
                                     isSaved={!!item[`user_c${ronda}`] && !changes[item.id]}
+                                    readOnly={conteoActivo === 'C2' && !puedeEditarC2}
                                 />
                             ))}
                         </tbody>

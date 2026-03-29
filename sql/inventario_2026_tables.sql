@@ -1,78 +1,98 @@
--- Creación de tablas para el módulo de Inventario 2026 (Versión Rondas de Conteo)
+-- ==========================================================
+-- MODULO: INVENTARIO 2026 (VERSIÓN RONDAS DE CONTEO CIEGO)
+-- OPTIMIZADO PARA PRODUCCIÓN (POSTGRESQL)
+-- ==========================================================
 
--- Tabla de Conteo Físico (Maestra + 4 Rondas)
+-- Tabla Maestra de Conteo Físico
+-- Soporta 4 Rondas, Diferencias Locales y Totales por SKU
 CREATE TABLE IF NOT EXISTS ConteoInventario (
     id SERIAL PRIMARY KEY,
-    b_siigo INTEGER,
-    bodega VARCHAR(100),
+    b_siigo INTEGER, -- ID de registro en SIIGO
+    bodega VARCHAR(100) NOT NULL,
     bloque VARCHAR(50),
     estante VARCHAR(50),
     nivel VARCHAR(50),
-    codigo VARCHAR(100),
+    codigo VARCHAR(100) NOT NULL,
     descripcion TEXT,
     unidad VARCHAR(20),
     
-    cantidad_sistema FLOAT DEFAULT 0, -- Cantidad teórica según ERP (Excel)
-    invporlegalizar FLOAT DEFAULT 0,  -- Ajustes de inventario en tránsito
-    cantidad_final FLOAT DEFAULT 0,   -- SIIGO + INV.LEG (Total Teórico)
+    -- Información Teórica (Sistema)
+    cantidad_sistema FLOAT DEFAULT 0,  -- Teórico ERP puro
+    invporlegalizar FLOAT DEFAULT 0,   -- Tránsito / Legalizar
+    cantidad_final FLOAT DEFAULT 0,    -- Teórico Final (SIIGO + Tránsito)
     
-    -- Ronda 1
+    -- Ronda 1 (Conteo Inicial)
     cant_c1 FLOAT DEFAULT 0,
     obs_c1 TEXT,
     user_c1 VARCHAR(50),
     
-    -- Ronda 2
+    -- Ronda 2 (Doble Conteo Ciego)
     cant_c2 FLOAT DEFAULT 0,
     obs_c2 TEXT,
     user_c2 VARCHAR(50),
     
-    -- Ronda 3
+    -- Ronda 3 (Conciliación Discrepancias)
     cant_c3 FLOAT DEFAULT 0,
     obs_c3 TEXT,
     user_c3 VARCHAR(50),
     
-    -- Ronda 4
+    -- Ronda 4 (Ajuste Final / Auditoría)
     cant_c4 FLOAT DEFAULT 0,
     obs_c4 TEXT,
     user_c4 VARCHAR(50),
 
-    conteo VARCHAR(100), -- Identificador de la toma física (ej: "Inventario_Anual_2026")
-    estado VARCHAR(20) DEFAULT 'PENDIENTE', -- PENDIENTE, CONCILIADO, DISCREPANTE, RECONTEO
-    diferencia FLOAT DEFAULT 0, -- Diferencia local de la ubicación
-    diferencia_total FLOAT DEFAULT 0, -- Diferencia Global del código (Balance Multi-ubicación)
+    conteo VARCHAR(100) NOT NULL, -- Ej: 'Inventario_Anual_2026'
+    estado VARCHAR(30) DEFAULT 'PENDIENTE', -- PENDIENTE, CONCILIADO, DISCREPANTE, RECONTEO, UBICACIÓN ERRÓNEA
+    diferencia FLOAT DEFAULT 0, -- Diferencia en esta ubicación específica
+    diferencia_total FLOAT DEFAULT 0, -- Diferencia Global del SKU (Multi-bodega)
     
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Unicidad Técnica: Evita cargar duplicados del mismo SKU en la misma ubicación para el mismo conteo
+    CONSTRAINT unique_sku_location UNIQUE (codigo, bodega, bloque, estante, nivel, conteo)
 );
 
--- Tabla de Asignación de Personal por Ubicación
+-- Índices Críticos para Rendimiento en Dashboard y Virtualización
+CREATE INDEX IF NOT EXISTS idx_conteo_sku ON ConteoInventario (codigo, conteo);
+CREATE INDEX IF NOT EXISTS idx_conteo_geografico ON ConteoInventario (bodega, bloque, estante, nivel);
+CREATE INDEX IF NOT EXISTS idx_conteo_estado ON ConteoInventario (estado);
+CREATE INDEX IF NOT EXISTS idx_conteo_user_c1 ON ConteoInventario (user_c1) WHERE user_c1 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_conteo_user_c2 ON ConteoInventario (user_c2) WHERE user_c2 IS NOT NULL;
+
+-- Tabla de Asignación de Personal
+-- Crucial para el algoritmo de división de carga (parejas)
 CREATE TABLE IF NOT EXISTS AsignacionInventario (
     id SERIAL PRIMARY KEY,
-    bodega VARCHAR(100),
+    bodega VARCHAR(100) NOT NULL,
     bloque VARCHAR(50),
-    estante VARCHAR(50),
+    estante VARCHAR(255),
     nivel VARCHAR(50),
-    cedula VARCHAR(50),
+    cedula VARCHAR(50) NOT NULL,
     nombre VARCHAR(255),
     cedula_companero VARCHAR(50),
     nombre_companero VARCHAR(255),
-    numero_pareja INTEGER,
+    numero_pareja INTEGER NOT NULL,
+    ronda_vista INTEGER DEFAULT 1, -- Controla la visualización en el APP del operario (C1 o C2)
     cargo VARCHAR(100),
-    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    creado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de Configuración Global del Inventario
+CREATE INDEX IF NOT EXISTS idx_asig_cedula ON AsignacionInventario (cedula);
+CREATE INDEX IF NOT EXISTS idx_asig_pareja_bodega ON AsignacionInventario (bodega, numero_pareja);
+
+-- Tabla de Configuración Global
 CREATE TABLE IF NOT EXISTS ConfiguracionInventario (
     id SERIAL PRIMARY KEY,
     ronda_activa INTEGER DEFAULT 1,
-    conteo_nombre VARCHAR(100),
-    ultima_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    conteo_nombre VARCHAR(100) NOT NULL,
+    ultima_actualizacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de Histórico / Snapshots (Debe ser espejo de ConteoInventario para no perder datos)
+-- Histórico / Auditoría de Cambios
 CREATE TABLE IF NOT EXISTS ConteoHistorico (
     id SERIAL PRIMARY KEY,
-    original_id INTEGER,
-    b_siigo INTEGER, -- <--- Faltaba este campo
+    original_id INTEGER NOT NULL,
+    b_siigo INTEGER,
     bodega VARCHAR(100),
     bloque VARCHAR(50),
     estante VARCHAR(50),
@@ -84,32 +104,25 @@ CREATE TABLE IF NOT EXISTS ConteoHistorico (
     invporlegalizar FLOAT,
     cantidad_final FLOAT,
     
-    -- Historial de Rondas (Espejo de ConteoInventario)
-    cant_c1 FLOAT,
-    obs_c1 TEXT,
-    user_c1 VARCHAR(50),
-    cant_c2 FLOAT,
-    obs_c2 TEXT,
-    user_c2 VARCHAR(50),
-    cant_c3 FLOAT,
-    obs_c3 TEXT,
-    user_c3 VARCHAR(50),
-    cant_c4 FLOAT,
-    obs_c4 TEXT,
-    user_c4 VARCHAR(50),
+    cant_c1 FLOAT, user_c1 VARCHAR(50),
+    cant_c2 FLOAT, user_c2 VARCHAR(50),
+    cant_c3 FLOAT, user_c3 VARCHAR(50),
+    cant_c4 FLOAT, user_c4 VARCHAR(50),
 
     conteo VARCHAR(100),
-    estado VARCHAR(20),
+    estado VARCHAR(30),
     diferencia FLOAT,
     diferencia_total FLOAT,
-    snapshot_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    snapshot_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de Tránsito de Mercancía (Modelo B)
+-- Tabla de Tránsito (Auxiliar para precarga de invporlegalizar)
 CREATE TABLE IF NOT EXISTS TransitoInventario (
     id SERIAL PRIMARY KEY,
-    sku VARCHAR(100),
+    sku VARCHAR(100) NOT NULL,
     documento VARCHAR(100),
     cantidad FLOAT DEFAULT 0,
-    fecha_proceso TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    fecha_proceso TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_transito_sku ON TransitoInventario (sku);

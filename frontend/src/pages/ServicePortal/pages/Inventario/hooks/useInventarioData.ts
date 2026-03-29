@@ -2,14 +2,15 @@ import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { API_CONFIG } from '../../../../../config/api';
 
-interface InventoryConfig {
-    ronda_activa: number;
-}
-
 export const useInventarioData = (addNotification: any) => {
-    const [items, setItems] = useState<any[]>([]);
+    const [dataC1, setDataC1] = useState<any[]>([]);
+    const [dataC2, setDataC2] = useState<any[]>([]);
+    const [progresoC1, setProgresoC1] = useState(0);
+    const [conteoActivo, setConteoActivo] = useState<'C1' | 'C2'>(() => {
+        const saved = localStorage.getItem('inventario_conteo_activo');
+        return (saved === 'C1' || saved === 'C2') ? saved : 'C1';
+    });
     const [isLoading, setIsLoading] = useState(false);
-    const [ronda, setRonda] = useState(1);
     const [columnFilters, setColumnFilters] = useState<{ [key: string]: string[] }>({});
     const [changes, setChanges] = useState<{ [key: number]: { cant: string, obs: string } }>(() => {
         const saved = localStorage.getItem('inventario_changes');
@@ -20,9 +21,36 @@ export const useInventarioData = (addNotification: any) => {
     
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
 
+    // La ronda actual depende de qué tab esté activa
+    const ronda = useMemo(() => conteoActivo === 'C1' ? 1 : 2, [conteoActivo]);
+
+    // Los ítems a mostrar dependen del conteo seleccionado
+    const items = useMemo(() => conteoActivo === 'C1' ? dataC1 : dataC2, [conteoActivo, dataC1, dataC2]);
+
+    const puedeEditarC2 = useMemo(() => progresoC1 === 100, [progresoC1]);
+
     useEffect(() => {
         localStorage.setItem('inventario_changes', JSON.stringify(changes));
     }, [changes]);
+
+    useEffect(() => {
+        localStorage.setItem('inventario_conteo_activo', conteoActivo);
+    }, [conteoActivo]);
+    
+    // Sincronizar ronda vista con el backend para el administrador
+    useEffect(() => {
+        const syncRonda = async () => {
+            try {
+                await axios.patch(`${API_CONFIG.BASE_URL}/inventario/ronda-vista`, null, { 
+                    params: { ronda },
+                    headers 
+                });
+            } catch (e) {
+                console.warn("No se pudo sincronizar la ronda vista", e);
+            }
+        };
+        syncRonda();
+    }, [ronda]);
 
     useEffect(() => {
         if (items.length > 0) {
@@ -30,7 +58,7 @@ export const useInventarioData = (addNotification: any) => {
             Object.entries(changes).forEach(([id, data]) => {
                 const itemId = Number(id);
                 const item = items.find(i => i.id === itemId);
-                if (data.cant === '' && item?.[`user_c${ronda}`]) {
+                if (item && data.cant === '' && item[`user_c${ronda}`]) {
                     newErrors.add(itemId);
                 }
             });
@@ -39,39 +67,27 @@ export const useInventarioData = (addNotification: any) => {
     }, [items, changes, ronda]);
 
     useEffect(() => {
-        const init = async () => {
-            await fetchConfig();
-            await fetchAsignaciones();
-        };
-        init();
+        fetchAsignaciones();
     }, []);
-
-    const fetchConfig = async () => {
-        try {
-            const response = await axios.get<InventoryConfig>(`${API_CONFIG.BASE_URL}/inventario/config`, { headers });
-            if (response.data) {
-                setRonda(response.data.ronda_activa);
-            }
-        } catch (error) {
-            console.error("Error fetching inventory config", error);
-        }
-    };
 
     const fetchAsignaciones = async () => {
         setIsLoading(true);
         try {
             const response = await axios.get(`${API_CONFIG.BASE_URL}/inventario/mis-asignaciones`, { headers });
-            const rawItems = response.data as any[];
-
-            const sortedItems = [...rawItems].sort((a, b) => {
-                const opts: Intl.CollatorOptions = { numeric: true, sensitivity: 'base' };
-                if (a.bodega !== b.bodega) return a.bodega.localeCompare(b.bodega, undefined, opts);
-                if (a.bloque !== b.bloque) return a.bloque.localeCompare(b.bloque, undefined, opts);
-                if (a.estante !== b.estante) return a.estante.localeCompare(b.estante, undefined, opts);
-                return (a.nivel || '').localeCompare(b.nivel || '', undefined, opts);
-            });
-
-            setItems(sortedItems);
+            const data = response.data;
+            
+            if (data && data.items_c1) {
+                setDataC1(data.items_c1);
+                setDataC2(data.items_c2 || []);
+                setProgresoC1(data.progreso_c1 || 0);
+                
+                // La ronda se maneja localmente via localStorage para persistencia inmediata
+                // El backend se actualiza via useEffect cuando 'ronda' cambia para monitoreo administrativo
+            } else if (Array.isArray(data)) {
+                // Fallback por si el backend aún no ha recargado los cambios del servicio
+                setDataC1(data);
+                setDataC2([]);
+            }
         } catch (error) {
             console.error("Error fetching asignaciones", error);
         } finally {
@@ -112,15 +128,22 @@ export const useInventarioData = (addNotification: any) => {
     };
 
     const handleSignAll = async () => {
-        const itemsToSave = Object.entries(changes).map(([id, data]) => ({
-            id: Number(id),
-            cantidad: data.cant === '' ? null : Number(data.cant),
-            observaciones: (data.obs || "").trim(),
-            ronda
-        })).filter(item => item.cantidad !== null);
+        const itemsToSave = Object.entries(changes).map(([id, data]) => {
+            const itemId = Number(id);
+            // Solo guardar ítems que pertenecen al conteo actual
+            const belongsToCount = items.some(i => i.id === itemId);
+            if (!belongsToCount) return null;
+
+            return {
+                id: itemId,
+                cantidad: data.cant === '' ? null : Number(data.cant),
+                observaciones: (data.obs || "").trim(),
+                ronda
+            };
+        }).filter(item => item !== null && item.cantidad !== null);
 
         if (itemsToSave.length === 0) {
-            addNotification('warning', "No hay cambios pendientes para firmar.");
+            addNotification('warning', "No hay cambios pendientes para firmar en este conteo.");
             return;
         }
 
@@ -238,6 +261,10 @@ export const useInventarioData = (addNotification: any) => {
         items,
         isLoading,
         ronda,
+        conteoActivo,
+        setConteoActivo,
+        progresoC1,
+        puedeEditarC2,
         changes,
         isSigning,
         validationErrors,
@@ -253,3 +280,4 @@ export const useInventarioData = (addNotification: any) => {
         stats
     };
 };
+

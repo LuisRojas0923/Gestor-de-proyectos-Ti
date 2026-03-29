@@ -10,6 +10,7 @@ interface AsignacionSeccionProps {
     isSearchingEmpleado: boolean;
     isSavingAsig: boolean;
     asignaciones: any[];
+    asignacionesResumen: any[];
     handleSaveAsig: () => void;
     handleDeleteAsig: (id: number) => void;
     handleEditAsig: (asig: any) => void;
@@ -29,6 +30,7 @@ const AsignacionSeccion: React.FC<AsignacionSeccionProps> = ({
     isSearchingEmpleado,
     isSavingAsig,
     asignaciones,
+    asignacionesResumen,
     handleSaveAsig,
     handleDeleteAsig,
     handleEditAsig,
@@ -42,47 +44,19 @@ const AsignacionSeccion: React.FC<AsignacionSeccionProps> = ({
 }) => {
     const isEditMode = editingAsigId !== null;
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<'C1' | 'C2'>('C1');
 
-    // Calcular ítems por pareja: total_bodega / parejas_en_bodega
+    // Ya no calculamos groupedAsignaciones aquí. Usamos asignacionesResumen del backend.
+
     const getItemsPerPair = (bodega: string) => {
-        const totalItems = inventoryList.filter(i =>
-            String(i.bodega || '').trim().toUpperCase() === String(bodega || '').trim().toUpperCase()
-        ).length;
-
-        const parejasEnBodega = new Set(
-            asignaciones
-                .filter(a => String(a.bodega || '').trim().toUpperCase() === String(bodega || '').trim().toUpperCase())
-                .map(a => a.numero_pareja)
-        ).size;
-
+        const items = inventoryList.filter(i => String(i.bodega).trim().toUpperCase() === String(bodega).trim().toUpperCase());
+        const parejas = new Set(asignaciones.filter(a => String(a.bodega).trim().toUpperCase() === String(bodega).trim().toUpperCase()).map(a => a.numero_pareja)).size;
         return {
-            total: totalItems,
-            parejas: parejasEnBodega,
-            porPareja: parejasEnBodega > 0 ? Math.ceil(totalItems / parejasEnBodega) : totalItems
+            total: items.length,
+            parejas: parejas,
+            porPareja: parejas > 0 ? Math.ceil(items.length / parejas) : items.length
         };
     };
-
-    // Agrupar asignaciones por número de pareja
-    const groupedAsignaciones = Object.values(asignaciones.reduce((acc: any, asig: any) => {
-        const key = asig.numero_pareja || asig.cedula;
-        if (!acc[key]) {
-            const info = getItemsPerPair(asig.bodega);
-            acc[key] = {
-                id: asig.id,
-                numero_pareja: asig.numero_pareja,
-                cedula: asig.cedula,
-                nombre: asig.nombre,
-                cargo: asig.cargo || '',
-                cedula_companero: asig.cedula_companero || '',
-                nombre_companero: asig.nombre_companero || '',
-                bodega: asig.bodega,
-                items_totales: info.porPareja,
-                total_bodega: info.total,
-                parejas_bodega: info.parejas
-            };
-        }
-        return acc;
-    }, {}));
 
     return (
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-3xl p-6 shadow-sm space-y-6">
@@ -96,9 +70,27 @@ const AsignacionSeccion: React.FC<AsignacionSeccionProps> = ({
                 }}
             />
             <div className="flex items-center justify-between">
-                <div>
-                    <Title variant="h6" weight="bold">Asignación de Personal</Title>
-                    <Text variant="caption" color="text-secondary">Asigna parejas por bodega. Los ítems se dividen equitativamente.</Text>
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-3">
+                        <Title variant="h6" weight="bold">Asignación de Personal</Title>
+                        <div className="flex bg-neutral-100 dark:bg-neutral-800 p-0.5 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                           <button 
+                             onClick={() => setViewMode('C1')}
+                             className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${viewMode === 'C1' ? 'bg-white dark:bg-neutral-700 shadow-sm text-primary-600' : 'text-neutral-500 hover:text-neutral-700'}`}
+                           >
+                             Conteo 1
+                           </button>
+                           <button 
+                             onClick={() => setViewMode('C2')}
+                             className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${viewMode === 'C2' ? 'bg-white dark:bg-neutral-700 shadow-sm text-primary-600' : 'text-neutral-500 hover:text-neutral-700'}`}
+                           >
+                             Conteo 2
+                           </button>
+                        </div>
+                    </div>
+                    <Text variant="caption" color="text-secondary">
+                        {viewMode === 'C1' ? 'Visualizando asignación lineal original.' : 'Visualizando pronóstico de reconteo (Rotación 50%).'}
+                    </Text>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <Button variant="ghost" size="sm" onClick={exportAsignacionesExcel} className="!text-xs !py-1 !px-3 font-bold text-green-600 hover:bg-green-50 border border-green-200">
@@ -321,66 +313,84 @@ const AsignacionSeccion: React.FC<AsignacionSeccionProps> = ({
                     <Text variant="caption" weight="bold" className="uppercase tracking-widest text-neutral-400">Personal Asignado</Text>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    {groupedAsignaciones.length === 0 ? (
+                <div className="grid grid-cols-1 gap-3">
+                    {asignacionesResumen.length === 0 ? (
                         <div className="col-span-full py-10 text-center bg-neutral-50 dark:bg-neutral-800/20 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-700">
                             <Text variant="caption" color="text-secondary">No hay operarios asignados.</Text>
                         </div>
                     ) : (
-                        groupedAsignaciones.map((grupo: any) => (
-                            <div key={grupo.numero_pareja || grupo.nombre} className="flex flex-col p-5 bg-white dark:bg-neutral-800 rounded-3xl border border-neutral-200 dark:border-neutral-700 shadow-sm hover:border-primary-500 hover:shadow-md transition-all">
-                                {/* Encabezado */}
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full bg-primary-50 dark:bg-primary-500/10 flex items-center justify-center text-primary-500 font-bold text-lg border border-primary-100 dark:border-primary-500/20">
-                                            {grupo.nombre.charAt(0)}
+                        asignacionesResumen.map((grupo: any) => (
+                            <div key={`${grupo.bodega}-${grupo.numero_pareja}`} className="flex items-center p-3 px-5 bg-white dark:bg-neutral-800 rounded-3xl border border-neutral-200 dark:border-neutral-700 shadow-sm hover:border-primary-500 hover:shadow-md transition-all gap-6">
+                                {/* Identificador: Número de Pareja */}
+                                <div className="w-12 h-12 shrink-0 rounded-full bg-primary-50 dark:bg-primary-500/10 flex items-center justify-center text-primary-500 font-bold text-xl border border-primary-100 dark:border-primary-500/20">
+                                    {grupo.numero_pareja || '?'}
+                                </div>
+
+                                {/* Contenido Principal: Flujo horizontal de datos */}
+                                <div className="flex-1 flex items-center gap-6 overflow-hidden">
+                                    {/* 1. Asignados: Ancho fijo para alineación vertical perfecta entre tarjetas */}
+                                    <div className="flex flex-col w-[250px] shrink-0">
+                                        <Text variant="caption" weight="bold" className="text-[13px] truncate leading-tight uppercase font-black">{grupo.nombre || 'Sin nombre'}</Text>
+                                        {grupo.nombre_companero && (
+                                            <Text variant="caption" color="text-secondary" className="text-[11px] truncate opacity-70 font-bold">
+                                                + {grupo.nombre_companero}
+                                            </Text>
+                                        )}
+                                    </div>
+
+                                    {/* 2. Bodega */}
+                                    <div className="flex flex-col items-center shrink-0 px-4 border-l border-neutral-100 dark:border-neutral-700">
+                                        <Text variant="caption" className="text-[8px] uppercase font-bold text-neutral-400">Bodega</Text>
+                                        <Text variant="caption" weight="bold" className="text-[14px] text-primary-600 leading-none">{grupo.bodega}</Text>
+                                    </div>
+
+                                    {/* 3 & 4. Conteo 1: Items + Barra */}
+                                    <div className="flex items-center gap-4 flex-1 min-w-[150px] border-l border-neutral-100 dark:border-neutral-700 pl-4">
+                                        <div className="flex flex-col shrink-0">
+                                            <Text variant="caption" className="text-[8px] uppercase font-bold text-neutral-400">Items C1</Text>
+                                            <Text variant="caption" weight="bold" className="text-[12px] text-neutral-500 leading-none">{grupo.items_c1}</Text>
                                         </div>
-                                        <div className="flex flex-col">
+                                        <div className="flex flex-col flex-1 gap-1">
+                                            <Text variant="caption" className="text-[8px] uppercase font-bold text-neutral-400 text-right">Progreso C1</Text>
                                             <div className="flex items-center gap-2">
-                                                <Badge variant="primary" size="sm" className="bg-primary-500/10 text-primary-600 border-none px-2 scale-90 -ml-1">Pareja {grupo.numero_pareja || '?'}</Badge>
-                                                <Text variant="caption" weight="bold" className="leading-tight text-[12px] truncate max-w-[200px]">{grupo.nombre}</Text>
+                                                <div className="flex-1 h-1.5 bg-neutral-100 dark:bg-neutral-700 rounded-full overflow-hidden shadow-inner">
+                                                    <div className={`h-full transition-all duration-500 ${grupo.progreso_c1 === 100 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-primary-500'}`} style={{ width: `${grupo.progreso_c1}%` }} />
+                                                </div>
+                                                <Text variant="caption" weight="bold" className="text-[10px] min-w-[30px]">{grupo.progreso_c1}%</Text>
                                             </div>
-                                            {grupo.nombre_companero && (
-                                                <Text variant="caption" color="text-secondary" className="text-[11px] uppercase font-medium tracking-tight mt-0.5">
-                                                    + {grupo.nombre_companero}
-                                                </Text>
-                                            )}
                                         </div>
                                     </div>
-                                    
-                                    <div className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity">
-                                        <Button
-                                            variant="ghost" size="sm"
-                                            className="h-7 w-7 p-0 rounded-lg text-primary-500 bg-white hover:bg-primary-50 dark:bg-neutral-800 shadow-sm"
-                                            onClick={() => handleEditAsig(grupo)} icon={Pencil} title="Editar Asignación"
-                                        />
-                                        <Button
-                                            variant="ghost" size="sm"
-                                            className="h-7 w-7 p-0 rounded-lg text-red-400 bg-white hover:text-red-600 hover:bg-red-50 dark:bg-neutral-800 shadow-sm"
-                                            onClick={() => handleDeleteAsig(grupo.id)} icon={Trash2} title="Eliminar Asignación"
-                                        />
+
+                                    {/* 5 & 6. Conteo 2: Items + Barra */}
+                                    <div className="flex items-center gap-4 flex-1 min-w-[150px] border-l border-neutral-100 dark:border-neutral-700 pl-4">
+                                        <div className="flex flex-col shrink-0">
+                                            <Text variant="caption" className="text-[8px] uppercase font-bold text-neutral-400">Items C2</Text>
+                                            <Text variant="caption" weight="bold" className="text-[12px] text-amber-600 leading-none">{grupo.items_c2_total || 0}</Text>
+                                        </div>
+                                        <div className="flex flex-col flex-1 gap-1">
+                                            <Text variant="caption" className="text-[8px] uppercase font-bold text-neutral-400 text-right">Progreso C2</Text>
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 h-1.5 bg-neutral-100 dark:bg-neutral-700 rounded-full overflow-hidden shadow-inner">
+                                                    <div className={`h-full transition-all duration-500 ${grupo.progreso_c2 === 100 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-amber-500'}`} style={{ width: `${grupo.progreso_c2}%` }} />
+                                                </div>
+                                                <Text variant="caption" weight="bold" className="text-[10px] min-w-[30px]">{grupo.progreso_c2}%</Text>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Info compacta: Bodega + Ítems */}
-                                <div className="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-900 rounded-2xl border border-neutral-100 dark:border-neutral-800">
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex flex-col">
-                                            <Text variant="caption" className="text-[9px] uppercase font-bold text-neutral-400 mb-0.5">Bodega</Text>
-                                            <Text variant="caption" weight="bold" className="text-[13px] text-primary-600">{grupo.bodega}</Text>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <Text variant="caption" className="text-[9px] uppercase font-bold text-neutral-400 mb-0.5">Total Bodega</Text>
-                                            <Text variant="caption" weight="bold" className="text-[11px] text-neutral-500">{grupo.total_bodega}</Text>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <Text variant="caption" className="text-[9px] uppercase font-bold text-neutral-400 mb-0.5">Parejas</Text>
-                                            <Text variant="caption" weight="bold" className="text-[11px] text-neutral-500">{grupo.parejas_bodega}</Text>
-                                        </div>
-                                    </div>
-                                    <Badge variant="info" className="text-[11px] font-bold">
-                                        ~{grupo.items_totales} ítems
-                                    </Badge>
+                                {/* Acciones */}
+                                <div className="flex items-center gap-1 shrink-0 opacity-40 hover:opacity-100 transition-opacity ml-2">
+                                    <Button
+                                        variant="ghost" size="sm"
+                                        className="h-8 w-8 p-0 rounded-xl text-primary-500 bg-neutral-50 hover:bg-primary-50 dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800"
+                                        onClick={() => handleEditAsig(grupo)} icon={Pencil}
+                                    />
+                                    <Button
+                                        variant="ghost" size="sm"
+                                        className="h-8 w-8 p-0 rounded-xl text-red-400 bg-neutral-50 hover:text-red-600 hover:bg-red-50 dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800"
+                                        onClick={() => handleDeleteAsig(grupo.id)} icon={Trash2}
+                                    />
                                 </div>
                             </div>
                         ))

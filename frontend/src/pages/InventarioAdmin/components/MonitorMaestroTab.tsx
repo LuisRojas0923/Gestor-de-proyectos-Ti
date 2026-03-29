@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useTransition, useCallback, useDeferredValue, useEffect, useRef } from 'react';
-import { Title, Text, Button, Badge, MultiSelect } from '../../../components/atoms';
-import { CheckCircle2, AlertCircle, Clock, Search, Filter } from 'lucide-react';
+import { Text, Button, Badge, MultiSelect } from '../../../components/atoms';
+import { CheckCircle2, Search, Filter } from 'lucide-react';
 import { FixedSizeList as List } from 'react-window';
 
 interface MonitorMaestroTabProps {
@@ -13,11 +13,11 @@ interface MonitorMaestroTabProps {
     setColumnFilters: React.Dispatch<React.SetStateAction<Record<string, string[]>>>;
     fetchStats: () => void;
     fetchInventoryList: () => void;
-    rondaActiva: number;
+    coverage: any;
 }
 
 // Estilos de grilla compartidos para mantener alineación entre cabecera y filas virtualizadas
-const GRID_STYLE = "grid grid-cols-[85px_85px_85px_140px_100px_1fr_60px_60px_60px_55px_55px_55px_55px_110px] items-center gap-0 divide-x divide-neutral-100 dark:divide-neutral-800 w-full";
+const GRID_STYLE = "grid grid-cols-[85px_85px_85px_140px_100px_1fr_60px_60px_60px_55px_55px_55px_55px_110px] items-center gap-0 divide-x divide-neutral-100 dark:divide-neutral-800 w-full min-w-[1100px]";
 
 // Componente de Esqueleto de Carga para reducir el LCP
 const SkeletonRow = () => (
@@ -63,12 +63,27 @@ const InventoryRow = React.memo(({ item, style }: { item: any, style?: React.CSS
     const matchesC3C1 = nC3 === nC1 && nC3 !== 0;
     const matchesC3Goal = nC3 === nFinal && nC3 !== 0;
 
-    // Estilo de Fondo para Matches (Verde Suave)
+    // Estilo de Fondo para Matches (Verde Suave) y Errores (Rojo Suave)
     const bgMatch = "bg-emerald-500/20 dark:bg-emerald-500/10 font-bold border-green-500/20";
+    const bgError = "bg-red-500/20 dark:bg-red-500/10 font-bold border-red-500/20";
 
-    const getC1Style = () => (c1MatchesGoal || matchesC1C2 || matchesC3C1) && status === 'CONCILIADO' ? bgMatch : '';
-    const getC2Style = () => (c2MatchesGoal || matchesC1C2 || matchesC3C2) && status === 'CONCILIADO' ? bgMatch : '';
-    const getC3Style = () => (matchesC3C2 || matchesC3C1 || matchesC3Goal) && status === 'CONCILIADO' ? bgMatch : '';
+    const getC1Style = () => {
+        if (status === 'CONCILIADO' && (c1MatchesGoal || matchesC1C2 || matchesC3C1)) return bgMatch;
+        if ((status === 'DISCREPANTE' || status === 'RECONTEO') && nC1 !== 0 && !c1MatchesGoal) return bgError;
+        return '';
+    };
+
+    const getC2Style = () => {
+        if (status === 'CONCILIADO' && (c2MatchesGoal || matchesC1C2 || matchesC3C2)) return bgMatch;
+        if ((status === 'DISCREPANTE' || status === 'RECONTEO') && nC2 !== 0 && !c2MatchesGoal) return bgError;
+        return '';
+    };
+
+    const getC3Style = () => {
+        if (status === 'CONCILIADO' && (matchesC3C2 || matchesC3C1 || matchesC3Goal)) return bgMatch;
+        if ((status === 'DISCREPANTE' || status === 'RECONTEO') && nC3 !== 0 && !matchesC3Goal) return bgError;
+        return '';
+    };
 
     return (
         <div style={style} className={`${GRID_STYLE} hover:bg-primary-500/[0.02] transition-colors border-b border-neutral-50 dark:border-neutral-800 bg-white dark:bg-neutral-900/50`}>
@@ -135,13 +150,46 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
     filters,
     columnFilters,
     setColumnFilters,
+    coverage,
 }) => {
     const [isPending, startTransition] = useTransition();
     const [tableHeight, setTableHeight] = useState(600);
+    const [containerWidth, setContainerWidth] = useState(1100);
     const tableRef = useRef<HTMLDivElement>(null);
 
     const deferredFilters = useDeferredValue(columnFilters);
     const deferredSearch = useDeferredValue(filters.search);
+
+    // Componente interno para las barras de progreso globales
+    const GlobalProgressBar = ({ label, current, total, color, icon: Icon }: any) => {
+        const percentage = Math.min(100, Math.round((current / total) * 100) || 0);
+        const isComplete = percentage === 100;
+        const barColor = isComplete ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : color.replace('text-', 'bg-');
+        const textColor = isComplete ? 'text-green-500' : color;
+
+        return (
+            <div className="flex-1 min-w-[240px] p-3 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700 shadow-sm flex flex-col gap-2 transition-all">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className={`p-1.5 rounded-lg ${textColor.replace('text-', 'bg-').replace('-600', '-500/10').replace('-500', '-500/10')}`}>
+                            <Icon size={14} className={textColor} />
+                        </div>
+                        <Text variant="caption" weight="bold" className="uppercase text-[9px] tracking-widest opacity-60">{label}</Text>
+                    </div>
+                    <Text variant="caption" weight="bold" className="text-[11px] font-black">{current} / {total}</Text>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="flex-1 h-2 bg-neutral-100 dark:bg-neutral-700 rounded-full overflow-hidden shadow-inner">
+                        <div
+                            className={`h-full transition-all duration-1000 ${barColor}`}
+                            style={{ width: `${percentage}%` }}
+                        />
+                    </div>
+                    <Text variant="caption" weight="bold" className={`text-[11px] min-w-[35px] text-right font-black ${textColor}`}>{percentage}%</Text>
+                </div>
+            </div>
+        );
+    };
 
     // Cálculo dinámico de altura para evitar doble scroll
     useEffect(() => {
@@ -150,6 +198,7 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
                 const rect = tableRef.current.getBoundingClientRect();
                 const availableHeight = window.innerHeight - rect.top - 40;
                 setTableHeight(Math.max(300, availableHeight));
+                setContainerWidth(rect.width - 2);
             }
         };
 
@@ -231,8 +280,10 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
 
     const FilterHeader = React.memo(({ label, col, width = 'auto' }: { label: string, col: string, width?: string }) => {
         const options = useMemo(() => getOptionsForColumn(col), [col]);
+        // Solo aplicamos ancho fijo si no es flexible (1fr) o auto
+        const fixedWidth = width !== 'auto' && width !== '1fr';
         return (
-            <div className={`p-0 bg-navy border-none flex flex-col items-center justify-center h-full ${width !== 'auto' ? `w-[${width}] min-w-[${width}]` : ''}`}>
+            <div className={`p-0 bg-navy border-none flex flex-col items-center justify-center h-full ${fixedWidth ? `w-[${width}] min-w-[${width}]` : ''}`}>
                 <MultiSelect
                     triggerLabel={label}
                     options={options}
@@ -246,26 +297,74 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
     });
 
     return (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-            <div className="max-w-full mx-auto w-full">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* Fila 1: Resumen Global */}
+            <div className="flex flex-wrap gap-4 px-1">
+                <GlobalProgressBar
+                    label="Avance Procesado"
+                    current={(Number(stats.total) || 0) - (Number(stats.pendientes) || 0)}
+                    total={Number(stats.total) || 0}
+                    color="text-primary-600"
+                    icon={Search}
+                />
+                <GlobalProgressBar
+                    label="Efectividad Consiliación"
+                    current={stats.conciliados}
+                    total={Number(stats.total) || 0}
+                    color="text-emerald-600"
+                    icon={CheckCircle2}
+                />
+
+                {/* Pendientes Rápidos */}
+                <div className="flex gap-2 shrink-0">
                     {[
-                        { label: 'Procesados / Total', value: `${(Number(stats.total) || 0) - (Number(stats.pendientes) || 0)} / ${Number(stats.total) || 0}`, icon: Search, color: 'text-neutral-500', bg: 'bg-neutral-50' },
-                        { label: 'Conciliados', value: `${stats.conciliados} (${stats.porcentaje_avance}%)`, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50/50' },
-                        { label: 'Pendientes C1', value: stats.pendientes_c1, icon: Clock, color: 'text-neutral-600', bg: 'bg-neutral-50' },
-                        { label: 'Pendientes C2', value: stats.pendientes_c2, icon: AlertCircle, color: 'text-amber-600', bg: 'bg-amber-50/50' },
-                        { label: 'Pendientes C3', value: stats.pendientes_c3, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50/50' },
-                    ].map((card, i) => (
-                        <div key={i} className={`p-4 rounded-2xl border border-[var(--color-border)] ${card.bg} space-y-2 transition-transform hover:scale-[1.02] duration-300`}>
-                            <div className="flex items-center justify-between">
-                                <Text variant="caption" weight="bold" className="uppercase tracking-tight opacity-70 whitespace-nowrap">{card.label}</Text>
-                                <card.icon size={16} className={card.color} />
-                            </div>
-                            <Title variant="h5" weight="bold" className={card.color}>{card.value}</Title>
+                        { label: 'C1', val: stats.pendientes_c1, color: 'text-neutral-500', bg: 'bg-neutral-100' },
+                        { label: 'C2', val: stats.pendientes_c2, color: 'text-amber-600', bg: 'bg-amber-100/50' },
+                        { label: 'C3', val: stats.pendientes_c3, color: 'text-red-600', bg: 'bg-red-100/50' }
+                    ].map(p => (
+                        <div key={p.label} className={`flex flex-col items-center justify-center px-4 rounded-2xl border border-neutral-100 dark:border-neutral-700 ${p.bg} min-w-[70px]`}>
+                            <Text className="text-[8px] uppercase font-black opacity-40 leading-none mb-1">Pend {p.label}</Text>
+                            <Text className={`text-lg font-black ${p.color}`}>{p.val}</Text>
                         </div>
                     ))}
                 </div>
+            </div>
+
+            {/* Fila 2: Progreso por Bodega (Grid) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 px-1">
+                {coverage?.desglose_bodega && Object.entries(coverage.desglose_bodega).map(([name, b]: [string, any]) => (
+                    <div key={name} className="bg-neutral-50 dark:bg-neutral-800/30 p-3 rounded-2xl border border-neutral-100 dark:border-neutral-700 shadow-sm flex flex-col gap-2 hover:border-primary-500 transition-colors group">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-black text-neutral-400 group-hover:text-primary-500 transition-colors">Bodega {name}</span>
+                            <span className="text-[9px] opacity-40 font-bold">{b.parejas} parejas</span>
+                        </div>
+
+                        <div className="flex flex-col gap-2.5">
+                            {/* C1 PROGRESS ROW */}
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center justify-between">
+                                    <Text className="text-[9px] font-black opacity-60">CONTEO 1</Text>
+                                    <Text className={`text-[9px] font-black ${b.p_c1 === 100 ? 'text-green-500' : 'text-primary-600'}`}>{b.hechos_c1} / {b.total} ({b.p_c1}%)</Text>
+                                </div>
+                                <div className="w-full bg-neutral-200 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden shadow-inner">
+                                    <div className={`h-full transition-all duration-1000 ${b.p_c1 === 100 ? 'bg-green-500' : 'bg-primary-500'}`} style={{ width: `${b.p_c1}%` }} />
+                                </div>
+                            </div>
+
+                            {/* C2 PROGRESS ROW */}
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center justify-between">
+                                    <Text className="text-[9px] font-black opacity-60">CONTEO 2</Text>
+                                    <Text className={`text-[9px] font-black ${b.p_c2 === 100 ? 'text-green-500' : 'text-amber-600'}`}>{b.hechos_c2} / {b.total} ({b.p_c2}%)</Text>
+                                </div>
+                                <div className="w-full bg-neutral-200 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden shadow-inner">
+                                    <div className={`h-full transition-all duration-1000 ${b.p_c2 === 100 ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${b.p_c2}%` }} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             <div className="flex justify-end mb-2 px-1">
@@ -289,7 +388,7 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
                     ref={tableRef}
                     className="relative overflow-x-auto overflow-y-hidden shadow-inner border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white dark:bg-neutral-900/50 scrollbar-thin scrollbar-thumb-neutral-200"
                 >
-                    <div className="min-w-[1500px]">
+                    <div className="w-full">
                         {/* Cabecera Estática */}
                         <div className={`sticky top-0 z-20 bg-navy text-white shadow-sm ${GRID_STYLE} h-12`}>
                             <FilterHeader label="BODEGA" col="bodega" width="85px" />
@@ -300,14 +399,14 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
                             <FilterHeader label="DESCRIPCIÓN" col="descripcion" width="1fr" />
                             <FilterHeader label="SIIG" col="cantidad_sistema" width="60px" />
                             <FilterHeader label="I.LEG" col="invporlegalizar" width="60px" />
-                            <div className="flex flex-col items-center justify-center h-full w-[60px] min-w-[60px] bg-white/5 border-x border-white/10">
-                                <Text className="text-[9px] uppercase font-bold text-primary-300">INV</Text>
+                            <div className="flex flex-col items-center justify-center h-full bg-white/5">
+                                <Text as="span" align="center" className="text-[9px] uppercase font-bold text-primary-300">INV</Text>
                             </div>
                             <FilterHeader label="C1" col="cant_c1" width="55px" />
                             <FilterHeader label="C2" col="cant_c2" width="55px" />
                             <FilterHeader label="C3" col="cant_c3" width="55px" />
-                            <div className="flex flex-col items-center justify-center h-full w-[55px] min-w-[55px] bg-white/5 border-l border-white/10">
-                                <Text className="text-[9px] uppercase font-bold text-primary-300">DIF</Text>
+                            <div className="flex flex-col items-center justify-center h-full bg-white/5">
+                                <Text as="span" align="center" className="text-[9px] uppercase font-bold text-primary-300">DIF</Text>
                             </div>
                             <FilterHeader label="ESTADO" col="estado" width="110px" />
                         </div>
@@ -326,7 +425,7 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
                                     height={tableHeight - 48}
                                     itemCount={filteredList.length}
                                     itemSize={44}
-                                    width="100%"
+                                    width={Math.max(containerWidth, 1100)}
                                     className="scrollbar-thin scrollbar-thumb-neutral-200 dark:scrollbar-thumb-neutral-700"
                                 >
                                     {VirtualRow}

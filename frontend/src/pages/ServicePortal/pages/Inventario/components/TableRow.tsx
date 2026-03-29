@@ -8,14 +8,15 @@ interface TableRowProps {
     onChange: (field: 'cant' | 'obs', value: string) => void;
     isInvalid: boolean;
     isSaved: boolean;
+    readOnly?: boolean;
 }
 
 /**
  * Componente de fila de tabla optimizado con React.memo para alta performance.
  */
-export const TableRow = memo(({ item, value, obs, onChange, isInvalid, isSaved }: TableRowProps) => {
+export const TableRow = memo(({ item, value, obs, onChange, isInvalid, isSaved, readOnly }: TableRowProps) => {
     return (
-        <tr className={`hover:bg-neutral-50/50 dark:hover:bg-neutral-800/30 transition-colors border-b border-neutral-100 dark:border-neutral-800 last:border-0 h-10 ${isInvalid ? 'bg-red-50/30 dark:bg-red-900/10' : ''}`}>
+        <tr className={`hover:bg-neutral-50/50 dark:hover:bg-neutral-800/30 transition-colors border-b border-neutral-100 dark:border-neutral-800 last:border-0 h-10 ${readOnly ? 'opacity-70 grayscale-[0.2]' : ''} ${isInvalid ? 'bg-red-50/30 dark:bg-red-900/10' : ''}`}>
             <td className="p-0.5 text-center w-[20px]"><Text as="span" className="tag-badge">{item.bodega}</Text></td>
             <td className="p-0.5 text-center w-[20px]"><Text as="span" className="tag-badge">{item.bloque}</Text></td>
             <td className="p-0.5 text-center w-[20px]"><Text as="span" className="tag-badge">{item.estante}</Text></td>
@@ -40,7 +41,8 @@ export const TableRow = memo(({ item, value, obs, onChange, isInvalid, isSaved }
                         if (sanitized.split('.').length > 2) return;
                         onChange('cant', sanitized);
                     }}
-                    className="text-right font-bold text-[10px] rounded-md h-7 w-full mx-auto !px-1 shadow-sm transition-all"
+                    disabled={readOnly}
+                    className="text-right font-bold text-[10px] rounded-md h-7 w-full mx-auto !px-1 shadow-sm transition-all disabled:bg-neutral-50 dark:disabled:bg-neutral-800/50"
                     placeholder=""
                 />
             </td>
@@ -51,7 +53,8 @@ export const TableRow = memo(({ item, value, obs, onChange, isInvalid, isSaved }
                     size="xs"
                     onChange={(e) => onChange('obs', e.target.value)}
                     placeholder="..."
-                    className="rounded-md h-7 text-[8px] w-full"
+                    disabled={readOnly}
+                    className="rounded-md h-7 text-[8px] w-full disabled:bg-neutral-50 dark:disabled:bg-neutral-800/50"
                 />
             </td>
         </tr>

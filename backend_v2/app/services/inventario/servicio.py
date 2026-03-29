@@ -1,343 +1,190 @@
-import openpyxl
-from io import BytesIO
+import re
+from math import ceil
 from typing import Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text, and_
+from sqlalchemy import or_, func
 from sqlmodel import select
-from ...models.inventario.conteo import ConteoInventario, TransitoInventario, ConteoHistorico
+from ...models.inventario.conteo import (
+    ConteoInventario, 
+    AsignacionInventario,
+)
 
 class ServicioInventario:
     @staticmethod
-    async def crear_snapshot(db: AsyncSession):
-        """Copia todos los registros actuales a la tabla de historial antes de limpiar."""
-        stmt = select(ConteoInventario)
+    def _natural_sort_key(value: str) -> list:
+        """Genera una clave de ordenamiento natural que trata segmentos numéricos como números.
+        Retorna tuplas (tipo, valor) para evitar comparación str vs int."""
+        parts = re.split(r'(\d+)', (value or '').strip().lower())
+        return [(0, int(p)) if p.isdigit() else (1, p) for p in parts if p]
+
+    @staticmethod
+    async def registrar_conteo_unidad(
+        item_id: int, 
+        cantidad: float, 
+        observaciones: str, 
+        ronda: int, 
+        usuario_cedula: str, 
+        db: AsyncSession
+    ) -> Dict[str, Any]:
+        """Procesa el guardado de un ítem y actualiza la diferencia total en todo el SKU."""
+        stmt = select(ConteoInventario).where(ConteoInventario.id == item_id)
         result = await db.execute(stmt)
-        items = result.scalars().all()
+        item = result.scalar_one_or_none()
+        if not item: 
+            return {"exito": False, "error": "No hallado"}
+
+        # Guardar en la ronda solicitada por el usuario (autogestionada)
+        setattr(item, f"cant_c{ronda}", cantidad)
+        setattr(item, f"obs_c{ronda}", observaciones)
+        setattr(item, f"user_c{ronda}", usuario_cedula)
+
+        # Inteligencia de estado local
+        teorico_local = (item.cantidad_sistema or 0.0) + (item.invporlegalizar or 0.0)
+        item.cantidad_final = teorico_local
+        item.diferencia = cantidad - teorico_local
+
+        if ronda == 1: 
+            nuevo_estado = "CONCILIADO" if abs(cantidad - teorico_local) < 0.01 else "RECONTEO"
+        elif ronda == 2: 
+            nuevo_estado = "CONCILIADO" if abs(cantidad - item.cant_c1) < 0.01 else "RECONTEO"
+        elif ronda == 3: 
+            nuevo_estado = "CONCILIADO" if (abs(cantidad - item.cant_c1) < 0.01 or abs(cantidad - item.cant_c2) < 0.01) else "DISCREPANTE"
+        else: 
+            nuevo_estado = "CONCILIADO"
+
+        # Sincronización multidimensional (SKU global)
+        stmt_sku = select(ConteoInventario).where(
+            ConteoInventario.codigo == item.codigo,
+            ConteoInventario.conteo == item.conteo
+        )
+        rows_sku = (await db.execute(stmt_sku)).scalars().all()
         
-        for item in items:
-            hist = ConteoHistorico(
-                original_id=item.id,
-                b_siigo=item.b_siigo,
-                bodega=item.bodega,
-                bloque=item.bloque,
-                estante=item.estante,
-                nivel=item.nivel,
-                codigo=item.codigo,
-                descripcion=item.descripcion,
-                unidad=item.unidad,
-                cantidad_sistema=item.cantidad_sistema,
-                cant_c1=item.cant_c1,
-                cant_c2=item.cant_c2,
-                cant_c3=item.cant_c3,
-                cant_c4=item.cant_c4,
-                conteo=item.conteo,
-                estado=item.estado,
-                invporlegalizar=item.invporlegalizar,
-                cantidad_final=item.cantidad_final,
-                diferencia_total=item.diferencia_total
-            )
-            db.add(hist)
-        
-        await db.flush() # Asegurar que se envíen al historico
+        sum_fisico = 0.0
+        teorico_sku = 0.0
+        for r in rows_sku:
+            # Usar la ronda del parámetro para el cálculo de diferencia total
+            f = getattr(r, f"cant_c{ronda}") or 0.0
+            if r.id == item.id: 
+                f = cantidad
+            sum_fisico += f
+            if teorico_sku == 0: 
+                teorico_sku = (r.cantidad_sistema or 0.0) + (r.invporlegalizar or 0.0)
 
-    @staticmethod
-    async def importar_conteo_excel(
-        file_content: bytes, 
-        nombre_conteo: str,
-        db: AsyncSession,
-        limpiar_previo: bool = False
-    ) -> Dict[str, Any]:
-        """
-        Procesa un archivo Excel y carga los registros en inventario_conteo.
-        Se asume que el Excel tiene las columnas en el orden de la imagen:
-        B. Siigo | Bodega | Bloque | Estante | Nivel | Codigo | Descripcion | Und. | Cant. | Observaciones
-        """
-        wb = openpyxl.load_workbook(BytesIO(file_content), data_only=True)
-        sheet = wb.active
-        
-        registros_creados = 0
-        errores = []
+        dif_total = sum_fisico - teorico_sku
+        for r in rows_sku:
+            r.diferencia_total = dif_total
+            if abs(dif_total) < 0.01: 
+                r.estado = "CONCILIADO"
+            elif r.id == item.id: 
+                r.estado = nuevo_estado
 
-        # 0. Si se solicita limpiar, primero respaldamos
-        if limpiar_previo:
-            await ServicioInventario.crear_snapshot(db)
-            await db.execute(text("TRUNCATE TABLE conteoinventario RESTART IDENTITY CASCADE"))
+        if abs(dif_total) < 0.01: 
+            item.estado = "CONCILIADO"
+        else: 
+            item.estado = nuevo_estado
 
-        # Iterar desde la segunda fila (asumiendo cabecera)
-        for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-            if not any(row):
-                continue
-            
-            try:
-                # Datos del Excel con limpieza de espacios
-                bodega_val = str(row[1]).strip() if row[1] is not None else ""
-                bloque_val = str(row[2]).strip() if row[2] is not None else ""
-                estante_val = str(row[3]).strip() if row[3] is not None else ""
-                nivel_val = str(row[4]).strip() if row[4] is not None else ""
-                codigo_val = str(row[5]).strip() if row[5] is not None else ""
-                descripcion_val = str(row[6]).strip() if row[6] is not None else ""
-                cant_sist_val = float(row[8]) if row[8] is not None else 0.0
-                legalizar_val = float(row[9]) if len(row) > 9 and row[9] is not None else 0.0
-
-                if not limpiar_previo:
-                    # Lógica UPSERT: Buscar si ya existe el SKU en esta ubicación
-                    stmt = select(ConteoInventario).where(and_(
-                        ConteoInventario.codigo == codigo_val,
-                        ConteoInventario.bodega == bodega_val,
-                        ConteoInventario.bloque == bloque_val,
-                        ConteoInventario.estante == estante_val,
-                        ConteoInventario.nivel == nivel_val
-                    ))
-                    res = await db.execute(stmt)
-                    item_existente = res.scalar_one_or_none()
-                    
-                    if item_existente:
-                        # Actualizar solo saldos teóricos y metadata
-                        item_existente.cantidad_sistema = cant_sist_val
-                        item_existente.invporlegalizar = legalizar_val
-                        cant_f = cant_sist_val + legalizar_val
-                        item_existente.cantidad_final = cant_f
-                        # Si no ha sido contado, la diferencia total es el negativo del teórico
-                        if item_existente.cant_c1 is None and item_existente.cant_c2 is None:
-                            item_existente.diferencia_total = -cant_f
-                            
-                        item_existente.conteo = nombre_conteo
-                        item_existente.descripcion = descripcion_val
-                        item_existente.unidad = str(row[7]) if row[7] is not None else ""
-                        
-                        # Si estaba CONCILIADO, lo regresamos a PENDIENTE si el teórico cambió
-                        if item_existente.estado == "CONCILIADO":
-                            item_existente.estado = "PENDIENTE"
-                        registros_creados += 1
-                        continue
-
-                # Crear nuevo si no existe o si limpiamos previo
-                conteo = ConteoInventario(
-                    b_siigo=int(row[0]) if row[0] is not None and str(row[0]).isdigit() else None,
-                    bodega=bodega_val,
-                    bloque=bloque_val,
-                    estante=estante_val,
-                    nivel=nivel_val,
-                    codigo=codigo_val,
-                    descripcion=descripcion_val,
-                    unidad=str(row[7]) if row[7] is not None else "",
-                    cantidad_sistema=cant_sist_val,
-                    invporlegalizar=legalizar_val,
-                    cantidad_final=cant_sist_val + legalizar_val,
-                    diferencia_total=-(cant_sist_val + legalizar_val),
-                    conteo=nombre_conteo
-                )
-                
-                db.add(conteo)
-                registros_creados += 1
-            except Exception as e:
-                errores.append(f"Fila {row_idx}: {str(e)}")
-        
-        if registros_creados > 0:
-            await db.commit()
-            
-        return {
-            "exito": len(errores) == 0,
-            "creados": registros_creados,
-            "errores": errores
-        }
-
-    @staticmethod
-    def _parse_float(val: Any) -> float:
-        """Limpia y parsea números que pueden venir con comas o como strings."""
-        if val is None:
-            return 0.0
-        if isinstance(val, (int, float)):
-            return float(val)
-        try:
-            # Reemplazar coma por punto y quitar espacios
-            clean_val = str(val).replace(',', '.').replace(' ', '').strip()
-            return float(clean_val)
-        except (ValueError, TypeError):
-            return 0.0
-
-    @staticmethod
-    async def importar_transito_excel(
-        file_content: bytes, 
-        db: AsyncSession
-    ) -> Dict[str, Any]:
-        """
-        Procesa un archivo Excel de tránsito (Modelo B).
-        Estructura esperada por usuario: Codigo / SKU (0) | Documento (1) | Cantidad (2)
-        """
-        wb = openpyxl.load_workbook(BytesIO(file_content), data_only=True)
-        sheet = wb.active
-        
-        registros_creados = 0
-        errores = []
-        
-        # 1. Limpiar tabla previa de tránsito (Se asume carga fresca)
-        await db.execute(text("TRUNCATE TABLE transitoinventario"))
-
-        for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-            if not any(row):
-                continue
-            
-            try:
-                # Mapeo según archivo usuario: 0: SKU/Codigo, 1: Documento, 2: Cantidad
-                sku_val = str(row[0]).strip() if row[0] is not None else ""
-                doc_val = str(row[1]).strip() if len(row) > 1 and row[1] is not None else "TRANSITO_S_D"
-                cant_val = ServicioInventario._parse_float(row[2]) if len(row) > 2 else 0.0
-
-                transito = TransitoInventario(
-                    sku=sku_val,
-                    documento=doc_val,
-                    cantidad=cant_val
-                )
-                db.add(transito)
-                registros_creados += 1
-                
-            except Exception as e:
-                errores.append(f"Fila {row_idx}: {str(e)}")
-        
-        if registros_creados > 0:
-            await db.commit()
-            # 2. Sincronizar automáticamente con la tabla maestra
-            await ServicioInventario.sincronizar_transito_con_maestra(db)
-            
-        return {
-            "exito": len(errores) == 0,
-            "creados": registros_creados,
-            "errores": errores
-        }
-
-    @staticmethod
-    async def sincronizar_transito_con_maestra(db: AsyncSession):
-        """
-        Calcula la suma de tránsito por SKU y actualiza la tabla conteoinventario globalmente.
-        """
-        # 1. Agrupar tránsito por SKU en la DB
-        q_sum = text("""
-            SELECT sku, SUM(cantidad) as total_transito
-            FROM transitoinventario
-            GROUP BY sku
-        """)
-        res_sum = await db.execute(q_sum)
-        transito_dict = {row[0]: float(row[1]) for row in res_sum.fetchall()}
-
-        # 2. Resetear todos los 'invporlegalizar' a 0 antes de aplicar los nuevos
-        await db.execute(text("UPDATE conteoinventario SET invporlegalizar = 0"))
-
-        # 3. Actualizar registros existentes en maestra
-        # Nota: Se hace por SKU, puede haber múltiples ubicaciones por SKU
-        for sku, total in transito_dict.items():
-            # Actualizar todos los registros que coincidan con el SKU
-            stmt = text("""
-                UPDATE conteoinventario 
-                SET invporlegalizar = :total,
-                    cantidad_final = cantidad_sistema + :total,
-                    diferencia_total = -(cantidad_sistema + :total)
-                WHERE codigo = :sku
-            """)
-            await db.execute(stmt, {"total": total, "sku": sku})
-        
         await db.commit()
+        return {"exito": True, "estado": item.estado, "diferencia_local": item.diferencia}
 
     @staticmethod
-    def generar_plantilla_maestra() -> BytesIO:
-        """Genera un buffer con la plantilla Excel Maestra."""
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Maestra_Inventario"
-        # Cabeceras: B. Siigo | Bodega | Bloque | Estante | Nivel | Codigo | Descripcion | Und | Cant. Sistema | Observaciones
-        headers = ["B. Siigo", "Bodega", "Bloque", "Estante", "Nivel", "Codigo", "Descripcion", "Und", "Cant. Sistema", "Observaciones"]
-        ws.append(headers)
+    async def obtener_productos_por_operario(cedula_raw: str, db: AsyncSession) -> Dict[str, Any]:
+        """Lógica de asignación dinámica: Retorna C1 y C2 completos para autogestión en portal."""
+        cedula_norm = cedula_raw.strip().lstrip('0')
         
-        buf = BytesIO()
-        wb.save(buf)
-        buf.seek(0)
-        return buf
+        # 1. Asignaciones
+        stmt_asig = select(AsignacionInventario).where(or_(
+            func.ltrim(func.trim(AsignacionInventario.cedula), '0') == cedula_norm,
+            func.ltrim(func.trim(AsignacionInventario.cedula_companero), '0') == cedula_norm
+        ))
+        asignaciones = (await db.execute(stmt_asig)).scalars().all()
+        if not asignaciones: 
+            return {"items_c1": [], "items_c2": [], "progreso_c1": 0, "bodega": "N/A"}
 
-    @staticmethod
-    def generar_plantilla_transito() -> BytesIO:
-        """Genera un buffer con la plantilla Excel de Tránsito."""
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Transito_Detallado"
-        # Cabeceras: Codigo / SKU | Documento | Cantidad
-        headers = ["Codigo / SKU", "Documento", "Cantidad"]
-        ws.append(headers)
-        
-        buf = BytesIO()
-        wb.save(buf)
-        buf.seek(0)
-        return buf
+        bodegas = set((a.bodega or '').strip().upper() for a in asignaciones)
+        mi_pareja_num = asignaciones[0].numero_pareja
 
-    @staticmethod
-    async def importar_legacy_excel(
-        file_content: bytes, 
-        ronda: int,
-        db: AsyncSession
-    ) -> Dict[str, Any]:
-        """
-        Importa resultados de conteo del año pasado (Legacy).
-        Cruce por B. Siigo (col 0) y Codigo (col 6).
-        Valor en Cant. (col 10).
-        """
-        from io import BytesIO
-        import openpyxl
-        from sqlalchemy import and_, select
-        
-        wb = openpyxl.load_workbook(BytesIO(file_content), data_only=True)
-        sheet = wb.active
-        
-        actualizados = 0
-        errores = []
-        
-        for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-            if not any(row):
-                continue
-            
+        # 2. Productos de esas bodegas (sin filtros de estado para obtener listas completas)
+        stmt_inv = select(ConteoInventario).where(func.trim(func.upper(ConteoInventario.bodega)).in_(bodegas))
+        all_inv = (await db.execute(stmt_inv)).scalars().all()
+
+        # 3. Parejas por bodega
+        stmt_todas = select(AsignacionInventario).where(func.trim(func.upper(AsignacionInventario.bodega)).in_(bodegas))
+        todas_asig = (await db.execute(stmt_todas)).scalars().all()
+
+        items_c1_acum = []
+        items_c2_acum = []
+        bodega_label = ", ".join(bodegas)
+
+        def _to_int(v):
             try:
-                # Mapeo según estructura usuario:
-                # col 0: B. Siigo
-                # col 6: Codigo
-                # col 10: Cant.
-                b_siigo_val = int(float(row[0])) if row[0] is not None else None
-                codigo_val = str(row[6]) if row[6] is not None else ""
-                cantidad_val = float(row[10]) if row[10] is not None else 0.0
-                
-                # Buscar el registro exacto
-                stmt = select(ConteoInventario).where(and_(
-                    ConteoInventario.b_siigo == b_siigo_val,
-                    ConteoInventario.codigo == codigo_val
-                ))
-                result = await db.execute(stmt)
-                item = result.scalar_one_or_none()
-                
-                if item:
-                    # Actualizar ronda específica
-                    if ronda == 1:
-                        item.cant_c1 = cantidad_val
-                    elif ronda == 2:
-                        item.cant_c2 = cantidad_val
-                    elif ronda == 3:
-                        item.cant_c3 = cantidad_val
-                    
-                    # Forzar recalculo de estado
-                    teorico = (item.cantidad_sistema or 0.0) + (item.invporlegalizar or 0.0)
-                    item.diferencia = cantidad_val - teorico
-                    
-                    if ronda == 1:
-                        item.estado = "CONCILIADO" if cantidad_val == teorico else "RECONTEO"
-                    
-                    actualizados += 1
-                else:
-                    errores.append(f"Fila {row_idx}: No hallado {codigo_val} en Bodega {b_siigo_val}")
-                    
-            except Exception as e:
-                errores.append(f"Fila {row_idx}: {str(e)}")
-        
-        if actualizados > 0:
-            await db.commit()
+                return int(v) if v is not None else 0
+            except Exception:
+                return 0
+
+        for bdg in bodegas:
+            # Lista ordenada de parejas (con seguridad de tipo para evitar errores de comparación)
+            parejas = sorted(
+                set(_to_int(a.numero_pareja) for a in todas_asig if (a.bodega or '').strip().upper() == bdg)
+            )
+            mi_asig_bdg = next((a for a in asignaciones if (a.bodega or '').strip().upper() == bdg), None)
+            mi_pareja_int = _to_int(mi_asig_bdg.numero_pareja) if mi_asig_bdg else _to_int(mi_pareja_num)
+
+            if mi_pareja_int not in parejas: 
+                continue
+
+            items_bdg = sorted(
+                [p for p in all_inv if (p.bodega or '').strip().upper() == bdg],
+                key=lambda p: (
+                    ServicioInventario._natural_sort_key(p.bloque or ''),
+                    ServicioInventario._natural_sort_key(p.estante or ''),
+                    ServicioInventario._natural_sort_key(p.nivel or ''),
+                    ServicioInventario._natural_sort_key(p.codigo or '')
+                )
+            )
+            if not items_bdg: 
+                continue
+
+            n_p = len(parejas)
+            idx_c1 = parejas.index(mi_pareja_int)
+            c_s = ceil(len(items_bdg) / n_p)
             
+            # Segmento C1
+            chk_c1 = items_bdg[idx_c1*c_s : min((idx_c1+1)*c_s, len(items_bdg))]
+            items_c1_acum.extend(chk_c1)
+
+            # Segmento C2 (Rotación 50%)
+            idx_c2 = (idx_c1 + (n_p // 2)) % n_p
+            chk_c2_raw = items_bdg[idx_c2*c_s : min((idx_c2+1)*c_s, len(items_bdg))]
+            
+            # FILTRO DINÁMICO: C2 solo muestra lo que requiere intervención o lo ya trabajado por el usuario
+            chk_c2 = [
+                p for p in chk_c2_raw 
+                if (p.estado in ['RECONTEO', 'DISCREPANTE', 'UBICACIÓN ERRÓNEA'] or p.user_c2 is not None)
+            ]
+            items_c2_acum.extend(chk_c2)
+
+        # Cálculo de progreso C1 para la UI
+        contados_c1 = sum(1 for p in items_c1_acum if p.user_c1 is not None)
+        progreso_c1 = round(contados_c1 / len(items_c1_acum) * 100) if items_c1_acum else 0
+
+        def _to_dict(p):
+            return {
+                "id": p.id, "bodega": p.bodega, "bloque": p.bloque, "estante": p.estante, "nivel": p.nivel,
+                "codigo": p.codigo, "descripcion": p.descripcion, "unidad": p.unidad,
+                "cant_c1": p.cant_c1, "cant_c2": p.cant_c2, "cant_c3": p.cant_c3, "cant_c4": p.cant_c4,
+                "obs_c1": p.obs_c1, "obs_c2": p.obs_c2, "obs_c3": p.obs_c3, "obs_c4": p.obs_c4,
+                "user_c1": p.user_c1, "user_c2": p.user_c2, "user_c3": p.user_c3, "user_c4": p.user_c4,
+                "estado": p.estado
+            }
+
+        # Obtener ronda_vista del primer registro de asignación
+        ronda_vista = asignaciones[0].ronda_vista if asignaciones else 1
+
         return {
-            "exito": len(errores) == 0,
-            "actualizados": actualizados,
-            "errores": errores
+            "items_c1": [_to_dict(p) for p in items_c1_acum],
+            "items_c2": [_to_dict(p) for p in items_c2_acum],
+            "progreso_c1": progreso_c1,
+            "ronda_vista": ronda_vista,
+            "bodega": bodega_label,
+            "numero_pareja": mi_pareja_num
         }

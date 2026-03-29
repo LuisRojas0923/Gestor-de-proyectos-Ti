@@ -1,35 +1,26 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
-from math import ceil
-import re
-from sqlmodel import select, and_, or_, func
+from sqlmodel import select, func, update, or_
 from ...database import obtener_db
-from ..auth.profile_router import (
-    obtener_usuario_actual_db,
-)  # Importado para auth dinamico
+from ..auth.profile_router import obtener_usuario_actual_db
 from ...services.inventario.servicio import ServicioInventario
+from ...services.inventario.excel_servicio import ServicioExcelInventario
+from ...services.inventario.analytics_servicio import ServicioAnalyticsInventario
 from ...models.inventario.conteo import (
     ConteoInventario,
     AsignacionInventario,
     ConfiguracionInventario,
 )
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from pydantic import BaseModel
 
 router = APIRouter()
 
 
-def _natural_sort_key(value: str) -> list:
-    """Genera una clave de ordenamiento natural que trata segmentos numéricos como números.
-    Equivale a JS localeCompare(undefined, { numeric: true }).
-    Ej: '15' → [15], 'F' → ['f'], '2-13-463' → [2, '-', 13, '-', 463]
-    """
-    parts = re.split(r'(\d+)', (value or '').strip().lower())
-    return [int(p) if p.isdigit() else p for p in parts if p]
+# El helper _natural_sort_key fue movido a ServicioInventario para cumplimiento de Arquitectura Limpia.
 
 
 class ConteoUpdate(BaseModel):
@@ -100,77 +91,7 @@ async def actualizar_config_inventario(
 @router.get("/stats")
 async def obtener_estadisticas_inventario(db: AsyncSession = Depends(obtener_db)):
     try:
-        # Total de items maestros con saldo o legalización
-        stmt_total = select(func.count(ConteoInventario.id))
-        total = (await db.execute(stmt_total)).scalar()
-
-        # Conciliados: diferencia < 0.01 (en términos de inventario)
-        # Aquí definimos la lógica de "Conciliado" de forma estricta para el monitor
-        stmt_conciliados = select(func.count(ConteoInventario.id)).where(
-            ConteoInventario.estado == "CONCILIADO"
-        )
-        conciliados = (await db.execute(stmt_conciliados)).scalar()
-
-        # Discrepantes
-        stmt_discrepantes = select(func.count(ConteoInventario.id)).where(
-            ConteoInventario.estado == "DISCREPANTE"
-        )
-        discrepantes = (await db.execute(stmt_discrepantes)).scalar()
-
-        # En Reconteo
-        stmt_reconteo = select(func.count(ConteoInventario.id)).where(
-            ConteoInventario.estado == "RECONTEO"
-        )
-        reconteo = (await db.execute(stmt_reconteo)).scalar()
-
-        # Ubicación Errónea
-        stmt_erroneos = select(func.count(ConteoInventario.id)).where(
-            ConteoInventario.estado == "UBICACIÓN ERRÓNEA"
-        )
-        erroneos = (await db.execute(stmt_erroneos)).scalar()
-
-        # Pendientes Globales (Sin ningún conteo aún)
-        stmt_pendientes = select(func.count(ConteoInventario.id)).where(
-            ConteoInventario.estado == "PENDIENTE"
-        )
-        pendientes = (await db.execute(stmt_pendientes)).scalar()
-
-        # Pendientes C1: Sin usuario asignado en C1
-        stmt_pc1 = select(func.count(ConteoInventario.id)).where(
-            ConteoInventario.user_c1.is_(None)
-        )
-        pc1 = (await db.execute(stmt_pc1)).scalar()
-
-        # Pendientes C2: Estado RECONTEO y sin usuario en C2
-        stmt_pc2 = select(func.count(ConteoInventario.id)).where(
-            and_(ConteoInventario.estado == "RECONTEO", ConteoInventario.user_c2.is_(None))
-        )
-        pc2 = (await db.execute(stmt_pc2)).scalar()
-
-        # Pendientes C3: Estado RECONTEO, con C2 ya hecho, pero sin usuario en C3
-        stmt_pc3 = select(func.count(ConteoInventario.id)).where(
-            and_(
-                ConteoInventario.estado == "RECONTEO", 
-                ConteoInventario.user_c2.is_not(None), 
-                ConteoInventario.user_c3.is_(None)
-            )
-        )
-        pc3 = (await db.execute(stmt_pc3)).scalar()
-
-        porcentaje = round((conciliados / total * 100), 2) if total > 0 else 0
-
-        return {
-            "total": total,
-            "conciliados": conciliados,
-            "erroneos": erroneos,
-            "discrepantes": discrepantes,
-            "reconteo": reconteo,
-            "pendientes": pendientes,
-            "pendientes_c1": pc1,
-            "pendientes_c2": pc2,
-            "pendientes_c3": pc3,
-            "porcentaje_avance": porcentaje,
-        }
+        return await ServicioAnalyticsInventario.obtener_resumen_estadistico(db)
     except SQLAlchemyError as e:
         print(f"Error DB en obtener_estadisticas_inventario: {e}")
         raise HTTPException(status_code=503, detail="Error al calcular estadísticas")
@@ -206,6 +127,19 @@ async def obtener_asignaciones(db: AsyncSession = Depends(obtener_db)):
     except SQLAlchemyError as e:
         print(f"Error DB en obtener_asignaciones: {e}")
         raise HTTPException(status_code=503, detail="Error al consultar asignaciones")
+
+
+@router.get("/asignaciones/resumen")
+async def obtener_resumen_asignaciones(db: AsyncSession = Depends(obtener_db)):
+    """Vista administrativa resumida con cálculo de progreso y ítems por pareja (Backend-side)."""
+    try:
+        return await ServicioAnalyticsInventario.obtener_vista_admin_asignaciones(db)
+    except SQLAlchemyError as e:
+        print(f"Error DB en obtener_resumen_asignaciones: {e}")
+        raise HTTPException(status_code=503, detail="Error al calcular resumen de asignaciones")
+    except Exception as e:
+        print(f"Error inesperado en obtener_resumen_asignaciones: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/asignar")
@@ -297,128 +231,10 @@ async def actualizar_asignacion(
 async def obtener_mis_asignaciones(
     db: AsyncSession = Depends(obtener_db),
     usuario: Any = Depends(obtener_usuario_actual_db),
-) -> List[Dict[str, Any]]:
-    """Obtiene los productos asignados al usuario actual dividiendo por bodega y pareja."""
+) -> Dict[str, Any]:
+    """Obtiene los productos asignados al usuario actual delegando la lógica al servicio."""
     try:
-        # 1. Normalización de Cédula
-        cedula_usuario_norm = usuario.cedula.strip().lstrip('0')
-        print(f"DEBUG: Buscando asignación para cédula normalizada: {cedula_usuario_norm}")
-
-        # 1.1 Buscar asignación del usuario (Titular o Compañero)
-        stmt_asig = select(AsignacionInventario).where(or_(
-            func.ltrim(func.trim(AsignacionInventario.cedula), '0') == cedula_usuario_norm,
-            func.ltrim(func.trim(AsignacionInventario.cedula_companero), '0') == cedula_usuario_norm
-        ))
-        result_asig = await db.execute(stmt_asig)
-        asignaciones = result_asig.scalars().all()
-
-        if not asignaciones:
-            print(f"DEBUG: No se encontró asignación para usuario {usuario.cedula}")
-            return []
-
-        print(f"DEBUG: {len(asignaciones)} asignaciones halladas para el usuario")
-
-        # 2. Obtener configuración para saber la ronda activa
-        stmt_config = select(ConfiguracionInventario).where(ConfiguracionInventario.id == 1)
-        res_config = await db.execute(stmt_config)
-        config = res_config.scalar_one_or_none()
-        r_activa = config.ronda_activa if config else 1
-
-        # 3. Determinar bodegas del usuario y su número de pareja
-        bodegas_asignadas = set()
-        mi_numero_pareja = None
-        for a in asignaciones:
-            bodegas_asignadas.add(a.bodega.strip().upper())
-            if mi_numero_pareja is None:
-                mi_numero_pareja = a.numero_pareja
-
-        # 4. Obtener TODAS las parejas de cada bodega asignada (para calcular el corte)
-        stmt_todas = select(AsignacionInventario).where(
-            func.trim(func.upper(AsignacionInventario.bodega)).in_(bodegas_asignadas)
-        )
-        res_todas = await db.execute(stmt_todas)
-        todas_asig = res_todas.scalars().all()
-
-        # 5. Query de ítems SOLO por bodega
-        stmt_inv = select(ConteoInventario).where(
-            func.trim(func.upper(ConteoInventario.bodega)).in_(bodegas_asignadas)
-        )
-
-        # Ocultar lo de rondas pasadas si aplica
-        if r_activa > 1:
-            user_col = getattr(ConteoInventario, f"user_c{r_activa}")
-            stmt_inv = stmt_inv.where(or_(
-                ConteoInventario.estado.in_(["PENDIENTE", "RECONTEO", "DISCREPANTE"]),
-                user_col.is_not(None)
-            ))
-
-        result_inv = await db.execute(stmt_inv)
-        todos_productos = result_inv.scalars().all()
-
-        # 6. Dividir ítems por bodega usando índice de pareja
-        mis_productos = []
-        for bodega in bodegas_asignadas:
-            # Parejas únicas en esta bodega, ordenadas por numero_pareja
-            parejas_bodega = sorted(set(
-                a.numero_pareja for a in todas_asig
-                if a.bodega.strip().upper() == bodega
-            ))
-
-            if mi_numero_pareja not in parejas_bodega:
-                continue
-
-            # Ítems de esta bodega, ordenados geográficamente (natural sort)
-            items_bodega = sorted(
-                [p for p in todos_productos if p.bodega.strip().upper() == bodega],
-                key=lambda p: (
-                    _natural_sort_key(p.bloque or ''),
-                    _natural_sort_key(p.estante or ''),
-                    _natural_sort_key(p.nivel or ''),
-                    _natural_sort_key(p.codigo or '')
-                )
-            )
-
-            if not items_bodega:
-                continue
-
-            # Calcular corte por índice
-            mi_indice = parejas_bodega.index(mi_numero_pareja)
-            num_parejas = len(parejas_bodega)
-            chunk_size = ceil(len(items_bodega) / num_parejas)
-            start = mi_indice * chunk_size
-            end = min(start + chunk_size, len(items_bodega))
-
-            mis_productos.extend(items_bodega[start:end])
-
-        print(f"DEBUG: Se enviarán {len(mis_productos)} productos al operario (división por pareja)")
-
-        return [
-            {
-                "id": p.id,
-                "bodega": p.bodega,
-                "bloque": p.bloque,
-                "estante": p.estante,
-                "nivel": p.nivel,
-                "codigo": p.codigo,
-                "descripcion": p.descripcion,
-                "unidad": p.unidad,
-                "cant_c1": p.cant_c1,
-                "cant_c2": p.cant_c2,
-                "cant_c3": p.cant_c3,
-                "cant_c4": p.cant_c4,
-                "obs_c1": p.obs_c1,
-                "obs_c2": p.obs_c2,
-                "obs_c3": p.obs_c3,
-                "obs_c4": p.obs_c4,
-                "user_c1": p.user_c1,
-                "user_c2": p.user_c2,
-                "user_c3": p.user_c3,
-                "user_c4": p.user_c4,
-                "estado": p.estado
-            } for p in mis_productos
-        ]
-    except HTTPException:
-        raise
+        return await ServicioInventario.obtener_productos_por_operario(usuario.cedula, db)
     except SQLAlchemyError as e:
         print(f"Error DB en obtener_mis_asignaciones: {e}")
         raise HTTPException(status_code=503, detail="Error al consultar mis asignaciones")
@@ -427,66 +243,39 @@ async def obtener_mis_asignaciones(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.patch("/ronda-vista")
+async def actualizar_ronda_vista(
+    ronda: int,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Any = Depends(obtener_usuario_actual_db)
+):
+    """Actualiza la ronda que el operario está visualizando actualmente."""
+    try:
+        from app.models.inventario.conteo import AsignacionInventario
+        cedula = usuario.get("cedula")
+        if not cedula:
+            raise HTTPException(status_code=400, detail="Usuario sin cédula válida")
+
+        # Actualizar todas las asignaciones de este usuario en esta sesión
+        stmt = (
+            update(AsignacionInventario)
+            .where(or_(AsignacionInventario.cedula == cedula, AsignacionInventario.cedula_companero == cedula))
+            .values(ronda_vista=ronda)
+        )
+        await db.execute(stmt)
+        await db.commit()
+        return {"status": "ok", "ronda": ronda}
+    except Exception as e:
+        await db.rollback()
+        print(f"Error al actualizar ronda vista: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/cobertura-asignacion")
 async def obtener_cobertura_asignacion(db: AsyncSession = Depends(obtener_db)):
     """Cobertura simplificada a nivel bodega: cubierta si tiene al menos 1 pareja."""
     try:
-        # 1. Obtener bodegas únicas con ítems por contar
-        stmt_bodegas = text("""
-            SELECT TRIM(bodega) AS bodega, COUNT(*) AS total_items
-            FROM conteoinventario
-            WHERE (cantidad_sistema > 0 OR invporlegalizar > 0)
-            GROUP BY TRIM(bodega)
-            ORDER BY TRIM(bodega)
-        """)
-        res_bodegas = await db.execute(stmt_bodegas)
-        bodegas_con_items = {r[0]: r[1] for r in res_bodegas.all()}
-
-        # 2. Obtener asignaciones actuales agrupadas por bodega
-        stmt_asig = select(AsignacionInventario)
-        res_asig = await db.execute(stmt_asig)
-        asignaciones = res_asig.scalars().all()
-
-        # Contar parejas únicas por bodega
-        parejas_por_bodega = {}
-        for asig in asignaciones:
-            b = asig.bodega.strip()
-            parejas_por_bodega.setdefault(b, set()).add(asig.numero_pareja)
-
-        # 3. Calcular cobertura a nivel bodega
-        total_bodegas = len(bodegas_con_items)
-        cubiertas = 0
-        faltantes = []
-        desglose_bodega = {}
-
-        for bodega, total_items in bodegas_con_items.items():
-            num_parejas = len(parejas_por_bodega.get(bodega, set()))
-            esta_cubierta = num_parejas > 0
-
-            if esta_cubierta:
-                cubiertas += 1
-            else:
-                faltantes.append(bodega)
-
-            items_por_pareja = ceil(total_items / num_parejas) if num_parejas > 0 else 0
-
-            desglose_bodega[bodega] = {
-                "total": total_items,
-                "cubiertos": total_items if esta_cubierta else 0,
-                "porcentaje": 100.0 if esta_cubierta else 0.0,
-                "parejas": num_parejas,
-                "items_por_pareja": items_por_pareja
-            }
-
-        porcentaje = round((cubiertas / total_bodegas * 100), 1) if total_bodegas > 0 else 0
-
-        return {
-            "cobertura": porcentaje,
-            "total_ubicaciones_pendientes": total_bodegas,
-            "cubiertos": cubiertas,
-            "faltantes": faltantes[:50],
-            "desglose_bodega": desglose_bodega
-        }
+        return await ServicioAnalyticsInventario.obtener_cobertura_bodegas(db)
     except SQLAlchemyError as e:
         print(f"Error DB en obtener_cobertura_asignacion: {e}")
         raise HTTPException(status_code=503, detail="Error al calcular cobertura de personal")
@@ -498,110 +287,28 @@ async def guardar_conteo(
     db: AsyncSession = Depends(obtener_db),
     usuario: Any = Depends(obtener_usuario_actual_db),
 ) -> Dict[str, Any]:
-    """Guarda conteo y recalcula 'estado' e 'inteligencia' de discrepancia."""
+    """Guarda conteo delegando el impacto multidimensional al servicio."""
     try:
-        stmt = select(ConteoInventario).where(ConteoInventario.id == actualizacion.id)
-        result = await db.execute(stmt)
-        item = result.scalar_one_or_none()
-        
-        if not item:
-            raise HTTPException(status_code=404, detail="Producto no encontrado")
-
-        r = actualizacion.ronda
-        cant = actualizacion.cantidad
-        
-        if r == 1:
-            item.cant_c1 = cant
-            item.obs_c1 = actualizacion.observaciones
-            item.user_c1 = usuario.cedula
-        elif r == 2:
-            item.cant_c2 = cant
-            item.obs_c2 = actualizacion.observaciones
-            item.user_c2 = usuario.cedula
-        elif r == 3:
-            item.cant_c3 = cant
-            item.obs_c3 = actualizacion.observaciones
-            item.user_c3 = usuario.cedula
-        elif r == 4:
-            item.cant_c4 = cant
-            item.obs_c4 = actualizacion.observaciones
-            item.user_c4 = usuario.cedula
-
-        # 2. Lógica de Estado e Inteligencia Persistente
-        # Valor teórico local
-        teorico_local = (item.cantidad_sistema or 0.0) + (item.invporlegalizar or 0.0)
-        item.cantidad_final = teorico_local
-        item.diferencia = cant - teorico_local
-
-        # Obtener configuración para saber la ronda activa global
-        stmt_config = select(ConfiguracionInventario).where(ConfiguracionInventario.id == 1)
-        res_config = await db.execute(stmt_config)
-        config = res_config.scalar_one_or_none()
-        r_activa = config.ronda_activa if config else 1
-
-        # 2.1 Validación por Rondas (Humano vs Humano / Humano vs Sistema)
-        if r == 1:
-            nuevo_estado = "CONCILIADO" if cant == teorico_local else "RECONTEO"
-        elif r == 2:
-            nuevo_estado = "CONCILIADO" if cant == item.cant_c1 else "RECONTEO"
-        elif r == 3:
-            nuevo_estado = (
-                "CONCILIADO"
-                if (cant == item.cant_c1 or cant == item.cant_c2)
-                else "DISCREPANTE"
-            )
-        else:  # r == 4
-            nuevo_estado = "CONCILIADO"
-
-        # --- Actualización masiva de diferencia_total para este código (dentro del mismo inventario) ---
-        stmt_sku_all = select(ConteoInventario).where(
-            ConteoInventario.codigo == item.codigo,
-            ConteoInventario.conteo == item.conteo
+        resultado = await ServicioInventario.registrar_conteo_unidad(
+            item_id=actualizacion.id,
+            cantidad=actualizacion.cantidad,
+            observaciones=actualizacion.observaciones,
+            ronda=actualizacion.ronda,
+            usuario_cedula=usuario.cedula,
+            db=db
         )
-        result_sku_all = await db.execute(stmt_sku_all)
-        rows_sku = result_sku_all.scalars().all()
-        
-        sum_fisico_global = 0.0
-        teorico_unido = 0.0
-        
-        for r_sku in rows_sku:
-            f_val = 0.0
-            if r_activa == 1:
-                f_val = r_sku.cant_c1 or 0.0
-            elif r_activa == 2:
-                f_val = r_sku.cant_c2 or 0.0
-            elif r_activa == 3:
-                f_val = r_sku.cant_c3 or 0.0
-            elif r_activa == 4:
-                f_val = r_sku.cant_c4 or 0.0
-            
-            if r_sku.id == item.id:
-                f_val = cant
-                
-            sum_fisico_global += f_val
-            if teorico_unido == 0:
-                teorico_unido = (r_sku.cantidad_sistema or 0.0) + (r_sku.invporlegalizar or 0.0)
-
-        dif_global_final = sum_fisico_global - teorico_unido
-        
-        for r_sku in rows_sku:
-            r_sku.diferencia_total = dif_global_final
-            if abs(dif_global_final) < 0.01:
-                r_sku.estado = "CONCILIADO"
-            elif r_sku.id == item.id:
-                r_sku.estado = nuevo_estado
-
-        if abs(dif_global_final) < 0.01:
-            item.estado = "CONCILIADO"
-        else:
-            item.estado = nuevo_estado
-        await db.commit()
-        return {
-            "exito": True,
-            "mensaje": "Conteo procesado",
-            "estado": item.estado,
-            "diferencia_local": item.diferencia,
-        }
+        if not resultado["exito"]:
+            raise HTTPException(status_code=404, detail=resultado.get("error", "Error desconocido"))
+        return resultado
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        await db.rollback()
+        print(f"Error DB en guardar_conteo: {e}")
+        raise HTTPException(status_code=503, detail="Error de base de datos al guardar conteo")
+    except Exception as e:
+        print(f"Error inesperado en guardar_conteo: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
     except HTTPException:
         raise
     except SQLAlchemyError as e:
@@ -624,7 +331,7 @@ async def cargar_maestra_inventario(
         if not file.filename.endswith((".xlsx", ".xls")):
             raise HTTPException(status_code=400, detail="El archivo debe ser un Excel")
         file_content = await file.read()
-        resultado = await ServicioInventario.importar_conteo_excel(
+        resultado = await ServicioExcelInventario.importar_conteo_excel(
             file_content, conteo, db, limpiar_previo
         )
         return resultado
@@ -648,14 +355,13 @@ async def cargar_transito(
         raise HTTPException(status_code=400, detail="El archivo debe ser un Excel")
 
     content = await file.read()
-    # 2. Importar usando el servicio (El servicio ya limpia la tabla interna)
-    return await ServicioInventario.importar_transito_excel(content, db)
+    return await ServicioExcelInventario.importar_transito_excel(content, db)
 
 
 @router.post("/cargar-legacy")
 async def cargar_legacy(
     file: UploadFile = File(...),
-    ronda: int = Form(...),  # 1, 2, o 3
+    ronda: int = Form(...),
     db: AsyncSession = Depends(obtener_db),
 ) -> Dict[str, Any]:
     """Carga masiva de resultados de conteo (Legacy) para validación histórica."""
@@ -666,13 +372,37 @@ async def cargar_legacy(
         raise HTTPException(status_code=400, detail="La ronda debe ser 1, 2 o 3")
 
     content = await file.read()
-    return await ServicioInventario.importar_legacy_excel(content, ronda, db)
+    return await ServicioExcelInventario.importar_legacy_excel(content, ronda, db)
+
+
+@router.patch("/asignar/habilitar-c2/{id}")
+async def habilitar_conteo2(
+    id: int,
+    habilitar: bool = Form(...),
+    db: AsyncSession = Depends(obtener_db)
+) -> Dict[str, Any]:
+    """Habilita o deshabilita el acceso al Conteo 2 para una pareja específica."""
+    try:
+        stmt = select(AsignacionInventario).where(AsignacionInventario.id == id)
+        res = await db.execute(stmt)
+        asig = res.scalar_one_or_none()
+        
+        if not asig:
+            raise HTTPException(status_code=404, detail="Asignación no encontrada")
+            
+        asig.habilitado_c2 = habilitar
+        await db.commit()
+        
+        return {"exito": True, "habilitado": habilitar}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/plantilla-maestra")
 async def descargar_plantilla_maestra():
     """Genera y descarga la plantilla Excel para la carga maestra de inventario."""
-    buf = ServicioInventario.generar_plantilla_maestra()
+    buf = ServicioExcelInventario.generar_plantilla_maestra()
     return StreamingResponse(
         buf,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -685,7 +415,7 @@ async def descargar_plantilla_maestra():
 @router.get("/plantilla-transito")
 async def descargar_plantilla_transito():
     """Genera y descarga la plantilla Excel para la carga de tránsito detallado."""
-    buf = ServicioInventario.generar_plantilla_transito()
+    buf = ServicioExcelInventario.generar_plantilla_transito()
     return StreamingResponse(
         buf,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
