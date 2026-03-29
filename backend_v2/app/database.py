@@ -205,6 +205,12 @@ async def init_db():
                 text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS diferencia_total FLOAT DEFAULT 0.0")
             )
             
+            # --- CORRECCIÓN DE UNICIDAD (FLEXIBILIDAD TOTAL) ---
+            # Eliminar la restricción antigua que impedía repeticiones de SKU en la misma ubicación
+            await conn.execute(
+                text("ALTER TABLE conteoinventario DROP CONSTRAINT IF EXISTS unique_sku_location")
+            )
+            
             # --- MIGRACIÓN HISTÓRICO ---
             await conn.execute(
                 text("ALTER TABLE conteohistorico ADD COLUMN IF NOT EXISTS cantidad_final FLOAT DEFAULT 0.0")
