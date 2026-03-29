@@ -1,6 +1,6 @@
 import React from 'react';
 import { Title, Text, Button, ProgressBar } from '../../../../components/atoms';
-import { ArrowLeft, Loader2, FileText, Save } from 'lucide-react';
+import { ArrowLeft, Loader2, FileText, Save, FilterX } from 'lucide-react';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import { TableRow } from './components/TableRow';
 import { MobileItemCard } from './components/MobileItemCard';
@@ -27,6 +27,8 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
         columnFilters,
         getUniqueValues,
         handleColumnFilterChange,
+        hasActiveFilters,
+        clearAllFilters,
         stats
     } = useInventarioData(addNotification);
 
@@ -76,6 +78,17 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
                                 <Text variant="caption" weight="bold" className="text-[7px] text-primary-500 uppercase tracking-tighter leading-none whitespace-nowrap"># E:</Text>
                                 <Text variant="body2" weight="bold" className="text-[7px] leading-none text-neutral-900 dark:text-neutral-100">{stats.estantes}</Text>
                             </div>
+
+                            {hasActiveFilters && (
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={clearAllFilters}
+                                    icon={FilterX}
+                                    title="Quitar filtros"
+                                    className="!p-0 !w-5 !h-5 shrink-0 ml-0.5 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 opacity-70 hover:opacity-100 transition-all duration-200 animate-in fade-in zoom-in-50"
+                                />
+                            )}
                         </div>
 
                         {/* Ronda pill (Desktop & Mobile) */}
@@ -122,6 +135,17 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
                             <Text variant="caption" weight="bold" className="text-[7px] text-primary-500 uppercase tracking-tighter leading-none whitespace-nowrap">#. E:</Text>
                             <Text variant="body2" weight="bold" className="text-[10px] leading-none text-neutral-900 dark:text-neutral-100">{stats.estantes}</Text>
                         </div>
+
+                        {hasActiveFilters && (
+                            <Button
+                                variant="ghost"
+                                size="xs"
+                                onClick={clearAllFilters}
+                                icon={FilterX}
+                                title="Quitar filtros"
+                                className="!p-0 !w-5 !h-5 shrink-0 ml-0.5 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 opacity-70 hover:opacity-100 transition-all duration-200 animate-in fade-in zoom-in-50"
+                            />
+                        )}
                     </div>
 
                     <Button
@@ -179,7 +203,7 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
                                 <FilterHeader label="Blq." col="bloque" minWidth="20px" align="center" columnFilters={columnFilters} getUniqueValues={getUniqueValues} onFilterChange={handleColumnFilterChange} />
                                 <FilterHeader label="Est." col="estante" minWidth="20px" align="center" columnFilters={columnFilters} getUniqueValues={getUniqueValues} onFilterChange={handleColumnFilterChange} />
                                 <FilterHeader label="Niv." col="nivel" minWidth="20px" align="center" columnFilters={columnFilters} getUniqueValues={getUniqueValues} onFilterChange={handleColumnFilterChange} />
-                                <th className="p-1 px-1 text-[12px] font-bold uppercase tracking-tighter text-white w-[45px] sticky top-0 z-20 bg-navy ios-sticky-fix">Código</th>
+                                <FilterHeader label="Código" col="codigo" minWidth="45px" columnFilters={columnFilters} getUniqueValues={getUniqueValues} onFilterChange={handleColumnFilterChange} />
                                 <th className="p-1 px-1 text-[12px] font-bold uppercase tracking-tighter text-white w-[180px] sticky top-0 z-20 bg-navy ios-sticky-fix">Descripción</th>
                                 <th className="p-1 px-1 text-[12px] font-bold uppercase tracking-tighter text-white text-center w-[30px] sticky top-0 z-20 bg-navy ios-sticky-fix">Und.</th>
                                 <FilterHeader label={`Cant`} col={`cant_c${ronda}`} minWidth="55px" align="center" columnFilters={columnFilters} getUniqueValues={getUniqueValues} onFilterChange={handleColumnFilterChange} />

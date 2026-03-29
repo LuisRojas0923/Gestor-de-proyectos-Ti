@@ -59,7 +59,7 @@ export const MobileItemCard = ({ item, value, obs, onChange, onSave, isSaving, i
                             if (sanitized.split('.').length > 2) return;
                             onChange('cant', sanitized);
                         }}
-                        className="text-center font-bold text-sm rounded-2xl h-10 w-full transition-all"
+                        className="text-right font-bold text-sm rounded-2xl h-10 w-full transition-all"
                         placeholder=""
                     />
                 </div>

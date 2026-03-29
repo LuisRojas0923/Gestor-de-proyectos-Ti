@@ -17,8 +17,9 @@ export const InventarioAdmin: React.FC = () => {
         limpiarPrevio, setLimpiarPrevio, rondaActiva, isUpdatingConfig, handleUpdateRonda,
         coverage, newAsig, setNewAsig, isSearchingEmpleado, isSavingAsig, asignaciones,
         handleSaveAsig, handleDeleteAsig, handleEditAsig, cancelEdit, editingAsigId,
-        getBodegaOptions, getBloqueOptions, getEstanteOptions, getNivelOptions,
-        uploadProgress, activeTab, setActiveTab, handleGeneratePlanilla0
+        getBodegaOptions,
+        uploadProgress, activeTab, setActiveTab, handleGeneratePlanilla0, buscarEmpleadoERP,
+        handleBulkSaveAsignaciones, exportAsignacionesExcel
     } = useInventarioAdmin();
 
     // Autosincronización cada 1 minuto
@@ -32,7 +33,7 @@ export const InventarioAdmin: React.FC = () => {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 px-2 pb-10">
-            <div className="max-w-[1300px] mx-auto w-full space-y-8">
+            <div className="max-w-[1600px] mx-auto w-full space-y-8">
                 {/* Page Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-1">
                     <div className="space-y-1">
@@ -54,15 +55,14 @@ export const InventarioAdmin: React.FC = () => {
                         {/* Tab Switcher */}
                         <div className="flex bg-neutral-100 dark:bg-neutral-800/80 p-1.5 rounded-2xl border border-neutral-200 dark:border-neutral-700 w-fit shadow-sm">
                             {(['config', 'monitor', 'validation'] as const).map(tab => (
-                                <Button 
+                                <Button
                                     key={tab}
                                     variant={activeTab === tab ? 'primary' : 'ghost'}
                                     onClick={() => setActiveTab(tab)}
-                                    className={`flex items-center gap-2 !px-6 !py-2 !rounded-xl !text-xs !font-bold transition-all ${
-                                        activeTab === tab 
-                                        ? '!bg-white dark:!bg-neutral-700 !shadow-sm !text-primary-500 !border-none' 
-                                        : '!text-neutral-500 hover:!text-neutral-900 border-none'
-                                    }`}
+                                    className={`flex items-center gap-2 !px-6 !py-2 !rounded-xl !text-xs !font-bold transition-all ${activeTab === tab
+                                            ? '!bg-white dark:!bg-neutral-700 !shadow-sm !text-primary-500 !border-none'
+                                            : '!text-neutral-500 hover:!text-neutral-900 border-none'
+                                        }`}
                                 >
                                     <div className="flex items-center gap-2">
                                         {tab === 'config' ? 'Configuración' : tab === 'monitor' ? 'Monitor Maestro' : 'Validación'}
@@ -79,24 +79,29 @@ export const InventarioAdmin: React.FC = () => {
                 {/* Tab: Configuración */}
                 {activeTab === 'config' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        <ConfiguracionSeccion 
-                            {...{conteoName, setConteoName, file, setFile, handleUploadMaestra, isUploading, 
-                                handleUploadTransito, isUploadingTransito, uploadResult, setUploadResult, 
+                        <ConfiguracionSeccion
+                            {...{
+                                conteoName, setConteoName, file, setFile, handleUploadMaestra, isUploading,
+                                handleUploadTransito, isUploadingTransito, uploadResult, setUploadResult,
                                 limpiarPrevio, setLimpiarPrevio, rondaActiva, isUpdatingConfig, handleUpdateRonda,
-                                uploadProgress, handleGeneratePlanilla0}}
+                                uploadProgress, handleGeneratePlanilla0
+                            }}
                         />
-                        <AsignacionSeccion 
-                            {...{coverage, newAsig, setNewAsig, isSearchingEmpleado, isSavingAsig, asignaciones,
+                        <AsignacionSeccion
+                            {...{
+                                coverage, newAsig, setNewAsig, isSearchingEmpleado, isSavingAsig, asignaciones,
                                 handleSaveAsig, handleDeleteAsig, handleEditAsig, cancelEdit, editingAsigId,
-                                getBodegaOptions, getBloqueOptions, getEstanteOptions, getNivelOptions, inventoryList}}
+                                getBodegaOptions, inventoryList,
+                                buscarEmpleadoERP, handleBulkSaveAsignaciones, exportAsignacionesExcel
+                            }}
                         />
                     </div>
                 )}
 
                 {/* Tab: Monitor Maestro */}
                 {activeTab === 'monitor' && (
-                    <MonitorMaestroTab 
-                        {...{stats, inventoryList, isLoadingData, filters, setFilters, columnFilters, setColumnFilters, fetchStats, fetchInventoryList, rondaActiva}}
+                    <MonitorMaestroTab
+                        {...{ stats, inventoryList, isLoadingData, filters, setFilters, columnFilters, setColumnFilters, fetchStats, fetchInventoryList, rondaActiva }}
                     />
                 )}
 
@@ -108,9 +113,9 @@ export const InventarioAdmin: React.FC = () => {
                                 <Title variant="h5" weight="bold">Módulo de Validación Legacy</Title>
                                 <Text variant="caption" color="text-secondary">Sincroniza tus datos del año pasado para validar el motor actual.</Text>
                             </div>
-                            <CargaLegacy 
-                                apiBase={API_CONFIG.BASE_URL} 
-                                onUploadSuccess={() => { fetchStats(); fetchInventoryList(); }} 
+                            <CargaLegacy
+                                apiBase={API_CONFIG.BASE_URL}
+                                onUploadSuccess={() => { fetchStats(); fetchInventoryList(); }}
                             />
                         </div>
                     </div>

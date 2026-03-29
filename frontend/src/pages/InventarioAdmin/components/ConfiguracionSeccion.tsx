@@ -55,7 +55,7 @@ const ConfiguracionSeccion: React.FC<ConfiguracionSeccionProps> = ({
                 rondaSlot={
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1.5 bg-white dark:bg-neutral-800 p-1 rounded-xl border border-neutral-100 dark:border-neutral-700 shadow-sm w-fit">
-                            {[1, 2, 3, 4].map(r => (
+                            {[1, 2, 3].map(r => (
                                 <Button
                                     key={r}
                                     onClick={() => handleUpdateRonda(r)}

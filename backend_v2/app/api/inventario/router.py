@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
+from math import ceil
+import re
 from sqlmodel import select, and_, or_, func
 from ...database import obtener_db
 from ..auth.profile_router import (
@@ -19,6 +21,15 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 
 router = APIRouter()
+
+
+def _natural_sort_key(value: str) -> list:
+    """Genera una clave de ordenamiento natural que trata segmentos numéricos como números.
+    Equivale a JS localeCompare(undefined, { numeric: true }).
+    Ej: '15' → [15], 'F' → ['f'], '2-13-463' → [2, '-', 13, '-', 463]
+    """
+    parts = re.split(r'(\d+)', (value or '').strip().lower())
+    return [int(p) if p.isdigit() else p for p in parts if p]
 
 
 class ConteoUpdate(BaseModel):
@@ -200,28 +211,22 @@ async def obtener_asignaciones(db: AsyncSession = Depends(obtener_db)):
 @router.post("/asignar")
 async def crear_asignacion(data: AsignacionBase, db: AsyncSession = Depends(obtener_db)):
     try:
-        # 1. Validar si ya existe una asignación para esta ubicación exacta
-        # (Considerando bodega, bloque, estante y nivel)
-        stmt_conflicto = select(AsignacionInventario).where(and_(
-            func.trim(func.upper(AsignacionInventario.bodega)) == func.trim(func.upper(data.bodega)),
-            func.trim(func.upper(AsignacionInventario.bloque)) == func.trim(func.upper(data.bloque or "")),
-            func.trim(func.upper(AsignacionInventario.estante)) == func.trim(func.upper(data.estante or "")),
-            func.trim(func.upper(AsignacionInventario.nivel)) == func.trim(func.upper(data.nivel or ""))
-        ))
-        res_conflicto = await db.execute(stmt_conflicto)
-        conflicto = res_conflicto.scalar_one_or_none()
-        
-        if conflicto:
-            raise HTTPException(
-                status_code=409, 
-                detail=f"Esta ubicación ya está asignada a la pareja #{conflicto.numero_pareja or '?'}: {conflicto.nombre}"
-            )
+        # 1. Ya no bloqueamos asignaciones duplicadas de ubicación (Conflictos 409)
+        # Esto permite que múltiples parejas sean asignadas a ubicaciones masivas sin sub-clasificar (Ej. Bodega completa)
+        # para que se dividan el trabajo operativamente dividiéndose los ítems.
 
-        # 2. Calcular número de pareja consecutivo
-        stmt_max = select(func.max(AsignacionInventario.numero_pareja))
-        res_max = await db.execute(stmt_max)
-        max_pareja = res_max.scalar() or 0
-        nuevo_numero = max_pareja + 1
+        # 2. Asignar o reutilizar el número de pareja
+        stmt_pareja = select(AsignacionInventario.numero_pareja).where(AsignacionInventario.cedula == data.cedula)
+        res_pareja = await db.execute(stmt_pareja)
+        pareja_existente = res_pareja.scalars().first()
+        
+        if pareja_existente:
+            nuevo_numero = pareja_existente
+        else:
+            stmt_max = select(func.max(AsignacionInventario.numero_pareja))
+            res_max = await db.execute(stmt_max)
+            max_pareja = res_max.scalar() or 0
+            nuevo_numero = max_pareja + 1
 
         # 3. Crear asignación
         nueva = AsignacionInventario(
@@ -293,25 +298,25 @@ async def obtener_mis_asignaciones(
     db: AsyncSession = Depends(obtener_db),
     usuario: Any = Depends(obtener_usuario_actual_db),
 ) -> List[Dict[str, Any]]:
-    """Obtiene los productos asignados al usuario actual filtrando por estado."""
+    """Obtiene los productos asignados al usuario actual dividiendo por bodega y pareja."""
     try:
-        # 1. Normalización de Cédula (Ignorar ceros a la izquierda y espacios)
+        # 1. Normalización de Cédula
         cedula_usuario_norm = usuario.cedula.strip().lstrip('0')
         print(f"DEBUG: Buscando asignación para cédula normalizada: {cedula_usuario_norm}")
 
-        # 1.1 Buscar asignación usando normalización (Titular o Compañero)
+        # 1.1 Buscar asignación del usuario (Titular o Compañero)
         stmt_asig = select(AsignacionInventario).where(or_(
             func.ltrim(func.trim(AsignacionInventario.cedula), '0') == cedula_usuario_norm,
             func.ltrim(func.trim(AsignacionInventario.cedula_companero), '0') == cedula_usuario_norm
         ))
         result_asig = await db.execute(stmt_asig)
-        asignacion = result_asig.scalar_one_or_none()
+        asignaciones = result_asig.scalars().all()
 
-        if not asignacion:
+        if not asignaciones:
             print(f"DEBUG: No se encontró asignación para usuario {usuario.cedula}")
             return []
 
-        print(f"DEBUG: Asignación hallada: {asignacion.bodega} - {asignacion.bloque}")
+        print(f"DEBUG: {len(asignaciones)} asignaciones halladas para el usuario")
 
         # 2. Obtener configuración para saber la ronda activa
         stmt_config = select(ConfiguracionInventario).where(ConfiguracionInventario.id == 1)
@@ -319,48 +324,82 @@ async def obtener_mis_asignaciones(
         config = res_config.scalar_one_or_none()
         r_activa = config.ronda_activa if config else 1
 
-        # 3. Filtrado dinámico según ronda
-        # Si es Ronda 1: Mostrar todo lo asignado (permitir correcciones)
-        # Si es Ronda > 1: Ocultar los que ya quedaron conciliados en rondas previas
-        stmt_inv = select(ConteoInventario).where(and_(
-            func.trim(func.upper(ConteoInventario.bodega)) == func.trim(func.upper(asignacion.bodega)),
-            func.trim(func.upper(ConteoInventario.bloque)) == func.trim(func.upper(asignacion.bloque)),
-        ))
+        # 3. Determinar bodegas del usuario y su número de pareja
+        bodegas_asignadas = set()
+        mi_numero_pareja = None
+        for a in asignaciones:
+            bodegas_asignadas.add(a.bodega.strip().upper())
+            if mi_numero_pareja is None:
+                mi_numero_pareja = a.numero_pareja
 
+        # 4. Obtener TODAS las parejas de cada bodega asignada (para calcular el corte)
+        stmt_todas = select(AsignacionInventario).where(
+            func.trim(func.upper(AsignacionInventario.bodega)).in_(bodegas_asignadas)
+        )
+        res_todas = await db.execute(stmt_todas)
+        todas_asig = res_todas.scalars().all()
+
+        # 5. Query de ítems SOLO por bodega
+        stmt_inv = select(ConteoInventario).where(
+            func.trim(func.upper(ConteoInventario.bodega)).in_(bodegas_asignadas)
+        )
+
+        # Ocultar lo de rondas pasadas si aplica
         if r_activa > 1:
-            # En rondas avanzadas, solo vemos lo que falta O lo que estamos trabajando en esta ronda
             user_col = getattr(ConteoInventario, f"user_c{r_activa}")
             stmt_inv = stmt_inv.where(or_(
                 ConteoInventario.estado.in_(["PENDIENTE", "RECONTEO", "DISCREPANTE"]),
                 user_col.is_not(None)
             ))
 
-        # Filtros opcionales (Estante/Nivel) también normalizados
-        
-        # Filtros opcionales (Estante/Nivel) también normalizados
-        if asignacion.estante and asignacion.estante.strip():
-            estantes_lista = [e.strip().upper() for e in asignacion.estante.split(',') if e.strip()]
-            if len(estantes_lista) > 1:
-                stmt_inv = stmt_inv.where(func.trim(func.upper(ConteoInventario.estante)).in_(estantes_lista))
-            else:
-                stmt_inv = stmt_inv.where(func.trim(func.upper(ConteoInventario.estante)) == estantes_lista[0])
-            
-        if asignacion.nivel and asignacion.nivel.strip():
-            stmt_inv = stmt_inv.where(func.trim(func.upper(ConteoInventario.nivel)) == asignacion.nivel.strip().upper())
-            
         result_inv = await db.execute(stmt_inv)
-        productos = result_inv.scalars().all()
-        
-        print(f"DEBUG: Se enviarán {len(productos)} productos al operario")
-        
+        todos_productos = result_inv.scalars().all()
+
+        # 6. Dividir ítems por bodega usando índice de pareja
+        mis_productos = []
+        for bodega in bodegas_asignadas:
+            # Parejas únicas en esta bodega, ordenadas por numero_pareja
+            parejas_bodega = sorted(set(
+                a.numero_pareja for a in todas_asig
+                if a.bodega.strip().upper() == bodega
+            ))
+
+            if mi_numero_pareja not in parejas_bodega:
+                continue
+
+            # Ítems de esta bodega, ordenados geográficamente (natural sort)
+            items_bodega = sorted(
+                [p for p in todos_productos if p.bodega.strip().upper() == bodega],
+                key=lambda p: (
+                    _natural_sort_key(p.bloque or ''),
+                    _natural_sort_key(p.estante or ''),
+                    _natural_sort_key(p.nivel or ''),
+                    _natural_sort_key(p.codigo or '')
+                )
+            )
+
+            if not items_bodega:
+                continue
+
+            # Calcular corte por índice
+            mi_indice = parejas_bodega.index(mi_numero_pareja)
+            num_parejas = len(parejas_bodega)
+            chunk_size = ceil(len(items_bodega) / num_parejas)
+            start = mi_indice * chunk_size
+            end = min(start + chunk_size, len(items_bodega))
+
+            mis_productos.extend(items_bodega[start:end])
+
+        print(f"DEBUG: Se enviarán {len(mis_productos)} productos al operario (división por pareja)")
+
         return [
             {
-                "id": p.id, 
-                "bodega": p.bodega, 
-                "bloque": p.bloque, 
-                "estante": p.estante, 
-                "nivel": p.nivel, 
-                "codigo": p.codigo, 
+                "id": p.id,
+                "bodega": p.bodega,
+                "bloque": p.bloque,
+                "estante": p.estante,
+                "nivel": p.nivel,
+                "codigo": p.codigo,
                 "descripcion": p.descripcion,
                 "unidad": p.unidad,
                 "cant_c1": p.cant_c1,
@@ -376,8 +415,10 @@ async def obtener_mis_asignaciones(
                 "user_c3": p.user_c3,
                 "user_c4": p.user_c4,
                 "estado": p.estado
-            } for p in productos
+            } for p in mis_productos
         ]
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
         print(f"Error DB en obtener_mis_asignaciones: {e}")
         raise HTTPException(status_code=503, detail="Error al consultar mis asignaciones")
@@ -388,93 +429,62 @@ async def obtener_mis_asignaciones(
 
 @router.get("/cobertura-asignacion")
 async def obtener_cobertura_asignacion(db: AsyncSession = Depends(obtener_db)):
+    """Cobertura simplificada a nivel bodega: cubierta si tiene al menos 1 pareja."""
     try:
-        # 1. Obtener todas las ubicaciones únicas que tienen algo por contar (saldo > 0 o invporlegalizar > 0)
-        # o simplemente todas las ubicaciones presentes en el maestro
-        stmt_master = text("""
-            SELECT DISTINCT bodega, bloque, estante, nivel 
-            FROM conteoinventario 
+        # 1. Obtener bodegas únicas con ítems por contar
+        stmt_bodegas = text("""
+            SELECT TRIM(bodega) AS bodega, COUNT(*) AS total_items
+            FROM conteoinventario
             WHERE (cantidad_sistema > 0 OR invporlegalizar > 0)
+            GROUP BY TRIM(bodega)
+            ORDER BY TRIM(bodega)
         """)
-        res_master = await db.execute(stmt_master)
-        ubicaciones_fisicas = [f"{r[0]}-{r[1]}-{r[2]}-{r[3]}" for r in res_master.all()]
-        
-        # 2. Obtener asignaciones actuales
+        res_bodegas = await db.execute(stmt_bodegas)
+        bodegas_con_items = {r[0]: r[1] for r in res_bodegas.all()}
+
+        # 2. Obtener asignaciones actuales agrupadas por bodega
         stmt_asig = select(AsignacionInventario)
         res_asig = await db.execute(stmt_asig)
         asignaciones = res_asig.scalars().all()
-        
-        # 3. Cruzar datos
-        # Un área está cubierta si existe al menos una asignación que la contenga (considerando comodines)
-        pendientes = []
+
+        # Contar parejas únicas por bodega
+        parejas_por_bodega = {}
+        for asig in asignaciones:
+            b = asig.bodega.strip()
+            parejas_por_bodega.setdefault(b, set()).add(asig.numero_pareja)
+
+        # 3. Calcular cobertura a nivel bodega
+        total_bodegas = len(bodegas_con_items)
         cubiertas = 0
-        
-        for u in ubicaciones_fisicas:
-            parts = u.split('-')
-            b, bl, es, ni = parts[0], parts[1], parts[2], parts[3]
-            
-            esta_cubierta = False
-            for asig in asignaciones:
-                # Lógica de coincidencia con comodines (Fase v4.2)
-                match_bodega = asig.bodega == b
-                match_bloque = (not asig.bloque) or (asig.bloque == bl)
-                match_estante = (not asig.estante) or (asig.estante == es)
-                match_nivel = (not asig.nivel) or (asig.nivel == ni)
-                
-                if match_bodega and match_bloque and match_estante and match_nivel:
-                    esta_cubierta = True
-                    break
-            
+        faltantes = []
+        desglose_bodega = {}
+
+        for bodega, total_items in bodegas_con_items.items():
+            num_parejas = len(parejas_por_bodega.get(bodega, set()))
+            esta_cubierta = num_parejas > 0
+
             if esta_cubierta:
                 cubiertas += 1
             else:
-                pendientes.append(u)
-                
-        total = len(ubicaciones_fisicas)
-        porcentaje = round((cubiertas / total * 100), 1) if total > 0 else 0
+                faltantes.append(bodega)
 
-        # 4. Desglose detallado por bodega (Requerimiento v4.2)
-        desglose_bodega = {}
-        ubicaciones_por_bodega = {}
-        for u in ubicaciones_fisicas:
-            b = u.split('-')[0]
-            ubicaciones_por_bodega.setdefault(b, []).append(u)
-        
-        for b, ubics in ubicaciones_por_bodega.items():
-            b_total = len(ubics)
-            b_cubiertas = 0
-            for u in ubics:
-                parts = u.split('-')
-                if len(parts) < 3: 
-                    continue # Salto si la ubicación no tiene al menos Bodega-Bloque-Estante
-                
-                bod = parts[0]
-                bl = parts[1]
-                es = parts[2]
-                ni = parts[3] if len(parts) > 3 else ""
-                
-                for asig in asignaciones:
-                    # Validar correspondencia jerárquica
-                    asig_estantes = [e.strip() for e in (asig.estante or "").split(',') if e.strip()]
-                    
-                    if (asig.bodega == bod and 
-                        (not asig.bloque or asig.bloque == bl) and 
-                        (not asig_estantes or es in asig_estantes) and
-                        (not asig.nivel or asig.nivel == ni)):
-                        b_cubiertas += 1
-                        break
-            
-            desglose_bodega[b] = {
-                "total": b_total,
-                "cubiertos": b_cubiertas,
-                "porcentaje": round((b_cubiertas / b_total * 100), 1) if b_total > 0 else 0
+            items_por_pareja = ceil(total_items / num_parejas) if num_parejas > 0 else 0
+
+            desglose_bodega[bodega] = {
+                "total": total_items,
+                "cubiertos": total_items if esta_cubierta else 0,
+                "porcentaje": 100.0 if esta_cubierta else 0.0,
+                "parejas": num_parejas,
+                "items_por_pareja": items_por_pareja
             }
-        
+
+        porcentaje = round((cubiertas / total_bodegas * 100), 1) if total_bodegas > 0 else 0
+
         return {
             "cobertura": porcentaje,
-            "total_ubicaciones_pendientes": total,
+            "total_ubicaciones_pendientes": total_bodegas,
             "cubiertos": cubiertas,
-            "faltantes": pendientes[:50],
+            "faltantes": faltantes[:50],
             "desglose_bodega": desglose_bodega
         }
     except SQLAlchemyError as e:
@@ -592,6 +602,8 @@ async def guardar_conteo(
             "estado": item.estado,
             "diferencia_local": item.diferencia,
         }
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
         await db.rollback()
         print(f"Error DB en guardar_conteo: {e}")
@@ -616,6 +628,8 @@ async def cargar_maestra_inventario(
             file_content, conteo, db, limpiar_previo
         )
         return resultado
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
         await db.rollback()
         print(f"Error DB en cargar_maestra_inventario: {e}")

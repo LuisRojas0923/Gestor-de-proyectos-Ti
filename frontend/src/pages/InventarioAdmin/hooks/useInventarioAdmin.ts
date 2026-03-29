@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios, { AxiosProgressEvent } from 'axios';
+import * as XLSX from 'xlsx';
 import { API_CONFIG } from '../../../config/api';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
 import { usePlanillaManualPDF } from './usePlanillaManualPDF';
@@ -35,10 +36,7 @@ export const useInventarioAdmin = () => {
         cargo: '', 
         cedula_companero: '',
         nombre_companero: '',
-        bodega: '', 
-        bloque: '', 
-        estante: '', // Se guardará como string separado por comas: "1, 2, 3"
-        nivel: '' 
+        bodega: ''
     });
     const [isSearchingEmpleado, setIsSearchingEmpleado] = useState(false);
     const [asignaciones, setAsignaciones] = useState<any[]>([]);
@@ -247,11 +245,13 @@ export const useInventarioAdmin = () => {
                 );
             }
             
-            // Ordenamiento por ubicación (Bodega -> Bloque -> Estante -> Nivel)
+            // Ordenamiento natural por ubicación (Bodega -> Bloque -> Estante -> Nivel)
             data.sort((a, b) => {
-                const locA = `${a.bodega}-${a.bloque}-${a.estante}-${a.nivel || ''}`;
-                const locB = `${b.bodega}-${b.bloque}-${b.estante}-${b.nivel || ''}`;
-                return locA.localeCompare(locB, undefined, { numeric: true });
+                if (a.bodega !== b.bodega) return a.bodega.localeCompare(b.bodega, undefined, { numeric: true });
+                if (a.bloque !== b.bloque) return a.bloque.localeCompare(b.bloque, undefined, { numeric: true });
+                if (a.estante !== b.estante) return a.estante.localeCompare(b.estante, undefined, { numeric: true });
+                if (a.nivel !== b.nivel) return (a.nivel || '').localeCompare(b.nivel || '', undefined, { numeric: true });
+                return (a.codigo || '').localeCompare(b.codigo || '');
             });
             
             setInventoryList(data);
@@ -273,21 +273,29 @@ export const useInventarioAdmin = () => {
     };
 
     const handleSaveAsig = async () => {
-        if (!newAsig.cedula || !newAsig.bodega || !newAsig.bloque) {
-            alert("Completa al menos Cédula, Bodega y Bloque");
+        if (!newAsig.cedula || !newAsig.bodega) {
+            alert("Selecciona al menos el Personal y la Bodega");
             return;
         }
         setIsSavingAsig(true);
+
+        const asigPayload = {
+            ...newAsig,
+            bloque: '',
+            estante: '',
+            nivel: ''
+        };
+
         try {
             if (editingAsigId) {
-                await axios.patch(`${API_CONFIG.BASE_URL}/inventario/asignar/${editingAsigId}`, newAsig, { headers });
+                await axios.patch(`${API_CONFIG.BASE_URL}/inventario/asignar/${editingAsigId}`, asigPayload, { headers });
                 addNotification('success', "Asignación actualizada con éxito.");
                 setEditingAsigId(null);
             } else {
-                await axios.post(`${API_CONFIG.BASE_URL}/inventario/asignar`, newAsig, { headers });
+                await axios.post(`${API_CONFIG.BASE_URL}/inventario/asignar`, asigPayload, { headers });
                 addNotification('success', "Personal asignado correctamente.");
             }
-            setNewAsig({ cedula: '', nombre: '', cargo: '', cedula_companero: '', nombre_companero: '', bodega: '', bloque: '', estante: '', nivel: '' });
+            setNewAsig({ cedula: '', nombre: '', cargo: '', cedula_companero: '', nombre_companero: '', bodega: '' });
             fetchAsignaciones();
         } catch (error: any) {
             const msg = error.response?.data?.detail || "Error en la operación de asignación";
@@ -295,6 +303,115 @@ export const useInventarioAdmin = () => {
         } finally {
             setIsSavingAsig(false);
         }
+    };
+
+    const handleBulkSaveAsignaciones = async (parejas: any[]) => {
+        setIsSavingAsig(true);
+        try {
+            // Una sola asignación por pareja: solo bodega
+            const bulkAsignaciones = parejas.map(p => ({
+                cedula: p.titular.cc,
+                nombre: p.titular.nombre,
+                cedula_companero: p.companero ? p.companero.cc : null,
+                nombre_companero: p.companero ? p.companero.nombre : null,
+                bodega: p.bodega,
+                bloque: '',
+                estante: '',
+                nivel: ''
+            }));
+            
+            if (bulkAsignaciones.length === 0) {
+                addNotification('warning', 'No hay asignaciones válidas para guardar.');
+                return;
+            }
+
+            addNotification('info', `Guardando ${bulkAsignaciones.length} asignaciones...`);
+            let failCount = 0;
+            for (const asigData of bulkAsignaciones) {
+                try {
+                    await axios.post(`${API_CONFIG.BASE_URL}/inventario/asignar`, asigData, { headers });
+                } catch(e) {
+                    console.error("Fallo insertando", asigData, e);
+                    failCount++;
+                }
+            }
+            
+            if (failCount === 0) {
+                addNotification('success', "Asignación masiva finalizada correctamente.");
+            } else {
+                addNotification('warning', `Finalizado con ${failCount} errores. Revisa las asignaciones manuales.`);
+            }
+            fetchAsignaciones();
+        } catch (error: any) {
+             addNotification('error', "Error general en asignación masiva");
+        } finally {
+            setIsSavingAsig(false);
+        }
+    };
+
+    const exportAsignacionesExcel = () => {
+        // Agrupar por bodega y dividir ítems entre parejas (misma lógica del backend)
+        const exportData: any[] = [];
+        const bodegasUnicas = Array.from(new Set(inventoryList.map(i => i.bodega)));
+
+        for (const bodega of bodegasUnicas) {
+            // Ítems de esta bodega ordenados geográficamente
+            const itemsBodega = inventoryList
+                .filter(i => i.bodega === bodega)
+                .sort((a, b) => {
+                    if ((a.bloque || '') !== (b.bloque || '')) return (a.bloque || '').localeCompare(b.bloque || '', undefined, { numeric: true });
+                    if ((a.estante || '') !== (b.estante || '')) return (a.estante || '').localeCompare(b.estante || '', undefined, { numeric: true });
+                    if ((a.nivel || '') !== (b.nivel || '')) return (a.nivel || '').localeCompare(b.nivel || '', undefined, { numeric: true });
+                    return (a.codigo || '').localeCompare(b.codigo || '');
+                });
+
+            // Parejas únicas en esta bodega
+            const parejasEnBodega = Array.from(new Set(
+                asignaciones.filter(a => a.bodega === bodega).map(a => a.numero_pareja)
+            )).sort((a, b) => a - b);
+
+            const numParejas = parejasEnBodega.length;
+            const chunkSize = numParejas > 0 ? Math.ceil(itemsBodega.length / numParejas) : 0;
+
+            itemsBodega.forEach((item, idx) => {
+                let parejaAsignada = 'Sin Asignar';
+                let titular = '';
+                let companero = '';
+
+                if (numParejas > 0) {
+                    const parejaIdx = Math.min(Math.floor(idx / chunkSize), numParejas - 1);
+                    const numPareja = parejasEnBodega[parejaIdx];
+                    const asig = asignaciones.find(a => a.bodega === bodega && a.numero_pareja === numPareja);
+                    if (asig) {
+                        parejaAsignada = `Pareja ${numPareja}`;
+                        titular = asig.nombre;
+                        companero = asig.nombre_companero || '';
+                    }
+                }
+
+                exportData.push({
+                    "Bodega": item.bodega,
+                    "Bloque": item.bloque || '',
+                    "Estante": item.estante || '',
+                    "Nivel": item.nivel || '',
+                    "Código Ítem": item.codigo,
+                    "Descripción": item.descripcion,
+                    "Nro Pareja": parejaAsignada,
+                    "Titular": titular,
+                    "Compañero": companero
+                });
+            });
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        worksheet["!cols"] = [
+            { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, 
+            { wch: 20 }, { wch: 40 }, { wch: 15 }, { wch: 30 }, { wch: 30 }
+        ];
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Asignaciones");
+        XLSX.writeFile(workbook, "Reporte_Asignaciones_Planta.xlsx");
     };
 
     const handleEditAsig = (asig: any) => {
@@ -305,16 +422,13 @@ export const useInventarioAdmin = () => {
             cargo: asig.cargo || '',
             cedula_companero: asig.cedula_companero || '',
             nombre_companero: asig.nombre_companero || '',
-            bodega: asig.bodega,
-            bloque: asig.bloque,
-            estante: asig.estante || '',
-            nivel: asig.nivel || ''
+            bodega: asig.bodega
         });
     };
 
     const cancelEdit = () => {
         setEditingAsigId(null);
-        setNewAsig({ cedula: '', nombre: '', cargo: '', cedula_companero: '', nombre_companero: '', bodega: '', bloque: '', estante: '', nivel: '' });
+        setNewAsig({ cedula: '', nombre: '', cargo: '', cedula_companero: '', nombre_companero: '', bodega: '' });
     };
 
     const handleDeleteAsig = async (id: number) => {
@@ -375,40 +489,6 @@ export const useInventarioAdmin = () => {
         return [{ value: '', label: 'Seleccionar Bodega' }, ...unique.map(b => ({ value: b, label: b }))];
     };
 
-    const getBloqueOptions = (bodega: string) => {
-        if (!bodega) return [{ value: '', label: 'Bodega requerida' }];
-        const allBlocks = Array.from(new Set(inventoryList.filter(i => i.bodega === bodega).map(i => i.bloque))).filter(Boolean);
-        allBlocks.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-        const availableBlocks = allBlocks.filter(bl => {
-            if (editingAsigId) return true; 
-            const isFullyAssigned = asignaciones.some(asig => 
-                asig.bodega === bodega && asig.bloque === bl && (!asig.estante || asig.estante.trim() === "")
-            );
-            return !isFullyAssigned;
-        });
-        return [{ value: '', label: 'Seleccionar Bloque' }, ...availableBlocks.map(b => ({ value: b, label: b }))];
-    };
-
-    const getEstanteOptions = (bodega: string, bloque: string) => {
-        if (!bloque) return [{ value: '', label: 'Bloque requerido' }];
-        const allEstantes = Array.from(new Set(inventoryList.filter(i => i.bodega === bodega && i.bloque === bloque).map(i => i.estante))).filter(Boolean);
-        allEstantes.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-        const availableEstantes = allEstantes.filter(est => {
-            if (editingAsigId) return true;
-            return !asignaciones.some(asig => 
-                asig.bodega === bodega && asig.bloque === bloque && (asig.estante || "").split(',').map((s:string)=>s.trim()).includes(est)
-            );
-        });
-        return [{ value: '', label: 'Seleccionar Estante' }, ...availableEstantes.map(e => ({ value: e, label: e }))];
-    };
-
-    const getNivelOptions = (bodega: string, bloque: string, estante: string) => {
-        if (!estante) return [{ value: '', label: 'Estante requerido' }];
-        const unique = Array.from(new Set(inventoryList.filter(i => i.bodega === bodega && i.bloque === bloque && i.estante === estante).map(i => i.nivel))).filter(Boolean);
-        unique.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-        return [{ value: '', label: 'Seleccionar Nivel' }, ...unique.map(n => ({ value: n, label: n }))];
-    };
-
     return {
         // State
         file, setFile,
@@ -436,6 +516,8 @@ export const useInventarioAdmin = () => {
         handleUploadMaestra,
         handleUploadTransito,
         handleSaveAsig,
+        handleBulkSaveAsignaciones,
+        exportAsignacionesExcel,
         handleDeleteAsig,
         handleEditAsig,
         cancelEdit,
@@ -445,8 +527,6 @@ export const useInventarioAdmin = () => {
         handleGeneratePlanilla0,
         // Helpers
         getBodegaOptions,
-        getBloqueOptions,
-        getEstanteOptions,
-        getNivelOptions
+        buscarEmpleadoERP
     };
 };

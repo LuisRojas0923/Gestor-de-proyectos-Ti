@@ -68,10 +68,11 @@ CREATE TABLE IF NOT EXISTS ConfiguracionInventario (
     ultima_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabla de Histórico / Snapshots
+-- Tabla de Histórico / Snapshots (Debe ser espejo de ConteoInventario para no perder datos)
 CREATE TABLE IF NOT EXISTS ConteoHistorico (
     id SERIAL PRIMARY KEY,
     original_id INTEGER,
+    b_siigo INTEGER, -- <--- Faltaba este campo
     bodega VARCHAR(100),
     bloque VARCHAR(50),
     estante VARCHAR(50),
@@ -80,14 +81,26 @@ CREATE TABLE IF NOT EXISTS ConteoHistorico (
     descripcion TEXT,
     unidad VARCHAR(20),
     cantidad_sistema FLOAT,
-    cant_c1 FLOAT,
-    cant_c2 FLOAT,
-    cant_c3 FLOAT,
-    cant_c4 FLOAT,
-    conteo VARCHAR(100),
-    estado VARCHAR(20),
     invporlegalizar FLOAT,
     cantidad_final FLOAT,
+    
+    -- Historial de Rondas (Espejo de ConteoInventario)
+    cant_c1 FLOAT,
+    obs_c1 TEXT,
+    user_c1 VARCHAR(50),
+    cant_c2 FLOAT,
+    obs_c2 TEXT,
+    user_c2 VARCHAR(50),
+    cant_c3 FLOAT,
+    obs_c3 TEXT,
+    user_c3 VARCHAR(50),
+    cant_c4 FLOAT,
+    obs_c4 TEXT,
+    user_c4 VARCHAR(50),
+
+    conteo VARCHAR(100),
+    estado VARCHAR(20),
+    diferencia FLOAT,
     diferencia_total FLOAT,
     snapshot_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

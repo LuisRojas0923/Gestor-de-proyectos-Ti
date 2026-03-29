@@ -213,7 +213,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                             const selected = tempValue.includes(opt.value);
                             return (
                                 <div
-                                    key={opt.value}
+                                    key={opt.value || '__empty__'}
                                     onClick={() => toggleOption(opt.value)}
                                     className="flex items-center gap-2 px-3 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer transition-colors"
                                 >

@@ -64,10 +64,11 @@ export const useInventarioData = (addNotification: any) => {
             const rawItems = response.data as any[];
 
             const sortedItems = [...rawItems].sort((a, b) => {
-                if (a.bodega !== b.bodega) return a.bodega.localeCompare(b.bodega);
-                if (a.bloque !== b.bloque) return a.bloque.localeCompare(b.bloque);
-                if (a.estante !== b.estante) return a.estante.localeCompare(b.estante);
-                return (a.nivel || '').localeCompare(b.nivel || '');
+                const opts: Intl.CollatorOptions = { numeric: true, sensitivity: 'base' };
+                if (a.bodega !== b.bodega) return a.bodega.localeCompare(b.bodega, undefined, opts);
+                if (a.bloque !== b.bloque) return a.bloque.localeCompare(b.bloque, undefined, opts);
+                if (a.estante !== b.estante) return a.estante.localeCompare(b.estante, undefined, opts);
+                return (a.nivel || '').localeCompare(b.nivel || '', undefined, opts);
             });
 
             setItems(sortedItems);
@@ -208,6 +209,12 @@ export const useInventarioData = (addNotification: any) => {
         setColumnFilters(prev => ({ ...prev, [col]: values }));
     };
 
+    const hasActiveFilters = useMemo(() => 
+        Object.values(columnFilters).some(v => v && v.length > 0)
+    , [columnFilters]);
+
+    const clearAllFilters = () => setColumnFilters({});
+
     const stats = useMemo(() => {
         const total = items.length;
         const counted = items.filter(item => {
@@ -241,6 +248,8 @@ export const useInventarioData = (addNotification: any) => {
         columnFilters,
         getUniqueValues,
         handleColumnFilterChange,
+        hasActiveFilters,
+        clearAllFilters,
         stats
     };
 };

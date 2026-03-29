@@ -161,7 +161,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           multiple={multiple}
           autoComplete={autoComplete}
           inputMode={inputMode}
-          className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]}`}
+          className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]} ${className}`}
           style={style}
         />
 
