@@ -264,7 +264,7 @@ export const useInventarioAdmin = () => {
                 if (a.bloque !== b.bloque) return a.bloque.localeCompare(b.bloque, undefined, { numeric: true });
                 if (a.estante !== b.estante) return a.estante.localeCompare(b.estante, undefined, { numeric: true });
                 if (a.nivel !== b.nivel) return (a.nivel || '').localeCompare(b.nivel || '', undefined, { numeric: true });
-                return (a.codigo || '').localeCompare(b.codigo || '');
+                return (a.codigo || '').localeCompare(b.codigo || '', undefined, { numeric: true });
             });
             
             setInventoryList(data);
@@ -386,7 +386,7 @@ export const useInventarioAdmin = () => {
                     if ((a.bloque || '') !== (b.bloque || '')) return (a.bloque || '').localeCompare(b.bloque || '', undefined, { numeric: true });
                     if ((a.estante || '') !== (b.estante || '')) return (a.estante || '').localeCompare(b.estante || '', undefined, { numeric: true });
                     if ((a.nivel || '') !== (b.nivel || '')) return (a.nivel || '').localeCompare(b.nivel || '', undefined, { numeric: true });
-                    return (a.codigo || '').localeCompare(b.codigo || '');
+                    return (a.codigo || '').localeCompare(b.codigo || '', undefined, { numeric: true });
                 });
 
             // Parejas únicas en esta bodega

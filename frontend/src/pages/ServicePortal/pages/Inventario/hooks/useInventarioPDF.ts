@@ -4,10 +4,13 @@ import autoTable from 'jspdf-autotable';
 interface InventarioPDFProps {
     filteredItems: any[];
     ronda: number;
+    numeroPareja?: number | null;
+    nombreCompanero?: string | null;
+    cedulaCompanero?: string | null;
     addNotification: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
 }
 
-export const useInventarioPDF = ({ filteredItems, ronda, addNotification }: InventarioPDFProps) => {
+export const useInventarioPDF = ({ filteredItems, ronda, addNotification, numeroPareja, nombreCompanero, cedulaCompanero }: InventarioPDFProps) => {
     
     const loadImage = (src: string): Promise<string> => {
         return new Promise((resolve, reject) => {
@@ -67,15 +70,23 @@ export const useInventarioPDF = ({ filteredItems, ronda, addNotification }: Inve
                 doc.setTextColor(120);
                 doc.text(`INVENTARIO 2026 | ${date} | ITEMS: ${filteredItems.length}`, marginX + 38, headerY + 8);
 
-                // 3. User Identity (Right-aligned info)
-                doc.setFontSize(8);
+                // 3. User Identity (Aligned Pair Layout)
+                doc.setFontSize(6);
                 doc.setFont('helvetica', 'bold');
-                doc.setTextColor(80, 80, 80);
-                doc.text(userNombre, pageWidth - marginX - 26, headerY + 4, { align: 'right' });
-                doc.setFontSize(6.5);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(150, 150, 150);
-                doc.text(`CC: ${userCedula}`, pageWidth - marginX - 26, headerY + 8, { align: 'right' });
+                doc.setTextColor(30, 30, 30);
+                
+                const rightX = pageWidth - marginX - 26;
+                const labelPareja = numeroPareja ? `PAREJA ${numeroPareja}: ` : 'OPERARIOS: ';
+                
+                // Línea 1: Usuario Actual
+                doc.text(`${labelPareja}${userCedula} ${userNombre}`, rightX, headerY + 4, { align: 'right' });
+                
+                // Línea 2: Compañero (si existe)
+                if (nombreCompanero) {
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(100);
+                    doc.text(`${cedulaCompanero || '---'} ${nombreCompanero.toUpperCase()}`, rightX, headerY + 8, { align: 'right' });
+                }
 
                 // 4. Ronda Pill (Far Right)
                 doc.setDrawColor(200);
@@ -130,7 +141,7 @@ export const useInventarioPDF = ({ filteredItems, ronda, addNotification }: Inve
                     8: { cellWidth: 35 }                    // OBSERVACIONES
                 },
                 margin: { top: headerY + 18, left: marginX, right: marginX, bottom: 12 },
-                didDrawPage: (data) => {
+                didDrawPage: () => {
                     // Dibujar el encabezado en cada página
                     drawHeader();
 

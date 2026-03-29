@@ -183,6 +183,15 @@ class ServicioInventario:
         # Obtener ronda_vista del primer registro de asignación
         ronda_vista = asignaciones[0].ronda_vista if asignaciones else 1
 
+        # Determinar el nombre y cédula del compañero dinámicamente
+        mi_asig = asignaciones[0]
+        if mi_asig.cedula and mi_asig.cedula.strip().lstrip('0') == cedula_norm:
+            companero_nom = mi_asig.nombre_companero
+            companero_ced = mi_asig.cedula_companero
+        else:
+            companero_nom = mi_asig.nombre
+            companero_ced = mi_asig.cedula
+
         return {
             "items_c1": [_to_dict(p) for p in items_c1_acum],
             "items_c2": [_to_dict(p) for p in items_c2_acum],
@@ -190,5 +199,7 @@ class ServicioInventario:
             "progreso_c2": progreso_c2,
             "ronda_vista": ronda_vista,
             "bodega": bodega_label,
-            "numero_pareja": mi_pareja_num
+            "numero_pareja": mi_pareja_num,
+            "nombre_companero": companero_nom,
+            "cedula_companero": companero_ced
         }

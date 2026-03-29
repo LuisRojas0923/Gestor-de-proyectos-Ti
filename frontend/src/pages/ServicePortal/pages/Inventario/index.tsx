@@ -1,5 +1,5 @@
 import React from 'react';
-import { Title, Text, Button, ProgressBar } from '../../../../components/atoms';
+import { Title, Text, Button, ProgressBar, Badge } from '../../../../components/atoms';
 import { ArrowLeft, Loader2, FileText, Save, FilterX, Lock } from 'lucide-react';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import { TableRow } from './components/TableRow';
@@ -33,10 +33,13 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
         handleColumnFilterChange,
         hasActiveFilters,
         clearAllFilters,
-        stats
+        stats,
+        numeroPareja,
+        nombreCompanero,
+        cedulaCompanero
     } = useInventarioData(addNotification);
 
-    const { handleGeneratePDF } = useInventarioPDF({ filteredItems, ronda, addNotification });
+    const { handleGeneratePDF } = useInventarioPDF({ filteredItems, ronda, addNotification, numeroPareja, nombreCompanero, cedulaCompanero });
 
     const userData = React.useMemo(() => {
         const raw = localStorage.getItem('user');
@@ -61,7 +64,14 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
 
                         {/* User identity */}
                         <div className="flex flex-col border-l border-neutral-200 dark:border-neutral-700 pl-3 ml-1">
-                            <Text variant="caption" weight="bold" className="text-[10px] leading-none text-neutral-800 dark:text-neutral-200">{userData.nombre}</Text>
+                            <div className="flex items-center gap-1.5 leading-none mb-0.5">
+                                <Text variant="caption" weight="bold" className="text-[10px] text-neutral-800 dark:text-neutral-200">{userData.nombre}</Text>
+                                {numeroPareja && (
+                                    <Badge size="sm" variant="primary" className="text-[7px] px-1 py-0 h-3 flex items-center bg-primary-500/10 text-primary-600 border border-primary-500/20 shadow-none">
+                                        P{numeroPareja}
+                                    </Badge>
+                                )}
+                            </div>
                             <Text variant="caption" className="text-[7px] text-neutral-500 uppercase font-black tracking-widest">{userData.cedula}</Text>
                         </div>
 

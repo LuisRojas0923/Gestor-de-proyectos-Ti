@@ -61,12 +61,11 @@ const CargaMasiva: React.FC<CargaMasivaProps> = ({
 
                 {/* Input: Selector de Archivos */}
                 <div className="relative flex-1 min-w-[160px] group/file">
-                    <Input
+                    <input
                         type="file"
                         accept=".xlsx,.xls"
-                        onChange={(e) => { if (e.target.files) { setFile(e.target.files[0]); setUploadResult(null); } }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        fullWidth
+                        onChange={(e) => { if (e.target.files?.[0]) { setFile(e.target.files[0]); setUploadResult(null); } }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                     />
                     <div className={`h-10 flex items-center gap-3 px-4 rounded-xl border border-dashed transition-all duration-300 ${file ? 'border-primary-500 bg-primary-500/5' : 'border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-primary-400'}`}>
                         <Icon name={FileUp} size="sm" className={file ? 'text-primary-500' : 'text-neutral-400'} />

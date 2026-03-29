@@ -37,12 +37,15 @@ class ServicioAnalyticsInventario:
         # Filtro robusto: NULL o cadena vacía
         pc1 = await count_by_filter(or_(ConteoInventario.user_c1.is_(None), ConteoInventario.user_c1 == ""))
         
-        # En Doble Conteo Ciego, C2 es sobre el total
-        pc2 = await count_by_filter(or_(ConteoInventario.user_c2.is_(None), ConteoInventario.user_c2 == ""))
+        # En Conteo Selectivo (Optimizado), C2 es solo sobre lo que falló en C1
+        pc2 = await count_by_filter(and_(
+            ConteoInventario.estado.in_(["RECONTEO", "DISCREPANTE", "UBICACIÓN ERRÓNEA"]),
+            or_(ConteoInventario.user_c2.is_(None), ConteoInventario.user_c2 == "")
+        ))
         
-        # C3 sí es solo sobre discrepancias que persisten tras C2
+        # C3 es sobre discrepancias que persisten tras C2 (C1 != C2)
         pc3 = await count_by_filter(and_(
-            ConteoInventario.estado == "RECONTEO", 
+            ConteoInventario.estado == "DISCREPANTE", 
             ConteoInventario.user_c2.is_not(None), 
             or_(ConteoInventario.user_c3.is_(None), ConteoInventario.user_c3 == "")
         ))
@@ -65,7 +68,8 @@ class ServicioAnalyticsInventario:
                 COUNT(*) AS total_items,
                 COUNT(*) FILTER (WHERE user_c1 IS NOT NULL) AS hechos_c1,
                 COUNT(*) FILTER (WHERE user_c2 IS NOT NULL) AS hechos_c2,
-                COUNT(*) FILTER (WHERE estado IN ('DISCREPANTE', 'RECONTEO', 'UBICACIÓN ERRÓNEA')) AS discrepancias
+                COUNT(*) FILTER (WHERE user_c2 IS NOT NULL OR estado IN ('DISCREPANTE', 'RECONTEO', 'UBICACIÓN ERRÓNEA')) AS obj_c2,
+                COUNT(*) FILTER (WHERE user_c3 IS NOT NULL OR estado IN ('DISCREPANTE')) AS obj_c3
             FROM conteoinventario
             WHERE (cantidad_sistema > 0 OR invporlegalizar > 0)
             GROUP BY TRIM(bodega)
@@ -73,7 +77,7 @@ class ServicioAnalyticsInventario:
         """)
         res_bodegas = await db.execute(stmt_bodegas)
         fetch_all = res_bodegas.all()
-        bodegas_stats = {r[0]: {"total": r[1], "h1": r[2], "h2": r[3], "discrepancias": r[4]} for r in fetch_all}
+        bodegas_stats = {r[0]: {"total": r[1], "h1": r[2], "h2": r[3], "obj2": r[4], "obj3": r[5]} for r in fetch_all}
 
         stmt_asig = select(AsignacionInventario)
         asignaciones = (await db.execute(stmt_asig)).scalars().all()
@@ -101,7 +105,8 @@ class ServicioAnalyticsInventario:
                 "hechos_c1": stats["h1"],
                 "p_c1": round((stats["h1"] / stats["total"] * 100), 1) if stats["total"] > 0 else 0,
                 "hechos_c2": stats["h2"],
-                "p_c2": round((stats["h2"] / stats["total"] * 100), 1) if stats["total"] > 0 else 0,
+                "total_c2": stats["obj2"],
+                "p_c2": round((stats["h2"] / stats["obj2"] * 100), 1) if stats["obj2"] > 0 else 100 if stats["h1"] > 0 else 0,
                 "cubiertos": stats["total"] if esta_cubierta else 0,
                 "porcentaje": 100.0 if esta_cubierta else 0.0,
                 "parejas": num_parejas,

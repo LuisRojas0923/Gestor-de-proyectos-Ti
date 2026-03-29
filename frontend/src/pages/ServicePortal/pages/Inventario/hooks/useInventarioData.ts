@@ -16,6 +16,9 @@ export const useInventarioData = (addNotification: any) => {
         const saved = localStorage.getItem('inventario_changes');
         return saved ? JSON.parse(saved) : {};
     });
+    const [numeroPareja, setNumeroPareja] = useState<number | null>(null);
+    const [nombreCompanero, setNombreCompanero] = useState<string | null>(null);
+    const [cedulaCompanero, setCedulaCompanero] = useState<string | null>(null);
     const [isSigning, setIsSigning] = useState(false);
     const [validationErrors, setValidationErrors] = useState<Set<number>>(new Set());
     
@@ -80,6 +83,9 @@ export const useInventarioData = (addNotification: any) => {
                 setDataC1(data.items_c1);
                 setDataC2(data.items_c2 || []);
                 setProgresoC1(data.progreso_c1 || 0);
+                setNumeroPareja(data.numero_pareja || null);
+                setNombreCompanero(data.nombre_companero || null);
+                setCedulaCompanero(data.cedula_companero || null);
                 
                 // La ronda se maneja localmente via localStorage para persistencia inmediata
                 // El backend se actualiza via useEffect cuando 'ronda' cambia para monitoreo administrativo
@@ -277,7 +283,10 @@ export const useInventarioData = (addNotification: any) => {
         handleColumnFilterChange,
         hasActiveFilters,
         clearAllFilters,
-        stats
+        stats,
+        numeroPareja,
+        nombreCompanero,
+        cedulaCompanero
     };
 };
 

@@ -232,7 +232,7 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
             if (a.bloque !== b.bloque) return a.bloque.localeCompare(b.bloque, undefined, { numeric: true });
             if (a.estante !== b.estante) return a.estante.localeCompare(b.estante, undefined, { numeric: true });
             if (a.nivel !== b.nivel) return (a.nivel || '').localeCompare(b.nivel || '', undefined, { numeric: true });
-            return (a.codigo || '').localeCompare(b.codigo || '');
+            return (a.codigo || '').localeCompare(b.codigo || '', undefined, { numeric: true });
         });
     }, [inventoryList, deferredFilters, deferredSearch]);
 
@@ -356,7 +356,7 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center justify-between">
                                     <Text className="text-[9px] font-black opacity-60">CONTEO 2</Text>
-                                    <Text className={`text-[9px] font-black ${b.p_c2 === 100 ? 'text-green-500' : 'text-amber-600'}`}>{b.hechos_c2} / {b.total} ({b.p_c2}%)</Text>
+                                    <Text className={`text-[9px] font-black ${b.p_c2 === 100 ? 'text-green-500' : 'text-amber-600'}`}>{b.hechos_c2} / {b.total_c2} ({b.p_c2}%)</Text>
                                 </div>
                                 <div className="w-full bg-neutral-200 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden shadow-inner">
                                     <div className={`h-full transition-all duration-1000 ${b.p_c2 === 100 ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${b.p_c2}%` }} />
