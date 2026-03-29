@@ -12,7 +12,7 @@ class ConteoInventario(SQLModel, table=True):
     bloque: str = Field(max_length=50)
     estante: str = Field(max_length=50)
     nivel: str = Field(max_length=50)
-    codigo: str = Field(max_length=100)
+    codigo: Optional[str] = Field(default=None, max_length=100)
     descripcion: str = Field(max_length=255)
     unidad: str = Field(max_length=20)
     
@@ -35,7 +35,7 @@ class ConteoInventario(SQLModel, table=True):
     obs_c4: Optional[str] = Field(default=None)
     user_c4: Optional[str] = Field(default=None)
 
-    conteo: str = Field(max_length=100) # Identificador de la toma física (ej: "Sede_Norte")
+    conteo: Optional[str] = Field(default=None, max_length=100) # Identificador de la toma física (ej: "Sede_Norte")
     
     # Control de Estado e Inteligencia
     estado: str = Field(default="PENDIENTE", max_length=20) # PENDIENTE, CONCILIADO, DISCREPANTE

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS ConteoInventario (
     bloque VARCHAR(50),
     estante VARCHAR(50),
     nivel VARCHAR(50),
-    codigo VARCHAR(100) NOT NULL,
+    codigo VARCHAR(100), -- SKU (Opcional, solo bodega es mandatoria)
     descripcion TEXT,
     unidad VARCHAR(20),
     
@@ -41,15 +41,14 @@ CREATE TABLE IF NOT EXISTS ConteoInventario (
     obs_c4 TEXT,
     user_c4 VARCHAR(50),
 
-    conteo VARCHAR(100) NOT NULL, -- Ej: 'Inventario_Anual_2026'
+    conteo VARCHAR(100), -- Nombre del evento (Opcional)
     estado VARCHAR(30) DEFAULT 'PENDIENTE', -- PENDIENTE, CONCILIADO, DISCREPANTE, RECONTEO, UBICACIÓN ERRÓNEA
     diferencia FLOAT DEFAULT 0, -- Diferencia en esta ubicación específica
     diferencia_total FLOAT DEFAULT 0, -- Diferencia Global del SKU (Multi-bodega)
     
-    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Unicidad Técnica: Evita cargar duplicados del mismo SKU en la misma ubicación para el mismo conteo
-    CONSTRAINT unique_sku_location UNIQUE (codigo, bodega, bloque, estante, nivel, conteo)
+    -- Gestión de Ubicación: Solo la bodega es obligatoria. Bloque, estante y nivel son "libres" (opcionales).
+    -- Se permite explícitamente repetir SKU en la misma ubicación según solicitud.
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Índices Críticos para Rendimiento en Dashboard y Virtualización
@@ -58,6 +57,9 @@ CREATE INDEX IF NOT EXISTS idx_conteo_geografico ON ConteoInventario (bodega, bl
 CREATE INDEX IF NOT EXISTS idx_conteo_estado ON ConteoInventario (estado);
 CREATE INDEX IF NOT EXISTS idx_conteo_user_c1 ON ConteoInventario (user_c1) WHERE user_c1 IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_conteo_user_c2 ON ConteoInventario (user_c2) WHERE user_c2 IS NOT NULL;
+
+-- Índice para búsquedas rápidas por identidad completa (permite repeticiones)
+CREATE INDEX IF NOT EXISTS idx_conteo_identidad_full ON ConteoInventario (codigo, bodega, bloque, estante, nivel, conteo);
 
 -- Tabla de Asignación de Personal
 -- Crucial para el algoritmo de división de carga (parejas)
@@ -72,7 +74,8 @@ CREATE TABLE IF NOT EXISTS AsignacionInventario (
     cedula_companero VARCHAR(50),
     nombre_companero VARCHAR(255),
     numero_pareja INTEGER NOT NULL,
-    ronda_vista INTEGER DEFAULT 1, -- Controla la visualización en el APP del operario (C1 o C2)
+    -- Campos de ubicación libres (opcionales), solo bodega es requerida
+    ronda_vista INTEGER DEFAULT 1, 
     cargo VARCHAR(100),
     creado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

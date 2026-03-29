@@ -84,7 +84,7 @@ class ServicioExcelInventario:
                         ConteoInventario.estante == estante_val,
                         ConteoInventario.nivel == nivel_val
                     ))
-                    item_existente = (await db.execute(stmt)).scalar_one_or_none()
+                    item_existente = (await db.execute(stmt)).scalars().first()
                     
                     if item_existente:
                         item_existente.cantidad_sistema = cant_sist_val
@@ -212,7 +212,7 @@ class ServicioExcelInventario:
                 stmt = select(ConteoInventario).where(and_(
                     ConteoInventario.b_siigo == b_siigo_val, ConteoInventario.codigo == codigo_val
                 ))
-                item = (await db.execute(stmt)).scalar_one_or_none()
+                item = (await db.execute(stmt)).scalars().first()
                 if item:
                     setattr(item, f"cant_c{ronda}", cantidad_val)
                     teorico = (item.cantidad_sistema or 0.0) + (item.invporlegalizar or 0.0)
