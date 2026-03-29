@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios, { AxiosProgressEvent } from 'axios';
 import * as XLSX from 'xlsx';
 import { API_CONFIG } from '../../../config/api';
@@ -223,25 +223,25 @@ export const useInventarioAdmin = () => {
         }
     };
 
-    const fetchStats = async () => {
+    const fetchStats = useCallback(async () => {
         try {
             const response = await axios.get<any>(`${API_CONFIG.BASE_URL}/inventario/stats`, { headers });
             setStats(response.data);
         } catch (error) {
             console.error("Error fetching stats", error);
         }
-    };
+    }, [headers]);
 
-    const fetchCoverage = async () => {
+    const fetchCoverage = useCallback(async () => {
         try {
             const response = await axios.get<any>(`${API_CONFIG.BASE_URL}/inventario/cobertura-asignacion`, { headers });
             setCoverage(response.data);
         } catch (error) {
             console.error("Error fetching coverage", error);
         }
-    }
+    }, [headers]);
 
-    const fetchInventoryList = async () => {
+    const fetchInventoryList = useCallback(async () => {
         setIsLoadingData(true);
         try {
             const params = { 
@@ -273,9 +273,9 @@ export const useInventarioAdmin = () => {
         } finally {
             setIsLoadingData(false);
         }
-    };
+    }, [headers, filters]);
 
-    const fetchAsignaciones = async () => {
+    const fetchAsignaciones = useCallback(async () => {
         try {
             const response = await axios.get(`${API_CONFIG.BASE_URL}/inventario/asignaciones`, { headers });
             setAsignaciones(response.data as any[]);
@@ -283,16 +283,16 @@ export const useInventarioAdmin = () => {
         } catch (error) {
             console.error("Error fetching asignaciones", error);
         }
-    };
+    }, [headers, fetchCoverage]);
 
-    const fetchAsignacionesResumen = async () => {
+    const fetchAsignacionesResumen = useCallback(async () => {
         try {
             const response = await axios.get(`${API_CONFIG.BASE_URL}/inventario/asignaciones/resumen`, { headers });
             setAsignacionesResumen(response.data as any[]);
         } catch (error) {
             console.error("Error fetching asignaciones resumen", error);
         }
-    };
+    }, [headers]);
 
     const handleSaveAsig = async () => {
         if (!newAsig.cedula || !newAsig.bodega) {
@@ -551,6 +551,7 @@ export const useInventarioAdmin = () => {
         fetchStats,
         fetchInventoryList,
         fetchAsignacionesResumen,
+        fetchCoverage,
         handleGeneratePlanilla0,
         // Helpers
         getBodegaOptions,

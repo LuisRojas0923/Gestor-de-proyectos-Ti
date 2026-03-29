@@ -20,7 +20,7 @@ export const InventarioAdmin: React.FC = () => {
         getBodegaOptions,
         uploadProgress, activeTab, setActiveTab, handleGeneratePlanilla0, buscarEmpleadoERP,
         handleBulkSaveAsignaciones, exportAsignacionesExcel,
-        asignacionesResumen, fetchAsignacionesResumen
+        asignacionesResumen, fetchAsignacionesResumen, fetchCoverage
     } = useInventarioAdmin();
 
     // Autosincronización cada 1 minuto
@@ -29,9 +29,10 @@ export const InventarioAdmin: React.FC = () => {
             fetchStats();
             fetchInventoryList();
             fetchAsignacionesResumen();
+            fetchCoverage();
         }, 60000);
         return () => clearInterval(interval);
-    }, [fetchStats, fetchInventoryList, fetchAsignacionesResumen]);
+    }, [fetchStats, fetchInventoryList, fetchAsignacionesResumen, fetchCoverage]);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 px-2 pb-10">
@@ -47,7 +48,12 @@ export const InventarioAdmin: React.FC = () => {
                         {/* Botón de Sincronización Manual Reubicado */}
                         <Button
                             variant="ghost"
-                            onClick={() => { fetchStats(); fetchInventoryList(); }}
+                            onClick={() => { 
+                                fetchStats(); 
+                                fetchInventoryList(); 
+                                fetchAsignacionesResumen(); 
+                                fetchCoverage(); 
+                            }}
                             title="Sincronizar Datos"
                             className="!text-[var(--color-text-secondary)] hover:!text-[var(--color-text-primary)] !p-2.5 !rounded-xl transition-colors"
                         >

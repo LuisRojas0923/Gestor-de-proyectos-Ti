@@ -129,3 +129,21 @@ CREATE TABLE IF NOT EXISTS TransitoInventario (
 );
 
 CREATE INDEX IF NOT EXISTS idx_transito_sku ON TransitoInventario (sku);
+
+
+
+
+
+
+-- LIMPIEZA TOTAL DE TABLAS DE INVENTARIO 2026
+-- ADVERTENCIA: Esto borrará todos los datos de las tablas mencionadas.
+
+TRUNCATE TABLE 
+    conteoinventario, 
+    asignacioninventario, 
+    transitoinventario, 
+    configuracioninventario, 
+    conteohistorico 
+RESTART IDENTITY CASCADE;
+
+
