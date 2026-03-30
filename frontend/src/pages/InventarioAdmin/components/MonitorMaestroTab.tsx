@@ -309,7 +309,7 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
                     icon={Search}
                 />
                 <GlobalProgressBar
-                    label="Efectividad Consiliación"
+                    label="Efectividad Conciliación"
                     current={stats.conciliados}
                     total={Number(stats.total) || 0}
                     color="text-emerald-600"

@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS ConteoInventario (
     diferencia_total FLOAT DEFAULT 0, -- Diferencia Global del SKU (Multi-bodega)
     
     -- Gestión de Ubicación: Solo la bodega es obligatoria. Bloque, estante y nivel son "libres" (opcionales).
-    -- Se permite explícitamente repetir SKU en la misma ubicación según solicitud.
+    -- RESTRICTIVO: No se permite repetir SKU en la misma ubicación (Garantiza integridad).
     fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -59,7 +59,8 @@ CREATE INDEX IF NOT EXISTS idx_conteo_user_c1 ON ConteoInventario (user_c1) WHER
 CREATE INDEX IF NOT EXISTS idx_conteo_user_c2 ON ConteoInventario (user_c2) WHERE user_c2 IS NOT NULL;
 
 -- Índice para búsquedas rápidas por identidad completa (permite repeticiones)
-CREATE INDEX IF NOT EXISTS idx_conteo_identidad_full ON ConteoInventario (codigo, bodega, bloque, estante, nivel, conteo);
+-- Índice único para prevenir duplicados teóricos (Postgres 15+ maneja NULLS NOT DISTINCT)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_conteo_identidad_full ON ConteoInventario (codigo, bodega, bloque, estante, nivel, conteo) NULLS NOT DISTINCT;
 
 -- Tabla de Asignación de Personal
 -- Crucial para el algoritmo de división de carga (parejas)
