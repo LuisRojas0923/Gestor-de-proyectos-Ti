@@ -344,7 +344,7 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
                             {/* C1 PROGRESS ROW */}
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center justify-between">
-                                    <Text className="text-[9px] font-black opacity-60">CONTEO 1</Text>
+                                    <Text className="text-[9px] font-black opacity-60">CONTEO 3</Text>
                                     <Text className={`text-[9px] font-black ${b.p_c1 === 100 ? 'text-green-500' : 'text-primary-600'}`}>{b.hechos_c1} / {b.total} ({b.p_c1}%)</Text>
                                 </div>
                                 <div className="w-full bg-neutral-200 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden shadow-inner">
@@ -355,7 +355,7 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
                             {/* C2 PROGRESS ROW */}
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center justify-between">
-                                    <Text className="text-[9px] font-black opacity-60">CONTEO 2</Text>
+                                    <Text className="text-[9px] font-black opacity-60">CONTEO 4</Text>
                                     <Text className={`text-[9px] font-black ${b.p_c2 === 100 ? 'text-green-500' : 'text-amber-600'}`}>{b.hechos_c2} / {b.total_c2} ({b.p_c2}%)</Text>
                                 </div>
                                 <div className="w-full bg-neutral-200 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden shadow-inner">
