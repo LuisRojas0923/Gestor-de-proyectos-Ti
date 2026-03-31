@@ -51,7 +51,7 @@ class ServicioExcelInventario:
         db: AsyncSession,
         limpiar_previo: bool = False
     ) -> Dict[str, Any]:
-        """Procesa un archivo Excel y carga los registros en inventario_conteo."""
+        """Procesa un archivo Excel y agrupa los registros antes de insertarlos en inventario_conteo para evitar violaciones de unicidad."""
         wb = openpyxl.load_workbook(BytesIO(file_content), data_only=True)
         sheet = wb.active
         
@@ -61,6 +61,9 @@ class ServicioExcelInventario:
         if limpiar_previo:
             await ServicioExcelInventario.crear_snapshot(db)
             await db.execute(text("TRUNCATE TABLE conteoinventario RESTART IDENTITY CASCADE"))
+
+        # 1. Agrupación en memoria para consolidar productos en igual ubicación
+        productos_agrupados = {}
 
         for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
             if not any(row): 
@@ -75,7 +78,33 @@ class ServicioExcelInventario:
                 descripcion_val = str(row[6]).strip() if row[6] is not None else ""
                 cant_sist_val = float(row[8]) if row[8] is not None else 0.0
                 legalizar_val = float(row[9]) if len(row) > 9 and row[9] is not None else 0.0
+                b_siigo_val = int(row[0]) if row[0] is not None and str(row[0]).isdigit() else None
+                unidad_val = str(row[7]) if row[7] is not None else ""
 
+                llave = (bodega_val, bloque_val, estante_val, nivel_val, codigo_val)
+                if llave in productos_agrupados:
+                    productos_agrupados[llave]["cantidad_sistema"] += cant_sist_val
+                    productos_agrupados[llave]["invporlegalizar"] += legalizar_val
+                else:
+                    productos_agrupados[llave] = {
+                        "b_siigo": b_siigo_val,
+                        "bodega": bodega_val,
+                        "bloque": bloque_val,
+                        "estante": estante_val,
+                        "nivel": nivel_val,
+                        "codigo": codigo_val,
+                        "descripcion": descripcion_val,
+                        "unidad": unidad_val,
+                        "cantidad_sistema": cant_sist_val,
+                        "invporlegalizar": legalizar_val,
+                    }
+            except Exception as e:
+                errores.append(f"Fila {row_idx} al agrupar: {str(e)}")
+        
+        # 2. Persistencia en Base de Datos de los elementos agrupados
+        for llave, item in productos_agrupados.items():
+            bodega_val, bloque_val, estante_val, nivel_val, codigo_val = llave
+            try:
                 if not limpiar_previo:
                     stmt = select(ConteoInventario).where(and_(
                         ConteoInventario.codigo == codigo_val,
@@ -87,34 +116,37 @@ class ServicioExcelInventario:
                     item_existente = (await db.execute(stmt)).scalars().first()
                     
                     if item_existente:
-                        item_existente.cantidad_sistema = cant_sist_val
-                        item_existente.invporlegalizar = legalizar_val
-                        cant_f = cant_sist_val + legalizar_val
+                        # Asigna lo que viene agrupado total de este excel
+                        item_existente.cantidad_sistema = item["cantidad_sistema"]
+                        item_existente.invporlegalizar = item["invporlegalizar"]
+                        cant_f = item["cantidad_sistema"] + item["invporlegalizar"]
                         item_existente.cantidad_final = cant_f
                         if item_existente.cant_c1 is None and item_existente.cant_c2 is None:
                             item_existente.diferencia_total = -cant_f
                             
                         item_existente.conteo = nombre_conteo
-                        item_existente.descripcion = descripcion_val
-                        item_existente.unidad = str(row[7]) if row[7] is not None else ""
+                        item_existente.descripcion = item["descripcion"]
+                        item_existente.unidad = item["unidad"]
                         if item_existente.estado == "CONCILIADO":
                             item_existente.estado = "PENDIENTE"
                         registros_creados += 1
                         continue
 
+                # Nuevo registro
                 conteo = ConteoInventario(
-                    b_siigo=int(row[0]) if row[0] is not None and str(row[0]).isdigit() else None,
+                    b_siigo=item["b_siigo"],
                     bodega=bodega_val, bloque=bloque_val, estante=estante_val, nivel=nivel_val,
-                    codigo=codigo_val, descripcion=descripcion_val, unidad=str(row[7]) if row[7] is not None else "",
-                    cantidad_sistema=cant_sist_val, invporlegalizar=legalizar_val,
-                    cantidad_final=cant_sist_val + legalizar_val, diferencia_total=-(cant_sist_val + legalizar_val),
+                    codigo=codigo_val, descripcion=item["descripcion"], unidad=item["unidad"],
+                    cantidad_sistema=item["cantidad_sistema"], invporlegalizar=item["invporlegalizar"],
+                    cantidad_final=item["cantidad_sistema"] + item["invporlegalizar"], 
+                    diferencia_total=-(item["cantidad_sistema"] + item["invporlegalizar"]),
                     conteo=nombre_conteo
                 )
                 db.add(conteo)
                 registros_creados += 1
             except Exception as e:
-                errores.append(f"Fila {row_idx}: {str(e)}")
-        
+                errores.append(f"Elemento {codigo_val} en bdg {bodega_val}: {str(e)}")
+
         if registros_creados > 0:
             await db.commit()
             
