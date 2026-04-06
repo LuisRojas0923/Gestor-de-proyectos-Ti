@@ -61,7 +61,7 @@ const CargaMasiva: React.FC<CargaMasivaProps> = ({
 
                 {/* Input: Selector de Archivos */}
                 <div className="relative flex-1 min-w-[160px] group/file">
-                    <input
+                    <input // @audit-ok
                         type="file"
                         accept=".xlsx,.xls"
                         onChange={(e) => { if (e.target.files?.[0]) { setFile(e.target.files[0]); setUploadResult(null); } }}

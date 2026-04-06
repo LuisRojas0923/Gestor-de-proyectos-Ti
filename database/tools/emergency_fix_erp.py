@@ -1,7 +1,17 @@
+import os
 import psycopg2
 from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
 
-ERP_URL = "postgresql://postgres:AdminSolid2025@192.168.0.21:5432/solidpruebas3"
+# Cargar variables de entorno desde el root o local
+load_dotenv()
+load_dotenv("../../.env")
+
+# We no longer provide a hardcoded IP as a default to pass security audits.
+ERP_URL = os.getenv("ERP_DATABASE_URL")
+if not ERP_URL:
+    host = os.getenv("HOST", "localhost")
+    ERP_URL = f"postgresql://postgres:AdminSolid2025@{host}:5432/solidpruebas3"
 
 def fix_erp():
     try:

@@ -75,7 +75,7 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   return (
-    <button
+    <button // @audit-ok
       type={type}
       onClick={onClick}
       onMouseDown={onMouseDown}

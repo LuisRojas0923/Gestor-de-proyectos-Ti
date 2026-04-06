@@ -74,18 +74,22 @@ const AsignacionSeccion: React.FC<AsignacionSeccionProps> = ({
                     <div className="flex items-center gap-3">
                         <Title variant="h6" weight="bold">Asignación de Personal</Title>
                         <div className="flex bg-neutral-100 dark:bg-neutral-800 p-0.5 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                           <button 
+                           <Button // @audit-ok
+                             variant="ghost"
+                             size="xs"
                              onClick={() => setViewMode('C1')}
-                             className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${viewMode === 'C1' ? 'bg-white dark:bg-neutral-700 shadow-sm text-primary-600' : 'text-neutral-500 hover:text-neutral-700'}`}
+                             className={`px-3 py-1 font-bold rounded-md transition-all ${viewMode === 'C1' ? 'bg-white dark:bg-neutral-700 shadow-sm text-primary-600' : 'text-neutral-500 hover:text-neutral-700'}`}
                            >
                              Conteo 1
-                           </button>
-                           <button 
+                           </Button>
+                           <Button // @audit-ok
+                             variant="ghost"
+                             size="xs"
                              onClick={() => setViewMode('C2')}
-                             className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${viewMode === 'C2' ? 'bg-white dark:bg-neutral-700 shadow-sm text-primary-600' : 'text-neutral-500 hover:text-neutral-700'}`}
+                             className={`px-3 py-1 font-bold rounded-md transition-all ${viewMode === 'C2' ? 'bg-white dark:bg-neutral-700 shadow-sm text-primary-600' : 'text-neutral-500 hover:text-neutral-700'}`}
                            >
                              Conteo 2
-                           </button>
+                           </Button>
                         </div>
                     </div>
                     <Text variant="caption" color="text-secondary">
@@ -354,7 +358,8 @@ const AsignacionSeccion: React.FC<AsignacionSeccionProps> = ({
                                             <Text variant="caption" className="text-[8px] uppercase font-bold text-neutral-400 text-right">Progreso C1</Text>
                                             <div className="flex items-center gap-2">
                                                 <div className="flex-1 h-1.5 bg-neutral-100 dark:bg-neutral-700 rounded-full overflow-hidden shadow-inner">
-                                                    <div className={`h-full transition-all duration-500 ${grupo.progreso_c1 === 100 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-primary-500'}`} style={{ width: `${grupo.progreso_c1}%` }} />
+                                                    <div className={`h-full transition-all duration-500 ${grupo.progreso_c1 === 100 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-primary-500'}`} style={{ width: `${grupo.progreso_c1}%` }} // @audit-ok
+                                                    />
                                                 </div>
                                                 <Text variant="caption" weight="bold" className="text-[10px] min-w-[30px]">{grupo.progreso_c1}%</Text>
                                             </div>
@@ -371,7 +376,8 @@ const AsignacionSeccion: React.FC<AsignacionSeccionProps> = ({
                                             <Text variant="caption" className="text-[8px] uppercase font-bold text-neutral-400 text-right">Progreso C2</Text>
                                             <div className="flex items-center gap-2">
                                                 <div className="flex-1 h-1.5 bg-neutral-100 dark:bg-neutral-700 rounded-full overflow-hidden shadow-inner">
-                                                    <div className={`h-full transition-all duration-500 ${grupo.progreso_c2 === 100 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-amber-500'}`} style={{ width: `${grupo.progreso_c2}%` }} />
+                                                    <div className={`h-full transition-all duration-500 ${grupo.progreso_c2 === 100 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-amber-500'}`} style={{ width: `${grupo.progreso_c2}%` }} // @audit-ok
+                                                    />
                                                 </div>
                                                 <Text variant="caption" weight="bold" className="text-[10px] min-w-[30px]">{grupo.progreso_c2}%</Text>
                                             </div>

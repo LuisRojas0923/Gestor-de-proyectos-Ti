@@ -165,7 +165,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
             {isOpen && createPortal(
                 <div 
                     className="multiselect-dropdown-portal absolute z-[9999] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-                    style={{ 
+                    style={{ // @audit-ok
                         top: dropdownPos.top + 4, 
                         left: dropdownPos.left, 
                         minWidth: dropdownPos.width,

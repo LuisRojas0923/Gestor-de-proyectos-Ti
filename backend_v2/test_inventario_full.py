@@ -35,23 +35,27 @@ async def test_implementation():
     print("\nPaso 2: Probando carga masiva desde Excel...")
     excel_content = await generate_test_excel()
     
-    async with AsyncSessionLocal() as db:
-        resultado = await ServicioInventario.importar_conteo_excel(
-            excel_content, 
-            "CONTEO_PILOTO_2026", 
-            db
-        )
-        print(f"Resultado de carga: {resultado}")
-        
-        # 3. Verificar conteo en BD
-        print("\nPaso 3: Verificando registros en PostgreSQL...")
-        stmt = select(ConteoInventario).where(ConteoInventario.conteo == "CONTEO_PILOTO_2026")
-        result = await db.execute(stmt)
-        items = result.scalars().all()
-        
-        print(f"Total registros encontrados: {len(items)}")
-        for i in items:
-            print(f" - [{i.codigo}] {i.descripcion} | Cant: {i.cantidad} | Ubic: {i.bodega}-{i.bloque}-{i.estante}")
+    try:
+        async with AsyncSessionLocal() as db:
+            resultado = await ServicioInventario.importar_conteo_excel(
+                excel_content, 
+                "CONTEO_PILOTO_2026", 
+                db
+            )
+            print(f"Resultado de carga: {resultado}")
+            
+            # 3. Verificar conteo en BD
+            print("\nPaso 3: Verificando registros en PostgreSQL...")
+            stmt = select(ConteoInventario).where(ConteoInventario.conteo == "CONTEO_PILOTO_2026")
+            result = await db.execute(stmt)
+            items = result.scalars().all()
+            
+            print(f"Total registros encontrados: {len(items)}")
+            for i in items:
+                print(f" - [{i.codigo}] {i.descripcion} | Cant: {i.cantidad} | Ubic: {i.bodega}-{i.bloque}-{i.estante}")
+    except Exception as e:
+        print(f"Error en paso 2/3: {e}")
+        await db.rollback()
 
     print("\n--- Verificación Completada con Éxito ---")
 

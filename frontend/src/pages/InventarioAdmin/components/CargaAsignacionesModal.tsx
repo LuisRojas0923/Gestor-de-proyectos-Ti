@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Modal from '../../../components/molecules/Modal';
-import { Title, Text, Button, Textarea, Badge } from '../../../components/atoms';
+import { Callout } from '../../../components/molecules';
+import { Text, Button, Textarea, Badge } from '../../../components/atoms';
 import { ClipboardPaste, Play, CheckCircle2, AlertTriangle, Users } from 'lucide-react';
 
 export interface BaseAsignacion {
@@ -148,9 +149,9 @@ const CargaAsignacionesModal: React.FC<CargaAsignacionesModalProps> = ({ isOpen,
             <div className="space-y-6 animate-in fade-in">
                 {!isSimulated ? (
                     <>
-                        <div className="bg-primary-50 dark:bg-primary-500/10 p-4 rounded-2xl border border-primary-100 dark:border-primary-500/20 text-sm text-primary-700 dark:text-primary-300">
-                            <strong>Instrucciones:</strong> Copia todas las celdas de tu archivo Excel (incluyendo los títulos si es posible) y pégalas en el cuadro de abajo. El sistema agrupará a los operarios por el <b>Nro Pareja</b> y dividirá los ítems equitativamente por bodega.
-                        </div>
+                        <Callout title="Instrucciones:" variant="info">
+                            Copia todas las celdas de tu archivo Excel (incluyendo los títulos si es posible) y pégalas en el cuadro de abajo. El sistema agrupará a los operarios por el <Text weight="bold" as="span" color="inherit">Nro Pareja</Text> y dividirá los ítems equitativamente por bodega.
+                        </Callout>
                         
                         <div className="space-y-2">
                             <Text variant="caption" weight="bold" className="uppercase text-neutral-500">Pegar datos de Excel</Text>

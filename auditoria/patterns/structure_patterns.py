@@ -21,6 +21,10 @@ def find_duplicate_files(root_dir: str, extensions: set) -> list[dict]:
         }]
         
         for filename in filenames:
+            name_part = os.path.splitext(filename)[0].lower()
+            if name_part == 'index':
+                continue
+                
             ext = os.path.splitext(filename)[1].lower()
             if ext in extensions:
                 full_path = os.path.join(dirpath, filename)

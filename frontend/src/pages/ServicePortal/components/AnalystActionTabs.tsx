@@ -375,5 +375,3 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
 };
 
 export default AnalystActionTabs;
-
-

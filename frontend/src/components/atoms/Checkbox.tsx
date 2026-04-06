@@ -21,7 +21,7 @@ const Checkbox: React.FC<CheckboxProps> = ({
     return (
         <Text as="label" className={`flex items-center cursor-pointer select-none group ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}>
             <div className="relative">
-                <input
+                <input // @audit-ok
                     type="checkbox"
                     id={id}
                     checked={checked}

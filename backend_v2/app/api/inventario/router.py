@@ -375,11 +375,19 @@ async def cargar_transito(
     file: UploadFile = File(...), db: AsyncSession = Depends(obtener_db)
 ) -> Dict[str, Any]:
     """Carga masiva de mercancía en tránsito (InvPorLegalizar - Modelo B)"""
-    if not file.filename.endswith((".xlsx", ".xls")):
-        raise HTTPException(status_code=400, detail="El archivo debe ser un Excel")
+    try:
+        if not file.filename.endswith((".xlsx", ".xls")):
+            raise HTTPException(status_code=400, detail="El archivo debe ser un Excel")
 
-    content = await file.read()
-    return await ServicioExcelInventario.importar_transito_excel(content, db)
+        content = await file.read()
+        return await ServicioExcelInventario.importar_transito_excel(content, db)
+    except SQLAlchemyError as e:
+        await db.rollback()
+        print(f"Error DB en cargar_transito: {e}")
+        raise HTTPException(status_code=503, detail="Error de base de datos durante la carga de tránsito")
+    except Exception as e:
+        print(f"Error inesperado en cargar_transito: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/cargar-legacy")
@@ -389,14 +397,22 @@ async def cargar_legacy(
     db: AsyncSession = Depends(obtener_db),
 ) -> Dict[str, Any]:
     """Carga masiva de resultados de conteo (Legacy) para validación histórica."""
-    if not file.filename.endswith((".xlsx", ".xls")):
-        raise HTTPException(status_code=400, detail="El archivo debe ser un Excel")
+    try:
+        if not file.filename.endswith((".xlsx", ".xls")):
+            raise HTTPException(status_code=400, detail="El archivo debe ser un Excel")
 
-    if ronda not in [1, 2, 3]:
-        raise HTTPException(status_code=400, detail="La ronda debe ser 1, 2 o 3")
+        if ronda not in [1, 2, 3]:
+            raise HTTPException(status_code=400, detail="La ronda debe ser 1, 2 o 3")
 
-    content = await file.read()
-    return await ServicioExcelInventario.importar_legacy_excel(content, ronda, db)
+        content = await file.read()
+        return await ServicioExcelInventario.importar_legacy_excel(content, ronda, db)
+    except SQLAlchemyError as e:
+        await db.rollback()
+        print(f"Error DB en cargar_legacy: {e}")
+        raise HTTPException(status_code=503, detail="Error de base de datos durante la carga legacy")
+    except Exception as e:
+        print(f"Error inesperado en cargar_legacy: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.patch("/asignar/habilitar-c2/{id}")

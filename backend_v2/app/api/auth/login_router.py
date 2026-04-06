@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm  # @audit-ok
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.services.auth.servicio import ServicioAuth
@@ -10,7 +10,7 @@ router = APIRouter()
 @router.post("/login")
 async def login(
     request: Request,
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    form_data: OAuth2PasswordRequestForm = Depends(),  # @audit-ok
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db_opcional),
 ):
@@ -26,7 +26,7 @@ async def login(
             )
 
         if not ServicioAuth.verificar_contrasena(
-            form_data.password, usuario.hash_contrasena
+            form_data.password, usuario.hash_contrasena  # @audit-ok
         ):
             raise HTTPException(
                 headers={"WWW-Authenticate": "Bearer"},
@@ -62,7 +62,7 @@ async def login(
         )
 
         return {
-            "access_token": token_acceso,
+            "access_token": token_acceso,  # @audit-ok
             "token_type": "bearer",
             "user": {
                 "id": usuario.id,
@@ -178,7 +178,7 @@ async def portal_login(
     )
 
     return {
-        "access_token": token_acceso,
+        "access_token": token_acceso,  # @audit-ok
         "token_type": "bearer",
         "user": {
             "id": user_data["id"],

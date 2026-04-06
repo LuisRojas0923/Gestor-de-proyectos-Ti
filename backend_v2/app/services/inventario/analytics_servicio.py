@@ -245,4 +245,3 @@ class ServicioAnalyticsInventario:
             except (ValueError, TypeError):
                 return 0
         return sorted(grouped.values(), key=lambda x: (x['bodega'], _safe_pareja(x['numero_pareja'])))
-

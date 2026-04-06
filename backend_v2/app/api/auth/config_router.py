@@ -123,26 +123,24 @@ async def crear_modulo_sistema(
     if not modulo_id:
         raise HTTPException(status_code=400, detail="ID de módulo requerido")
 
-    # Verificar si ya existe
-    existe = await db.get(ModuloSistema, modulo_id)
-    if existe:
-        raise HTTPException(
-            status_code=400, detail="El ID del módulo ya está registrado"
+    try:
+        nuevo_modulo = ModuloSistema(
+            id=modulo_id,
+            nombre=payload.get("nombre", modulo_id.title()),
+            categoria=payload.get("categoria", "otros"),
+            descripcion=payload.get("descripcion"),
+            esta_activo=payload.get("esta_activo", True),
+            es_critico=payload.get("es_critico", False),
         )
 
-    nuevo_modulo = ModuloSistema(
-        id=modulo_id,
-        nombre=payload.get("nombre", modulo_id.title()),
-        categoria=payload.get("categoria", "otros"),
-        descripcion=payload.get("descripcion"),
-        esta_activo=payload.get("esta_activo", True),
-        es_critico=payload.get("es_critico", False),
-    )
-
-    db.add(nuevo_modulo)
-    await db.commit()
-    await db.refresh(nuevo_modulo)
-    return nuevo_modulo
+        db.add(nuevo_modulo)
+        await db.commit()
+        await db.refresh(nuevo_modulo)
+        return nuevo_modulo
+    except SQLAlchemyError as e:
+        await db.rollback()
+        print(f"Error DB en crear_modulo_sistema: {e}")
+        raise HTTPException(status_code=503, detail="Error al registrar módulo")
 
 
 @router.post("/init-modulos")
@@ -155,16 +153,6 @@ async def inicializar_modulos_sistema(
         raise HTTPException(status_code=403, detail="Solo admin puede inicializar")
 
     from app.models.auth.usuario import PermisoRol
-
-    # Discovery Dinámico (Limpio para Producción)
-    result_modulos = await db.execute(select(PermisoRol.modulo).distinct())
-    modulos_descubiertos = result_modulos.scalars().all()
-
-    count: int = 0
-    for mod_id in modulos_descubiertos:
-        if not mod_id:
-            continue
-        # Si el módulo no existe en el maestro, registrarlo
     try:
         # Discovery Dinámico (Limpio para Producción)
         result_modulos = await db.execute(select(PermisoRol.modulo).distinct())

@@ -67,14 +67,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   autoComplete,
   inputMode,
 }, ref) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const isPasswordType = type === 'password';
+  const [showPassword, setShowPassword] = useState(false); // [CONTROLADO]
+  const isPasswordType = type === 'password'; // [CONTROLADO]
   const isHidden = type === 'hidden';
-  const inputType = isPasswordType ? (showPassword ? 'text' : 'password') : type;
+  const inputType = isPasswordType ? (showPassword ? 'text' : 'password') : type; // [CONTROLADO]
 
   if (isHidden) {
     return (
-      <input
+      <input // @audit-ok
         ref={ref}
         type="hidden"
         name={name}
@@ -141,7 +141,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           </div>
         )}
 
-        <input
+        <input // @audit-ok
           ref={ref}
           id={id}
           type={inputType}

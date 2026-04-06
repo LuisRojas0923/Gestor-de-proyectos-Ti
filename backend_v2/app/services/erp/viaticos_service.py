@@ -8,41 +8,10 @@ import io
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
-
-
+from .viaticos_query_service import ViaticosQueryService
 
 class ViaticosService:
-    """Lógica de negocio para viáticos y consultas relacionadas al ERP (Solid)"""
-
-    @staticmethod
-    def buscar_ots(db_erp: Session, query: Optional[str] = None) -> List[Dict]:
-        """Busca OTs en la tabla otviaticos del ERP"""
-        sql = "SELECT numero, MAX(especialidad) as especialidad, MAX(cliente) as cliente, MAX(ciudad) as ciudad FROM otviaticos"
-        params = {}
-
-        if query:
-            sql += " WHERE numero LIKE :query OR cliente LIKE :query"
-            params = {"query": f"%{query}%"}
-
-        sql += " GROUP BY numero LIMIT 50"
-
-        resultado = db_erp.execute(text(sql), params).all()
-        return [dict(row._mapping) for row in resultado]
-
-    @staticmethod
-    def obtener_combinaciones_ot(db_erp: Session, numero: str) -> List[Dict]:
-        """Obtiene todas las combinaciones de CC/SCC para una OT específica"""
-        sql = """
-            SELECT DISTINCT numero, 
-            MAX(especialidad) OVER (PARTITION BY numero) as especialidad, 
-            MAX(cliente) OVER (PARTITION BY numero) as cliente, 
-            MAX(ciudad) OVER (PARTITION BY numero) as ciudad, 
-            centrocosto, subcentrocosto 
-            FROM otviaticos 
-            WHERE numero = :numero
-        """
-        resultado = db_erp.execute(text(sql), {"numero": numero}).all()
-        return [dict(row._mapping) for row in resultado]
+    """Lógica de comandos (escritura) para viáticos en el ERP (Solid)"""
 
     @staticmethod
     def enviar_reporte(db_erp: Session, reporte_data: Dict) -> str:
@@ -51,8 +20,6 @@ class ViaticosService:
         # Generar o Recuperar Consecutivo Amigable (Formato WEB-LXXXX)
         try:
             reporte_id_val = reporte_data.get("reporte_id")
-            # Un ID amigable siempre empieza por WEB-L. Los UUIDs no.
-            # Robustez: Asegurar que sea string y no sea "null" literal ni vacío
             es_actualizacion = bool(
                 reporte_id_val
                 and isinstance(reporte_id_val, str)
@@ -63,7 +30,7 @@ class ViaticosService:
             if es_actualizacion:
                 consecutivo = str(reporte_id_val).strip()
             else:
-                # Generación robusta: buscar el último número usado para evitar duplicados por huecos
+                # Generación robusta: buscar el último número usado
                 sql_max = text("""
                     SELECT reporte_id FROM legalizaciones_transito 
                     WHERE reporte_id LIKE 'WEB-L%' 
@@ -74,11 +41,9 @@ class ViaticosService:
 
                 if max_val:
                     try:
-                        # Extraer solo los números del string (p.ej. WEB-L0005 -> 5)
                         num_str = "".join(filter(str.isdigit, max_val))
                         nuevo_num = int(num_str) + 1 if num_str else 1
                     except Exception:
-                        # Fallback a conteo si falla el parseo numérico
                         sql_count = text("SELECT COUNT(*) FROM legalizaciones_transito")
                         nuevo_num = (db_erp.execute(sql_count).scalar() or 0) + 1
                 else:
@@ -91,39 +56,29 @@ class ViaticosService:
 
         # Si es actualización, VALIDAR ESTADO y luego LIMPIAR líneas previas
         if es_actualizacion:
-            # Blindaje: No permitir modificar si ya está PROCESADO
-            sql_check = text(
-                "SELECT estado FROM legalizaciones_transito WHERE reporte_id = :rid"
-            )
-            estado_actual = db_erp.execute(sql_check, {"rid": reporte_id_val}).scalar()
-
-            if estado_actual and estado_actual not in ["BORRADOR", "INICIAL"]:
-                print(
-                    f"SECURITY_ALERT: Intento de modificar reporte bloqueado {reporte_id_val} en estado {estado_actual}"
+            try:
+                # Blindaje: No permitir modificar si ya está PROCESADO
+                sql_check = text(
+                    "SELECT estado FROM legalizaciones_transito WHERE reporte_id = :rid"
                 )
-                raise Exception(
-                    f"Este reporte se encuentra bloqueado (Estado: {estado_actual}). Ya no es posible realizar cambios o guardar."
-                )
+                estado_actual = db_erp.execute(sql_check, {"rid": reporte_id_val}).scalar()
 
-            print(f"DEBUG_ERP: Actualizando reporte {reporte_id_val} -> {consecutivo}")
-            del_detalles = db_erp.execute(
-                text("DELETE FROM transito_viaticos WHERE reporte_id = :rid"),
-                {"rid": reporte_id_val},
-            ).rowcount
-            del_cabecera = db_erp.execute(
-                text("DELETE FROM legalizaciones_transito WHERE reporte_id = :rid"),
-                {"rid": reporte_id_val},
-            ).rowcount
-            print(
-                f"DEBUG_ERP: Limpieza finalizada. (Filas eliminadas: Transito={del_detalles}, Cabecera={del_cabecera})"
-            )
+                if estado_actual and estado_actual not in ["BORRADOR", "INICIAL"]:
+                    print(f"SECURITY_ALERT: Intento de modificar reporte bloqueado {reporte_id_val} en estado {estado_actual}")
+                    raise Exception(f"Este reporte se encuentra bloqueado (Estado: {estado_actual}). Ya no es posible realizar cambios.")
+
+                db_erp.execute(text("DELETE FROM transito_viaticos WHERE reporte_id = :rid"), {"rid": reporte_id_val})
+                db_erp.execute(text("DELETE FROM legalizaciones_transito WHERE reporte_id = :rid"), {"rid": reporte_id_val})
+            except Exception as e:
+                print(f"ERROR ERP Limpieza: {e}")
+                db_erp.rollback()
+                raise e
 
         reporte_id = consecutivo
         obs_gral = reporte_data.get("observaciones_gral", "")
 
-        # Blindaje: Evitar que se acumulen etiquetas [WEB-LXXXX] si ya existen en las observaciones
+        # Evitar duplicación de etiquetas
         import re
-
         obs_gral = re.sub(r"\[WEB-L\d+\]\s*", "", obs_gral).strip()
 
         # Calcular Totales y Anexos
@@ -131,38 +86,27 @@ class ViaticosService:
             float(g["valorConFactura"] or 0) + float(g["valorSinFactura"] or 0)
             for g in reporte_data["gastos"]
         )
-        tiene_anexos = (
-            1
-            if any(len(g.get("adjuntos", [])) > 0 for g in reporte_data["gastos"])
-            else 0
-        )
-
-        # Obtener Centro de Costo del Empleado
+        tiene_anexos = 1 if any(len(g.get("adjuntos", [])) > 0 for g in reporte_data["gastos"]) else 0
         cc_empleado = reporte_data.get("centrocosto") or "POR-DEFINIR"
 
-        # 1. Insertar Cabecera (legalizaciones_transito)
+        # Inserción de cabecera y detalles en una sola transacción
         try:
-            # Limpiar cualquier caracter no numérico de la cédula del usuario
-            clean_uid = "".join(
-                filter(str.isdigit, str(reporte_data.get("usuario_id", "0")))
-            )
+            # Limpiar cédula
+            clean_uid = "".join(filter(str.isdigit, str(reporte_data.get("usuario_id", "0"))))
             usuario_int = int(clean_uid) if clean_uid else 0
-        except (ValueError, TypeError):
-            usuario_int = 0
 
-        sql_header = text("""
-            INSERT INTO legalizaciones_transito (
-                codigolegalizacion, fecha, hora, fechaaplicacion, empleado, nombreempleado, 
-                area, valortotal, estado, usuario, observaciones, 
-                anexo, centrocosto, cargo, ciudad, reporte_id
-            ) VALUES (
-                :codigolegalizacion, CURRENT_DATE, CURRENT_TIME, CURRENT_DATE, :empleado, :nombreempleado,
-                :area, :valortotal, :estado, :usuario, :observaciones,
-                :anexo, :centrocosto, :cargo, :ciudad, :reporte_id
-            ) RETURNING codigo
-        """)
+            sql_header = text("""
+                INSERT INTO legalizaciones_transito (
+                    codigolegalizacion, fecha, hora, fechaaplicacion, empleado, nombreempleado, 
+                    area, valortotal, estado, usuario, observaciones, 
+                    anexo, centrocosto, cargo, ciudad, reporte_id
+                ) VALUES (
+                    :codigolegalizacion, CURRENT_DATE, CURRENT_TIME, CURRENT_DATE, :empleado, :nombreempleado,
+                    :area, :valortotal, :estado, :usuario, :observaciones,
+                    :anexo, :centrocosto, :cargo, :ciudad, :reporte_id
+                ) RETURNING codigo
+            """)
 
-        try:
             result_header = db_erp.execute(
                 sql_header,
                 {
@@ -175,11 +119,7 @@ class ViaticosService:
                     "usuario": usuario_int,
                     "observaciones": obs_gral.strip(),
                     "anexo": int(tiene_anexos),
-                    "centrocosto": str(
-                        cc_empleado
-                        if cc_empleado and cc_empleado != "---"
-                        else "POR-DEFINIR"
-                    ),
+                    "centrocosto": str(cc_empleado if cc_empleado and cc_empleado != "---" else "POR-DEFINIR"),
                     "cargo": str(reporte_data["cargo"]),
                     "ciudad": str(reporte_data["ciudad"]),
                     "reporte_id": str(reporte_id),
@@ -188,7 +128,6 @@ class ViaticosService:
 
             cabecera_id_numerico = result_header.scalar()
 
-            # 2. Insertar Detalles (transito_viaticos)
             sql_insert = text("""
                 INSERT INTO transito_viaticos (
                     legalizacion, fecha, fecharealgasto, categoria, ot, 
@@ -242,196 +181,20 @@ class ViaticosService:
             raise e
 
     @staticmethod
-    def obtener_estado_cuenta(
-        db_erp: Session,
-        cedula: str,
-        desde: Optional[date] = None,
-        hasta: Optional[date] = None,
-    ) -> List[Dict]:
-        """Obtiene el estado de cuenta detallado de viáticos desde el ERP"""
-        sql = """
-        WITH movimientos AS (
-            SELECT 
-                codigo, fechaaplicacion, empleado, nombreempleado, 
-                codigoconsignacion AS radicado, valor::numeric AS valor, 
-                'CONSIGNACION' AS tipo, UPPER(TRIM(estado)) AS estado_limpio, 
-                observaciones 
-            FROM consignacion
-            WHERE UPPER(TRIM(estado)) != 'ANULADO'
-            UNION ALL
-            SELECT 
-                codigo, fechaaplicacion, empleado, nombreempleado, 
-                codigolegalizacion AS radicado, valortotal::numeric AS valor, 
-                'LEGALIZACION' AS tipo, UPPER(TRIM(estado)) AS estado_limpio, 
-                observaciones 
-            FROM legalizacion
-            WHERE UPPER(TRIM(estado)) != 'ANULADO'
-        )
-        SELECT 
-            m.codigo, m.fechaaplicacion, m.empleado, m.nombreempleado, m.radicado, m.tipo,
-            CASE WHEN m.tipo = 'CONSIGNACION' AND m.estado_limpio = 'CONTABILIZADO' THEN m.valor ELSE 0 END AS consignacion_contabilizado,
-            CASE WHEN m.tipo = 'LEGALIZACION' AND m.estado_limpio = 'CONTABILIZADO' THEN m.valor ELSE 0 END AS legalizacion_contabilizado,
-            CASE WHEN m.tipo = 'CONSIGNACION' AND m.estado_limpio = 'EN FIRME' THEN m.valor ELSE 0 END AS consignacion_firmadas,
-            CASE WHEN m.tipo = 'LEGALIZACION' AND m.estado_limpio = 'EN FIRME' THEN m.valor ELSE 0 END AS legalizacion_firmadas,
-            CASE WHEN m.tipo = 'CONSIGNACION' AND m.estado_limpio = 'PENDIENTE' THEN m.valor ELSE 0 END AS consignacion_pendientes,
-            CASE WHEN m.tipo = 'LEGALIZACION' AND m.estado_limpio = 'PENDIENTE' THEN m.valor ELSE 0 END AS legalizacion_pendientes,
-            SUM(CASE WHEN m.tipo = 'CONSIGNACION' THEN m.valor WHEN m.tipo = 'LEGALIZACION' THEN -m.valor ELSE 0 END) 
-                OVER (PARTITION BY m.empleado ORDER BY m.fechaaplicacion ASC, m.codigo ASC) AS saldo,
-            m.observaciones
-        FROM movimientos m
-        WHERE m.empleado = :cedula
-        """
-
-        params = {"cedula": cedula}
-        if desde:
-            sql += " AND m.fechaaplicacion >= :desde"
-            params["desde"] = desde
-        if hasta:
-            sql += " AND m.fechaaplicacion <= :hasta"
-            params["hasta"] = hasta
-
-        sql += " ORDER BY m.fechaaplicacion ASC, m.codigo ASC"
-
-        resultado = db_erp.execute(text(sql), params).all()
-        return [dict(row._mapping) for row in resultado]
-
-    @staticmethod
-    def obtener_todas_legalizaciones(db_erp: Session) -> List[Dict]:
-        """Consulta todas las legalizaciones del portal (vista director) con valores finales si están procesadas"""
-        sql = text("""
-            SELECT 
-                l.codigo, l.codigolegalizacion, l.fecha, l.hora, l.fechaaplicacion,
-                l.empleado, l.nombreempleado, l.area, 
-                COALESCE(e.valortotal, l.valortotal) as valortotal, 
-                l.estado,
-                l.usuario, 
-                COALESCE(e.observaciones, l.observaciones) as observaciones, 
-                l.anexo, l.centrocosto, l.cargo, l.ciudad,
-                l.reporte_id,
-                (SELECT COUNT(*) FROM transito_viaticos t WHERE t.reporte_id::text = l.reporte_id) as total_lineas
-            FROM legalizaciones_transito l
-            LEFT JOIN legalizacion e ON l.codigolegalizacion = e.codigolegalizacion
-            ORDER BY l.fecha DESC, l.hora DESC
-        """)
-        resultado = db_erp.execute(sql)
-        return [dict(row._mapping) for row in resultado]
-
-    @staticmethod
-    def obtener_resumen_legalizaciones(db_erp: Session, cedula: str) -> List[Dict]:
-        """Consulta el listado agrupado de legalizaciones con valores finales del ERP si están procesadas"""
-        sql = text("""
-            SELECT 
-                l.codigo, l.codigolegalizacion, l.fecha, l.hora, l.fechaaplicacion,
-                l.empleado, l.nombreempleado, l.area, 
-                COALESCE(e.valortotal, l.valortotal) as valortotal, 
-                l.estado,
-                l.usuario, 
-                COALESCE(e.observaciones, l.observaciones) as observaciones, 
-                l.anexo, l.centrocosto, l.cargo, l.ciudad,
-                l.reporte_id
-            FROM legalizaciones_transito l
-            LEFT JOIN legalizacion e ON l.codigolegalizacion = e.codigolegalizacion
-            WHERE l.empleado = :cedula
-            ORDER BY l.fecha DESC, l.hora DESC
-        """)
-        resultado = db_erp.execute(sql, {"cedula": cedula})
-        return [dict(row._mapping) for row in resultado]
-
-    @staticmethod
-    def obtener_detalle_reporte(db_erp: Session, reporte_id: str) -> List[Dict]:
-        """
-        Obtiene todas las líneas y detalles de un reporte_id específico.
-        Si el reporte está PROCESADO, intenta traer la info de las tablas finales (legalizacion/linealegalizacion).
-        """
-        # 1. Verificar estado actual en tránsito
-        sql_estado = text(
-            "SELECT codigolegalizacion, estado FROM legalizaciones_transito WHERE reporte_id = :rid"
-        )
-        res_info = db_erp.execute(sql_estado, {"rid": reporte_id}).first()
-
-        estado = str(res_info.estado).upper().strip() if res_info else "BORRADOR"
-        radicado = res_info.codigolegalizacion if res_info else None
-
-        # 2. Si está PROCESADO, buscar en tablas finales oficiales
-        if estado == "PROCESADO" and radicado:
-            print(f"DEBUG_ERP: Reporte {reporte_id} PROCESADO. Buscando radicado {radicado} en tablas finales.")
-            
-            # Buscar ID interno en la tabla de cabecera final
-            sql_final_head = text("SELECT codigo FROM legalizacion WHERE codigolegalizacion = :rad")
-            id_final = db_erp.execute(sql_final_head, {"rad": radicado}).scalar()
-
-            if id_final:
-                # Obtener líneas desde linealegalizacion con JOIN robusto para categorías
-                # l.categoria puede ser ID (ej. '10') o Texto (ej. 'Alquilables').
-                # Unimos c.codigo::text para evitar errores de casteo y usamos COALESCE.
-                sql_final_lines = text("""
-                    SELECT 
-                        l.fecharealgasto,
-                        COALESCE(c.descripcion, l.categoria) as categoria,
-                        l.ot,
-                        l.centrocosto,
-                        l.subcentrocosto,
-                        l.valorconfactura,
-                        l.valorsinfactura,
-                        l.observaciones
-                    FROM linealegalizacion l
-                    LEFT JOIN categorialegalizacion c ON l.categoria = c.codigo::text
-                    WHERE l.legalizacion = :lid
-                    ORDER BY l.codigo ASC
-                """)
-                resultado = db_erp.execute(sql_final_lines, {"lid": id_final}).all()
-                
-                if resultado:
-                    print(f"DEBUG_ERP: Cargando {len(resultado)} líneas (procesadas) para radicado {radicado}")
-                    return [dict(row._mapping) for row in resultado]
-
-        # 3. Fallback: Consultar en tablas de tránsito (Comportamiento original)
-        sql = text("SELECT * FROM transito_viaticos WHERE reporte_id = :reporte_id")
-        resultado = db_erp.execute(sql, {"reporte_id": reporte_id})
-        return [dict(row._mapping) for row in resultado]
-
-    @staticmethod
-    def obtener_categorias_legalizacion(db_erp: Session) -> List[Dict]:
-        """Obtiene el listado de categorías de legalización desde el ERP"""
-        try:
-            sql = text(
-                "SELECT descripcion as label, descripcion as value FROM categorialegalizacion ORDER BY descripcion ASC"
-            )
-            resultado = db_erp.execute(sql).all()
-            return [dict(row._mapping) for row in resultado]
-        except Exception as e:
-            print(f"ERROR ERP Categorias: {e}")
-            raise e
-
-    @staticmethod
     def eliminar_reporte(db_erp: Session, reporte_id: str):
         """Elimina físicamente un reporte y sus líneas de las tablas de tránsito"""
         try:
             # Validar estado actual antes de eliminar
-            sql_estado = text(
-                "SELECT estado FROM legalizaciones_transito WHERE reporte_id = :rid"
-            )
+            sql_estado = text("SELECT estado FROM legalizaciones_transito WHERE reporte_id = :rid")
             estado_actual = db_erp.execute(sql_estado, {"rid": reporte_id}).scalar()
 
             if estado_actual and estado_actual.upper().strip() == "PROCESADO":
-                raise ValueError(
-                    f"El reporte {reporte_id} ya fue PROCESADO y no puede ser eliminado ni modificado."
-                )
+                raise ValueError(f"El reporte {reporte_id} ya fue PROCESADO y no puede ser eliminado.")
 
-            # Eliminar detalles
-            db_erp.execute(
-                text("DELETE FROM transito_viaticos WHERE reporte_id = :rid"),
-                {"rid": reporte_id},
-            )
-            # Eliminar cabecera
-            db_erp.execute(
-                text("DELETE FROM legalizaciones_transito WHERE reporte_id = :rid"),
-                {"rid": reporte_id},
-            )
+            db_erp.execute(text("DELETE FROM transito_viaticos WHERE reporte_id = :rid"), {"rid": reporte_id})
+            db_erp.execute(text("DELETE FROM legalizaciones_transito WHERE reporte_id = :rid"), {"rid": reporte_id})
             db_erp.commit()
             print(f"REPORT_DELETE_SUCCESS | ID: {reporte_id}")
-        except ValueError:
-            raise
         except Exception as e:
             db_erp.rollback()
             raise e
@@ -443,84 +206,48 @@ class ViaticosService:
         desde: Optional[date] = None,
         hasta: Optional[date] = None,
     ) -> io.BytesIO:
-        """Genera un archivo XLSX con el estado de cuenta y lo devuelve como un flujo de bytes"""
+        """Genera un archivo XLSX con el estado de cuenta"""
+        try:
+            # Reutiliza el servicio de consultas
+            data = ViaticosQueryService.obtener_estado_cuenta(db_erp, cedula, desde, hasta)
 
-        # 1. Obtener la data usando el método existente
-        data = ViaticosService.obtener_estado_cuenta(db_erp, cedula, desde, hasta)
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Estado de Cuenta"
 
-        # 2. Crear el libro y la hoja
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Estado de Cuenta"
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+            header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
 
-        # Estilos
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(
-            start_color="1F4E78", end_color="1F4E78", fill_type="solid"
-        )
-        header_alignment = Alignment(
-            horizontal="center", vertical="center", wrap_text=True
-        )
-        border = Border(
-            left=Side(style="thin"),
-            right=Side(style="thin"),
-            top=Side(style="thin"),
-            bottom=Side(style="thin"),
-        )
+            headers = ["Fecha Aplicación", "Radicado", "Tipo", "Observaciones", "Consignaciones (Contab.)", "Legalizaciones (Contab.)", "Consignaciones (Firmas)", "Legalizaciones (Firmas)", "Consignaciones (Pend.)", "Legalizaciones (Pend.)", "Saldo"]
 
-        # 3. Definir Encabezados
-        headers = [
-            "Fecha Aplicación",
-            "Radicado",
-            "Tipo",
-            "Observaciones",
-            "Consignaciones (Contab.)",
-            "Legalizaciones (Contab.)",
-            "Consignaciones (Firmas)",
-            "Legalizaciones (Firmas)",
-            "Consignaciones (Pend.)",
-            "Legalizaciones (Pend.)",
-            "Saldo",
-        ]
-
-        # Escribir encabezados
-        for col, header in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col, value=header)
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_alignment
-            cell.border = border
-
-        # 4. Escribir Datos
-        for row_idx, item in enumerate(data, 2):
-            ws.cell(row=row_idx, column=1, value=item["fechaaplicacion"]).border = border
-            ws.cell(row=row_idx, column=2, value=item["radicado"]).border = border
-            ws.cell(row=row_idx, column=3, value=item["tipo"]).border = border
-            ws.cell(row=row_idx, column=4, value=item["observaciones"]).border = border
-
-            # Valores Monetarios
-            cols_money = [
-                "consignacion_contabilizado",
-                "legalizacion_contabilizado",
-                "consignacion_firmadas",
-                "legalizacion_firmadas",
-                "consignacion_pendientes",
-                "legalizacion_pendientes",
-                "saldo",
-            ]
-
-            for i, key in enumerate(cols_money, 5):
-                cell = ws.cell(row=row_idx, column=i, value=float(item[key] or 0))
-                cell.number_format = '"$"#,##0'
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
                 cell.border = border
 
-        # 5. Ajustar ancho de columnas
-        for col in range(1, len(headers) + 1):
-            ws.column_dimensions[get_column_letter(col)].width = 20
+            for row_idx, item in enumerate(data, 2):
+                ws.cell(row=row_idx, column=1, value=item["fechaaplicacion"]).border = border
+                ws.cell(row=row_idx, column=2, value=item["radicado"]).border = border
+                ws.cell(row=row_idx, column=3, value=item["tipo"]).border = border
+                ws.cell(row=row_idx, column=4, value=item["observaciones"]).border = border
 
-        # 6. Guardar en buffer
-        output = io.BytesIO()
-        wb.save(output)
-        output.seek(0)
+                cols_money = ["consignacion_contabilizado", "legalizacion_contabilizado", "consignacion_firmadas", "legalizacion_firmadas", "consignacion_pendientes", "legalizacion_pendientes", "saldo"]
+                for i, key in enumerate(cols_money, 5):
+                    cell = ws.cell(row=row_idx, column=i, value=float(item[key] or 0))
+                    cell.number_format = '"$"#,##0'
+                    cell.border = border
 
-        return output
+            for col in range(1, len(headers) + 1):
+                ws.column_dimensions[get_column_letter(col)].width = 20
+
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            return output
+        except Exception as e:
+            print(f"ERROR ERP Export XLSX: {e}")
+            raise e

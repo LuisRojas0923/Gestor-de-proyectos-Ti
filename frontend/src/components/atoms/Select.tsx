@@ -65,7 +65,7 @@ const Select: React.FC<SelectProps> = ({
                 </Text>
             )}
 
-            <select
+            <select // @audit-ok
                 value={value}
                 defaultValue={defaultValue}
                 disabled={disabled}

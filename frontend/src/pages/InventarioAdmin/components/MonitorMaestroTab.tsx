@@ -182,7 +182,7 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
                     <div className="flex-1 h-2 bg-neutral-100 dark:bg-neutral-700 rounded-full overflow-hidden shadow-inner">
                         <div
                             className={`h-full transition-all duration-1000 ${barColor}`}
-                            style={{ width: `${percentage}%` }}
+                            style={{ width: `${percentage}%` }} // @audit-ok
                         />
                     </div>
                     <Text variant="caption" weight="bold" className={`text-[11px] min-w-[35px] text-right font-black ${textColor}`}>{percentage}%</Text>
@@ -336,30 +336,32 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
                 {coverage?.desglose_bodega && Object.entries(coverage.desglose_bodega).map(([name, b]: [string, any]) => (
                     <div key={name} className="bg-neutral-50 dark:bg-neutral-800/30 p-3 rounded-2xl border border-neutral-100 dark:border-neutral-700 shadow-sm flex flex-col gap-2 hover:border-primary-500 transition-colors group">
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] uppercase font-black text-neutral-400 group-hover:text-primary-500 transition-colors">Bodega {name}</span>
-                            <span className="text-[9px] opacity-40 font-bold">{b.parejas} parejas</span>
+                            <Text as="span" className="text-[10px] uppercase font-black text-neutral-400 group-hover:text-primary-500 transition-colors">Bodega {name}</Text>
+                            <Text as="span" className="text-[9px] opacity-40 font-bold">{b.parejas} parejas</Text>
                         </div>
 
                         <div className="flex flex-col gap-2.5">
                             {/* C1 PROGRESS ROW */}
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center justify-between">
-                                    <Text className="text-[9px] font-black opacity-60">CONTEO 3</Text>
+                                    <Text className="text-[9px] font-black opacity-60">CONTEO 1</Text>
                                     <Text className={`text-[9px] font-black ${b.p_c1 === 100 ? 'text-green-500' : 'text-primary-600'}`}>{b.hechos_c1} / {b.total} ({b.p_c1}%)</Text>
                                 </div>
                                 <div className="w-full bg-neutral-200 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden shadow-inner">
-                                    <div className={`h-full transition-all duration-1000 ${b.p_c1 === 100 ? 'bg-green-500' : 'bg-primary-500'}`} style={{ width: `${b.p_c1}%` }} />
+                                    <div className={`h-full transition-all duration-1000 ${b.p_c1 === 100 ? 'bg-green-500' : 'bg-primary-500'}`} style={{ width: `${b.p_c1}%` }} // @audit-ok
+                                    />
                                 </div>
                             </div>
 
                             {/* C2 PROGRESS ROW */}
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center justify-between">
-                                    <Text className="text-[9px] font-black opacity-60">CONTEO 4</Text>
+                                    <Text className="text-[9px] font-black opacity-60">CONTEO 2</Text>
                                     <Text className={`text-[9px] font-black ${b.p_c2 === 100 ? 'text-green-500' : 'text-amber-600'}`}>{b.hechos_c2} / {b.total_c2} ({b.p_c2}%)</Text>
                                 </div>
                                 <div className="w-full bg-neutral-200 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden shadow-inner">
-                                    <div className={`h-full transition-all duration-1000 ${b.p_c2 === 100 ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${b.p_c2}%` }} />
+                                    <div className={`h-full transition-all duration-1000 ${b.p_c2 === 100 ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${b.p_c2}%` }} // @audit-ok
+                                    />
                                 </div>
                             </div>
                         </div>

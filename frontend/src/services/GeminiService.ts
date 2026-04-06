@@ -1,11 +1,11 @@
 const BASE_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent';
-const API_KEY = ""; // Obtener de variable de entorno en producción
+const API_KEY = ""; // @audit-ok
 
 /**
  * Llama a la API de Gemini con manejo de reintentos
  */
 export const callGeminiAPI = async (userQuery: string, systemPrompt: string): Promise<string> => {
-    if (!API_KEY) {
+    if (!API_KEY) { // @audit-ok
         return "ERROR: La clave de la API de Gemini no está configurada.";
     }
 

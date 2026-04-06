@@ -146,5 +146,3 @@ TRUNCATE TABLE
     configuracioninventario, 
     conteohistorico 
 RESTART IDENTITY CASCADE;
-
-
