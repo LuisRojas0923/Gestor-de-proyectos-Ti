@@ -1,14 +1,14 @@
-"""
-Backend V2 - Gestor de Proyectos TI
-Aplicacion FastAPI principal
-"""
-
 import asyncio
-import logging
 import os
 import subprocess
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
+
+# Importaciones de Observabilidad
+from .core.logging_config import setup_logging
+from .core.middleware_tracing import CorrelationIDMiddleware
+from .core.metrics import update_business_metrics
 
 # Importaciones locales (Base de Datos y Servicios)
 from .database import init_db, AsyncSessionLocal
@@ -33,13 +33,10 @@ from .api.auth.config_router import router as config_router
 from .api.reserva_salas import router as reserva_salas_router
 from .api.inventario.router import router as inventario_router
 
-# Configurar logging centralizado
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[logging.StreamHandler()]
-)
-logger = logging.getLogger(__name__)
+# Inicializar Logging antes que nada
+logger = setup_logging()
+
+
 
 
 # Obtener version del sistema dinamicamente
@@ -107,11 +104,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Añadir Middleware de Trazabilidad (Correlation ID)
+app.add_middleware(CorrelationIDMiddleware)
+
+# Inicializar Prometheus
+Instrumentator().instrument(app).expose(app)
+
+
+async def business_metrics_worker():
+    """Bucle infinito para actualizar métricas de negocio cada 60 segundos"""
+    while True:
+        await update_business_metrics()
+        await asyncio.sleep(60)
+
 
 @app.on_event("startup")
 async def startup_event():
     """Acciones al iniciar el servidor"""
     await init_db()
+    
+    # 1. Iniciar worker de métricas de negocio (Para Grafana)
+    asyncio.create_task(business_metrics_worker())
+
     # 2. Sincronizar Módulos RBAC auto-descubiertos
     async with AsyncSessionLocal() as db:
         await sincronizar_manifiesto_rbac(db)

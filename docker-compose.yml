@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   #  nginx:
   #    image: nginx:alpine
@@ -36,25 +42,24 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload # Modo Desarrollo
     networks:
       - app-network
+    logging: *default-logging
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=/api/v2
     ports:
-      - "5173:5173" # Re-expuesto para acceso directo por IP:5173
+      - "${FRONTEND_PORT:-80}:80" # Re-expuesto para acceso directo por IP:80 (Nginx)
     environment:
-      # URL RELATIVA: Permite que funcione por IP o por Dominio automáticamente a través de Nginx (puerto 80)
+      # URL RELATIVA: Para que funcione en produccion a traves del proxy
       - VITE_API_BASE_URL=/api/v2
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     depends_on:
       - backend
     networks:
       - app-network
+    logging: *default-logging
 
   adminer:
     image: adminer
@@ -66,6 +71,7 @@ services:
       - db
     networks:
       - app-network
+    logging: *default-logging
 
   db:
     image: postgres:15-alpine
@@ -83,6 +89,54 @@ services:
       - "5432:5432" # Re-expuesto para mantenimiento
     networks:
       - app-network
+    logging: *default-logging
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gestor-de-proyectos-ti-prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - app-network
+    logging: *default-logging
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: gestor-de-proyectos-ti-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - app-network
+    logging: *default-logging
+
+  loki:
+    image: grafana/loki:latest
+    container_name: gestor-de-proyectos-ti-loki
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - app-network
+    logging: *default-logging
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: gestor-de-proyectos-ti-promtail
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - app-network
+    logging: *default-logging
 
 networks:
   app-network:

@@ -3,10 +3,11 @@ Configuracion de Base de Datos - Backend V2 (Async + SQLModel)
 """
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlmodel import SQLModel
 from .config import config
+from .core.middleware_tracing import get_correlation_id
 
 # URL de conexion ASINCRONA (asyncpg)
 # El driver asyncpg requiere el prefijo postgresql+asyncpg://
@@ -36,6 +37,15 @@ AsyncSessionLocal = async_sessionmaker(
     autocommit=False,
     autoflush=False,
 )
+
+# --- Eventos para Trazabilidad (Correlation ID en SQL) ---
+@event.listens_for(async_engine.sync_engine, "before_cursor_execute")
+def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+    """Añade el correlation_id como comentario a la consulta SQL"""
+    cid = get_correlation_id()
+    if cid:
+        # Añadir comentario al inicio del SQL para que aparezca en logs de Postgres
+        context.statement = f"/* cid:{cid} */ {statement}"
 
 # Engine SINCRONO para compatibilidad (migraciones, seed, etc.)
 sync_engine = create_engine(
