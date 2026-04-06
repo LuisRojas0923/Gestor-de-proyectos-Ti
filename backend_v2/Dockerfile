@@ -27,9 +27,10 @@ WORKDIR /app
 # Copiar solo las librerias instaladas desde el builder
 COPY --from=builder /install /usr/local
 
-# Instalar solo la libreria runtime de postgres
+# Instalar solo la libreria runtime de postgres y git para metadatos de version
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    git \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
