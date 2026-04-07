@@ -1,6 +1,6 @@
 import React from 'react';
 import { Title, Text, Button } from '../../../components/atoms';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import ExpenseLineItem from './ExpenseLineItem';
 
 interface ExpenseDesktopTableProps {
@@ -16,6 +16,8 @@ interface ExpenseDesktopTableProps {
     isReadOnly: boolean;
     categorias: any[];
     addLinea: () => void;
+    onSync?: () => void;
+    isSyncing?: boolean;
 }
 
 const ExpenseDesktopTable: React.FC<ExpenseDesktopTableProps> = ({
@@ -30,7 +32,9 @@ const ExpenseDesktopTable: React.FC<ExpenseDesktopTableProps> = ({
     validationErrors,
     isReadOnly,
     categorias,
-    addLinea
+    addLinea,
+    onSync,
+    isSyncing
 }) => (
     <div className="space-y-4 mt-8">
         <div className="flex flex-row items-center justify-between px-3 sm:px-4 py-2 bg-[var(--color-surface-variant)]/40 border-b border-[var(--color-border)] gap-2 rounded-t-2xl min-h-[48px]">
@@ -44,6 +48,21 @@ const ExpenseDesktopTable: React.FC<ExpenseDesktopTableProps> = ({
                 </Title>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-1.5 ml-auto">
+                <Button
+                    onClick={onSync}
+                    loading={isSyncing}
+                    disabled={isReadOnly}
+                    variant="erp" size="xs" icon={RefreshCw}
+                    className="font-bold rounded-lg px-2 sm:px-2.5 py-1 text-[var(--color-primary)] text-[9px] w-fit shadow-sm bg-white dark:bg-black/20 disabled:opacity-50"
+                >
+                    <Text as="span" weight="bold" color="inherit" className="hidden sm:inline uppercase">
+                        {isSyncing ? 'SINCRONIZANDO...' : 'SINCRONIZAR OT/OS'}
+                    </Text>
+                    <Text as="span" weight="bold" color="inherit" className="sm:hidden uppercase">
+                        {isSyncing ? '...' : 'SYNC'}
+                    </Text>
+                </Button>
+
                 <Button
                     onClick={addLinea}
                     disabled={isReadOnly}

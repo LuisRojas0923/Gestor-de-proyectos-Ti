@@ -129,6 +129,7 @@ export const useExpenseForm = () => {
     });
 
     const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
+    const [isSyncing, setIsSyncing] = useState(false);
     const { addNotification } = useNotifications();
 
     // Auto-save cada vez que cambian los datos
@@ -348,6 +349,30 @@ export const useExpenseForm = () => {
 
 
 
+    const handleSyncOTs = async () => {
+        setIsSyncing(true);
+        logMarina("♻️ [API] Iniciando sincronización de OT/OS externas...");
+        try {
+            // Se llama al backend propio (proxy) para evitar errores de CORS
+            const res = await axios.post('/api/v2/erp/sync-external', {}, {
+                timeout: 80000 // Aumentado ligeramente para dar margen al backend (70s)
+            });
+            
+            if (res.data.status === 'success') {
+                addNotification('success', `Sincronización completada: ${res.data.message} (${res.data.elapsed_seconds}s)`);
+                logMarina("✅ [API] Sincronización exitosa", res.data);
+            } else {
+                addNotification('warning', 'La sincronización reportó un estado no exitoso.');
+            }
+        } catch (err: any) {
+            console.error("Error en sincronización:", err);
+            const errorMsg = err.response?.data?.detail || err.message || 'Error desconocido';
+            addNotification('error', `Error al sincronizar OTs: ${errorMsg}`);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     return {
         lineas,
         setLineas,
@@ -375,6 +400,8 @@ export const useExpenseForm = () => {
         loadLineas,
         validationErrors,
         setValidationErrors,
+        isSyncing,
+        handleSyncOTs,
         logMarina
     };
 };

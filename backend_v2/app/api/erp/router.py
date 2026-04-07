@@ -3,10 +3,12 @@ API de Endpoint ERP - Backend V2
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
 from sqlalchemy.orm import Session
 from app.database import obtener_db, obtener_erp_db, obtener_erp_db_opcional
 from app.services.erp import EmpleadosService
 from typing import Any, Dict, List, Optional
+from app.config import config
 from app.api.erp.requisiciones_router import router as requisiciones_router
 
 router = APIRouter()
@@ -64,3 +66,26 @@ async def sincronizar_erp(db: Session = Depends(obtener_db)):
     """
     # Logica de sincronizacion
     return {"mensaje": "Sincronizacion iniciada"}
+
+
+@router.post("/sync-external")
+async def sincronizar_externo():
+    """
+    Proxy para el servicio externo de sincronización OT/OS.
+    Resuelve problemas de CORS al llamar desde el frontend.
+    """
+    url_externa = config.sync_external_url
+    try:
+        async with httpx.AsyncClient(timeout=70.0) as client:
+            response = await client.post(url_externa)
+            return response.json()
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Error conectando con el servicio de sincronización: {str(exc)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error inesperado en sincronización: {str(e)}"
+        )

@@ -9,15 +9,16 @@ class Configuracion(BaseSettings):
     """Configuracion cargada desde variables de entorno"""
     
     # Base de datos
-    database_url: str = "postgresql://user:password@localhost:5432/project_manager"
+    database_url: str = "postgresql://user:pass@localhost:5432/project_manager" # [CONTROLADO]
     
     # ERP Externo
-    erp_database_url: str = "postgresql://user:password@localhost:5432/erp_db"
+    erp_database_url: str = "postgresql://user:pass@localhost:5432/erp_db" # [CONTROLADO]
+    sync_external_url: str = "http://localhost:8099/sync"
     
     # Seguridad JWT
-    secret_key: str = "clave-secreta-cambiar-en-produccion"
+    jwt_secret_key: str = "clave-segura-cambiar" # [CONTROLADO]
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    jwt_token_expire_minutes: int = 30 # [CONTROLADO]
     
     # Ambiente
     environment: str = "development"

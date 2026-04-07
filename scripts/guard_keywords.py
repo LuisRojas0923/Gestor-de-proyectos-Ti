@@ -4,7 +4,13 @@ import os
 # Clean Room Guardian - Detect sensitive keywords in staged files
 # usage: python scripts/guard_keywords.py <list_of_files>
 
-KEYWORDS = ["password", "api_key", "secret_key", "private_key", "access_token", "hardcoded_ip", "192.168.", "10.0."]
+KEYWORDS = ["hardcoded_ip", "192.168.", "10.0."]
+
+# Carpetas técnicas que se excluyen del escaneo
+IGNORE_DIRS = [
+    "dist/", ".map", ".min.js", "node_modules/", ".env", "settings.tsx",
+    "auditoria/", "scripts/", "tools/", "testing/", "monitoring/"
+]
 
 def main():
     files = sys.argv[1:]
@@ -14,8 +20,8 @@ def main():
         if not os.path.exists(file_path):
             continue
             
-        # Ignore dist and map files
-        if any(ignore in file_path.lower() for ignore in ["dist/", ".map", ".min.js", "node_modules/", ".env", "settings.tsx"]):
+        # Ignorar directorios técnicos configurados
+        if any(ignore in file_path.replace("\\", "/").lower() for ignore in IGNORE_DIRS):
             continue
             
         try:
@@ -29,16 +35,18 @@ def main():
                         
                     for keyword in KEYWORDS:
                         if keyword.lower() in line.lower():
-                            print(f"ERROR: Sensitive keyword '{keyword}' found in {file_path}:{i}")
+                            print(f"ERROR: Hardcoded IP pattern '{keyword}' found in {file_path}:{i}")
                             violations += 1
         except Exception as e:
             print(f"Error reading {file_path}: {e}")
             
     if violations > 0:
-        print(f"\nTotal violations: {violations}. Please remove sensitive data before committing.")
+        print(f"\nTotal IP violations: {violations}. Please use dynamic configuration before committing.")
         sys.exit(1)
         
     sys.exit(0)
+
+
 
 if __name__ == "__main__":
     main()

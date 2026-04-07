@@ -35,7 +35,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
         ots, isSearchingOT, addLinea, removeLinea, updateLinea,
         handleOTSearch, selectOT, totalFacturado, totalSinFactura,
         totalGeneral, clearForm, loadLineas, validationErrors,
-        setValidationErrors, logMarina
+        setValidationErrors, isSyncing, handleSyncOTs, logMarina
     } = useExpenseForm();
 
     const {
@@ -101,6 +101,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                 removeLinea={removeLinea} handleOTSearch={handleOTSearch} selectOT={selectOT}
                 setLineas={setLineas} validationErrors={validationErrors} isReadOnly={isReadOnly}
                 categorias={categorias} addLinea={addLinea}
+                onSync={handleSyncOTs} isSyncing={isSyncing}
             />
 
             <ExpenseMobileView
