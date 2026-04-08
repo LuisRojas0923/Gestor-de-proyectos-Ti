@@ -60,22 +60,9 @@ async def listar_analistas(
                 Usuario.viaticante == False,
                 Usuario.rol.in_(["analyst", "admin_sistemas", "admin", "director", "manager"])
             )
-        else:
-            # Consulta original para gestión de usuarios
-            stmt = stmt.where(
-                Usuario.rol.in_(
-                    [
-                        "analyst",
-                        "admin_sistemas",
-                        "admin",
-                        "director",
-                        "manager",
-                        "usuario",
-                        "viaticante",
-                        "user",
-                    ]
-                )
-            )
+        # Si no es solo_asignables, se eliminó el filtro estático de roles para que sea dinámico
+        # El administrador podrá ver todos los usuarios registrados independientemente de su rol
+
 
         result = await db.execute(stmt)
         usuarios = result.scalars().all()

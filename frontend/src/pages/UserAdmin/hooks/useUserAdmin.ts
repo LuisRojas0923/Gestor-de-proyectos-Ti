@@ -131,10 +131,13 @@ export const useUserAdmin = () => {
         }
     };
 
-    const filteredUsers = users.filter(u =>
-        u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.cedula.includes(searchTerm)
-    );
+    const filteredUsers = users
+        .filter(u =>
+            u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            u.cedula.includes(searchTerm)
+        )
+        .sort((a, b) => a.rol.localeCompare(b.rol));
+
 
     return {
         users,

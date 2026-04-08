@@ -41,12 +41,12 @@ class ServicioAuth:
             expira = datetime.now(timezone.utc) + tiempo_expiracion
         else:
             expira = datetime.now(timezone.utc) + timedelta(
-                minutes=config.access_token_expire_minutes
+                minutes=config.jwt_token_expire_minutes
             )
 
         a_codificar.update({"exp": expira})
         token_jwt = jwt.encode(
-            a_codificar, config.secret_key, algorithm=config.algorithm
+            a_codificar, config.jwt_secret_key, algorithm=config.algorithm
         )
         return token_jwt
 
@@ -55,7 +55,7 @@ class ServicioAuth:
         """Decodifica el token y extrae la cedula (sub)."""
         try:
             payload = jwt.decode(
-                token, config.secret_key, algorithms=[config.algorithm]
+                token, config.jwt_secret_key, algorithms=[config.algorithm]
             )
             cedula: str = payload.get("sub")
             if cedula is None:
@@ -180,8 +180,8 @@ class ServicioAuth:
             .join(ModuloSistema, PermisoRol.modulo == ModuloSistema.id)
             .where(
                 PermisoRol.rol == rol,  # FILTRO CRÍTICO: Solo permisos del rol solicitado
-                PermisoRol.permitido == True,
-                ModuloSistema.esta_activo == True,  # REFUERZO: El módulo debe estar activo globalmente
+                PermisoRol.permitido,
+                ModuloSistema.esta_activo,  # REFUERZO: El módulo debe estar activo globalmente
             )
         )
         return list(result.scalars().all())
@@ -243,7 +243,7 @@ class ServicioAuth:
         try:
             async with AsyncSessionLocal() as session:
                 ahora = get_bogota_now()
-                expira = ahora + timedelta(minutes=config.access_token_expire_minutes)
+                expira = ahora + timedelta(minutes=config.jwt_token_expire_minutes)
 
                 nueva_sesion = Sesion(
                     usuario_id=usuario_id,
