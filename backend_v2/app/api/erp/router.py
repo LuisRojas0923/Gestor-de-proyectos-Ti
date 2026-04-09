@@ -76,15 +76,25 @@ async def sincronizar_externo():
     """
     url_externa = config.sync_external_url
     try:
-        async with httpx.AsyncClient(timeout=70.0) as client:
+        async with httpx.AsyncClient(timeout=75.0) as client:
+            print(f"DEBUG SYNC | Llamando a servicio externo: {url_externa}")
             response = await client.post(url_externa)
+            response.raise_for_status()
             return response.json()
-    except httpx.RequestError as exc:
+    except httpx.HTTPStatusError as exc:
+        print(f"ERROR SYNC | El servicio externo respondió con error {exc.response.status_code}: {exc.response.text}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Error conectando con el servicio de sincronización: {str(exc)}"
+            detail=f"Error en el servicio externo (Status {exc.response.status_code}): {exc.response.text}"
+        )
+    except httpx.RequestError as exc:
+        print(f"ERROR SYNC | Error de conexión con {url_externa}: {str(exc)}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"No se pudo contactar con el servicio de sincronización en {url_externa}. Verifica que el servicio esté corriendo."
         )
     except Exception as e:
+        print(f"ERROR SYNC | Error inesperado: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error inesperado en sincronización: {str(e)}"
