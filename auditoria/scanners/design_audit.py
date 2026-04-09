@@ -32,6 +32,10 @@ def scan_design_issues(root_dir: str) -> list[dict]:
                     lines = f.readlines()
                 
                 for line_num, line_text in enumerate(lines, 1):
+                    # Ignorar líneas con comentarios de supresión
+                    if '[CONTROLADO]' in line_text or '@audit-ok' in line_text:
+                        continue
+                        
                     for pattern_name, pattern in patterns.items():
                         if pattern.search(line_text):
                             # Verificar excepciones

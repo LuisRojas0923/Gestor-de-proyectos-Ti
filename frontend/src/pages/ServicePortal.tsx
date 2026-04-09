@@ -3,7 +3,6 @@ import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
-
 import DashboardView from './ServicePortal/pages/DashboardView';
 import TicketListView from './ServicePortal/pages/TicketListView';
 import SuccessView from './ServicePortal/pages/SuccessView';
@@ -18,6 +17,7 @@ import RequestPortalView from './ServicePortal/pages/Requests/RequestPortalView'
 import AlmacenSubAreaView from './ServicePortal/pages/Requests/AlmacenSubAreaView';
 import AlmacenFormView from './ServicePortal/pages/Requests/AlmacenFormView';
 import MisRequisicionesView from './ServicePortal/pages/Requests/MisRequisicionesView';
+import InventarioView from './ServicePortal/pages/Inventario';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import PortalLayout from './ServicePortal/PortalLayout';
 import NominaDashboard from './ServicePortal/pages/NOVEDADES_NOMINA/NominaDashboard';
@@ -107,11 +107,13 @@ const ServicePortal: React.FC = () => {
 
             navigate('/service-portal/gastos/nuevo', {
                 state: {
+                    ...reporte,
                     lineas: lineasDetalle,
                     observaciones: resData[0]?.observaciones_gral,
                     reporte_id: rid,
                     estado: reporte.estado,
-                    from: 'reportes'
+                    readonly: reporte.readonly || false,
+                    from: reporte.readonly ? 'director' : 'reportes'
                 }
             });
         } catch (err) {
@@ -153,6 +155,7 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
                             else if (v === 'nomina') navigate('/service-portal/novedades-nomina');
                             else if (v === 'requisiciones') navigate('/service-portal/requisiciones');
+                            else if (v === 'inventario') navigate('/service-portal/inventario');
                         }}
                     />
                 } />
@@ -265,7 +268,7 @@ const ServicePortal: React.FC = () => {
                     <ProtectedRoute moduleCode="viaticos_reportes">
                         <ExpenseLegalization
                             user={user}
-                            onBack={() => navigate('/service-portal/gastos/reportes')}
+                            onBack={() => navigate(-1)}
                             onSuccess={() => {
                                 navigate('/service-portal/gastos/reportes');
                                 addNotification('success', 'Operación realizada correctamente.');
@@ -287,7 +290,10 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="gastos/director" element={
                     <ProtectedRoute moduleCode="viaticos_director_panel">
-                        <DirectorExpensePanel onBack={() => navigate('/service-portal/gastos/gestion')} />
+                        <DirectorExpensePanel 
+                            onBack={() => navigate('/service-portal/gastos/gestion')}
+                            onSelectReport={(rep) => onSelectReport({ ...rep, readonly: true })}
+                        />
                     </ProtectedRoute>
                 } />
 
@@ -326,6 +332,11 @@ const ServicePortal: React.FC = () => {
                 <Route path="novedades-nomina/preview/:archivoId" element={<NominaPreviewView />} />
                 <Route path="novedades-nomina/resumen" element={<NominaSummaryView />} />
                 <Route path="novedades-nomina/historial" element={<NominaHistorialView />} />
+                <Route path="inventario" element={
+                    <ProtectedRoute moduleCode="inventario_2026">
+                        <InventarioView onBack={() => navigate('/service-portal/inicio')} />
+                    </ProtectedRoute>
+                } />
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />
             </Routes>

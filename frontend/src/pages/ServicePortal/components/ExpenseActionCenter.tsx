@@ -19,6 +19,7 @@ interface ExpenseActionCenterProps {
     onBack: () => void;
     user: any;
     lineas: any[];
+    radicado?: string;
 }
 
 const ExpenseActionCenter: React.FC<ExpenseActionCenterProps> = ({
@@ -36,6 +37,7 @@ const ExpenseActionCenter: React.FC<ExpenseActionCenterProps> = ({
     onBack,
     user,
     lineas,
+    radicado,
 }) => (
     <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
         <div className="w-full md:w-[50%] bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] py-2 px-4 shadow-sm h-[84px] flex items-center">
@@ -60,7 +62,7 @@ const ExpenseActionCenter: React.FC<ExpenseActionCenterProps> = ({
                 </Button>
                 {canDownloadPDF ? (
                     <Button
-                        onClick={() => generateExpenseReportPDF(activeReporteId || '', user, lineas)}
+                        onClick={() => generateExpenseReportPDF(radicado || activeReporteId || '', user, lineas)}
                         variant="erp" size="md" icon={Download}
                         className="h-[68px] font-bold rounded-2xl shadow-none px-2 uppercase text-[10px] sm:text-xs flex-col gap-1 justify-center shrink-0 border-blue-200 text-blue-700 dark:text-blue-400"
                     >

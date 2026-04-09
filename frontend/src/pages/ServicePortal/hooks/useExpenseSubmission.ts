@@ -65,17 +65,18 @@ export const useExpenseSubmission = ({
             }
 
             // Primera vez: crear la promesa y cachearla
-            categoriasFetchPromise = Promise.resolve(axios.get(`${API_BASE_URL}/viaticos/categorias`))
-                .then(response => {
+            categoriasFetchPromise = (async () => {
+                try {
+                    const response = await axios.get(`${API_BASE_URL}/viaticos/categorias`);
                     const data = Array.isArray(response.data) ? response.data : [];
                     categoriasCache = data;
                     return data;
-                })
-                .catch((err): { label: string; value: string }[] => {
+                } catch (err) {
                     console.error("Error loading categorías:", err);
                     categoriasFetchPromise = null; // Permitir reintento si falla
                     return [];
-                });
+                }
+            })();
 
             const data = await categoriasFetchPromise;
             if (data) setCategorias(data);

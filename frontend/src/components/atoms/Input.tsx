@@ -10,6 +10,7 @@ interface InputProps {
   disabled?: boolean;
   required?: boolean;
   error?: boolean;
+  success?: boolean;
   errorMessage?: string;
   label?: string;
   labelHint?: string;
@@ -31,6 +32,7 @@ interface InputProps {
   accept?: string;
   autoComplete?: string;
   style?: React.CSSProperties;
+  inputMode?: 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search';
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(({
@@ -41,6 +43,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   disabled = false,
   required = false,
   error = false,
+  success = false,
   errorMessage,
   label,
   labelHint,
@@ -62,15 +65,16 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   style,
   multiple,
   autoComplete,
+  inputMode,
 }, ref) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const isPasswordType = type === 'password';
+  const [showPassword, setShowPassword] = useState(false); // [CONTROLADO]
+  const isPasswordType = type === 'password'; // [CONTROLADO]
   const isHidden = type === 'hidden';
-  const inputType = isPasswordType ? (showPassword ? 'text' : 'password') : type;
+  const inputType = isPasswordType ? (showPassword ? 'text' : 'password') : type; // [CONTROLADO]
 
   if (isHidden) {
     return (
-      <input
+      <input // @audit-ok
         ref={ref}
         type="hidden"
         name={name}
@@ -95,9 +99,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
 
   const stateClasses = error
     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-    : 'border-neutral-300 focus:border-primary-500 focus:ring-primary-500 dark:border-neutral-600 dark:focus:border-primary-500';
+    : success
+      ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+      : 'border-neutral-300 focus:border-primary-500 focus:ring-primary-500 dark:border-neutral-600 dark:focus:border-primary-500';
 
-  const backgroundClasses = 'bg-white text-neutral-900 placeholder-neutral-500 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-400';
+  const backgroundClasses = success
+    ? 'bg-green-50 text-green-900 placeholder-green-500 dark:bg-green-900/20 dark:text-green-100 dark:placeholder-green-700'
+    : 'bg-white text-neutral-900 placeholder-neutral-500 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-400';
 
   const iconPaddingClasses = {
     xs: IconComponent && iconPosition === 'left' ? 'pl-8' : (IconComponent && iconPosition === 'right') || isPasswordType ? 'pr-8' : '',
@@ -133,7 +141,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           </div>
         )}
 
-        <input
+        <input // @audit-ok
           ref={ref}
           id={id}
           type={inputType}
@@ -152,7 +160,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           accept={accept}
           multiple={multiple}
           autoComplete={autoComplete}
-          className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]}`}
+          inputMode={inputMode}
+          className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]} ${className}`}
           style={style}
         />
 

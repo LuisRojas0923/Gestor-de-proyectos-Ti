@@ -16,6 +16,7 @@
 
 # Environment variables
 .env
+.env.pruebas3
 *.env.local
 .env.*.local
 !/.env.example

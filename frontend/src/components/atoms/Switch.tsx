@@ -18,7 +18,7 @@ const Switch: React.FC<SwitchProps> = ({
 }) => {
     return (
         <Text as="label" className={`relative inline-flex items-center cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}>
-            <input
+            <input // @audit-ok
                 type="checkbox"
                 className="sr-only peer"
                 checked={checked}

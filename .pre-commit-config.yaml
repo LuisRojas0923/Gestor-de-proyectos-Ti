@@ -1,0 +1,42 @@
+repos:
+  # 1. Seguridad Estándar
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: detect-private-key
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+
+  # 2. Auditorías Personalizadas (Gestor de Proyectos TI)
+  - repo: local
+    hooks:
+      - id: guard-keywords
+        name: Clean Room Guardian
+        entry: python scripts/guard_keywords.py
+        language: system
+
+      - id: enforce-architecture-backend
+        name: Backend Architecture Enforcer
+        entry: python scripts/enforce_architecture.py
+        language: system
+        types: [python]
+        files: ^backend_v2/
+
+      - id: security-check-backend
+        name: Backend AST Security Auditor
+        entry: python scripts/security_check_backend.py
+        language: system
+        types: [python]
+        files: ^backend_v2/
+
+      - id: design-system-check
+        name: Frontend Design System Enforcer
+        entry: python scripts/design_system_check.py
+        language: system
+        files: ^frontend/.*\.([tj]sx)$
+
+      - id: structure-check-frontend
+        name: Frontend Structure Auditor
+        entry: python scripts/structure_check_frontend.py
+        language: system
+        files: ^frontend/.*\.([tj]sx?)$

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Briefcase, MapPin, Save, X } from 'lucide-react';
-import { MaterialCard, Title, Text, Button } from '../../../components/atoms';
+import { Shield, Briefcase, MapPin, Save, X, Activity } from 'lucide-react';
+import { MaterialCard, Title, Text, Button, Switch } from '../../../components/atoms';
 import { User, useUserAdmin, Role } from '../hooks/useUserAdmin';
 import { especialidadesList, areasList } from '../constants';
 
@@ -45,6 +45,24 @@ const UserEditor: React.FC<UserEditorProps> = ({ user, onSave, onCancel, isSavin
             </div>
 
             <div className="space-y-6">
+                <div className="bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-xl ${editedUser.esta_activo ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
+                            <Activity size={18} />
+                        </div>
+                        <div>
+                            <Text variant="body2" weight="bold" color="text-primary">Estado del Usuario</Text>
+                            <Text variant="caption" color="text-secondary" className="opacity-60">
+                                {editedUser.esta_activo ? 'El usuario puede acceder al sistema' : 'Acceso bloqueado al sistema'}
+                            </Text>
+                        </div>
+                    </div>
+                    <Switch
+                        checked={editedUser.esta_activo}
+                        onChange={(checked) => setEditedUser({ ...editedUser, esta_activo: checked })}
+                    />
+                </div>
+
                 <div>
                     <Text variant="caption" weight="bold" className="uppercase mb-2 block opacity-70">Rol del Sistema</Text>
                     <div className="grid grid-cols-2 gap-2">

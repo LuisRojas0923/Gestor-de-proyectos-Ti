@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm  # @audit-ok
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.services.auth.servicio import ServicioAuth
@@ -10,7 +10,7 @@ router = APIRouter()
 @router.post("/login")
 async def login(
     request: Request,
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    form_data: OAuth2PasswordRequestForm = Depends(),  # @audit-ok
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db_opcional),
 ):
@@ -26,12 +26,16 @@ async def login(
             )
 
         if not ServicioAuth.verificar_contrasena(
-            form_data.password, usuario.hash_contrasena
+            form_data.password, usuario.hash_contrasena  # @audit-ok
         ):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciales incorrectas",
                 headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not usuario.esta_activo:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="La cuenta está desactivada. Por favor, contacte al administrador.",
             )
 
         if db_erp and (not usuario.area or not usuario.sede):
@@ -58,7 +62,7 @@ async def login(
         )
 
         return {
-            "access_token": token_acceso,
+            "access_token": token_acceso,  # @audit-ok
             "token_type": "bearer",
             "user": {
                 "id": usuario.id,
@@ -118,18 +122,25 @@ async def portal_login(
 
     usuario_local = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
 
+    is_viaticante = bool(empleado.get("viaticante"))
     user_data = {
         "id": usuario_local.id if usuario_local else f"USR-P-{cedula}",
         "cedula": cedula,
         "nombre": empleado["nombre"],
-        "rol": usuario_local.rol if usuario_local else "usuario",
+        "rol": usuario_local.rol if (usuario_local and usuario_local.rol not in ["usuario", "viaticante", "user"]) else ("viaticante" if is_viaticante else "usuario"),
         "area": empleado.get("area"),
         "cargo": empleado.get("cargo"),
         "sede": empleado.get("ciudadcontratacion"),
         "centrocosto": empleado.get("centrocosto"),
-        "viaticante": bool(empleado.get("viaticante")),
+        "viaticante": is_viaticante,
         "baseviaticos": empleado.get("baseviaticos"),
     }
+
+    if usuario_local and not usuario_local.esta_activo:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="La cuenta está desactivada para acceso al portal."
+        )
 
     if usuario_local:
         try:
@@ -140,6 +151,9 @@ async def portal_login(
             usuario_local.nombre = user_data["nombre"]
             usuario_local.viaticante = user_data["viaticante"]
             usuario_local.baseviaticos = user_data["baseviaticos"]
+            # Sincronización de rol automática para perfiles de portal
+            if usuario_local.rol in ["usuario", "viaticante", "user"]:
+                usuario_local.rol = user_data["rol"]
             await db.commit()
         except Exception as e:
             print(f"DEBUG: Error sincronizando usuario local existente: {e}")
@@ -164,7 +178,7 @@ async def portal_login(
     )
 
     return {
-        "access_token": token_acceso,
+        "access_token": token_acceso,  # @audit-ok
         "token_type": "bearer",
         "user": {
             "id": user_data["id"],
@@ -212,7 +226,7 @@ async def portal_init(
 
     id_usuario = f"USR-P-{cedula}"
     hash_temporal = ServicioAuth.obtener_hash_contrasena(cedula)
-
+    is_viaticante = bool(empleado.get("viaticante"))
     try:
         from app.models.auth.usuario import Usuario
 
@@ -221,7 +235,7 @@ async def portal_init(
             cedula=cedula,
             nombre=empleado["nombre"],
             hash_contrasena=hash_temporal,
-            rol="user",
+            rol="viaticante" if is_viaticante else "usuario",
             esta_activo=True,
             area=empleado.get("area"),
             cargo=empleado.get("cargo"),

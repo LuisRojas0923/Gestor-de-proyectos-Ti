@@ -13,20 +13,23 @@ if DATABASE_URL and DATABASE_URL.startswith("postgresql+asyncpg://"):
 def migrate():
     print(f"Conectando a {DATABASE_URL}...")
     engine = create_engine(DATABASE_URL)
-    with engine.connect() as conn:
-        print("Verificando columna centrocosto...")
-        res = conn.execute(text("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'usuarios' AND column_name = 'centrocosto'
-        """))
-        if not res.fetchone():
-            print("Agregando columna centrocosto...")
-            conn.execute(text("ALTER TABLE usuarios ADD COLUMN centrocosto VARCHAR(255)"))
-            conn.commit()
-            print("Columna agregada exitosamente.")
-        else:
-            print("La columna ya existe.")
+    try:
+        with engine.connect() as conn:
+            print("Verificando columna centrocosto...")
+            res = conn.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'usuarios' AND column_name = 'centrocosto'
+            """))
+            if not res.fetchone():
+                print("Agregando columna centrocosto...")
+                conn.execute(text("ALTER TABLE usuarios ADD COLUMN centrocosto VARCHAR(255)"))
+                conn.commit()
+                print("Columna agregada exitosamente.")
+            else:
+                print("La columna ya existe.")
+    except Exception as e:
+        print(f"Error durante la migración de centro de costo: {e}")
 
 if __name__ == "__main__":
     migrate()

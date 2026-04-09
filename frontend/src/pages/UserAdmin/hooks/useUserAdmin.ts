@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '../../../hooks/useApi';
+import { useAppContext } from '../../../context/AppContext';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
 
 export interface Role {
@@ -21,6 +22,8 @@ export interface User {
 
 export const useUserAdmin = () => {
     const { get, patch, post, delete: del } = useApi<any>();
+    const { state } = useAppContext();
+    const { refreshKey } = state;
     const { addNotification } = useNotifications();
     const [users, setUsers] = useState<User[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
@@ -56,7 +59,7 @@ export const useUserAdmin = () => {
     useEffect(() => {
         fetchUsers();
         fetchRoles();
-    }, []);
+    }, [refreshKey]);
 
     const handleCreateUser = async (userData: Partial<User>) => {
         setIsSaving(true);
@@ -128,10 +131,13 @@ export const useUserAdmin = () => {
         }
     };
 
-    const filteredUsers = users.filter(u =>
-        u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.cedula.includes(searchTerm)
-    );
+    const filteredUsers = users
+        .filter(u =>
+            u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            u.cedula.includes(searchTerm)
+        )
+        .sort((a, b) => a.rol.localeCompare(b.rol));
+
 
     return {
         users,

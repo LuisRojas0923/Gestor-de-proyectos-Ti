@@ -16,48 +16,57 @@ const UserCard: React.FC<UserCardProps> = ({ user, isSelected, onClick, especial
 
     return (
         <MaterialCard
-            className={`p-6 cursor-pointer border-2 transition-all duration-300 hover:shadow-lg active:scale-[0.98] ${isSelected
+            className={`p-4 cursor-pointer border-2 transition-all duration-300 hover:shadow-md active:scale-[0.99] ${isSelected
                     ? 'border-[var(--color-primary)] shadow-md bg-[var(--color-surface-variant)]'
-                    : 'border-transparent bg-[var(--color-surface)]'
+                    : 'border-[var(--color-border)] bg-[var(--color-surface)]'
                 }`}
             onClick={onClick}
         >
-            <div className="flex justify-between items-start">
-                <div className="flex space-x-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${isSelected ? 'bg-[var(--color-primary)] text-white' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+            <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isSelected ? 'bg-[var(--color-primary)] text-white' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                         }`}>
-                        <Users size={24} />
+                        <Users size={20} />
                     </div>
-                    <div>
-                        <Text weight="bold" variant="h6" className="line-clamp-1">{user.nombre}</Text>
-                        <Text variant="caption" color="text-secondary" className="uppercase font-bold tracking-widest text-[10px]">
-                            {user.rol}
-                        </Text>
+                    <div className="flex flex-col">
+                        <Text weight="bold" variant="subtitle1" className="line-clamp-1 leading-tight">{user.nombre}</Text>
+                        <div className="flex items-center space-x-2 mt-0.5">
+                            <Text variant="caption" color="text-secondary" className="font-mono bg-[var(--color-surface-variant)] px-1.5 py-0.5 rounded text-[10px]">
+                                {user.cedula}
+                            </Text>
+                            <Text variant="caption" className="text-[var(--color-border)] opacity-50">
+                                •
+                            </Text>
+                            <Text variant="caption" weight="bold" color="primary" className="uppercase tracking-widest text-[9px]">
+                                {user.rol}
+                            </Text>
+                        </div>
                     </div>
                 </div>
-                <Badge variant={user.esta_activo ? 'success' : 'error'} size="sm">
+                <Badge variant={user.esta_activo ? 'success' : 'error'} size="sm" className="shadow-none">
                     {user.esta_activo ? 'Activo' : 'Inactivo'}
                 </Badge>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-1.5 opacity-80">
                 {especialidades.slice(0, 3).map((esp: string) => (
-                    <Badge key={esp} variant="info" size="sm" className="bg-opacity-50">
+                    <Badge key={esp} variant="info" size="sm" className="bg-opacity-30 border-transparent text-[10px] py-0 px-2 h-5">
                         {especialidadesList.find(e => e.id === esp)?.label || esp}
                     </Badge>
                 ))}
                 {especialidades.length > 3 && (
-                    <Text variant="caption" color="text-secondary" className="flex items-center">
+                    <Text variant="caption" color="text-secondary" className="flex items-center text-[10px]">
                         +{especialidades.length - 3}
                     </Text>
                 )}
                 {areasCount > 0 && (
-                    <Badge variant="warning" size="sm" className="bg-opacity-50">
+                    <Badge variant="warning" size="sm" className="bg-opacity-30 border-transparent text-[10px] py-0 px-2 h-5">
                         {areasCount} Áreas
                     </Badge>
                 )}
             </div>
         </MaterialCard>
+
     );
 };
 

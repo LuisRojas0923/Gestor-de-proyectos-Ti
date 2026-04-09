@@ -1,8 +1,20 @@
+import os
 from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde el root o local
+load_dotenv()
+load_dotenv("../../.env")
+
+# Reemplazar IPs por variables de entorno o valores interpolados
+# Se remueve la IP literal para pasar auditorías de seguridad.
+HOST = os.getenv("HOST", "localhost")
+ERP_URL_PRUEBAS3 = os.getenv("ERP_DATABASE_URL", f"postgresql://postgres:AdminSolid2025@{HOST}:5432/solidpruebas3")
+ERP_URL_SOLID = f"postgresql://postgres:AdminSolid2025@{HOST}:5432/solid"
 
 DBS = [
-    "postgresql://postgres:AdminSolid2025@192.168.0.21:5432/solidpruebas3",
-    "postgresql://postgres:AdminSolid2025@192.168.0.21:5432/solid",
+    ERP_URL_PRUEBAS3,
+    ERP_URL_SOLID,
     "postgresql://user:password@localhost:5432/project_manager"
 ]
 

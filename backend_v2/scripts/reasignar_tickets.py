@@ -76,62 +76,67 @@ async def reasignar_tickets():
     print("=" * 60)
     print("Iniciando conexión a base de datos...")
     
-    async with AsyncSessionLocal() as db:
-        print("Conexión exitosa.\n")
-        
-        # 1. Obtener TODOS los tickets
-        query = select(Ticket)
-        result = await db.execute(query)
-        tickets = result.scalars().all()
-        
-        count = len(tickets)
-        print(f"Total de tickets encontrados: {count}")
-        
-        if count == 0:
-            print("No hay tickets. Saliendo.")
-            return
+    try:
+        async with AsyncSessionLocal() as db:
+            print("Conexión exitosa.\n")
+            
+            # 1. Obtener TODOS los tickets
+            query = select(Ticket)
+            result = await db.execute(query)
+            tickets = result.scalars().all()
+            
+            count = len(tickets)
+            print(f"Total de tickets encontrados: {count}")
+            
+            if count == 0:
+                print("No hay tickets. Saliendo.")
+                return
 
-        # 2. Inicializar conteo de carga en 0 para todos los analistas
-        todos_analistas = ANALISTAS_SOPORTE_TECNICO + list(ANALISTAS_MEJORA.keys())
-        conteo_carga = {a: 0 for a in todos_analistas}
+            # 2. Inicializar conteo de carga en 0 para todos los analistas
+            todos_analistas = ANALISTAS_SOPORTE_TECNICO + list(ANALISTAS_MEJORA.keys())
+            conteo_carga = {a: 0 for a in todos_analistas}
 
-        reasignados = 0
-        errores = 0
-        sin_analista = 0
-        
-        print(f"\nProcesando tickets...\n")
-        
-        for i, ticket in enumerate(tickets):
-            try:
-                # 3. Determinar analista forzado
-                analista = obtener_analista_forzado(
-                    ticket.categoria_id or "",
-                    ticket.area_creador or "",
-                    conteo_carga
-                )
-                #tickets en estado cerrado tambien
-                if analista:
-                    anterior = ticket.asignado_a or "Sin asignar"
-                    ticket.asignado_a = analista
+            reasignados = 0
+            errores = 0
+            sin_analista = 0
+            
+            print(f"\nProcesando tickets...\n")
+            
+            for i, ticket in enumerate(tickets):
+                try:
+                    # 3. Determinar analista forzado
+                    analista = obtener_analista_forzado(
+                        ticket.categoria_id or "",
+                        ticket.area_creador or "",
+                        conteo_carga
+                    )
+                    #tickets en estado cerrado tambien
+                    if analista:
+                        anterior = ticket.asignado_a or "Sin asignar"
+                        ticket.asignado_a = analista
+                        
+                        if ticket.estado in ['Abierto', None]:
+                            ticket.estado = "Asignado"
+                        
+                        # Incrementar carga del analista
+                        conteo_carga[analista] = conteo_carga.get(analista, 0) + 1
+                        
+                        reasignados += 1
+                        print(f"[{i+1}/{count}] {ticket.id} | {ticket.categoria_id} | Área: {ticket.area_creador or 'N/A'} | {anterior} -> {analista}")
+                    else:
+                        sin_analista += 1
+                        print(f"[{i+1}/{count}] {ticket.id} | SIN ANALISTA DISPONIBLE")
                     
-                    if ticket.estado in ['Abierto', None]:
-                        ticket.estado = "Asignado"
-                    
-                    # Incrementar carga del analista
-                    conteo_carga[analista] = conteo_carga.get(analista, 0) + 1
-                    
-                    reasignados += 1
-                    print(f"[{i+1}/{count}] {ticket.id} | {ticket.categoria_id} | Área: {ticket.area_creador or 'N/A'} | {anterior} -> {analista}")
-                else:
-                    sin_analista += 1
-                    print(f"[{i+1}/{count}] {ticket.id} | SIN ANALISTA DISPONIBLE")
-                
-            except Exception as e:
-                print(f"[{i+1}/{count}] ERROR en {ticket.id}: {e}")
-                errores += 1
-        
-        print("\nGuardando cambios en base de datos...")
-        await db.commit()
+                except Exception as e:
+                    print(f"[{i+1}/{count}] ERROR en {ticket.id}: {e}")
+                    errores += 1
+            
+            print("\nGuardando cambios en base de datos...")
+            await db.commit()
+    except Exception as e:
+        print(f"Error crítico durante la reasignación: {e}")
+        if 'db' in locals():
+            await db.rollback()
         
         print(f"\n{'=' * 60}")
         print(f"  RESUMEN")

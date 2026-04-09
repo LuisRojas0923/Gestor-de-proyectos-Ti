@@ -51,6 +51,14 @@ const TrendChart: React.FC<TrendChartProps> = ({ autoRefresh = true }) => {
     const { get } = useApi();
     const [data, setData] = useState<MetricaHistorial[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsMounted(true);
+        }, 100);
+        return () => clearTimeout(timer);
+    }, []);
 
     const fetchHistorial = async () => {
         try {
@@ -112,8 +120,9 @@ const TrendChart: React.FC<TrendChartProps> = ({ autoRefresh = true }) => {
                             </div>
                             <Text variant="caption" weight="bold" className="uppercase tracking-wider">{s.name}</Text>
                         </div>
-                        <div className="h-28">
-                            <ResponsiveContainer width="100%" height="100%">
+                        <div className="h-28 w-full relative">
+                            {isMounted && (
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                 <AreaChart data={data} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id={`grad-${s.key}`} x1="0" y1="0" x2="0" y2="1">
@@ -148,7 +157,8 @@ const TrendChart: React.FC<TrendChartProps> = ({ autoRefresh = true }) => {
                                     />
                                 </AreaChart>
                             </ResponsiveContainer>
-                        </div>
+                        )}
+                    </div>
                     </Card>
                 );
             })}

@@ -190,13 +190,135 @@ async def init_db():
                     "ALTER TABLE sesiones DROP CONSTRAINT IF EXISTS sesiones_usuario_id_fkey"
                 )
             )
+
+            # --- MIGRACIÓN INVENTARIO 2026 ---
+            await conn.execute(
+                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS estado VARCHAR(20) DEFAULT 'PENDIENTE'")
+            )
+            await conn.execute(
+                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS invporlegalizar FLOAT DEFAULT 0.0")
+            )
+            await conn.execute(
+                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS cantidad_final FLOAT DEFAULT 0.0")
+            )
+            await conn.execute(
+                text("ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS diferencia_total FLOAT DEFAULT 0.0")
+            )
+            
+            # --- CORRECCIÓN DE UNICIDAD (FLEXIBILIDAD TOTAL) ---
+            # Eliminar la restricción antigua que impedía repeticiones de SKU en la misma ubicación
+            await conn.execute(
+                text("ALTER TABLE conteoinventario DROP CONSTRAINT IF EXISTS unique_sku_location")
+            )
+            
+            # --- MIGRACIÓN HISTÓRICO ---
+            await conn.execute(
+                text("ALTER TABLE conteohistorico ADD COLUMN IF NOT EXISTS cantidad_final FLOAT DEFAULT 0.0")
+            )
+            await conn.execute(
+                text("ALTER TABLE conteohistorico ADD COLUMN IF NOT EXISTS diferencia_total FLOAT DEFAULT 0.0")
+            )
+            
+            # Tablas Adicionales
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS asignacioninventario (
+                    id SERIAL PRIMARY KEY,
+                    bodega VARCHAR(100),
+                    bloque VARCHAR(50),
+                    estante VARCHAR(50),
+                    nivel VARCHAR(50),
+                    cedula VARCHAR(50),
+                    nombre VARCHAR(255),
+                    cargo VARCHAR(100),
+                    creado_en TIMESTAMP DEFAULT NOW()
+                );
+            """))
+            
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS transitoinventario (
+                    id SERIAL PRIMARY KEY,
+                    sku VARCHAR(100),
+                    documento VARCHAR(100),
+                    cantidad FLOAT DEFAULT 0.0,
+                    fecha_proceso TIMESTAMP DEFAULT NOW()
+                );
+            """))
+            
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS configuracioninventario (
+                    id SERIAL PRIMARY KEY,
+                    ronda_activa INTEGER DEFAULT 1,
+                    conteo_nombre VARCHAR(100),
+                    ultima_actualizacion TIMESTAMP DEFAULT NOW()
+                );
+            """))
+
+            # --- CORRECCIÓN DE INTEGRIDAD (Aislamiento de Historia) ---
+            # 1. Obtener el nombre del inventario activo
+            config_res = await conn.execute(text("SELECT conteo_nombre, ronda_activa FROM configuracioninventario LIMIT 1;"))
+            config_row = config_res.fetchone()
+            
+            if config_row and config_row[0]:
+                active_conteo = config_row[0]
+                r_act = config_row[1] or 1
+                col_fisica = f"cant_c{r_act}"
+                
+                print(f"DEBUG: Corrigiendo balance para inventario activo: {active_conteo} (Ronda {r_act})")
+                
+                # Paso A: Resetear diferencia_total para el inventario activo basándose solo en su ronda actual
+                # Usamos una subconsulta para obtener la suma física por SKU DENTRO DEL MISMO INVENTARIO
+                await conn.execute(text(f"""
+                    WITH total_fisico AS (
+                        SELECT codigo, conteo, SUM(COALESCE({col_fisica}, 0)) as suma_f
+                        FROM conteoinventario
+                        WHERE conteo = :c_name
+                        GROUP BY codigo, conteo
+                    )
+                    UPDATE conteoinventario i
+                    SET diferencia_total = tf.suma_f - (COALESCE(i.cantidad_sistema, 0) + COALESCE(i.invporlegalizar, 0)),
+                        estado = CASE 
+                            WHEN ABS(tf.suma_f - (COALESCE(i.cantidad_sistema, 0) + COALESCE(i.invporlegalizar, 0))) < 0.01 THEN 'CONCILIADO'
+                            ELSE i.estado
+                        END
+                    FROM total_fisico tf
+                    WHERE i.codigo = tf.codigo AND i.conteo = tf.conteo AND i.conteo = :c_name;
+                """), {"c_name": active_conteo})
+            
+            # Paso B: Asegurar que cantidad_final esté poblada para todos
+            await conn.execute(text("""
+                UPDATE conteoinventario 
+                SET cantidad_final = (COALESCE(cantidad_sistema, 0) + COALESCE(invporlegalizar, 0))
+                WHERE cantidad_final = 0 AND (cantidad_sistema > 0 OR invporlegalizar > 0);
+            """))
+
+            # --- SANEAMIENTO DE DATOS (Robustez para Staging) ---
+            # 1. Asegurar que el estado no sea NULL (Causa de invisibilidad en portal)
+            await conn.execute(text("UPDATE conteoinventario SET estado = 'PENDIENTE' WHERE estado IS NULL;"))
+            
+            # 2. Normalizar Bodega, Bloque y Estante (Eliminar espacios accidentales)
+            await conn.execute(text("UPDATE conteoinventario SET bodega = TRIM(bodega), bloque = TRIM(bloque), estante = TRIM(estante);"))
+            await conn.execute(text("UPDATE asignacioninventario SET bodega = TRIM(bodega), bloque = TRIM(bloque), estante = TRIM(estante);"))
+            
+            # 3. Inicializar campos numéricos para evitar errores de tipo
+            await conn.execute(text("UPDATE conteoinventario SET invporlegalizar = 0 WHERE invporlegalizar IS NULL;"))
+            await conn.execute(text("UPDATE conteoinventario SET diferencia_total = 0 WHERE diferencia_total IS NULL AND (cant_c1 IS NULL OR cant_c1 = 0);"))
+            
+            # --- AUTO-MIGRACIÓN: Soporte de Parejas (Requerimiento v4.2) ---
+            # Asegurar que existan las columnas en asignacioninventario
+            await conn.execute(text('ALTER TABLE "asignacioninventario" ADD COLUMN IF NOT EXISTS "cedula_companero" VARCHAR;'))
+            await conn.execute(text('ALTER TABLE "asignacioninventario" ADD COLUMN IF NOT EXISTS "nombre_companero" VARCHAR;'))
+            await conn.execute(text('ALTER TABLE "asignacioninventario" ADD COLUMN IF NOT EXISTS "numero_pareja" INTEGER;'))
+            
+            # Inicializar numero_pareja si es NULL (opcional but safe)
+            await conn.execute(text('UPDATE "asignacioninventario" SET "numero_pareja" = 1 WHERE "numero_pareja" IS NULL;'))
+
         except Exception as e:
-            print(f"DEBUG: Error al asegurar columnas de perfil/auditoría: {e}")
+            print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario: {e}")
 
     # 3.1 Seed idempotente de sala por defecto
     try:
         import uuid
-        from sqlmodel import select
+        from sqlalchemy import select
         from .models.reserva_salas.models import Room
 
         default_room_id = uuid.UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
@@ -222,7 +344,7 @@ async def init_db():
 
     # 4. Usuario administrador por defecto (si no existe)
     try:
-        from .models.auth.usuario import Usuario, ModuloSistema, PermisoRol
+        from .models.auth.usuario import Usuario
         from .services.auth.servicio import ServicioAuth
         from sqlmodel import select
         from .models.novedades_nomina.nomina import NominaArchivo, NominaRegistroCrudo, NominaRegistroNormalizado, NominaConcepto
@@ -246,180 +368,12 @@ async def init_db():
                 print("DEBUG: Usuario administrador creado (admin / admin123)")
 
             # 4.2 SINCRONIZACIÓN Y SEMILLADO DE MÓDULOS
-            # IMPORTANTE: Esta lista es solo para el semillado inicial de módulos críticos.
-            # Los módulos nuevos DEBEN registrarse a través de la interfaz administrativa
-            # (Panel Maestro) y no añadiéndolos aquí manualmente para evitar redundancias.
-            modulos_core = [
-                {
-                    "id": "service-portal",
-                    "nombre": "Portal de Servicios (Shell)",
-                    "categoria": "portal",
-                    "critico": True,
-                },
-                {
-                    "id": "mis_solicitudes",
-                    "nombre": "Mis Solicitudes",
-                    "categoria": "portal",
-                    "critico": True,
-                },
-                {
-                    "id": "viaticos_gestion",
-                    "nombre": "Gestión de Viáticos",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "viaticos_reportes",
-                    "nombre": "Legalización de Gastos",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "viaticos_estado",
-                    "nombre": "Estado de Cuenta (Viáticos)",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "viaticos_director_panel",
-                    "nombre": "Panel de Legalizaciones (Director)",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "sistemas",
-                    "nombre": "Soporte Sistemas",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "mejoramiento",
-                    "nombre": "Mejoramiento TI",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "desarrollo",
-                    "nombre": "Software Factory",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "chat",
-                    "nombre": "Asistente IA",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "reserva_salas",
-                    "nombre": "Reserva de Salas",
-                    "categoria": "portal",
-                    "critico": False,
-                },
-                {
-                    "id": "dashboard",
-                    "nombre": "Tablero Principal",
-                    "categoria": "analistas",
-                    "critico": True,
-                },
-                {
-                    "id": "ticket-management",
-                    "nombre": "Gestión de Tickets",
-                    "categoria": "analistas",
-                    "critico": False,
-                },
-                {
-                    "id": "developments",
-                    "nombre": "Gestión de Actividades",
-                    "categoria": "analistas",
-                    "critico": False,
-                },
-                {
-                    "id": "control-tower",
-                    "nombre": "Torre de Control",
-                    "categoria": "panel",
-                    "critico": True,
-                },
-                {
-                    "id": "user-admin",
-                    "nombre": "Administración de Usuarios",
-                    "categoria": "panel",
-                    "critico": True,
-                },
-                {
-                    "id": "settings",
-                    "nombre": "Parámetros del Sistema",
-                    "categoria": "analistas",
-                    "critico": False,
-                },
-                {
-                    "id": "indicators",
-                    "nombre": "Indicadores Globales (BI)",
-                    "categoria": "analistas",
-                    "critico": False,
-                },
-                {
-                    "id": "reports",
-                    "nombre": "Reportería Avanzada",
-                    "categoria": "analistas",
-                    "critico": False,
-                },
-                {
-                    "id": "design-catalog",
-                    "nombre": "Catálogo de Diseño UI/UX",
-                    "categoria": "panel",
-                    "critico": False,
-                },
-            ]
+            # Ya no se realiza semillado manual aquí. El sistema usa rbac_discovery.py
+            # cargando desde rbac_manifest.py para mantener una única fuente de verdad.
+            pass
 
-            # ── UPSERT nativo PostgreSQL (inmune a concurrencia) ──
-            from sqlalchemy import text as sa_text
-
-            upsert_sql = sa_text("""
-                INSERT INTO modulos_sistema (id, nombre, categoria, esta_activo, es_critico)
-                VALUES (:id, :nombre, :categoria, TRUE, :es_critico)
-                ON CONFLICT (id) DO UPDATE SET
-                    nombre     = EXCLUDED.nombre,
-                    categoria  = EXCLUDED.categoria,
-                    es_critico = EXCLUDED.es_critico,
-                    esta_activo = TRUE
-            """)
-
-            for m_data in modulos_core:
-                await session.execute(
-                    upsert_sql,
-                    {
-                        "id": m_data["id"],
-                        "nombre": m_data["nombre"],
-                        "categoria": m_data["categoria"],
-                        "es_critico": m_data["critico"],
-                    },
-                )
-
-            # Discovery Dinámico: módulos que solo están en permisos_rol
-            result_permisos = await session.execute(
-                select(PermisoRol.modulo).distinct()
-            )
-            modulos_en_permisos = result_permisos.scalars().all()
-            ids_core = {m["id"] for m in modulos_core}
-
-            for mod_id in modulos_en_permisos:
-                if not mod_id or mod_id in ids_core:
-                    continue
-                await session.execute(
-                    upsert_sql,
-                    {
-                        "id": mod_id,
-                        "nombre": mod_id.replace("_", " ").replace("-", " ").title(),
-                        "categoria": "otros",
-                        "es_critico": False,
-                    },
-                )
-
-            await session.commit()
-            print(
-                "DEBUG: Semillado de módulos completado exitosamente (upsert nativo PG)."
-            )
+    except Exception as e:
+        print(f"DEBUG: Error en post-inicialización (admin/módulos): {e}")
 
     except Exception as e:
         print(f"DEBUG: Error en post-inicialización (admin/módulos): {e}")

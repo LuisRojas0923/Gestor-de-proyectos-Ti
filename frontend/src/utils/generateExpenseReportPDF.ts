@@ -17,9 +17,14 @@ interface ExpenseLine {
 
 interface User {
     name?: string;
+    nombre?: string;
     cedula?: string;
     id?: string;
     sede?: string;
+    ciudad?: string;
+    cargo?: string;
+    area?: string;
+    centrocosto?: string;
 }
 
 /**
@@ -132,12 +137,12 @@ export const generateExpenseReportPDF = async (
             startY: userInfoY,
             margin: { left: margin, right: margin },
             theme: 'grid',
-            headStyles: { fillColor: navyBlue, textColor: 255, halign: 'center', fontStyle: 'bold', fontSize: 9, cellPadding: 1, lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 },
-            bodyStyles: { halign: 'center', textColor: 0, fontSize: 9, cellPadding: 1, lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 },
+            headStyles: { fillColor: navyBlue, textColor: 255, halign: 'center', fontStyle: 'bold', fontSize: 8, cellPadding: 1, lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 },
+            bodyStyles: { halign: 'center', textColor: 0, fontSize: 8, cellPadding: 1, lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 },
             head: [['FECHA ENTREGA', 'NOMBRE', 'CEDULA', 'TOTAL SOLICITADO', 'TOTAL APROBADO']],
             body: [[
                 { content: currentDate, styles: { fillColor: [240, 240, 240] as [number, number, number] } },
-                { content: (user.name || '').toUpperCase(), styles: { fillColor: [240, 240, 240] as [number, number, number] } },
+                { content: (user.nombre || user.name || '').toUpperCase(), styles: { fillColor: [240, 240, 240] as [number, number, number] } },
                 { content: user.cedula || user.id || '', styles: { fillColor: [240, 240, 240] as [number, number, number] } },
                 { content: `$   ${totalGastos.toLocaleString('es-CO')}`, styles: { fillColor: [240, 240, 240] as [number, number, number] } },
                 { content: `$   ${totalGastos.toLocaleString('es-CO')}`, styles: { fillColor: [240, 240, 240] as [number, number, number] } } // Asumimos aprobado = solicitado en esta versión
@@ -300,7 +305,7 @@ export const generateExpenseReportPDF = async (
             let fStr = Object(l).fechaaplicacion || l.fecha || '';
             if (fStr.includes('T')) fStr = fStr.split('T')[0];
 
-            const catKey = l.categoria || 'Sin Categoría';
+            const catKey = (l.categoria || 'Sin Categoría').toUpperCase();
             categoriasSet.add(catKey);
 
             if (!dayRubroMap.has(fStr)) {
@@ -319,15 +324,7 @@ export const generateExpenseReportPDF = async (
         const dynamicFontSize = catLength > 8 ? 5 : (catLength > 5 ? 6 : 7);
         const dynamicPadding = catLength > 8 ? 0.3 : (catLength > 5 ? 0.5 : 1);
 
-        // Construir encabezados de la matriz (Partir palabras largas si existen)
-        const formatHeader = (str: string) => {
-            if (str.length > 12 && !str.includes(' ')) {
-                return str.substring(0, 8) + '-\n' + str.substring(8);
-            }
-            return str;
-        };
-
-        const matrixHeaders = ['FECHA /\nRUBRO', ...sortedCategorias.map(formatHeader), 'TOTAL'];
+        const matrixHeaders = ['FECHA / RUBRO', ...sortedCategorias, 'TOTAL'];
 
         // Construir cuerpo de la matriz
         const matrixBody: any[] = [];
@@ -372,7 +369,22 @@ export const generateExpenseReportPDF = async (
             alternateRowStyles: { fillColor: [235, 235, 235] as [number, number, number] },
             head: [matrixHeaders],
             body: matrixBody,
-            columnStyles: { 0: { halign: 'center', cellWidth: 16 } } // Fijar ancho de la columna fecha
+            columnStyles: {
+                0: { halign: 'center', cellWidth: 18 },
+                // Calcular ancho exacto: ancho de la palabra + margen de seguridad
+                ...sortedCategorias.reduce((acc, cat, i) => {
+                    doc.setFontSize(dynamicFontSize);
+                    doc.setFont('helvetica', 'bold'); // Asegurar medir con la fuente real del header
+                    const textWidth = doc.getTextWidth(cat);
+                    doc.setFont('helvetica', 'normal');
+                    const moneyWidth = doc.getTextWidth('$ 8.888.888'); 
+                    // Usamos un margen de 3mm para asegurar que el motor de autotable no trunque por micro-diferencias
+                    const finalW = Math.max(textWidth, moneyWidth) + 3; 
+                    return { ...acc, [i + 1]: { halign: 'right', cellWidth: finalW } };
+                }, {}),
+                // Última columna (TOTAL) con ancho fijo 18mm
+                [sortedCategorias.length + 1]: { halign: 'right', cellWidth: 18, fontStyle: 'bold' }
+            }
         });
 
         const finalMatrixY = (doc as any).lastAutoTable.finalY;
@@ -437,7 +449,7 @@ export const generateExpenseReportPDF = async (
                 1: { cellWidth: 'auto' },
                 2: { cellWidth: 15, halign: 'center' },
                 3: { cellWidth: 15, halign: 'center' },
-                4: { cellWidth: 12, halign: 'center' },
+                4: { cellWidth: 15, halign: 'center' },
                 5: { cellWidth: 25, halign: 'right' },
                 6: { cellWidth: 25, halign: 'right' },
                 7: { cellWidth: 25, halign: 'right', fontStyle: 'bold' }
@@ -447,14 +459,7 @@ export const generateExpenseReportPDF = async (
         // ==========================================
         // 5. SECCIÓN DE FIRMAS (AL FINAL DEL DOCUMENTO)
         // ==========================================
-        let finalY = (doc as any).lastAutoTable.finalY + 15; // Espacio mínimo antes de las líneas
-        const spaceNeeded = 15; // 15mm de alto necesario para pintar línea y texto
-
-        // Si no hay suficiente espacio para las firmas en la página actual, agregamos una nueva
-        if (finalY + spaceNeeded > pageHeight - 15) {
-            doc.addPage();
-            finalY = 40; // Empezamos desde arriba en la nueva página
-        }
+        let finalY = (doc as any).lastAutoTable.finalY + 20; // Espacio después de la última tabla generada
 
         const usableFillWidth = pageWidth - (margin * 2);
         const signatureWidth = 45; // Ancho de la línea física de cada firma
@@ -477,7 +482,7 @@ export const generateExpenseReportPDF = async (
 
         // 2. Firma Regional (Centro)
         doc.line(col2X, finalY, col2X + signatureWidth, finalY);
-        doc.text("Firma Regional", col2X + (signatureWidth / 2), finalY + 5, { align: 'center' });
+        doc.text("Firma Jefe Inmediato", col2X + (signatureWidth / 2), finalY + 5, { align: 'center' });
 
         // 3. Firma Gerencia (Derecha)
         doc.line(col3X, finalY, col3X + signatureWidth, finalY);

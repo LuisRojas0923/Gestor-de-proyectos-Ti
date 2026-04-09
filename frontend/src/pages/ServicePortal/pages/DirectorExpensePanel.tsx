@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Eye, ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
+import { ArrowLeft, Eye, Search, Filter } from 'lucide-react';
 import { Button, Text, Title, Input, Select, Badge, MaterialCard as Card } from '../../../components/atoms';
 import { useApi } from '../../../hooks/useApi';
 
@@ -21,20 +21,10 @@ interface Legalizacion {
     total_lineas: number;
 }
 
-interface LineaDetalle {
-    id: number;
-    categoria: string;
-    fecha_gasto: string;
-    ot: string;
-    cc: string;
-    scc: string;
-    valor_con_factura: number;
-    valor_sin_factura: number;
-    observaciones_linea: string;
-}
 
 interface DirectorExpensePanelProps {
     onBack: () => void;
+    onSelectReport: (reporte: Legalizacion) => void;
 }
 
 const formatCurrency = (val: number) =>
@@ -55,13 +45,10 @@ const getStatusVariant = (estado: string): 'success' | 'warning' | 'info' | 'err
     return 'info';
 };
 
-const DirectorExpensePanel: React.FC<DirectorExpensePanelProps> = ({ onBack }) => {
+const DirectorExpensePanel: React.FC<DirectorExpensePanelProps> = ({ onBack, onSelectReport }) => {
     const { get } = useApi();
     const [legalizaciones, setLegalizaciones] = useState<Legalizacion[]>([]);
     const [loading, setLoading] = useState(true);
-    const [expandedId, setExpandedId] = useState<string | null>(null);
-    const [detalles, setDetalles] = useState<Record<string, LineaDetalle[]>>({});
-    const [loadingDetalle, setLoadingDetalle] = useState<string | null>(null);
 
     // Filtros
     const [searchTerm, setSearchTerm] = useState('');
@@ -82,27 +69,6 @@ const DirectorExpensePanel: React.FC<DirectorExpensePanelProps> = ({ onBack }) =
 
     useEffect(() => { fetchLegalizaciones(); }, []);
 
-    const toggleDetalle = async (reporteId: string) => {
-        if (expandedId === reporteId) {
-            setExpandedId(null);
-            return;
-        }
-        setExpandedId(reporteId);
-
-        if (!detalles[reporteId]) {
-            setLoadingDetalle(reporteId);
-            try {
-                const data = await get(`/viaticos/reporte/${reporteId}/detalle`);
-                if (Array.isArray(data)) {
-                    setDetalles(prev => ({ ...prev, [reporteId]: data }));
-                }
-            } catch (err) {
-                console.error('Error cargando detalle:', err);
-            } finally {
-                setLoadingDetalle(null);
-            }
-        }
-    };
 
     // Áreas únicas para filtro
     const areasUnicas = [...new Set(legalizaciones.map(l => l.area).filter(Boolean))].sort();
@@ -221,12 +187,11 @@ const DirectorExpensePanel: React.FC<DirectorExpensePanelProps> = ({ onBack }) =
                             {/* Fila principal - compacta */}
                             <div
                                 className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-[var(--color-surface-variant)]/30 transition-colors"
-                                onClick={() => toggleDetalle(leg.reporte_id)}
+                                onClick={() => onSelectReport(leg)}
                             >
-                                {expandedId === leg.reporte_id ? <ChevronUp size={14} className="text-[var(--color-primary)] shrink-0" /> : <ChevronDown size={14} className="text-[var(--color-text-secondary)] shrink-0" />}
                                 <Text variant="caption" weight="bold" className="font-mono w-24 shrink-0">{leg.codigolegalizacion || leg.reporte_id}</Text>
-                                <Text variant="caption" weight="medium" className="w-24 shrink-0 hidden md:block">{formatDate(leg.fecha)}</Text>
-                                <Text variant="caption" weight="bold" className="flex-1 min-w-0 truncate">{leg.nombreempleado}</Text>
+                                <Text variant="caption" weight="medium" className="w-24 shrink-0 hidden md:block whitespace-nowrap">{formatDate(leg.fecha)}</Text>
+                                <Text variant="caption" weight="bold" className="flex-1 min-w-0 truncate text-left pl-6">{leg.nombreempleado}</Text>
                                 <Text variant="caption" weight="medium" className="w-32 shrink-0 hidden lg:block truncate">{leg.area || '—'}</Text>
                                 <Text variant="caption" weight="bold" className="w-28 shrink-0 text-right">{formatCurrency(leg.valortotal)}</Text>
                                 <div className="w-24 shrink-0 text-center">
@@ -235,59 +200,6 @@ const DirectorExpensePanel: React.FC<DirectorExpensePanelProps> = ({ onBack }) =
                                 <Text variant="caption" color="text-secondary" className="w-16 shrink-0 text-right hidden sm:block">{leg.total_lineas} ítems</Text>
                             </div>
 
-                            {/* Detalle expandible */}
-                            {expandedId === leg.reporte_id && (
-                                <div className="border-t border-[var(--color-border)] bg-[var(--color-background)] p-4">
-                                    {/* Info extra */}
-                                    <div className="flex flex-wrap gap-4 mb-4">
-                                        <Text variant="caption" color="text-secondary"><strong>Ciudad:</strong> {leg.ciudad || '—'}</Text>
-                                        <Text variant="caption" color="text-secondary"><strong>Cargo:</strong> {leg.cargo || '—'}</Text>
-                                        <Text variant="caption" color="text-secondary"><strong>C. Costo:</strong> {leg.centrocosto || '—'}</Text>
-                                        {leg.observaciones && (
-                                            <Text variant="caption" color="text-secondary"><strong>Obs:</strong> {leg.observaciones}</Text>
-                                        )}
-                                    </div>
-
-                                    {loadingDetalle === leg.reporte_id ? (
-                                        <div className="py-6 text-center">
-                                            <div className="animate-spin inline-block w-5 h-5 border-2 border-current border-t-transparent text-[var(--color-primary)] rounded-full" role="status"></div>
-                                        </div>
-                                    ) : detalles[leg.reporte_id] && detalles[leg.reporte_id].length > 0 ? (
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left">
-                                                <thead>
-                                                    <tr className="bg-[var(--color-surface-variant)]/50">
-                                                        <th className="px-3 py-2"><Text variant="caption" weight="bold" color="text-secondary">#</Text></th>
-                                                        <th className="px-3 py-2"><Text variant="caption" weight="bold" color="text-secondary">Categoría</Text></th>
-                                                        <th className="px-3 py-2"><Text variant="caption" weight="bold" color="text-secondary">Fecha</Text></th>
-                                                        <th className="px-3 py-2"><Text variant="caption" weight="bold" color="text-secondary">OT</Text></th>
-                                                        <th className="px-3 py-2"><Text variant="caption" weight="bold" color="text-secondary">CC/SCC</Text></th>
-                                                        <th className="px-3 py-2 text-right"><Text variant="caption" weight="bold" color="text-secondary">Con Factura</Text></th>
-                                                        <th className="px-3 py-2 text-right"><Text variant="caption" weight="bold" color="text-secondary">Sin Factura</Text></th>
-                                                        <th className="px-3 py-2"><Text variant="caption" weight="bold" color="text-secondary">Obs.</Text></th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {detalles[leg.reporte_id].map((linea, idx) => (
-                                                        <tr key={linea.id || idx} className="border-t border-[var(--color-border)]/50 hover:bg-[var(--color-surface-variant)]/20 transition-colors">
-                                                            <td className="px-3 py-2"><Text variant="caption" weight="bold">{idx + 1}</Text></td>
-                                                            <td className="px-3 py-2"><Text variant="caption">{linea.categoria || '—'}</Text></td>
-                                                            <td className="px-3 py-2"><Text variant="caption">{formatDate(linea.fecha_gasto || (linea as any).fecharealgasto)}</Text></td>
-                                                            <td className="px-3 py-2"><Text variant="caption" weight="bold" className="font-mono">{linea.ot || '—'}</Text></td>
-                                                            <td className="px-3 py-2"><Text variant="caption">{linea.cc || (linea as any).centrocosto || '—'}/{linea.scc || (linea as any).subcentrocosto || '—'}</Text></td>
-                                                            <td className="px-3 py-2 text-right"><Text variant="caption" weight="bold">{formatCurrency((linea as any).valorconfactura ?? linea.valor_con_factura ?? 0)}</Text></td>
-                                                            <td className="px-3 py-2 text-right"><Text variant="caption">{formatCurrency((linea as any).valorsinfactura ?? linea.valor_sin_factura ?? 0)}</Text></td>
-                                                            <td className="px-3 py-2"><Text variant="caption" color="text-secondary" className="max-w-[200px] truncate block">{linea.observaciones_linea || (linea as any).observaciones || '—'}</Text></td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    ) : (
-                                        <Text variant="caption" color="text-secondary" className="italic text-center block py-4">Sin líneas de detalle.</Text>
-                                    )}
-                                </div>
-                            )}
                         </Card>
                     ))}
                 </div>

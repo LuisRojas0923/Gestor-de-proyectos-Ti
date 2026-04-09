@@ -31,10 +31,11 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
     const {
         lineas, setLineas, observacionesGral, setObservacionesGral,
         activeReporteId, setActiveReporteId, currentEstado, setCurrentEstado,
+        radicado,
         ots, isSearchingOT, addLinea, removeLinea, updateLinea,
         handleOTSearch, selectOT, totalFacturado, totalSinFactura,
         totalGeneral, clearForm, loadLineas, validationErrors,
-        setValidationErrors, logMarina
+        setValidationErrors, isSyncing, handleSyncOTs, logMarina
     } = useExpenseForm();
 
     const {
@@ -46,8 +47,8 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
         setCurrentEstado, clearForm, onSuccess, onBack, setValidationErrors, logMarina
     });
 
-    const isReadOnly = currentEstado !== undefined && currentEstado !== 'BORRADOR' && currentEstado !== 'INICIAL';
-    const canDownloadPDF = currentEstado === 'INICIAL' || currentEstado === 'PROCESADO';
+    const isReadOnly = (currentEstado !== undefined && currentEstado !== 'BORRADOR' && currentEstado !== 'INICIAL') || state?.readonly;
+    const canDownloadPDF = (currentEstado === 'INICIAL' || currentEstado === 'PROCESADO') || state?.readonly;
     const hasLoadedInitial = React.useRef(false);
 
     React.useEffect(() => {
@@ -57,8 +58,9 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
         } else {
             const lineasACargar = initialLineas || state?.lineas;
             const obsACargar = initialObservaciones || state?.observaciones;
+            const radicadoACargar = state?.codigolegalizacion || state?.radicado;
             if (lineasACargar?.length) {
-                loadLineas(lineasACargar, obsACargar);
+                loadLineas(lineasACargar, obsACargar, radicadoACargar);
                 const repId = state?.reporte_id || lineasACargar[0]?.reporte_id;
                 if (repId) setActiveReporteId(repId);
                 if (state?.estado) setCurrentEstado(state.estado);
@@ -67,16 +69,31 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
         hasLoadedInitial.current = true;
     }, [initialLineas, initialObservaciones, state, loadLineas, clearForm, setActiveReporteId, setCurrentEstado]);
 
+    const ownerData = state?.readonly ? {
+        nombre: state?.nombreempleado || state?.nombre || state?.name,
+        cedula: state?.usuario || state?.cedula || state?.id,
+        cargo: state?.cargo,
+        area: state?.area,
+        sede: state?.ciudad || state?.sede,
+        centrocosto: state?.centrocosto || state?.cc,
+        baseviaticos: state?.baseviaticos
+    } : undefined;
+
     return (
         <div className="space-y-1 max-w-[1300px] mx-auto">
             <ExpenseHeader onBack={onBack} />
-            <UserSummaryCard user={user} reporteId={activeReporteId} />
+            <UserSummaryCard 
+                user={user} 
+                reporteId={radicado || activeReporteId} 
+                originalMetadata={ownerData}
+            />
             <ExpenseActionCenter
                 totalFacturado={totalFacturado} totalSinFactura={totalSinFactura} totalGeneral={totalGeneral}
                 isLoading={isLoading} isReadOnly={isReadOnly} canDownloadPDF={canDownloadPDF}
                 activeReporteId={activeReporteId} handleSaveDraft={() => handleSubmit('BORRADOR')}
                 handlePrepareSubmit={handlePrepareSubmit} setShowDeleteReportModal={setShowDeleteReportModal}
-                clearForm={clearForm} onBack={onBack} user={user} lineas={lineas}
+                clearForm={clearForm} onBack={onBack} user={ownerData || user} lineas={lineas}
+                radicado={radicado}
             />
 
             <ExpenseDesktopTable
@@ -84,6 +101,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
                 removeLinea={removeLinea} handleOTSearch={handleOTSearch} selectOT={selectOT}
                 setLineas={setLineas} validationErrors={validationErrors} isReadOnly={isReadOnly}
                 categorias={categorias} addLinea={addLinea}
+                onSync={handleSyncOTs} isSyncing={isSyncing}
             />
 
             <ExpenseMobileView

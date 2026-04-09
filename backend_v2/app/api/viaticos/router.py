@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional, Union
 from datetime import date
 from pydantic import BaseModel
 
 from ...database import obtener_erp_db
-from ...services.erp import ViaticosService
+from ...services.erp import ViaticosService, ViaticosQueryService
 
 router = APIRouter(prefix="/viaticos")
 
@@ -55,7 +56,7 @@ class ReporteViaticos(BaseModel):
 def obtener_categorias_legalizacion(db_erp: Session = Depends(obtener_erp_db)):
     """Obtiene las categorías de legalización disponibles en el ERP"""
     try:
-        return ViaticosService.obtener_categorias_legalizacion(db_erp)
+        return ViaticosQueryService.obtener_categorias_legalizacion(db_erp)
     except Exception as e:
         print(f"ERROR ERP categorias: {e}")
         raise HTTPException(
@@ -67,7 +68,7 @@ def obtener_categorias_legalizacion(db_erp: Session = Depends(obtener_erp_db)):
 def buscar_ots(query: Optional[str] = None, db_erp: Session = Depends(obtener_erp_db)):
     """Busca OTs en la tabla otviaticos del ERP"""
     try:
-        resultado = ViaticosService.buscar_ots(db_erp, query)
+        resultado = ViaticosQueryService.buscar_ots(db_erp, query)
         return [OTResponse(**row) for row in resultado]
     except Exception as e:
         print(f"ERROR ERP: {e}")
@@ -80,7 +81,7 @@ def buscar_ots(query: Optional[str] = None, db_erp: Session = Depends(obtener_er
 def obtener_combinaciones_ot(numero: str, db_erp: Session = Depends(obtener_erp_db)):
     """Obtiene todas las combinaciones de CC/SCC para una OT específica"""
     try:
-        resultado = ViaticosService.obtener_combinaciones_ot(db_erp, numero)
+        resultado = ViaticosQueryService.obtener_combinaciones_ot(db_erp, numero)
         return [OTResponse(**row) for row in resultado]
     except Exception as e:
         print(f"ERROR ERP combinaciones: {e}")
@@ -117,7 +118,7 @@ async def obtener_detalle_reporte(
 ):
     """Obtiene el detalle completo de las líneas de un reporte en tránsito"""
     try:
-        return ViaticosService.obtener_detalle_reporte(db_erp, reporte_id)
+        return ViaticosQueryService.obtener_detalle_reporte(db_erp, reporte_id)
     except Exception as e:
         print(f"ERROR GET DETALLE REPORTE: {e}")
         raise HTTPException(
@@ -134,11 +135,35 @@ def obtener_estado_cuenta(
 ):
     """Obtiene el estado de cuenta detallado de viáticos desde el ERP"""
     try:
-        return ViaticosService.obtener_estado_cuenta(db_erp, cedula, desde, hasta)
+        return ViaticosQueryService.obtener_estado_cuenta(db_erp, cedula, desde, hasta)
     except Exception as e:
         print(f"ERROR ERP Estado Cuenta: {e}")
         raise HTTPException(
             status_code=500, detail=f"Error al obtener estado de cuenta: {str(e)}"
+        )
+
+
+@router.get("/estado-cuenta/xlsx")
+def exportar_estado_cuenta_xlsx(
+    cedula: str,
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    db_erp: Session = Depends(obtener_erp_db),
+):
+    """Genera y descarga el estado de cuenta en formato XLSX"""
+    try:
+        buffer = ViaticosService.exportar_estado_cuenta_xlsx(db_erp, cedula, desde, hasta)
+        filename = f"Estado_Cuenta_{cedula}_{date.today().strftime('%Y%m%d')}.xlsx"
+
+        return StreamingResponse(
+            buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as e:
+        print(f"ERROR ERP Export XLSX: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error al generar archivo XLSX: {str(e)}"
         )
 
 
@@ -148,7 +173,7 @@ async def obtener_reportes_viaticos(
 ):
     """Obtiene el listado agrupado de legalizaciones desde la tabla de cabecera"""
     try:
-        return ViaticosService.obtener_resumen_legalizaciones(db_erp, cedula)
+        return ViaticosQueryService.obtener_resumen_legalizaciones(db_erp, cedula)
     except Exception as e:
         print(f"ERROR GET REPORTES ERP: {e}")
         raise HTTPException(
@@ -177,7 +202,7 @@ async def eliminar_reporte(reporte_id: str, db_erp: Session = Depends(obtener_er
 async def obtener_legalizaciones_director(db_erp: Session = Depends(obtener_erp_db)):
     """Obtiene TODAS las legalizaciones del portal (vista exclusiva director)"""
     try:
-        return ViaticosService.obtener_todas_legalizaciones(db_erp)
+        return ViaticosQueryService.obtener_todas_legalizaciones(db_erp)
     except Exception as e:
         print(f"ERROR GET LEGALIZACIONES DIRECTOR: {e}")
         raise HTTPException(

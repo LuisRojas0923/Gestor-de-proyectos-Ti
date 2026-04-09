@@ -3,10 +3,12 @@ API de Endpoint ERP - Backend V2
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
 from sqlalchemy.orm import Session
 from app.database import obtener_db, obtener_erp_db, obtener_erp_db_opcional
 from app.services.erp import EmpleadosService
 from typing import Any, Dict, List, Optional
+from app.config import config
 from app.api.erp.requisiciones_router import router as requisiciones_router
 
 router = APIRouter()
@@ -64,3 +66,36 @@ async def sincronizar_erp(db: Session = Depends(obtener_db)):
     """
     # Logica de sincronizacion
     return {"mensaje": "Sincronizacion iniciada"}
+
+
+@router.post("/sync-external")
+async def sincronizar_externo():
+    """
+    Proxy para el servicio externo de sincronización OT/OS.
+    Resuelve problemas de CORS al llamar desde el frontend.
+    """
+    url_externa = config.sync_external_url
+    try:
+        async with httpx.AsyncClient(timeout=75.0) as client:
+            print(f"DEBUG SYNC | Llamando a servicio externo: {url_externa}")
+            response = await client.post(url_externa)
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as exc:
+        print(f"ERROR SYNC | El servicio externo respondió con error {exc.response.status_code}: {exc.response.text}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Error en el servicio externo (Status {exc.response.status_code}): {exc.response.text}"
+        )
+    except httpx.RequestError as exc:
+        print(f"ERROR SYNC | Error de conexión con {url_externa}: {str(exc)}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"No se pudo contactar con el servicio de sincronización en {url_externa}. Verifica que el servicio esté corriendo."
+        )
+    except Exception as e:
+        print(f"ERROR SYNC | Error inesperado: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error inesperado en sincronización: {str(e)}"
+        )

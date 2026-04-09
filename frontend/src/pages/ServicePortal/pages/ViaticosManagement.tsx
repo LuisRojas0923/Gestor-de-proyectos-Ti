@@ -1,4 +1,4 @@
-import { ArrowLeftIcon as ArrowLeft, ClipboardDocumentListIcon as ClipboardList, ShieldCheckIcon as ShieldCheck } from '@heroicons/react/24/outline';
+import { ArrowLeft, ClipboardList, ShieldCheck } from 'lucide-react';
 import { Button, Text, Title } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 import { useAppContext } from '../../../context/AppContext';
@@ -73,7 +73,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                                 Hemos validado tu identidad correctamente. Sin embargo, tu acceso a los módulos funcionales de viáticos
                                 (Legalización y Estado de Cuenta) está actualmente **restringido** por la administración del sistema.
                                 <br />
-                                <span className="text-xs font-semibold opacity-70">Por favor contacta al área administrativa si crees que esto es un error.</span>
+                                <Text variant="caption" weight="semibold" className="opacity-70 block">Por favor contacta al área administrativa si crees que esto es un error.</Text>
                             </Text>
                         </div>
                     </div>

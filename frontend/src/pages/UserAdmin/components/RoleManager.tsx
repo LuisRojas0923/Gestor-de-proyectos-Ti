@@ -6,7 +6,8 @@ import {
     Text,
     Button,
     Input,
-    Badge
+    Badge,
+    Textarea
 } from '../../../components/atoms';
 import { useUserAdmin, Role } from '../hooks/useUserAdmin';
 
@@ -64,11 +65,12 @@ const RoleManager: React.FC = () => {
 
                         <div className="space-y-2">
                             <Text variant="caption" weight="bold" className="uppercase opacity-60">Descripción</Text>
-                            <textarea
-                                className="w-full p-4 rounded-2xl bg-[var(--color-surface-variant)] border-2 border-transparent focus:border-[var(--color-primary)] transition-all outline-none text-sm min-h-[100px]"
+                            <Textarea
                                 placeholder="Describa el propósito de este rol..."
                                 value={newRole.descripcion}
-                                onChange={(e) => setNewRole({ ...newRole, descripcion: e.target.value })}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewRole({ ...newRole, descripcion: e.target.value })}
+                                className="!rounded-2xl"
+                                rows={4}
                             />
                         </div>
 

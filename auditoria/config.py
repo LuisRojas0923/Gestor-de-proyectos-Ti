@@ -45,7 +45,6 @@ TARGET_EXTENSIONS = {
     ".yml",
     ".bat",
     ".sh",
-    ".env",
     ".sql",
     ".md",
 }

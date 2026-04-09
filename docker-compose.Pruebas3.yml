@@ -25,11 +25,12 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager}
       - ERP_DATABASE_URL=${ERP_DATABASE_URL}
       - ENVIRONMENT=pruebas3
-      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
-      - APP_VERSION=${APP_VERSION:-v2.2.0-DEV}
-      - FRONTEND_URL=http://${FRONTEND_HOST:-localhost}
+      - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES}
+      - SYNC_EXTERNAL_URL=${SYNC_EXTERNAL_URL}
+      - APP_VERSION=${APP_VERSION:-v2.4.0-DEV}
+      - FRONTEND_URL=http://${FRONTEND_HOST:-localhost}:${FRONTEND_PORT:-8083}
       - TZ=America/Bogota
     depends_on:
       - db

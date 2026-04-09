@@ -41,12 +41,12 @@ class ServicioAuth:
             expira = datetime.now(timezone.utc) + tiempo_expiracion
         else:
             expira = datetime.now(timezone.utc) + timedelta(
-                minutes=config.access_token_expire_minutes
+                minutes=config.jwt_token_expire_minutes
             )
 
         a_codificar.update({"exp": expira})
         token_jwt = jwt.encode(
-            a_codificar, config.secret_key, algorithm=config.algorithm
+            a_codificar, config.jwt_secret_key, algorithm=config.algorithm
         )
         return token_jwt
 
@@ -55,7 +55,7 @@ class ServicioAuth:
         """Decodifica el token y extrae la cedula (sub)."""
         try:
             payload = jwt.decode(
-                token, config.secret_key, algorithms=[config.algorithm]
+                token, config.jwt_secret_key, algorithms=[config.algorithm]
             )
             cedula: str = payload.get("sub")
             if cedula is None:
@@ -172,7 +172,6 @@ class ServicioAuth:
     @staticmethod
     async def obtener_permisos_por_rol(db: AsyncSession, rol: str) -> list[str]:
         """Obtiene la lista de módulos permitidos para un rol que estén activos globalmente."""
-        from sqlalchemy import func
         from app.models.auth.usuario import ModuloSistema
 
         # Unimos PermisoRol con ModuloSistema para filtrar por su estado global 'esta_activo'
@@ -180,10 +179,9 @@ class ServicioAuth:
             select(PermisoRol.modulo)
             .join(ModuloSistema, PermisoRol.modulo == ModuloSistema.id)
             .where(
-                func.lower(PermisoRol.rol) == rol.lower().strip(),
-                PermisoRol.permitido == True,
-                ModuloSistema.esta_activo
-                == True,  # REFUERZO: El módulo debe estar activo globalmente
+                PermisoRol.rol == rol,  # FILTRO CRÍTICO: Solo permisos del rol solicitado
+                PermisoRol.permitido,
+                ModuloSistema.esta_activo,  # REFUERZO: El módulo debe estar activo globalmente
             )
         )
         return list(result.scalars().all())
@@ -206,20 +204,19 @@ class ServicioAuth:
         id_usuario = f"USR-P-{cedula}"
         hash_pwd = ServicioAuth.obtener_hash_contrasena(contrasena)
 
+        viaticante_val = bool(datos_erp.get("viaticante"))
         nuevo_usuario = Usuario(
             id=id_usuario,
             cedula=cedula,
             nombre=datos_erp["nombre"],
             hash_contrasena=hash_pwd,
-            rol="usuario",  # Rol estándar del portal
+            rol="viaticante" if viaticante_val else "usuario",
             esta_activo=True,
             area=datos_erp.get("area"),
             cargo=datos_erp.get("cargo"),
             sede=datos_erp.get("ciudadcontratacion"),
             centrocosto=datos_erp.get("centrocosto"),
-            viaticante=bool(datos_erp.get("viaticante"))
-            if datos_erp.get("viaticante") is not None
-            else False,
+            viaticante=viaticante_val,
             baseviaticos=datos_erp.get("baseviaticos"),
         )
 
@@ -246,7 +243,7 @@ class ServicioAuth:
         try:
             async with AsyncSessionLocal() as session:
                 ahora = get_bogota_now()
-                expira = ahora + timedelta(minutes=config.access_token_expire_minutes)
+                expira = ahora + timedelta(minutes=config.jwt_token_expire_minutes)
 
                 nueva_sesion = Sesion(
                     usuario_id=usuario_id,

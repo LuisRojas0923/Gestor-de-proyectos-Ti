@@ -115,22 +115,37 @@ export const useExpenseForm = () => {
         return undefined;
     });
 
+    const [radicado, setRadicado] = useState<string | undefined>(() => {
+        const saved = localStorage.getItem(CACHE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return parsed.radicado;
+            } catch (e) {
+                return undefined;
+            }
+        }
+        return undefined;
+    });
+
     const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
+    const [isSyncing, setIsSyncing] = useState(false);
     const { addNotification } = useNotifications();
 
     // Auto-save cada vez que cambian los datos
     useEffect(() => {
         const saveTimeout = setTimeout(() => {
-            const dataToSave = { lineas, observacionesGral, activeReporteId, currentEstado };
+            const dataToSave = { lineas, observacionesGral, activeReporteId, currentEstado, radicado };
             localStorage.setItem(CACHE_KEY, JSON.stringify(dataToSave));
             logMarina("💾 [DRAFT] Borrador actualizado en el almacenamiento local", {
                 items: lineas.length,
                 reporteId: activeReporteId,
-                estado: currentEstado
+                estado: currentEstado,
+                radicado
             });
         }, 500); // Debounce de 500ms
         return () => clearTimeout(saveTimeout);
-    }, [lineas, observacionesGral, activeReporteId, currentEstado]);
+    }, [lineas, observacionesGral, activeReporteId, currentEstado, radicado]);
 
     const addLinea = useCallback(() => {
         logMarina("➕ [UI] Agregando nueva línea de gasto");
@@ -260,6 +275,7 @@ export const useExpenseForm = () => {
         setObservacionesGral('');
         setActiveReporteId(undefined);
         setCurrentEstado(undefined);
+        setRadicado(undefined);
         setValidationErrors({}); // Limpiar errores visuales
 
         // Limpiar localStorage de raíz (solo caché actual, mantenemos backup para emergencias)
@@ -275,7 +291,7 @@ export const useExpenseForm = () => {
             (!l.adjuntos || l.adjuntos.length === 0);
     }, []);
 
-    const loadLineas = useCallback(async (nuevasLineas: LineaGasto[], observaciones?: string) => {
+    const loadLineas = useCallback(async (nuevasLineas: LineaGasto[], observaciones?: string, radicadoIn?: string) => {
         if (!nuevasLineas || nuevasLineas.length === 0) return;
 
         logMarina("📥 [LOAD] Solicitud de carga de datos externos", { count: nuevasLineas.length });
@@ -301,11 +317,15 @@ export const useExpenseForm = () => {
         logMarina("🔄 [LOAD] Normalizando y recuperando combinaciones para OTs (paralelo):", otsUnicas);
 
         // Disparar TODAS las peticiones de OT en paralelo en vez de secuencial
-        const promesasOT = otsUnicas.map(otNum =>
-            axios.get(`${API_BASE_URL}/viaticos/ot/${otNum}/combinaciones`)
-                .then(res => ({ ot: otNum, combos: res.data }))
-                .catch(err => { console.error(`Error recuperando combos para OT ${otNum}:`, err); return { ot: otNum, combos: [] }; })
-        );
+        const promesasOT = otsUnicas.map(async (otNum) => {
+            try {
+                const res = await axios.get(`${API_BASE_URL}/viaticos/ot/${otNum}/combinaciones`);
+                return { ot: otNum, combos: res.data };
+            } catch (err) {
+                console.error(`Error recuperando combos para OT ${otNum}:`, err);
+                return { ot: otNum, combos: [] };
+            }
+        });
 
         const resultadosOT = await Promise.all(promesasOT);
 
@@ -322,9 +342,36 @@ export const useExpenseForm = () => {
         if (observaciones !== undefined) {
             setObservacionesGral(observaciones);
         }
+        if (radicadoIn !== undefined) {
+            setRadicado(radicadoIn);
+        }
     }, [isFormEmpty, lineas, observacionesGral]);
 
 
+
+    const handleSyncOTs = async () => {
+        setIsSyncing(true);
+        logMarina("♻️ [API] Iniciando sincronización de OT/OS externas...");
+        try {
+            // Se llama al backend propio (proxy) para evitar errores de CORS
+            const res = await axios.post('/api/v2/erp/sync-external', {}, {
+                timeout: 80000 // Aumentado ligeramente para dar margen al backend (70s)
+            });
+            
+            if (res.data.status === 'success') {
+                addNotification('success', `Sincronización completada: ${res.data.message} (${res.data.elapsed_seconds}s)`);
+                logMarina("✅ [API] Sincronización exitosa", res.data);
+            } else {
+                addNotification('warning', 'La sincronización reportó un estado no exitoso.');
+            }
+        } catch (err: any) {
+            console.error("Error en sincronización:", err);
+            const errorMsg = err.response?.data?.detail || err.message || 'Error desconocido';
+            addNotification('error', `Error al sincronizar OTs: ${errorMsg}`);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     return {
         lineas,
@@ -335,6 +382,8 @@ export const useExpenseForm = () => {
         setActiveReporteId,
         currentEstado,
         setCurrentEstado,
+        radicado,
+        setRadicado,
         ots,
         setOts,
         isSearchingOT,
@@ -351,6 +400,8 @@ export const useExpenseForm = () => {
         loadLineas,
         validationErrors,
         setValidationErrors,
+        isSyncing,
+        handleSyncOTs,
         logMarina
     };
 };

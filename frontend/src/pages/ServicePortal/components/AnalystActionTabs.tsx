@@ -31,7 +31,7 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
     React.useEffect(() => {
         const fetchAnalistas = async () => {
             try {
-                const data = await get('/auth/analistas');
+                const data = await get('/auth/analistas?solo_asignables=true');
                 if (data) {
                     setAnalistas(data.map(a => ({ value: a.nombre, label: a.nombre })));
                 }
@@ -375,5 +375,3 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
 };
 
 export default AnalystActionTabs;
-
-
