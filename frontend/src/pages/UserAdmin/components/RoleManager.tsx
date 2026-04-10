@@ -72,6 +72,7 @@ const RoleManager: React.FC = () => {
                                 className="!rounded-2xl"
                                 rows={4}
                             />
+                        </div>
 
                         <Button
                             variant="primary"
