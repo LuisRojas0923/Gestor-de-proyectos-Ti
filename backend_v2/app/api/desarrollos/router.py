@@ -2,9 +2,10 @@
 API de Desarrollos - Backend V2
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db
+from sqlalchemy import select
 from app.models.desarrollo.desarrollo import Desarrollo, DesarrolloCrear, DesarrolloActualizar
 
 router = APIRouter()
@@ -19,24 +20,35 @@ async def listar_desarrollos(
 ):
     """Lista todos los desarrollos con filtros opcionales"""
     try:
-        # TODO: Implementar lógica con el servicio de desarrollos
-        return []
+        query = select(Desarrollo).offset(skip).limit(limit)
+        
+        # Filtro por estado si se envía
+        if estado:
+            query = query.where(Desarrollo.estado_general == estado)
+            
+        result = await db.execute(query)
+        desarrollos = result.scalars().all()
+            
+        return desarrollos
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al listar desarrollos: {str(e)}")
 
 
 @router.post("/", response_model=Desarrollo)
 async def crear_desarrollo(
-    desarrollo: DesarrolloCrear, 
+    desarrollo_in: DesarrolloCrear, 
     db: AsyncSession = Depends(obtener_db)
 ):
     """Crea un nuevo desarrollo"""
     try:
-        # TODO: Implementar lógica con el servicio de desarrollos
-        raise HTTPException(status_code=501, detail="Endpoint no implementado")
-    except HTTPException:
-        raise
+        nueva_data = desarrollo_in.model_dump()
+        nuevo_desarrollo = Desarrollo(**nueva_data)
+        db.add(nuevo_desarrollo)
+        await db.commit()
+        await db.refresh(nuevo_desarrollo)
+        return nuevo_desarrollo
     except Exception as e:
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al crear desarrollo: {str(e)}")
 
 
@@ -79,8 +91,14 @@ async def obtener_desarrollo(
 ):
     """Obtiene un desarrollo por su ID"""
     try:
-        # TODO: Implementar lógica con el servicio de desarrollos
-        raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
+        query = select(Desarrollo).where(Desarrollo.id == desarrollo_id)
+        result = await db.execute(query)
+        desarrollo = result.scalar_one_or_none()
+        
+        if not desarrollo:
+            raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
+            
+        return desarrollo
     except HTTPException:
         raise
     except Exception as e:

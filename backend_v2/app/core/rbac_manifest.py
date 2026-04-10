@@ -159,6 +159,13 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": False,
         "descripcion": "Gestión de estructuras de desglose de trabajo.",
     },
+    {
+        "id": "lineas_corporativas",
+        "nombre": "Gestión de Líneas Corporativas",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Gestión e inventario de líneas telefónicas corporativas y facturación.",
+    },
 
     # --- CATEGORÍA: PANEL (Administración de Control) ---
     {
