@@ -42,6 +42,7 @@ async def listar_años_disponibles(
 ):
     """Lista los años disponibles para el usuario actual"""
     try:
+        query = select(Formato2276.ano_gravable).where(Formato2276.nitb == usuario.cedula).distinct()
         result = await db.execute(query)
         return result.scalars().all()
     except Exception as e:
@@ -61,6 +62,10 @@ async def descargar_pdf_220(
         cedula_a_buscar = cedula_target
 
     try:
+        query = select(Formato2276).where(
+            Formato2276.ano_gravable == ano,
+            Formato2276.nitb == cedula_a_buscar
+        )
         result = await db.execute(query)
         registro = result.scalar_one_or_none()
     except Exception as e:
