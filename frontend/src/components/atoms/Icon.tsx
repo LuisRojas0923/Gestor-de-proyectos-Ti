@@ -58,7 +58,6 @@ export const Icon: React.FC<IconProps> = ({
                 height={finalSize}
                 color={finalColor}
                 strokeWidth={2}
-                className={className}
             />
         </Text>
     );
