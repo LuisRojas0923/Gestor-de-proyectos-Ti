@@ -40,9 +40,13 @@ async def seed_data():
         ]
 
         for p in personas:
-            existing = await session.execute(select(EmpleadoLinea).where(EmpleadoLinea.documento == p.documento))
-            if not existing.scalar_one_or_none():
-                session.add(p)
+            try:
+                existing = await session.execute(select(EmpleadoLinea).where(EmpleadoLinea.documento == p.documento))
+                if not existing.scalar_one_or_none():
+                    session.add(p)
+            except Exception as e:
+                print(f"Error procesando persona {p.documento}: {e}")
+                await session.rollback()
         
         for e in equipos:
             session.add(e)
@@ -50,8 +54,12 @@ async def seed_data():
         await session.commit()
         
         # Recargar para obtener IDs
-        res_e = await session.execute(select(EquipoMovil))
-        db_equipos = {e.modelo: e.id for e in res_e.scalars().all()}
+        try:
+            res_e = await session.execute(select(EquipoMovil))
+            db_equipos = {e.modelo: e.id for e in res_e.scalars().all()}
+        except Exception as e:
+            print(f"Error recuperando IDs de equipos: {e}")
+            db_equipos = {}
         
         # 3. Crear Líneas vinculadas
         lineas_data = [
@@ -72,16 +80,20 @@ async def seed_data():
         ]
         
         for l_num, doc, mod in lineas_data:
-            existing = await session.execute(select(LineaCorporativa).where(LineaCorporativa.linea == l_num))
-            if not existing.scalar_one_or_none() or l_num == "SIN SIM":
-                ln = LineaCorporativa(
-                    linea=l_num if l_num != "SIN SIM" else f"SIN SIM {os.urandom(2).hex()}",
-                    empresa="REFRIDCOL",
-                    documento_asignado=doc,
-                    documento_cobro=doc,
-                    equipo_id=db_equipos.get(mod)
-                )
-                session.add(ln)
+            try:
+                existing = await session.execute(select(LineaCorporativa).where(LineaCorporativa.linea == l_num))
+                if not existing.scalar_one_or_none() or l_num == "SIN SIM":
+                    ln = LineaCorporativa(
+                        linea=l_num if l_num != "SIN SIM" else f"SIN SIM {os.urandom(2).hex()}",
+                        empresa="REFRIDCOL",
+                        documento_asignado=doc,
+                        documento_cobro=doc,
+                        equipo_id=db_equipos.get(mod)
+                    )
+                    session.add(ln)
+            except Exception as e:
+                print(f"Error procesando línea {l_num}: {e}")
+                await session.rollback()
         
         await session.commit()
         print("Seed completado exitosamente.")

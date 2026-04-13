@@ -19,8 +19,11 @@ router = APIRouter()
 # --- ENDPOINTS EQUIPOS ---
 @router.get("/equipos", response_model=List[EquipoMovilOut])
 async def listar_equipos(db: AsyncSession = Depends(obtener_db)):
-    result = await db.execute(select(EquipoMovil))
-    return result.scalars().all()
+    try:
+        result = await db.execute(select(EquipoMovil))
+        return result.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al listar equipos: {str(e)}")
 
 @router.post("/equipos", response_model=EquipoMovilOut)
 async def crear_equipo(equipo_in: EquipoMovilCreate, db: AsyncSession = Depends(obtener_db)):
@@ -33,8 +36,11 @@ async def crear_equipo(equipo_in: EquipoMovilCreate, db: AsyncSession = Depends(
 # --- ENDPOINTS PERSONAS ---
 @router.get("/personas", response_model=List[EmpleadoLineaOut])
 async def listar_personas(db: AsyncSession = Depends(obtener_db)):
-    result = await db.execute(select(EmpleadoLinea))
-    return result.scalars().all()
+    try:
+        result = await db.execute(select(EmpleadoLinea))
+        return result.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al listar personas: {str(e)}")
 
 @router.post("/personas", response_model=EmpleadoLineaOut)
 async def crear_persona(persona_in: EmpleadoLineaCreate, db: AsyncSession = Depends(obtener_db)):
@@ -52,16 +58,22 @@ async def listar_lineas(db: AsyncSession = Depends(obtener_db)):
         joinedload(LineaCorporativa.asignado),
         joinedload(LineaCorporativa.responsable_cobro)
     ).order_by(LineaCorporativa.id.desc())
-    result = await db.execute(query)
-    return result.scalars().unique().all()
+    try:
+        result = await db.execute(query)
+        return result.scalars().unique().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al listar líneas: {str(e)}")
 
 @router.get("/alertas-empleados")
 async def obtener_alertas_empleados(db_erp: Session = Depends(obtener_erp_db_opcional), db_local: AsyncSession = Depends(obtener_db)):
     if db_erp is None:
         return {"error": "ERP no disponible", "alertas": {}}
     
-    result = await db_local.execute(select(EmpleadoLinea.documento))
-    cedulas = [str(c) for c in result.scalars().all() if c]
+    try:
+        result = await db_local.execute(select(EmpleadoLinea.documento))
+        cedulas = [str(c) for c in result.scalars().all() if c]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al consultar cédulas locales: {str(e)}")
     
     if not cedulas:
         return {"alertas": {}}
@@ -78,7 +90,10 @@ async def obtener_alertas_empleados(db_erp: Session = Depends(obtener_erp_db_opc
         ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST
     """)
     
-    erp_result = db_erp.execute(query, {"cedulas": tuple(cedulas)}).fetchall()
+    try:
+        erp_result = db_erp.execute(query, {"cedulas": tuple(cedulas)}).fetchall()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en consulta ERP: {str(e)}")
     
     for row in erp_result:
         cedula = str(row.nrocedula).strip()
@@ -101,9 +116,14 @@ async def obtener_alertas_empleados(db_erp: Session = Depends(obtener_erp_db_opc
 
 @router.post("/", response_model=LineaCorporativaOut, status_code=status.HTTP_201_CREATED)
 async def crear_linea(linea_in: LineaCorporativaCreate, db: AsyncSession = Depends(obtener_db)):
-    existing = await db.execute(select(LineaCorporativa).where(LineaCorporativa.linea == linea_in.linea))
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="La linea corporativa ya se encuentra registrada.")
+    try:
+        existing = await db.execute(select(LineaCorporativa).where(LineaCorporativa.linea == linea_in.linea))
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="La linea corporativa ya se encuentra registrada.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al verificar duplicados: {str(e)}")
         
     db_linea = LineaCorporativa(**linea_in.model_dump())
     db.add(db_linea)
@@ -116,8 +136,12 @@ async def crear_linea(linea_in: LineaCorporativaCreate, db: AsyncSession = Depen
         joinedload(LineaCorporativa.asignado),
         joinedload(LineaCorporativa.responsable_cobro)
     ).where(LineaCorporativa.id == db_linea.id)
-    result = await db.execute(query)
-    return result.scalar_one()
+    
+    try:
+        result = await db.execute(query)
+        return result.scalar_one()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al recargar línea creada: {str(e)}")
 
 @router.get("/{id}", response_model=LineaCorporativaOut)
 async def obtener_linea(id: int, db: AsyncSession = Depends(obtener_db)):
@@ -126,11 +150,17 @@ async def obtener_linea(id: int, db: AsyncSession = Depends(obtener_db)):
         joinedload(LineaCorporativa.asignado),
         joinedload(LineaCorporativa.responsable_cobro)
     ).where(LineaCorporativa.id == id)
-    result = await db.execute(query)
-    linea = result.scalar_one_or_none()
-    if not linea:
-        raise HTTPException(status_code=404, detail="Linea no encontrada")
-    return linea
+    
+    try:
+        result = await db.execute(query)
+        linea = result.scalar_one_or_none()
+        if not linea:
+            raise HTTPException(status_code=404, detail="Linea no encontrada")
+        return linea
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener línea: {str(e)}")
 
 @router.put("/{id}", response_model=LineaCorporativaOut)
 async def actualizar_linea(id: int, linea_in: LineaCorporativaUpdate, db: AsyncSession = Depends(obtener_db)):
@@ -152,8 +182,12 @@ async def actualizar_linea(id: int, linea_in: LineaCorporativaUpdate, db: AsyncS
         joinedload(LineaCorporativa.asignado),
         joinedload(LineaCorporativa.responsable_cobro)
     ).where(LineaCorporativa.id == id)
-    result = await db.execute(query)
-    return result.scalar_one()
+    
+    try:
+        result = await db.execute(query)
+        return result.scalar_one()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al recargar línea actualizada: {str(e)}")
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def eliminar_linea(id: int, db: AsyncSession = Depends(obtener_db)):
