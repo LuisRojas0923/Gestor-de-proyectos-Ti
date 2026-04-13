@@ -10,6 +10,7 @@ export { default as Textarea } from './Textarea';
 export { default as Switch } from './Switch';
 export { default as Checkbox } from './Checkbox';
 export { default as Spinner } from './Spinner';
+export { default as Skeleton } from './Skeleton';
 export * from './Progress';
 export { Text } from './Text';
 export { Title } from './Title';

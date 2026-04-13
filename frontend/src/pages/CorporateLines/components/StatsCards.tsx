@@ -1,6 +1,6 @@
 import React from 'react';
 import { Smartphone, AlertTriangle, Users, CreditCard } from 'lucide-react';
-import { Title, Text, MaterialCard as Card, Icon } from '../../../components/atoms';
+import { Title, Text, MaterialCard as Card, Icon, Skeleton } from '../../../components/atoms';
 
 interface SubStat {
   label: string;
@@ -10,6 +10,7 @@ interface SubStat {
 }
 
 interface StatsProps {
+  isLoading?: boolean;
   stats: {
     total: number;
     active: number;
@@ -25,7 +26,7 @@ interface StatsProps {
   };
 }
 
-export const StatsCards: React.FC<StatsProps> = ({ stats }) => {
+export const StatsCards: React.FC<StatsProps> = ({ stats, isLoading }) => {
   const cards: Array<{
     label: string,
     mainValue: string | number,
@@ -91,17 +92,25 @@ export const StatsCards: React.FC<StatsProps> = ({ stats }) => {
           </div>
           
           <div className="flex items-baseline justify-between mb-2">
-             <Title variant="h4" weight="bold">{card.mainValue}</Title>
+             {isLoading ? (
+               <Skeleton className="h-8 w-24" />
+             ) : (
+               <Title variant="h4" weight="bold">{card.mainValue}</Title>
+             )}
              <Text variant="caption" color="text-secondary" className="opacity-60">{card.mainLabel}</Text>
           </div>
 
           <div className="flex items-center gap-3 pt-2 border-t border-neutral-100 dark:border-neutral-700">
              {card.subStats.map((sub, idx) => (
-               <div key={idx} className="flex items-center gap-1.5">
+               <div key={idx} className="flex items-center gap-1.5 line-clamp-1">
                   <div className={`w-1.5 h-1.5 rounded-full ${sub.isCritical ? 'bg-error-500 animate-pulse' : 'bg-current opacity-40'}`} />
-                  <Text variant="caption" weight="bold" className={`${sub.color} text-[10px]`}>
-                    {sub.value} {sub.label}
-                  </Text>
+                  {isLoading ? (
+                    <Skeleton className="h-3 w-12" />
+                  ) : (
+                    <Text variant="caption" weight="bold" className={`${sub.color} text-[10px]`}>
+                      {sub.value} {sub.label}
+                    </Text>
+                  )}
                </div>
              ))}
           </div>

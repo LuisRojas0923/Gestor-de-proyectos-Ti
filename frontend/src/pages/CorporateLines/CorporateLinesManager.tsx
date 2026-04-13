@@ -116,13 +116,6 @@ export const CorporateLinesManager: React.FC = () => {
     setView('dashboard');
   };
 
-  if (isLoading && lines.length === 0) {
-    return (
-      <div className="h-full w-full flex items-center justify-center bg-gray-50 dark:bg-neutral-900">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 h-full overflow-y-auto bg-gray-50 dark:bg-neutral-900 custom-scrollbar p-6">
@@ -144,7 +137,7 @@ export const CorporateLinesManager: React.FC = () => {
             </Button>
           </div>
 
-          <StatsCards stats={stats} />
+          <StatsCards stats={stats} isLoading={isLoading} />
 
           {/* FILTROS INTEGRADOS */}
           <Card className="mb-6 p-4 border-none shadow-sm rounded-2xl">
@@ -184,6 +177,7 @@ export const CorporateLinesManager: React.FC = () => {
             lines={filteredLines} 
             onSelect={(id) => setSelectedLineId(id)}
             employeeAlerts={employeeAlerts}
+            isLoading={isLoading}
           />
         </div>
       ) : (
