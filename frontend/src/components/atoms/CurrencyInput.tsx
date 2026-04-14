@@ -1,4 +1,4 @@
-import { Input } from './index';
+import Input from './Input';
 
 interface CurrencyInputProps {
     value: string | number;

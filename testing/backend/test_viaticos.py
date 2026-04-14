@@ -1,34 +1,12 @@
 import pytest
-import pytest_asyncio
-import httpx
 import os
 from dotenv import load_dotenv
 
 # Cargar variables de entorno
 load_dotenv()
 
-BASE_URL = "http://localhost:8000/api/v2"
 TEST_USER_CEDULA = os.getenv("TEST_USER_CEDULA", "1107068093")
 TEST_USER_PASS = os.getenv("TEST_USER_PASS", "1107068093")
-
-@pytest_asyncio.fixture
-async def client():
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=30.0) as ac:
-        yield ac
-
-@pytest_asyncio.fixture
-async def auth_token(client):
-    """Obtiene un token de acceso para las pruebas protegidas"""
-    try:
-        response = await client.post("/auth/login", data={
-            "username": TEST_USER_CEDULA,
-            "password": TEST_USER_PASS
-        })
-        if response.status_code == 200:
-            return response.json()["access_token"]
-        return None
-    except Exception:
-        return None
 
 @pytest.mark.asyncio
 async def test_get_viaticos_categorias(client):

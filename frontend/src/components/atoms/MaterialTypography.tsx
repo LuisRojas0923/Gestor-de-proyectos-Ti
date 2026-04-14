@@ -1,5 +1,7 @@
 import React from 'react';
-import { Text, Title, Subtitle } from './index';
+import { Text } from './Text';
+import { Title } from './Title';
+import { Subtitle } from './Subtitle';
 
 interface MaterialTypographyProps {
   children: React.ReactNode;

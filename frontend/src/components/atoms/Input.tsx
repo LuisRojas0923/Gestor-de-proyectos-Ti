@@ -1,6 +1,8 @@
 import { LucideIcon, Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
-import { Text, Icon, Button } from './index';
+import { Text } from './Text';
+import Icon from './Icon';
+import Button from './Button';
 
 interface InputProps {
   type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'date' | 'time' | 'datetime-local' | 'url' | 'range' | 'file' | 'hidden';

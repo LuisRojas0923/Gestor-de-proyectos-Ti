@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Filter, Search, X } from 'lucide-react';
-import { Text, Input, Button } from './index';
+import { Text } from './Text';
+import Input from './Input';
+import Button from './Button';
 
 interface MultiSelectOption {
     value: string;

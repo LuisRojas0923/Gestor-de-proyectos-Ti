@@ -329,6 +329,28 @@ async def init_db():
             await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS pago_empresa NUMERIC(12, 2) DEFAULT 0.0"))
             await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS primera_quincena NUMERIC(12, 2) DEFAULT 0.0"))
             await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS segunda_quincena NUMERIC(12, 2) DEFAULT 0.0"))
+            
+            # --- TABLA DE FACTURAS (Motor de Dispersión) ---
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS facturas_lineas (
+                    id SERIAL PRIMARY KEY,
+                    linea_id INTEGER REFERENCES lineas_corporativas(id),
+                    periodo VARCHAR(50) NOT NULL,
+                    documento_asignado VARCHAR(100),
+                    centro_costo VARCHAR(100),
+                    cargo_mes NUMERIC(12, 2) DEFAULT 0.0,
+                    descuento_mes NUMERIC(12, 2) DEFAULT 0.0,
+                    impoconsumo NUMERIC(12, 2) DEFAULT 0.0,
+                    descuento_iva NUMERIC(12, 2) DEFAULT 0.0,
+                    iva_19 NUMERIC(12, 2) DEFAULT 0.0,
+                    total NUMERIC(12, 2) DEFAULT 0.0,
+                    pago_empleado NUMERIC(12, 2) DEFAULT 0.0,
+                    pago_refridcol NUMERIC(12, 2) DEFAULT 0.0,
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+            """))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_facturas_periodo ON facturas_lineas(periodo)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_facturas_linea ON facturas_lineas(linea_id)"))
 
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario: {e}")

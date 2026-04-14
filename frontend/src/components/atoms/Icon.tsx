@@ -46,6 +46,12 @@ export const Icon: React.FC<IconProps> = ({
     const finalColor = colorMap[color] || color;
     const finalSize = tokens.icon.size[size] || tokens.icon.size.md;
 
+    // Salvaguarda contra componentes de entrada undefined (dependencias circulares o carga fallida)
+    if (!IconComponent) {
+        console.warn(`Icon atom: IconComponent is undefined for size=${size}, color=${color}`);
+        return null;
+    }
+
     return (
         <Text
             as="span"
