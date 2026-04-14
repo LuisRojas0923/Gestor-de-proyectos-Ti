@@ -1,7 +1,7 @@
 import React from 'react';
 import { Smartphone, User, CreditCard, Save, Trash2, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { 
-  Button, Input, Select, Textarea, MaterialCard as Card, Title, Text, Badge
+  Button, Input, Select, Textarea, MaterialCard as Card, Title, Text
 } from '../../../components/atoms';
 import { CorporateLine, EquipoMovil } from '../useCorporateLines';
 

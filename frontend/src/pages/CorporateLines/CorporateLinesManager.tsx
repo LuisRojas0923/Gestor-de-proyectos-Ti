@@ -10,9 +10,8 @@ import {
   MaterialCard as Card, 
   Title,
   Text,
-  Select,
-  Badge,
   Icon,
+  Badge,
 } from '../../components/atoms';
 
 // Sub-componentes modulares
@@ -163,8 +162,8 @@ export const CorporateLinesManager: React.FC = () => {
                }`}
             >
               <div className="flex items-center gap-2">
-                <Icon icon={LayoutGrid} size={18} />
-                <Text weight="bold" variant="button" className="text-sm">Catálogo Maestro</Text>
+                <Icon name={LayoutGrid} size="sm" />
+                <Text weight="bold" variant="subtitle2" className="text-sm">Catálogo Maestro</Text>
               </div>
             </Button>
             <Button
@@ -177,8 +176,8 @@ export const CorporateLinesManager: React.FC = () => {
                }`}
             >
               <div className="flex items-center gap-2">
-                <Icon icon={ReceiptText} size={18} />
-                <Text weight="bold" variant="button" className="text-sm">Dispersión de Factura</Text>
+                <Icon name={ReceiptText} size="sm" />
+                <Text weight="bold" variant="subtitle2" className="text-sm">Dispersión de Factura</Text>
                 <Badge variant="primary" className="text-[10px] px-1.5 py-0.5 rounded-full uppercase">Pro</Badge>
               </div>
             </Button>

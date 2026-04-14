@@ -6,8 +6,6 @@ import {
   MaterialCard as Card, 
   Title,
   Text,
-  Select,
-  Badge,
   Icon,
 } from '../../../components/atoms';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
@@ -96,7 +94,7 @@ export const InvoiceDispersionView: React.FC<Props> = ({ onImport, onFetchReport
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
               />
               <div className="flex items-center gap-3 p-3 border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-2xl group-hover:border-primary transition-colors">
-                <Icon icon={Upload} className="text-primary w-5 h-5" />
+                <Icon name={Upload} className="text-primary w-5 h-5" />
                 <Text variant="body2" className="truncate">
                   {file ? file.name : "Subir archivo .xlsx"}
                 </Text>
@@ -166,7 +164,7 @@ export const InvoiceDispersionView: React.FC<Props> = ({ onImport, onFetchReport
 
       {report.length === 0 && !isProcessing && (
         <div className="flex flex-col items-center justify-center py-20 opacity-40">
-           <Icon icon={FileText} className="w-16 h-16 mb-4" />
+           <Icon name={FileText} className="w-16 h-16 mb-4" />
            <Text>No hay datos procesados para este periodo.</Text>
         </div>
       )}
