@@ -12,6 +12,7 @@ import {
   Text,
   Icon,
   Badge,
+  Select,
 } from '../../components/atoms';
 
 // Sub-componentes modulares
@@ -192,12 +193,12 @@ export const CorporateLinesManager: React.FC = () => {
                       placeholder="Buscar línea, nombre o ID..." 
                       icon={Search}
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                       className="!rounded-xl border-none bg-neutral-100 dark:bg-neutral-700"
                     />
                     <Select
                       value={companyFilter}
-                      onChange={(e) => setCompanyFilter(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCompanyFilter(e.target.value)}
                       options={[
                         { label: 'Todas las Empresas', value: 'all' },
                         { label: 'RDC', value: 'RDC' },
@@ -208,7 +209,7 @@ export const CorporateLinesManager: React.FC = () => {
                     />
                     <Select
                       value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setStatusFilter(e.target.value)}
                       options={[
                         { label: 'Todos los Estados', value: 'all' },
                         { label: 'ACTIVA', value: 'ACTIVA' },
