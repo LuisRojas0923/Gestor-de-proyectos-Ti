@@ -19,7 +19,9 @@ class EmpleadosService:
                 C.ciudadcontratacion::text AS "ciudadcontratacion",
                 E.viaticante,
                 E.baseviaticos,
-                C.centrocosto::text AS "centrocosto"
+                C.centrocosto::text AS "centrocosto",
+                C.jefe::text        AS "jefe",
+                C.fecharetiro       AS "fecharetiro"
             FROM establecimiento E
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
@@ -39,7 +41,9 @@ class EmpleadosService:
                 "ciudadcontratacion": resultado.ciudadcontratacion,
                 "viaticante": resultado.viaticante,
                 "baseviaticos": float(resultado.baseviaticos) if resultado.baseviaticos is not None else 0.0,
-                "centrocosto": resultado.centrocosto
+                "centrocosto": resultado.centrocosto,
+                "jefe": resultado.jefe,
+                "fecharetiro": str(resultado.fecharetiro) if resultado.fecharetiro else None
             }
         return None
 

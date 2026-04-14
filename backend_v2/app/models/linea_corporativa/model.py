@@ -51,12 +51,17 @@ class LineaCorporativa(SQLModel, table=True):
     documento_asignado: Optional[str] = Field(default=None, foreign_key="empleados_lineas.documento")
     documento_cobro: Optional[str] = Field(default=None, foreign_key="empleados_lineas.documento")
     
-    # Atributos de Plan y Finanzas
+    # Atributos de Plan y Parámetros de Dispersión
     nombre_plan: Optional[str] = Field(default=None)
     convenio: Optional[str] = Field(default=None)
     aprobado_por: Optional[str] = Field(default=None)
     observaciones: Optional[str] = Field(default=None, sa_column=Column(Text))
     
+    # Coeficientes para el motor de dispersión (0, 0.5, 1)
+    cobro_fijo_coef: float = Field(default=0.5, description="Factor de cobro al empleado para Cargo Fijo")
+    cobro_especiales_coef: float = Field(default=1.0, description="Factor de cobro al empleado para Servicios Especiales/Roaming")
+
+    # Histórico de Totales (Snapshot del último mes)
     cfm_con_iva: Optional[float] = Field(default=0.0, sa_column=Column(Numeric(12, 2)))
     cfm_sin_iva: Optional[float] = Field(default=0.0, sa_column=Column(Numeric(12, 2)))
     descuento_39: Optional[float] = Field(default=0.0, sa_column=Column(Numeric(12, 2)))

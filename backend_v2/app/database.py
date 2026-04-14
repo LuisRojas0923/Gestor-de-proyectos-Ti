@@ -312,6 +312,24 @@ async def init_db():
             # Inicializar numero_pareja si es NULL (opcional but safe)
             await conn.execute(text('UPDATE "asignacioninventario" SET "numero_pareja" = 1 WHERE "numero_pareja" IS NULL;'))
 
+            # --- MIGRACIÓN LÍNEAS CORPORATIVAS (Motor de Dispersión) ---
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS nombre_plan VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS convenio VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS aprobado_por VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS observaciones TEXT"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS cobro_fijo_coef FLOAT DEFAULT 0.5"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS cobro_especiales_coef FLOAT DEFAULT 1.0"))
+            
+            # Campos Financieros (Snapshot)
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS cfm_con_iva NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS cfm_sin_iva NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS descuento_39 NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS vr_factura NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS pago_empleado NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS pago_empresa NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS primera_quincena NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS segunda_quincena NUMERIC(12, 2) DEFAULT 0.0"))
+
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario: {e}")
 

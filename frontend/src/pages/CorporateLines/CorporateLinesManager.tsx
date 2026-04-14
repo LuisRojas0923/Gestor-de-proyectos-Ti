@@ -8,25 +8,31 @@ import {
   Button, 
   Input, 
   MaterialCard as Card, 
-  Spinner,
   Title,
   Text,
   Select,
+  Badge,
+  Icon,
 } from '../../components/atoms';
 
 // Sub-componentes modulares
 import { StatsCards } from './components/StatsCards';
 import { LinesTable } from './components/LinesTable';
 import { LineDetailForm } from './components/LineDetailForm';
+import { InvoiceDispersionView } from './components/InvoiceDispersionView';
+import { LayoutGrid, ReceiptText } from 'lucide-react';
 export const CorporateLinesManager: React.FC = () => {
+  const ctx = useCorporateLines();
   const { 
     lines, equipos, employeeAlerts, isLoading, stats,
-    loadData, createLine, updateLine, deleteLine 
-  } = useCorporateLines();
-  
+    loadData, createLine, updateLine, deleteLine,
+    importarFactura, obtenerReporteCO 
+  } = ctx;
+
   const { addNotification } = useNotifications();
   
   const [view, setView] = useState<'dashboard' | 'detail'>('dashboard');
+  const [mode, setMode] = useState<'inventory' | 'billing'>('inventory');
   const [selectedLineId, setSelectedLineId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,7 +42,13 @@ export const CorporateLinesManager: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
 
   // Estado del formulario actual
-  const [formData, setFormData] = useState<Partial<CorporateLine>>({});
+  const [formData, setFormData] = useState<Partial<CorporateLine>>({
+    estatus: 'ACTIVA',
+    estado_asignacion: 'POR_ASIGNAR',
+    cobro_fijo_coef: 0.5,
+    cobro_especiales_coef: 1,
+    empresa: 'REFRIDCOL'
+  });
   const [activeSubTab, setActiveSubTab] = useState<'general' | 'tecnico' | 'finanzas'>('general');
 
   useEffect(() => {
@@ -139,46 +151,88 @@ export const CorporateLinesManager: React.FC = () => {
 
           <StatsCards stats={stats} isLoading={isLoading} />
 
-          {/* FILTROS INTEGRADOS */}
-          <Card className="mb-6 p-4 border-none shadow-sm rounded-2xl">
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input 
-                  placeholder="Buscar línea, nombre o ID..." 
-                  icon={Search}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="!rounded-xl border-none bg-neutral-100 dark:bg-neutral-700"
-                />
-                <Select
-                  value={companyFilter}
-                  onChange={(e) => setCompanyFilter(e.target.value)}
-                  options={[
-                    { label: 'Todas las Empresas', value: 'all' },
-                    { label: 'RDC', value: 'RDC' },
-                    { label: 'CRUZTOR', value: 'CRUZTOR' },
-                    { label: 'GTC', value: 'GTC' },
-                  ]}
-                  className="!rounded-xl"
-                />
-                <Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  options={[
-                    { label: 'Todos los Estados', value: 'all' },
-                    { label: 'ACTIVA', value: 'ACTIVA' },
-                    { label: 'INACTIVA', value: 'INACTIVA' },
-                  ]}
-                  className="!rounded-xl"
-                />
-             </div>
-          </Card>
+          {/* TABS DE MODO */}
+          <div className="flex bg-neutral-100 dark:bg-neutral-800 p-1.5 rounded-2xl w-fit mb-8 shadow-inner border border-neutral-200/50 dark:border-neutral-700/50">
+            <Button
+               variant={mode === 'inventory' ? 'primary' : 'ghost'}
+               onClick={() => setMode('inventory')}
+               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all duration-300 ${
+                 mode === 'inventory' 
+                  ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm scale-100' 
+                  : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 scale-95'
+               }`}
+            >
+              <div className="flex items-center gap-2">
+                <Icon icon={LayoutGrid} size={18} />
+                <Text weight="bold" variant="button" className="text-sm">Catálogo Maestro</Text>
+              </div>
+            </Button>
+            <Button
+               variant={mode === 'billing' ? 'primary' : 'ghost'}
+               onClick={() => setMode('billing')}
+               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all duration-300 ${
+                 mode === 'billing' 
+                  ? 'bg-white dark:bg-neutral-700 text-primary shadow-sm scale-100' 
+                  : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 scale-95'
+               }`}
+            >
+              <div className="flex items-center gap-2">
+                <Icon icon={ReceiptText} size={18} />
+                <Text weight="bold" variant="button" className="text-sm">Dispersión de Factura</Text>
+                <Badge variant="primary" className="text-[10px] px-1.5 py-0.5 rounded-full uppercase">Pro</Badge>
+              </div>
+            </Button>
+          </div>
 
-          <LinesTable 
-            lines={filteredLines} 
-            onSelect={(id) => setSelectedLineId(id)}
-            employeeAlerts={employeeAlerts}
-            isLoading={isLoading}
-          />
+          {mode === 'inventory' ? (
+            <>
+              {/* FILTROS INTEGRADOS */}
+              <Card className="mb-6 p-4 border-none shadow-sm rounded-2xl">
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Input 
+                      placeholder="Buscar línea, nombre o ID..." 
+                      icon={Search}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="!rounded-xl border-none bg-neutral-100 dark:bg-neutral-700"
+                    />
+                    <Select
+                      value={companyFilter}
+                      onChange={(e) => setCompanyFilter(e.target.value)}
+                      options={[
+                        { label: 'Todas las Empresas', value: 'all' },
+                        { label: 'RDC', value: 'RDC' },
+                        { label: 'CRUZTOR', value: 'CRUZTOR' },
+                        { label: 'GTC', value: 'GTC' },
+                      ]}
+                      className="!rounded-xl"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      options={[
+                        { label: 'Todos los Estados', value: 'all' },
+                        { label: 'ACTIVA', value: 'ACTIVA' },
+                        { label: 'INACTIVA', value: 'INACTIVA' },
+                      ]}
+                      className="!rounded-xl"
+                    />
+                 </div>
+              </Card>
+
+              <LinesTable 
+                lines={filteredLines} 
+                onSelect={(id) => setSelectedLineId(id)}
+                employeeAlerts={employeeAlerts}
+                isLoading={isLoading}
+              />
+            </>
+          ) : (
+            <InvoiceDispersionView 
+              onImport={importarFactura}
+              onFetchReport={obtenerReporteCO}
+            />
+          )}
         </div>
       ) : (
         <LineDetailForm 
@@ -189,7 +243,7 @@ export const CorporateLinesManager: React.FC = () => {
           onBack={handleBack}
           onSave={handleSave}
           onDelete={handleDelete}
-          onInputChange={(field, value) => setFormData(prev => ({ ...prev, [field]: value }))}
+          onInputChange={(field, value) => setFormData((prev: Partial<CorporateLine>) => ({ ...prev, [field]: value }))}
           activeSubTab={activeSubTab}
           setActiveSubTab={setActiveSubTab}
         />

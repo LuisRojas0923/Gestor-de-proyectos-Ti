@@ -1,14 +1,14 @@
 import React from 'react';
 import { Smartphone, User, CreditCard, Save, Trash2, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { 
-  Button, Input, Select, Textarea, MaterialCard as Card, Title, Text
+  Button, Input, Select, Textarea, MaterialCard as Card, Title, Text, Badge
 } from '../../../components/atoms';
 import { CorporateLine, EquipoMovil } from '../useCorporateLines';
 
 interface FormProps {
   formData: Partial<CorporateLine>;
   equipos: EquipoMovil[];
-  employeeAlerts: Record<string, { inactivo: boolean; motivos: string }>;
+  employeeAlerts: Record<string, { inactivo: boolean; motivos: string; clase: 'WARNING' | 'CRITICAL' }>;
   isCreating: boolean;
   onBack: () => void;
   onSave: () => void;
@@ -55,14 +55,16 @@ export const LineDetailForm: React.FC<FormProps> = ({
 
       {/* ALERTA CRÍTICA */}
       {hasAlert && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-5 rounded-r-3xl flex gap-4 animate-in shake duration-500">
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-amber-600 shrink-0">
+        <div className={`${hasAlert.clase === 'CRITICAL' ? 'bg-red-50 dark:bg-red-900/20 border-red-500' : 'bg-amber-50 dark:bg-amber-900/20 border-amber-500'} border-l-4 p-5 rounded-r-3xl flex gap-4 animate-in shake duration-500`}>
+          <div className={`w-12 h-12 rounded-2xl ${hasAlert.clase === 'CRITICAL' ? 'bg-red-100 dark:bg-red-900/40 text-red-600' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-600'} flex items-center justify-center shrink-0`}>
             <AlertTriangle size={24} />
           </div>
           <div>
-            <Title variant="h6" color="warning" weight="bold" className="mb-1 uppercase tracking-tight">Anomalía Detectada en Personal</Title>
-            <Text variant="body2" color="warning" className="leading-relaxed opacity-90">
-              {employeeAlerts[formData.documento_asignado!].motivos}
+            <Title variant="h6" color={hasAlert.clase === 'CRITICAL' ? 'error' : 'warning'} weight="bold" className="mb-1 uppercase tracking-tight">
+              {hasAlert.clase === 'CRITICAL' ? 'Situación de Personal Crítica' : 'Aviso de Retiro Próximo'}
+            </Title>
+            <Text variant="body2" color={hasAlert.clase === 'CRITICAL' ? 'error' : 'warning'} weight="medium" className="leading-relaxed opacity-90">
+              {hasAlert.motivos} — <Text weight="bold" className="inline">Acción Requerida:</Text> Validar recuperación de línea o reasignación inmediata.
             </Text>
           </div>
         </div>
@@ -202,6 +204,52 @@ export const LineDetailForm: React.FC<FormProps> = ({
 
         {activeSubTab === 'finanzas' && (
           <div className="space-y-8">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+               <div className="p-5 bg-primary-50 dark:bg-primary-900/10 rounded-3xl border border-primary-100 dark:border-primary-800/50 space-y-4">
+                  <Title variant="h6" weight="bold" color="text-primary">Parámetros de Dispersión (Motor IA)</Title>
+                  <Text variant="caption" className="opacity-70 mb-4 block">Define qué porcentaje asume el empleado en la liquidación automática.</Text>
+                  <div className="grid grid-cols-2 gap-4">
+                     <Select 
+                        label="Cobro Cargo Fijo"
+                        value={formData.cobro_fijo_coef?.toString() || "0.5"}
+                        onChange={(e) => onInputChange('cobro_fijo_coef', parseFloat(e.target.value))}
+                        options={[
+                          { label: 'Empresa 100% (0)', value: '0' },
+                          { label: 'Mitad / Mitad (0.5)', value: '0.5' },
+                          { label: 'Empleado 100% (1)', value: '1' },
+                        ]}
+                        className="!rounded-2xl"
+                     />
+                     <Select 
+                        label="Cobro Especiales"
+                        value={formData.cobro_especiales_coef?.toString() || "1"}
+                        onChange={(e) => onInputChange('cobro_especiales_coef', parseFloat(e.target.value))}
+                        options={[
+                          { label: 'Empresa 100% (0)', value: '0' },
+                          { label: 'Mitad / Mitad (0.5)', value: '0.5' },
+                          { label: 'Empleado 100% (1)', value: '1' },
+                        ]}
+                        className="!rounded-2xl"
+                     />
+                  </div>
+               </div>
+               <div className="p-5 bg-neutral-50 dark:bg-neutral-900/50 rounded-3xl border border-neutral-200 dark:border-neutral-700/50 space-y-4">
+                  <Title variant="h6" weight="bold">Aprobaciones</Title>
+                  <Input 
+                    label="Centro de Costo (C.O)" 
+                    value={formData.asignado?.centro_costo || 'GENERAL'} 
+                    disabled 
+                    className="!rounded-2xl opacity-60"
+                  />
+                  <Input 
+                    label="Convenio / Aprobado Por" 
+                    value={formData.aprobado_por || ''} 
+                    onChange={(e) => onInputChange('aprobado_por', e.target.value)}
+                    className="!rounded-2xl"
+                  />
+               </div>
+             </div>
+
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  {[
                    { label: 'CFM con IVA ($)', field: 'cfm_con_iva' },

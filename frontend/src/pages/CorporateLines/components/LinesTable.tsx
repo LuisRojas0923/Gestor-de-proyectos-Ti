@@ -6,7 +6,7 @@ import { CorporateLine } from '../useCorporateLines';
 interface TableProps {
   lines: CorporateLine[];
   onSelect: (id: number) => void;
-  employeeAlerts: Record<string, { inactivo: boolean; motivos: string }>;
+  employeeAlerts: Record<string, { inactivo: boolean; motivos: string; clase: 'WARNING' | 'CRITICAL' }>;
   isLoading?: boolean;
 }
 
@@ -40,14 +40,20 @@ const LineRow = memo(({
       </td>
       <td className="px-6 py-4">
         <div className="flex items-center gap-2 max-w-[200px]">
-          <div className={`shrink-0 w-2 h-2 rounded-full ${hasAlert ? 'bg-amber-500 animate-pulse' : 'bg-green-500'}`} />
+          <div className={`shrink-0 w-2.5 h-2.5 rounded-full ${
+            hasAlert?.clase === 'CRITICAL' 
+              ? 'bg-red-500 animate-pulse ring-4 ring-red-500/20' 
+              : hasAlert?.clase === 'WARNING' 
+                ? 'bg-amber-400 animate-pulse ring-4 ring-amber-500/20' 
+                : 'bg-green-500'
+          }`} />
           <div className="min-w-0">
-            <Text variant="body2" weight="medium" className="truncate block" title={line.asignado?.nombre || 'Sin asignar'}>
+            <Text variant="body2" weight="medium" className={`truncate block ${hasAlert?.clase === 'CRITICAL' ? 'text-red-600 dark:text-red-400 font-bold' : ''}`} title={line.asignado?.nombre || 'Sin asignar'}>
               {line.asignado?.nombre || 'No asignada'}
             </Text>
             {hasAlert && (
-              <div className="flex items-center gap-1 text-[10px] text-amber-600 font-bold uppercase">
-                <AlertTriangle size={10} /> Alerta
+              <div className={`flex items-center gap-1 text-[10px] font-bold uppercase ${hasAlert.clase === 'CRITICAL' ? 'text-red-500' : 'text-amber-600'}`}>
+                <AlertTriangle size={10} /> {hasAlert.clase === 'CRITICAL' ? 'RETIRO/INACTIVO' : 'ALERTA RETIRO'}
               </div>
             )}
           </div>

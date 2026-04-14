@@ -7,12 +7,18 @@ from typing import List
 
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.models.linea_corporativa import LineaCorporativa, EquipoMovil, EmpleadoLinea
+from app.models.linea_corporativa.factura_model import FacturaLinea
 from .schemas import (
     LineaCorporativaCreate, LineaCorporativaUpdate, LineaCorporativaOut,
     EquipoMovilCreate, EquipoMovilOut,
-    EmpleadoLineaCreate, EmpleadoLineaOut
+    EmpleadoLineaCreate, EmpleadoLineaOut,
+    ResumenCORow
 )
 from datetime import datetime
+import polars as pl
+import io
+from fastapi import UploadFile, File
+from sqlalchemy import func
 
 router = APIRouter()
 
@@ -100,17 +106,21 @@ async def obtener_alertas_empleados(db_erp: Session = Depends(obtener_erp_db_opc
         estado = str(row.estado).strip()
         fecha_retiro = row.fecharetiro
         
-        has_alert = False
         reasons = []
         if estado.lower() != 'activo':
-            has_alert = True
+            severity = "CRITICAL"
             reasons.append(f"Estado: {estado}")
         if fecha_retiro and str(fecha_retiro)[:10] != '1900-01-01':
-            has_alert = True
+            severity = "WARNING" if estado.lower() == 'activo' else "CRITICAL"
             reasons.append(f"Retiro: {fecha_retiro}")
             
-        if has_alert:
-            alertas[cedula] = {"inactivo": True, "motivos": ", ".join(reasons)}
+        if reasons:
+            alertas[cedula] = {
+                "inactivo": estado.lower() != 'activo', 
+                "clase": severity,
+                "motivos": ", ".join(reasons),
+                "fecha_retiro": str(fecha_retiro) if fecha_retiro else None
+            }
             
     return {"alertas": alertas}
 
@@ -195,5 +205,121 @@ async def eliminar_linea(id: int, db: AsyncSession = Depends(obtener_db)):
     if not db_linea:
         raise HTTPException(status_code=404, detail="Linea no encontrada")
     
-    await db.delete(db_linea)
     await db.commit()
+
+# --- ENDPOINTS FACTURACIÓN Y REPORTES ---
+
+@router.post("/importar-factura")
+async def importar_factura(
+    periodo: str, 
+    archivo: UploadFile = File(...), 
+    db: AsyncSession = Depends(obtener_db)
+):
+    """
+    Importa el Excel de Claro usando índices de columna fijos (MIN:3, DESC:5, VALOR:6, IMP:7, TOTAL:9).
+    """
+    content = await archivo.read()
+    try:
+        # Lectura sin cabeceras para usar índices
+        df = pl.read_excel(io.BytesIO(content), read_options={"has_header": False})
+        
+        # 1. Encontrar el inicio de los datos (donde Columna 3 es 'MIN')
+        # Buscamos en la columna index 3 (D)
+        base_col = df.columns[3]
+        header_row = -1
+        for i, val in enumerate(df[base_col]):
+            if str(val).strip().upper() == "MIN":
+                header_row = i
+                break
+        
+        if header_row == -1:
+            raise HTTPException(status_code=400, detail="No se encontró la celda 'MIN' en la columna D (índice 3).")
+
+        # 2. Rebanar y limpiar
+        data = df.slice(header_row + 1)
+        
+        # Mapeo por índices confirmados
+        cols = df.columns
+        data = data.select([
+            pl.col(cols[3]).alias("min"),
+            pl.col(cols[5]).alias("descripcion"),
+            pl.col(cols[6]).cast(pl.Float64, strict=False).fill_null(0).alias("valor"),
+            pl.col(cols[7]).cast(pl.Float64, strict=False).fill_null(0).alias("impuestos"),
+            pl.col(cols[9]).cast(pl.Float64, strict=False).fill_null(0).alias("total_fila")
+        ])
+
+        # 3. Filtrar MINs válidos
+        data = data.filter(pl.col("min").is_not_null())
+        
+        # 4. Clasificación y Agregación
+        c_fijo_pat = "Cargo Fijo|Datos|Claro Sync"
+        especiales_pat = "Roaming|NBA|Larga Distancia|Especiales"
+
+        consumos = data.group_by("min").agg([
+            pl.col("valor").filter(pl.col("descripcion").cast(pl.Utf8).str.contains(c_fijo_pat)).sum().alias("cargo_mes"),
+            pl.col("valor").filter(pl.col("descripcion").cast(pl.Utf8).str.contains(especiales_pat)).sum().alias("especiales"),
+            pl.col("impuestos").sum().alias("iva_19"),
+            pl.col("total_fila").sum().alias("total")
+        ])
+
+        # 5. Procesar e insertar
+        registros = 0
+        for row in consumos.iter_rows(named=True):
+            nro_linea = str(row["min"]).strip()
+            
+            stmt = select(LineaCorporativa).where(LineaCorporativa.linea == nro_linea)
+            db_linea = (await db.execute(stmt)).scalar_one_or_none()
+            if not db_linea:
+                continue
+
+            # Lógica de dispersión proporcional
+            p_e_base = (row["cargo_mes"] * db_linea.cobro_fijo_coef) + (row["especiales"] * db_linea.cobro_especiales_coef)
+            divisor = (row["cargo_mes"] + row["especiales"]) or 1
+            p_e_iva = row["iva_19"] * (p_e_base / divisor)
+            
+            pago_e = p_e_base + p_e_iva
+            pago_r = row["total"] - pago_e
+
+            factura = FacturaLinea(
+                linea_id=db_linea.id,
+                periodo=periodo,
+                documento_asignado=db_linea.documento_asignado or "SIN_ASIGNAR",
+                centro_costo=getattr(db_linea.asignado, 'centro_costo', 'GENERAL') or 'GENERAL',
+                cargo_mes=row["cargo_mes"],
+                descuento_mes=0.0,
+                impoconsumo=0.0,
+                descuento_iva=0.0,
+                iva_19=row["iva_19"],
+                total=row["total"],
+                pago_empleado=pago_e,
+                pago_refridcol=pago_r
+            )
+            db.add(factura)
+            registros += 1
+
+        await db.commit()
+        return {"mensaje": f"Procesamiento completado. {registros} líneas dispersadas.", "periodo": periodo}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error en procesamiento: {str(e)}")
+
+@router.get("/reporte-co", response_model=List[ResumenCORow])
+async def reporte_por_centro_costo(periodo: str, db: AsyncSession = Depends(obtener_db)):
+    """
+    Genera el resumen contable agrupado por Centro de Costo de forma estrictamente financiera (7 columnas).
+    """
+    stmt = select(
+        FacturaLinea.centro_costo.alias("co"),
+        func.sum(FacturaLinea.cargo_mes).alias("cargo_mes"),
+        func.sum(FacturaLinea.descuento_mes).alias("descuento_mes"),
+        func.sum(FacturaLinea.impoconsumo).alias("impoconsumo"),
+        func.sum(FacturaLinea.descuento_iva).alias("descuento_iva"),
+        func.sum(FacturaLinea.iva_19).alias("iva_19"),
+        func.sum(FacturaLinea.total).alias("total")
+    ).where(FacturaLinea.periodo == periodo).group_by(FacturaLinea.centro_costo)
+    
+    try:
+        result = await db.execute(stmt)
+        return [ResumenCORow(**dict(row._mapping)) for row in result.all()]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar reporte: {str(e)}")

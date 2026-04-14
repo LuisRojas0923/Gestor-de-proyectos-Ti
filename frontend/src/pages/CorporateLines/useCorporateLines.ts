@@ -20,6 +20,16 @@ export interface PersonaLinea {
   centro_costo?: string;
 }
 
+export interface ResumenCORow {
+  co: string;
+  cargo_mes: number;
+  descuento_mes: number;
+  impoconsumo: number;
+  descuento_iva: number;
+  iva_19: number;
+  total: number;
+}
+
 export interface CorporateLine {
   id: number;
   fecha_actualizacion: string | null;
@@ -33,15 +43,23 @@ export interface CorporateLine {
   equipo?: EquipoMovil;
   asignado?: PersonaLinea;
   responsable_cobro?: PersonaLinea;
+  
+  // Coeficientes y Finanzas
+  cobro_fijo_coef: number;
+  cobro_especiales_coef: number;
   nombre_plan?: string;
-  cfm_con_iva: number;
-  cfm_sin_iva: number;
-  descuento_39: number;
-  vr_factura: number;
-  pago_empleado: number;
-  pago_empresa: number;
-  primera_quincena: number;
-  segunda_quincena: number;
+  convenio?: string;
+  aprobado_por?: string;
+  
+  cfm_con_iva?: number;
+  cfm_sin_iva?: number;
+  descuento_39?: number;
+  vr_factura?: number;
+  pago_empleado?: number;
+  pago_empresa?: number;
+  primera_quincena?: number;
+  segunda_quincena?: number;
+
   observaciones?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -52,7 +70,7 @@ export const useCorporateLines = () => {
   const [lines, setLines] = useState<CorporateLine[]>([]);
   const [equipos, setEquipos] = useState<EquipoMovil[]>([]);
   const [personas, setPersonas] = useState<PersonaLinea[]>([]);
-  const [employeeAlerts, setEmployeeAlerts] = useState<Record<string, { inactivo: boolean; motivos: string }>>({});
+  const [employeeAlerts, setEmployeeAlerts] = useState<Record<string, { inactivo: boolean; motivos: string; clase: 'WARNING' | 'CRITICAL' }>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [errorValue, setError] = useState<string | null>(null);
 
@@ -114,6 +132,18 @@ export const useCorporateLines = () => {
     return res as PersonaLinea;
   };
 
+  const importarFactura = async (periodo: string, file: File) => {
+    const formData = new FormData();
+    formData.append('archivo', file);
+    const res = await post(`/lineas-corporativas/importar-factura?periodo=${periodo}`, formData);
+    await loadData();
+    return res;
+  };
+
+  const obtenerReporteCO = async (periodo: string) => {
+    return await get(`/lineas-corporativas/reporte-co?periodo=${periodo}`);
+  };
+
   const stats = useMemo(() => {
     return {
       total: lines.length,
@@ -126,8 +156,8 @@ export const useCorporateLines = () => {
       phonesAssigned: lines.filter(l => !!l.equipo_id).length,
       // Convenios (basado en pago_empleado)
       convenio0: lines.filter(l => l.pago_empleado === 0).length,
-      convenio100: lines.filter(l => l.pago_empleado > 0 && l.pago_empleado >= (l.vr_factura || l.cfm_con_iva)).length,
-      convenioMixed: lines.filter(l => l.pago_empleado > 0 && l.pago_empleado < (l.vr_factura || l.cfm_con_iva)).length
+      convenio100: lines.filter(l => l.pago_empleado && l.pago_empleado > 0 && l.pago_empleado >= (l.vr_factura || l.cfm_con_iva || 0)).length,
+      convenioMixed: lines.filter(l => l.pago_empleado && l.pago_empleado > 0 && l.pago_empleado < (l.vr_factura || l.cfm_con_iva || 0)).length
     };
   }, [lines, employeeAlerts]);
 
@@ -145,5 +175,7 @@ export const useCorporateLines = () => {
     deleteLine,
     createEquipo,
     createPersona,
+    importarFactura,
+    obtenerReporteCO,
   };
 };

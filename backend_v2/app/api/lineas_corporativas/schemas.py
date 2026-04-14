@@ -52,6 +52,11 @@ class LineaCorporativaBase(BaseModel):
     aprobado_por: Optional[str] = None
     observaciones: Optional[str] = None
     
+    # Coeficientes
+    cobro_fijo_coef: float = 0.5
+    cobro_especiales_coef: float = 1.0
+    
+    # Snapshot actual
     cfm_con_iva: Optional[float] = 0.0
     cfm_sin_iva: Optional[float] = 0.0
     descuento_39: Optional[float] = 0.0
@@ -77,6 +82,8 @@ class LineaCorporativaUpdate(BaseModel):
     convenio: Optional[str] = None
     aprobado_por: Optional[str] = None
     observaciones: Optional[str] = None
+    cobro_fijo_coef: Optional[float] = None
+    cobro_especiales_coef: Optional[float] = None
     cfm_con_iva: Optional[float] = None
     cfm_sin_iva: Optional[float] = None
     descuento_39: Optional[float] = None
@@ -97,3 +104,33 @@ class LineaCorporativaOut(LineaCorporativaBase):
 
     class Config:
         from_attributes = True
+
+# --- FACTURACIÓN Y REPORTES ---
+class FacturaLineaBase(BaseModel):
+    linea_id: int
+    periodo: str
+    documento_asignado: str
+    centro_costo: str
+    cargo_mes: float
+    descuento_mes: float
+    impoconsumo: float
+    descuento_iva: float
+    iva_19: float
+    total: float
+    pago_empleado: float
+    pago_refridcol: float
+
+class FacturaLineaOut(FacturaLineaBase):
+    id: int
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class ResumenCORow(BaseModel):
+    co: str
+    cargo_mes: float
+    descuento_mes: float
+    impoconsumo: float
+    descuento_iva: float
+    iva_19: float
+    total: float
