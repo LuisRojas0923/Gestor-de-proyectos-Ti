@@ -19,6 +19,7 @@ import polars as pl
 import io
 from fastapi import UploadFile, File
 from sqlalchemy import func
+from app.services.erp import EmpleadosService
 
 router = APIRouter()
 
@@ -153,6 +154,41 @@ async def crear_linea(linea_in: LineaCorporativaCreate, db: AsyncSession = Depen
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al recargar línea creada: {str(e)}")
 
+@router.get("/reporte-co", response_model=List[ResumenCORow])
+async def reporte_por_centro_costo(periodo: str, db: AsyncSession = Depends(obtener_db)):
+    """
+    Genera el resumen contable agrupado por Centro de Costo de forma estrictamente financiera (7 columnas).
+    """
+    try:
+        stmt = select(
+            FacturaLinea.centro_costo.label("co"),
+            func.coalesce(func.sum(FacturaLinea.cargo_mes), 0.0).label("cargo_mes"),
+            func.coalesce(func.sum(FacturaLinea.descuento_mes), 0.0).label("descuento_mes"),
+            func.coalesce(func.sum(FacturaLinea.impoconsumo), 0.0).label("impoconsumo"),
+            func.coalesce(func.sum(FacturaLinea.descuento_iva), 0.0).label("descuento_iva"),
+            func.coalesce(func.sum(FacturaLinea.iva_19), 0.0).label("iva_19"),
+            func.coalesce(func.sum(FacturaLinea.total), 0.0).label("total")
+        ).where(FacturaLinea.periodo == periodo).group_by(FacturaLinea.centro_costo)
+        
+        result = await db.execute(stmt)
+        # Convertir Decimal a float para evitar problemas de serialización JSON si los hay
+        rows = []
+        for row in result.all():
+            data = dict(row._mapping)
+            # Asegurar que los valores sean float (SQLAlchemy Numeric -> Decimal)
+            for k, v in data.items():
+                if k != "co" and v is not None:
+                    data[k] = float(v)
+            rows.append(ResumenCORow(**data))
+        return rows
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al generar reporte: {str(e)}\n{error_trace}"
+        )
+
 @router.get("/{id}", response_model=LineaCorporativaOut)
 async def obtener_linea(id: int, db: AsyncSession = Depends(obtener_db)):
     query = select(LineaCorporativa).options(
@@ -213,7 +249,8 @@ async def eliminar_linea(id: int, db: AsyncSession = Depends(obtener_db)):
 async def importar_factura(
     periodo: str, 
     archivo: UploadFile = File(...), 
-    db: AsyncSession = Depends(obtener_db)
+    db: AsyncSession = Depends(obtener_db),
+    db_erp: Session = Depends(obtener_erp_db_opcional)
 ):
     """
     Importa el Excel de Claro usando índices de columna fijos (MIN:3, DESC:5, VALOR:6, IMP:7, TOTAL:9).
@@ -267,10 +304,23 @@ async def importar_factura(
         for row in consumos.iter_rows(named=True):
             nro_linea = str(row["min"]).strip()
             
-            stmt = select(LineaCorporativa).where(LineaCorporativa.linea == nro_linea)
-            db_linea = (await db.execute(stmt)).scalar_one_or_none()
+            stmt = select(LineaCorporativa).options(joinedload(LineaCorporativa.asignado)).where(LineaCorporativa.linea == nro_linea)
+            db_linea = (await db.execute(stmt)).unique().scalar_one_or_none()
+            
             if not db_linea:
-                continue
+                # Auto-crear línea si no existe en la maestra
+                db_linea = LineaCorporativa(
+                    linea=nro_linea,
+                    empresa="CLARO",
+                    estatus="POR_GESTION",
+                    estado_asignacion="NUEVA_EN_FACTURA",
+                    observaciones="Detectada automáticamente en factura"
+                )
+                db.add(db_linea)
+                await db.flush()
+                # Recargar para asegurar consistencia
+                stmt_new = select(LineaCorporativa).options(joinedload(LineaCorporativa.asignado)).where(LineaCorporativa.id == db_linea.id)
+                db_linea = (await db.execute(stmt_new)).unique().scalar_one()
 
             # Lógica de dispersión proporcional
             p_e_base = (row["cargo_mes"] * db_linea.cobro_fijo_coef) + (row["especiales"] * db_linea.cobro_especiales_coef)
@@ -280,11 +330,29 @@ async def importar_factura(
             pago_e = p_e_base + p_e_iva
             pago_r = row["total"] - pago_e
 
+            # Lógica de Centro de Costo: Priorizar ERP, luego Local, luego GENERAL
+            centro_costo_final = 'GENERAL'
+            if db_linea.documento_asignado and db_erp:
+                try:
+                    erp_data = await EmpleadosService.obtener_empleado_por_cedula(db_erp, db_linea.documento_asignado)
+                    if erp_data and erp_data.get("centrocosto"):
+                        centro_costo_final = erp_data["centrocosto"]
+                    else:
+                        centro_costo_final = getattr(db_linea.asignado, 'centro_costo', 'GENERAL') or 'GENERAL'
+                except Exception:
+                    centro_costo_final = getattr(db_linea.asignado, 'centro_costo', 'GENERAL') or 'GENERAL'
+            elif db_linea.asignado:
+                centro_costo_final = db_linea.asignado.centro_costo or 'GENERAL'
+
+            # Si es una línea nueva o sin asignar, marcar C.O como ALERTA
+            if centro_costo_final == 'GENERAL' and (not db_linea.documento_asignado or db_linea.estado_asignacion == "NUEVA_EN_FACTURA"):
+                centro_costo_final = 'SIN_ASIGNAR'
+
             factura = FacturaLinea(
                 linea_id=db_linea.id,
                 periodo=periodo,
                 documento_asignado=db_linea.documento_asignado or "SIN_ASIGNAR",
-                centro_costo=getattr(db_linea.asignado, 'centro_costo', 'GENERAL') or 'GENERAL',
+                centro_costo=centro_costo_final,
                 cargo_mes=row["cargo_mes"],
                 descuento_mes=0.0,
                 impoconsumo=0.0,
@@ -298,28 +366,36 @@ async def importar_factura(
             registros += 1
 
         await db.commit()
-        return {"mensaje": f"Procesamiento completado. {registros} líneas dispersadas.", "periodo": periodo}
+        return {
+            "mensaje": "Procesamiento completado exitosamente",
+            "periodo": periodo,
+            "registros_procesados": registros
+        }
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error en procesamiento: {str(e)}")
 
-@router.get("/reporte-co", response_model=List[ResumenCORow])
-async def reporte_por_centro_costo(periodo: str, db: AsyncSession = Depends(obtener_db)):
+@router.get("/alertas-factura/{periodo}")
+async def obtener_alertas_factura(periodo: str, db: AsyncSession = Depends(obtener_db)):
     """
-    Genera el resumen contable agrupado por Centro de Costo de forma estrictamente financiera (7 columnas).
+    Retorna las líneas que se importaron pero no tienen asignación (C.O SIN_ASIGNAR).
     """
-    stmt = select(
-        FacturaLinea.centro_costo.alias("co"),
-        func.sum(FacturaLinea.cargo_mes).alias("cargo_mes"),
-        func.sum(FacturaLinea.descuento_mes).alias("descuento_mes"),
-        func.sum(FacturaLinea.impoconsumo).alias("impoconsumo"),
-        func.sum(FacturaLinea.descuento_iva).alias("descuento_iva"),
-        func.sum(FacturaLinea.iva_19).alias("iva_19"),
-        func.sum(FacturaLinea.total).alias("total")
-    ).where(FacturaLinea.periodo == periodo).group_by(FacturaLinea.centro_costo)
-    
     try:
+        stmt = select(FacturaLinea, LineaCorporativa.linea).join(
+            LineaCorporativa, FacturaLinea.linea_id == LineaCorporativa.id
+        ).where(
+            FacturaLinea.periodo == periodo,
+            FacturaLinea.centro_costo == 'SIN_ASIGNAR'
+        )
         result = await db.execute(stmt)
-        return [ResumenCORow(**dict(row._mapping)) for row in result.all()]
+        alerts = []
+        for f_line, nro in result.all():
+            alerts.append({
+                "id": f_line.id,
+                "linea_id": f_line.linea_id,
+                "numero": nro,
+                "total": float(f_line.total)
+            })
+        return alerts
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al generar reporte: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

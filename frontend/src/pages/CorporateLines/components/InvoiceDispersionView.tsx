@@ -7,7 +7,9 @@ import {
   Title,
   Text,
   Icon,
+  Badge,
 } from '../../../components/atoms';
+import { AlertCircle, ArrowRight } from 'lucide-react';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
 
 interface ReportRow {
@@ -20,16 +22,31 @@ interface ReportRow {
   total: number;
 }
 
+interface FacturaAlert {
+  id: number;
+  linea_id: number;
+  numero: string;
+  total: number;
+}
+
 interface Props {
   onImport: (periodo: string, file: File) => Promise<any>;
   onFetchReport: (periodo: string) => Promise<any>;
+  onFetchAlerts: (periodo: string) => Promise<any>;
+  onSelectLine: (id: number) => void;
 }
 
-export const InvoiceDispersionView: React.FC<Props> = ({ onImport, onFetchReport }) => {
+export const InvoiceDispersionView: React.FC<Props> = ({ 
+  onImport, 
+  onFetchReport, 
+  onFetchAlerts, 
+  onSelectLine 
+}) => {
   const [periodo, setPeriodo] = useState(new Date().toISOString().slice(0, 7).replace('-', ''));
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [report, setReport] = useState<ReportRow[]>([]);
+  const [alerts, setAlerts] = useState<FacturaAlert[]>([]);
   const { addNotification } = useNotifications();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,8 +65,12 @@ export const InvoiceDispersionView: React.FC<Props> = ({ onImport, onFetchReport
     try {
       await onImport(periodo, file);
       addNotification('success', 'Factura procesada y dispersada correctamente');
-      const data = await onFetchReport(periodo);
-      setReport(data);
+      const [reportData, alertsData] = await Promise.all([
+        onFetchReport(periodo),
+        onFetchAlerts(periodo)
+      ]);
+      setReport(reportData);
+      setAlerts(alertsData);
     } catch (err: any) {
       addNotification('error', err.message || 'Error al procesar factura');
     } finally {
@@ -60,8 +81,12 @@ export const InvoiceDispersionView: React.FC<Props> = ({ onImport, onFetchReport
   const loadReport = async () => {
     setIsProcessing(true);
     try {
-      const data = await onFetchReport(periodo);
-      setReport(data);
+      const [reportData, alertsData] = await Promise.all([
+        onFetchReport(periodo),
+        onFetchAlerts(periodo)
+      ]);
+      setReport(reportData);
+      setAlerts(alertsData);
     } catch (err: any) {
       addNotification('error', 'Error al cargar reporte');
     } finally {
@@ -122,6 +147,42 @@ export const InvoiceDispersionView: React.FC<Props> = ({ onImport, onFetchReport
           </div>
         </div>
       </Card>
+
+      {alerts.length > 0 && (
+        <Card className="p-0 border-2 border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/10 rounded-3xl overflow-hidden">
+          <div className="p-4 bg-amber-100 dark:bg-amber-900/30 flex items-center gap-3">
+            <div className="p-2 bg-amber-500 rounded-xl text-white">
+              <Icon name={AlertCircle} size="sm" />
+            </div>
+            <div>
+              <Text weight="bold" className="text-amber-800 dark:text-amber-200">
+                Se detectaron {alerts.length} líneas nuevas o sin asignar
+              </Text>
+              <Text variant="caption" className="text-amber-700/70 dark:text-amber-400/70">
+                Estas líneas ya fueron creadas en el inventario pero requieren que asignes un responsable.
+              </Text>
+            </div>
+          </div>
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {alerts.map((alert) => (
+              <div 
+                key={alert.id}
+                onClick={() => onSelectLine(alert.linea_id)}
+                className="group flex justify-between items-center p-3 bg-white dark:bg-neutral-800 rounded-2xl border border-amber-200 dark:border-neutral-700 hover:border-amber-500 transition-all cursor-pointer shadow-sm hover:shadow-md"
+              >
+                <div className="flex flex-col">
+                  <Text weight="bold" className="text-primary">{alert.numero}</Text>
+                  <Text variant="caption" className="opacity-60">Consumo: ${alert.total.toLocaleString()}</Text>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="warning" className="text-[10px] py-0 px-2 rounded-lg text-amber-600">GESTIONAR</Badge>
+                  <Icon name={ArrowRight} size="xs" className="text-amber-500 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {report.length > 0 && (
         <Card className="overflow-hidden border-none shadow-xl bg-white dark:bg-neutral-800 rounded-3xl">

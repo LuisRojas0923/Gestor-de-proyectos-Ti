@@ -144,6 +144,10 @@ export const useCorporateLines = () => {
     return await get(`/lineas-corporativas/reporte-co?periodo=${periodo}`);
   };
 
+  const obtenerAlertasFactura = async (periodo: string) => {
+    return await get(`/lineas-corporativas/alertas-factura/${periodo}`);
+  };
+
   const stats = useMemo(() => {
     return {
       total: lines.length,
@@ -177,5 +181,6 @@ export const useCorporateLines = () => {
     createPersona,
     importarFactura,
     obtenerReporteCO,
+    obtenerAlertasFactura,
   };
 };

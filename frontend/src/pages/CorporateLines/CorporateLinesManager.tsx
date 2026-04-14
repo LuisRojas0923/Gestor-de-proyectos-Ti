@@ -26,7 +26,7 @@ export const CorporateLinesManager: React.FC = () => {
   const { 
     lines, equipos, employeeAlerts, isLoading, stats,
     loadData, createLine, updateLine, deleteLine,
-    importarFactura, obtenerReporteCO 
+    importarFactura, obtenerReporteCO, obtenerAlertasFactura 
   } = ctx;
 
   const { addNotification } = useNotifications();
@@ -231,6 +231,8 @@ export const CorporateLinesManager: React.FC = () => {
             <InvoiceDispersionView 
               onImport={importarFactura}
               onFetchReport={obtenerReporteCO}
+              onFetchAlerts={obtenerAlertasFactura}
+              onSelectLine={(id) => setSelectedLineId(id)}
             />
           )}
         </div>
