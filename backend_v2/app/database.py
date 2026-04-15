@@ -369,8 +369,15 @@ async def init_db():
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_detalle_periodo ON facturas_lineas_detalle(periodo)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_detalle_min ON facturas_lineas_detalle(min)"))
 
+            # --- MIGRACIÓN SOPORTE (ARCHIVOS FÍSICOS) ---
+            await conn.execute(text('ALTER TABLE "adjuntos_ticket" ADD COLUMN IF NOT EXISTS "ruta_archivo" VARCHAR;'))
+            await conn.execute(text('ALTER TABLE "adjuntos_ticket" ADD COLUMN IF NOT EXISTS "tamano_bytes" INTEGER;'))
+            
+            # Hacer que contenido_base64 sea opcional para retrocompatibilidad
+            await conn.execute(text('ALTER TABLE "adjuntos_ticket" ALTER COLUMN "contenido_base64" DROP NOT NULL;'))
+
         except Exception as e:
-            print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario: {e}")
+            print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario/soporte: {e}")
 
     # 3.1 Seed idempotente de sala por defecto
     try:

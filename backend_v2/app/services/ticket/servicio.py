@@ -5,7 +5,7 @@ Servicio de Tickets - Backend V2 (Facade)
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, or_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 from fastapi import HTTPException
 import json
@@ -237,7 +237,8 @@ class ServicioTicket:
                 joinedload(Ticket.solicitud_activo),
                 joinedload(Ticket.solicitud_desarrollo),
                 joinedload(Ticket.control_cambios),
-                joinedload(Ticket.adjuntos),
+                selectinload(Ticket.adjuntos),
+                selectinload(Ticket.comentarios),
             )
         )
         return result.scalars().first()

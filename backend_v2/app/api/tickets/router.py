@@ -4,6 +4,8 @@ Router de Tickets - Backend V2 (Async + SQLModel)
 
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
+from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from sqlalchemy import func as sa_func
@@ -21,11 +23,14 @@ from app.models.ticket.ticket import (
     TicketActualizar,
     AdjuntoCrear,
     ComentarioCrear,
-    TicketPublico,
+    TicketResumen,
+    TicketDetalle,
+    ComentarioPublico,
 )
 from app.services.ticket.servicio import ServicioTicket
 from app.services.ticket.bi_service import TicketBIService
 from app.utils_cache import global_cache
+from app.config import config
 
 router = APIRouter()
 
@@ -166,7 +171,7 @@ async def obtener_rendimiento(db: AsyncSession = Depends(obtener_db)):
         return []
 
 
-@router.get("/mis-tickets/{creador_id}", response_model=List[TicketPublico])
+@router.get("/mis-tickets/{creador_id}", response_model=List[TicketResumen])
 async def listar_mis_tickets(creador_id: str, db: AsyncSession = Depends(obtener_db)):
     """Lista tickets de un usuario especifico"""
     try:
@@ -175,7 +180,7 @@ async def listar_mis_tickets(creador_id: str, db: AsyncSession = Depends(obtener
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/", response_model=List[TicketPublico])
+@router.get("/", response_model=List[TicketResumen])
 async def listar_tickets(
     creador_id: Optional[str] = None,
     estado: Optional[str] = None,
@@ -211,7 +216,7 @@ async def listar_tickets(
         )
 
 
-@router.post("/", response_model=TicketPublico)
+@router.post("/", response_model=TicketResumen)
 async def crear_ticket(ticket: TicketCrear, db: AsyncSession = Depends(obtener_db)):
     """Crea un nuevo ticket de soporte delegando al servicio"""
     try:
@@ -223,7 +228,7 @@ async def crear_ticket(ticket: TicketCrear, db: AsyncSession = Depends(obtener_d
         raise HTTPException(status_code=500, detail=f"ERROR_CREAR_TICKET: {str(e)}")
 
 
-@router.get("/{ticket_id}", response_model=TicketPublico)
+@router.get("/{ticket_id}", response_model=TicketDetalle)
 async def obtener_ticket(ticket_id: str, db: AsyncSession = Depends(obtener_db)):
     """Obtiene detalles de un ticket"""
     try:
@@ -236,6 +241,24 @@ async def obtener_ticket(ticket_id: str, db: AsyncSession = Depends(obtener_db))
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error al obtener ticket: {str(e)}"
+        )
+
+
+@router.get("/{ticket_id}/comentarios", response_model=List[ComentarioPublico])
+async def obtener_comentarios_ticket(
+    ticket_id: str, db: AsyncSession = Depends(obtener_db)
+):
+    """Retorna los comentarios de un ticket ordenados por fecha"""
+    try:
+        result = await db.execute(
+            select(ComentarioTicket)
+            .where(ComentarioTicket.ticket_id == ticket_id)
+            .order_by(ComentarioTicket.creado_en.asc())
+        )
+        return result.scalars().all()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error al obtener comentarios: {str(e)}"
         )
 
 
@@ -263,7 +286,7 @@ async def agregar_comentario(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.patch("/{ticket_id}", response_model=TicketPublico)
+@router.patch("/{ticket_id}", response_model=TicketResumen)
 async def actualizar_ticket(
     ticket_id: str, ticket_in: TicketActualizar, db: AsyncSession = Depends(obtener_db)
 ):
@@ -319,7 +342,11 @@ async def subir_adjunto(
 
 @router.get("/adjuntos/{adjunto_id}", response_model=AdjuntoTicket)
 async def obtener_adjunto(adjunto_id: int, db: AsyncSession = Depends(obtener_db)):
-    """Retorna un adjunto completo con su contenido Base64"""
+    """
+    Retorna un adjunto. Si es un archivo físico (nuevo sistema), 
+    el contenido Base64 se mantiene nulo y se debe usar el endpoint de descarga.
+    Si es legado, retorna el contenido Base64 directamente.
+    """
     try:
         result = await db.execute(
             select(AdjuntoTicket).where(AdjuntoTicket.id == adjunto_id)
@@ -334,3 +361,32 @@ async def obtener_adjunto(adjunto_id: int, db: AsyncSession = Depends(obtener_db
         raise HTTPException(
             status_code=500, detail=f"Error al obtener adjunto: {str(e)}"
         )
+
+
+@router.get("/adjuntos/{adjunto_id}/archivo")
+async def descargar_archivo_adjunto(adjunto_id: int, db: AsyncSession = Depends(obtener_db)):
+    """
+    Sirve el archivo físico desde el disco. 
+    Solo funciona para archivos guardados con el nuevo sistema (ruta_archivo).
+    """
+    try:
+        result = await db.execute(
+            select(AdjuntoTicket).where(AdjuntoTicket.id == adjunto_id)
+        )
+        adjunto = result.scalars().first()
+        if not adjunto or not adjunto.ruta_archivo:
+            raise HTTPException(status_code=404, detail="Archivo físico no encontrado o es de legado")
+
+        abs_path = Path(config.storage_path) / adjunto.ruta_archivo
+        if not abs_path.exists():
+            raise HTTPException(status_code=404, detail="El archivo no existe en el servidor")
+
+        return FileResponse(
+            path=abs_path,
+            filename=adjunto.nombre_archivo,
+            media_type=adjunto.tipo_mime or "application/octet-stream"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

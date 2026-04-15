@@ -65,6 +65,16 @@ export interface TicketAttachment {
     id: number;
     nombre_archivo: string;
     tipo_mime: string;
+    ruta_archivo?: string; // [NUEVO] Para archivos en disco
+    creado_en: string;
+}
+
+export interface TicketComment {
+    id: number;
+    comentario: string;
+    es_interno: boolean;
+    usuario_id?: string;
+    nombre_usuario?: string;
     creado_en: string;
 }
 
@@ -75,6 +85,7 @@ export const useTicketDetail = (ticketId: string | undefined) => {
     const [error, setError] = useState<string | null>(null);
     const [history, setHistory] = useState<TicketHistory[]>([]);
     const [attachments, setAttachments] = useState<TicketAttachment[]>([]);
+    const [comments, setComments] = useState<TicketComment[]>([]);
     const { state, dispatch } = useAppContext();
     const { addNotification } = useNotifications();
     const currentUser = state.user;
@@ -83,14 +94,16 @@ export const useTicketDetail = (ticketId: string | undefined) => {
         if (!ticketId) return;
         setIsLoading(true);
         try {
-            const [ticketRes, historyRes, attachmentsRes] = await Promise.all([
+            const [ticketRes, historyRes, attachmentsRes, commentsRes] = await Promise.all([
                 axios.get(`${API_BASE_URL}/soporte/${ticketId}`),
                 axios.get(`${API_BASE_URL}/soporte/${ticketId}/historial`),
-                axios.get(`${API_BASE_URL}/soporte/${ticketId}/adjuntos`)
+                axios.get(`${API_BASE_URL}/soporte/${ticketId}/adjuntos`),
+                axios.get(`${API_BASE_URL}/soporte/${ticketId}/comentarios`)
             ]);
             setTicket(ticketRes.data);
             setHistory(historyRes.data);
             setAttachments(attachmentsRes.data);
+            setComments(commentsRes.data);
         } catch (err) {
             console.error("Error cargando datos del ticket:", err);
             setError("No se pudo cargar la información del ticket.");
@@ -102,6 +115,30 @@ export const useTicketDetail = (ticketId: string | undefined) => {
     useEffect(() => {
         fetchAllData();
     }, [fetchAllData]);
+
+    // Polling silencioso para comentarios (Sincronización WhatsApp style)
+    useEffect(() => {
+        if (!ticketId) return;
+
+        const pollInterval = setInterval(async () => {
+            try {
+                // Fetch de comentarios sin disparar isLoading global
+                const res = await axios.get(`${API_BASE_URL}/soporte/${ticketId}/comentarios`);
+                
+                // Solo actualizar si hay cambios (comparación simple de longitud o IDs)
+                setComments(current => {
+                    if (JSON.stringify(current) !== JSON.stringify(res.data)) {
+                        return res.data;
+                    }
+                    return current;
+                });
+            } catch (err) {
+                console.warn("Silent polling error:", err);
+            }
+        }, 10000); // Cada 10 segundos
+
+        return () => clearInterval(pollInterval);
+    }, [ticketId]);
 
     const updateTicket = async (updateData: Partial<Ticket>) => {
         if (!ticketId) return;
@@ -126,16 +163,58 @@ export const useTicketDetail = (ticketId: string | undefined) => {
 
     const downloadAttachment = async (attachmentId: number, filename: string) => {
         try {
+            // 1. Obtener metadatos para saber si es físico o Base64
             const res = await axios.get(`${API_BASE_URL}/soporte/adjuntos/${attachmentId}`);
-            const { contenido_base64, tipo_mime } = res.data;
-            const link = document.createElement('a');
-            link.href = `data:${tipo_mime};base64,${contenido_base64}`;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const { contenido_base64, tipo_mime, ruta_archivo } = res.data;
+
+            if (ruta_archivo) {
+                // [NUEVO] Descarga de archivo físico
+                // Abrimos en una nueva pestaña o disparamos descarga directa via URL
+                const downloadUrl = `${API_BASE_URL}/soporte/adjuntos/${attachmentId}/archivo`;
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = filename;
+                link.target = "_blank";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else if (contenido_base64) {
+                // [LEGADO] Descarga de Base64
+                const link = document.createElement('a');
+                link.href = `data:${tipo_mime};base64,${contenido_base64}`;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                throw new Error("No hay contenido disponible para este adjunto.");
+            }
         } catch (err) {
+            console.error("Error downloading attachment:", err);
             notify('error', 'No se pudo descargar el archivo.');
+        }
+    };
+
+    const addComment = async (text: string, isInternal: boolean = false) => {
+        if (!ticketId || !text.trim()) return;
+        setIsSaving(true);
+        try {
+            const commentData = {
+                comentario: text,
+                es_interno: isInternal,
+                usuario_id: currentUser?.id,
+                nombre_usuario: currentUser?.name
+            };
+            await axios.post(`${API_BASE_URL}/soporte/${ticketId}/comentarios`, commentData);
+            // Recargar solo comentarios para mayor fluidez
+            const res = await axios.get(`${API_BASE_URL}/soporte/${ticketId}/comentarios`);
+            setComments(res.data);
+            notify('success', 'Mensaje enviado.');
+        } catch (err) {
+            console.error("Error al enviar comentario:", err);
+            notify('error', 'No se pudo enviar el mensaje.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -164,7 +243,9 @@ export const useTicketDetail = (ticketId: string | undefined) => {
         error,
         history,
         attachments,
+        comments,
         updateTicket,
+        addComment,
         downloadAttachment,
         refresh: fetchAllData
     };

@@ -1,6 +1,7 @@
 """
 Configuracion de la aplicacion Backend V2
 """
+from typing import Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -25,6 +26,17 @@ class Configuracion(BaseSettings):
     
     # CORS
     frontend_url: str = "http://localhost:5173"
+    
+    # Almacenamiento Local
+    storage_path: str = "/app/storage/attachments"
+    storage_max_size_mb: int = 25 # Límite por archivo
+    
+    # Notificaciones Email (Opcional)
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = 587
+    smtp_user: Optional[str] = None
+    smtp_pass: Optional[str] = None
+    smtp_from: Optional[str] = None
     
     class Config:
         env_file = "../.env"

@@ -20,6 +20,7 @@ services:
       - WATCHFILES_FORCE_POLLING=true
     volumes:
       - ./backend_v2:/app
+      - ./GestionTi_SoporteFiles:/app/storage/attachments
     depends_on:
       - db
     # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 # Modo Produccion

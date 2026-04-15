@@ -8,7 +8,9 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # Instalar dependencias del sistema para compilar (psycopg2, etc.)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     && apt-get clean \
@@ -16,7 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Instalar dependencias de Python
 COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --prefix=/install -r requirements.txt
 
 
 # --- Stage 2: Runtime ---
@@ -28,7 +31,9 @@ WORKDIR /app
 COPY --from=builder /install /usr/local
 
 # Instalar solo la libreria runtime de postgres
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*

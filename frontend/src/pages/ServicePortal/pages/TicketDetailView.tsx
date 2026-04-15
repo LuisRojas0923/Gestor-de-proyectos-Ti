@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ArrowLeft, FileText, ClipboardList, ShieldCheck, Settings, UserCheck, Plus } from 'lucide-react';
-import { StatusBadge, TicketStatus, TextAreaField } from './Common';
+import { ArrowLeft, FileText, ClipboardList, ShieldCheck, Settings, UserCheck, Plus, MessageCircle } from 'lucide-react';
+import { StatusBadge, TicketStatus } from './Common';
 import { Button, Title, Text, Icon } from '../../../components/atoms';
 import { API_CONFIG } from '../../../config/api';
 import { formatFriendlyDate } from '../../../utils/dateUtils';
+import { useTicketDetail } from '../../../hooks/useTicketDetail';
+import TicketChatSection from '../components/TicketChatSection';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -50,9 +52,15 @@ interface TicketDetailViewProps {
     onUpdate: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 
-const TicketDetailView: React.FC<TicketDetailViewProps> = ({ selectedTicket, onBack, onUpdate }) => {
+const TicketDetailView: React.FC<TicketDetailViewProps> = ({ selectedTicket, user, onBack }) => {
     const [lastAnalyst, setLastAnalyst] = useState<string | null>(null);
     const [lastAction, setLastAction] = useState<string | null>(null);
+
+    const {
+        comments,
+        addComment,
+        isSaving
+    } = useTicketDetail(selectedTicket.id);
 
     const formatKey = (key: string) => {
         return key.split('_')
@@ -155,7 +163,7 @@ const TicketDetailView: React.FC<TicketDetailViewProps> = ({ selectedTicket, onB
                                     <Icon name={FileText} size="sm" /><Title variant="h6" className="font-bold uppercase tracking-wider">Problema Reportado</Title>
                                     <div className="flex-grow border-t border-[var(--color-border)]"></div>
                                 </div>
-                                <div className="bg-[var(--color-surface-variant)]/30 p-6 rounded-3xl border border-[var(--color-border)]">
+                                <div className="bg-[var(--color-surface-variant)]/30 p-6 rounded-3xl border border-[var(--color-border)] max-h-[300px] overflow-y-auto custom-scrollbar">
                                     <Text variant="body2" color="text-primary" className="leading-relaxed" weight="medium">{selectedTicket.descripcion || 'Sin descripción detallada.'}</Text>
                                 </div>
                             </div>
@@ -326,30 +334,28 @@ const TicketDetailView: React.FC<TicketDetailViewProps> = ({ selectedTicket, onB
                                 </div>
                             </div>
 
-                            {/* Sección de retroalimentación - Solo si está pendiente de información */}
-                            {selectedTicket.sub_estado === 'Pendiente Información' && (
-                                <form onSubmit={onUpdate} className="space-y-6 p-6 bg-[var(--color-surface-variant)]/30 rounded-3xl border-2 border-[var(--color-primary)]/20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <div className="flex items-center space-x-3 text-[var(--color-primary)]">
-                                        <Icon name={Settings} size="sm" />
-                                        <Title variant="h6" className="font-bold uppercase tracking-wider">Enviar Información Solicitada</Title>
+                            {/* SECCIÓN DE CHAT BIDIRECCIONAL */}
+                            <div className="space-y-6 flex flex-col h-[500px]">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3 text-blue-500/60">
+                                        <MessageCircle size={20} />
+                                        <Title variant="h6" className="font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Chat con Soporte</Title>
                                     </div>
-                                    <TextAreaField
-                                        label="Tu Comentario / Respuesta"
-                                        name="user_response"
-                                        placeholder="Escribe aquí la información que el analista solicitó..."
-                                        rows={4}
-                                        isRequired
+                                    <div className="flex-grow border-t border-blue-100 dark:border-blue-900/30 mx-4"></div>
+                                </div>
+
+                                <div className="flex-1 min-h-0 bg-slate-50/50 dark:bg-slate-900/20 rounded-3xl border border-slate-100 dark:border-slate-800 p-4">
+                                    <TicketChatSection 
+                                        comments={comments}
+                                        onSendComment={async (text) => {
+                                            await addComment(text, false);
+                                        }}
+                                        currentUserId={user?.id}
+                                        isAnalyst={false}
+                                        isSaving={isSaving}
                                     />
-                                    <Button
-                                        type="submit"
-                                        variant="primary"
-                                        className="w-full"
-                                        icon={ShieldCheck}
-                                    >
-                                        Enviar al Analista
-                                    </Button>
-                                </form>
-                            )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

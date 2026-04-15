@@ -32,6 +32,8 @@ services:
       - APP_VERSION=${APP_VERSION:-v2.4.0-DEV}
       - FRONTEND_URL=http://${FRONTEND_HOST:-localhost}:${FRONTEND_PORT:-8083}
       - TZ=America/Bogota
+    volumes:
+      - ./GestionTi_SoporteFiles_Pruebas3:/app/storage/attachments
     depends_on:
       - db
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
