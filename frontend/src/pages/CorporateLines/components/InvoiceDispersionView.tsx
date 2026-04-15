@@ -3,7 +3,6 @@ import { Upload, FileText, Download } from 'lucide-react';
 import { 
   Button, 
   Input, 
-  MaterialCard as Card, 
   Title,
   Text,
   Icon,
@@ -96,7 +95,7 @@ export const InvoiceDispersionView: React.FC<Props> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <Card className="p-6 border-none shadow-xl bg-white dark:bg-neutral-800 rounded-3xl">
+      <div className="p-6 rounded-3xl">
         <div className="flex flex-col md:flex-row gap-6 items-end">
           <div className="flex-1 space-y-2">
             <Text variant="caption" weight="bold" className="uppercase tracking-wider opacity-60">Periodo (AAAAMM)</Text>
@@ -111,17 +110,18 @@ export const InvoiceDispersionView: React.FC<Props> = ({
           
           <div className="flex-[2] space-y-2">
             <Text variant="caption" weight="bold" className="uppercase tracking-wider opacity-60">Archivo de Factura (Excel Claro)</Text>
-            <div className="relative group">
+            <div className="relative group h-12">
               <Input 
                 type="file" 
-                accept=".xlsx, .xls" 
+                accept=".xlsx, .xls, .xlsm" 
                 onChange={handleFileChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                fullWidth
               />
-              <div className="flex items-center gap-3 p-3 border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-2xl group-hover:border-primary transition-colors">
+              <div className="absolute inset-0 flex items-center gap-3 px-4 border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-2xl group-hover:border-primary transition-colors bg-white dark:bg-neutral-800 z-10 pointer-events-none">
                 <Icon name={Upload} className="text-primary w-5 h-5" />
                 <Text variant="body2" className="truncate">
-                  {file ? file.name : "Subir archivo .xlsx"}
+                  {file ? file.name : "Seleccionar archivo .xlsx"}
                 </Text>
               </div>
             </div>
@@ -146,10 +146,10 @@ export const InvoiceDispersionView: React.FC<Props> = ({
             </Button>
           </div>
         </div>
-      </Card>
+      </div>
 
       {alerts.length > 0 && (
-        <Card className="p-0 border-2 border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/10 rounded-3xl overflow-hidden">
+        <div className="p-0 border-2 border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/10 rounded-3xl overflow-hidden">
           <div className="p-4 bg-amber-100 dark:bg-amber-900/30 flex items-center gap-3">
             <div className="p-2 bg-amber-500 rounded-xl text-white">
               <Icon name={AlertCircle} size="sm" />
@@ -181,11 +181,11 @@ export const InvoiceDispersionView: React.FC<Props> = ({
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
       {report.length > 0 && (
-        <Card className="overflow-hidden border-none shadow-xl bg-white dark:bg-neutral-800 rounded-3xl">
+        <div className="overflow-hidden rounded-3xl">
           <div className="p-6 border-b border-neutral-100 dark:border-neutral-700 flex justify-between items-center">
              <Title variant="h4">Resumen Contable por Centro de Costo (C.O)</Title>
              <Button variant="outline" size="sm" icon={Download} className="rounded-xl">Exportar PDF</Button>
@@ -220,7 +220,7 @@ export const InvoiceDispersionView: React.FC<Props> = ({
               </tbody>
             </table>
           </div>
-        </Card>
+        </div>
       )}
 
       {report.length === 0 && !isProcessing && (

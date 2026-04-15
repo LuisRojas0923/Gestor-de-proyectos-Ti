@@ -352,6 +352,23 @@ async def init_db():
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_facturas_periodo ON facturas_lineas(periodo)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_facturas_linea ON facturas_lineas(linea_id)"))
 
+            # --- TABLA DE DETALLE CRUDO DE FACTURA ---
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS facturas_lineas_detalle (
+                    id SERIAL PRIMARY KEY,
+                    periodo VARCHAR(50) NOT NULL,
+                    min VARCHAR(100) NOT NULL,
+                    nombre VARCHAR(500) DEFAULT '',
+                    descripcion VARCHAR(500) DEFAULT '',
+                    valor NUMERIC(12, 2) DEFAULT 0.0,
+                    iva NUMERIC(12, 2) DEFAULT 0.0,
+                    criterio VARCHAR(50) DEFAULT 'OTROS',
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+            """))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_detalle_periodo ON facturas_lineas_detalle(periodo)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_detalle_min ON facturas_lineas_detalle(min)"))
+
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario: {e}")
 

@@ -8,15 +8,17 @@ from typing import List
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.models.linea_corporativa import LineaCorporativa, EquipoMovil, EmpleadoLinea
 from app.models.linea_corporativa.factura_model import FacturaLinea
+from app.models.linea_corporativa.factura_detalle_model import FacturaLineaDetalle
 from .schemas import (
     LineaCorporativaCreate, LineaCorporativaUpdate, LineaCorporativaOut,
     EquipoMovilCreate, EquipoMovilOut,
     EmpleadoLineaCreate, EmpleadoLineaOut,
-    ResumenCORow
+    ResumenCORow, FacturaDetalleRow
 )
 from datetime import datetime
 import polars as pl
 import io
+import re
 from fastapi import UploadFile, File
 from sqlalchemy import func
 from app.services.erp import EmpleadosService
@@ -160,15 +162,25 @@ async def reporte_por_centro_costo(periodo: str, db: AsyncSession = Depends(obte
     Genera el resumen contable agrupado por Centro de Costo de forma estrictamente financiera (7 columnas).
     """
     try:
+        from sqlalchemy import case
+        
+        # Expresión para normalizar el C.O: GENERAL -> 9910-99
+        co_normalized = case(
+            (FacturaLinea.centro_costo == 'GENERAL', '9910-99'),
+            (FacturaLinea.centro_costo.is_(None), '9910-99'),
+            (FacturaLinea.centro_costo == '', '9910-99'),
+            else_=FacturaLinea.centro_costo
+        ).label("co")
+
         stmt = select(
-            FacturaLinea.centro_costo.label("co"),
+            co_normalized,
             func.coalesce(func.sum(FacturaLinea.cargo_mes), 0.0).label("cargo_mes"),
             func.coalesce(func.sum(FacturaLinea.descuento_mes), 0.0).label("descuento_mes"),
             func.coalesce(func.sum(FacturaLinea.impoconsumo), 0.0).label("impoconsumo"),
             func.coalesce(func.sum(FacturaLinea.descuento_iva), 0.0).label("descuento_iva"),
             func.coalesce(func.sum(FacturaLinea.iva_19), 0.0).label("iva_19"),
             func.coalesce(func.sum(FacturaLinea.total), 0.0).label("total")
-        ).where(FacturaLinea.periodo == periodo).group_by(FacturaLinea.centro_costo)
+        ).where(FacturaLinea.periodo == periodo).group_by(co_normalized)
         
         result = await db.execute(stmt)
         # Convertir Decimal a float para evitar problemas de serialización JSON si los hay
@@ -285,12 +297,54 @@ async def importar_factura(
             pl.col(cols[9]).cast(pl.Float64, strict=False).fill_null(0).alias("total_fila")
         ])
 
-        # 3. Filtrar MINs válidos
-        data = data.filter(pl.col("min").is_not_null())
+        # 3. Filtrar MINs válidos (excluir encabezados y filas no numéricas)
+        data = data.filter(
+            pl.col("min").is_not_null() &
+            pl.col("min").cast(pl.Utf8).str.contains(r"^\d{7,}")
+        )
         
-        # 4. Clasificación y Agregación
+        # 3.5 Extraer también NOMBRE (columna index 4) para el detalle crudo
+        data_con_nombre = df.slice(header_row + 1).select([
+            pl.col(cols[3]).alias("min"),
+            pl.col(cols[4]).cast(pl.Utf8).fill_null("").alias("nombre"),
+            pl.col(cols[5]).alias("descripcion"),
+            pl.col(cols[6]).cast(pl.Float64, strict=False).fill_null(0).alias("valor"),
+            pl.col(cols[7]).cast(pl.Float64, strict=False).fill_null(0).alias("iva"),
+        ]).filter(
+            pl.col("min").is_not_null() &
+            pl.col("min").cast(pl.Utf8).str.contains(r"^\d{7,}")
+        )
+
+        # 4. Clasificación y Almacenamiento de detalle crudo
         c_fijo_pat = "Cargo Fijo|Datos|Claro Sync"
         especiales_pat = "Roaming|NBA|Larga Distancia|Especiales"
+
+        # Limpiar detalle previo del mismo periodo
+        await db.execute(
+            text("DELETE FROM facturas_lineas_detalle WHERE periodo = :p"),
+            {"p": periodo}
+        )
+
+        # Insertar filas crudas con clasificación
+        for raw_row in data_con_nombre.iter_rows(named=True):
+            desc_str = str(raw_row["descripcion"] or "")
+            if re.search(c_fijo_pat, desc_str, re.IGNORECASE):
+                criterio = "CARGO FIJO"
+            elif re.search(especiales_pat, desc_str, re.IGNORECASE):
+                criterio = "ESPECIALES"
+            else:
+                criterio = "OTROS"
+
+            detalle = FacturaLineaDetalle(
+                periodo=periodo,
+                min=str(raw_row["min"]).strip(),
+                nombre=str(raw_row["nombre"]).strip(),
+                descripcion=desc_str.strip(),
+                valor=float(raw_row["valor"]),
+                iva=float(raw_row["iva"]),
+                criterio=criterio
+            )
+            db.add(detalle)
 
         consumos = data.group_by("min").agg([
             pl.col("valor").filter(pl.col("descripcion").cast(pl.Utf8).str.contains(c_fijo_pat)).sum().alias("cargo_mes"),
@@ -329,24 +383,23 @@ async def importar_factura(
             
             pago_e = p_e_base + p_e_iva
             pago_r = row["total"] - pago_e
-
-            # Lógica de Centro de Costo: Priorizar ERP, luego Local, luego GENERAL
-            centro_costo_final = 'GENERAL'
+ 
+            # Lógica de Centro de Costo: Priorizar ERP, luego Local, luego 9910-99
+            centro_costo_final = '9910-99'
             if db_linea.documento_asignado and db_erp:
                 try:
                     erp_data = await EmpleadosService.obtener_empleado_por_cedula(db_erp, db_linea.documento_asignado)
-                    if erp_data and erp_data.get("centrocosto"):
+                    if erp_data and erp_data.get("centrocosto") and erp_data["centrocosto"].strip().upper() != 'GENERAL':
                         centro_costo_final = erp_data["centrocosto"]
                     else:
-                        centro_costo_final = getattr(db_linea.asignado, 'centro_costo', 'GENERAL') or 'GENERAL'
+                        centro_costo_local = getattr(db_linea.asignado, 'centro_costo', '9910-99')
+                        centro_costo_final = centro_costo_local if centro_costo_local and centro_costo_local.upper() != 'GENERAL' else '9910-99'
                 except Exception:
-                    centro_costo_final = getattr(db_linea.asignado, 'centro_costo', 'GENERAL') or 'GENERAL'
+                    centro_costo_local = getattr(db_linea.asignado, 'centro_costo', '9910-99')
+                    centro_costo_final = centro_costo_local if centro_costo_local and centro_costo_local.upper() != 'GENERAL' else '9910-99'
             elif db_linea.asignado:
-                centro_costo_final = db_linea.asignado.centro_costo or 'GENERAL'
-
-            # Si es una línea nueva o sin asignar, marcar C.O como ALERTA
-            if centro_costo_final == 'GENERAL' and (not db_linea.documento_asignado or db_linea.estado_asignacion == "NUEVA_EN_FACTURA"):
-                centro_costo_final = 'SIN_ASIGNAR'
+                centro_costo_local = db_linea.asignado.centro_costo
+                centro_costo_final = centro_costo_local if centro_costo_local and centro_costo_local.upper() != 'GENERAL' else '9910-99'
 
             factura = FacturaLinea(
                 linea_id=db_linea.id,
@@ -385,7 +438,7 @@ async def obtener_alertas_factura(periodo: str, db: AsyncSession = Depends(obten
             LineaCorporativa, FacturaLinea.linea_id == LineaCorporativa.id
         ).where(
             FacturaLinea.periodo == periodo,
-            FacturaLinea.centro_costo == 'SIN_ASIGNAR'
+            FacturaLinea.documento_asignado == 'SIN_ASIGNAR'
         )
         result = await db.execute(stmt)
         alerts = []
@@ -399,3 +452,37 @@ async def obtener_alertas_factura(periodo: str, db: AsyncSession = Depends(obten
         return alerts
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/detalle-factura/{periodo}", response_model=List[FacturaDetalleRow])
+async def obtener_detalle_factura(periodo: str, db: AsyncSession = Depends(obtener_db)):
+    """
+    Retorna las filas crudas importadas del Excel de Claro para un periodo dado.
+    Cada fila contiene: MIN, NOMBRE, DESCRIPCION, VALOR, IVA, CICLO, CRITERIO.
+    """
+    try:
+        stmt = select(FacturaLineaDetalle).where(
+            FacturaLineaDetalle.periodo == periodo
+        ).order_by(FacturaLineaDetalle.min, FacturaLineaDetalle.criterio)
+        
+        result = await db.execute(stmt)
+        rows = result.scalars().all()
+        
+        return [
+            FacturaDetalleRow(
+                id=r.id,
+                min=r.min,
+                nombre=r.nombre,
+                descripcion=r.descripcion,
+                valor=float(r.valor),
+                iva=float(r.iva),
+                ciclo=r.periodo,
+                criterio=r.criterio
+            )
+            for r in rows
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener detalle: {str(e)}")
+
+# --- INCLUSIÓN DE SUB-ROUTERS ---
+from .router_migracion import router as router_migracion
+router.include_router(router_migracion)

@@ -35,6 +35,7 @@ interface InputProps {
   autoComplete?: string;
   style?: React.CSSProperties;
   inputMode?: 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search';
+  autoFocus?: boolean;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(({
@@ -68,6 +69,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   multiple,
   autoComplete,
   inputMode,
+  autoFocus,
 }, ref) => {
   const [showPassword, setShowPassword] = useState(false); // [CONTROLADO]
   const isPasswordType = type === 'password'; // [CONTROLADO]
@@ -163,6 +165,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           multiple={multiple}
           autoComplete={autoComplete}
           inputMode={inputMode}
+          autoFocus={autoFocus}
           className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]} ${className}`}
           style={style}
         />

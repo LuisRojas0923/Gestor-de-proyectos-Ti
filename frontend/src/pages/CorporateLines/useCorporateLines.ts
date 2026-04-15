@@ -30,6 +30,17 @@ export interface ResumenCORow {
   total: number;
 }
 
+export interface FacturaDetalleRow {
+  id: number;
+  min: string;
+  nombre: string;
+  descripcion: string;
+  valor: number;
+  iva: number;
+  ciclo: string;
+  criterio: string;
+}
+
 export interface CorporateLine {
   id: number;
   fecha_actualizacion: string | null;
@@ -140,12 +151,24 @@ export const useCorporateLines = () => {
     return res;
   };
 
+  const importarMatrizLegacy = async (file: File) => {
+    const formData = new FormData();
+    formData.append('archivo', file);
+    const res = await post('/lineas-corporativas/migracion-legacy', formData);
+    await loadData();
+    return res;
+  };
+
   const obtenerReporteCO = async (periodo: string) => {
     return await get(`/lineas-corporativas/reporte-co?periodo=${periodo}`);
   };
 
   const obtenerAlertasFactura = async (periodo: string) => {
     return await get(`/lineas-corporativas/alertas-factura/${periodo}`);
+  };
+
+  const obtenerDetalleFactura = async (periodo: string) => {
+    return await get(`/lineas-corporativas/detalle-factura/${periodo}`);
   };
 
   const stats = useMemo(() => {
@@ -180,7 +203,9 @@ export const useCorporateLines = () => {
     createEquipo,
     createPersona,
     importarFactura,
+    importarMatrizLegacy,
     obtenerReporteCO,
     obtenerAlertasFactura,
+    obtenerDetalleFactura,
   };
 };

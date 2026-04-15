@@ -64,7 +64,7 @@ export const LineDetailForm: React.FC<FormProps> = ({
               {hasAlert.clase === 'CRITICAL' ? 'Situación de Personal Crítica' : 'Aviso de Retiro Próximo'}
             </Title>
             <Text variant="body2" color={hasAlert.clase === 'CRITICAL' ? 'error' : 'warning'} weight="medium" className="leading-relaxed opacity-90">
-              {hasAlert.motivos} — <Text weight="bold" className="inline">Acción Requerida:</Text> Validar recuperación de línea o reasignación inmediata.
+              {hasAlert.motivos} — <Text as="span" weight="bold" className="inline">Acción Requerida:</Text> Validar recuperación de línea o reasignación inmediata.
             </Text>
           </div>
         </div>

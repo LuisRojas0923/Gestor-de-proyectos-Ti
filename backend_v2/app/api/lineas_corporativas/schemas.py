@@ -134,3 +134,16 @@ class ResumenCORow(BaseModel):
     descuento_iva: float
     iva_19: float
     total: float
+
+class FacturaDetalleRow(BaseModel):
+    id: int
+    min: str
+    nombre: str
+    descripcion: str
+    valor: float
+    iva: float
+    ciclo: str
+    criterio: str
+
+    class Config:
+        from_attributes = True

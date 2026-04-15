@@ -11,17 +11,17 @@ interface TableProps {
 }
 
 // Componente de Fila Memorizado para alto rendimiento
-const LineRow = memo(({ 
-  line, 
-  onSelect, 
-  hasAlert 
-}: { 
-  line: CorporateLine; 
-  onSelect: (id: number) => void; 
-  hasAlert: boolean | any 
+const LineRow = memo(({
+  line,
+  onSelect,
+  hasAlert
+}: {
+  line: CorporateLine;
+  onSelect: (id: number) => void;
+  hasAlert: boolean | any
 }) => {
   return (
-    <tr 
+    <tr
       className="group hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors cursor-pointer"
       onClick={() => onSelect(line.id)}
     >
@@ -40,13 +40,12 @@ const LineRow = memo(({
       </td>
       <td className="px-6 py-4">
         <div className="flex items-center gap-2 max-w-[200px]">
-          <div className={`shrink-0 w-2.5 h-2.5 rounded-full ${
-            hasAlert?.clase === 'CRITICAL' 
-              ? 'bg-red-500 animate-pulse ring-4 ring-red-500/20' 
-              : hasAlert?.clase === 'WARNING' 
-                ? 'bg-amber-400 animate-pulse ring-4 ring-amber-500/20' 
-                : 'bg-green-500'
-          }`} />
+          <div className={`shrink-0 w-2.5 h-2.5 rounded-full ${hasAlert?.clase === 'CRITICAL'
+            ? 'bg-red-500 animate-pulse ring-4 ring-red-500/20'
+            : hasAlert?.clase === 'WARNING'
+              ? 'bg-amber-400 animate-pulse ring-4 ring-amber-500/20'
+              : 'bg-green-500'
+            }`} />
           <div className="min-w-0">
             <Text variant="body2" weight="medium" className={`truncate block ${hasAlert?.clase === 'CRITICAL' ? 'text-red-600 dark:text-red-400 font-bold' : ''}`} title={line.asignado?.nombre || 'Sin asignar'}>
               {line.asignado?.nombre || 'No asignada'}
@@ -71,19 +70,19 @@ const LineRow = memo(({
       </td>
       <td className="px-6 py-4 text-right">
         <Text weight="bold" className="font-mono text-sm">
-          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(line.pago_empleado)}
+          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(line.pago_empleado || 0)}
         </Text>
       </td>
       <td className="px-6 py-4">
         <div className="flex justify-center">
-           <Button 
-              variant="ghost" 
-              size="sm" 
-              icon={Eye} 
-              className="hover:bg-primary-500 hover:text-white transition-all shadow-sm rounded-xl"
-           >
-             Ver Detalle
-           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={Eye}
+            className="hover:bg-primary-500 hover:text-white transition-all shadow-sm rounded-xl"
+          >
+            Ver Detalle
+          </Button>
         </div>
       </td>
     </tr>
@@ -94,7 +93,7 @@ LineRow.displayName = 'LineRow';
 
 export const LinesTable: React.FC<TableProps> = ({ lines, onSelect, employeeAlerts, isLoading }) => {
   return (
-    <div className="bg-white dark:bg-neutral-800 rounded-3xl border border-neutral-200 dark:border-neutral-700 shadow-xl overflow-hidden animate-in fade-in duration-500">
+    <div className="rounded-3xl overflow-hidden animate-in fade-in duration-500">
       {/* Contenedor controlado para Scroll y Alto Rendimiento */}
       <div className="relative overflow-auto max-h-[calc(100vh-450px)] custom-scrollbar">
         <table className="w-full text-left border-collapse">
@@ -114,17 +113,17 @@ export const LinesTable: React.FC<TableProps> = ({ lines, onSelect, employeeAler
               // Estado de Carga con Skeletons (UX Premium)
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={`sk-${i}`}>
-                   <td className="px-6 py-4"><Skeleton className="h-10 w-40" /></td>
-                   <td className="px-6 py-4"><Skeleton className="h-6 w-32" /></td>
-                   <td className="px-6 py-4"><Skeleton className="h-6 w-24" /></td>
-                   <td className="px-6 py-4"><Skeleton className="h-6 w-16" /></td>
-                   <td className="px-6 py-4"><Skeleton className="h-6 w-20 ml-auto" /></td>
-                   <td className="px-6 py-4"><Skeleton className="h-8 w-24 mx-auto" /></td>
+                  <td className="px-6 py-4"><Skeleton className="h-10 w-40" /></td>
+                  <td className="px-6 py-4"><Skeleton className="h-6 w-32" /></td>
+                  <td className="px-6 py-4"><Skeleton className="h-6 w-24" /></td>
+                  <td className="px-6 py-4"><Skeleton className="h-6 w-16" /></td>
+                  <td className="px-6 py-4"><Skeleton className="h-6 w-20 ml-auto" /></td>
+                  <td className="px-6 py-4"><Skeleton className="h-8 w-24 mx-auto" /></td>
                 </tr>
               ))
             ) : (
               lines.map((line) => (
-                <LineRow 
+                <LineRow
                   key={line.id}
                   line={line}
                   onSelect={onSelect}
