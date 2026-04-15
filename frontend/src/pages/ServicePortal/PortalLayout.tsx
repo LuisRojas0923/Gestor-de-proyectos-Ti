@@ -107,7 +107,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                     </div>
                 </div>
             </header>
-            <main className="flex-grow max-w-[1300px] w-full mx-auto p-4 sm:px-8 sm:py-2">
+            <main className="flex-1 w-full max-w-[var(--portal-max-width)] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
                 {children}
             </main>
 

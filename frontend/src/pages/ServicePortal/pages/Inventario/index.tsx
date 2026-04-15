@@ -52,7 +52,7 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
     }, []);
 
     return (
-        <div className="max-w-7xl mx-auto space-y-4 py-2 animate-in fade-in duration-500">
+        <div className="max-w-[var(--portal-max-width)] mx-auto space-y-4 py-2 animate-in fade-in duration-500">
             {/* Header Card */}
             <div className="bg-[var(--color-surface)] border border-[var(--color-border)] py-2 px-6 rounded-3xl shadow-sm flex flex-col items-stretch relative overflow-hidden min-h-[64px]">
                 <div className="flex flex-col md:flex-row items-center justify-start gap-4 w-full z-10">

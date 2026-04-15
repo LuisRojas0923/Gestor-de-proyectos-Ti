@@ -7,6 +7,7 @@
   --lavender: #d9e1f2;
   --white: #ffffff;
   --dust-grey: #d0d0d0;
+  --portal-max-width: 1700px;
 
   /* Mapeo de Aplicación - Modo Light */
   --color-primary: var(--deep-navy);
@@ -138,18 +139,6 @@ body {
   color: var(--color-primary);
 }
 .reserva-salas-calendar .fc-toolbar-title {
-/* Estabilización de Sticky Headers para iOS Safari */
-.ios-sticky-fix {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-.table-separate {
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-}
   color: var(--color-primary);
   font-weight: 700;
 }
@@ -178,4 +167,17 @@ body {
 .reserva-salas-calendar .fc-theme-standard td,
 .reserva-salas-calendar .fc-theme-standard th {
   border-color: var(--color-border);
+}
+
+/* Estabilización de Sticky Headers para iOS Safari */
+.ios-sticky-fix {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.table-separate {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
 }

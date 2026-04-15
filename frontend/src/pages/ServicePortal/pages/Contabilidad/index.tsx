@@ -65,7 +65,7 @@ const ContabilidadPortal: React.FC<ContabilidadPortalProps> = ({ user, onBack })
   };
 
   return (
-    <div className="p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-6xl mx-auto">
+    <div className="p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-[var(--portal-max-width)] mx-auto">
       {/* Header Vanguard: Glassmorphism effect and integrated navigation */}
       <div className="relative overflow-hidden rounded-3xl bg-primary-500 p-8 text-white shadow-xl dark:bg-primary-900/40 dark:backdrop-blur-md border border-white/10">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
