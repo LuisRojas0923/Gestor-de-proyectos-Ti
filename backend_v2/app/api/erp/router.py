@@ -5,9 +5,9 @@ API de Endpoint ERP - Backend V2
 from fastapi import APIRouter, Depends, HTTPException, status
 import httpx
 from sqlalchemy.orm import Session
-from app.database import obtener_db, obtener_erp_db, obtener_erp_db_opcional
+from app.database import obtener_db, obtener_erp_db_opcional
 from app.services.erp import EmpleadosService
-from typing import Any, Dict, List, Optional
+from typing import Optional
 from app.config import config
 from app.api.erp.requisiciones_router import router as requisiciones_router
 

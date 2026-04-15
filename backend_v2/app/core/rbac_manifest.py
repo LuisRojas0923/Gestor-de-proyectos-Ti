@@ -94,6 +94,13 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": False,
         "descripcion": "Herramienta de asistencia basada en Inteligencia Artificial.",
     },
+    {
+        "id": "contabilidad",
+        "nombre": "Certificado de Ingresos y Retenciones",
+        "categoria": "portal",
+        "es_critico": False,
+        "descripcion": "Gestión de información exógena y descarga de certificados de retenciones.",
+    },
 
     # --- CATEGORÍA: ANALISTAS (Herramientas de Operación TI) ---
     {
@@ -151,6 +158,13 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "categoria": "analistas",
         "es_critico": False,
         "descripcion": "Gestión de estructuras de desglose de trabajo.",
+    },
+    {
+        "id": "lineas_corporativas",
+        "nombre": "Gestión de Líneas Corporativas",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Gestión e inventario de líneas telefónicas corporativas y facturación.",
     },
 
     # --- CATEGORÍA: PANEL (Administración de Control) ---

@@ -1,11 +1,12 @@
-import React, { useEffect, useRef } from 'react';
-import { Eye, Search, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Eye, Search, X, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
 import { useFilters, UseFiltersReturn } from './MyDevelopments/hooks/useFilters';
 import { DevelopmentWithCurrentStatus } from '../types';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { MaterialCard, Input, Select, Button, Title, Text } from '../components/atoms';
+import { CreateDevelopmentModal } from './MyDevelopments/CreateDevelopmentModal';
 
 // Hook personalizado para persistir filtros
 const usePersistedFilters = (filters: UseFiltersReturn) => {
@@ -73,6 +74,8 @@ const MyDevelopments: React.FC = () => {
   const { developments, loadDevelopments } = useDevelopments();
   const filters = useFilters(developments);
   const { addNotification } = useNotifications();
+  
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Persistir filtros en localStorage
   usePersistedFilters(filters);
@@ -99,7 +102,7 @@ const MyDevelopments: React.FC = () => {
   const hasShownLoadNotif = useRef(false);
   useEffect(() => {
     if (!hasShownLoadNotif.current && developments?.length > 0) {
-      addNotification('info', `${developments.length} desarrollos cargados`);
+      addNotification('info', `${developments.length} actividades cargadas`);
       hasShownLoadNotif.current = true;
     }
   }, [developments, addNotification]);
@@ -185,7 +188,6 @@ const MyDevelopments: React.FC = () => {
   // Opciones para los selects
   const groupOptions = [
     { value: 'none', label: 'Sin agrupar' },
-    { value: 'provider', label: 'Agrupar por Proveedor' },
     { value: 'module', label: 'Agrupar por Módulo' },
     { value: 'responsible', label: 'Agrupar por Responsable' },
     { value: 'stage', label: 'Agrupar por Estado Real' }
@@ -198,6 +200,13 @@ const MyDevelopments: React.FC = () => {
         <Title variant="h1">
           Gestión de Actividades
         </Title>
+        <Button
+          variant="primary"
+          icon={Plus}
+          onClick={() => setIsCreateModalOpen(true)}
+        >
+          Nueva Actividad
+        </Button>
       </div>
 
       {/* Panel de Filtros */}
@@ -209,7 +218,7 @@ const MyDevelopments: React.FC = () => {
                 Filtros y Ordenamiento
               </Title>
               <Text as="span" variant="caption" weight="medium" className="px-2 py-1 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
-                {filters.filteredDevelopments.length} desarrollo{filters.filteredDevelopments.length !== 1 ? 's' : ''}
+                {filters.filteredDevelopments.length} actividad{filters.filteredDevelopments.length !== 1 ? 'es' : ''}
               </Text>
             </div>
             <Button
@@ -256,7 +265,7 @@ const MyDevelopments: React.FC = () => {
                 <Title variant="h5" as="h3">
                   {groupName}
                   <Text as="span" variant="caption" weight="medium" className="ml-2 px-2 py-1 rounded-full bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
-                    {groupDevelopments.length} desarrollo{groupDevelopments.length !== 1 ? 's' : ''}
+                    {groupDevelopments.length} actividad{groupDevelopments.length !== 1 ? 'es' : ''}
                   </Text>
                 </Title>
               </MaterialCard.Header>
@@ -270,7 +279,6 @@ const MyDevelopments: React.FC = () => {
                       { key: 'id', label: 'ID' },
                       { key: 'name', label: 'Nombre' },
                       { key: 'responsible', label: 'Responsable' },
-                      { key: 'provider', label: 'Proveedor' },
                       { key: 'stage', label: 'Estado Real (Bitácora)' },
                       { key: 'status', label: 'Estado' }
                     ].map(({ key, label }) => (
@@ -298,9 +306,6 @@ const MyDevelopments: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
                         {dev.responsible ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.provider ?? 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         {dev.last_activity ? (
@@ -355,7 +360,16 @@ const MyDevelopments: React.FC = () => {
         ))}
       </MaterialCard>
 
-      {/* Modal de Importación */}
+      {/* Modal de Importación u otros */}
+      <CreateDevelopmentModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSaved={() => {
+          loadDevelopments();
+          addNotification('success', 'Actividad creada exitosamente');
+        }}
+        darkMode={document.documentElement.classList.contains('dark')} 
+      />
     </div>
   );
 };

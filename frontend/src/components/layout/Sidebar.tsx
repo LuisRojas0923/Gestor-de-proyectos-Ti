@@ -16,7 +16,8 @@ import {
   Activity,
   X,
   ListTodo,
-  Warehouse
+  Warehouse,
+  Smartphone
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -70,6 +71,7 @@ const Sidebar: React.FC = () => {
     { id: 'inventario_anual', name: 'Inventario Anual', href: '/admin/inventario', icon: Warehouse },
     { id: 'settings', name: 'Configuración', href: '/settings', icon: Settings },
     { id: 'wbs_templates', name: 'Plantillas WBS', href: '/admin/wbs-templates', icon: ListTodo },
+    { id: 'lineas_corporativas', name: 'Líneas Corporativas', href: '/lineas-corporativas', icon: Smartphone },
     { id: 'control-tower', name: 'Torre de Control', href: '/admin/control-tower', icon: Activity },
     { id: 'design-catalog', name: 'Catálogo de Diseño', href: '/design-catalog', icon: Palette },
   ];

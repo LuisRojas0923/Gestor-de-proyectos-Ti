@@ -40,8 +40,12 @@ export function useApi<T>() {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     const token = localStorage.getItem('token');
+    
+    // Si el body es FormData, el navegador debe elijir el Content-Type (con boundary) automaticamente.
+    const isFormData = options.body instanceof FormData;
+    
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...options.headers as any,
     };
@@ -107,28 +111,31 @@ export function useApi<T>() {
   const get = useCallback((url: string) => request(url), [request]); // [CONTROLADO]
 
   const post = useCallback(
-    (url: string, data: any) =>
+    (url: string, data: any, options: RequestInit = {}) =>
       request(url, { // [CONTROLADO]
         method: 'POST',
-        body: JSON.stringify(data),
+        body: data instanceof FormData ? data : JSON.stringify(data),
+        ...options,
       }),
     [request]
   );
 
   const put = useCallback(
-    (url: string, data: any) =>
+    (url: string, data: any, options: RequestInit = {}) =>
       request(url, { // [CONTROLADO]
         method: 'PUT',
-        body: JSON.stringify(data),
+        body: data instanceof FormData ? data : JSON.stringify(data),
+        ...options,
       }),
     [request]
   );
 
   const patch = useCallback(
-    (url: string, data: any) =>
+    (url: string, data: any, options: RequestInit = {}) =>
       request(url, { // [CONTROLADO]
         method: 'PATCH',
-        body: JSON.stringify(data),
+        body: data instanceof FormData ? data : JSON.stringify(data),
+        ...options,
       }),
     [request]
   );

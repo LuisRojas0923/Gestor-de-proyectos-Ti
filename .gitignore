@@ -38,3 +38,11 @@ yarn-error.log*
 # SQLite database
 project_manager.db
 *.sqlite3
+
+# Data files and temporary assets
+*.xlsx
+*.xlsm
+artifacts/
+scratch/
+backend_v2/scratch/
+frontend/dist/

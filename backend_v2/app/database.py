@@ -312,6 +312,63 @@ async def init_db():
             # Inicializar numero_pareja si es NULL (opcional but safe)
             await conn.execute(text('UPDATE "asignacioninventario" SET "numero_pareja" = 1 WHERE "numero_pareja" IS NULL;'))
 
+            # --- MIGRACIÓN LÍNEAS CORPORATIVAS (Motor de Dispersión) ---
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS nombre_plan VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS convenio VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS aprobado_por VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS observaciones TEXT"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS cobro_fijo_coef FLOAT DEFAULT 0.5"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS cobro_especiales_coef FLOAT DEFAULT 1.0"))
+            
+            # Campos Financieros (Snapshot)
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS cfm_con_iva NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS cfm_sin_iva NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS descuento_39 NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS vr_factura NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS pago_empleado NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS pago_empresa NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS primera_quincena NUMERIC(12, 2) DEFAULT 0.0"))
+            await conn.execute(text("ALTER TABLE lineas_corporativas ADD COLUMN IF NOT EXISTS segunda_quincena NUMERIC(12, 2) DEFAULT 0.0"))
+            
+            # --- TABLA DE FACTURAS (Motor de Dispersión) ---
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS facturas_lineas (
+                    id SERIAL PRIMARY KEY,
+                    linea_id INTEGER REFERENCES lineas_corporativas(id),
+                    periodo VARCHAR(50) NOT NULL,
+                    documento_asignado VARCHAR(100),
+                    centro_costo VARCHAR(100),
+                    cargo_mes NUMERIC(12, 2) DEFAULT 0.0,
+                    descuento_mes NUMERIC(12, 2) DEFAULT 0.0,
+                    impoconsumo NUMERIC(12, 2) DEFAULT 0.0,
+                    descuento_iva NUMERIC(12, 2) DEFAULT 0.0,
+                    iva_19 NUMERIC(12, 2) DEFAULT 0.0,
+                    total NUMERIC(12, 2) DEFAULT 0.0,
+                    pago_empleado NUMERIC(12, 2) DEFAULT 0.0,
+                    pago_refridcol NUMERIC(12, 2) DEFAULT 0.0,
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+            """))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_facturas_periodo ON facturas_lineas(periodo)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_facturas_linea ON facturas_lineas(linea_id)"))
+
+            # --- TABLA DE DETALLE CRUDO DE FACTURA ---
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS facturas_lineas_detalle (
+                    id SERIAL PRIMARY KEY,
+                    periodo VARCHAR(50) NOT NULL,
+                    min VARCHAR(100) NOT NULL,
+                    nombre VARCHAR(500) DEFAULT '',
+                    descripcion VARCHAR(500) DEFAULT '',
+                    valor NUMERIC(12, 2) DEFAULT 0.0,
+                    iva NUMERIC(12, 2) DEFAULT 0.0,
+                    criterio VARCHAR(50) DEFAULT 'OTROS',
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+            """))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_detalle_periodo ON facturas_lineas_detalle(periodo)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_detalle_min ON facturas_lineas_detalle(min)"))
+
         except Exception as e:
             print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario: {e}")
 

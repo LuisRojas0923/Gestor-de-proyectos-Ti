@@ -30,11 +30,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
 
     // Validación estricta de permisos si se requiere un moduleCode
     if (moduleCode && user.permissions) {
-        // Excepción Base: Si es "viaticante", se le permite acceso a las funciones base de viáticos
-        const isViaticosBasicModule = ['viaticos_gestion', 'viaticos_reportes', 'viaticos_estado'].includes(moduleCode);
-        const hasViaticanteBypass = isViaticosBasicModule && user.viaticante === true;
+        // Módulos que son accesibles para todos los usuarios autenticados (manejan su propia lógica interna de permisos)
+        const isGeneralAccessModule = ['contabilidad', 'viaticos_gestion', 'viaticos_reportes', 'viaticos_estado'].includes(moduleCode);
+        const hasBypass = isGeneralAccessModule || (user.viaticante === true && ['viaticos_gestion', 'viaticos_reportes', 'viaticos_estado'].includes(moduleCode));
 
-        if (!user.permissions.includes(moduleCode) && !hasViaticanteBypass) {
+        if (!user.permissions.includes(moduleCode) && !hasBypass) {
             // Si el usuario NO tiene permiso para este módulo y NO aplica la excepción de viaticante:
 
             // Caso 1: Usuario estándar intentando entrar a ruta administrativa -> Redirigir al inicio del Portal

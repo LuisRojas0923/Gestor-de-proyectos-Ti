@@ -44,6 +44,7 @@ interface AnalystPerformanceData {
   en_proceso: number;
   avg_time: number;
   performance_score: number;
+  displayName?: string;
 }
 
 interface PriorityData {
@@ -120,7 +121,7 @@ const Dashboard: React.FC = () => {
     // termine antes de que Recharts intente medir el contenedor.
     const timer = setTimeout(() => {
       setIsMounted(true);
-    }, 100);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, []);

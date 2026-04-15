@@ -32,3 +32,4 @@ export { default as KpiDetailsModal } from './KpiDetailsModal';
 export { default as ClearReportConfirmModal } from './ClearReportConfirmModal';
 export { default as DeleteReportConfirmModal } from './DeleteReportConfirmModal';
 export { default as ReportLockedModal } from './ReportLockedModal';
+export * from './ColumnFilterPopover';

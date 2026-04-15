@@ -18,6 +18,8 @@ import AlmacenSubAreaView from './ServicePortal/pages/Requests/AlmacenSubAreaVie
 import AlmacenFormView from './ServicePortal/pages/Requests/AlmacenFormView';
 import MisRequisicionesView from './ServicePortal/pages/Requests/MisRequisicionesView';
 import InventarioView from './ServicePortal/pages/Inventario';
+import ContabilidadPortal from './ServicePortal/pages/Contabilidad';
+import Formato2276DataTable from './ServicePortal/pages/Contabilidad/Formato2276DataTable';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import PortalLayout from './ServicePortal/PortalLayout';
 
@@ -136,6 +138,7 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
                             else if (v === 'requisiciones') navigate('/service-portal/requisiciones');
                             else if (v === 'inventario') navigate('/service-portal/inventario');
+                            else if (v === 'contabilidad') navigate('/service-portal/contabilidad');
                         }}
                     />
                 } />
@@ -296,6 +299,18 @@ const ServicePortal: React.FC = () => {
                 <Route path="inventario" element={
                     <ProtectedRoute moduleCode="inventario_2026">
                         <InventarioView onBack={() => navigate('/service-portal/inicio')} />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="contabilidad" element={
+                    <ProtectedRoute moduleCode="contabilidad">
+                        <ContabilidadPortal user={user} onBack={() => navigate('/service-portal/inicio')} />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="contabilidad/datos" element={
+                    <ProtectedRoute moduleCode="contabilidad">
+                        <Formato2276DataTable onBack={() => navigate('/service-portal/contabilidad')} />
                     </ProtectedRoute>
                 } />
 

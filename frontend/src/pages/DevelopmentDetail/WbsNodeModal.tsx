@@ -57,7 +57,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     estado,
                     porcentaje_avance: parseFloat(avance.toString())
                 };
-                await patch(`/desarrollos/actividades/${editNode.id}`, payload);
+                await patch(`/actividades/${editNode.id}`, payload);
             } else {
                 // Create mode
                 const payload: WbsActivityCreate = {
@@ -69,7 +69,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     porcentaje_avance: parseFloat(avance.toString()),
                     horas_estimadas: 0,
                 };
-                await post(`/desarrollos/actividades/`, payload);
+                await post(`/actividades/`, payload);
             }
             onSaved();
             onClose();
@@ -86,7 +86,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 <div className={`p-6 border-b ${darkMode ? 'border-neutral-700' : ' border-neutral-100'}`}>
                     <div className="flex justify-between items-center">
                         <Title variant="h5" weight="bold">
-                            {editNode ? 'Editar Actividad' : parentId ? 'Nueva Sub-actividad' : 'Nueva Actividad Principal'}
+                            {editNode ? 'Editar Tarea' : parentId ? 'Nueva Sub-tarea' : 'Nueva Tarea Principal'}
                         </Title>
                         <Button variant="ghost" onClick={onClose} icon={X} className="!p-1.5 text-neutral-400 hover:text-neutral-500" />
                     </div>
@@ -94,7 +94,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
 
                 <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh] custom-scrollbar">
                     <Input
-                        label="Título de la Actividad"
+                        label="Título de la Tarea"
                         placeholder="Ej. Análisis de Requerimientos"
                         value={titulo}
                         onChange={(e) => setTitulo(e.target.value)}
@@ -138,7 +138,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                         Cancelar
                     </Button>
                     <Button variant="primary" onClick={handleSave} disabled={loading || !titulo.trim()}>
-                        {loading ? 'Guardando...' : 'Guardar Actividad'}
+                        {loading ? 'Guardando...' : 'Guardar Tarea'}
                     </Button>
                 </div>
             </div>
