@@ -121,7 +121,11 @@
 }
 
 body {
-  @apply bg-[var(--color-background)] text-[var(--color-text-primary)] transition-colors duration-300;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
   -webkit-text-size-adjust: 100%;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
