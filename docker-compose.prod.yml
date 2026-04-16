@@ -18,6 +18,8 @@ services:
       context: ./backend_v2
       dockerfile: Dockerfile
     restart: always
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager}
       - ERP_DATABASE_URL=${ERP_DATABASE_URL}

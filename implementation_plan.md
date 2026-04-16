@@ -1,6 +1,9 @@
 # Plan de Implementación: Renombramiento de Módulo y Roles
 
-Se ha identificado una inconsistencia en el nombre del módulo. El módulo debe llamarse **"Certificado de Ingresos y Retenciones"**, mientras que **"Contabilidad"** debe reservarse exclusivamente para el nombre del **rol de usuario** con permisos administrativos sobre este módulo.
+Se ha identificado una inconsistencia en- **Filtros por Columna**: Todas las visibles (Entidad, Año, Beneficiario, Salarios, Ingresos, Salud, Pensión, Retenciones, etc.).
+- **Tipo de Filtros**: Checkboxes para texto/años, Rangos Numéricos para montos.
+- **Portals**: El popover se renderizará en `document.body`.
+suario** con permisos administrativos sobre este módulo.
 
 ## User Review Required
 
@@ -27,7 +30,16 @@ Se ha identificado una inconsistencia en el nombre del módulo. El módulo debe 
 
 ### Automated Tests
 - Verificar que el `rbac_manifest.py` sea descubierto correctamente por el backend al iniciar.
-- Comprobar que el componente `ProtectedRoute` siga validando correctamente el ID `contabilidad`.
+- Comprobar que el1. **Implementación de `useColumnFilters`**:
+   - Centralizar el estado de filtrado para todas las columnas (categóricas y numéricas).
+   - Manejar estados de tipo `Set` para categorías y objetos `{ min, max }` para valores numéricos.
+   - Calcular valores únicos y rangos (min/max) automáticamente.
+
+2. **Componente `ColumnFilterPopover` Pro**:
+   - Crear un sub-componente inteligente que detecte el tipo de dato.
+   - **Modo Categórico**: Buscador + Checkboxes.
+   - **Modo Numérico**: Inputs de rango (Desde/Hasta) + Slider (opcional) o lista de valores únicos detectados.
+   - Renderizado vía **React Portal** para evitar recortes de `overflow`.
 
 ### Manual Verification
 - Entrar con un usuario de rol `usuario` y verificar que el título de la tarjeta sea "Certificado de Ingresos y Retenciones".

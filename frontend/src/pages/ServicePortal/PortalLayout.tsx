@@ -5,6 +5,8 @@ import { Button, Text, Title } from '../../components/atoms';
 import ThemeToggle from '../../components/atoms/ThemeToggle';
 import imgLogoRefridcol from '../../assets/images/Logo Refridcol Solo.png';
 import imgSolidLogo from '../../assets/images/categories/Logo SOLID-ERP.png';
+import { UpdateEmailBanner } from '../../components/layout/UpdateEmailBanner';
+import EmailUpdateModal from './components/EmailUpdateModal';
 
 interface PortalLayoutProps {
     children: React.ReactNode;
@@ -17,6 +19,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
     const navigate = useNavigate();
     const location = useLocation();
     const [fromAdmin, setFromAdmin] = useState(false);
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
 
     const isInventario = location.pathname.includes('/inventario');
 
@@ -25,6 +28,13 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
         const isFromAdmin = sessionStorage.getItem('fromAdmin') === 'true';
         setFromAdmin(isFromAdmin);
     }, []);
+
+    useEffect(() => {
+        // Lanzar el modal automáticamente si el correo requiere actualización
+        if (user?.emailNeedsUpdate) {
+            setIsEmailModalOpen(true);
+        }
+    }, [user?.emailNeedsUpdate]);
 
     const isAdmin = ['analyst', 'admin', 'director', 'manager', 'admin_sistemas', 'admin_mejoramiento'].includes(user?.role?.toLowerCase());
 
@@ -107,6 +117,11 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                     </div>
                 </div>
             </header>
+            <UpdateEmailBanner onUpdate={() => setIsEmailModalOpen(true)} />
+            <EmailUpdateModal
+                isOpen={isEmailModalOpen}
+                onClose={() => setIsEmailModalOpen(false)}
+            />
             <main className="flex-1 w-full max-w-[var(--portal-max-width)] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
                 {children}
             </main>

@@ -76,6 +76,7 @@ async def login(
                 "centrocosto": usuario.centrocosto,
                 "viaticante": usuario.viaticante,
                 "baseviaticos": usuario.baseviaticos,
+                "email_needs_update": not usuario.correo_actualizado,
                 "permissions": permisos,
             },
         }
@@ -192,6 +193,7 @@ async def portal_login(
             "centrocosto": user_data["centrocosto"],
             "viaticante": user_data["viaticante"],
             "baseviaticos": user_data["baseviaticos"],
+            "email_needs_update": not (empleado.get("correo_sincronizado") if empleado else False),
             "permissions": permisos,
         },
     }

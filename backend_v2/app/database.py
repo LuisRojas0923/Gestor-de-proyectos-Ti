@@ -376,8 +376,18 @@ async def init_db():
             # Hacer que contenido_base64 sea opcional para retrocompatibilidad
             await conn.execute(text('ALTER TABLE "adjuntos_ticket" ALTER COLUMN "contenido_base64" DROP NOT NULL;'))
 
+            # --- MIGRACIÓN FORMATO 2276 ---
+            await conn.execute(
+                text("ALTER TABLE formato_2276 ADD COLUMN IF NOT EXISTS entidad_informante VARCHAR(10)")
+            )
+
+            # --- MIGRACIÓN USUARIOS: ACTUALIZACIÓN INTELIGENTE CORREO ---
+            await conn.execute(
+                text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS correo_actualizado BOOLEAN DEFAULT FALSE")
+            )
+
         except Exception as e:
-            print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario/soporte: {e}")
+            print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario/soporte/2276: {e}")
 
     # 3.1 Seed idempotente de sala por defecto
     try:

@@ -21,12 +21,14 @@ class EmpleadosService:
                 E.baseviaticos,
                 C.centrocosto::text AS "centrocosto",
                 C.jefe::text        AS "jefe",
-                C.fecharetiro       AS "fecharetiro"
+                C.fecharetiro       AS "fecharetiro",
+                E.correocorporativo,
+                E.correo_sincronizado
             FROM establecimiento E
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+                AND C.estado = 'Activo'
             WHERE TRIM(CAST(E.nrocedula AS TEXT)) = :cedula
-              AND C.estado = 'Activo'
             ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST
         """)
         
@@ -43,9 +45,30 @@ class EmpleadosService:
                 "baseviaticos": float(resultado.baseviaticos) if resultado.baseviaticos is not None else 0.0,
                 "centrocosto": resultado.centrocosto,
                 "jefe": resultado.jefe,
-                "fecharetiro": str(resultado.fecharetiro) if resultado.fecharetiro else None
+                "fecharetiro": str(resultado.fecharetiro) if resultado.fecharetiro else None,
+                "correocorporativo": resultado.correocorporativo,
+                "correo_sincronizado": bool(resultado.correo_sincronizado)
             }
         return None
+
+    @staticmethod
+    async def actualizar_correo_erp(db_erp: Session, cedula: str, nuevo_correo: str) -> bool:
+        """Actualiza el correo corporativo y el flag de sincronización en el ERP (Solid)"""
+        try:
+            print(f"DEBUG: Actualizando correo ERP para cedula={cedula} -> {nuevo_correo}")
+            query = text("""
+                UPDATE establecimiento 
+                SET correocorporativo = :correo,
+                    correo_sincronizado = TRUE
+                WHERE TRIM(CAST(nrocedula AS TEXT)) = :cedula
+            """)
+            db_erp.execute(query, {"correo": nuevo_correo, "cedula": cedula})
+            db_erp.commit()
+            return True
+        except Exception as e:
+            print(f"ERROR al actualizar correo en ERP: {e}")
+            db_erp.rollback()
+            return False
 
     @staticmethod
     async def consultar_solicitudes_externas(empresa: Optional[str] = None) -> List[Dict]:

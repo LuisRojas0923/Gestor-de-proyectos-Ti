@@ -1,9 +1,11 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import obtener_db, obtener_erp_db_opcional
-from app.models.auth.usuario import Usuario, UsuarioPublico, PasswordCambiar
+from app.database import obtener_db, obtener_erp_db_opcional, obtener_erp_db
+from app.models.auth.usuario import Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
 from app.services.auth.servicio import ServicioAuth
+from app.services.erp import EmpleadosService
+from app.services.notifications.email_service import EmailService
 
 router = APIRouter()
 
@@ -91,6 +93,7 @@ async def obtener_usuario_actual(
 
     user_data = usuario.model_dump()
     user_data["permissions"] = permisos
+    user_data["email_needs_update"] = not usuario.correo_actualizado
     return user_data
 
 
@@ -119,3 +122,50 @@ async def cambiar_contrasena(
         raise HTTPException(
             status_code=500, detail=f"Error al cambiar contrasena: {str(e)}"
         )
+
+
+@router.patch("/update-email", response_model=UsuarioPublico)
+async def actualizar_correo(
+    datos: EmailActualizar,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
+):
+    """Actualiza el correo corporativo en el sistema y en el ERP"""
+    # 1. Validar formato de correo (básico)
+    if "@" not in datos.correo or "." not in datos.correo:
+        raise HTTPException(status_code=400, detail="Formato de correo inválido")
+
+    # 2. Actualizar en ERP (Solid) - Requiere conexión ERP
+    exito_erp = False
+    try:
+        from app.database import SessionErp
+        with SessionErp() as db_erp:
+            exito_erp = await EmpleadosService.actualizar_correo_erp(
+                db_erp, usuario.cedula, datos.correo
+            )
+    except Exception as e:
+        print(f"DEBUG: Error conectando a ERP para actualizar correo: {e}")
+        # No bloqueamos si el ERP falla, pero notificamos el error
+        raise HTTPException(status_code=503, detail="No se pudo conectar con el ERP para actualizar el correo")
+
+    if not exito_erp:
+        raise HTTPException(status_code=500, detail="Error al actualizar el correo en el ERP")
+
+    # 3. Actualizar localmente
+    try:
+        usuario.correo = datos.correo
+        usuario.correo_actualizado = True
+        db.add(usuario)
+        await db.commit()
+        await db.refresh(usuario)
+        
+        # 4. Enviar notificación de éxito (Opcional/Best Effort)
+        try:
+            EmailService.enviar_notificacion_actualizacion(usuario.correo, usuario.nombre)
+        except Exception as e:
+            print(f"WARNING: No se pudo enviar correo de confirmación: {e}")
+
+        return usuario
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar registro local: {str(e)}")

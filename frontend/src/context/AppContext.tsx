@@ -15,6 +15,7 @@ interface User {
   sede?: string;
   centrocosto?: string;
   viaticante?: boolean;
+  emailNeedsUpdate?: boolean;
   permissions?: string[];
 }
 
@@ -255,7 +256,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             id: data.id,
             cedula: data.cedula,
             name: data.nombre || data.name || '', // Adaptar 'nombre' a 'name'
-            email: data.email,
+            email: data.email || data.correo,  // /yo devuelve 'correo', /portal-login devuelve 'email'
             role: data.rol || data.role || 'usuario', // Adaptar 'rol' a 'role'
             avatar: data.avatar,
             area: data.area,
@@ -263,10 +264,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
             sede: data.sede,
             centrocosto: data.centrocosto || data.centro_costo || '',
             viaticante: typeof data.viaticante === 'boolean' ? data.viaticante : String(data.viaticante).toLowerCase() === 'true',
+            emailNeedsUpdate: data.email_needs_update !== undefined 
+              ? !!data.email_needs_update 
+              : (data.correo_actualizado !== undefined ? !data.correo_actualizado : false),
             permissions: data.permissions || data.permisos || []
           });
 
           const normalizedUser = normalizeUser(response.data);
+          console.log("TRACE APP_CONTEXT | Raw data.email_needs_update:", response.data.email_needs_update);
+          console.log("TRACE APP_CONTEXT | User emailNeedsUpdate:", normalizedUser.emailNeedsUpdate);
 
           // Actualizar estado global con datos frescos y normalizados
           dispatch({ type: 'LOGIN', payload: normalizedUser });

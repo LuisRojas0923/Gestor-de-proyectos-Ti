@@ -6,6 +6,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000" # Re-expuesto para acceso directo por IP:8000
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASS:-pass}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager} # [CONTROLADO]
       - APP_VERSION=v2.1.0-DEV

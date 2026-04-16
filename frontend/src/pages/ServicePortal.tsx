@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
@@ -34,6 +34,7 @@ const API_BASE_URL = API_CONFIG.BASE_URL;
 
 const ServicePortal: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { addNotification } = useNotifications();
     const {
         user,
@@ -190,7 +191,13 @@ const ServicePortal: React.FC = () => {
                         <CategoryWrapper
                             categories={categories}
                             onSelect={(c) => { setSelectedCategory(c); navigate(`/service-portal/crear/${c.id}`); }}
-                            onBack={() => navigate('/service-portal/servicios')}
+                                onBack={() => {
+                                    if (location.state?.from) {
+                                        navigate(location.state.from);
+                                    } else {
+                                        navigate('/service-portal/servicios');
+                                    }
+                                }}
                         />
                     </ProtectedRoute>
                 } />
@@ -202,7 +209,15 @@ const ServicePortal: React.FC = () => {
                             categories={categories}
                             user={user}
                             onSubmit={onFormSubmit}
-                            onBack={() => { navigate(-1); setSelectedFiles([]); }}
+                                onBack={() => {
+                                    if (location.state?.from && !location.pathname.includes('/crear/')) {
+                                        // Si venimos de un origen externo y estamos en el primer nivel del form, volver al origen
+                                        navigate(location.state.from);
+                                    } else {
+                                        navigate(-1);
+                                    }
+                                    setSelectedFiles([]);
+                                }}
                             isLoading={isLoading}
                             selectedFiles={selectedFiles}
                             onFilesChange={setSelectedFiles}

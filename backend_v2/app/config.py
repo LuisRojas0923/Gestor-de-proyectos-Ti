@@ -37,9 +37,12 @@ class Configuracion(BaseSettings):
     smtp_user: Optional[str] = None
     smtp_pass: Optional[str] = None
     smtp_from: Optional[str] = None
+    smtp_use_ssl: bool = True
     
     class Config:
-        env_file = "../.env"
+        # Buscamos el .env en la raíz del proyecto (un nivel arriba de backend_v2) 
+        # o en la carpeta actual de ejecución.
+        env_file = (".env", "../.env", "../../.env")
         env_file_encoding = "utf-8"
         case_sensitive = False
         extra = "ignore"

@@ -14,6 +14,7 @@ class Formato2276(SQLModel, table=True):
     cargado_por: str = Field(max_length=50) # ID del usuario que subió el archivo
 
     # Información del beneficiario
+    entidad_informante: Optional[str] = Field(default=None, max_length=10) # Código entidad informante (ej. 01)
     tdocb: str = Field(max_length=5)   # Tipo de documento
     nitb: str = Field(index=True, max_length=20) # Número de identificación
     pap: str = Field(max_length=100)  # Primer Apellido

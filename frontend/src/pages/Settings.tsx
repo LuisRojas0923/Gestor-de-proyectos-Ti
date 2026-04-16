@@ -4,6 +4,7 @@ import { Power, ShieldCheck } from 'lucide-react';
 import { Title, MaterialCard, Button, Text } from '../components/atoms';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 
+import EmailUpdateSection from './Settings/components/EmailUpdateSection';
 import ProfileSection from './Settings/components/ProfileSection';
 import NotificationSection from './Settings/components/NotificationSection';
 import SecuritySection from './Settings/components/SecuritySection';
@@ -19,7 +20,11 @@ import { useApiTokenSettings } from './Settings/hooks/useApiTokenSettings';
 const Settings: React.FC = () => {
   const { addNotification } = useNotifications();
   const { t, i18n } = useTranslation();
-  const { profile, setProfile, handleProfileUpdate, darkMode, toggleDarkMode, user } = useProfileSettings();
+  const { 
+    profile, setProfile, handleProfileUpdate, 
+    handleEmailUpdate, isUpdatingEmail,
+    darkMode, toggleDarkMode, user 
+  } = useProfileSettings();
 
   // Estados para el Panel Maestro
   const [showAdminLock, setShowAdminLock] = useState(false);
@@ -56,13 +61,33 @@ const Settings: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <Title variant="h3" weight="bold" color="text-primary">{t('settings')}</Title>
+      <div className="flex justify-between items-center mb-2">
+        <Title variant="h3" weight="bold" color="text-primary">{t('settings')}</Title>
+      </div>
+
+      {user?.emailNeedsUpdate && (
+        <EmailUpdateSection 
+          email={user?.email || ''}
+          needsUpdate={true}
+          onUpdate={handleEmailUpdate}
+          isLoading={isUpdatingEmail}
+        />
+      )}
 
       <ProfileSection
         profile={profile} setProfile={setProfile} timezones={timezones}
         i18n={i18n} darkMode={darkMode} toggleDarkMode={toggleDarkMode}
         handleProfileUpdate={handleProfileUpdate}
       />
+
+      {!user?.emailNeedsUpdate && (
+        <EmailUpdateSection 
+          email={user?.email || ''}
+          needsUpdate={false}
+          onUpdate={handleEmailUpdate}
+          isLoading={isUpdatingEmail}
+        />
+      )}
 
       <NotificationSection
         notifications={notifications} setNotifications={setNotifications}

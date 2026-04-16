@@ -165,6 +165,11 @@ class ServicioAuth:
                 bool(val_viaticante) if val_viaticante is not None else False
             )
             usuario.baseviaticos = datos_erp.get("baseviaticos")
+            
+            # Sincronización de correo corporativo
+            if datos_erp.get("correocorporativo"):
+                usuario.correo = datos_erp.get("correocorporativo").strip()
+            
             await db.commit()
             await db.refresh(usuario)
         return usuario
