@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
-import { Title, Text, MaterialCard, Input, Button, Icon } from '../../../components/atoms';
+import { Title, Text, MaterialCard, Input, Button, Icon, Badge } from '../../../components/atoms';
 
 interface EmailUpdateSectionProps {
     email: string;
