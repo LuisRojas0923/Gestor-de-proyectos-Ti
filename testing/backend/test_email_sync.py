@@ -1,7 +1,6 @@
 
 import pytest
 import os
-from .conftest import BASE_URL
 
 @pytest.mark.asyncio
 async def test_login_email_needs_update_flag(client):

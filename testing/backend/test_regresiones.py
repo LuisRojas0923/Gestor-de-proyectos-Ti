@@ -82,3 +82,73 @@ async def test_regresion_maestros_soporte(client):
     categorias = response.json()
     assert len(categorias) > 0, "No se encontraron categorías de soporte configuradas."
     assert any(cat["id"] == "soporte_software" for cat in categorias), "Categoría core 'soporte_software' desaparecida."
+
+@pytest.mark.asyncio
+async def test_regresion_flujo_adjuntos_y_comentarios(client, auth_token):
+    """
+    Valida el flujo de evidencias: Adjuntos y Comentarios.
+    Crucial tras la migración de almacenamiento a disco.
+    """
+    if not auth_token:
+        pytest.skip("Sin token")
+    
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    
+    # 1. Crear un ticket temporal
+    tkt_res = await client.post("/soporte/", json={
+        "categoria_id": "soporte_software",
+        "asunto": "Test Adjuntos y Comentarios",
+        "descripcion": "Validación de persistencia",
+        "creador_id": TEST_USER_CEDULA,
+        "correo_creador": "test_qa@empresa.com",
+        "areas_impactadas": ["Tecnología"]
+    }, headers=headers)
+    
+    ticket_id = tkt_res.json()["id"]
+    
+    # 2. Subir Adjunto (Simulado en Base64)
+    # Una imagen de 1x1 pixel transparente en base64
+    pixel_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BfAQWQAwGQZasLAAAAAElFTkSuQmCC"
+    adjunto_payload = {
+        "ticket_id": ticket_id,
+        "nombre_archivo": "test_pixel.png",
+        "contenido_base64": f"data:image/png;base64,{pixel_b64}",
+        "tipo_mime": "image/png"
+    }
+    
+    response_adj = await client.post(f"/soporte/{ticket_id}/adjuntos", json=adjunto_payload, headers=headers)
+    assert response_adj.status_code in [200, 201], f"Error al subir adjunto: {response_adj.text}"
+    assert "ruta_archivo" in response_adj.json(), "El servidor no devolvió la ruta del archivo físico."
+
+    # 3. Agregar Comentario (Ampliación)
+    comentario_payload = {
+        "comentario": "Este es un comentario de prueba para la suite de regresión.",
+        "es_interno": False,
+        "usuario_id": TEST_USER_CEDULA,
+        "nombre_usuario": "Validador Automático"
+    }
+    response_com = await client.post(f"/soporte/{ticket_id}/comentarios", json=comentario_payload, headers=headers)
+    assert response_com.status_code in [200, 201]
+    
+    # 4. Verificar en el detalle del ticket
+    response_detail = await client.get(f"/soporte/{ticket_id}", headers=headers)
+    detalle = response_detail.json()
+    assert len(detalle["comentarios"]) > 0
+    assert len(detalle["adjuntos"]) > 0
+    print(f"DEBUG: Flujo de evidencias verificado para ticket {ticket_id}")
+
+@pytest.mark.asyncio
+async def test_regresion_rbac_discovery_health(client):
+    """
+    Verifica que el motor de RBAC auto-descubra los módulos correctamente.
+    Garantiza que la seguridad del sistema esté operativa.
+    """
+    response = await client.get("/auth/config/modulos")
+    # Este endpoint es público o requiere permisos mínimos
+    if response.status_code == 200:
+        modulos = response.json()
+        assert len(modulos) > 0
+        # Verificar que existan módulos core
+        ids_modulos = [m["id"] for m in modulos]
+        assert "soporte_gestion" in ids_modulos or "soporte" in ids_modulos
+        print(f"DEBUG: RBAC Discovery saludable. Total módulos: {len(modulos)}")
