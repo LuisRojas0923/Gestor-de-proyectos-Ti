@@ -105,7 +105,7 @@ const AddDetailForm: React.FC<AddDetailFormProps> = ({ onAddDetail, onUploadFile
                     type="submit"
                     variant="primary"
                     disabled={isSaving || (!text.trim() && !selectedFile)}
-                    isLoading={isSaving}
+                    loading={isSaving}
                     icon={Send}
                     className="shadow-lg shadow-blue-500/20"
                 >

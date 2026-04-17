@@ -1,7 +1,7 @@
-from typing import List
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import obtener_db, obtener_erp_db_opcional, obtener_erp_db
+from app.database import obtener_db, obtener_erp_db_opcional
 from app.models.auth.usuario import Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
 from app.services.auth.servicio import ServicioAuth
 from app.services.erp import EmpleadosService
