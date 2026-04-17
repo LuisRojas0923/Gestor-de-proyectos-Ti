@@ -5,7 +5,6 @@ Configuracion de Base de Datos - Backend V2 (Async + SQLModel)
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlmodel import SQLModel
 from .config import config
 
 # URL de conexion ASINCRONA (asyncpg)
