@@ -31,7 +31,7 @@ services:
       - ALGORITHM=${ALGORITHM}
       - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES}
       - SYNC_EXTERNAL_URL=${SYNC_EXTERNAL_URL}
-      - APP_VERSION=${APP_VERSION:-v2.4.0-DEV}
+      - APP_VERSION=${APP_VERSION:-v2.9.0-DEV}
       - FRONTEND_URL=http://${FRONTEND_HOST:-localhost}:${FRONTEND_PORT:-8083}
       - TZ=America/Bogota
     volumes:
