@@ -21,14 +21,6 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager}
-      - ERP_DATABASE_URL=${ERP_DATABASE_URL}
-      - ENVIRONMENT=production
-      - SECRET_KEY=${SECRET_KEY}
-      - ALGORITHM=${ALGORITHM}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
-      - APP_VERSION=${APP_VERSION:-v2.5.0-prod}
-      - FRONTEND_URL=http://${FRONTEND_HOST:-localhost}
       - TZ=America/Bogota
     volumes:
       - ./GestionTi_SoporteFiles:/app/storage/attachments
@@ -61,7 +53,7 @@ services:
       - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     environment:
       - POSTGRES_USER=${DB_USER:-user}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+      - POSTGRES_PASSWORD=${DB_PASS:-password_segura_refridcol}
       - POSTGRES_DB=${DB_NAME:-project_manager}
       - TZ=America/Bogota
     command: postgres -c hba_file=/etc/postgresql/pg_hba.conf
