@@ -24,15 +24,7 @@ services:
     env_file:
       - .env.pruebas3
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager}
-      - ERP_DATABASE_URL=${ERP_DATABASE_URL}
-      - ENVIRONMENT=pruebas3
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - ALGORITHM=${ALGORITHM}
-      - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES}
-      - SYNC_EXTERNAL_URL=${SYNC_EXTERNAL_URL}
-      - APP_VERSION=${APP_VERSION:-v2.9.0-DEV}
-      - FRONTEND_URL=http://${FRONTEND_HOST:-localhost}:${FRONTEND_PORT:-8083}
+      - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASS:-password_segura_refridcol}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager_pruebas3}
       - TZ=America/Bogota
     volumes:
       - ./GestionTi_SoporteFiles_Pruebas3:/app/storage/attachments
@@ -66,8 +58,8 @@ services:
       - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     environment:
       - POSTGRES_USER=${DB_USER:-user}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
-      - POSTGRES_DB=${DB_NAME:-project_manager}
+      - POSTGRES_PASSWORD=${DB_PASS:-password_segura_refridcol}
+      - POSTGRES_DB=${DB_NAME:-project_manager_pruebas3}
       - TZ=America/Bogota
     command: postgres -c hba_file=/etc/postgresql/pg_hba.conf
     ports:

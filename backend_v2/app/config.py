@@ -10,10 +10,21 @@ from functools import lru_cache
 class Configuracion(BaseSettings):
     """Configuracion cargada desde variables de entorno"""
 
-    # Base de datos
-    database_url: str = (
-        "postgresql://user:pass@localhost:5432/project_manager"  # [CONTROLADO]
-    )
+    # Base de datos (Campos individuales para autoconstrucción)
+    db_user: str = "user"
+    db_pass: str = "password"
+    db_host: str = "localhost"
+    db_port: str = "5432"
+    db_name: str = "project_manager"
+    database_url: Optional[str] = None
+
+    def __init__(self, **values):
+        super().__init__(**values)
+        if not self.database_url:
+            self.database_url = f"postgresql+asyncpg://{self.db_user}:{self.db_pass}@{self.db_host}:{self.db_port}/{self.db_name}"
+        # Aseguramos que use asyncpg
+        if self.database_url.startswith("postgresql://"):
+            self.database_url = self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
     # ERP Externo
     erp_database_url: str = (
