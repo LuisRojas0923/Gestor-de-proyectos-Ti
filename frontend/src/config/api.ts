@@ -110,6 +110,9 @@ export const API_ENDPOINTS = {
   AUTH_LOGIN: '/auth/login',
   AUTH_PORTAL_LOGIN: '/auth/portal-login',
   AUTH_ME: '/auth/yo',
+  AUTH_UPDATE_EMAIL: '/auth/update-email',
+  AUTH_VERIFY_EMAIL: '/auth/verify-email',
+  AUTH_RESEND_VERIFICATION: '/auth/resend-verification',
   // Reportes
   REPORTS_PORTAL_DETAILED: '/desarrollos/informe-detallado-casos-portal',
 

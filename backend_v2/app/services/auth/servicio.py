@@ -51,6 +51,28 @@ class ServicioAuth:
         return token_jwt
 
     @staticmethod
+    def crear_token_verificacion(usuario_id: str) -> str:
+        """Genera un token JWT para verificacion de correo (Scope: verify_email)"""
+        expira = datetime.now(timezone.utc) + timedelta(hours=24)
+        a_codificar = {"sub": usuario_id, "exp": expira, "scope": "verify_email"}
+        return jwt.encode(
+            a_codificar, config.jwt_secret_key, algorithm=config.algorithm
+        )
+
+    @staticmethod
+    def validar_token_verificacion(token: str) -> Optional[str]:
+        """Valida un token de verificacion y retorna el usuario_id si es valido"""
+        try:
+            payload = jwt.decode(
+                token, config.jwt_secret_key, algorithms=[config.algorithm]
+            )
+            if payload.get("scope") != "verify_email":
+                return None
+            return payload.get("sub")
+        except Exception:
+            return None
+
+    @staticmethod
     def obtener_cedula_desde_token(token: str) -> Optional[str]:
         """Decodifica el token y extrae la cedula (sub)."""
         try:

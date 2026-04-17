@@ -20,14 +20,14 @@ repos:
         entry: python scripts/enforce_architecture.py
         language: system
         types: [python]
-        files: ^backend_v2/
+        files: ^(backend_v2/|scripts/|scratch/)
 
       - id: security-check-backend
         name: Backend AST Security Auditor
         entry: python scripts/security_check_backend.py
         language: system
         types: [python]
-        files: ^backend_v2/
+        files: ^(backend_v2/|scripts/|scratch/)
 
       - id: design-system-check
         name: Frontend Design System Enforcer

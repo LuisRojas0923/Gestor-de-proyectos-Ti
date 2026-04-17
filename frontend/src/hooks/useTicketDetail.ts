@@ -76,6 +76,8 @@ export interface TicketComment {
     usuario_id?: string;
     nombre_usuario?: string;
     creado_en: string;
+    leido?: boolean;
+    leido_en?: string;
 }
 
 export const useTicketDetail = (ticketId: string | undefined) => {
@@ -93,12 +95,15 @@ export const useTicketDetail = (ticketId: string | undefined) => {
     const fetchAllData = useCallback(async () => {
         if (!ticketId) return;
         setIsLoading(true);
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
         try {
             const [ticketRes, historyRes, attachmentsRes, commentsRes] = await Promise.all([
-                axios.get(`${API_BASE_URL}/soporte/${ticketId}`),
-                axios.get(`${API_BASE_URL}/soporte/${ticketId}/historial`),
-                axios.get(`${API_BASE_URL}/soporte/${ticketId}/adjuntos`),
-                axios.get(`${API_BASE_URL}/soporte/${ticketId}/comentarios`)
+                axios.get(`${API_BASE_URL}/soporte/${ticketId}`, { headers }),
+                axios.get(`${API_BASE_URL}/soporte/${ticketId}/historial`, { headers }),
+                axios.get(`${API_BASE_URL}/soporte/${ticketId}/adjuntos`, { headers }),
+                axios.get(`${API_BASE_URL}/soporte/${ticketId}/comentarios`, { headers })
             ]);
             setTicket(ticketRes.data);
             setHistory(historyRes.data);
@@ -116,26 +121,46 @@ export const useTicketDetail = (ticketId: string | undefined) => {
         fetchAllData();
     }, [fetchAllData]);
 
-    // Polling silencioso para comentarios (Sincronización WhatsApp style)
+    // Polling silencioso para sincronización en tiempo real (Chat, Estado e Historial)
     useEffect(() => {
         if (!ticketId) return;
 
-        const pollInterval = setInterval(async () => {
+        const pollData = async () => {
+            // Solo poll si la ventana está activa para ahorrar recursos
+            if (document.visibilityState !== 'visible') return;
+
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
             try {
-                // Fetch de comentarios sin disparar isLoading global
-                const res = await axios.get(`${API_BASE_URL}/soporte/${ticketId}/comentarios`);
+                // Fetch de datos dinámicos sin disparar isLoading global
+                const [commentsRes, ticketRes, historyRes] = await Promise.all([
+                    axios.get(`${API_BASE_URL}/soporte/${ticketId}/comentarios`, { headers }),
+                    axios.get(`${API_BASE_URL}/soporte/${ticketId}`, { headers }),
+                    axios.get(`${API_BASE_URL}/soporte/${ticketId}/historial`, { headers })
+                ]);
                 
-                // Solo actualizar si hay cambios (comparación simple de longitud o IDs)
-                setComments(current => {
-                    if (JSON.stringify(current) !== JSON.stringify(res.data)) {
-                        return res.data;
-                    }
-                    return current;
-                });
+                // Actualizar comentarios solo si hay cambios
+                setComments(current => 
+                    JSON.stringify(current) !== JSON.stringify(commentsRes.data) ? commentsRes.data : current
+                );
+
+                // Actualizar ticket (cambios de estado, prioridad, etc)
+                setTicket(current => 
+                    JSON.stringify(current) !== JSON.stringify(ticketRes.data) ? ticketRes.data : current
+                );
+
+                // Actualizar historial
+                setHistory(current => 
+                    JSON.stringify(current) !== JSON.stringify(historyRes.data) ? historyRes.data : current
+                );
+
             } catch (err) {
                 console.warn("Silent polling error:", err);
             }
-        }, 10000); // Cada 10 segundos
+        };
+
+        const pollInterval = setInterval(pollData, 3000); // Cada 3 segundos para una experiencia "real-time"
 
         return () => clearInterval(pollInterval);
     }, [ticketId]);
@@ -150,7 +175,10 @@ export const useTicketDetail = (ticketId: string | undefined) => {
                 usuario_id: currentUser?.id,
                 usuario_nombre: currentUser?.name
             };
-            await axios.patch(`${API_BASE_URL}/soporte/${ticketId}`, dataWithUser);
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            await axios.patch(`${API_BASE_URL}/soporte/${ticketId}`, dataWithUser, { headers });
             await fetchAllData();
             notify('success', 'Cambios guardados correctamente.');
         } catch (err) {
@@ -205,9 +233,12 @@ export const useTicketDetail = (ticketId: string | undefined) => {
                 usuario_id: currentUser?.id,
                 nombre_usuario: currentUser?.name
             };
-            await axios.post(`${API_BASE_URL}/soporte/${ticketId}/comentarios`, commentData);
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            await axios.post(`${API_BASE_URL}/soporte/${ticketId}/comentarios`, commentData, { headers });
             // Recargar solo comentarios para mayor fluidez
-            const res = await axios.get(`${API_BASE_URL}/soporte/${ticketId}/comentarios`);
+            const res = await axios.get(`${API_BASE_URL}/soporte/${ticketId}/comentarios`, { headers });
             setComments(res.data);
             notify('success', 'Mensaje enviado.');
         } catch (err) {
@@ -217,6 +248,98 @@ export const useTicketDetail = (ticketId: string | undefined) => {
             setIsSaving(false);
         }
     };
+
+    const addAdditionalDetail = async (text: string) => {
+        if (!ticket || !text.trim()) return;
+        setIsSaving(true);
+        try {
+            const currentExtra = ticket.datos_extra || {};
+            const history = currentExtra.historial_ampliaciones || [];
+            
+            const newDetail = {
+                texto: text,
+                usuario_nombre: currentUser?.name,
+                usuario_id: currentUser?.id,
+                fecha: new Date().toISOString()
+            };
+
+            const updatedExtra = {
+                ...currentExtra,
+                historial_ampliaciones: [...history, newDetail]
+            };
+
+            await updateTicket({ datos_extra: updatedExtra });
+            notify('success', 'Ampliación registrada.');
+        } catch (err) {
+            console.error("Error al añadir detalle:", err);
+            notify('error', 'No se pudo registrar la ampliación.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const uploadAttachment = async (file: File) => {
+        if (!ticketId) return;
+        setIsSaving(true);
+        try {
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve, reject) => {
+                reader.onload = () => {
+                    const base64String = (reader.result as string).split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+
+            const base64 = await base64Promise;
+            
+            const attachmentData = {
+                ticket_id: ticketId,
+                nombre_archivo: file.name,
+                tipo_mime: file.type,
+                contenido_base64: base64
+            };
+
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            await axios.post(`${API_BASE_URL}/soporte/${ticketId}/adjuntos`, attachmentData, { headers });
+            
+            const res = await axios.get(`${API_BASE_URL}/soporte/${ticketId}/adjuntos`, { headers });
+            setAttachments(res.data);
+            notify('success', 'Archivo adjuntado.');
+        } catch (err) {
+            console.error("Error al subir adjunto:", err);
+            notify('error', 'No se pudo subir el archivo.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const markCommentsAsRead = useCallback(async () => {
+        if (!ticketId) return;
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+        try {
+            await axios.post(`${API_BASE_URL}/soporte/${ticketId}/comentarios/leido`, {}, { headers });
+            // Actualización silenciosa de la UI
+            setComments(current => current.map(c => 
+                c.usuario_id !== currentUser?.id ? { ...c, leido: true, leido_en: new Date().toISOString() } : c
+            ));
+        } catch (err) {
+            console.warn("Error marking comments as read:", err);
+        }
+    }, [ticketId, currentUser?.id]);
+
+    // Marcar como leído automáticamente al recibir mensajes nuevos y estar viendo el ticket
+    useEffect(() => {
+        const hasUnread = comments.some(c => !c.leido && c.usuario_id !== currentUser?.id);
+        if (hasUnread && document.visibilityState === 'visible') {
+            markCommentsAsRead();
+        }
+    }, [comments, currentUser?.id, markCommentsAsRead]);
 
     const notify = (type: 'success' | 'error' | 'warning', message: string) => {
         // 1. Añadir al historial persistente (AppContext)
@@ -246,6 +369,9 @@ export const useTicketDetail = (ticketId: string | undefined) => {
         comments,
         updateTicket,
         addComment,
+        addAdditionalDetail,
+        uploadAttachment,
+        markCommentsAsRead,
         downloadAttachment,
         refresh: fetchAllData
     };

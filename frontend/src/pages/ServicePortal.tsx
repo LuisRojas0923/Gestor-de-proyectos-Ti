@@ -22,6 +22,8 @@ import ContabilidadPortal from './ServicePortal/pages/Contabilidad';
 import Formato2276DataTable from './ServicePortal/pages/Contabilidad/Formato2276DataTable';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import PortalLayout from './ServicePortal/PortalLayout';
+import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
+import VerificationBanner from './ServicePortal/components/VerificationBanner';
 
 import {
     CategoryWrapper,
@@ -54,6 +56,8 @@ const ServicePortal: React.FC = () => {
         handleSubmit,
         handleSendUserFeedback
     } = useServicePortal();
+
+    const [showEmailModal, setShowEmailModal] = React.useState(false);
 
     if (!user) return <div className="flex justify-center items-center h-screen">Cargando perfil...</div>;
 
@@ -125,6 +129,14 @@ const ServicePortal: React.FC = () => {
                 }
             }}
         >
+            {/* Banner de Verificación Persistent */}
+            {!(user as any).emailVerified && (user as any).email && (
+                <VerificationBanner 
+                    email={(user as any).email} 
+                    onEdit={() => setShowEmailModal(true)}
+                />
+            )}
+            
             <Routes>
                 <Route index element={<Navigate to="/service-portal/inicio" replace />} />
 
@@ -134,7 +146,16 @@ const ServicePortal: React.FC = () => {
                         moduleStatus={moduleStatus}
                         onNavigate={async (v) => {
                             if (v === 'viaticos_gestion') navigate('/service-portal/gastos/gestion');
-                            else if (v === 'categories') navigate('/service-portal/servicios');
+                            else if (v === 'categories') {
+                                if ((user as any).email_needs_update) {
+                                    setShowEmailModal(true);
+                                    addNotification('info', "Por favor actualiza tu correo corporativo para continuar.");
+                                } else if (!(user as any).emailVerified) {
+                                    addNotification('warning', "Debes verificar tu correo corporativo antes de crear tickets. Revisa tu bandeja de entrada.");
+                                } else {
+                                    navigate('/service-portal/servicios');
+                                }
+                            }
                             else if (v === 'status') navigate('/service-portal/mis-tickets');
                             else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
                             else if (v === 'requisiciones') navigate('/service-portal/requisiciones');
@@ -331,6 +352,17 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />
             </Routes>
+
+            {/* Modal de Actualización de Correo Corporativo - Forzado para creación de tickets */}
+            <EmailUpdateModal 
+                isOpen={showEmailModal}
+                onClose={() => setShowEmailModal(false)}
+                onSuccess={() => {
+                    setShowEmailModal(false);
+                    // Una vez actualizado con éxito, lo llevamos a servicios
+                    navigate('/service-portal/servicios');
+                }}
+            />
         </PortalLayout>
     );
 };

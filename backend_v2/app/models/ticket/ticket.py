@@ -182,6 +182,8 @@ class ComentarioTicket(SQLModel, table=True):
     es_interno: bool = Field(default=False)
     usuario_id: Optional[str] = Field(default=None, max_length=50)
     nombre_usuario: Optional[str] = Field(default=None, max_length=255)
+    leido: bool = Field(default=False)
+    leido_en: Optional[datetime] = Field(default=None)
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
@@ -254,6 +256,8 @@ class ComentarioPublico(SQLModel):
     es_interno: bool
     usuario_id: Optional[str] = None
     nombre_usuario: Optional[str] = None
+    leido: bool = Field(default=False)
+    leido_en: Optional[datetime] = Field(default=None)
     creado_en: datetime
 
 
@@ -330,6 +334,7 @@ class TicketActualizar(SQLModel):
     horas_tiempo_empleado: Optional[Decimal] = None
     usuario_id: Optional[str] = None
     usuario_nombre: Optional[str] = None
+    datos_extra: Optional[dict] = None
 
 
 class TicketResumen(TicketBase):

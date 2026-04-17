@@ -26,6 +26,8 @@ from .stats_service import StatService
 from .category_service import CategoryService
 from .attachment_service import AttachmentService
 from .ticket_utils import TicketUtils
+from ..notifications.email_service import EmailService
+from ...models.ticket.ticket import CategoriaTicket
 
 
 class ServicioTicket:
@@ -46,7 +48,24 @@ class ServicioTicket:
     @classmethod
     async def crear_ticket(cls, db: AsyncSession, ticket_data: TicketCrear) -> Ticket:
         """Crea un nuevo ticket (Async)"""
+        # Validación obligatoria de correo para notificaciones
+        if not ticket_data.correo_creador or "@" not in ticket_data.correo_creador:
+            raise HTTPException(
+                status_code=400,
+                detail="Se requiere un correo corporativo válido para recibir notificaciones del ticket.",
+            )
+
         try:
+            # Validación de estado de verificación de correo
+            usuario_res = await db.execute(select(Usuario).where(Usuario.id == ticket_data.creador_id))
+            usuario_obj = usuario_res.scalars().first()
+            
+            if usuario_obj and not usuario_obj.correo_verificado:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Tu correo corporativo no ha sido verificado. Por favor, revisa tu bandeja de entrada o solicita un nuevo código desde tu perfil para poder crear tickets."
+                )
+
             result_seq = await db.execute(text("SELECT nextval('ticket_id_seq')"))
             next_val = result_seq.scalar()
             ticket_id = f"TKT-{next_val:04d}"
@@ -159,6 +178,29 @@ class ServicioTicket:
                 )
 
             await db.commit()
+
+            # Notificación Best-Effort (no bloquea la creación si falla el SMTP)
+            try:
+                # Obtener nombre legible de la categoría para el correo
+                res_cat = await db.execute(
+                    select(CategoriaTicket).where(
+                        CategoriaTicket.id == ticket_data.categoria_id
+                    )
+                )
+                cat_obj = res_cat.scalars().first()
+                cat_nombre = cat_obj.nombre if cat_obj else ticket_data.categoria_id
+
+                EmailService.enviar_confirmacion_ticket(
+                    email=ticket_data.correo_creador,
+                    nombre=ticket_data.nombre_creador,
+                    ticket_id=ticket_id,
+                    asunto_ticket=ticket_data.asunto,
+                    descripcion=ticket_data.descripcion,
+                    categoria=cat_nombre,
+                )
+            except Exception as mail_err:
+                print(f"WARNING: No se pudo enviar el correo de confirmación: {mail_err}")
+
             return await cls.obtener_ticket_por_id(db, ticket_id)
         except Exception as e:
             await db.rollback()

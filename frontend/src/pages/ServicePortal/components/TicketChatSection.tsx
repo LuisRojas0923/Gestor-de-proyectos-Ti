@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Text, Button, Textarea } from '../../../components/atoms';
 import { TicketComment } from '../../../hooks/useTicketDetail';
-import { Send, Globe, User as UserIcon, Clock } from 'lucide-react';
+import { Send, Globe, User as UserIcon, Clock, Eye } from 'lucide-react';
 
 interface TicketChatSectionProps {
     comments: TicketComment[];
@@ -80,24 +80,26 @@ const TicketChatSection: React.FC<TicketChatSectionProps> = ({
                             >
                                 {/* Burbuja de Mensaje */}
                                 <div className={`
-                                    max-w-[75%] p-3 px-4 rounded-2xl shadow-sm transition-all hover:shadow-md
-                                    ${isMe 
-                                        ? 'bg-emerald-500 text-white rounded-tr-none border-emerald-400' 
-                                        : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-tl-none'
-                                    }
+                                    max-w-[85%] py-1.5 px-4 rounded-2xl shadow-sm transition-all hover:shadow-md
+                                        ${isMe 
+                                            ? 'bg-emerald-800 text-white rounded-tr-none border border-emerald-700' 
+                                            : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-tl-none'
+                                        }
                                 `}>
-                                    <div className="flex items-center justify-between mb-1 gap-4">
-                                        <div className="flex items-center gap-2">
-                                            {!isMe && <UserIcon size={12} className="text-blue-500" />}
-                                            <Text 
-                                                variant="caption" 
-                                                weight="bold" 
-                                                className={`uppercase tracking-widest text-[9px] ${isMe ? 'text-emerald-100' : 'text-blue-600 dark:text-blue-400'}`}
-                                            >
-                                                {isMe ? 'Tú' : (comment.nombre_usuario || 'Sistema')}
-                                            </Text>
+                                    {!isMe && (
+                                        <div className="flex items-center justify-between mb-1 gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <UserIcon size={12} className="text-blue-500" />
+                                                <Text 
+                                                    variant="caption" 
+                                                    weight="bold" 
+                                                    className="uppercase tracking-widest text-[9px] text-blue-600 dark:text-blue-400"
+                                                >
+                                                    {comment.nombre_usuario || 'Sistema'}
+                                                </Text>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                     <Text 
                                         variant="body2" 
                                         className={`whitespace-pre-line leading-relaxed text-[13px] ${isMe ? 'text-white' : 'text-slate-700 dark:text-slate-300'}`}
@@ -105,9 +107,20 @@ const TicketChatSection: React.FC<TicketChatSectionProps> = ({
                                         {comment.comentario}
                                     </Text>
                                     
-                                    <div className={`flex items-center gap-1 mt-1 justify-end opacity-50 ${isMe ? 'text-emerald-50' : ''}`}>
+                                    <div className={`flex items-center gap-1 mt-1 justify-end ${isMe ? 'text-emerald-50' : 'opacity-50'}`}>
                                         <Clock size={8} />
                                         <Text variant="caption" className="text-[8px]">{formatDate(comment.creado_en)}</Text>
+                                        
+                                        {/* Estado de lectura (Solo aparece si fue Visto) */}
+                                        {isMe && comment.leido && (
+                                            <div className="flex items-center ml-1" title={`Visto el ${formatDate(comment.leido_en || '')}`}>
+                                                <Eye 
+                                                    size={12} 
+                                                    className="text-sky-300 animate-in zoom-in-50 duration-300" 
+                                                    strokeWidth={2.5}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

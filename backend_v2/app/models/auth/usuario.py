@@ -32,6 +32,7 @@ class Usuario(SQLModel, table=True):
     actualizado_en: Optional[datetime] = Field(default=None)
     ultimo_login: Optional[datetime] = Field(default=None)
     correo_actualizado: bool = Field(default=False)
+    correo_verificado: bool = Field(default=False)
 
     # Datos de perfil (Sincronizados con ERP)
     area: Optional[str] = Field(default=None, max_length=255)
@@ -228,6 +229,8 @@ class UsuarioPublico(SQLModel):
     baseviaticos: Optional[float] = None
     especialidades: Optional[str] = "[]"
     areas_asignadas: Optional[str] = "[]"
+    correo_actualizado: bool = False
+    correo_verificado: bool = False
 
 
 class TokenRespuesta(SQLModel):

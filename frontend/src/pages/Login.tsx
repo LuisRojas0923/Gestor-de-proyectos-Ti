@@ -63,7 +63,8 @@ const Login: React.FC = () => {
                 cedula: data.user.cedula || data.user.id,
                 name: data.user.nombre || data.user.name || '',
                 role: (data.user.rol || data.user.role || 'usuario').toLowerCase(),
-                emailNeedsUpdate: !!data.user.email_needs_update
+                emailNeedsUpdate: !!data.user.email_needs_update,
+                emailVerified: !!data.user.correo_verificado
             };
 
             // Guardar token para futuras peticiones
@@ -113,7 +114,8 @@ const Login: React.FC = () => {
                 // Si el backend devuelve 'cedula' pero no 'id', o viceversa, lo unificamos
                 id: data.user.id || data.user.cedula,
                 cedula: data.user.cedula || data.user.id,
-                emailNeedsUpdate: !!data.user.email_needs_update
+                emailNeedsUpdate: !!data.user.email_needs_update,
+                emailVerified: !!data.user.correo_verificado
             };
 
             dispatch({ type: 'LOGIN', payload: userData });

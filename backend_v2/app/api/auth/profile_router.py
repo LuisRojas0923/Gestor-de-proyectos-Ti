@@ -155,17 +155,109 @@ async def actualizar_correo(
     try:
         usuario.correo = datos.correo
         usuario.correo_actualizado = True
+        usuario.correo_verificado = False  # Resetear verificacion al cambiar correo
         db.add(usuario)
         await db.commit()
         await db.refresh(usuario)
         
-        # 4. Enviar notificación de éxito (Opcional/Best Effort)
+        # 4. Enviar correo de verificación (Trigger confirmación)
         try:
-            EmailService.enviar_notificacion_actualizacion(usuario.correo, usuario.nombre)
+            from app.config import config
+            token = ServicioAuth.crear_token_verificacion(usuario.id)
+            base_url = (config.hostveremail or config.frontend_url).rstrip("/")
+            verify_url = f"{base_url}/verify-email?token={token}"
+            
+            sent = EmailService.enviar_confirmacion_registro(usuario.correo, usuario.nombre, verify_url)
+            if not sent:
+                # No bloqueamos la actualización porque ya se hizo en el ERP, pero informamos el fallo de entrega
+                raise HTTPException(
+                    status_code=400,
+                    detail="Correo actualizado en ERP, pero el servidor rechazó el envío de verificación. Por favor verifica tu dirección."
+                )
+        except HTTPException:
+            raise
         except Exception as e:
-            print(f"WARNING: No se pudo enviar correo de confirmación: {e}")
+            print(f"WARNING: No se pudo enviar correo de verificacion: {e}")
 
         return usuario
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al actualizar registro local: {str(e)}")
+
+
+@router.get("/verify-email")
+async def confirmar_correo(
+    token: str,
+    db: AsyncSession = Depends(obtener_db)
+):
+    """Verifica el token de correo y marca el usuario como verificado"""
+    try:
+        usuario_id = ServicioAuth.validar_token_verificacion(token)
+        if not usuario_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Token de verificación inválido o expirado"
+            )
+        
+        from sqlmodel import select
+        result = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
+        usuario = result.scalars().first()
+        
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        if usuario.correo_verificado:
+            return {"message": "El correo ya estaba verificado"}
+            
+        usuario.correo_verificado = True
+        db.add(usuario)
+        await db.commit()
+        
+        # Enviar notificación de éxito
+        try:
+            EmailService.enviar_exito_verificacion(usuario.correo, usuario.nombre)
+        except Exception as e:
+            print(f"WARNING: No se pudo enviar confirmación de éxito: {e}")
+        
+        return {"message": "Correo verificado exitosamente"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error inesperado durante la verificación: {str(e)}"
+        )
+
+
+@router.post("/resend-verification")
+async def reenviar_verificacion(
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db)
+):
+    """Reenvía el correo de verificación al usuario actual"""
+    if not usuario.correo or not usuario.correo_actualizado:
+        raise HTTPException(status_code=400, detail="No hay un correo corporativo configurado")
+    
+    if usuario.correo_verificado:
+        raise HTTPException(status_code=400, detail="El correo ya se encuentra verificado")
+        
+    try:
+        from app.config import config
+        token = ServicioAuth.crear_token_verificacion(usuario.id)
+        base_url = (config.hostveremail or config.frontend_url).rstrip("/")
+        verify_url = f"{base_url}/verify-email?token={token}"
+        
+        sent = EmailService.enviar_confirmacion_registro(usuario.correo, usuario.nombre, verify_url)
+        if not sent:
+            raise HTTPException(
+                status_code=400, 
+                detail="El servidor de correo rechazó la entrega. Verifica que la dirección sea correcta o intenta más tarde."
+            )
+        return {"message": "Correo de verificación reenviado"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al enviar el correo: {str(e)}")

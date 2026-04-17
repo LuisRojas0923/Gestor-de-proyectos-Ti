@@ -16,6 +16,7 @@ interface User {
   centrocosto?: string;
   viaticante?: boolean;
   emailNeedsUpdate?: boolean;
+  emailVerified?: boolean;
   permissions?: string[];
 }
 
@@ -267,6 +268,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             emailNeedsUpdate: data.email_needs_update !== undefined 
               ? !!data.email_needs_update 
               : (data.correo_actualizado !== undefined ? !data.correo_actualizado : false),
+            emailVerified: data.correo_verificado !== undefined ? !!data.correo_verificado : false,
             permissions: data.permissions || data.permisos || []
           });
 

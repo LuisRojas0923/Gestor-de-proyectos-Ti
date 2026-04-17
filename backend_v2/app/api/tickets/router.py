@@ -286,6 +286,36 @@ async def agregar_comentario(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/{ticket_id}/comentarios/leido")
+async def marcar_comentarios_leidos(
+    ticket_id: str,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
+    db: AsyncSession = Depends(obtener_db),
+):
+    """Marca todos los comentarios no leídos (que no sean del usuario actual) como leídos"""
+    try:
+        # Seleccionar comentarios del ticket que no son del usuario actual y no están leídos
+        # Y que no sean internos (a menos que el usuario sea analista, pero por ahora simplificamos)
+        result = await db.execute(
+            select(ComentarioTicket)
+            .where(ComentarioTicket.ticket_id == ticket_id)
+            .where(ComentarioTicket.usuario_id != usuario_actual.id)
+            .where(ComentarioTicket.leido == False)
+        )
+        comentarios = result.scalars().all()
+
+        for c in comentarios:
+            c.leido = True
+            c.leido_en = sa_func.now()
+            db.add(c)
+
+        await db.commit()
+        return {"status": "success", "count": len(comentarios)}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.patch("/{ticket_id}", response_model=TicketResumen)
 async def actualizar_ticket(
     ticket_id: str, ticket_in: TicketActualizar, db: AsyncSession = Depends(obtener_db)

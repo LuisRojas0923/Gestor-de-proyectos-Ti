@@ -369,25 +369,34 @@ async def init_db():
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_detalle_periodo ON facturas_lineas_detalle(periodo)"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_detalle_min ON facturas_lineas_detalle(min)"))
 
-            # --- MIGRACIÓN SOPORTE (ARCHIVOS FÍSICOS) ---
+            # --- MIGRACIÓN SOPORTE (ARCHIVOS FÍSICOS Y VISTO) ---
             await conn.execute(text('ALTER TABLE "adjuntos_ticket" ADD COLUMN IF NOT EXISTS "ruta_archivo" VARCHAR;'))
             await conn.execute(text('ALTER TABLE "adjuntos_ticket" ADD COLUMN IF NOT EXISTS "tamano_bytes" INTEGER;'))
             
             # Hacer que contenido_base64 sea opcional para retrocompatibilidad
             await conn.execute(text('ALTER TABLE "adjuntos_ticket" ALTER COLUMN "contenido_base64" DROP NOT NULL;'))
 
+            # [NUEVO] Funcionalidad de Visto/Recibido en Chat
+            await conn.execute(text('ALTER TABLE "comentarios_ticket" ADD COLUMN IF NOT EXISTS "leido" BOOLEAN DEFAULT FALSE;'))
+            await conn.execute(text('ALTER TABLE "comentarios_ticket" ADD COLUMN IF NOT EXISTS "leido_en" TIMESTAMP WITH TIME ZONE;'))
+
             # --- MIGRACIÓN FORMATO 2276 ---
             await conn.execute(
                 text("ALTER TABLE formato_2276 ADD COLUMN IF NOT EXISTS entidad_informante VARCHAR(10)")
             )
+        except Exception as e:
+            print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario/soporte/2276: {e}")
 
-            # --- MIGRACIÓN USUARIOS: ACTUALIZACIÓN INTELIGENTE CORREO ---
+        # --- MIGRACIONES DE USUARIO (CRÍTICAS PARA EL PORTAL) ---
+        try:
             await conn.execute(
                 text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS correo_actualizado BOOLEAN DEFAULT FALSE")
             )
-
+            await conn.execute(
+                text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS correo_verificado BOOLEAN DEFAULT FALSE")
+            )
         except Exception as e:
-            print(f"DEBUG: Error al asegurar columnas de perfil/auditoría/inventario/soporte/2276: {e}")
+            print(f"ERROR CRÍTICO: No se pudo asegurar columnas de correo en 'usuarios': {e}")
 
     # 3.1 Seed idempotente de sala por defecto
     try:

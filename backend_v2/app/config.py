@@ -24,8 +24,9 @@ class Configuracion(BaseSettings):
     # Ambiente
     environment: str = "development"
     
-    # CORS
+    # CORS y Links de Verificación
     frontend_url: str = "http://localhost:5173"
+    hostveremail: Optional[str] = None  # Si es None, se usará frontend_url
     
     # Almacenamiento Local
     storage_path: str = "/app/storage/attachments"

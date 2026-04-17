@@ -9,9 +9,10 @@ import { API_CONFIG } from '../../../config/api';
 interface EmailUpdateModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSuccess?: () => void;
 }
 
-const EmailUpdateModal: React.FC<EmailUpdateModalProps> = ({ isOpen, onClose }) => {
+const EmailUpdateModal: React.FC<EmailUpdateModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const { state, dispatch } = useAppContext();
     const [correo, setCorreo] = useState('');
     const [correoConfirm, setCorreoConfirm] = useState('');
@@ -46,7 +47,12 @@ const EmailUpdateModal: React.FC<EmailUpdateModalProps> = ({ isOpen, onClose }) 
 
             // Actualizar el estado global para ocultar el banner inmediatamente
             if (state.user) {
-                const updatedUser = { ...state.user, emailNeedsUpdate: false, email: correo };
+                const updatedUser = { 
+                    ...state.user, 
+                    emailNeedsUpdate: false, 
+                    email: correo,
+                    emailVerified: false // Al actualizar, pierde estado verificado hasta confirmar
+                };
                 dispatch({ type: 'LOGIN', payload: updatedUser });
             }
 
@@ -60,11 +66,15 @@ const EmailUpdateModal: React.FC<EmailUpdateModalProps> = ({ isOpen, onClose }) 
     };
 
     const handleClose = () => {
+        const wasSuccess = success;
         setCorreo('');
         setCorreoConfirm('');
         setError(null);
         setSuccess(false);
         onClose();
+        if (wasSuccess && onSuccess) {
+            onSuccess();
+        }
     };
 
     const content = (
@@ -105,7 +115,7 @@ const EmailUpdateModal: React.FC<EmailUpdateModalProps> = ({ isOpen, onClose }) 
                             </div>
                             <Title variant="h5" weight="semibold">¡Correo actualizado!</Title>
                             <Text variant="body2" className="text-[var(--color-text-secondary)]">
-                                Tu correo ha sido sincronizado correctamente con el sistema.
+                                Tu correo ha sido sincronizado. Hemos enviado un **enlace de verificación** a tu bandeja de entrada. Por favor, confírmalo para habilitar todas las funciones del portal.
                             </Text>
                             <Button variant="primary" onClick={handleClose} className="mt-2 w-full">
                                 Entendido
@@ -126,6 +136,7 @@ const EmailUpdateModal: React.FC<EmailUpdateModalProps> = ({ isOpen, onClose }) 
                                 onChange={(e) => setCorreo(e.target.value)}
                                 icon={Mail}
                                 required
+                                onPaste={(e) => e.preventDefault()}
                                 autoFocus
                             />
 
@@ -137,6 +148,7 @@ const EmailUpdateModal: React.FC<EmailUpdateModalProps> = ({ isOpen, onClose }) 
                                 onChange={(e) => setCorreoConfirm(e.target.value)}
                                 icon={Mail}
                                 required
+                                onPaste={(e) => e.preventDefault()}
                             />
 
                             {error && (

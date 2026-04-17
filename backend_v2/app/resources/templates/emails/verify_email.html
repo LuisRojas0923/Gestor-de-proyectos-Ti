@@ -1,0 +1,40 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+    <h1>Verifica tu cuenta</h1>
+    
+    <p>Hola <strong>{{ nombre }}</strong>,</p>
+    
+    <p>
+        Has actualizado o registrado tu correo electrónico en el <strong>Portal de Servicios Solid</strong>. 
+        Para garantizar la seguridad de tu información y habilitar todas las funcionalidades de soporte, 
+        por favor confirma tu dirección haciendo clic en el siguiente botón:
+    </p>
+
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 40px 0;">
+        <tr>
+            <td align="center">
+                <!--[if mso]>
+                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ verify_url }}" style="height:55px;v-text-anchor:middle;width:260px;" arcsize="15%" stroke="f" fillcolor="#002060">
+                <w:anchorlock/>
+                <center style="color:#ffffff;font-family:'Segoe UI', Arial, sans-serif;font-size:16px;font-weight:bold;">Confirmar mi Correo Ahora</center>
+                </v:roundrect>
+                <![endif]-->
+                <a href="{{ verify_url }}" target="_blank" style="background-color:#002060;border-radius:8px;color:#ffffff;display:inline-block;font-family:'Segoe UI', Arial, sans-serif;font-size:16px;font-weight:600;line-height:55px;text-align:center;text-decoration:none;width:260px;-webkit-text-size-adjust:none;mso-hide:all;">Confirmar mi Correo Ahora</a>
+            </td>
+        </tr>
+    </table>
+
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 25px 0; border-left: 4px solid #b4c6e7;">
+        <tr>
+            <td style="padding-left: 20px; font-style: italic; color: #718096; font-size: 15px;">
+                Este enlace es válido por 24 horas. Si no solicitaste este cambio, puedes ignorar este mensaje.
+            </td>
+        </tr>
+    </table>
+
+    <p style="font-size: 13px; color: #718096; margin-top: 30px;">
+        Si el botón no funciona, puedes copiar y pegar este enlace en tu navegador:<br>
+        <a href="{{ verify_url }}" style="color: #002060; word-break: break-all;">{{ verify_url }}</a>
+    </p>
+{% endblock %}

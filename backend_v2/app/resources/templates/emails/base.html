@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{ titulo }}</title>
+    <!--[if mso]>
+    <xml>
+        <o:OfficeDocumentSettings>
+            <o:AllowPNG/>
+            <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+    </xml>
+    <style type="text/css">
+        body, table, td, h1, h2, h3, h4, span, div { font-family: 'Segoe UI', Arial, sans-serif !important; }
+    </style>
+    <![endif]-->
+    <style>
+        body { margin: 0; padding: 0; background-color: #f0f4f8; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        @media screen and (max-width: 600px) {
+            .container { width: 100% !important; }
+            .content { padding: 30px 20px !important; }
+            .header { padding: 25px 20px !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f0f4f8;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f0f4f8;">
+        <tr>
+            <td align="center" style="padding: 40px 10px;">
+                <!--[if (gte mso 9)|(IE)]>
+                <table width="600" align="center" border="0" cellspacing="0" cellpadding="0" style="border: 1px solid #e1e8f0;">
+                <tr>
+                <td style="background-color: #ffffff;">
+                <![endif]-->
+                <div class="container" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e1e8f0; box-shadow: 0 15px 35px rgba(0,32,96,0.1);">
+                    <!-- Header -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #002060;">
+                        <tr>
+                            <td class="header" style="padding: 35px 40px;">
+                                <table border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td style="vertical-align: middle;">
+                                            <img src="cid:logo_refridcol" alt="Logo" width="50" style="width: 50px; display: block;">
+                                        </td>
+                                        <td style="padding-left: 20px; vertical-align: middle;">
+                                            <h2 style="margin: 0; font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: 1px;">
+                                                INDUSTRIAS <span style="color: #b4c6e7;">REFRIDCOL</span>
+                                            </h2>
+                                            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #b4c6e7; margin-top: 2px;">
+                                                Portal de Servicios Solid
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Content -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td class="content" style="padding: 50px 40px; font-family: 'Segoe UI', Arial, sans-serif; color: #2c3e50;">
+                                {% block content %}{% endblock %}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Footer -->
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border-top: 1px solid #edf2f7;">
+                        <tr>
+                            <td style="padding: 30px; text-align: center;">
+                                <p style="margin: 0; color: #a0aec0; font-size: 13px; line-height: 1.6;">
+                                    Solid - Industrias Refridcol S.A. &copy; 2026<br>
+                                    <span style="color: #718096; font-weight: 600;">Hacemos el mejor frío</span><br>
+                                    <span style="font-size: 11px;">Una iniciativa del Departamento de Desarrollo e Innovación</span>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <!--[if (gte mso 9)|(IE)]>
+                </td>
+                </tr>
+                </table>
+                <![endif]-->
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

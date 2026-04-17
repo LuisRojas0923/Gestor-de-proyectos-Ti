@@ -55,7 +55,7 @@ def main():
             continue
             
         is_service = "services" in file_path.lower() or file_path.lower().endswith("service.py") or file_path.lower().endswith("servicio.py")
-        is_script_or_test = "scripts" in file_path.lower() or "/tests/" in file_path.lower().replace("\\", "/") or os.path.basename(file_path).startswith("test_")
+        is_script_or_test = ("scripts" in file_path.lower() and "scratch" not in file_path.lower()) or "/tests/" in file_path.lower().replace("\\", "/") or os.path.basename(file_path).startswith("test_")
         
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:

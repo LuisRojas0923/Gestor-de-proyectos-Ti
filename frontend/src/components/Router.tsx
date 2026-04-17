@@ -20,12 +20,14 @@ import InventarioAdmin from '../pages/InventarioAdmin/InventarioAdmin';
 import { CorporateLinesManager } from '../pages/CorporateLines/CorporateLinesManager';
 import Layout from './layout/Layout';
 import ProtectedRoute from './auth/ProtectedRoute';
+import VerifyEmailPage from '../pages/VerifyEmail/VerifyEmailPage';
 
 const AppRouter: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
 
         {/* Rutas Administrativas (Analistas y Managers) */}
         <Route path="/" element={

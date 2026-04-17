@@ -243,14 +243,6 @@ const Formato2276DataTable: React.FC<Formato2276DataTableProps> = ({ onBack }) =
 
     const isContabilidad = user?.role === 'contabilidad' || user?.role === 'admin' || user?.role === 'admin_sistemas';
 
-    if (!isContabilidad) {
-        return <Navigate to="/service-portal/contabilidad" replace />;
-    }
-
-    useEffect(() => {
-        fetchData();
-    }, [selectedYear]);
-
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -263,16 +255,14 @@ const Formato2276DataTable: React.FC<Formato2276DataTableProps> = ({ onBack }) =
         }
     };
 
-    const getUniqueValues = (key: string) => {
-        const values = new Set<string>();
-        data.forEach((item: Formato2276Item) => {
-            const val = item[key];
-            if (val !== undefined && val !== null) values.add(val.toString());
-        });
-        return Array.from(values).sort();
-    };
+    useEffect(() => {
+        if (isContabilidad) {
+            fetchData();
+        }
+    }, [selectedYear, isContabilidad]);
 
     const filteredData = useMemo(() => {
+        if (!isContabilidad) return [];
         return data.filter((item: Formato2276Item) => {
             // 1. Búsqueda Global
             const searchMatch = !searchTerm || 
@@ -295,7 +285,20 @@ const Formato2276DataTable: React.FC<Formato2276DataTableProps> = ({ onBack }) =
             }
             return true;
         });
-    }, [data, searchTerm, filters]);
+    }, [data, searchTerm, filters, isContabilidad]);
+
+    if (!isContabilidad) {
+        return <Navigate to="/service-portal/contabilidad" replace />;
+    }
+
+    const getUniqueValues = (key: string) => {
+        const values = new Set<string>();
+        data.forEach((item: Formato2276Item) => {
+            const val = item[key];
+            if (val !== undefined && val !== null) values.add(val.toString());
+        });
+        return Array.from(values).sort();
+    };
 
     const hasActiveFilters = Object.values(filters).some((f: any) => 
         (f.type === 'categorical' && f.selected && f.selected.size > 0) ||

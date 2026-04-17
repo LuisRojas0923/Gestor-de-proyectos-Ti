@@ -77,6 +77,7 @@ async def login(
                 "viaticante": usuario.viaticante,
                 "baseviaticos": usuario.baseviaticos,
                 "email_needs_update": not usuario.correo_actualizado,
+                "correo_verificado": usuario.correo_verificado,
                 "permissions": permisos,
             },
         }
@@ -194,6 +195,7 @@ async def portal_login(
             "viaticante": user_data["viaticante"],
             "baseviaticos": user_data["baseviaticos"],
             "email_needs_update": not (empleado.get("correo_sincronizado") if empleado else False),
+            "correo_verificado": usuario_local.correo_verificado if usuario_local else False,
             "permissions": permisos,
         },
     }
