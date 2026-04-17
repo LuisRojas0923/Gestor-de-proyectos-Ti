@@ -25,6 +25,11 @@ class Configuracion(BaseSettings):
         # Aseguramos que use asyncpg
         if self.database_url.startswith("postgresql://"):
             self.database_url = self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        
+        # Autoconstrucción de frontend_url si se proporcionan host/port
+        if self.frontend_host:
+            port_suffix = f":{self.frontend_port}" if self.frontend_port and self.frontend_port not in ["80", "443"] else ""
+            self.frontend_url = f"http://{self.frontend_host}{port_suffix}"
 
     # ERP Externo
     erp_database_url: str = (
@@ -41,6 +46,8 @@ class Configuracion(BaseSettings):
     environment: str = "development"
 
     # CORS y Links de Verificación
+    frontend_host: Optional[str] = None
+    frontend_port: Optional[str] = None
     frontend_url: str = "http://localhost:5173"
     hostveremail: Optional[str] = None  # Si es None, se usará frontend_url
 
