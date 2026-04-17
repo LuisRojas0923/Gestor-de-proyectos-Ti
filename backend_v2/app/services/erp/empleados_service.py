@@ -22,8 +22,7 @@ class EmpleadosService:
                 C.centrocosto::text AS "centrocosto",
                 C.jefe::text        AS "jefe",
                 C.fecharetiro       AS "fecharetiro",
-                E.correocorporativo,
-                E.correo_sincronizado
+                E.correocorporativo
             FROM establecimiento E
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
@@ -47,7 +46,7 @@ class EmpleadosService:
                 "jefe": resultado.jefe,
                 "fecharetiro": str(resultado.fecharetiro) if resultado.fecharetiro else None,
                 "correocorporativo": resultado.correocorporativo,
-                "correo_sincronizado": bool(resultado.correo_sincronizado)
+                "correo_sincronizado": True  # Valor por defecto para no romper el flujo
             }
         return None
 
@@ -58,8 +57,7 @@ class EmpleadosService:
             print(f"DEBUG: Actualizando correo ERP para cedula={cedula} -> {nuevo_correo}")
             query = text("""
                 UPDATE establecimiento 
-                SET correocorporativo = :correo,
-                    correo_sincronizado = TRUE
+                SET correocorporativo = :correo
                 WHERE TRIM(CAST(nrocedula AS TEXT)) = :cedula
             """)
             db_erp.execute(query, {"correo": nuevo_correo, "cedula": cedula})
