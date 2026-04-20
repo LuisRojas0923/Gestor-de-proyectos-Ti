@@ -67,7 +67,8 @@ export const useServicePortal = () => {
     }, [addNotification]);
 
     const refreshUserProfile = useCallback(async () => {
-        if (user && !hasRefreshed.current && (!user.area || !user.sede || !user.centrocosto || user.centrocosto === '---')) {
+        // Refrescar si faltan datos críticos O si el correo no está verificado (para chequear estado actual)
+        if (user && !hasRefreshed.current && (!user.area || !user.sede || !user.centrocosto || user.centrocosto === '---' || !user.emailVerified)) {
             const token = localStorage.getItem('token');
             if (!token) return;
 
@@ -79,22 +80,37 @@ export const useServicePortal = () => {
 
                 if (res.data) {
                     const data = res.data as any;
+                    
+                    // Mapeo robusto sincronizado con AppContext.tsx
                     const updatedUser = {
                         ...user,
                         id: data.id || data.cedula || user?.id || '',
                         cedula: data.cedula || data.id || user?.cedula || '',
                         name: data.nombre || data.name || user?.name || '',
                         role: data.rol || data.role || user?.role || 'usuario',
-                        email: data.email || user?.email || '',
+                        email: data.email || data.correo || user?.email || '',
                         area: data.area || user?.area || 'Sin Área',
                         cargo: data.cargo || user?.cargo || 'Sin Cargo',
                         sede: data.sede || user?.sede || 'Principal',
                         centrocosto: data.centrocosto || data.centro_costo || user?.centrocosto || '---',
                         viaticante: data.viaticante ?? user?.viaticante ?? false,
+                        emailNeedsUpdate: data.email_needs_update !== undefined 
+                            ? !!data.email_needs_update 
+                            : (data.correo_actualizado !== undefined ? !data.correo_actualizado : (user?.emailNeedsUpdate ?? false)),
+                        emailVerified: data.correo_verificado !== undefined 
+                            ? !!data.correo_verificado 
+                            : (user?.emailVerified ?? false),
                         permissions: data.permissions || data.permisos || user?.permissions || []
                     };
 
-                    if (updatedUser.area !== user.area || updatedUser.sede !== user.sede) {
+                    // Notificar cambios si algo relevante cambió (área, sede o estado de verificación)
+                    const hasChanged = 
+                        updatedUser.area !== user.area || 
+                        updatedUser.sede !== user.sede || 
+                        updatedUser.emailVerified !== user.emailVerified ||
+                        updatedUser.email !== user.email;
+
+                    if (hasChanged) {
                         dispatch({ type: 'LOGIN', payload: updatedUser });
                     }
                 }
