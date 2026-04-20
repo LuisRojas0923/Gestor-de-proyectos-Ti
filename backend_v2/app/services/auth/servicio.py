@@ -22,6 +22,11 @@ class ServicioAuth:
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v2/auth/login")
 
     @staticmethod
+    def es_password_configurado(hash_contrasena: str) -> bool:
+        """Verifica si el usuario ya cambio su contrasena inicial"""
+        return not ServicioAuth.verificar_contrasena(config.portal_pending_pwd, hash_contrasena)
+
+    @staticmethod
     def verificar_contrasena(contrasena_plana: str, contrasena_hasheada: str) -> bool:
         """Verifica si la contrasena plana coincide con el hash."""
         return bcrypt.checkpw(
@@ -245,8 +250,47 @@ class ServicioAuth:
             centrocosto=datos_erp.get("centrocosto"),
             viaticante=viaticante_val,
             baseviaticos=datos_erp.get("baseviaticos"),
+            correo=datos_erp.get("correocorporativo").strip() if datos_erp.get("correocorporativo") else None,
+            correo_actualizado=bool(datos_erp.get("correocorporativo")),
+            correo_verificado=False
         )
 
+        db.add(nuevo_usuario)
+        await db.commit()
+        await db.refresh(nuevo_usuario)
+        return nuevo_usuario
+
+    @staticmethod
+    async def auto_provisionar_usuario_portal(
+        db: AsyncSession, db_erp, cedula: str, datos_erp: dict
+    ) -> Usuario:
+        """
+        Crea un registro de usuario local automáticamente si no existe (Just-In-Time Provisioning).
+        """
+        id_usuario = f"USR-P-{cedula}"
+        # Marcamos la contraseña como pendiente de configuración inicial
+        hash_temporal = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
+        
+        is_viaticante = bool(datos_erp.get("viaticante"))
+        
+        nuevo_usuario = Usuario(
+            id=id_usuario,
+            cedula=cedula,
+            nombre=datos_erp["nombre"],
+            hash_contrasena=hash_temporal,
+            rol="viaticante" if is_viaticante else "usuario",
+            esta_activo=True,
+            area=datos_erp.get("area"),
+            cargo=datos_erp.get("cargo"),
+            sede=datos_erp.get("ciudadcontratacion"),
+            centrocosto=datos_erp.get("centrocosto"),
+            viaticante=is_viaticante,
+            baseviaticos=datos_erp.get("baseviaticos"),
+            correo=datos_erp.get("correocorporativo").strip() if datos_erp.get("correocorporativo") else None,
+            correo_actualizado=bool(datos_erp.get("correocorporativo")),
+            correo_verificado=False
+        )
+        
         db.add(nuevo_usuario)
         await db.commit()
         await db.refresh(nuevo_usuario)

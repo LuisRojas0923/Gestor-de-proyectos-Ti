@@ -231,6 +231,7 @@ class UsuarioPublico(SQLModel):
     areas_asignadas: Optional[str] = "[]"
     correo_actualizado: bool = False
     correo_verificado: bool = False
+    password_set: bool = False
 
 
 class TokenRespuesta(SQLModel):

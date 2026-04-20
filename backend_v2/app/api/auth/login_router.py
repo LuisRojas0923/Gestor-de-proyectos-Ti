@@ -138,13 +138,15 @@ async def portal_login(
         "baseviaticos": empleado.get("baseviaticos"),
     }
 
-    if usuario_local and not usuario_local.esta_activo:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="La cuenta está desactivada para acceso al portal."
-        )
-
-    if usuario_local:
+    if not usuario_local:
+        try:
+            usuario_local = await ServicioAuth.auto_provisionar_usuario_portal(
+                db, db_erp, cedula, empleado
+            )
+        except Exception as e:
+            print(f"ERROR auto-provisionando usuario: {e}")
+            # Si falla la creación, seguimos con el objeto temporal pero sin correo falso
+    else:
         try:
             usuario_local.area = user_data["area"]
             usuario_local.cargo = user_data["cargo"]
@@ -171,7 +173,7 @@ async def portal_login(
 
     await ServicioAuth.registrar_sesion(
         db=db,
-        usuario_id=user_data["id"],
+        usuario_id=usuario_local.id if usuario_local else user_data["id"],
         token_jwt=token_acceso,
         nombre_usuario=user_data["nombre"],
         rol_usuario=user_data["rol"],
@@ -183,19 +185,20 @@ async def portal_login(
         "access_token": token_acceso,  # @audit-ok
         "token_type": "bearer",
         "user": {
-            "id": user_data["id"],
+            "id": usuario_local.id if usuario_local else user_data["id"],
             "cedula": user_data["cedula"],
             "name": user_data["nombre"],
             "role": user_data["rol"],
-            "email": usuario_local.correo if usuario_local else "usuario@dominio.com",
+            "email": usuario_local.correo if usuario_local else None,
             "area": user_data["area"],
             "cargo": user_data["cargo"],
             "sede": user_data["sede"],
             "centrocosto": user_data["centrocosto"],
             "viaticante": user_data["viaticante"],
             "baseviaticos": user_data["baseviaticos"],
-            "email_needs_update": not (empleado.get("correo_sincronizado") if empleado else False),
+            "email_needs_update": not usuario_local.correo_actualizado if usuario_local else True,
             "correo_verificado": usuario_local.correo_verificado if usuario_local else False,
+            "password_set": ServicioAuth.es_password_configurado(usuario_local.hash_contrasena) if usuario_local else False,
             "permissions": permisos,
         },
     }

@@ -33,6 +33,13 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                 cedula={user.cedula}
                 onVerified={() => {
                     dispatch({ type: 'SET_VIATICOS_VERIFIED', payload: true });
+                    // Actualizar el estado del usuario para reflejar que ya configuró su contraseña
+                    if (user) {
+                        dispatch({ 
+                            type: 'SET_USER', 
+                            payload: { ...user, password_set: true } 
+                        });
+                    }
                 }}
                 onBack={onBack}
             />

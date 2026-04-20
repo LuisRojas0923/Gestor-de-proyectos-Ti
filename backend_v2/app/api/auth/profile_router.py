@@ -94,6 +94,7 @@ async def obtener_usuario_actual(
     user_data = usuario.model_dump()
     user_data["permissions"] = permisos
     user_data["email_needs_update"] = not usuario.correo_actualizado
+    user_data["password_set"] = ServicioAuth.es_password_configurado(usuario.hash_contrasena)
     return user_data
 
 

@@ -3,6 +3,13 @@ import httpx
 import os
 import asyncio
 from dotenv import load_dotenv
+from app.database import AsyncSessionLocal
+
+@pytest_asyncio.fixture(scope="function")
+async def db_session():
+    """Fixture para obtener una sesion de base de datos real para los tests"""
+    async with AsyncSessionLocal() as session:
+        yield session
 
 # Cargar variables de entorno una sola vez para toda la suite
 load_dotenv()

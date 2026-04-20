@@ -37,10 +37,11 @@ class Configuracion(BaseSettings):
     )
     sync_external_url: str = "http://localhost:8099/sync"
 
-    # Seguridad JWT
+    # Seguridad JWT y Portal
     jwt_secret_key: str = "clave-segura-cambiar"  # [CONTROLADO]
     algorithm: str = "HS256"
     jwt_token_expire_minutes: int = 30  # [CONTROLADO]
+    portal_pending_pwd: str = "PORTAL_PENDING_PWD"
 
     # Ambiente
     environment: str = "development"

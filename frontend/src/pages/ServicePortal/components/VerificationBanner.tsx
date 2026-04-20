@@ -35,6 +35,8 @@ const VerificationBanner: React.FC<VerificationBannerProps> = ({ email, onEdit }
         }
     };
 
+    const hasEmail = !!email;
+
     return (
         <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-900/30 px-6 py-3 transition-all">
             <div className="max-w-[1700px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
@@ -46,7 +48,7 @@ const VerificationBanner: React.FC<VerificationBannerProps> = ({ email, onEdit }
                     <div>
                         <div className="flex items-center gap-2">
                             <Text variant="body2" weight="bold" className="text-amber-900 dark:text-amber-300">
-                                Acceso Limitado: Correo No Verificado
+                                {hasEmail ? 'Acceso Limitado: Correo No Verificado' : 'Acceso Restringido: Correo No Configurado'}
                             </Text>
                             {onEdit && (
                                 <Button 
@@ -54,27 +56,34 @@ const VerificationBanner: React.FC<VerificationBannerProps> = ({ email, onEdit }
                                     size="sm"
                                     onClick={onEdit}
                                     className="!p-1 h-auto text-amber-600 hover:text-amber-800 dark:text-amber-50 dark:hover:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 !rounded-md transition-colors"
-                                    title="Corregir correo"
+                                    title="Configurar correo"
                                     icon={Edit2}
                                 />
                             )}
                         </div>
                         <Text variant="caption" className="opacity-80 text-amber-800 dark:text-amber-400">
-                            Hemos enviado un enlace a <Text weight="bold" className="inline underline">{email}</Text>. Verifica tu cuenta para continuar.
+                            {hasEmail ? (
+                                <>Hemos enviado un enlace a <Text weight="bold" className="inline underline">{email}</Text>. Verifica tu cuenta para continuar.</>
+                            ) : (
+                                "No has configurado tu correo corporativo. Es obligatorio para acceder a todos los servicios del portal."
+                            )}
                         </Text>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                     <Button 
-                        variant="ghost" 
+                        variant={hasEmail ? "ghost" : "primary"}
                         size="sm" 
-                        onClick={handleResend}
-                        disabled={isResending || sent}
-                        icon={sent ? CheckCircle : (isResending ? RefreshCw : Send)}
-                        className={`text-amber-700 hover:bg-amber-100 !rounded-xl ${isResending ? 'animate-pulse' : ''}`}
+                        onClick={hasEmail ? handleResend : onEdit}
+                        disabled={hasEmail && (isResending || sent)}
+                        icon={hasEmail ? (sent ? CheckCircle : (isResending ? RefreshCw : Send)) : Edit2}
+                        className={hasEmail ? `text-amber-700 hover:bg-amber-100 !rounded-xl ${isResending ? 'animate-pulse' : ''}` : "rounded-xl"}
                     >
-                        {sent ? 'Enviado' : (isResending ? 'Enviando...' : 'Reenviar Enlace')}
+                        {hasEmail 
+                            ? (sent ? 'Enviado' : (isResending ? 'Enviando...' : 'Reenviar Enlace'))
+                            : 'Configurar Correo Ahora'
+                        }
                     </Button>
                 </div>
             </div>

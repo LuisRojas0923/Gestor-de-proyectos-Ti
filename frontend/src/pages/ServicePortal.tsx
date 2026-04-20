@@ -130,7 +130,7 @@ const ServicePortal: React.FC = () => {
             }}
         >
             {/* Banner de Verificación Persistent */}
-            {!(user as any).emailVerified && (user as any).email && (
+            {!(user as any).emailVerified && (
                 <VerificationBanner 
                     email={(user as any).email} 
                     onEdit={() => setShowEmailModal(true)}
