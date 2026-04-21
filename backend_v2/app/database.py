@@ -88,13 +88,17 @@ def obtener_erp_db():
 
 
 def obtener_erp_db_opcional():
-    """Generador de sesión ERP opcional corregido para estabilidad de FastAPI."""
+    """Generador de sesión ERP opcional. No detiene la app si el ERP falla."""
     db = None
     try:
         db = SessionErp()
         yield db
     except Exception as e:
-        print(f"DEBUG: ERP no disponible o interrumpido: {e}")
+        # Si el error ocurrió durante el yield, es probable que sea un error de la lógica del router
+        # pero lo capturamos aquí para evitar que el generador quede en estado inconsistente.
+        import logging
+        logging.warning(f"ERP_DEP_WARNING: Error en sesión ERP o su consumidor: {e}")
+        # Si db es None aquí, significa que falló SessionErp()
         if db is None:
             yield None
     finally:

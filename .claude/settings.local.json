@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(PYTHONPATH=\"backend_v2\" python -m pytest testing/backend/test_auth_escalation.py -v 2>&1)"
+      "Bash(PYTHONPATH=\"backend_v2\" python -m pytest testing/backend/test_auth_escalation.py -v 2>&1)",
+      "Bash(git -C \"c:\\\\Users\\\\amejoramiento6\\\\Gestor-de-proyectos-Ti\" log --oneline -10)",
+      "Bash(git -C \"c:\\\\Users\\\\amejoramiento6\\\\Gestor-de-proyectos-Ti\" status)"
     ]
   }
 }

@@ -117,6 +117,7 @@ export const ForcePasswordResetModal: React.FC = () => {
                             icon={Lock}
                             required
                             size="lg"
+                            autoComplete="current-password"
                         />
                         <Button
                             type="button"
@@ -139,6 +140,7 @@ export const ForcePasswordResetModal: React.FC = () => {
                                 icon={CheckCircle}
                                 required
                                 size="lg"
+                                autoComplete="new-password"
                             />
                             <Button
                                 type="button"
@@ -160,6 +162,7 @@ export const ForcePasswordResetModal: React.FC = () => {
                                 icon={AlertCircle}
                                 required
                                 size="lg"
+                                autoComplete="new-password"
                             />
                             <Button
                                 type="button"

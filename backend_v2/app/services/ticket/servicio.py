@@ -193,7 +193,7 @@ class ServicioTicket:
                 cat_obj = res_cat.scalars().first()
                 cat_nombre = cat_obj.nombre if cat_obj else ticket_data.categoria_id
 
-                EmailService.enviar_confirmacion_ticket(
+                await EmailService.enviar_confirmacion_ticket(
                     email=ticket_data.correo_creador,
                     nombre=ticket_data.nombre_creador,
                     ticket_id=ticket_id,
@@ -275,18 +275,33 @@ class ServicioTicket:
         db: AsyncSession, ticket_id: str
     ) -> Optional[Ticket]:
         """Obtiene un ticket por su ID con sus extensiones (Async)"""
-        result = await db.execute(
-            select(Ticket)
-            .where(Ticket.id == ticket_id)
-            .options(
-                joinedload(Ticket.solicitud_activo),
-                joinedload(Ticket.solicitud_desarrollo),
-                joinedload(Ticket.control_cambios),
-                selectinload(Ticket.adjuntos),
-                selectinload(Ticket.comentarios),
+        try:
+            result = await db.execute(
+                select(Ticket, Usuario.correo_verificado)
+                .outerjoin(Usuario, Ticket.creador_id == Usuario.id)
+                .where(Ticket.id == ticket_id)
+                .options(
+                    joinedload(Ticket.solicitud_activo),
+                    joinedload(Ticket.solicitud_desarrollo),
+                    joinedload(Ticket.control_cambios),
+                    selectinload(Ticket.adjuntos),
+                    selectinload(Ticket.comentarios),
+                )
             )
-        )
-        return result.scalars().first()
+            row = result.first()
+            if not row:
+                return None
+
+            ticket, verificado = row
+            # Forzar boolean o False si es None (usuario no existe o no verificado)
+            ticket.correo_verificado_creador = bool(verificado) if verificado is not None else False
+            return ticket
+        except Exception as e:
+            import logging
+            logging.error(f"ERROR en obtener_ticket_por_id ({ticket_id}): {str(e)}")
+            # Fallback a búsqueda simple sin join si falla la extendida
+            res_simple = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
+            return res_simple.scalars().first()
 
     @classmethod
     async def agregar_comentario(
@@ -316,7 +331,7 @@ class ServicioTicket:
                         cache_key = f"chat_notif_throttle:{ticket_id}"
                         if not global_cache.get(cache_key):
                             try:
-                                EmailService.enviar_notificacion_chat(
+                                await EmailService.enviar_notificacion_chat(
                                     email_destinatario=ticket.correo_creador,
                                     nombre_destinatario=ticket.nombre_creador or "Usuario",
                                     ticket_id=ticket_id,
@@ -349,7 +364,7 @@ class ServicioTicket:
         usuario_peticion: Optional[Usuario] = None,
     ) -> List[Ticket]:
         """Lista tickets con paginacion, extensiones y filtros (Async)"""
-        query = select(Ticket).options(
+        query = select(Ticket, Usuario.correo_verificado).outerjoin(Usuario, Ticket.creador_id == Usuario.id).options(
             joinedload(Ticket.solicitud_activo),
             joinedload(Ticket.solicitud_desarrollo),
             joinedload(Ticket.control_cambios),
@@ -416,8 +431,30 @@ class ServicioTicket:
             )
 
         query = query.order_by(Ticket.creado_en.desc()).offset(skip).limit(limit)
-        result = await db.execute(query)
-        return result.scalars().all()
+        
+        try:
+            result = await db.execute(query)
+            
+            tickets = []
+            for row in result.all():
+                # Manejo robusto de la respuesta (puede ser objeto Ticket o Row de Ticket + Columna)
+                if isinstance(row, (tuple, list)) and len(row) >= 2:
+                    ticket, verificado = row[0], row[1]
+                    ticket.correo_verificado_creador = bool(verificado) if verificado is not None else False
+                    tickets.append(ticket)
+                else:
+                    # Fallback si por alguna razón no devolvió la tupla esperada
+                    ticket = row[0] if isinstance(row, (tuple, list)) else row
+                    if hasattr(ticket, 'correo_verificado_creador'):
+                        ticket.correo_verificado_creador = False
+                    tickets.append(ticket)
+            return tickets
+        except Exception as e:
+            import logging
+            logging.error(f"ERROR en listar_tickets: {str(e)}")
+            # Fallback preventivo: intentar una consulta básica si la compleja falla
+            res_fallback = await db.execute(select(Ticket).offset(skip).limit(limit))
+            return list(res_fallback.scalars().all())
 
     @staticmethod
     async def listar_tickets_por_usuario(

@@ -82,6 +82,7 @@ async def login(
                 "baseviaticos": usuario.baseviaticos,
                 "email_needs_update": not usuario.correo_actualizado,
                 "correo_verificado": usuario.correo_verificado,
+                "password_set": ServicioAuth.es_password_configurado(usuario.hash_contrasena, usuario.cedula),
                 "permissions": permisos,
             },
         }
@@ -162,9 +163,13 @@ async def portal_login(
             # Sincronización de rol automática para perfiles de portal
             if usuario_local.rol in ["usuario", "viaticante", "user"]:
                 usuario_local.rol = user_data["rol"]
+            
+            # REPARACIÓN AUTOMÁTICA: Si el hash es 'N/A' o inválido, lo corregimos JIT
+            await ServicioAuth.reparar_hash_invalido(db, usuario_local)
+            
             await db.commit()
         except Exception as e:
-            print(f"DEBUG: Error sincronizando usuario local existente: {e}")
+            print(f"DEBUG: Error sincronizando o reparando usuario local existente: {e}")
             await db.rollback()
 
     permisos = await ServicioAuth.obtener_permisos_por_rol(db, user_data["rol"])
@@ -309,11 +314,10 @@ async def forgot_password(
         )
 
     token = ServicioAuth.crear_token_recuperacion(usuario.id)
-    request_host = request.headers.get("host")
-    reset_url = f"{EmailService.get_frontend_url(request_host)}/reset-password?token={token}"
+    reset_url = f"{EmailService.get_frontend_url()}/reset-password?token={token}"
 
     enviado = await EmailService.enviar_recuperacion_contrasena(
-        usuario.correo, usuario.nombre, reset_url, request_host=request_host
+        usuario.correo, usuario.nombre, reset_url
     )
 
     if not enviado:

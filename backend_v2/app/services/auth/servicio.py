@@ -40,9 +40,15 @@ class ServicioAuth:
     @staticmethod
     def verificar_contrasena(contrasena_plana: str, contrasena_hasheada: str) -> bool:
         """Verifica si la contrasena plana coincide con el hash."""
-        return bcrypt.checkpw(
-            contrasena_plana.encode("utf-8"), contrasena_hasheada.encode("utf-8")
-        )
+        try:
+            if not contrasena_hasheada or not contrasena_plana:
+                return False
+            return bcrypt.checkpw(
+                contrasena_plana.encode("utf-8"), contrasena_hasheada.encode("utf-8")
+            )
+        except (ValueError, TypeError):
+            # Captura 'Invalid salt' y otros errores de formato de hash
+            return False
 
     @staticmethod
     def obtener_hash_contrasena(contrasena: str) -> str:
@@ -98,6 +104,19 @@ class ServicioAuth:
             return None
 
     @staticmethod
+    def validar_token_verificacion(token: str) -> Optional[str]:
+        """Valida un token de verificación de correo y retorna el usuario_id si es válido"""
+        try:
+            payload = jwt.decode(
+                token, config.jwt_secret_key, algorithms=[config.algorithm]
+            )
+            if payload.get("scope") != "verify_email":
+                return None
+            return payload.get("sub")
+        except Exception:
+            return None
+
+    @staticmethod
     def obtener_cedula_desde_token(token: str) -> Optional[str]:
         """Decodifica el token y extrae la cedula (sub)."""
         try:
@@ -118,6 +137,36 @@ class ServicioAuth:
         """Obtiene un usuario por cedula (Async)."""
         result = await db.execute(select(Usuario).where(Usuario.cedula == cedula))
         return result.scalars().first()
+
+    @staticmethod
+    async def reparar_hash_invalido(db: AsyncSession, usuario: Usuario) -> bool:
+        """
+        Detecta si el hash actual es inválido (ej: 'N/A') y lo repara con el hash temporal.
+        Retorna True si hubo reparación.
+        """
+        es_invalido = False
+        
+        # 1. Detección por valor explícito heredado
+        if usuario.hash_contrasena in ["N/A", "", "NULL", "PENDIENTE"]:
+            es_invalido = True
+        
+        # 2. Detección por validación de bcrypt (si no se detectó antes)
+        if not es_invalido:
+            try:
+                # Intentamos una verificación dummy para ver si el salt es válido
+                bcrypt.checkpw(b"test", usuario.hash_contrasena.encode("utf-8"))
+            except (ValueError, TypeError):
+                es_invalido = True
+        
+        if es_invalido:
+            import logging
+            logging.info(f"REPARACIÓN: Corrigiendo hash inválido para usuario {usuario.cedula}")
+            usuario.hash_contrasena = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
+            await db.commit()
+            await db.refresh(usuario)
+            return True
+            
+        return False
 
     @staticmethod
     async def crear_analista_desde_erp(

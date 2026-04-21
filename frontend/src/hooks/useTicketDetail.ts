@@ -20,6 +20,7 @@ export interface Ticket {
     creador_id: string;
     nombre_creador: string;
     correo_creador: string;
+    correo_verificado_creador?: boolean;
     area_creador: string;
     cargo_creador: string;
     sede_creador: string;

@@ -175,8 +175,7 @@ async def actualizar_analista(
                 # Disparamos sin esperar para no bloquear la respuesta
                 import asyncio
                 asyncio.create_task(
-                    asyncio.to_thread(
-                        EmailService.enviar_notificacion_reseteo_clave, 
+                    EmailService.enviar_notificacion_reseteo_clave(
                         usuario.correo, 
                         usuario.nombre
                     )

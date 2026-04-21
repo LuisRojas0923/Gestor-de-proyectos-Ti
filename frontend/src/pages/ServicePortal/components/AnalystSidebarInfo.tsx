@@ -1,5 +1,5 @@
 import React from 'react';
-import { Briefcase, MapPin, AlertCircle, Clock, Calendar } from 'lucide-react';
+import { Briefcase, MapPin, AlertCircle, Clock, Calendar, Mail, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { Text, Badge } from '../../../components/atoms';
 import { formatFriendlyDate } from '../../../utils/dateUtils';
 
@@ -7,6 +7,8 @@ interface AnalystSidebarInfoProps {
     user: {
         name: string;
         id: string;
+        email?: string;
+        isVerified?: boolean;
         area?: string;
         sede?: string;
         cargo?: string;
@@ -51,6 +53,24 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
                     <ProfileItem icon={<Briefcase size={12} />} label="Área" value={user.area || 'N/A'} />
                     <ProfileItem icon={<Briefcase size={12} />} label="Cargo" value={user.cargo || 'N/A'} />
                     <ProfileItem icon={<MapPin size={12} />} label="Sede" value={user.sede || 'N/A'} />
+                    <ProfileItem 
+                        icon={<Mail size={12} />} 
+                        label="Correo" 
+                        value={
+                            <div className="flex items-center gap-2">
+                                <Text as="span" color="inherit" variant="inherit" className="truncate max-w-[150px] inline-block">
+                                    {user.email || 'N/A'}
+                                </Text>
+                                {user.email && (
+                                    user.isVerified ? (
+                                        <ShieldCheck size={14} className="text-green-500" title="Verificado" />
+                                    ) : (
+                                        <ShieldAlert size={14} className="text-amber-500" title="Pendiente verificación" />
+                                    )
+                                )}
+                            </div>
+                        } 
+                    />
                     <div className="flex justify-between items-center pt-1">
                         <div className="flex items-center gap-2 text-slate-400">
                             <AlertCircle size={12} />
@@ -103,7 +123,7 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
     );
 };
 
-const ProfileItem: React.FC<{ icon: React.ReactNode, label: string, value: string }> = ({ icon, label, value }) => (
+const ProfileItem: React.FC<{ icon: React.ReactNode, label: string, value: React.ReactNode }> = ({ icon, label, value }) => (
     <div className="flex flex-col gap-1 border-b border-slate-50 dark:border-slate-800/50 pb-2">
         <div className="flex items-center gap-2 text-slate-400">
             {icon}

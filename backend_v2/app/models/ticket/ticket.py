@@ -50,6 +50,7 @@ class Ticket(SQLModel, table=True):
     creador_id: str = Field(max_length=50)
     nombre_creador: Optional[str] = Field(default=None, max_length=255)
     correo_creador: Optional[str] = Field(default=None, max_length=255)
+    correo_verificado_creador: Optional[bool] = Field(default=None)
     area_creador: Optional[str] = Field(default=None, max_length=100)
     cargo_creador: Optional[str] = Field(default=None, max_length=100)
     sede_creador: Optional[str] = Field(default=None, max_length=100)
@@ -276,6 +277,7 @@ class TicketBase(SQLModel):
     creador_id: str
     nombre_creador: Optional[str] = None
     correo_creador: Optional[str] = None
+    correo_verificado_creador: Optional[bool] = None
     area_creador: Optional[str] = None
     cargo_creador: Optional[str] = None
     sede_creador: Optional[str] = None

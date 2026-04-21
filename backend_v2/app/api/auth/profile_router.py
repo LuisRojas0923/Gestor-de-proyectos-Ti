@@ -167,7 +167,7 @@ async def actualizar_correo(
             token = ServicioAuth.crear_token_verificacion(usuario.id)
             verify_url = f"{EmailService.get_frontend_url()}/verify-email?token={token}"
             
-            sent = EmailService.enviar_confirmacion_registro(usuario.correo, usuario.nombre, verify_url)
+            sent = await EmailService.enviar_confirmacion_registro(usuario.correo, usuario.nombre, verify_url)
             if not sent:
                 # No bloqueamos la actualización porque ya se hizo en el ERP, pero informamos el fallo de entrega
                 raise HTTPException(
@@ -217,7 +217,7 @@ async def confirmar_correo(
         
         # Enviar notificación de éxito
         try:
-            EmailService.enviar_exito_verificacion(usuario.correo, usuario.nombre)
+            await EmailService.enviar_exito_verificacion(usuario.correo, usuario.nombre)
         except Exception as e:
             print(f"WARNING: No se pudo enviar confirmación de éxito: {e}")
         
@@ -250,7 +250,7 @@ async def reenviar_verificacion(
         base_url = (config.hostveremail or config.frontend_url).rstrip("/")
         verify_url = f"{base_url}/verify-email?token={token}"
         
-        sent = EmailService.enviar_confirmacion_registro(usuario.correo, usuario.nombre, verify_url)
+        sent = await EmailService.enviar_confirmacion_registro(usuario.correo, usuario.nombre, verify_url)
         if not sent:
             raise HTTPException(
                 status_code=400, 
