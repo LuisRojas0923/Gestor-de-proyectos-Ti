@@ -58,6 +58,8 @@ export interface Development {
   type?: string;
   environment?: string;
   portal_link?: string;
+  area_desarrollo?: string;
+  analista?: string;
 
   // Sistema de fases y etapas
   current_phase_id?: number;
@@ -123,6 +125,8 @@ export interface DevelopmentCreate {
   current_phase_id?: number;
   current_stage_id?: number;
   responsible?: string;
+  area_desarrollo?: string;
+  analista?: string;
 }
 
 export interface DevelopmentUpdate {
@@ -138,6 +142,8 @@ export interface DevelopmentUpdate {
   general_status?: 'Pendiente' | 'En curso' | 'Completado' | 'Cancelado';
   provider?: string;
   responsible?: string;
+  area_desarrollo?: string;
+  analista?: string;
 }
 
 export interface DevelopmentDate {

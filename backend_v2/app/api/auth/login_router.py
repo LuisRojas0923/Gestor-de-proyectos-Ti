@@ -3,6 +3,8 @@ from fastapi.security import OAuth2PasswordRequestForm  # @audit-ok
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.services.auth.servicio import ServicioAuth
+from app.models.auth.usuario import RecoveryRequest, PasswordReset
+from app.services.notifications.email_service import EmailService
 
 router = APIRouter()
 
@@ -285,3 +287,66 @@ async def logout(
     except Exception as e:
         print(f"ERROR en Logout API: {str(e)}")
         return {"message": "Sesion cerrada localmente con errores en servidor"}
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    payload: RecoveryRequest,
+    request: Request,
+    db: AsyncSession = Depends(obtener_db),
+):
+    """Genera un token de recuperación y envía un correo al usuario"""
+    usuario = await ServicioAuth.obtener_usuario_por_cedula(db, payload.cedula)
+    
+    if not usuario:
+        # Por seguridad, no revelamos si el usuario existe, pero informamos si no hay correo
+        return {"message": "Si el usuario está registrado, se ha enviado un correo de recuperación."}
+
+    if not usuario.correo or not usuario.correo_actualizado:
+        raise HTTPException(
+            status_code=400,
+            detail="El usuario no tiene un correo corporativo validado. Por favor, contacte al administrador."
+        )
+
+    token = ServicioAuth.crear_token_recuperacion(usuario.id)
+    request_host = request.headers.get("host")
+    reset_url = f"{EmailService.get_frontend_url(request_host)}/reset-password?token={token}"
+
+    enviado = await EmailService.enviar_recuperacion_contrasena(
+        usuario.correo, usuario.nombre, reset_url, request_host=request_host
+    )
+
+    if not enviado:
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo enviar el correo de recuperación. Intente más tarde."
+        )
+
+    return {"message": "Se ha enviado un correo con instrucciones para restablecer su contraseña."}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    payload: PasswordReset,
+    db: AsyncSession = Depends(obtener_db),
+):
+    """Restablece la contraseña de un usuario usando un token válido"""
+    usuario_id = ServicioAuth.validar_token_recuperacion(payload.token)
+    
+    if not usuario_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Token de recuperación inválido o expirado."
+        )
+
+    try:
+        await ServicioAuth.cambiar_contrasena(db, usuario_id, payload.nueva_contrasena)
+        # Opcionalmente invalidar sesiones antiguas
+        await ServicioAuth.invalidar_sesiones_usuario(db, usuario_id)
+        
+        return {"message": "Contraseña restablecida exitosamente. Ya puede iniciar sesión."}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"ERROR en Reset Password API: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno al restablecer la contraseña.")

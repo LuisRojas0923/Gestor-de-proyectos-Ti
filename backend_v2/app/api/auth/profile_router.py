@@ -165,8 +165,7 @@ async def actualizar_correo(
         try:
             from app.config import config
             token = ServicioAuth.crear_token_verificacion(usuario.id)
-            base_url = (config.hostveremail or config.frontend_url).rstrip("/")
-            verify_url = f"{base_url}/verify-email?token={token}"
+            verify_url = f"{EmailService.get_frontend_url()}/verify-email?token={token}"
             
             sent = EmailService.enviar_confirmacion_registro(usuario.correo, usuario.nombre, verify_url)
             if not sent:

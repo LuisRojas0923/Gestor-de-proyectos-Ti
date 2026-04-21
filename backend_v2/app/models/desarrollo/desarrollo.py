@@ -7,6 +7,10 @@ from datetime import datetime, date
 from decimal import Decimal
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import text
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .actividad import Actividad
 
 
 # --- Modelos de Base de Datos (table=True) ---
@@ -71,6 +75,8 @@ class Desarrollo(SQLModel, table=True):
     enlace_portal: Optional[str] = Field(default=None)
     proveedor: Optional[str] = Field(default=None, max_length=100)
     responsable: Optional[str] = Field(default=None, max_length=255)
+    area_desarrollo: Optional[str] = Field(default=None, max_length=100)
+    analista: Optional[str] = Field(default=None, max_length=100)
 
     # Estado y progreso
     estado_general: str = Field(default="Pendiente", max_length=50)
@@ -139,6 +145,8 @@ class DesarrolloCrear(SQLModel):
     enlace_portal: Optional[str] = None
     proveedor: Optional[str] = None
     responsable: Optional[str] = None
+    area_desarrollo: Optional[str] = None
+    analista: Optional[str] = None
     estado_general: str = "Pendiente"
     fase_actual_id: Optional[int] = None
     etapa_actual_id: Optional[int] = None
@@ -158,6 +166,8 @@ class DesarrolloActualizar(SQLModel):
     enlace_portal: Optional[str] = None
     proveedor: Optional[str] = None
     responsable: Optional[str] = None
+    area_desarrollo: Optional[str] = None
+    analista: Optional[str] = None
     estado_general: Optional[str] = None
     fase_actual_id: Optional[int] = None
     etapa_actual_id: Optional[int] = None

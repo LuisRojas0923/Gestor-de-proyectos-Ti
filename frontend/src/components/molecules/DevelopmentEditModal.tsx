@@ -17,6 +17,8 @@ interface DevelopmentData {
   estimated_end_date?: string;
   provider?: string;
   responsible?: string;
+  area_desarrollo?: string;
+  analista?: string;
 }
 
 interface DevelopmentEditModalProps {
@@ -50,6 +52,8 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
         estimated_end_date: development.estimated_end_date || '',
         provider: development.provider || '',
         responsible: development.responsible || '',
+        area_desarrollo: development.area_desarrollo || '',
+        analista: development.analista || '',
       });
       setErrors([]);
     }
@@ -259,13 +263,30 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
                     maxLength={100}
                   />
                 </div>
-
                 <div>
                   <Input
                     label="Responsable"
                     value={formData.responsible || ''}
                     onChange={(e) => handleFieldChange('responsible', e.target.value)}
                     maxLength={255}
+                  />
+                </div>
+
+                <div>
+                  <Input
+                    label="Área de Desarrollo"
+                    value={formData.area_desarrollo || ''}
+                    onChange={(e) => handleFieldChange('area_desarrollo', e.target.value)}
+                    maxLength={100}
+                  />
+                </div>
+
+                <div>
+                  <Input
+                    label="Analista"
+                    value={formData.analista || ''}
+                    onChange={(e) => handleFieldChange('analista', e.target.value)}
+                    maxLength={100}
                   />
                 </div>
               </div>

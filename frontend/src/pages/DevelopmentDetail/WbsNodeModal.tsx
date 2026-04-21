@@ -25,6 +25,9 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     const [descripcion, setDescripcion] = useState('');
     const [estado, setEstado] = useState<'Pendiente' | 'En Progreso' | 'Bloqueado' | 'Completada'>('Pendiente');
     const [avance, setAvance] = useState(0);
+    const [seguimiento, setSeguimiento] = useState('');
+    const [compromiso, setCompromiso] = useState('');
+    const [archivoUrl, setArchivoUrl] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -33,11 +36,17 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 setDescripcion(editNode.descripcion || '');
                 setEstado(editNode.estado);
                 setAvance(editNode.porcentaje_avance);
+                setSeguimiento(editNode.seguimiento || '');
+                setCompromiso(editNode.compromiso || '');
+                setArchivoUrl(editNode.archivo_url || '');
             } else {
                 setTitulo('');
                 setDescripcion('');
                 setEstado('Pendiente');
                 setAvance(0);
+                setSeguimiento('');
+                setCompromiso('');
+                setArchivoUrl('');
             }
         }
     }, [isOpen, editNode]);
@@ -55,7 +64,10 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     titulo,
                     descripcion,
                     estado,
-                    porcentaje_avance: parseFloat(avance.toString())
+                    porcentaje_avance: parseFloat(avance.toString()),
+                    seguimiento,
+                    compromiso,
+                    archivo_url: archivoUrl
                 };
                 await patch(`/actividades/${editNode.id}`, payload);
             } else {
@@ -68,6 +80,9 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     estado,
                     porcentaje_avance: parseFloat(avance.toString()),
                     horas_estimadas: 0,
+                    seguimiento,
+                    compromiso,
+                    archivo_url: archivoUrl
                 };
                 await post(`/actividades/`, payload);
             }
@@ -131,6 +146,27 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                             }}
                         />
                     </div>
+
+                    <Textarea
+                        label="Seguimiento"
+                        placeholder="Bitácora de seguimiento de la tarea..."
+                        value={seguimiento}
+                        onChange={(e) => setSeguimiento(e.target.value)}
+                    />
+
+                    <Textarea
+                        label="Compromiso"
+                        placeholder="Compromisos adquiridos..."
+                        value={compromiso}
+                        onChange={(e) => setCompromiso(e.target.value)}
+                    />
+
+                    <Input
+                        label="URL de Archivo / Evidencia"
+                        placeholder="https://..."
+                        value={archivoUrl}
+                        onChange={(e) => setArchivoUrl(e.target.value)}
+                    />
                 </div>
 
                 <div className={`p-6 border-t ${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-neutral-50 border-neutral-100'} flex justify-end gap-3`}>

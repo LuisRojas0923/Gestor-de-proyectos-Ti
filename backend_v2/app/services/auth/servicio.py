@@ -76,13 +76,22 @@ class ServicioAuth:
         )
 
     @staticmethod
-    def validar_token_verificacion(token: str) -> Optional[str]:
-        """Valida un token de verificacion y retorna el usuario_id si es valido"""
+    def crear_token_recuperacion(usuario_id: str) -> str:
+        """Genera un token JWT para recuperación de contraseña (Scope: password_recovery)"""
+        expira = datetime.now(timezone.utc) + timedelta(hours=1)
+        a_codificar = {"sub": usuario_id, "exp": expira, "scope": "password_recovery"}
+        return jwt.encode(
+            a_codificar, config.jwt_secret_key, algorithm=config.algorithm
+        )
+
+    @staticmethod
+    def validar_token_recuperacion(token: str) -> Optional[str]:
+        """Valida un token de recuperación y retorna el usuario_id si es válido"""
         try:
             payload = jwt.decode(
                 token, config.jwt_secret_key, algorithms=[config.algorithm]
             )
-            if payload.get("scope") != "verify_email":
+            if payload.get("scope") != "password_recovery":
                 return None
             return payload.get("sub")
         except Exception:

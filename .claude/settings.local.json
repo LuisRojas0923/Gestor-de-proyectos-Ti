@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONPATH=\"backend_v2\" python -m pytest testing/backend/test_auth_escalation.py -v 2>&1)"
+    ]
+  }
+}

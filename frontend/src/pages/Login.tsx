@@ -6,6 +6,7 @@ import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
 import imgUserLogin from '../assets/images/categories/Usuario Inicio Sesion.png';
 import imgAdminLogin from '../assets/images/categories/icons8-usuario-administrador-96.png';
+import ForgotPasswordModal from './Login/ForgotPasswordModal';
 
 const Login: React.FC = () => {
     const { state, dispatch } = useAppContext();
@@ -23,6 +24,7 @@ const Login: React.FC = () => {
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -220,6 +222,20 @@ const Login: React.FC = () => {
                         />
                     )}
 
+                    {loginMode === 'admin' && (
+                        <div className="flex justify-end !mt-2">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setIsRecoveryModalOpen(true)}
+                                className="text-xs font-semibold text-blue-600 dark:text-blue-400 p-0 h-auto hover:bg-transparent"
+                            >
+                                ¿Olvidaste tu contraseña?
+                            </Button>
+                        </div>
+                    )}
+
                     {error && (
                         <div className={`p-4 rounded-xl text-sm font-bold flex items-center space-x-2
                             ${loginMode === 'portal'
@@ -256,6 +272,11 @@ const Login: React.FC = () => {
                 </div>
 
             </MaterialCard>
+
+            <ForgotPasswordModal 
+                isOpen={isRecoveryModalOpen} 
+                onClose={() => setIsRecoveryModalOpen(false)} 
+            />
         </div>
     );
 };

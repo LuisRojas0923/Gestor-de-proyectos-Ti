@@ -7,6 +7,9 @@ export interface WbsActivityBase {
     fecha_fin_estimada?: string;
     horas_estimadas: number;
     porcentaje_avance: number;
+    seguimiento?: string;
+    compromiso?: string;
+    archivo_url?: string;
 }
 
 export interface WbsActivity extends WbsActivityBase {

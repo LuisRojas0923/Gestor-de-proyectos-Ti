@@ -3,7 +3,6 @@ import { Eye, Search, X, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
 import { useFilters, UseFiltersReturn } from './MyDevelopments/hooks/useFilters';
-import { DevelopmentWithCurrentStatus } from '../types';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { MaterialCard, Input, Select, Button, Title, Text } from '../components/atoms';
 import { CreateDevelopmentModal } from './MyDevelopments/CreateDevelopmentModal';
@@ -118,68 +117,6 @@ const MyDevelopments: React.FC = () => {
     return colors[status as keyof typeof colors] || 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
   };
 
-  // Sistema de colores tipo semáforo para actividades de bitácora
-  const getActivityColor = (activity: DevelopmentWithCurrentStatus['last_activity'] | null) => {
-    if (!activity) return 'text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400';
-
-    const activityType = activity.activity_type?.toLowerCase();
-    const status = activity.status?.toLowerCase();
-    const stageName = activity.stage_name?.toLowerCase();
-
-    // Actividades completadas - Verde
-    if (status === 'completada' || activityType === 'cierre_etapa') {
-      return 'text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-300';
-    }
-
-    // Actividades en curso - Azul
-    if (status === 'en_curso') {
-      return 'text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300';
-    }
-
-    // Actividades pendientes - Amarillo
-    if (status === 'pendiente') {
-      return 'text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-300';
-    }
-
-    // Actividades canceladas - Rojo
-    if (status === 'cancelada') {
-      return 'text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-300';
-    }
-
-    // Por tipo de actividad
-    if (activityType === 'nueva_actividad') {
-      return 'text-purple-700 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300';
-    }
-
-    if (activityType === 'seguimiento') {
-      return 'text-indigo-700 bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300';
-    }
-
-    if (activityType === 'cambio_etapa') {
-      return 'text-teal-700 bg-teal-100 dark:bg-teal-900/30 dark:text-teal-300';
-    }
-
-    if (activityType === 'observacion') {
-      return 'text-orange-700 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-300';
-    }
-
-    // Por etapa específica si no hay status claro
-    if (stageName) {
-      if (stageName.includes('prueba') || stageName.includes('testing')) {
-        return 'text-orange-700 bg-orange-100 dark:bg-orange-900/30 dark:text-orange-300';
-      }
-      if (stageName.includes('entrega') || stageName.includes('producción')) {
-        return 'text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300';
-      }
-      if (stageName.includes('desarrollo') || stageName.includes('construcción')) {
-        return 'text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-300';
-      }
-    }
-
-    // Por defecto - Gris
-    return 'text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-300';
-  };
-
   const handleColumnSort = (column: UseFiltersReturn['sortBy']) => {
     filters.setSortBy(column);
     filters.setSortOrder('asc');
@@ -277,10 +214,17 @@ const MyDevelopments: React.FC = () => {
                   <tr>
                     {[
                       { key: 'id', label: 'ID' },
-                      { key: 'name', label: 'Nombre' },
                       { key: 'responsible', label: 'Responsable' },
-                      { key: 'stage', label: 'Estado Real (Bitácora)' },
-                      { key: 'status', label: 'Estado' }
+                      { key: 'module', label: 'Área' },
+                      { key: 'type', label: 'Tipo' },
+                      { key: 'name', label: 'Actividad' },
+                      { key: 'start_date', label: 'Inicio' },
+                      { key: 'estimated_end_date', label: 'Fin' },
+                      { key: 'description', label: 'Objetivo' },
+                      { key: 'stage_progress_percentage', label: '% Cumplimiento' },
+                      { key: 'status', label: 'Estado' },
+                      { key: 'area_desarrollo', label: 'Área Desarrollo' },
+                      { key: 'analista', label: 'Analista' }
                     ].map(({ key, label }) => (
                       <th
                         key={key}
@@ -301,45 +245,41 @@ const MyDevelopments: React.FC = () => {
                       <td className="px-4 py-3 text-sm font-bold text-[var(--color-primary)]">
                         {dev.id}
                       </td>
+                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                        {dev.responsible ?? 'N/A'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                        {dev.module ?? 'N/A'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                        {dev.type ?? 'N/A'}
+                      </td>
                       <td className="px-4 py-3 text-sm font-bold text-[var(--color-text-primary)]">
                         {dev.name}
                       </td>
                       <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.responsible ?? 'N/A'}
+                        {dev.start_date ?? 'N/A'}
                       </td>
-                      <td className="px-4 py-3 text-sm">
-                        {dev.last_activity ? (
-                          <div className="flex flex-col gap-1">
-                            <Text as="span" className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActivityColor(dev.last_activity)}`}>
-                              {dev.last_activity.stage_name}
-                            </Text>
-                            <Text as="span" variant="caption" className="text-[var(--color-text-secondary)]">
-                              {dev.last_activity.status === 'completada' ? '✅' :
-                                dev.last_activity.status === 'en_curso' ? '🔄' :
-                                  dev.last_activity.status === 'pendiente' ? '⏳' :
-                                    dev.last_activity.status === 'cancelada' ? '❌' : '📝'} {dev.last_activity.activity_type?.replace('_', ' ')}
-                            </Text>
-                          </div>
-                        ) : dev.current_stage?.stage_name ? (
-                          <div className="flex flex-col gap-1">
-                            <Text as="span" className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActivityColor(null)}`}>
-                              {dev.current_stage.stage_name}
-                            </Text>
-                            <Text as="span" variant="caption" className="text-[var(--color-text-secondary)]">
-                              ⚪ Sin actividad en bitácora
-                            </Text>
-                          </div>
-                        ) : (
-                          <Text as="span" className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getActivityColor(null)}`}>
-                            N/A
-                          </Text>
-                        )}
+                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                        {dev.estimated_end_date ?? 'N/A'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)] max-w-xs truncate" title={dev.description}>
+                        {dev.description ?? 'N/A'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                        {dev.stage_progress_percentage ?? 0}%
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <Text as="span" className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(dev.general_status)
                           }`}>
                           {dev.general_status}
                         </Text>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                        {dev.area_desarrollo ?? 'N/A'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                        {dev.analista ?? 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <Button
