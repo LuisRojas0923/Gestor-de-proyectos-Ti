@@ -64,7 +64,8 @@ const Login: React.FC = () => {
                 name: data.user.nombre || data.user.name || '',
                 role: (data.user.rol || data.user.role || 'usuario').toLowerCase(),
                 emailNeedsUpdate: !!data.user.email_needs_update,
-                emailVerified: !!data.user.correo_verificado
+                emailVerified: !!data.user.correo_verificado,
+                passwordSet: data.user.password_set !== undefined ? !!data.user.password_set : true
             };
 
             // Guardar token para futuras peticiones
@@ -115,7 +116,8 @@ const Login: React.FC = () => {
                 id: data.user.id || data.user.cedula,
                 cedula: data.user.cedula || data.user.id,
                 emailNeedsUpdate: !!data.user.email_needs_update,
-                emailVerified: !!data.user.correo_verificado
+                emailVerified: !!data.user.correo_verificado,
+                passwordSet: data.user.password_set !== undefined ? !!data.user.password_set : true
             };
 
             dispatch({ type: 'LOGIN', payload: userData });

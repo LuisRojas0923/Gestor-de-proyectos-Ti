@@ -360,3 +360,62 @@ class EmailService:
             html_final, 
             attachments=EmailService._get_attachments()
         )
+    @staticmethod
+    def enviar_notificacion_chat(
+        email_destinatario: str,
+        nombre_destinatario: str,
+        ticket_id: str,
+        nombre_remitente: str,
+        mensaje: str,
+    ) -> bool:
+        """Envía una notificación de nuevo mensaje en el chat"""
+        asunto = f"Nuevo mensaje en tu solicitud: {ticket_id}"
+        
+        try:
+            # Limitar mensaje si es muy largo
+            mensaje_resumen = (mensaje[:500] + "...") if len(mensaje) > 500 else mensaje
+            
+            portal_url = f"{config.frontend_url.rstrip('/')}/tickets/{ticket_id}"
+            
+            html_final = EmailService._render_template(
+                "emails/chat_notification.html",
+                titulo="Nuevo mensaje en el chat",
+                nombre_destinatario=nombre_destinatario,
+                ticket_id=ticket_id,
+                nombre_remitente=nombre_remitente,
+                mensaje=mensaje_resumen,
+                portal_url=portal_url
+            )
+            
+            return EmailService.enviar_correo(
+                asunto, 
+                [email_destinatario], 
+                html_final, 
+                attachments=EmailService._get_attachments()
+            )
+        except Exception as e:
+            print(f"ERROR al enviar notificación de chat: {e}")
+            return False
+
+    @staticmethod
+    def enviar_notificacion_reseteo_clave(email: str, nombre: str) -> bool:
+        """Notifica al usuario que su contraseña ha sido reseteada por escalado de rol"""
+        asunto = "⚠️ Seguridad Solid: Reseteo de contraseña por escalado"
+        
+        try:
+            html_final = EmailService._render_template(
+                "emails/security_reset.html",
+                titulo="Acción de Seguridad Requerida",
+                nombre=nombre,
+                login_url=f"{config.frontend_url.rstrip('/')}/login"
+            )
+            
+            return EmailService.enviar_correo(
+                asunto, 
+                [email], 
+                html_final, 
+                attachments=EmailService._get_attachments()
+            )
+        except Exception as e:
+            print(f"ERROR al renderizar/enviar correo de reseteo: {e}")
+            return False

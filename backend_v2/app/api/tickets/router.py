@@ -268,21 +268,10 @@ async def agregar_comentario(
     comentario_data: ComentarioCrear,
     db: AsyncSession = Depends(obtener_db),
 ):
-    """Agrega un comentario a un ticket"""
+    """Agrega un comentario a un ticket delegando al servicio para notificaciones"""
     try:
-        nuevo_comentario = ComentarioTicket(
-            ticket_id=ticket_id,
-            comentario=comentario_data.comentario,
-            es_interno=comentario_data.es_interno,
-            usuario_id=comentario_data.usuario_id,
-            nombre_usuario=comentario_data.nombre_usuario,
-        )
-        db.add(nuevo_comentario)
-        await db.commit()
-        await db.refresh(nuevo_comentario)
-        return nuevo_comentario
+        return await ServicioTicket.agregar_comentario(db, ticket_id, comentario_data)
     except Exception as e:
-        await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -300,7 +289,7 @@ async def marcar_comentarios_leidos(
             select(ComentarioTicket)
             .where(ComentarioTicket.ticket_id == ticket_id)
             .where(ComentarioTicket.usuario_id != usuario_actual.id)
-            .where(ComentarioTicket.leido == False)
+            .where(ComentarioTicket.leido.is_(False))
         )
         comentarios = result.scalars().all()
 

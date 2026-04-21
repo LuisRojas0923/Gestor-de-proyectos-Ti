@@ -5,6 +5,7 @@ import TopBar from './TopBar';
 import { useApi } from '../../hooks/useApi';
 import { useAppContext } from '../../context/AppContext';
 import { UpdateEmailBanner } from './UpdateEmailBanner';
+import { ForcePasswordResetModal } from '../auth/ForcePasswordResetModal';
 
 const Layout: React.FC = () => {
   const { post } = useApi();
@@ -43,6 +44,7 @@ const Layout: React.FC = () => {
         <TopBar />
         <UpdateEmailBanner />
         <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          <ForcePasswordResetModal />
           <Outlet />
         </main>
       </div>

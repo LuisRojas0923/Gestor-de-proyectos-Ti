@@ -1,0 +1,47 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+    <h1 style="color: #e53e3e;">Actualización de Seguridad: Reseteo de Contraseña</h1>
+    
+    <p>Hola <strong>{{ nombre }}</strong>,</p>
+    
+    <p>
+        Te informamos que tu perfil de usuario ha sido promovido a un rol con <strong>privilegios administrativos</strong>. 
+        Como medida de seguridad obligatoria, hemos restablecido tu contraseña de acceso.
+    </p>
+
+    <div style="background-color: #fff5f5; border: 1px solid #feb2b2; border-radius: 8px; padding: 20px; margin: 30px 0;">
+        <p style="margin: 0; color: #c53030; font-weight: bold;">Información Importante:</p>
+        <ul style="margin: 10px 0 0 0; color: #9b2c2c;">
+            <li>Tu contraseña temporal ha sido establecida como tu <strong>número de cédula</strong>.</li>
+            <li>Todas las sesiones activas han sido cerradas por seguridad.</li>
+            <li>El sistema te solicitará cambiar esta contraseña en tu próximo inicio de sesión.</li>
+        </ul>
+    </div>
+
+    <p>
+        Para continuar accediendo a las herramientas de gestión, por favor inicia sesión en la plataforma:
+    </p>
+
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 40px 0;">
+        <tr>
+            <td align="center">
+                <!--[if mso]>
+                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ login_url }}" style="height:55px;v-text-anchor:middle;width:260px;" arcsize="15%" stroke="f" fillcolor="#002060">
+                <w:anchorlock/>
+                <center style="color:#ffffff;font-family:'Segoe UI', Arial, sans-serif;font-size:16px;font-weight:bold;">Iniciar Sesión Ahora</center>
+                </v:roundrect>
+                <![endif]-->
+                <a href="{{ login_url }}" target="_blank" style="background-color:#002060;border-radius:8px;color:#ffffff;display:inline-block;font-family:'Segoe UI', Arial, sans-serif;font-size:16px;font-weight:600;line-height:55px;text-align:center;text-decoration:none;width:260px;-webkit-text-size-adjust:none;mso-hide:all;">Iniciar Sesión Ahora</a>
+            </td>
+        </tr>
+    </table>
+
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 25px 0; border-left: 4px solid #feb2b2;">
+        <tr>
+            <td style="padding-left: 20px; font-style: italic; color: #718096; font-size: 15px;">
+                Si no esperabas este cambio o tienes problemas para acceder, por favor contacta de inmediato con el Departamento de TI.
+            </td>
+        </tr>
+    </table>
+{% endblock %}

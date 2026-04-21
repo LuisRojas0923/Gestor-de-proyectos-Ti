@@ -17,6 +17,7 @@ interface User {
   viaticante?: boolean;
   emailNeedsUpdate?: boolean;
   emailVerified?: boolean;
+  passwordSet?: boolean;
   permissions?: string[];
 }
 
@@ -269,6 +270,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               ? !!data.email_needs_update 
               : (data.correo_actualizado !== undefined ? !data.correo_actualizado : false),
             emailVerified: data.correo_verificado !== undefined ? !!data.correo_verificado : false,
+            passwordSet: data.password_set !== undefined ? !!data.password_set : true, // Por defecto true para no bloquear si no viene
             permissions: data.permissions || data.permisos || []
           });
 

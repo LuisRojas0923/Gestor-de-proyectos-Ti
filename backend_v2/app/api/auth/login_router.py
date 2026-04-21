@@ -29,6 +29,8 @@ async def login(
             form_data.password, usuario.hash_contrasena  # @audit-ok
         ):
             raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales incorrectas",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 

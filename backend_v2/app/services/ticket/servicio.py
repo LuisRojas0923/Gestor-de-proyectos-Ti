@@ -17,6 +17,8 @@ from app.models.ticket.ticket import (
     SolicitudActivo,
     TicketCrear,
     TicketActualizar,
+    ComentarioTicket,
+    ComentarioCrear,
 )
 from app.models.auth.usuario import Usuario
 from app.utils_date import get_bogota_now
@@ -28,6 +30,7 @@ from .attachment_service import AttachmentService
 from .ticket_utils import TicketUtils
 from ..notifications.email_service import EmailService
 from ...models.ticket.ticket import CategoriaTicket
+from ...utils_cache import global_cache
 
 
 class ServicioTicket:
@@ -284,6 +287,53 @@ class ServicioTicket:
             )
         )
         return result.scalars().first()
+
+    @classmethod
+    async def agregar_comentario(
+        cls, db: AsyncSession, ticket_id: str, comentario_data: ComentarioCrear
+    ) -> ComentarioTicket:
+        """Agrega un comentario y dispara notificación si aplica"""
+        try:
+            nuevo_comentario = ComentarioTicket(
+                ticket_id=ticket_id,
+                comentario=comentario_data.comentario,
+                es_interno=comentario_data.es_interno,
+                usuario_id=comentario_data.usuario_id,
+                nombre_usuario=comentario_data.nombre_usuario,
+            )
+            db.add(nuevo_comentario)
+            await db.commit()
+            await db.refresh(nuevo_comentario)
+
+            # Lógica de notificación:
+            # Solo si NO es interno y hay un correo de creador válido
+            if not nuevo_comentario.es_interno:
+                ticket = await cls.obtener_ticket_por_id(db, ticket_id)
+                if ticket and ticket.correo_creador:
+                    # No notificar si el que escribe es el mismo creador
+                    if nuevo_comentario.usuario_id != ticket.creador_id:
+                        # THROTTLE: Verificar si ya se envió notificación en los últimos 30 min (1800 seg)
+                        cache_key = f"chat_notif_throttle:{ticket_id}"
+                        if not global_cache.get(cache_key):
+                            try:
+                                EmailService.enviar_notificacion_chat(
+                                    email_destinatario=ticket.correo_creador,
+                                    nombre_destinatario=ticket.nombre_creador or "Usuario",
+                                    ticket_id=ticket_id,
+                                    nombre_remitente=nuevo_comentario.nombre_usuario or "Soporte",
+                                    mensaje=nuevo_comentario.comentario,
+                                )
+                                # Activar el seguro por 30 minutos
+                                global_cache.set(cache_key, True, ttl=1800)
+                            except Exception as e:
+                                print(f"WARNING: No se pudo enviar notificación de chat: {e}")
+                        else:
+                            print(f"DEBUG: Notificación de chat omitida por throttle (30 min) para {ticket_id}")
+
+            return nuevo_comentario
+        except Exception as e:
+            await db.rollback()
+            raise e
 
     @staticmethod
     async def listar_tickets(

@@ -22,9 +22,20 @@ class ServicioAuth:
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v2/auth/login")
 
     @staticmethod
-    def es_password_configurado(hash_contrasena: str) -> bool:
-        """Verifica si el usuario ya cambio su contrasena inicial"""
-        return not ServicioAuth.verificar_contrasena(config.portal_pending_pwd, hash_contrasena)
+    def es_password_configurado(hash_contrasena: str, cedula: Optional[str] = None) -> bool:
+        """
+        Verifica si el usuario ya cambió su contraseña inicial.
+        No se considera configurada si coincide con la clave genérica O con su cédula.
+        """
+        # 1. Validar contra clave genérica del portal
+        if ServicioAuth.verificar_contrasena(config.portal_pending_pwd, hash_contrasena):
+            return False
+        
+        # 2. Validar contra cédula si se proporciona
+        if cedula and ServicioAuth.verificar_contrasena(cedula, hash_contrasena):
+            return False
+            
+        return True
 
     @staticmethod
     def verificar_contrasena(contrasena_plana: str, contrasena_hasheada: str) -> bool:
@@ -119,12 +130,13 @@ class ServicioAuth:
         # 3. Crear usuario
         id_usuario = f"USR-{cedula}"
         hash_pwd = ServicioAuth.obtener_hash_contrasena(cedula)
+        correo_erp = datos_erp.get("correocorporativo").strip() if datos_erp.get("correocorporativo") else None
 
         nuevo_usuario = Usuario(
             id=id_usuario,
             cedula=cedula,
             nombre=datos_erp["nombre"],
-            correo=None,
+            correo=correo_erp,
             hash_contrasena=hash_pwd,
             rol="analyst",
             esta_activo=True,
@@ -134,11 +146,26 @@ class ServicioAuth:
             centrocosto=datos_erp.get("centrocosto"),
             viaticante=datos_erp.get("viaticante"),
             baseviaticos=datos_erp.get("baseviaticos"),
+            correo_actualizado=bool(correo_erp),
+            correo_verificado=False
         )
 
         db.add(nuevo_usuario)
         await db.commit()
         await db.refresh(nuevo_usuario)
+
+        # 4. Notificar bienvenida/seguridad
+        if correo_erp:
+            from app.services.notifications.email_service import EmailService
+            import asyncio
+            asyncio.create_task(
+                asyncio.to_thread(
+                    EmailService.enviar_notificacion_reseteo_clave, 
+                    correo_erp, 
+                    nuevo_usuario.nombre
+                )
+            )
+
         return nuevo_usuario
 
     @staticmethod
@@ -353,3 +380,30 @@ class ServicioAuth:
             logging.error(f"Error al cerrar sesion: {e}")
             await db.rollback()
             return False
+
+    @staticmethod
+    async def invalidar_sesiones_usuario(db: AsyncSession, usuario_id: str) -> int:
+        """
+        Invalida todas las sesiones activas de un usuario (para reseteos de seguridad).
+        Retorna el número de sesiones invalidadas.
+        """
+        from app.models.auth.usuario import Sesion
+        from app.utils_date import get_bogota_now
+        from sqlalchemy import update
+
+        try:
+            ahora = get_bogota_now()
+            # Marcamos fin_sesion para todas las sesiones que no lo tengan
+            stmt = (
+                update(Sesion)
+                .where(Sesion.usuario_id == usuario_id, Sesion.fin_sesion.is_(None))
+                .values(fin_sesion=ahora)
+            )
+            result = await db.execute(stmt)
+            await db.commit()
+            return result.rowcount
+        except Exception as e:
+            import logging
+            logging.error(f"Error al invalidar sesiones de {usuario_id}: {e}")
+            await db.rollback()
+            return 0
