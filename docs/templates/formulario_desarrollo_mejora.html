@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario: Nuevos Desarrollos Mejora</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        :root {
+            --color-primary: #002060;
+            --color-secondary: #b4c6e7;
+            --color-bg: #f5f7fa;
+            --color-white: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg);
+            padding: 40px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: var(--color-white);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .header {
+            border-bottom: 2px solid var(--color-primary);
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: var(--color-primary);
+            margin: 0;
+            font-size: 22px;
+            text-transform: uppercase;
+        }
+
+        .section-header {
+            background: #b4c6e755;
+            color: var(--color-primary);
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin: 25px 0 15px 0;
+            font-size: 16px;
+            font-weight: 700;
+            border: 1px solid var(--color-secondary);
+        }
+
+        .field {
+            margin-bottom: 25px;
+            border-left: 3px solid var(--color-primary);
+            padding-left: 15px;
+        }
+
+        .label {
+            font-weight: 600;
+            color: var(--color-primary);
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .hint {
+            color: #666;
+            font-size: 13px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .options {
+            font-size: 12px;
+            color: #555;
+            font-style: italic;
+            background: #f9f9f9;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                border: 1px solid #eee;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>REFRIDCOL - Formulario Desarrollo / Mejora (EXCEL)</h1>
+            <div style="font-weight:700; color:var(--color-primary)">Portal</div>
+        </div>
+
+        <p style="font-size: 14px; color: #666; margin-bottom: 30px;">Este formulario captura las necesidades
+            específicas de mejora para herramientas existentes o requerimientos de desarrollo de menor complejidad.</p>
+
+        <div class="section-header">Detalles de Mejoramiento</div>
+
+        <div class="field">
+            <span class="label">¿Existe actualmente alguna herramienta similar?</span>
+            <span class="options">Opciones: Sí Existe / No Existe</span>
+        </div>
+
+        <div class="field">
+            <span class="label">Si existe, ¿cómo se llama y para qué se usa?</span>
+            <span class="hint">Indique el nombre de la herramienta o archivo actual (Ej: Excel de Facturación).</span>
+        </div>
+
+        <div class="field">
+            <span class="label">¿Cuál es la necesidad específica que desea resolver?</span>
+            <span class="hint">Describa el problema o la oportunidad identificada.</span>
+        </div>
+
+        <div class="field">
+            <span class="label">¿Por qué considera necesaria esta implementación? (Justificación)</span>
+            <span class="hint">Explique el beneficio o el impacto esperado.</span>
+        </div>
+
+        <div class="field">
+            <span class="label">¿Cómo planea utilizar esta herramienta en sus actividades diarias?</span>
+            <span class="hint">Describa la integración con su flujo de trabajo actual.</span>
+        </div>
+
+        <div class="field">
+            <span class="label">Frecuencia de Uso</span>
+            <span class="options">Opciones: Diariamente / Semanalmente / Mensualmente / Puntual o Ocasional</span>
+        </div>
+
+        <div class="field">
+            <span class="label">Responsable principal de utilizar la herramienta (Nombre y Cargo)</span>
+        </div>
+
+        <div class="footer">
+            Portal de Servicios TMA - Refridcol. Generado para documentación técnica.
+        </div>
+    </div>
+</body>
+
+</html>

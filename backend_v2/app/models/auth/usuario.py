@@ -31,6 +31,8 @@ class Usuario(SQLModel, table=True):
     )
     actualizado_en: Optional[datetime] = Field(default=None)
     ultimo_login: Optional[datetime] = Field(default=None)
+    correo_actualizado: bool = Field(default=False)
+    correo_verificado: bool = Field(default=False)
 
     # Datos de perfil (Sincronizados con ERP)
     area: Optional[str] = Field(default=None, max_length=255)
@@ -227,6 +229,9 @@ class UsuarioPublico(SQLModel):
     baseviaticos: Optional[float] = None
     especialidades: Optional[str] = "[]"
     areas_asignadas: Optional[str] = "[]"
+    correo_actualizado: bool = False
+    correo_verificado: bool = False
+    password_set: bool = False
 
 
 class TokenRespuesta(SQLModel):
@@ -260,3 +265,9 @@ class PasswordCambiar(SQLModel):
 
     contrasena_actual: str
     nueva_contrasena: str = Field(min_length=8)
+
+
+class EmailActualizar(SQLModel):
+    """Schema para actualizar el correo corporativo"""
+
+    correo: str = Field(max_length=255)

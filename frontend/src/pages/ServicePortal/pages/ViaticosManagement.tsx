@@ -33,6 +33,13 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                 cedula={user.cedula}
                 onVerified={() => {
                     dispatch({ type: 'SET_VIATICOS_VERIFIED', payload: true });
+                    // Actualizar el estado del usuario para reflejar que ya configuró su contraseña
+                    if (user) {
+                        dispatch({ 
+                            type: 'SET_USER', 
+                            payload: { ...user, password_set: true } 
+                        });
+                    }
                 }}
                 onBack={onBack}
             />
@@ -60,7 +67,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
 
             {/* Mensaje Informativo si es viaticante pero no tiene permiso administrativo */}
             {!hasGestionPermission && user?.viaticante && (
-                <div className="max-w-4xl mx-auto mt-6 p-6 rounded-[2rem] bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200/50 dark:border-amber-800/30 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="max-w-[var(--portal-max-width)] mx-auto mt-6 p-6 rounded-[2rem] bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200/50 dark:border-amber-800/30 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
                         <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 shrink-0">
                             <ShieldCheck className="w-8 h-8" />
@@ -80,7 +87,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                 </div>
             )}
 
-            <div className={`grid grid-cols-1 ${['director', 'admin'].includes(userRole) ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8 mt-8 max-w-5xl mx-auto`}>
+            <div className={`grid grid-cols-1 ${['director', 'admin'].includes(userRole) ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8 mt-8 max-w-[var(--portal-max-width)] mx-auto`}>
                 {hasGestionPermission && (
                     <>
                         {canSeeReportes && (

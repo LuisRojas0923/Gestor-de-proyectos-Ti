@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Title, Text, Button, Select, Textarea } from '../../../components/atoms';
+import { useAppContext } from '../../../context/AppContext';
 import { useApi } from '../../../hooks/useApi';
-import { Ticket, TicketAttachment } from '../../../hooks/useTicketDetail';
-import { Settings, Plus, Briefcase, FileText, Download } from 'lucide-react';
+import { Ticket, TicketAttachment, TicketComment } from '../../../hooks/useTicketDetail';
+import { Settings, Plus, Briefcase, FileText, Download, History } from 'lucide-react';
+import TicketChatSection from './TicketChatSection';
+import TicketAdditionalInfo from './TicketAdditionalInfo';
 
 interface AnalystActionTabsProps {
     ticket: Ticket;
@@ -12,6 +15,9 @@ interface AnalystActionTabsProps {
     onFieldChange: (field: string, value: string) => void;
     attachments?: TicketAttachment[];
     onDownloadAttachment?: (id: number, name: string) => void;
+    comments?: TicketComment[];
+    onSendComment?: (text: string, isInternal: boolean) => Promise<void>;
+    isSaving?: boolean;
 }
 
 const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
@@ -21,12 +27,16 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
     formData,
     onFieldChange,
     attachments = [],
-    onDownloadAttachment
+    onDownloadAttachment,
+    comments = [],
+    onSendComment,
+    isSaving = false
 }) => {
-    const [activeTab, setActiveTab] = useState<'diagnostico' | 'archivos' | 'vinculos'>('diagnostico');
+    const [activeTab, setActiveTab] = useState<'diagnostico' | 'chat' | 'archivos' | 'vinculos'>('diagnostico');
     const [isLinking, setIsLinking] = useState(false);
     const [analistas, setAnalistas] = useState<{ value: string, label: string }[]>([]);
     const { get } = useApi<any[]>();
+    const { state } = useAppContext();
 
     React.useEffect(() => {
         const fetchAnalistas = async () => {
@@ -51,7 +61,8 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
     const excludedKeys = [
         'nombre', 'area', 'sede', 'email', 'asunto', 'descripcion_detallada',
         'nivel_prioridad', 'fecha_ideal',
-        'archivos_adjuntos', 'hardware_solicitado', 'especificaciones', 'cantidad'
+        'archivos_adjuntos', 'hardware_solicitado', 'especificaciones', 'cantidad',
+        'historial_ampliaciones'
     ];
 
     return (
@@ -72,7 +83,7 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                         {ticket.prioridad || 'Media'}
                     </Text>
                 </div>
-                <div className="border-l-2 border-blue-500 pl-4 py-1">
+                <div className="border-l-2 border-blue-500 pl-4 py-1 max-h-32 overflow-y-auto custom-scrollbar">
                     <Text variant="body2" color="text-secondary" className="italic leading-relaxed">
                         "{ticket.descripcion || 'Sin descripción'}"
                     </Text>
@@ -93,6 +104,18 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                         `}
                     >
                         <Text as="span" variant="body2" weight="bold" color="inherit">Diagnóstico</Text>
+                    </Button>
+                    <Button
+                        variant="custom"
+                        onClick={() => setActiveTab('chat')}
+                        className={`
+                            inline-flex items-center justify-center font-bold uppercase tracking-wider transition-all rounded-t-xl border-t-2 px-6 py-2 h-10
+                            ${activeTab === 'chat'
+                                ? 'bg-[var(--color-surface)] dark:bg-slate-800 border-blue-500 dark:text-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)] text-blue-600'
+                                : 'text-slate-400 hover:text-slate-600 border-transparent bg-transparent'}
+                        `}
+                    >
+                        <Text as="span" variant="body2" weight="bold" color="inherit">Chat ({comments.length})</Text>
                     </Button>
                     <Button
                         variant="custom"
@@ -162,7 +185,7 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                                 <div className="bg-slate-100/50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in duration-500 shadow-inner">
                                     <div className="flex items-center gap-2 mb-4 text-slate-600 dark:text-slate-400">
                                         <Settings size={16} />
-                                        <Text variant="caption" weight="bold" color="navy" className="uppercase tracking-widest leading-none">Información Adicional</Text>
+                                        <Text variant="caption" weight="bold" color="navy" className="uppercase tracking-widest leading-none">Datos del Formulario</Text>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                                         {Object.entries(ticket.datos_extra).map(([key, value]) => {
@@ -186,6 +209,17 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                                             );
                                         })}
                                     </div>
+                                </div>
+                            )}
+
+                            {/* NUEVO: Historial de Ampliaciones para Analista */}
+                            {ticket.datos_extra?.historial_ampliaciones && (
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 mb-2 text-blue-600 dark:text-blue-400">
+                                        <History size={16} />
+                                        <Text variant="caption" weight="bold" className="uppercase tracking-widest leading-none">Historial de Ampliaciones</Text>
+                                    </div>
+                                    <TicketAdditionalInfo ampliaciones={ticket.datos_extra.historial_ampliaciones} />
                                 </div>
                             )}
 
@@ -297,6 +331,17 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                                 />
                             </div>
                         </>
+                    )}
+
+                    {/* TAB CHAT */}
+                    {activeTab === 'chat' && (
+                        <TicketChatSection 
+                            comments={comments}
+                            onSendComment={onSendComment || (async () => {})}
+                            currentUserId={state.user?.id}
+                            isAnalyst={true}
+                            isSaving={isSaving}
+                        />
                     )}
 
                     {/* TAB ARCHIVOS */}

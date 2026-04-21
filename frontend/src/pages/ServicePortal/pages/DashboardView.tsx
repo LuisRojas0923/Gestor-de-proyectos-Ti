@@ -1,7 +1,6 @@
 import { ActionCard } from '../../../components/molecules';
 import { Title, Text } from '../../../components/atoms';
-import { Plus } from 'lucide-react';
-
+import { Plus, FileText } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -11,7 +10,7 @@ import imgInventario from '../../../assets/images/categories/Consultar Reportes.
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad') => void;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
@@ -48,6 +47,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         permissions.includes('inventario_2026') ||
         ['admin', 'director'].includes(userRole)
     );
+
+    const canSeeContabilidad = moduleStatus['contabilidad'] !== false; // Visible para todos si está activo
 
     return (
         <div className="space-y-12 py-6">
@@ -109,6 +110,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                         description="Toma física de inventario y carga masiva de conteos."
                         icon={<img src={imgInventario} alt="Inventario 2026" className="w-full h-full object-contain p-2" />}
                         onClick={() => onNavigate('inventario')}
+                    />
+                )}
+
+                {canSeeContabilidad && (
+                    <ActionCard
+                        title="Certificado de Ingresos y Retenciones"
+                        description="Descarga tu certificado 220 o gestiona información exógena."
+                        icon={<FileText className="w-10 h-10 text-primary-600" />}
+                        onClick={() => onNavigate('contabilidad')}
                     />
                 )}
             </div>

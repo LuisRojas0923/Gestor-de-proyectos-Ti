@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario: Nuevos Desarrollos SOLID</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        :root {
+            --color-primary: #002060;
+            --color-secondary: #b4c6e7;
+            --color-bg: #f5f7fa;
+            --color-white: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg);
+            padding: 40px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: var(--color-white);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .header {
+            border-bottom: 2px solid var(--color-primary);
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: var(--color-primary);
+            margin: 0;
+            font-size: 22px;
+            text-transform: uppercase;
+        }
+
+        .section-header {
+            background: var(--color-primary);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin: 25px 0 15px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .field {
+            margin-bottom: 20px;
+            border-left: 3px solid var(--color-secondary);
+            padding-left: 15px;
+        }
+
+        .label {
+            font-weight: 600;
+            color: var(--color-primary);
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .hint {
+            color: #666;
+            font-size: 13px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .options {
+            font-size: 12px;
+            color: #555;
+            font-style: italic;
+            background: #f9f9f9;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                border: 1px solid #eee;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>REFRIDCOL - Formulario Desarrollo SOLID</h1>
+            <div style="font-weight:700; color:var(--color-primary)">Portal</div>
+        </div>
+
+        <div class="section-header">1. Identificación del Proceso</div>
+        <div class="field">
+            <span class="label">Nombre del Proceso</span>
+            <span class="hint">Ej: Gestión de Activos, Control de Inventario...</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Cuántas personas aproximadamente usarán esta herramienta?</span>
+            <span class="options">Opciones: 1-5 personas / 5-20 personas / Más de 20 personas</span>
+        </div>
+        <div class="field">
+            <span class="label">Área Solicitante</span>
+        </div>
+        <div class="field">
+            <span class="label">Usuario Líder (Responsable)</span>
+        </div>
+
+        <div class="section-header">2. Diagnóstico Actual</div>
+        <div class="field">
+            <span class="label">¿Ya existe hoy algo en Excel para este proceso?</span>
+            <span class="options">Opciones: SI / NO</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Qué volumen de datos se manejará al mes?</span>
+            <span class="options">Opciones: Bajo (1-50) / Moderado (50-500) / Alto (500-5000) / Masivo (+5000)</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Dónde están los archivos actuales? (Ruta o nombre)</span>
+            <span class="hint">Ej: \\SERVIDOR-TI\compartido\archivo.xlsx</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Qué problemas tiene hoy o qué le falta a lo que usa actualmente?</span>
+            <span class="hint">Describa las limitaciones del método actual.</span>
+        </div>
+
+        <div class="section-header">3. Datos de Entrada</div>
+        <div class="field">
+            <span class="label">¿Cómo empieza el proceso en el sistema? (Evento inicial)</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Qué datos necesita guardar el sistema? (Campos obligatorios)</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Qué debe revisar el sistema antes de guardar? (Validaciones)</span>
+        </div>
+
+        <div class="section-header">4. Flujo de Trabajo (Workflow)</div>
+        <div class="field">
+            <span class="label">¿Cuál es el camino que sigue el registro? (Estados)</span>
+            <span class="hint">Ej: Registrado -> Revisado -> Aprobado -> Cerrado</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Quiénes pueden cambiar el estado del registro? (Actores)</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Hacia dónde regresa el flujo si algo se rechaza? (Gestión de rechazos)</span>
+        </div>
+
+        <div class="section-header">5. Reglas de Negocio</div>
+        <div class="field">
+            <span class="label">¿Qué cálculos debe hacer el sistema solo? (Fórmulas)</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Cuándo el sistema debe bloquear una acción? (Restricciones)</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Qué datos NO se pueden cambiar después de guardar? (Inmutabilidad)</span>
+        </div>
+
+        <div class="section-header">6. Integración y Salida</div>
+        <div class="field">
+            <span class="label">¿Qué otra parte del sistema debe actualizarse sola? (Impacto modular)</span>
+        </div>
+        <div class="field">
+            <span class="label">¿El sistema debe generar algún PDF, ticket o avisar por correo? (Notificaciones)</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Qué informes o listas necesita ver al final del mes? (Reportes)</span>
+        </div>
+        <div class="field">
+            <span class="label">¿Cuándo sabremos que este desarrollo es exitoso? (Criterio de éxito)</span>
+        </div>
+
+        <div class="footer">
+            Portal de Servicios TMA - Refridcol. Generado para documentación técnica.
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,46 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 30px;">
+        <tr>
+            <td align="center" style="font-size: 60px;">
+                ✅
+            </td>
+        </tr>
+    </table>
+    
+    <h1 style="text-align: center; color: #002060; margin: 0 0 25px 0;">¡Correo verificado con éxito!</h1>
+    
+    <p>Hola <strong>{{ nombre }}</strong>,</p>
+    
+    <p>
+        ¡Buenas noticias! Tu correo corporativo ha sido verificado correctamente en el <strong>Portal de Servicios Solid</strong>. 
+        Tu cuenta ahora está completamente activa y sincronizada con nuestros sistemas centrales.
+    </p>
+
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 25px 0; border-left: 4px solid #b4c6e7;">
+        <tr>
+            <td style="padding-left: 20px; font-style: italic; color: #718096; font-size: 15px;">
+                Ya puedes solicitar tickets de soporte, gestionar tus viáticos y acceder a todos los módulos de gestión interna sin restricciones.
+            </td>
+        </tr>
+    </table>
+
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 40px 0;">
+        <tr>
+            <td align="center">
+                <!--[if mso]>
+                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ login_url }}" style="height:55px;v-text-anchor:middle;width:240px;" arcsize="15%" stroke="f" fillcolor="#002060">
+                <w:anchorlock/>
+                <center style="color:#ffffff;font-family:'Segoe UI', Arial, sans-serif;font-size:16px;font-weight:bold;">Acceder al Portal</center>
+                </v:roundrect>
+                <![endif]-->
+                <a href="{{ login_url }}" target="_blank" style="background-color:#002060;border-radius:8px;color:#ffffff;display:inline-block;font-family:'Segoe UI', Arial, sans-serif;font-size:16px;font-weight:600;line-height:55px;text-align:center;text-decoration:none;width:240px;-webkit-text-size-adjust:none;mso-hide:all;">Acceder al Portal</a>
+            </td>
+        </tr>
+    </table>
+
+    <p style="font-size: 14px; color: #4a5568;">
+        Gracias por ayudarnos a mantener la seguridad de nuestra plataforma.
+    </p>
+{% endblock %}

@@ -22,6 +22,11 @@ class ServicioAuth:
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v2/auth/login")
 
     @staticmethod
+    def es_password_configurado(hash_contrasena: str) -> bool:
+        """Verifica si el usuario ya cambio su contrasena inicial"""
+        return not ServicioAuth.verificar_contrasena(config.portal_pending_pwd, hash_contrasena)
+
+    @staticmethod
     def verificar_contrasena(contrasena_plana: str, contrasena_hasheada: str) -> bool:
         """Verifica si la contrasena plana coincide con el hash."""
         return bcrypt.checkpw(
@@ -49,6 +54,28 @@ class ServicioAuth:
             a_codificar, config.jwt_secret_key, algorithm=config.algorithm
         )
         return token_jwt
+
+    @staticmethod
+    def crear_token_verificacion(usuario_id: str) -> str:
+        """Genera un token JWT para verificacion de correo (Scope: verify_email)"""
+        expira = datetime.now(timezone.utc) + timedelta(hours=24)
+        a_codificar = {"sub": usuario_id, "exp": expira, "scope": "verify_email"}
+        return jwt.encode(
+            a_codificar, config.jwt_secret_key, algorithm=config.algorithm
+        )
+
+    @staticmethod
+    def validar_token_verificacion(token: str) -> Optional[str]:
+        """Valida un token de verificacion y retorna el usuario_id si es valido"""
+        try:
+            payload = jwt.decode(
+                token, config.jwt_secret_key, algorithms=[config.algorithm]
+            )
+            if payload.get("scope") != "verify_email":
+                return None
+            return payload.get("sub")
+        except Exception:
+            return None
 
     @staticmethod
     def obtener_cedula_desde_token(token: str) -> Optional[str]:
@@ -165,6 +192,11 @@ class ServicioAuth:
                 bool(val_viaticante) if val_viaticante is not None else False
             )
             usuario.baseviaticos = datos_erp.get("baseviaticos")
+            
+            # Sincronización de correo corporativo
+            if datos_erp.get("correocorporativo"):
+                usuario.correo = datos_erp.get("correocorporativo").strip()
+            
             await db.commit()
             await db.refresh(usuario)
         return usuario
@@ -218,8 +250,47 @@ class ServicioAuth:
             centrocosto=datos_erp.get("centrocosto"),
             viaticante=viaticante_val,
             baseviaticos=datos_erp.get("baseviaticos"),
+            correo=datos_erp.get("correocorporativo").strip() if datos_erp.get("correocorporativo") else None,
+            correo_actualizado=bool(datos_erp.get("correocorporativo")),
+            correo_verificado=False
         )
 
+        db.add(nuevo_usuario)
+        await db.commit()
+        await db.refresh(nuevo_usuario)
+        return nuevo_usuario
+
+    @staticmethod
+    async def auto_provisionar_usuario_portal(
+        db: AsyncSession, db_erp, cedula: str, datos_erp: dict
+    ) -> Usuario:
+        """
+        Crea un registro de usuario local automáticamente si no existe (Just-In-Time Provisioning).
+        """
+        id_usuario = f"USR-P-{cedula}"
+        # Marcamos la contraseña como pendiente de configuración inicial
+        hash_temporal = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
+        
+        is_viaticante = bool(datos_erp.get("viaticante"))
+        
+        nuevo_usuario = Usuario(
+            id=id_usuario,
+            cedula=cedula,
+            nombre=datos_erp["nombre"],
+            hash_contrasena=hash_temporal,
+            rol="viaticante" if is_viaticante else "usuario",
+            esta_activo=True,
+            area=datos_erp.get("area"),
+            cargo=datos_erp.get("cargo"),
+            sede=datos_erp.get("ciudadcontratacion"),
+            centrocosto=datos_erp.get("centrocosto"),
+            viaticante=is_viaticante,
+            baseviaticos=datos_erp.get("baseviaticos"),
+            correo=datos_erp.get("correocorporativo").strip() if datos_erp.get("correocorporativo") else None,
+            correo_actualizado=bool(datos_erp.get("correocorporativo")),
+            correo_verificado=False
+        )
+        
         db.add(nuevo_usuario)
         await db.commit()
         await db.refresh(nuevo_usuario)

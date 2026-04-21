@@ -41,8 +41,8 @@ const ViaticosAuthModal: React.FC<ViaticosAuthModalProps> = ({ cedula, onVerifie
 
         try {
             if (step === 'setup') {
-                if (password.length < 4) {
-                    setError("La contraseña debe tener al menos 4 caracteres.");
+                if (password.length < 8) {
+                    setError("La contraseña debe tener al menos 8 caracteres por seguridad.");
                     setIsLoading(false);
                     return;
                 }
@@ -95,15 +95,15 @@ const ViaticosAuthModal: React.FC<ViaticosAuthModalProps> = ({ cedula, onVerifie
                 <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-green-500/10 rounded-full blur-3xl"></div>
 
                 <div className="text-center mb-8 relative pt-4">
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg ${step === 'setup' ? 'bg-green-500/20 text-green-600' : 'bg-blue-600/20 text-blue-600'}`}>
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg ${step === 'setup' ? 'bg-amber-500/20 text-amber-600' : 'bg-blue-600/20 text-blue-600'}`}>
                         {step === 'setup' ? <ShieldCheck size={32} /> : <Lock size={32} />}
                     </div>
                     <Title variant="h4" weight="bold" className="mb-2">
-                        {step === 'setup' ? 'Primer Acceso Seguro' : 'Verificación de Identidad'}
+                        {step === 'setup' ? 'Configurar Contraseña' : 'Verificación de Identidad'}
                     </Title>
                     <Text className="opacity-70">
                         {step === 'setup'
-                            ? 'Hemos detectado que no tienes una contraseña de viáticos. Configúrala ahora para proteger tus reportes.'
+                            ? 'Como es tu primera vez accediendo a viáticos, debes configurar una contraseña de seguridad (mínimo 8 caracteres).'
                             : 'Ingresa tu contraseña personal para acceder a la gestión de tus viáticos.'}
                     </Text>
                 </div>

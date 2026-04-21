@@ -1,5 +1,4 @@
 import pytest
-import pytest_asyncio
 import httpx
 import asyncio
 import os
@@ -9,37 +8,16 @@ from dotenv import load_dotenv
 # Cargar variables de entorno desde .env
 load_dotenv()
 
-# Configuración
-BASE_URL = "http://localhost:8000/api/v2"
-TEST_USER_CEDULA = os.getenv("USER", "1107068093")
-TEST_USER_PASS = os.getenv("PASSWORD", "1107068093")
-
-@pytest_asyncio.fixture
-async def client():
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=30.0) as ac:
-        yield ac
-
-@pytest_asyncio.fixture
-async def auth_token(client):
-    """Obtiene un token de acceso para las pruebas protegidas"""
-    try:
-        response = await client.post("/auth/login", data={
-            "username": TEST_USER_CEDULA,
-            "password": TEST_USER_PASS
-        })
-        if response.status_code == 200:
-            return response.json()["access_token"]
-        return None
-    except Exception:
-        return None
+# Credenciales para pruebas internas
+TEST_USER_CEDULA = os.getenv("TEST_USER_CEDULA", "1107068093")
+TEST_USER_PASS = os.getenv("TEST_USER_PASS", "1107068093")
 
 @pytest.mark.asyncio
-async def test_health_check():
-    """Verifica que el backend esté arriba"""
-    async with httpx.AsyncClient(base_url="http://localhost:8000") as ac:
-        response = await ac.get("/health")
-        assert response.status_code == 200
-        assert response.json()["estado"] == "saludable"
+async def test_health_check(client):
+    """Verifica que el backend esté arriba utilizando el endpoint global de salud"""
+    response = await client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["estado"] == "saludable"
 
 @pytest.mark.asyncio
 async def test_auth_login(client):

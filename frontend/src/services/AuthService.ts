@@ -51,5 +51,22 @@ export const AuthService = {
             }
             throw typeof detail === 'string' ? detail : 'Error al cambiar contraseña';
         }
+    },
+
+    /**
+     * Actualiza el correo corporativo del usuario (sincroniza con ERP).
+     */
+    async updateEmail(correo: string) {
+        const headers = getAuthHeaders();
+        try {
+            const response = await axios.patch(
+                `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_UPDATE_EMAIL}`,
+                { correo },
+                { headers }
+            );
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data?.detail || 'Error al actualizar el correo corporativo';
+        }
     }
 };

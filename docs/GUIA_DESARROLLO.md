@@ -120,3 +120,29 @@ FROM sesiones
 ORDER BY creado_en DESC 
 LIMIT 10;
 ```
+
+---
+
+## 5. Mejores Prácticas de Desarrollo (Backend & Frontend)
+
+### 5.1 Carga de Relaciones en Entornos Asíncronos (SQLAlchemy)
+
+Debido al uso de `AsyncSession`, SQLAlchemy prohíbe la carga diferida (*lazy loading*) de relaciones dentro de un contexto asíncrono. Intentar acceder a una relación que no fue cargada disparará el error: `greenlet_spawn has not been called; can't call blocking symbol`.
+
+**Regla de Oro**: Si el endpoint es `async def`, **DEBES** declarar explícitamente qué relaciones vas a usar mediante `joinedload` (para 1:1 o N:1) o `selectinload` (para 1:N).
+
+**Ejemplo Correcto**:
+```python
+from sqlalchemy.orm import joinedload
+from sqlmodel import select
+
+stmt = select(ModeloPrincipal).options(joinedload(ModeloPrincipal.relacion)).where(...)
+resultado = (await db.execute(stmt)).unique().scalar_one_or_none()
+```
+
+### 5.2 Estructura de Atributos en Frontend (Atomic Design)
+
+Para evitar **dependencias circulares** que rompan el renderizado de React:
+1. **NO** importes átomos desde `./index` dentro de la propia carpeta `atoms`.
+2. Importa directamente desde el archivo base: `import { Text } from './Text';` en lugar de `import { Text } from './index';`.
+3. El archivo `index.ts` solo debe usarse para exportar, no para consumo interno de la misma carpeta.

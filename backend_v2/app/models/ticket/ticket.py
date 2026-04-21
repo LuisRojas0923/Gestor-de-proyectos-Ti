@@ -4,10 +4,10 @@ Unifica modelos y schemas en una sola definicion
 """
 
 from typing import Optional, List, Any
-from datetime import datetime, date
+from datetime import datetime
 from decimal import Decimal
 from pydantic import field_validator
-from sqlmodel import SQLModel, Field, Relationship, JSON
+from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -182,6 +182,8 @@ class ComentarioTicket(SQLModel, table=True):
     es_interno: bool = Field(default=False)
     usuario_id: Optional[str] = Field(default=None, max_length=50)
     nombre_usuario: Optional[str] = Field(default=None, max_length=255)
+    leido: bool = Field(default=False)
+    leido_en: Optional[datetime] = Field(default=None)
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
@@ -207,6 +209,16 @@ class HistorialTicket(SQLModel, table=True):
     ticket: Optional[Ticket] = Relationship(back_populates="historial")
 
 
+class AdjuntoPublico(SQLModel):
+    """Schema publico para metadatos de adjuntos"""
+
+    id: int
+    ticket_id: str
+    nombre_archivo: str
+    tipo_mime: Optional[str] = None
+    creado_en: datetime
+
+
 class AdjuntoTicket(SQLModel, table=True):
     """Archivos adjuntos en formato Base64"""
 
@@ -215,7 +227,9 @@ class AdjuntoTicket(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     ticket_id: str = Field(foreign_key="tickets.id", max_length=50)
     nombre_archivo: str = Field(max_length=255)
-    contenido_base64: str
+    contenido_base64: Optional[str] = Field(default=None) # [LEGADO] Para retrocompatibilidad
+    ruta_archivo: Optional[str] = Field(default=None) # [NUEVO] Almacenamiento local escalable
+    tamano_bytes: Optional[int] = Field(default=None)
     tipo_mime: Optional[str] = Field(default=None, max_length=100)
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("now()")}
@@ -231,6 +245,19 @@ class SolicitudActivoPublico(SQLModel):
     item_solicitado: str
     especificaciones: Optional[str] = None
     cantidad: int
+    creado_en: datetime
+
+
+class ComentarioPublico(SQLModel):
+    """Schema publico para comentarios"""
+
+    id: int
+    comentario: str
+    es_interno: bool
+    usuario_id: Optional[str] = None
+    nombre_usuario: Optional[str] = None
+    leido: bool = Field(default=False)
+    leido_en: Optional[datetime] = Field(default=None)
     creado_en: datetime
 
 
@@ -307,10 +334,11 @@ class TicketActualizar(SQLModel):
     horas_tiempo_empleado: Optional[Decimal] = None
     usuario_id: Optional[str] = None
     usuario_nombre: Optional[str] = None
+    datos_extra: Optional[dict] = None
 
 
-class TicketPublico(TicketBase):
-    """Schema publico de ticket (respuesta)"""
+class TicketResumen(TicketBase):
+    """Schema para listados ligeros (Respuesta)"""
 
     id: str
     sub_estado: Optional[str] = None
@@ -328,11 +356,21 @@ class TicketPublico(TicketBase):
     creado_en: Optional[datetime] = None
     actualizado_en: Optional[datetime] = None
 
-    # Datos de extension
     solicitud_activo: Optional[SolicitudActivoPublico] = None
-    # Podriamos añadir los demas si fuera necesario:
+
+
+class TicketDetalle(TicketResumen):
+    """Schema profundo para detalle de ticket (Respuesta)"""
+
+    comentarios: List[ComentarioPublico] = []
+    adjuntos: List[AdjuntoPublico] = []
+    # Extensiones completas si son necesarias
     # solicitud_desarrollo: Optional[Any] = None
     # control_cambios: Optional[Any] = None
+
+
+# Alias para retrocompatibilidad si es necesario, pero preferible usar los nuevos
+TicketPublico = TicketResumen
 
 
 class ComentarioCrear(SQLModel):
@@ -349,5 +387,5 @@ class AdjuntoCrear(SQLModel):
 
     ticket_id: str
     nombre_archivo: str
-    contenido_base64: str
+    contenido_base64: Optional[str] = None # Se puede enviar Base64 para ser procesado
     tipo_mime: Optional[str] = None

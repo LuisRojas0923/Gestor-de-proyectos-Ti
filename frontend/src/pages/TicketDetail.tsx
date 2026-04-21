@@ -29,7 +29,9 @@ const TicketDetail: React.FC = () => {
         attachments,
         updateTicket,
         downloadAttachment,
-        history
+        history,
+        comments,
+        addComment
     } = useTicketDetail(ticketId);
 
     // Estado local para el formulario de analista (V2)
@@ -120,6 +122,9 @@ const TicketDetail: React.FC = () => {
                         onFieldChange={handleAnalystFieldChange}
                         attachments={attachments}
                         onDownloadAttachment={downloadAttachment}
+                        comments={comments}
+                        onSendComment={addComment}
+                        isSaving={isSaving}
                     />
                 </div>
 

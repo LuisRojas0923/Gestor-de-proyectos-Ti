@@ -120,7 +120,7 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
     const fetchTree = async () => {
         setLoading(true);
         try {
-            const data = await get(`/desarrollos/actividades/desarrollo/${developmentId}/arbol`);
+            const data = await get(`/actividades/desarrollo/${developmentId}/arbol`);
             if (data) setTree(data);
         } catch (error) {
             console.error('Error fetching WBS tree:', error);
@@ -175,7 +175,7 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <Title variant="h5" weight="bold">Work Breakdown Structure (WBS)</Title>
-                    <Text variant="body2" color="text-secondary">Gestiona las actividades jerárquicas del desarrollo</Text>
+                    <Text variant="body2" color="text-secondary">Gestiona las tareas jerárquicas de la actividad</Text>
                 </div>
                 <div className="flex gap-2">
                     {tree.length === 0 && (
@@ -184,29 +184,29 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
                         </Button>
                     )}
                     <Button variant="primary" icon={Plus} onClick={handleAddRootTask}>
-                        Nueva Actividad
+                        Nueva Tarea
                     </Button>
                 </div>
             </div>
 
             <div className={`rounded-xl border ${darkMode ? 'border-neutral-700 bg-neutral-800/50' : 'border-neutral-200 bg-white'} overflow-hidden`}>
                 {loading ? (
-                    <div className="p-8 text-center"><Text color="text-secondary">Cargando árbol de actividades...</Text></div>
+                    <div className="p-8 text-center"><Text color="text-secondary">Cargando árbol de tareas...</Text></div>
                 ) : tree.length === 0 ? (
                     <div className="p-12 text-center flex flex-col items-center">
                         <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${darkMode ? 'bg-neutral-800 text-neutral-500' : 'bg-neutral-100 text-neutral-400'}`}>
                             <Plus size={32} />
                         </div>
-                        <Text weight="bold" className="mb-2">No hay actividades registradas</Text>
+                        <Text weight="bold" className="mb-2">No hay tareas registradas</Text>
                         <Text variant="body2" color="text-secondary" className="mb-6 max-w-sm">
-                            Crea la primera actividad principal para comenzar a planificar la estructura de trabajo de este proyecto.
+                            Crea la primera tarea principal para comenzar a planificar la estructura de trabajo de este proyecto.
                         </Text>
                         <div className="flex gap-3">
                             <Button variant="outline" icon={Download} onClick={() => setIsTemplateModalOpen(true)}>
                                 Importar desde Plantilla
                             </Button>
                             <Button variant="primary" icon={Plus} onClick={handleAddRootTask}>
-                                Crear Actividad Inicial
+                                Crear Tarea Inicial
                             </Button>
                         </div>
                     </div>
@@ -214,7 +214,7 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
                     <div className="flex flex-col w-full">
                         {/* Cabecera de tabla */}
                         <div className={`flex items-center p-3 border-b ${darkMode ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-200 bg-neutral-50'}`}>
-                            <div className="flex-1 font-bold text-xs uppercase tracking-wider text-neutral-500">Actividad</div>
+                            <div className="flex-1 font-bold text-xs uppercase tracking-wider text-neutral-500">Tarea</div>
                             <div className="w-24 font-bold text-xs uppercase tracking-wider text-neutral-500 text-right pr-4">Avance</div>
                             <div className="w-24 font-bold text-xs uppercase tracking-wider text-neutral-500">Estado</div>
                             <div className="w-[120px] font-bold text-xs uppercase tracking-wider text-neutral-500 text-center">Acciones</div>

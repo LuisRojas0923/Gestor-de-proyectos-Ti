@@ -54,5 +54,8 @@ INSERT INTO permisos_rol (rol, modulo, permitido) VALUES
 ('admin_mejoramiento', 'reports', true),
 ('admin_mejoramiento', 'chat', true),
 ('admin_mejoramiento', 'service-portal', true),
-('admin_mejoramiento', 'settings', true)
+('admin_mejoramiento', 'settings', true),
+('contabilidad', 'contabilidad', true),
+('usuario', 'contabilidad', true),
+('admin', 'contabilidad', true)
 ON CONFLICT (rol, modulo) DO NOTHING;

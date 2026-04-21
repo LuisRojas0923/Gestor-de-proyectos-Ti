@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
-import { Button } from './index';
+import Button from './Button';
 
 interface ThemeToggleProps {
     className?: string;

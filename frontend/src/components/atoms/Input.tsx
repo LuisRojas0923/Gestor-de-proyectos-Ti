@@ -1,6 +1,8 @@
 import { LucideIcon, Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
-import { Text, Icon, Button } from './index';
+import { Text } from './Text';
+import Icon from './Icon';
+import Button from './Button';
 
 interface InputProps {
   type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'date' | 'time' | 'datetime-local' | 'url' | 'range' | 'file' | 'hidden';
@@ -33,6 +35,8 @@ interface InputProps {
   autoComplete?: string;
   style?: React.CSSProperties;
   inputMode?: 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search';
+  autoFocus?: boolean;
+  onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(({
@@ -66,6 +70,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   multiple,
   autoComplete,
   inputMode,
+  autoFocus,
+  onPaste,
 }, ref) => {
   const [showPassword, setShowPassword] = useState(false); // [CONTROLADO]
   const isPasswordType = type === 'password'; // [CONTROLADO]
@@ -161,6 +167,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           multiple={multiple}
           autoComplete={autoComplete}
           inputMode={inputMode}
+          autoFocus={autoFocus}
+          onPaste={onPaste}
           className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]} ${className}`}
           style={style}
         />

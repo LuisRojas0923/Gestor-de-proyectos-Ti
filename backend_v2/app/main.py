@@ -24,6 +24,7 @@ from .api.kpis import router as kpis_router
 from .api.alertas import router as alertas_router
 from .api.tickets import router as tickets_router
 from .api.ia import router as ia_router
+from .api.log_actividades.router import router as log_actividades_router
 from .api.erp import router as erp_router
 from .api.panel_control import router as panel_control_router
 from .api.etapas_router import router as etapas_router
@@ -33,12 +34,14 @@ from .api.auth.config_router import router as config_router
 from .api.reserva_salas import router as reserva_salas_router
 from .api.novedades_nomina.nomina_router import router as nomina_router
 from .api.inventario.router import router as inventario_router
+from .api.impuestos import router as impuestos_router
+from .api.lineas_corporativas.router import router as lineas_corporativas_router
 
 # Configurar logging centralizado
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[logging.StreamHandler()]
+    handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -93,7 +96,7 @@ VERSION_SISTEMA = obtener_version_sistema()
 
 # Crear aplicacion FastAPI
 app = FastAPI(
-    title="Gestor de Proyectos TI - API",
+    title="Portal de Servicios Solid - API",
     description="Sistema de gestion de desarrollos y proyectos de TI",
     version=VERSION_SISTEMA,
     docs_url="/docs",
@@ -161,6 +164,9 @@ app.include_router(tickets_router, prefix=f"{api_prefix}/soporte", tags=["Ticket
 app.include_router(ia_router, prefix=f"{api_prefix}/ia", tags=["IA"])
 app.include_router(erp_router, prefix=f"{api_prefix}/erp", tags=["ERP"])
 app.include_router(
+    log_actividades_router, prefix=f"{api_prefix}/log-actividades", tags=["Bitácora"]
+)
+app.include_router(
     panel_control_router, prefix=f"{api_prefix}/panel-control", tags=["Panel Control"]
 )
 app.include_router(etapas_router, prefix=f"{api_prefix}/etapas", tags=["Etapas"])
@@ -173,4 +179,10 @@ app.include_router(nomina_router, prefix=f"{api_prefix}/novedades-nomina", tags=
 app.include_router(
     inventario_router, prefix=f"{api_prefix}/inventario", tags=["Inventario 2026"]
 )
+app.include_router(impuestos_router, prefix=api_prefix)
 app.include_router(config_router, prefix=api_prefix, tags=["Configuracion Global"])
+app.include_router(
+    lineas_corporativas_router,
+    prefix=f"{api_prefix}/lineas-corporativas",
+    tags=["Lineas Corporativas"],
+)
