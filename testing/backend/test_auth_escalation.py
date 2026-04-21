@@ -22,8 +22,8 @@ from app.config import config
 
 load_dotenv()
 
-TEST_ADMIN_CEDULA = os.getenv("TEST_ADMIN_CEDULA", os.getenv("TEST_USER_CEDULA", "1107068093"))
-TEST_ADMIN_PASS = os.getenv("TEST_ADMIN_PASS", os.getenv("TEST_USER_PASS", "1107068093"))
+TEST_ADMIN_CEDULA = os.getenv("TEST_ADMIN_CEDULA", "admin")
+TEST_ADMIN_PASS = os.getenv("TEST_ADMIN_PASS", "admin123")
 
 # Datos del usuario de prueba para escalado
 _CEDULA_ESCALADO = "777000111"
@@ -74,7 +74,7 @@ async def usuario_escalado(db_session):
         cedula=_CEDULA_ESCALADO,
         nombre="Usuario Test Escalado",
         hash_contrasena=ServicioAuth.obtener_hash_contrasena("clave_inicial"),
-        rol="analyst",
+        rol="usuario",  # rol sin acceso admin → era_admin=False → reset dispara al escalar
         esta_activo=True,
     )
     db_session.add(usuario)
@@ -198,33 +198,67 @@ async def test_escalado_rol_via_api_resetea_password(client, admin_token, usuari
     """
     PRUEBA DE ORO: Verifica el flujo completo de escalado.
 
-    Al escalar un usuario de 'analyst' a 'admin' vía PATCH /auth/analistas/:id:
+    Al escalar un usuario de 'analyst' a 'admin' vía PATCH /auth/analistas/:id,
+    y dado que 'admin' tiene acceso a módulos de categoría 'panel'/'analistas':
       - El hash de contraseña debe cambiar a la cédula del usuario
       - password_set debe ser False en /auth/yo
     """
     if not admin_token:
         pytest.skip("No hay token admin disponible. Verificar TEST_ADMIN_CEDULA/TEST_ADMIN_PASS.")
 
-    headers = {"Authorization": f"Bearer {admin_token}"}
+    from app.models.auth.usuario import ModuloSistema, PermisoRol
 
-    response = await client.patch(
-        f"/auth/analistas/{_ID_ESCALADO}",
-        json={"rol": "admin"},
-        headers=headers
+    # Crear un módulo de test controlado con permisos exactos:
+    # - admin: permitido=True   → tiene_acceso_admin = True
+    # - analyst: no tiene entrada → era_admin = False → reset dispara
+    _MODULO_TEST_ID = "panel_test_escalado"
+
+    # Limpiar y recrear para garantizar estado conocido
+    await db_session.execute(
+        text("DELETE FROM permisos_rol WHERE modulo = :m"), {"m": _MODULO_TEST_ID}
     )
+    await db_session.execute(
+        text("DELETE FROM modulos_sistema WHERE id = :m"), {"m": _MODULO_TEST_ID}
+    )
+    await db_session.commit()
 
-    # Puede ser 200 o 403 si el rol 'admin' no tiene módulos admin configurados en RBAC
-    if response.status_code == 403:
-        pytest.skip("RBAC no tiene módulos admin configurados en este entorno.")
+    modulo_test = ModuloSistema(
+        id=_MODULO_TEST_ID, nombre="Panel Test Escalado", categoria="panel", esta_activo=True
+    )
+    db_session.add(modulo_test)
+    await db_session.flush()
 
-    assert response.status_code == 200, f"Escalado falló: {response.text}"
+    permiso_admin = PermisoRol(rol="admin", modulo=_MODULO_TEST_ID, permitido=True)
+    db_session.add(permiso_admin)
+    await db_session.commit()
 
-    # Verificar en DB que el hash cambió a la cédula
-    await db_session.refresh(usuario_escalado)
-    assert ServicioAuth.verificar_contrasena(_CEDULA_ESCALADO, usuario_escalado.hash_contrasena), \
-        "El hash no fue reseteado a la cédula del usuario tras el escalado."
+    try:
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        response = await client.patch(
+            f"/auth/analistas/{_ID_ESCALADO}",
+            json={"rol": "admin"},
+            headers=headers
+        )
 
-    assert ServicioAuth.es_password_configurado(usuario_escalado.hash_contrasena, _CEDULA_ESCALADO) is False
+        assert response.status_code == 200, f"Escalado falló: {response.text}"
+
+        # Verificar en DB que el hash cambió a la cédula
+        await db_session.refresh(usuario_escalado)
+        assert ServicioAuth.verificar_contrasena(_CEDULA_ESCALADO, usuario_escalado.hash_contrasena), \
+            "El hash no fue reseteado a la cédula del usuario tras el escalado."
+
+        assert ServicioAuth.es_password_configurado(usuario_escalado.hash_contrasena, _CEDULA_ESCALADO) is False
+
+    finally:
+        await db_session.execute(
+            text("DELETE FROM permisos_rol WHERE modulo = :m"),
+            {"m": _MODULO_TEST_ID}
+        )
+        await db_session.execute(
+            text("DELETE FROM modulos_sistema WHERE id = :m"),
+            {"m": _MODULO_TEST_ID}
+        )
+        await db_session.commit()
 
 
 @pytest.mark.asyncio
