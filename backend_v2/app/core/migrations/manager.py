@@ -2,6 +2,7 @@ import logging
 from sqlalchemy import text
 from sqlmodel import SQLModel
 from app.core.migrations.structural_blindaje import ejecutar_blindaje_estructural
+from app.core.migrations.saneamiento_secuencias import reparar_todas_las_secuencias
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,13 @@ async def init_db_process(async_engine, AsyncSessionLocal):
         except Exception as e:
             logger.error(f"Error en blindaje estructural: {e}")
 
-        # 3. Saneamiento de Datos (Inventario y otros)
+        # 3. Saneamiento de Secuencias (AUTOSANACIÓN)
+        try:
+            await reparar_todas_las_secuencias(conn)
+        except Exception as e:
+            logger.error(f"Error en saneamiento de secuencias: {e}")
+
+        # 4. Saneamiento de Datos (Inventario y otros)
         saneamientos = [
             "UPDATE conteoinventario SET estado = 'PENDIENTE' WHERE estado IS NULL;",
             "UPDATE conteoinventario SET invporlegalizar = 0 WHERE invporlegalizar IS NULL;",

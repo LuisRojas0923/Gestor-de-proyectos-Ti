@@ -128,6 +128,7 @@ export const useTicketDetail = (ticketId: string | undefined) => {
 
         let socket: WebSocket | null = null;
         let reconnectTimeout: NodeJS.Timeout;
+        let isMounted = true;
 
         const connect = () => {
             const baseUrl = API_BASE_URL;
@@ -142,16 +143,26 @@ export const useTicketDetail = (ticketId: string | undefined) => {
 
             socket = new WebSocket(`${wsUrl}/soporte/ws/${ticketId}`);
 
+            socket.onopen = () => {
+                if (!isMounted) {
+                    socket?.close();
+                    return;
+                }
+                console.log(`WebSocket conectado a ticket: ${ticketId}`);
+            };
+
             socket.onmessage = (event) => {
+                if (!isMounted) return;
                 try {
                     const message = JSON.parse(event.data);
                     
-                    if (message.type === 'new_comment') {
+                    if (message.type === 'new_comment' || message.type === 'comment_added') {
                         // Evitar duplicados comparando IDs
                         setComments(prev => {
                             if (prev.some(c => c.id === message.data.id)) return prev;
                             return [...prev, message.data];
                         });
+                        notify('info', `Nuevo comentario de ${message.data.usuario_nombre || 'un analista'}`);
                     } else if (message.type === 'ticket_updated') {
                         // Actualizar campos dinámicos del ticket
                         setTicket(current => {
@@ -166,32 +177,44 @@ export const useTicketDetail = (ticketId: string | undefined) => {
                         // Refrescar historial ya que un cambio de estado suele generar historial
                         axios.get(`${API_BASE_URL}/soporte/${ticketId}/historial`, { 
                             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } 
-                        }).then(res => setHistory(res.data)).catch(() => {});
+                        }).then(res => isMounted && setHistory(res.data)).catch(() => {});
                     }
                 } catch (err) {
                     console.error("Error procesando mensaje de socket:", err);
                 }
             };
 
-            socket.onclose = () => {
-                console.log("WebSocket cerrado. Reintentando en 5s...");
-                reconnectTimeout = setTimeout(connect, 5000);
+            socket.onclose = (event) => {
+                if (!isMounted) return;
+                if (!event.wasClean) {
+                    console.log(`WebSocket cerrado inesperadamente (${event.code}). Reintentando en 5s...`);
+                    reconnectTimeout = setTimeout(connect, 5000);
+                } else {
+                    console.log("WebSocket cerrado de forma limpia.");
+                }
             };
 
             socket.onerror = (err) => {
+                if (!isMounted) return;
                 console.error("WebSocket error:", err);
-                socket?.close();
             };
         };
 
         connect();
 
         return () => {
-            if (socket) {
-                socket.onclose = null; // Evitar reconexión al desmontar
-                socket.close();
-            }
+            isMounted = false;
             clearTimeout(reconnectTimeout);
+            if (socket) {
+                // Solo cerramos si ya está abierto. 
+                // Si está CONNECTING, dejamos que onopen se encargue para evitar el error en consola.
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.close();
+                } else {
+                    socket.onclose = null;
+                    socket.onerror = null;
+                }
+            }
         };
     }, [ticketId]);
 
@@ -373,22 +396,24 @@ export const useTicketDetail = (ticketId: string | undefined) => {
         }
     }, [comments, currentUser?.id, markCommentsAsRead]);
 
-    const notify = (type: 'success' | 'error' | 'warning', message: string) => {
+    const notify = (type: 'success' | 'error' | 'warning' | 'info', message: string) => {
         // 1. Añadir al historial persistente (AppContext)
         dispatch({
             type: 'ADD_NOTIFICATION',
             payload: {
                 id: Math.random().toString(36).substr(2, 9),
-                title: type === 'error' ? 'Error' : (type === 'success' ? 'Éxito' : 'Aviso'),
+                title: type === 'error' ? 'Error' : 
+                       (type === 'success' ? 'Éxito' : 
+                       (type === 'info' ? 'Información' : 'Aviso')),
                 message,
-                type: type === 'error' ? 'error' : (type === 'success' ? 'success' : 'warning'),
+                type: type, // AppContext ya soporta info, success, warning, error
                 timestamp: new Date().toISOString(),
                 read: false
             }
         });
 
         // 2. Mostrar toast visual instantáneo
-        addNotification(type === 'warning' ? 'warning' : type, message);
+        addNotification(type, message);
     };
 
     return {
