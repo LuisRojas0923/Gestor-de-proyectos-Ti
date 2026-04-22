@@ -49,6 +49,27 @@ export const useTicketManagement = () => {
     const [analystFilter, setAnalystFilter] = useState(() => localStorage.getItem('ticket_analyst') || 'Todos');
     const [categoryFilter, setCategoryFilter] = useState(() => localStorage.getItem('ticket_category') || 'Todos');
 
+    // Nuevos filtros por columna (Client-side)
+    const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>(() => {
+        const saved = localStorage.getItem('ticket_column_filters');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                const result: Record<string, Set<string>> = {};
+                Object.keys(parsed).forEach(key => {
+                    result[key] = new Set(parsed[key]);
+                });
+                return result;
+            } catch (e) { return {}; }
+        }
+        return {};
+    });
+
+    const [dateRange, setDateRange] = useState<{ start: string, end: string }>(() => {
+        const saved = localStorage.getItem('ticket_date_range');
+        return saved ? JSON.parse(saved) : { start: '', end: '' };
+    });
+
     const [analystOptions, setAnalystOptions] = useState<{ value: string, label: string }[]>([]);
     const [skip, setSkip] = useState(0);
     const [hasMore, setHasMore] = useState(true);
@@ -85,7 +106,15 @@ export const useTicketManagement = () => {
         localStorage.setItem('ticket_substatus', subStatusFilter);
         localStorage.setItem('ticket_analyst', analystFilter);
         localStorage.setItem('ticket_category', categoryFilter);
-    }, [searchTerm, statusFilter, subStatusFilter, analystFilter, categoryFilter]);
+
+        // Guardar filtros de columna
+        const toSave: Record<string, string[]> = {};
+        Object.keys(columnFilters).forEach(key => {
+            toSave[key] = Array.from(columnFilters[key]);
+        });
+        localStorage.setItem('ticket_column_filters', JSON.stringify(toSave));
+        localStorage.setItem('ticket_date_range', JSON.stringify(dateRange));
+    }, [searchTerm, statusFilter, subStatusFilter, analystFilter, categoryFilter, columnFilters, dateRange]);
 
     const fetchTickets = useCallback(async (currentSkip: number, isNewSearch: boolean = false) => {
         try {
@@ -165,14 +194,62 @@ export const useTicketManagement = () => {
         setSubStatusFilter('Todos');
         setAnalystFilter('Todos');
         setCategoryFilter('Todos');
+        setColumnFilters({});
+        setDateRange({ start: '', end: '' });
         addNotification('info', 'Filtros restablecidos');
     };
 
+    // Valores únicos para los filtros de columna
+    const columnOptions = useCallback((key: keyof Ticket | 'hora') => {
+        if (key === 'hora') {
+            const horas = tickets.map(t => new Date(t.fecha_creacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }));
+            return [...new Set(horas)].sort();
+        }
+        const options = new Set<string>();
+        tickets.forEach(t => {
+            const val = t[key as keyof Ticket];
+            if (key === 'fecha_creacion') {
+                // Normalizar a YYYY-MM-DD para evitar duplicados por hora/segundo y desfases de zona horaria
+                const dateStr = String(val).substring(0, 10);
+                options.add(dateStr);
+            } else {
+                options.add(String(val || ''));
+            }
+        });
+        return Array.from(options).sort().reverse();
+    }, [tickets]);
+
+    // Tickets filtrados por columna (Client-side)
+    const filteredTickets = (tickets || []).filter(ticket => {
+        // Filtro por Rango de Fecha
+        if (dateRange.start || dateRange.end) {
+            const ticketDateStr = ticket.fecha_creacion.substring(0, 10);
+            if (dateRange.start && ticketDateStr < dateRange.start) return false;
+            if (dateRange.end && ticketDateStr > dateRange.end) return false;
+        }
+
+        for (const [key, filterSet] of Object.entries(columnFilters)) {
+            if (!filterSet || filterSet.size === 0) continue;
+
+            if (key === 'hora') {
+                const value = new Date(ticket.fecha_creacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                if (!filterSet.has(value)) return false;
+            } else if (key === 'fecha_creacion') {
+                const dateStr = ticket.fecha_creacion.substring(0, 10);
+                if (!filterSet.has(dateStr)) return false;
+            } else {
+                const val = String(ticket[key as keyof Ticket] || '');
+                if (!filterSet.has(val)) return false;
+            }
+        }
+        return true;
+    });
+
     const statusCounts = {
-        total: tickets.length,
-        pendiente: tickets.filter(t => t.estado === 'Pendiente').length,
-        proceso: tickets.filter(t => t.estado === 'Proceso').length,
-        cerrado: tickets.filter(t => t.estado === 'Cerrado').length,
+        total: filteredTickets.length,
+        pendiente: filteredTickets.filter(t => t.estado === 'Pendiente').length,
+        proceso: filteredTickets.filter(t => t.estado === 'Proceso').length,
+        cerrado: filteredTickets.filter(t => t.estado === 'Cerrado').length,
     };
 
     return {
@@ -198,6 +275,12 @@ export const useTicketManagement = () => {
         setActionModal,
         confirmAction,
         handleClearFilters,
-        hasActiveFilters: searchTerm !== '' || statusFilter !== 'Todos' || analystFilter !== 'Todos' || categoryFilter !== 'Todos'
+        columnFilters,
+        setColumnFilters,
+        filteredTickets,
+        columnOptions,
+        dateRange,
+        setDateRange,
+        hasActiveFilters: searchTerm !== '' || statusFilter !== 'Todos' || analystFilter !== 'Todos' || categoryFilter !== 'Todos' || Object.values(columnFilters).some(s => s.size > 0) || dateRange.start !== '' || dateRange.end !== ''
     };
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Briefcase, MapPin, AlertCircle, Clock, Calendar, Mail, ShieldCheck, ShieldAlert } from 'lucide-react';
-import { Text, Badge } from '../../../components/atoms';
+import { Text, Badge, Icon } from '../../../components/atoms';
 import { formatFriendlyDate } from '../../../utils/dateUtils';
 
 interface AnalystSidebarInfoProps {
@@ -50,22 +50,26 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
             <section className="space-y-4">
                 <Text variant="caption" weight="bold" color="navy" className="uppercase tracking-widest block">Detalles del Perfil</Text>
                 <div className="space-y-3">
-                    <ProfileItem icon={<Briefcase size={12} />} label="Área" value={user.area || 'N/A'} />
-                    <ProfileItem icon={<Briefcase size={12} />} label="Cargo" value={user.cargo || 'N/A'} />
-                    <ProfileItem icon={<MapPin size={12} />} label="Sede" value={user.sede || 'N/A'} />
+                    <ProfileItem icon={<Icon name={Briefcase} size="xs" />} label="Área" value={user.area || 'N/A'} />
+                    <ProfileItem icon={<Icon name={Briefcase} size="xs" />} label="Cargo" value={user.cargo || 'N/A'} />
+                    <ProfileItem icon={<Icon name={MapPin} size="xs" />} label="Sede" value={user.sede || 'N/A'} />
                     <ProfileItem 
-                        icon={<Mail size={12} />} 
+                        icon={<Icon name={Mail} size="xs" />} 
                         label="Correo" 
                         value={
                             <div className="flex items-center gap-2">
-                                <Text as="span" color="inherit" variant="inherit" className="truncate max-w-[150px] inline-block">
+                                <Text as="span" color="inherit" variant="caption" className="truncate max-w-[150px] inline-block">
                                     {user.email || 'N/A'}
                                 </Text>
                                 {user.email && (
                                     user.isVerified ? (
-                                        <ShieldCheck size={14} className="text-green-500" title="Verificado" />
+                                        <Text as="span" title="Verificado" className="flex items-center">
+                                            <Icon name={ShieldCheck} size="xs" color="success" />
+                                        </Text>
                                     ) : (
-                                        <ShieldAlert size={14} className="text-amber-500" title="Pendiente verificación" />
+                                        <Text as="span" title="Pendiente verificación" className="flex items-center">
+                                            <Icon name={ShieldAlert} size="xs" color="warning" />
+                                        </Text>
                                     )
                                 )}
                             </div>
@@ -73,7 +77,7 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
                     />
                     <div className="flex justify-between items-center pt-1">
                         <div className="flex items-center gap-2 text-slate-400">
-                            <AlertCircle size={12} />
+                            <Icon name={AlertCircle} size="xs" />
                             <Text variant="caption" weight="bold" className="uppercase">Prioridad</Text>
                         </div>
                         <Badge
@@ -97,9 +101,9 @@ const AnalystSidebarInfo: React.FC<AnalystSidebarInfoProps> = ({ user, createdAt
             <section className="space-y-4 pt-4 border-t border-[var(--color-border)]">
                 <Text variant="caption" weight="bold" color="navy" className="uppercase tracking-widest block">Tiempos</Text>
                 <div className="space-y-3">
-                    <ProfileItem icon={<Calendar size={12} />} label="Creado el" value={formatFriendlyDate(createdAt)} />
+                    <ProfileItem icon={<Icon name={Calendar} size="xs" />} label="Creado el" value={formatFriendlyDate(createdAt)} />
                     {idealDate && (
-                        <ProfileItem icon={<Clock size={12} />} label="Fecha Ideal" value={formatFriendlyDate(idealDate)} />
+                        <ProfileItem icon={<Icon name={Clock} size="xs" />} label="Fecha Ideal" value={formatFriendlyDate(idealDate)} />
                     )}
                 </div>
             </section>

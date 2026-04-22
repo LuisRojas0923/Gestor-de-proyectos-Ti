@@ -3,7 +3,7 @@ Router de Tickets - Backend V2 (Async + SQLModel)
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +31,7 @@ from app.services.ticket.servicio import ServicioTicket
 from app.services.ticket.bi_service import TicketBIService
 from app.utils_cache import global_cache
 from app.config import config
+from app.services.ticket.ws_manager import manager
 
 router = APIRouter()
 
@@ -260,6 +261,25 @@ async def obtener_comentarios_ticket(
         raise HTTPException(
             status_code=500, detail=f"Error al obtener comentarios: {str(e)}"
         )
+
+
+@router.websocket("/ws/{ticket_id}")
+async def websocket_ticket_chat(websocket: WebSocket, ticket_id: str):
+    """
+    Endpoint de WebSocket para chat en tiempo real por ticket.
+    Mantiene la conexión abierta y notifica eventos.
+    """
+    await manager.connect(websocket, ticket_id)
+    try:
+        while True:
+            # Mantener la conexión abierta escuchando mensajes (opcional)
+            # Por ahora solo escuchamos para detectar desconexión (Heartbeat)
+            data = await websocket.receive_text()
+            # Si el cliente envía algo, podríamos procesarlo aquí
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, ticket_id)
+    except Exception:
+        manager.disconnect(websocket, ticket_id)
 
 
 @router.post("/{ticket_id}/comentarios", response_model=ComentarioTicket)

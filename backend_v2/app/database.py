@@ -88,19 +88,21 @@ def obtener_erp_db():
 
 
 def obtener_erp_db_opcional():
-    """Generador de sesión ERP opcional. No detiene la app si el ERP falla."""
+    """Generador de sesión ERP opcional. Solo captura errores de conexión inicial."""
     db = None
     try:
         db = SessionErp()
-        yield db
     except Exception as e:
-        # Si el error ocurrió durante el yield, es probable que sea un error de la lógica del router
-        # pero lo capturamos aquí para evitar que el generador quede en estado inconsistente.
         import logging
-        logging.warning(f"ERP_DEP_WARNING: Error en sesión ERP o su consumidor: {e}")
-        # Si db es None aquí, significa que falló SessionErp()
-        if db is None:
-            yield None
+        # Error específico de conexión inicial
+        logging.warning(f"ERP_CONNECTION_ERROR: No se pudo establecer conexión inicial con ERP: {e}")
+        yield None
+        return
+
+    try:
+        # El error en el consumidor (router) ahora burbujeará correctamente
+        # permitiendo que FastAPI maneje el error de validación o lógica
+        yield db
     finally:
         if db:
             db.close()

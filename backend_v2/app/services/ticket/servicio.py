@@ -31,6 +31,7 @@ from .ticket_utils import TicketUtils
 from ..notifications.email_service import EmailService
 from ...models.ticket.ticket import CategoriaTicket
 from ...utils_cache import global_cache
+from .ws_manager import manager
 
 
 class ServicioTicket:
@@ -268,6 +269,21 @@ class ServicioTicket:
                 db_ticket.fecha_cierre = db_ticket.resuelto_en = None
 
         await db.commit()
+        
+        # Notificación en tiempo real vía WebSocket
+        try:
+            await manager.broadcast_to_ticket(ticket_id, {
+                "type": "ticket_updated",
+                "data": {
+                    "id": ticket_id,
+                    "estado": db_ticket.estado,
+                    "sub_estado": db_ticket.sub_estado,
+                    "asignado_a": db_ticket.asignado_a
+                }
+            })
+        except Exception:
+            pass
+
         return await cls.obtener_ticket_por_id(db, ticket_id)
 
     @staticmethod
@@ -344,6 +360,21 @@ class ServicioTicket:
                                 print(f"WARNING: No se pudo enviar notificación de chat: {e}")
                         else:
                             print(f"DEBUG: Notificación de chat omitida por throttle (30 min) para {ticket_id}")
+                
+            # Notificación en tiempo real vía WebSocket
+            try:
+                await manager.broadcast_to_ticket(ticket_id, {
+                    "type": "new_comment",
+                    "data": {
+                        "id": nuevo_comentario.id,
+                        "comentario": nuevo_comentario.comentario,
+                        "nombre_usuario": nuevo_comentario.nombre_usuario,
+                        "creado_en": str(nuevo_comentario.creado_en),
+                        "es_interno": nuevo_comentario.es_interno
+                    }
+                })
+            except Exception as ws_err:
+                print(f"WARNING: No se pudo notificar vía WebSocket: {ws_err}")
 
             return nuevo_comentario
         except Exception as e:
@@ -436,18 +467,21 @@ class ServicioTicket:
             result = await db.execute(query)
             
             tickets = []
-            for row in result.all():
-                # Manejo robusto de la respuesta (puede ser objeto Ticket o Row de Ticket + Columna)
-                if isinstance(row, (tuple, list)) and len(row) >= 2:
-                    ticket, verificado = row[0], row[1]
+            for row in result:
+                # SQLAlchemy 2.0 Row puede comportarse como secuencia
+                # La consulta siempre devuelve (Ticket, correo_verificado)
+                try:
+                    # Intento de desempaquetado directo (forma recomendada en SQLA 2.0)
+                    ticket, verificado = row
                     ticket.correo_verificado_creador = bool(verificado) if verificado is not None else False
                     tickets.append(ticket)
-                else:
-                    # Fallback si por alguna razón no devolvió la tupla esperada
-                    ticket = row[0] if isinstance(row, (tuple, list)) else row
-                    if hasattr(ticket, 'correo_verificado_creador'):
+                except (TypeError, ValueError):
+                    # Fallback si el resultado no es una tupla/row de 2 elementos
+                    ticket = row[0] if hasattr(row, "__getitem__") else row
+                    if isinstance(ticket, Ticket):
                         ticket.correo_verificado_creador = False
                     tickets.append(ticket)
+
             return tickets
         except Exception as e:
             import logging
@@ -461,13 +495,4 @@ class ServicioTicket:
         db: AsyncSession, usuario_id: str
     ) -> List[Ticket]:
         """Lista tickets creados por un usuario (Async)"""
-        result = await db.execute(
-            select(Ticket)
-            .where(Ticket.creador_id == usuario_id)
-            .options(
-                joinedload(Ticket.solicitud_activo),
-                joinedload(Ticket.solicitud_desarrollo),
-                joinedload(Ticket.control_cambios),
-            )
-        )
-        return result.scalars().all()
+        return await ServicioTicket.listar_tickets(db, creador_id=usuario_id, limit=500)

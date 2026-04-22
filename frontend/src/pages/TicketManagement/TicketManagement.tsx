@@ -22,6 +22,7 @@ import {
 
 import TicketTooltip from './TicketTooltip';
 import TicketActionModal from './TicketActionModal';
+import { ColumnFilterPopover } from '../../components/molecules';
 
 import { useTicketManagement, formatName, Ticket } from './hooks/useTicketManagement';
 import {
@@ -57,8 +58,27 @@ const TicketManagement: React.FC = () => {
         setActionModal,
         confirmAction,
         handleClearFilters,
+        columnFilters,
+        setColumnFilters,
+        filteredTickets,
+        columnOptions,
+        dateRange,
+        setDateRange,
         hasActiveFilters
     } = useTicketManagement();
+
+    const [activeFilter, setActiveFilter] = useState<string | null>(null);
+    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+
+    const toggleFilter = (key: string, rect: DOMRect) => {
+        if (activeFilter === key) {
+            setActiveFilter(null);
+            setAnchorRect(null);
+        } else {
+            setActiveFilter(key);
+            setAnchorRect(rect);
+        }
+    };
 
     // Tooltip hover state
     const [hoveredTicket, setHoveredTicket] = useState<Ticket | null>(null);
@@ -212,22 +232,93 @@ const TicketManagement: React.FC = () => {
                     <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
                     <Text variant="body2" color="text-secondary" weight="medium">Cargando tickets...</Text>
                 </div>
-            ) : tickets.length > 0 ? (
+            ) : filteredTickets.length > 0 ? (
                 <div className="relative">
                     <div className="hidden md:flex items-stretch gap-0 mb-3 bg-[var(--deep-navy)] rounded-2xl border border-[var(--color-border)] shadow-xl overflow-hidden sticky top-0 z-20 px-3">
-                        <HeaderCell width={COLUMN_WIDTHS.id} label="ID" className="pl-4" />
-                        <HeaderCell width={COLUMN_WIDTHS.fecha} label="Fecha" centered />
-                        <HeaderCell width={COLUMN_WIDTHS.area} label="Área" />
-                        <HeaderCell width={COLUMN_WIDTHS.solicitante} label="Solicitante" className="px-6" />
-                        <HeaderCell width={COLUMN_WIDTHS.asunto} label="Asunto" className="px-6" />
-                        <HeaderCell width={COLUMN_WIDTHS.prioridad} label="Prioridad" centered />
-                        <HeaderCell width={COLUMN_WIDTHS.estado} label="Estado" centered />
-                        <HeaderCell width={COLUMN_WIDTHS.analista} label="Analista" />
-                        <HeaderCell width={COLUMN_WIDTHS.acciones} label="Acciones" centered last />
+                        <HeaderCell
+                            width={COLUMN_WIDTHS.id}
+                            label="ID"
+                            centered
+                            hasFilter={columnFilters['id']?.size > 0}
+                            onClick={(rect) => toggleFilter('id', rect)}
+                        />
+                        <HeaderCell
+                            width={COLUMN_WIDTHS.fecha}
+                            label="Fecha"
+                            hasFilter={columnFilters['fecha_creacion']?.size > 0 || dateRange.start !== '' || dateRange.end !== ''}
+                            onClick={(rect) => toggleFilter('fecha_creacion', rect)}
+                        />
+                        <HeaderCell
+                            width={COLUMN_WIDTHS.hora}
+                            label="Hora"
+                            hasFilter={columnFilters['hora']?.size > 0}
+                            onClick={(rect) => toggleFilter('hora', rect)}
+                        />
+                        <HeaderCell
+                            width={COLUMN_WIDTHS.area}
+                            label="Área"
+                            hasFilter={columnFilters['area_creador']?.size > 0}
+                            onClick={(rect) => toggleFilter('area_creador', rect)}
+                        />
+                        <HeaderCell
+                            width={COLUMN_WIDTHS.solicitante}
+                            label="Solicitante"
+                            hasFilter={columnFilters['nombre_creador']?.size > 0}
+                            onClick={(rect) => toggleFilter('nombre_creador', rect)}
+                        />
+                        <HeaderCell
+                            width={COLUMN_WIDTHS.asunto}
+                            label="Asunto"
+                            hasFilter={columnFilters['asunto']?.size > 0}
+                            onClick={(rect) => toggleFilter('asunto', rect)}
+                        />
+                        <HeaderCell
+                            width={COLUMN_WIDTHS.prioridad}
+                            label="Prioridad"
+                            centered
+                            hasFilter={columnFilters['prioridad']?.size > 0}
+                            onClick={(rect) => toggleFilter('prioridad', rect)}
+                        />
+                        <HeaderCell
+                            width={COLUMN_WIDTHS.estado}
+                            label="Estado"
+                            centered
+                            hasFilter={columnFilters['estado']?.size > 0}
+                            onClick={(rect) => toggleFilter('estado', rect)}
+                        />
+                        <HeaderCell
+                            width={COLUMN_WIDTHS.analista}
+                            label="Analista"
+                            hasFilter={columnFilters['asignado_a']?.size > 0}
+                            onClick={(rect) => toggleFilter('asignado_a', rect)}
+                        />
+                        <div className={`${COLUMN_WIDTHS.acciones} shrink-0 flex items-center justify-center py-2.5 bg-white/10`}>
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Acciones</Text>
+                        </div>
                     </div>
 
+                    {/* Popover de Filtro */}
+                    {activeFilter && (
+                        <ColumnFilterPopover
+                            title={activeFilter === 'fecha_creacion' ? 'Fecha' : activeFilter === 'nombre_creador' ? 'Solicitante' : activeFilter === 'area_creador' ? 'Área' : activeFilter === 'asignado_a' ? 'Analista' : activeFilter}
+                            type={activeFilter === 'fecha_creacion' ? 'date' : 'text'}
+                            options={columnOptions(activeFilter as any)}
+                            selectedValues={columnFilters[activeFilter] || new Set()}
+                            dateRange={dateRange}
+                            onDateRangeChange={setDateRange}
+                            onSelectionChange={(values) => {
+                                setColumnFilters(prev => ({
+                                    ...prev,
+                                    [activeFilter]: values
+                                }));
+                            }}
+                            onClose={() => setActiveFilter(null)}
+                            anchorRect={anchorRect}
+                        />
+                    )}
+
                     <div className="max-h-[650px] overflow-y-auto pr-1 space-y-2 pb-6 custom-scrollbar">
-                        {tickets.map((ticket) => (
+                        {filteredTickets.map((ticket) => (
                             <TicketRow
                                 key={ticket.id}
                                 ticket={ticket}
@@ -279,11 +370,40 @@ const TicketManagement: React.FC = () => {
     );
 };
 
-const HeaderCell: React.FC<{ width: string, label: string, centered?: boolean, className?: string, last?: boolean }> = ({ width, label, centered, className = "px-4", last }) => (
-    <div className={`${width} shrink-0 flex items-center ${centered ? 'justify-center' : ''} py-2.5 ${!last ? 'border-r border-white/10' : 'bg-white/10'} ${className}`}>
-        <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">{label}</Text>
-    </div>
-);
+const HeaderCell: React.FC<{
+    width: string,
+    label: string,
+    centered?: boolean,
+    className?: string,
+    last?: boolean,
+    hasFilter?: boolean,
+    onClick: (rect: DOMRect) => void
+}> = ({ width, label, centered, className = "px-4", last, hasFilter, onClick }) => {
+    const cellRef = React.useRef<HTMLButtonElement>(null);
+
+    return (
+        <Button
+            variant="custom"
+            ref={cellRef}
+            onClick={() => cellRef.current && onClick(cellRef.current.getBoundingClientRect())}
+            className={`
+                ${width} shrink-0 flex items-center ${centered ? 'justify-center' : ''} py-2.5 
+                ${!last ? 'border-r border-white/10' : ''} 
+                ${hasFilter ? 'bg-blue-500/20' : 'hover:bg-white/5'} 
+                transition-all duration-200 outline-none group
+                ${className}
+            `}
+        >
+            <Text
+                variant="caption"
+                weight="bold"
+                className={`uppercase tracking-wider !text-[11px] transition-colors ${hasFilter ? 'text-blue-300' : 'text-white/70 group-hover:text-white'}`}
+            >
+                {label}
+            </Text>
+        </Button>
+    );
+};
 
 const TicketRow: React.FC<{
     ticket: Ticket,
@@ -311,6 +431,12 @@ const TicketRow: React.FC<{
                     <Icon name={Clock} size="xs" className="mr-1.5" />
                     <Text variant="caption" color="text-secondary" className="text-[10px]">
                         {new Date(ticket.fecha_creacion).toLocaleDateString()}
+                    </Text>
+                </div>
+
+                <div className={`${COLUMN_WIDTHS.hora} shrink-0 flex items-center justify-center text-gray-400 px-2`}>
+                    <Text variant="caption" color="text-secondary" className="text-[10px] font-medium">
+                        {new Date(ticket.fecha_creacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                     </Text>
                 </div>
 
