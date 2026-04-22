@@ -2,6 +2,10 @@
 # Origen: Servidor Produccion (192.168.0.21:5433)
 # Destino: Servidor Pruebas 3 (192.168.0.21:5435)
 
+# Forzar codificación UTF-8 para evitar daños en caracteres especiales (ñ, tildes)
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 # 0. Cargar variables para evitar hardcoding
 $ROOT_DIR = "$PSScriptRoot/../.."
 if (Test-Path "$ROOT_DIR/.env") {

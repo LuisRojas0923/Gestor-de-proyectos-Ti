@@ -2,6 +2,10 @@
 # Origen: Servidor Pruebas 3 (192.168.0.21:5435)
 # Destino: Docker Local
 
+# Forzar codificación UTF-8 para evitar daños en caracteres especiales (ñ, tildes)
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 # 0. Cargar variables desde .env y .env.pruebas3 para evitar hardcoding
 $ROOT_DIR = "$PSScriptRoot/../.."
 if (Test-Path "$ROOT_DIR/.env.pruebas3") {
