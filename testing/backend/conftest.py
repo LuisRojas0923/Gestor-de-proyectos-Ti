@@ -2,17 +2,34 @@ import pytest_asyncio
 import httpx
 import os
 import asyncio
+from pathlib import Path
 from dotenv import load_dotenv
-from app.database import AsyncSessionLocal
+
+# Cargar .env.test primero (tiene DB_HOST=localhost para tests locales),
+# luego el .env del backend como fallback.
+_env_test = Path(__file__).parent / ".env.test"
+_env_backend = Path(__file__).parent.parent.parent / "backend_v2" / ".env"
+load_dotenv(_env_test)
+load_dotenv(_env_backend)  # fallback para vars no definidas en .env.test
+
+from app.config import config
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.pool import NullPool
 
 @pytest_asyncio.fixture(scope="function")
 async def db_session():
-    """Fixture para obtener una sesion de base de datos real para los tests"""
-    async with AsyncSessionLocal() as session:
+    """
+    Fixture de sesión de DB para tests.
+    Usa NullPool para evitar el error 'Event loop is closed' entre tests:
+    el pool compartido del motor principal retiene conexiones del event loop
+    anterior, fallando en el siguiente test. NullPool crea y cierra una
+    conexión fresca por cada fixture, eliminando el problema.
+    """
+    engine = create_async_engine(config.database_url, poolclass=NullPool)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with session_factory() as session:
         yield session
-
-# Cargar variables de entorno una sola vez para toda la suite
-load_dotenv()
+    await engine.dispose()
 
 # Configuración centralizada
 BASE_URL = os.getenv("TEST_BASE_URL", "http://127.0.0.1:8000/api/v2")

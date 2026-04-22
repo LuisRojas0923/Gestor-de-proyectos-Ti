@@ -1,207 +1,303 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Text, Input, Checkbox, Button } from '../atoms';
+import { Text, Button, Input, Icon } from '../atoms';
 
 export interface ColumnFilterPopoverProps {
-  columnKey: string;
-  title: string;
-  options: string[];
-  selectedValues: Set<string>;
-  onSelectionChange: (columnKey: string, values: Set<string>) => void;
-  onClose: () => void;
-  anchorRef: React.RefObject<HTMLElement>;
+    title: string;
+    options: string[];
+    selectedValues: Set<string>;
+    onSelectionChange: (values: Set<string>) => void;
+    onClose: () => void;
+    anchorRect: DOMRect | null;
+    type?: 'text' | 'date';
+    dateRange?: { start: string, end: string };
+    onDateRangeChange?: (range: { start: string, end: string }) => void;
 }
 
 export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
-  columnKey,
-  title,
-  options,
-  selectedValues,
-  onSelectionChange,
-  onClose,
-  anchorRef
+    title,
+    options,
+    selectedValues,
+    onSelectionChange,
+    onClose,
+    anchorRect,
+    type = 'text',
+    dateRange,
+    onDateRangeChange
 }) => {
-  const [search, setSearch] = useState('');
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{ top?: number; bottom?: number; left?: number; right?: number }>({});
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState<'selection' | 'range'>(type === 'date' ? 'range' : 'selection');
+    const popoverRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!anchorRef.current) return;
-    
-    const computePosition = () => {
-      if (!anchorRef.current) return;
-      const rect = anchorRef.current.getBoundingClientRect();
-      const POPOVER_HEIGHT = 350;
-      const POPOVER_WIDTH = 250;
-      const MARGIN = 8;
-      
-      let pos: { top?: number; bottom?: number; left?: number; right?: number } = {};
-      
-      // Vertical positioning
-      const spaceBelow = window.innerHeight - rect.bottom;
-      if (spaceBelow > POPOVER_HEIGHT + MARGIN) {
-        pos.top = rect.bottom + 4;
-      } else {
-        // Opción B: Hacia arriba si hay espacio
-        // O lo forzamos a una posición segura si de plano no cabe
-        pos.bottom = window.innerHeight - rect.top + 4;
-      }
-      
-      // Horizontal positioning
-      if (rect.left + POPOVER_WIDTH > window.innerWidth - MARGIN) {
-        // Alinear al borde derecho del anchor si se sale de la pantalla
-        pos.left = Math.max(MARGIN, rect.right - POPOVER_WIDTH);
-      } else {
-        pos.left = rect.left;
-      }
-      
-      setPosition(pos);
+    const months = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    // Cerrar al presionar Escape o click fuera
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        const handleClickOutside = (e: MouseEvent) => {
+            if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [onClose]);
+
+    if (!anchorRect) return null;
+
+    const filteredOptions = options.filter(opt =>
+        opt.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const toggleOption = (option: string) => {
+        const newSet = new Set(selectedValues);
+        if (newSet.has(option)) {
+            newSet.delete(option);
+        } else {
+            newSet.add(option);
+        }
+        onSelectionChange(newSet);
     };
 
-    computePosition();
-    window.addEventListener('resize', computePosition);
-    window.addEventListener('scroll', computePosition, true); // true para capturar eventos de scroll en captura
-    
-    return () => {
-      window.removeEventListener('resize', computePosition);
-      window.removeEventListener('scroll', computePosition, true);
-    };
-  }, [anchorRef]);
-
-  // Cerrar al hacer click fuera o ESC
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node) && anchorRef.current && !anchorRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+    const handleSelectAll = () => {
+        onSelectionChange(new Set(options));
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEsc);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEsc);
+    const handleClear = () => {
+        onSelectionChange(new Set());
     };
-  }, [onClose, anchorRef]);
 
-  const filtered = options.filter(o =>
-    (o || '(Vacío)').toLowerCase().includes(search.toLowerCase())
-  );
+    // Calcular posición óptima
+    const POPOVER_WIDTH = 260;
+    const POPOVER_HEIGHT = 500;
+    const MARGIN = 16;
 
-  const toggleOption = (option: string) => {
-    const newSet = new Set(selectedValues);
-    if (newSet.has(option)) {
-      newSet.delete(option);
-    } else {
-      newSet.add(option);
+    let top = anchorRect.bottom + 8;
+    let left = anchorRect.left;
+    let actualHeight = POPOVER_HEIGHT;
+
+    // Evitar que se salga por la derecha
+    if (left + POPOVER_WIDTH > window.innerWidth - MARGIN) {
+        left = window.innerWidth - POPOVER_WIDTH - MARGIN;
     }
-    onSelectionChange(columnKey, newSet);
-  };
+    // Evitar que se salga por la izquierda
+    if (left < MARGIN) left = MARGIN;
 
-  const selectAll = () => {
-    onSelectionChange(columnKey, new Set(filtered));
-  };
+    // Espacio disponible arriba y abajo
+    const spaceBelow = window.innerHeight - anchorRect.bottom - MARGIN;
+    const spaceAbove = anchorRect.top - MARGIN;
 
-  const clearAll = () => {
-    onSelectionChange(columnKey, new Set());
-  };
+    // Si no cabe abajo, intentamos arriba
+    if (spaceBelow < POPOVER_HEIGHT && spaceAbove > spaceBelow) {
+        // Cabe mejor arriba
+        actualHeight = Math.min(POPOVER_HEIGHT, spaceAbove);
+        top = anchorRect.top - actualHeight - 8;
+    } else {
+        // Cabe mejor abajo (o no cabe en ninguno, pero preferimos abajo)
+        actualHeight = Math.min(POPOVER_HEIGHT, spaceBelow);
+        top = anchorRect.bottom + 8;
+    }
 
-  const content = (
-    <div
-      ref={popoverRef}
-      className="
-        fixed z-[9999] min-w-[220px] max-w-[300px]
-        bg-white/95 dark:bg-neutral-800/95
-        backdrop-blur-xl
-        border border-neutral-200 dark:border-neutral-700
-        rounded-2xl shadow-2xl
-        animate-in fade-in zoom-in-95 duration-150
-        overflow-visible
-        text-neutral-900 dark:text-neutral-100
-      "
-      style={position} // @audit-ok
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Header del Popover */}
-      <div className="px-4 pt-4 pb-2 border-b border-neutral-100 dark:border-neutral-700">
-        <Text variant="caption" weight="bold" className="uppercase tracking-wider opacity-60">
-          Filtrar: {title}
-        </Text>
-      </div>
+    const position = {
+        top: Math.max(MARGIN, top),
+        left: left,
+        width: POPOVER_WIDTH,
+        maxHeight: actualHeight
+    };
 
-      <div className="px-3 py-2">
-        <Input
-          placeholder="Buscar..."
-          icon={Search}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          size="sm"
-          className="!rounded-xl"
-          autoFocus
-        />
-      </div>
-
-      {/* Acciones rápidas */}
-      <div className="px-3 py-1 flex gap-2">
-        <Button 
-          variant="ghost" 
-          size="xs" 
-          onClick={selectAll} 
-          className="text-primary-600 dark:text-primary-400 !bg-transparent hover:!underline font-medium text-[10px] uppercase p-0 h-auto"
+    return createPortal(
+        <div
+            ref={popoverRef}
+            className="fixed z-[9999] bg-white/90 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
+            style={position} // @audit-ok
         >
-          Seleccionar todo
-        </Button>
-        <Text variant="caption" className="text-neutral-300 dark:text-neutral-600">|</Text>
-        <Button 
-          variant="ghost" 
-          size="xs" 
-          onClick={clearAll} 
-          className="text-red-500 !bg-transparent hover:!underline font-medium mb-1 text-[10px] uppercase p-0 h-auto"
-        >
-          Limpiar
-        </Button>
-      </div>
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+                <Text variant="caption" weight="bold" className="uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    Filtrar: {title}
+                </Text>
+                <Button 
+                    variant="ghost" 
+                    size="xs" 
+                    onClick={onClose} 
+                    icon={XCircle}
+                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                />
+            </div>
 
-      {/* Lista de Opciones con Checkboxes */}
-      <div className="px-3 py-1 max-h-[200px] overflow-y-auto custom-scrollbar">
-        {filtered.map(option => (
-          <Text
-            as="label"
-            key={option}
-            className="
-              flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer
-              hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors
-            "
-          >
-            <Checkbox
-              checked={selectedValues.has(option)}
-              onChange={() => toggleOption(option)}
-              className="rounded accent-primary-500 cursor-pointer"
-            />
-            <Text variant="body2" className="truncate">{option || '(Vacío)'}</Text>
-          </Text>
-        ))}
-        {filtered.length === 0 && (
-          <div className="text-center py-4 text-xs text-neutral-500">
-            No se encontraron {search ? 'coincidencias' : 'resultados'}
-          </div>
-        )}
-      </div>
+            {/* Tabs si es fecha */}
+            {type === 'date' && (
+                <div className="flex border-b border-slate-100 dark:border-slate-800 shrink-0">
+                    <Button
+                        variant="custom"
+                        onClick={() => setActiveTab('range')}
+                        className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'range' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-400'}`}
+                    >
+                        Rango
+                    </Button>
+                    <Button
+                        variant="custom"
+                        onClick={() => setActiveTab('selection')}
+                        className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'selection' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-400'}`}
+                    >
+                        Selección
+                    </Button>
+                </div>
+            )}
 
-      {/* Footer con conteo */}
-      <div className="px-4 py-2 bg-neutral-50 dark:bg-neutral-800/80 rounded-b-2xl border-t border-neutral-100 dark:border-neutral-700">
-        <Text variant="caption" color="text-secondary" className="text-[10px]">
-          <Text weight="bold" color="text-primary">{selectedValues.size}</Text> de <Text weight="bold" color="text-primary">{options.length}</Text> seleccionados
-        </Text>
-      </div>
-    </div>
-  );
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                {activeTab === 'range' && type === 'date' ? (
+                    <div className="p-4 space-y-4">
+                        {/* Filtro por Mes */}
+                        <div className="space-y-2">
+                            <Text variant="caption" className="text-[10px] text-slate-400 uppercase font-bold">Por Mes (Año actual)</Text>
+                            <div className="grid grid-cols-3 gap-2">
+                                {months.map((month, idx) => (
+                                    <Button
+                                        key={month}
+                                        variant="custom"
+                                        onClick={() => {
+                                            const year = new Date().getFullYear();
+                                            const start = `${year}-${String(idx + 1).padStart(2, '0')}-01`;
+                                            const end = `${year}-${String(idx + 1).padStart(2, '0')}-31`;
+                                            onDateRangeChange?.({ start, end });
+                                        }}
+                                        className={`px-2 py-1 text-[10px] rounded-lg transition-all ${
+                                            dateRange?.start.includes(`-${String(idx + 1).padStart(2, '0')}-`)
+                                                ? 'bg-blue-500 text-white'
+                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                                        }`}
+                                    >
+                                        {month.substring(0, 3)}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
 
-  // Usamos portal hacia document.body para asegurar que escape cualquier overflow: hidden
-  return createPortal(content, document.body);
+                        {/* Filtro por Rango Manual */}
+                        <div className="space-y-2">
+                            <Text variant="caption" className="text-[10px] text-slate-400 uppercase font-bold">Rango Personalizado</Text>
+                            <div className="flex flex-col gap-2">
+                                <div className="flex flex-col gap-1">
+                                    <Text variant="caption" className="text-[9px] text-slate-400 uppercase ml-1">Desde</Text>
+                                    <Input
+                                        type="date"
+                                        size="xs"
+                                        fullWidth
+                                        value={dateRange?.start || ''}
+                                        onChange={(e) => onDateRangeChange?.({ ...dateRange!, start: e.target.value })}
+                                        className="!bg-slate-100 dark:!bg-slate-800 !border-none !rounded-xl text-xs"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <Text variant="caption" className="text-[9px] text-slate-400 uppercase ml-1">Hasta</Text>
+                                    <Input
+                                        type="date"
+                                        size="xs"
+                                        fullWidth
+                                        value={dateRange?.end || ''}
+                                        onChange={(e) => onDateRangeChange?.({ ...dateRange!, end: e.target.value })}
+                                        className="!bg-slate-100 dark:!bg-slate-800 !border-none !rounded-xl text-xs"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <Button
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => onDateRangeChange?.({ start: '', end: '' })}
+                            icon={RotateCcw}
+                            className="w-full py-2 text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors"
+                        >
+                            Limpiar Rango
+                        </Button>
+                    </div>
+                ) : (
+                    <>
+                        {/* Buscador */}
+                        <div className="p-3">
+                            <Input
+                                type="text"
+                                size="xs"
+                                autoFocus
+                                placeholder="Buscar..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                icon={Search}
+                                className="!bg-slate-100 dark:!bg-slate-800 !border-none !rounded-xl"
+                            />
+                        </div>
+
+                        {/* Acciones Rápidas */}
+                        <div className="px-4 py-1 flex items-center gap-4 border-b border-slate-50 dark:border-slate-800/50 pb-2">
+                            <Button
+                                variant="ghost"
+                                size="xs"
+                                onClick={handleSelectAll}
+                                icon={CheckSquare}
+                                className="text-[10px] font-bold text-blue-500 hover:text-blue-600 transition-colors uppercase tracking-tight p-0 h-auto"
+                            >
+                                Todo
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="xs"
+                                onClick={handleClear}
+                                icon={RotateCcw}
+                                className="text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-tight p-0 h-auto"
+                            >
+                                Limpiar
+                            </Button>
+                        </div>
+
+                        {/* Lista de Opciones */}
+                        <div className="p-1">
+                            {filteredOptions.length > 0 ? (
+                                filteredOptions.map((option) => (
+                                    <Button
+                                        key={option}
+                                        variant="custom"
+                                        onClick={() => toggleOption(option)}
+                                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all group"
+                                    >
+                                        <div className={`shrink-0 transition-colors ${selectedValues.has(option) ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'}`}>
+                                            <Icon name={selectedValues.has(option) ? CheckSquare : Square} size="sm" />
+                                        </div>
+                                        <Text variant="caption" className={`truncate transition-colors ${selectedValues.has(option) ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-600 dark:text-slate-400'}`}>
+                                            {type === 'date' 
+                                            ? option.split('-').reverse().join('/') 
+                                            : (option || '(Vacío)')}
+                                        </Text>
+                                    </Button>
+                                ))
+                            ) : (
+                                <div className="py-8 text-center">
+                                    <Text variant="caption" className="text-slate-400">No hay coincidencias</Text>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                <Text variant="caption" className="text-[10px] text-slate-400 font-medium">
+                    {selectedValues.size} seleccionados de {options.length}
+                </Text>
+            </div>
+        </div>,
+        document.body
+    );
 };

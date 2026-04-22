@@ -21,6 +21,7 @@ import { CorporateLinesManager } from '../pages/CorporateLines/CorporateLinesMan
 import Layout from './layout/Layout';
 import ProtectedRoute from './auth/ProtectedRoute';
 import VerifyEmailPage from '../pages/VerifyEmail/VerifyEmailPage';
+import ResetPasswordPage from '../pages/ResetPassword/ResetPasswordPage';
 
 const AppRouter: React.FC = () => {
   return (
@@ -28,6 +29,7 @@ const AppRouter: React.FC = () => {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Rutas Administrativas (Analistas y Managers) */}
         <Route path="/" element={

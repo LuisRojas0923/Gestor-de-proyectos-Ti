@@ -26,7 +26,7 @@ interface ButtonProps {
 > [!IMPORTANT]
 > **PROTECCIÓN DE TRADUCCIÓN:** El proyecto utiliza envolturas de nodos estables para evitar que traductores automáticos dañen el Virtual DOM de React. Esta protección se implementa de forma estándar a través del sistema de diseño usando el átomo Text (as="span") en lugar de etiquetas HTML directas.
 */
-const Button: React.FC<ButtonProps> = ({
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   children,
   variant = 'primary',
   size = 'md',
@@ -42,7 +42,7 @@ const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   rounded = 'lg',
   tabIndex,
-}) => {
+}, ref) => {
   const baseClasses = 'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantClasses = {
@@ -75,7 +75,8 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   return (
-    <button // @audit-ok
+    <button
+      ref={ref}
       type={type}
       onClick={onClick}
       onMouseDown={onMouseDown}
@@ -125,6 +126,9 @@ const Button: React.FC<ButtonProps> = ({
       )}
     </button>
   );
-};
+});
+
+Button.displayName = 'Button';
+
 
 export default Button;

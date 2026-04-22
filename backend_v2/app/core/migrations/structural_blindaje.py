@@ -71,7 +71,15 @@ async def ejecutar_blindaje_estructural(conn):
     await safe_execute(conn, 'ALTER TABLE "comentarios_ticket" ADD COLUMN IF NOT EXISTS "leido_en" TIMESTAMP WITH TIME ZONE')
     await safe_execute(conn, 'ALTER TABLE "comentarios_ticket" ADD COLUMN IF NOT EXISTS "creado_en" TIMESTAMP WITH TIME ZONE DEFAULT NOW()')
 
-    # 7. Otros (Formato 2276, etc.)
+    # 7. Desarrollos y Actividades
+    await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS area_desarrollo VARCHAR(100)')
+    await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS analista VARCHAR(100)')
+    
+    await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS seguimiento TEXT')
+    await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS compromiso TEXT')
+    await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS archivo_url VARCHAR(500)')
+
+    # 8. Otros (Formato 2276, etc.)
     await safe_execute(conn, 'ALTER TABLE formato_2276 ADD COLUMN IF NOT EXISTS entidad_informante VARCHAR(10)')
 
     logger.info("Blindaje estructural completado exitosamente.")

@@ -39,9 +39,9 @@ class Ticket(SQLModel, table=True):
     __tablename__ = "tickets"
 
     id: str = Field(primary_key=True, max_length=50)
-    categoria_id: str = Field(foreign_key="categorias_ticket.id", max_length=50)
-    asunto: str = Field(max_length=255)
-    descripcion: str
+    categoria_id: Optional[str] = Field(default="N/A", foreign_key="categorias_ticket.id", max_length=50)
+    asunto: Optional[str] = Field(default="Sin asunto", max_length=255)
+    descripcion: Optional[str] = Field(default="Sin descripción")
     prioridad: str = Field(default="Media", max_length=20)
     estado: str = Field(default="Pendiente", max_length=50)
     sub_estado: Optional[str] = Field(default="Asignado", max_length=50)
@@ -83,6 +83,15 @@ class Ticket(SQLModel, table=True):
         default=None, sa_column_kwargs={"server_default": text("now()")}
     )
     actualizado_en: Optional[datetime] = Field(default=None)
+    
+    @property
+    def correo_verificado_creador(self) -> bool:
+        """Campo virtual para saber si el creador tiene correo verificado"""
+        return getattr(self, "_correo_verificado_creador", False)
+
+    @correo_verificado_creador.setter
+    def correo_verificado_creador(self, value: bool):
+        object.__setattr__(self, "_correo_verificado_creador", value)
 
     # Relaciones
     categoria: Optional[CategoriaTicket] = Relationship(back_populates="tickets")
@@ -267,15 +276,16 @@ class ComentarioPublico(SQLModel):
 class TicketBase(SQLModel):
     """Schema base para ticket"""
 
-    categoria_id: str
-    asunto: str
-    descripcion: str
+    categoria_id: Optional[str] = "N/A"
+    asunto: Optional[str] = "Sin asunto"
+    descripcion: Optional[str] = "Sin descripción"
     prioridad: str = "Media"
     estado: str = "Pendiente"
     sub_estado: str = "Asignado"
     creador_id: str
     nombre_creador: Optional[str] = None
     correo_creador: Optional[str] = None
+    correo_verificado_creador: Optional[bool] = None
     area_creador: Optional[str] = None
     cargo_creador: Optional[str] = None
     sede_creador: Optional[str] = None
@@ -341,6 +351,10 @@ class TicketResumen(TicketBase):
     """Schema para listados ligeros (Respuesta)"""
 
     id: str
+    # Sobrescribimos campos base para permitir NULLs de legado en la respuesta
+    categoria_id: Optional[str] = "N/A"
+    asunto: Optional[str] = "Sin asunto"
+    descripcion: Optional[str] = "Sin descripción"
     sub_estado: Optional[str] = None
     asignado_a: Optional[str] = None
     diagnostico: Optional[str] = None

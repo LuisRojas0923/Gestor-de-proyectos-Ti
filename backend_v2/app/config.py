@@ -1,7 +1,4 @@
-"""
-Configuracion de la aplicacion Backend V2
-"""
-
+import socket
 from typing import Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
@@ -31,6 +28,10 @@ class Configuracion(BaseSettings):
             port_suffix = f":{self.frontend_port}" if self.frontend_port and self.frontend_port not in ["80", "443"] else ""
             self.frontend_url = f"http://{self.frontend_host}{port_suffix}"
 
+        # El sistema ahora usa detección dinámica por petición (Request Host)
+        # en lugar de intentar adivinar la IP al arrancar.
+        self.detected_ip = "Detección por Petición Activa"
+
     # ERP Externo
     erp_database_url: str = (
         "postgresql://user:pass@localhost:5432/erp_db"  # [CONTROLADO]
@@ -55,6 +56,9 @@ class Configuracion(BaseSettings):
     # Almacenamiento Local
     storage_path: str = "/app/storage/attachments"
     storage_max_size_mb: int = 25  # Límite por archivo
+
+    # Metadatos dinámicos
+    detected_ip: str = "No detectada"
 
     # Notificaciones Email (Opcional)
     smtp_host: Optional[str] = None

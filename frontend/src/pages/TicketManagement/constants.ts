@@ -8,13 +8,14 @@ import {
 export const COLUMN_WIDTHS = {
     id: "md:w-20",
     fecha: "md:w-24",
-    estado: "md:w-32",
+    hora: "md:w-20",
+    area: "md:w-40",
+    solicitante: "md:w-56",
     asunto: "flex-1",
-    solicitante: "md:w-64",
-    area: "md:w-48",
     prioridad: "md:w-24",
-    analista: "md:w-64",
-    acciones: "md:w-36"
+    estado: "md:w-28",
+    analista: "md:w-56",
+    acciones: "md:w-28"
 };
 
 export const SUB_STATUS_OPTIONS: Record<string, { value: string, label: string }[]> = {

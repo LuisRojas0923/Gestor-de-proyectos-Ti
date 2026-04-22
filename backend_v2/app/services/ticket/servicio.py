@@ -17,6 +17,8 @@ from app.models.ticket.ticket import (
     SolicitudActivo,
     TicketCrear,
     TicketActualizar,
+    ComentarioTicket,
+    ComentarioCrear,
 )
 from app.models.auth.usuario import Usuario
 from app.utils_date import get_bogota_now
@@ -28,6 +30,8 @@ from .attachment_service import AttachmentService
 from .ticket_utils import TicketUtils
 from ..notifications.email_service import EmailService
 from ...models.ticket.ticket import CategoriaTicket
+from ...utils_cache import global_cache
+from .ws_manager import manager
 
 
 class ServicioTicket:
@@ -190,7 +194,7 @@ class ServicioTicket:
                 cat_obj = res_cat.scalars().first()
                 cat_nombre = cat_obj.nombre if cat_obj else ticket_data.categoria_id
 
-                EmailService.enviar_confirmacion_ticket(
+                await EmailService.enviar_confirmacion_ticket(
                     email=ticket_data.correo_creador,
                     nombre=ticket_data.nombre_creador,
                     ticket_id=ticket_id,
@@ -265,6 +269,21 @@ class ServicioTicket:
                 db_ticket.fecha_cierre = db_ticket.resuelto_en = None
 
         await db.commit()
+        
+        # Notificación en tiempo real vía WebSocket
+        try:
+            await manager.broadcast_to_ticket(ticket_id, {
+                "type": "ticket_updated",
+                "data": {
+                    "id": ticket_id,
+                    "estado": db_ticket.estado,
+                    "sub_estado": db_ticket.sub_estado,
+                    "asignado_a": db_ticket.asignado_a
+                }
+            })
+        except Exception:
+            pass
+
         return await cls.obtener_ticket_por_id(db, ticket_id)
 
     @staticmethod
@@ -272,18 +291,95 @@ class ServicioTicket:
         db: AsyncSession, ticket_id: str
     ) -> Optional[Ticket]:
         """Obtiene un ticket por su ID con sus extensiones (Async)"""
-        result = await db.execute(
-            select(Ticket)
-            .where(Ticket.id == ticket_id)
-            .options(
-                joinedload(Ticket.solicitud_activo),
-                joinedload(Ticket.solicitud_desarrollo),
-                joinedload(Ticket.control_cambios),
-                selectinload(Ticket.adjuntos),
-                selectinload(Ticket.comentarios),
+        try:
+            result = await db.execute(
+                select(Ticket, Usuario.correo_verificado)
+                .outerjoin(Usuario, Ticket.creador_id == Usuario.id)
+                .where(Ticket.id == ticket_id)
+                .options(
+                    joinedload(Ticket.solicitud_activo),
+                    joinedload(Ticket.solicitud_desarrollo),
+                    joinedload(Ticket.control_cambios),
+                    selectinload(Ticket.adjuntos),
+                    selectinload(Ticket.comentarios),
+                )
             )
-        )
-        return result.scalars().first()
+            row = result.first()
+            if not row:
+                return None
+
+            ticket, verificado = row
+            # Forzar boolean o False si es None (usuario no existe o no verificado)
+            ticket.correo_verificado_creador = bool(verificado) if verificado is not None else False
+            return ticket
+        except Exception as e:
+            import logging
+            logging.error(f"ERROR en obtener_ticket_por_id ({ticket_id}): {str(e)}")
+            # Fallback a búsqueda simple sin join si falla la extendida
+            res_simple = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
+            return res_simple.scalars().first()
+
+    @classmethod
+    async def agregar_comentario(
+        cls, db: AsyncSession, ticket_id: str, comentario_data: ComentarioCrear
+    ) -> ComentarioTicket:
+        """Agrega un comentario y dispara notificación si aplica"""
+        try:
+            nuevo_comentario = ComentarioTicket(
+                ticket_id=ticket_id,
+                comentario=comentario_data.comentario,
+                es_interno=comentario_data.es_interno,
+                usuario_id=comentario_data.usuario_id,
+                nombre_usuario=comentario_data.nombre_usuario,
+            )
+            db.add(nuevo_comentario)
+            await db.commit()
+            await db.refresh(nuevo_comentario)
+
+            # Lógica de notificación:
+            # Solo si NO es interno y hay un correo de creador válido
+            if not nuevo_comentario.es_interno:
+                ticket = await cls.obtener_ticket_por_id(db, ticket_id)
+                if ticket and ticket.correo_creador:
+                    # No notificar si el que escribe es el mismo creador
+                    if nuevo_comentario.usuario_id != ticket.creador_id:
+                        # THROTTLE: Verificar si ya se envió notificación en los últimos 30 min (1800 seg)
+                        cache_key = f"chat_notif_throttle:{ticket_id}"
+                        if not global_cache.get(cache_key):
+                            try:
+                                await EmailService.enviar_notificacion_chat(
+                                    email_destinatario=ticket.correo_creador,
+                                    nombre_destinatario=ticket.nombre_creador or "Usuario",
+                                    ticket_id=ticket_id,
+                                    nombre_remitente=nuevo_comentario.nombre_usuario or "Soporte",
+                                    mensaje=nuevo_comentario.comentario,
+                                )
+                                # Activar el seguro por 30 minutos
+                                global_cache.set(cache_key, True, ttl=1800)
+                            except Exception as e:
+                                print(f"WARNING: No se pudo enviar notificación de chat: {e}")
+                        else:
+                            print(f"DEBUG: Notificación de chat omitida por throttle (30 min) para {ticket_id}")
+                
+            # Notificación en tiempo real vía WebSocket
+            try:
+                await manager.broadcast_to_ticket(ticket_id, {
+                    "type": "new_comment",
+                    "data": {
+                        "id": nuevo_comentario.id,
+                        "comentario": nuevo_comentario.comentario,
+                        "nombre_usuario": nuevo_comentario.nombre_usuario,
+                        "creado_en": str(nuevo_comentario.creado_en),
+                        "es_interno": nuevo_comentario.es_interno
+                    }
+                })
+            except Exception as ws_err:
+                print(f"WARNING: No se pudo notificar vía WebSocket: {ws_err}")
+
+            return nuevo_comentario
+        except Exception as e:
+            await db.rollback()
+            raise e
 
     @staticmethod
     async def listar_tickets(
@@ -299,7 +395,7 @@ class ServicioTicket:
         usuario_peticion: Optional[Usuario] = None,
     ) -> List[Ticket]:
         """Lista tickets con paginacion, extensiones y filtros (Async)"""
-        query = select(Ticket).options(
+        query = select(Ticket, Usuario.correo_verificado).outerjoin(Usuario, Ticket.creador_id == Usuario.id).options(
             joinedload(Ticket.solicitud_activo),
             joinedload(Ticket.solicitud_desarrollo),
             joinedload(Ticket.control_cambios),
@@ -366,21 +462,37 @@ class ServicioTicket:
             )
 
         query = query.order_by(Ticket.creado_en.desc()).offset(skip).limit(limit)
-        result = await db.execute(query)
-        return result.scalars().all()
+        
+        try:
+            result = await db.execute(query)
+            
+            tickets = []
+            for row in result:
+                # SQLAlchemy 2.0 Row puede comportarse como secuencia
+                # La consulta siempre devuelve (Ticket, correo_verificado)
+                try:
+                    # Intento de desempaquetado directo (forma recomendada en SQLA 2.0)
+                    ticket, verificado = row
+                    ticket.correo_verificado_creador = bool(verificado) if verificado is not None else False
+                    tickets.append(ticket)
+                except (TypeError, ValueError):
+                    # Fallback si el resultado no es una tupla/row de 2 elementos
+                    ticket = row[0] if hasattr(row, "__getitem__") else row
+                    if isinstance(ticket, Ticket):
+                        ticket.correo_verificado_creador = False
+                    tickets.append(ticket)
+
+            return tickets
+        except Exception as e:
+            import logging
+            logging.error(f"ERROR en listar_tickets: {str(e)}")
+            # Fallback preventivo: intentar una consulta básica si la compleja falla
+            res_fallback = await db.execute(select(Ticket).offset(skip).limit(limit))
+            return list(res_fallback.scalars().all())
 
     @staticmethod
     async def listar_tickets_por_usuario(
         db: AsyncSession, usuario_id: str
     ) -> List[Ticket]:
         """Lista tickets creados por un usuario (Async)"""
-        result = await db.execute(
-            select(Ticket)
-            .where(Ticket.creador_id == usuario_id)
-            .options(
-                joinedload(Ticket.solicitud_activo),
-                joinedload(Ticket.solicitud_desarrollo),
-                joinedload(Ticket.control_cambios),
-            )
-        )
-        return result.scalars().all()
+        return await ServicioTicket.listar_tickets(db, creador_id=usuario_id, limit=500)

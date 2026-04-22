@@ -6,7 +6,11 @@ from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import text
+from sqlalchemy import text, Column, Text
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .desarrollo import Desarrollo
 
 # --- Modelos de Base de Datos (table=True) ---
 
@@ -42,6 +46,11 @@ class Actividad(SQLModel, table=True):
     horas_reales: Decimal = Field(default=Decimal("0.0"))
     porcentaje_avance: Decimal = Field(default=Decimal("0.0"))
 
+    # Campos de detalle adicionales
+    seguimiento: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    compromiso: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    archivo_url: Optional[str] = Field(default=None, max_length=500)
+
     # Auditoria
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("now()")}
@@ -75,6 +84,9 @@ class ActividadBase(SQLModel):
     fecha_fin_estimada: Optional[date] = None
     horas_estimadas: Decimal = Decimal("0.0")
     porcentaje_avance: Decimal = Decimal("0.0")
+    seguimiento: Optional[str] = None
+    compromiso: Optional[str] = None
+    archivo_url: Optional[str] = None
 
 
 class ActividadCrear(ActividadBase):
@@ -94,6 +106,9 @@ class ActividadActualizar(SQLModel):
     horas_estimadas: Optional[Decimal] = None
     horas_reales: Optional[Decimal] = None
     porcentaje_avance: Optional[Decimal] = None
+    seguimiento: Optional[str] = None
+    compromiso: Optional[str] = None
+    archivo_url: Optional[str] = None
     parent_id: Optional[int] = None
 
 

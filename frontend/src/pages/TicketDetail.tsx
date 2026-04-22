@@ -103,6 +103,8 @@ const TicketDetail: React.FC = () => {
                     user={{
                         name: ticket.nombre_creador,
                         id: ticket.creador_id,
+                        email: ticket.correo_creador,
+                        isVerified: ticket.correo_verificado_creador,
                         area: ticket.area_creador,
                         cargo: ticket.cargo_creador,
                         sede: ticket.sede_creador,

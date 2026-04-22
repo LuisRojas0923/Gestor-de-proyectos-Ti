@@ -20,6 +20,7 @@ export interface Ticket {
     creador_id: string;
     nombre_creador: string;
     correo_creador: string;
+    correo_verificado_creador?: boolean;
     area_creador: string;
     cargo_creador: string;
     sede_creador: string;
@@ -121,48 +122,100 @@ export const useTicketDetail = (ticketId: string | undefined) => {
         fetchAllData();
     }, [fetchAllData]);
 
-    // Polling silencioso para sincronización en tiempo real (Chat, Estado e Historial)
+    // WebSockets para sincronización en tiempo real (Chat, Estado e Historial)
     useEffect(() => {
         if (!ticketId) return;
 
-        const pollData = async () => {
-            // Solo poll si la ventana está activa para ahorrar recursos
-            if (document.visibilityState !== 'visible') return;
+        let socket: WebSocket | null = null;
+        let reconnectTimeout: NodeJS.Timeout;
+        let isMounted = true;
 
-            const token = localStorage.getItem('token');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            try {
-                // Fetch de datos dinámicos sin disparar isLoading global
-                const [commentsRes, ticketRes, historyRes] = await Promise.all([
-                    axios.get(`${API_BASE_URL}/soporte/${ticketId}/comentarios`, { headers }),
-                    axios.get(`${API_BASE_URL}/soporte/${ticketId}`, { headers }),
-                    axios.get(`${API_BASE_URL}/soporte/${ticketId}/historial`, { headers })
-                ]);
-                
-                // Actualizar comentarios solo si hay cambios
-                setComments(current => 
-                    JSON.stringify(current) !== JSON.stringify(commentsRes.data) ? commentsRes.data : current
-                );
-
-                // Actualizar ticket (cambios de estado, prioridad, etc)
-                setTicket(current => 
-                    JSON.stringify(current) !== JSON.stringify(ticketRes.data) ? ticketRes.data : current
-                );
-
-                // Actualizar historial
-                setHistory(current => 
-                    JSON.stringify(current) !== JSON.stringify(historyRes.data) ? historyRes.data : current
-                );
-
-            } catch (err) {
-                console.warn("Silent polling error:", err);
+        const connect = () => {
+            const baseUrl = API_BASE_URL;
+            let wsUrl = "";
+            
+            if (baseUrl.startsWith('http')) {
+                wsUrl = baseUrl.replace('http', 'ws');
+            } else {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                wsUrl = `${protocol}//${window.location.host}${baseUrl}`;
             }
+
+            socket = new WebSocket(`${wsUrl}/soporte/ws/${ticketId}`);
+
+            socket.onopen = () => {
+                if (!isMounted) {
+                    socket?.close();
+                    return;
+                }
+                console.log(`WebSocket conectado a ticket: ${ticketId}`);
+            };
+
+            socket.onmessage = (event) => {
+                if (!isMounted) return;
+                try {
+                    const message = JSON.parse(event.data);
+                    
+                    if (message.type === 'new_comment' || message.type === 'comment_added') {
+                        // Evitar duplicados comparando IDs
+                        setComments(prev => {
+                            if (prev.some(c => c.id === message.data.id)) return prev;
+                            return [...prev, message.data];
+                        });
+                        notify('info', `Nuevo comentario de ${message.data.usuario_nombre || 'un analista'}`);
+                    } else if (message.type === 'ticket_updated') {
+                        // Actualizar campos dinámicos del ticket
+                        setTicket(current => {
+                            if (!current) return null;
+                            return {
+                                ...current,
+                                estado: message.data.estado,
+                                sub_estado: message.data.sub_estado,
+                                asignado_a: message.data.asignado_a
+                            };
+                        });
+                        // Refrescar historial ya que un cambio de estado suele generar historial
+                        axios.get(`${API_BASE_URL}/soporte/${ticketId}/historial`, { 
+                            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } 
+                        }).then(res => isMounted && setHistory(res.data)).catch(() => {});
+                    }
+                } catch (err) {
+                    console.error("Error procesando mensaje de socket:", err);
+                }
+            };
+
+            socket.onclose = (event) => {
+                if (!isMounted) return;
+                if (!event.wasClean) {
+                    console.log(`WebSocket cerrado inesperadamente (${event.code}). Reintentando en 5s...`);
+                    reconnectTimeout = setTimeout(connect, 5000);
+                } else {
+                    console.log("WebSocket cerrado de forma limpia.");
+                }
+            };
+
+            socket.onerror = (err) => {
+                if (!isMounted) return;
+                console.error("WebSocket error:", err);
+            };
         };
 
-        const pollInterval = setInterval(pollData, 3000); // Cada 3 segundos para una experiencia "real-time"
+        connect();
 
-        return () => clearInterval(pollInterval);
+        return () => {
+            isMounted = false;
+            clearTimeout(reconnectTimeout);
+            if (socket) {
+                // Solo cerramos si ya está abierto. 
+                // Si está CONNECTING, dejamos que onopen se encargue para evitar el error en consola.
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.close();
+                } else {
+                    socket.onclose = null;
+                    socket.onerror = null;
+                }
+            }
+        };
     }, [ticketId]);
 
     const updateTicket = async (updateData: Partial<Ticket>) => {
@@ -237,9 +290,11 @@ export const useTicketDetail = (ticketId: string | undefined) => {
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
             await axios.post(`${API_BASE_URL}/soporte/${ticketId}/comentarios`, commentData, { headers });
-            // Recargar solo comentarios para mayor fluidez
+            
+            // Refresco manual como respaldo (el WebSocket también lo intentará)
             const res = await axios.get(`${API_BASE_URL}/soporte/${ticketId}/comentarios`, { headers });
             setComments(res.data);
+            
             notify('success', 'Mensaje enviado.');
         } catch (err) {
             console.error("Error al enviar comentario:", err);
@@ -341,22 +396,24 @@ export const useTicketDetail = (ticketId: string | undefined) => {
         }
     }, [comments, currentUser?.id, markCommentsAsRead]);
 
-    const notify = (type: 'success' | 'error' | 'warning', message: string) => {
+    const notify = (type: 'success' | 'error' | 'warning' | 'info', message: string) => {
         // 1. Añadir al historial persistente (AppContext)
         dispatch({
             type: 'ADD_NOTIFICATION',
             payload: {
                 id: Math.random().toString(36).substr(2, 9),
-                title: type === 'error' ? 'Error' : (type === 'success' ? 'Éxito' : 'Aviso'),
+                title: type === 'error' ? 'Error' : 
+                       (type === 'success' ? 'Éxito' : 
+                       (type === 'info' ? 'Información' : 'Aviso')),
                 message,
-                type: type === 'error' ? 'error' : (type === 'success' ? 'success' : 'warning'),
+                type: type, // AppContext ya soporta info, success, warning, error
                 timestamp: new Date().toISOString(),
                 read: false
             }
         });
 
         // 2. Mostrar toast visual instantáneo
-        addNotification(type === 'warning' ? 'warning' : type, message);
+        addNotification(type, message);
     };
 
     return {

@@ -56,12 +56,12 @@ const WbsNode: React.FC<{
                 </div>
 
                 <div className="flex items-center gap-4 flex-shrink-0">
-                    <div className="w-24 text-right">
+                    <div className="w-20 text-right">
                         <Text variant="caption" color="text-secondary">{node.porcentaje_avance}%</Text>
                         <ProgressBar 
                             progress={node.porcentaje_avance} 
                             variant={node.porcentaje_avance === 100 ? 'success' : 'primary'} 
-                            className="h-1.5 mt-1" 
+                            className="h-1 mt-1" 
                         />
                     </div>
 
@@ -78,7 +78,29 @@ const WbsNode: React.FC<{
                         </Badge>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="w-48">
+                        <Text variant="caption" className="truncate" title={node.seguimiento}>
+                            {node.seguimiento || '-'}
+                        </Text>
+                    </div>
+
+                    <div className="w-48">
+                        <Text variant="caption" className="truncate" title={node.compromiso}>
+                            {node.compromiso || '-'}
+                        </Text>
+                    </div>
+
+                    <div className="w-12 flex justify-center">
+                        {node.archivo_url ? (
+                            <a href={node.archivo_url} target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] hover:underline">
+                                <Download size={14} />
+                            </a>
+                        ) : (
+                            <Text variant="caption" color="text-secondary">-</Text>
+                        )}
+                    </div>
+
+                    <div className="flex gap-2 w-24 justify-center">
                         <Button variant="ghost" size="sm" onClick={() => onEditTask(node)} className="h-8 px-2 text-xs">Editar</Button>
                         <Button variant="ghost" size="sm" onClick={() => onAddSubtask(node.id)} icon={Plus} className="h-8 px-2" />
                     </div>
@@ -215,9 +237,12 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
                         {/* Cabecera de tabla */}
                         <div className={`flex items-center p-3 border-b ${darkMode ? 'border-neutral-700 bg-neutral-800' : 'border-neutral-200 bg-neutral-50'}`}>
                             <div className="flex-1 font-bold text-xs uppercase tracking-wider text-neutral-500">Tarea</div>
-                            <div className="w-24 font-bold text-xs uppercase tracking-wider text-neutral-500 text-right pr-4">Avance</div>
+                            <div className="w-20 font-bold text-xs uppercase tracking-wider text-neutral-500 text-right pr-4">Avance</div>
                             <div className="w-24 font-bold text-xs uppercase tracking-wider text-neutral-500">Estado</div>
-                            <div className="w-[120px] font-bold text-xs uppercase tracking-wider text-neutral-500 text-center">Acciones</div>
+                            <div className="w-48 font-bold text-xs uppercase tracking-wider text-neutral-500">Seguimiento</div>
+                            <div className="w-48 font-bold text-xs uppercase tracking-wider text-neutral-500">Compromiso</div>
+                            <div className="w-12 font-bold text-xs uppercase tracking-wider text-neutral-500 text-center">Archivo</div>
+                            <div className="w-24 font-bold text-xs uppercase tracking-wider text-neutral-500 text-center">Acciones</div>
                         </div>
                         <div className="flex flex-col w-full pb-4">
                             {tree.map(node => (

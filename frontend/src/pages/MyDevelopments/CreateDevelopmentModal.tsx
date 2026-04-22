@@ -23,6 +23,8 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     const [modulo, setModulo] = useState('Desconocido');
     const [tipo, setTipo] = useState('Nuevo');
     const [responsable, setResponsable] = useState('');
+    const [areaDesarrollo, setAreaDesarrollo] = useState('');
+    const [analista, setAnalista] = useState('');
 
     const handleSave = async () => {
         if (!nombre.trim() || !id.trim()) return;
@@ -36,6 +38,8 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                 modulo,
                 tipo,
                 responsable: responsable || undefined,
+                area_desarrollo: areaDesarrollo || undefined,
+                analista: analista || undefined,
                 estado_general: "Pendiente",
                 porcentaje_progreso: 0.0
             };
@@ -52,6 +56,8 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
             setModulo('Desconocido');
             setTipo('Nuevo');
             setResponsable('');
+            setAreaDesarrollo('');
+            setAnalista('');
         } catch (error) {
             console.error('Error creating development:', error);
             // Ideally trigger a notification here
@@ -121,6 +127,21 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                             placeholder="Ej. Logística"
                             value={modulo}
                             onChange={(e) => setModulo(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                            label="Área de Desarrollo"
+                            placeholder="Ej. Gestión Humana"
+                            value={areaDesarrollo}
+                            onChange={(e) => setAreaDesarrollo(e.target.value)}
+                        />
+                        <Input
+                            label="Analista"
+                            placeholder="Ej. LUIS ENRIQUE"
+                            value={analista}
+                            onChange={(e) => setAnalista(e.target.value)}
                         />
                     </div>
                 </div>

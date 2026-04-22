@@ -271,3 +271,16 @@ class EmailActualizar(SQLModel):
     """Schema para actualizar el correo corporativo"""
 
     correo: str = Field(max_length=255)
+
+
+class RecoveryRequest(SQLModel):
+    """Schema para solicitar recuperación de contraseña"""
+
+    cedula: str = Field(max_length=50)
+
+
+class PasswordReset(SQLModel):
+    """Schema para restablecer contraseña con token"""
+
+    token: str
+    nueva_contrasena: str = Field(min_length=8)

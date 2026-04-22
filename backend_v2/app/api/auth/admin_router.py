@@ -15,8 +15,10 @@ from app.models.auth.usuario import (
     RolSistema,
     RolCrear,
     RolPublico,
+    ModuloSistema,
 )
 from app.services.auth.servicio import ServicioAuth
+from app.services.notifications.email_service import EmailService
 from .profile_router import obtener_usuario_actual_db
 
 router = APIRouter()
@@ -57,7 +59,7 @@ async def listar_analistas(
             # Filtros estrictos para asignación de tickets
             stmt = stmt.where(
                 Usuario.esta_activo,
-                Usuario.viaticante == False,
+                not Usuario.viaticante,
                 Usuario.rol.in_(["analyst", "admin_sistemas", "admin", "director", "manager"])
             )
         # Si no es solo_asignables, se eliminó el filtro estático de roles para que sea dinámico
@@ -116,6 +118,44 @@ async def actualizar_analista(
         if not usuario:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
+        # --- Lógica de Seguridad para Escalado de Roles ---
+        nuevo_rol = datos.get("rol")
+        reseteo_seguridad = False
+        
+        if nuevo_rol and nuevo_rol != usuario.rol:
+            # Detección dinámica de escalado (Acceso a categorías admin/panel)
+            
+            stmt_admin = (
+                select(ModuloSistema.id)
+                .join(PermisoRol, ModuloSistema.id == PermisoRol.modulo)
+                .where(
+                    PermisoRol.rol == nuevo_rol,
+                    PermisoRol.permitido,
+                    ModuloSistema.categoria.in_(["analistas", "panel"])
+                )
+            )
+            res_admin = await db.execute(stmt_admin)
+            tiene_acceso_admin = res_admin.scalars().first() is not None
+            
+            # Solo resetear si pasa de un rol no-admin a uno admin
+            # (Si ya era admin, se asume que ya tiene clave segura)
+            stmt_prev_admin = (
+                select(ModuloSistema.id)
+                .join(PermisoRol, ModuloSistema.id == PermisoRol.modulo)
+                .where(
+                    PermisoRol.rol == usuario.rol,
+                    PermisoRol.permitido,
+                    ModuloSistema.categoria.in_(["analistas", "panel"])
+                )
+            )
+            res_prev = await db.execute(stmt_prev_admin)
+            era_admin = res_prev.scalars().first() is not None
+            
+            if tiene_acceso_admin and not era_admin:
+                reseteo_seguridad = True
+                logging.info(f"Escalado detectado para {usuario.id}: {usuario.rol} -> {nuevo_rol}. Ejecutando reseteo de seguridad.")
+
+        # Aplicar cambios
         if "rol" in datos:
             usuario.rol = datos["rol"]
         if "especialidades" in datos:
@@ -124,6 +164,22 @@ async def actualizar_analista(
             usuario.areas_asignadas = json.dumps(datos["areas_asignadas"])
         if "esta_activo" in datos:
             usuario.esta_activo = datos["esta_activo"]
+
+        if reseteo_seguridad:
+            # 1. Resetear hash a la cédula
+            usuario.hash_contrasena = ServicioAuth.obtener_hash_contrasena(usuario.cedula)
+            # 2. Invalidar todas las sesiones
+            await ServicioAuth.invalidar_sesiones_usuario(db, usuario.id)
+            # 3. Notificar por correo
+            if usuario.correo:
+                # Disparamos sin esperar para no bloquear la respuesta
+                import asyncio
+                asyncio.create_task(
+                    EmailService.enviar_notificacion_reseteo_clave(
+                        usuario.correo, 
+                        usuario.nombre
+                    )
+                )
 
         await db.commit()
         await db.refresh(usuario)

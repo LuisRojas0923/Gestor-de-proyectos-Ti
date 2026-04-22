@@ -24,12 +24,19 @@ class EmailService:
         return template.render(**context)
 
     @staticmethod
-    def enviar_correo(
+    def get_frontend_url() -> str:
+        """
+        Retorna la URL del frontend configurada en el sistema (.env).
+        """
+        return (config.hostveremail or config.frontend_url).rstrip("/")
+
+    @staticmethod
+    async def enviar_correo(
         asunto: str,
         destinatarios: List[str],
         contenido_html: str,
         contenido_texto: Optional[str] = None,
-        attachments: Optional[List[dict]] = None,
+        attachments: Optional[List[dict]] = None
     ) -> bool:
         """
         Envía un correo electrónico utilizando la configuración SMTP del sistema.
@@ -92,7 +99,8 @@ class EmailService:
             server.send_message(msg_root)
             server.quit()
 
-            print(f"DEBUG: Correo enviado exitosamente a {destinatarios}")
+            final_url = EmailService.get_frontend_url()
+            print(f"DEBUG: Correo enviado a {destinatarios}. URL Links: {final_url}")
             return True
 
         except Exception as e:
@@ -216,7 +224,7 @@ class EmailService:
         return []
 
     @staticmethod
-    def enviar_notificacion_actualizacion(email: str, nombre: str):
+    async def enviar_notificacion_actualizacion(email: str, nombre: str):
         """Notifica al usuario que debe actualizar su correo (Uso administrativo)"""
         asunto = "Actualización de Correo Corporativo - Portal de Servicios"
         titulo = "Actualización Necesaria"
@@ -230,14 +238,14 @@ class EmailService:
             Para asegurar que recibas todas las notificaciones de tus tickets, por favor actualiza tu información.
         </p>
         <div style="text-align: center; margin-bottom: 30px;">
-            <a href="{config.frontend_url.rstrip("/")}/service-portal" style="background-color: #002060; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; display: inline-block;">
+            <a href="{EmailService.get_frontend_url()}/service-portal" style="background-color: #002060; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; display: inline-block;">
                 Actualizar mi Correo Ahora
             </a>
         </div>
         """
         
         html_final = EmailService._get_base_layout(titulo, cuerpo_html)
-        return EmailService.enviar_correo(
+        return await EmailService.enviar_correo(
             asunto, 
             [email], 
             html_final, 
@@ -245,7 +253,7 @@ class EmailService:
         )
 
     @staticmethod
-    def enviar_confirmacion_registro(email: str, nombre: str, token_url: str) -> bool:
+    async def enviar_confirmacion_registro(email: str, nombre: str, token_url: str) -> bool:
         """Envía un correo de verificación de cuenta profesional usando plantillas premium"""
         asunto = "Verifica tu correo - Portal de Servicios Solid"
         
@@ -257,7 +265,7 @@ class EmailService:
                 verify_url=token_url
             )
             
-            return EmailService.enviar_correo(
+            return await EmailService.enviar_correo(
                 asunto, 
                 [email], 
                 html_final, 
@@ -268,20 +276,19 @@ class EmailService:
             return False
 
     @staticmethod
-    def enviar_exito_verificacion(email: str, nombre: str) -> bool:
+    async def enviar_exito_verificacion(email: str, nombre: str) -> bool:
         """Envía un correo de éxito tras verificar la cuenta"""
         asunto = "¡Tu correo ha sido verificado! - Portal de Servicios Solid"
         
         try:
-            from app.config import config
             html_final = EmailService._render_template(
                 "emails/verification_success.html",
                 titulo="Correo Verificado",
                 nombre=nombre,
-                login_url=f"{config.frontend_url.rstrip('/')}/login"
+                login_url=f"{EmailService.get_frontend_url()}/login"
             )
             
-            return EmailService.enviar_correo(
+            return await EmailService.enviar_correo(
                 asunto, 
                 [email], 
                 html_final, 
@@ -292,7 +299,7 @@ class EmailService:
             return False
 
     @staticmethod
-    def enviar_confirmacion_ticket(
+    async def enviar_confirmacion_ticket(
         email: Union[str, List[str]],
         nombre: str,
         ticket_id: str,
@@ -354,9 +361,91 @@ class EmailService:
         """
 
         html_final = EmailService._get_base_layout(titulo, cuerpo_especifico)
-        return EmailService.enviar_correo(
+        return await EmailService.enviar_correo(
             asunto, 
             destinatarios, 
             html_final, 
             attachments=EmailService._get_attachments()
         )
+    @staticmethod
+    async def enviar_notificacion_chat(
+        email_destinatario: str,
+        nombre_destinatario: str,
+        ticket_id: str,
+        nombre_remitente: str,
+        mensaje: str
+    ) -> bool:
+        """Envía una notificación de nuevo mensaje en el chat"""
+        asunto = f"Nuevo mensaje en tu solicitud: {ticket_id}"
+        
+        try:
+            # Limitar mensaje si es muy largo
+            mensaje_resumen = (mensaje[:500] + "...") if len(mensaje) > 500 else mensaje
+            
+            portal_url = f"{EmailService.get_frontend_url()}/tickets/{ticket_id}"
+            
+            html_final = EmailService._render_template(
+                "emails/chat_notification.html",
+                titulo="Nuevo mensaje en el chat",
+                nombre_destinatario=nombre_destinatario,
+                ticket_id=ticket_id,
+                nombre_remitente=nombre_remitente,
+                mensaje=mensaje_resumen,
+                portal_url=portal_url
+            )
+            
+            return await EmailService.enviar_correo(
+                asunto, 
+                [email_destinatario], 
+                html_final, 
+                attachments=EmailService._get_attachments()
+            )
+        except Exception as e:
+            print(f"ERROR al enviar notificación de chat: {e}")
+            return False
+
+    @staticmethod
+    async def enviar_notificacion_reseteo_clave(email: str, nombre: str) -> bool:
+        """Notifica al usuario que su contraseña ha sido reseteada por escalado de rol"""
+        asunto = "⚠️ Seguridad Solid: Reseteo de contraseña por escalado"
+        
+        try:
+            html_final = EmailService._render_template(
+                "emails/security_reset.html",
+                titulo="Acción de Seguridad Requerida",
+                nombre=nombre,
+                login_url=f"{EmailService.get_frontend_url()}/login"
+            )
+            
+            return await EmailService.enviar_correo(
+                asunto, 
+                [email], 
+                html_final, 
+                attachments=EmailService._get_attachments()
+            )
+        except Exception as e:
+            print(f"ERROR al renderizar/enviar correo de reseteo: {e}")
+            return False
+
+    @staticmethod
+    async def enviar_recuperacion_contrasena(email: str, nombre: str, reset_url: str) -> bool:
+        """Envía el correo de recuperación de contraseña"""
+        asunto = "Recuperación de Contraseña - Portal de Servicios Solid"
+        
+        try:
+            html_final = EmailService._render_template(
+                "emails/password_recovery.html",
+                titulo="Recuperación de Contraseña",
+                nombre=nombre,
+                reset_url=reset_url
+            )
+            
+            return await EmailService.enviar_correo(
+                asunto, 
+                [email], 
+                html_final, 
+                attachments=EmailService._get_attachments()
+            )
+        except Exception as e:
+            print(f"ERROR al renderizar/enviar correo de recuperación: {e}")
+            return False
