@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { XCircle, RotateCcw, Search, CheckSquare, Square } from 'lucide-react';
 import { Text, Button, Input, Icon } from '../atoms';
 
 export interface ColumnFilterPopoverProps {
@@ -131,7 +132,7 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
                     size="xs" 
                     onClick={onClose} 
                     icon={XCircle}
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    className="!p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 />
             </div>
 
@@ -140,15 +141,17 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
                 <div className="flex border-b border-slate-100 dark:border-slate-800 shrink-0">
                     <Button
                         variant="custom"
+                        size="xs"
                         onClick={() => setActiveTab('range')}
-                        className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'range' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-400'}`}
+                        className={`flex-1 !py-2 !text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'range' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-400'}`}
                     >
                         Rango
                     </Button>
                     <Button
                         variant="custom"
+                        size="xs"
                         onClick={() => setActiveTab('selection')}
-                        className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'selection' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-400'}`}
+                        className={`flex-1 !py-2 !text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === 'selection' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-400'}`}
                     >
                         Selección
                     </Button>
@@ -157,22 +160,23 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
 
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {activeTab === 'range' && type === 'date' ? (
-                    <div className="p-4 space-y-4">
+                    <div className="p-3 space-y-3">
                         {/* Filtro por Mes */}
-                        <div className="space-y-2">
-                            <Text variant="caption" className="text-[10px] text-slate-400 uppercase font-bold">Por Mes (Año actual)</Text>
-                            <div className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1.5">
+                            <Text variant="caption" className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Por Mes (Año actual)</Text>
+                            <div className="grid grid-cols-3 gap-1.5">
                                 {months.map((month, idx) => (
                                     <Button
                                         key={month}
                                         variant="custom"
+                                        size="xs"
                                         onClick={() => {
                                             const year = new Date().getFullYear();
                                             const start = `${year}-${String(idx + 1).padStart(2, '0')}-01`;
                                             const end = `${year}-${String(idx + 1).padStart(2, '0')}-31`;
                                             onDateRangeChange?.({ start, end });
                                         }}
-                                        className={`px-2 py-1 text-[10px] rounded-lg transition-all ${
+                                        className={`!px-1 !py-1 !text-[10px] rounded-lg transition-all ${
                                             dateRange?.start.includes(`-${String(idx + 1).padStart(2, '0')}-`)
                                                 ? 'bg-blue-500 text-white'
                                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
@@ -185,9 +189,9 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
                         </div>
 
                         {/* Filtro por Rango Manual */}
-                        <div className="space-y-2">
-                            <Text variant="caption" className="text-[10px] text-slate-400 uppercase font-bold">Rango Personalizado</Text>
-                            <div className="flex flex-col gap-2">
+                        <div className="space-y-1.5">
+                            <Text variant="caption" className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Rango Personalizado</Text>
+                            <div className="flex flex-col gap-1.5">
                                 <div className="flex flex-col gap-1">
                                     <Text variant="caption" className="text-[9px] text-slate-400 uppercase ml-1">Desde</Text>
                                     <Input
@@ -218,7 +222,7 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
                             size="xs"
                             onClick={() => onDateRangeChange?.({ start: '', end: '' })}
                             icon={RotateCcw}
-                            className="w-full py-2 text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors"
+                            className="w-full !py-1.5 !text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors"
                         >
                             Limpiar Rango
                         </Button>
@@ -268,13 +272,14 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
                                     <Button
                                         key={option}
                                         variant="custom"
+                                        size="xs"
                                         onClick={() => toggleOption(option)}
-                                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all group"
+                                        className="w-full flex items-center gap-2 !px-2 !py-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all group"
                                     >
                                         <div className={`shrink-0 transition-colors ${selectedValues.has(option) ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'}`}>
-                                            <Icon name={selectedValues.has(option) ? CheckSquare : Square} size="sm" />
+                                            <Icon name={selectedValues.has(option) ? CheckSquare : Square} size="xs" />
                                         </div>
-                                        <Text variant="caption" className={`truncate transition-colors ${selectedValues.has(option) ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-600 dark:text-slate-400'}`}>
+                                        <Text variant="caption" className={`truncate !text-[11px] transition-colors ${selectedValues.has(option) ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-600 dark:text-slate-400'}`}>
                                             {type === 'date' 
                                             ? option.split('-').reverse().join('/') 
                                             : (option || '(Vacío)')}
