@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { Check, ChevronDown, Filter, Search, X } from 'lucide-react';
+import { ChevronDown, Filter } from 'lucide-react';
 import { Text } from './Text';
-import Input from './Input';
-import Button from './Button';
+import { FilterDropdown } from '../molecules';
 
 interface MultiSelectOption {
     value: string;
@@ -44,7 +42,6 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
     
     const containerRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
 
     // Cerrar al hacer clic fuera (manejado globalmente por ser Portal)
     useEffect(() => {
@@ -63,15 +60,13 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
             const rect = containerRef.current.getBoundingClientRect();
             // Calculamos la posición exacta para el Portal
             setDropdownPos({
-                top: rect.bottom + window.scrollY,
-                left: rect.left + window.scrollX,
+                top: rect.bottom,
+                left: rect.left,
                 width: Math.max(rect.width, 220)
             });
             setTempValue(value);
             setSearchTerm('');
             setIsOpen(true);
-            // El foco se maneja en un timeout para asegurar que el Portal ya está en el DOM
-            setTimeout(() => inputRef.current?.focus(), 50);
         } else {
             setIsOpen(false);
         }
@@ -100,11 +95,11 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
     const isAllSelected = filteredOptions.length > 0 && filteredOptions.every(opt => tempValue.includes(opt.value));
 
     const toggleAll = () => {
+        const filteredValues = filteredOptions.map(o => o.value);
         if (isAllSelected) {
-            const filteredValues = filteredOptions.map(o => o.value);
             setTempValue(prev => prev.filter(v => !filteredValues.includes(v)));
         } else {
-            const newValues = Array.from(new Set([...tempValue, ...filteredOptions.map(o => o.value)]));
+            const newValues = Array.from(new Set([...tempValue, ...filteredValues]));
             setTempValue(newValues);
         }
     };
@@ -157,98 +152,24 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                                 className={`transition-colors ${isOpen || value.length > 0 ? 'text-white' : 'text-white/40 group-hover:text-white/70'}`} 
                             />
                         )}
-                        {/* Red Badge Removed - Using Shading Instead */}
                     </div>
                 ) : (
-                    <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary-500' : 'text-neutral-400'}`} />
+                    <ChevronDown size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-500' : 'text-slate-400'}`} />
                 )}
-            </div>
-
-            {isOpen && createPortal(
-                <div 
-                    className="multiselect-dropdown-portal absolute z-[9999] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-                    style={{ // @audit-ok
-                        top: dropdownPos.top + 4, 
-                        left: dropdownPos.left, 
-                        minWidth: dropdownPos.width,
-                        maxHeight: '400px',
-                        display: 'flex',
-                        flexDirection: 'column'
-                    }}
-                >
-                    {/* Buscador */}
-                    <div className="p-2 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/50 flex items-center gap-2">
-                        <Input
-                            ref={inputRef}
-                            placeholder="Buscar..."
-                            size="xs"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleApply()}
-                            fullWidth
-                            className="!border-none !bg-transparent !shadow-none"
-                            icon={Search}
-                        />
-                        {searchTerm && (
-                            <X 
-                                size={14} 
-                                className="text-neutral-400 hover:text-neutral-600 cursor-pointer" 
-                                onClick={() => setSearchTerm('')}
-                            />
-                        )}
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto py-1 scrollbar-thin scrollbar-thumb-neutral-200 dark:scrollbar-thumb-neutral-700 max-h-[250px]">
-                        {filteredOptions.length > 0 && (
-                            <div 
-                                onClick={toggleAll}
-                                className="flex items-center gap-2 px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer border-b border-neutral-100 dark:border-neutral-800 transition-colors"
-                            >
-                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-neutral-300 dark:border-neutral-600'}`}>
-                                    {isAllSelected && <Check size={10} className="text-white" />}
-                                </div>
-                                <Text variant="caption" weight="bold" className="text-[10px] uppercase">Seleccionar {searchTerm ? 'Visibles' : 'Todos'}</Text>
-                            </div>
-                        )}
-                        
-                        {filteredOptions.map((opt) => {
-                            const selected = tempValue.includes(opt.value);
-                            return (
-                                <div
-                                    key={opt.value || '__empty__'}
-                                    onClick={() => toggleOption(opt.value)}
-                                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer transition-colors"
-                                >
-                                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${selected ? 'bg-primary-500 border-primary-500' : 'border-neutral-300 dark:border-neutral-600'}`}>
-                                        {selected && <Check size={10} className="text-white" />}
-                                    </div>
-                                    <Text variant="caption" className={`text-[11px] ${selected ? 'font-bold text-primary-600 dark:text-primary-400' : 'text-neutral-700 dark:text-neutral-300'}`}>{opt.label}</Text>
-                                </div>
-                            );
-                        })}
-                        
-                        {filteredOptions.length === 0 && (
-                            <div className="px-4 py-8 text-center flex flex-col items-center gap-2">
-                                <Search size={24} className="text-neutral-200 dark:text-neutral-800" />
-                                <Text variant="caption" color="text-secondary">Sin coincidencias</Text>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Footer con Acción */}
-                    <div className="p-2 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50/30 dark:bg-neutral-800/30 flex items-center justify-between gap-2">
-                         <Text variant="caption" className="text-[9px] opacity-60 px-1">{tempValue.length} seleccionados</Text>
-                         <Button
-                            onClick={handleApply}
-                            size="sm"
-                            className="!text-[10px] !px-4 !py-1.5 uppercase tracking-wider h-auto"
-                         >
-                            Aplicar Filtro
-                         </Button>
-                    </div>
-                </div>,
-                document.body
-            )}
+            </div>            <FilterDropdown
+                isOpen={isOpen}
+                onClose={() => setIsOpen(false)}
+                anchorRect={dropdownPos}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                onSelectAll={toggleAll}
+                isAllSelected={isAllSelected}
+                options={filteredOptions}
+                tempValue={tempValue}
+                onToggleOption={toggleOption}
+                onApply={handleApply}
+                placeholder="Buscar opciones..."
+            />
         </div>
     );
 };

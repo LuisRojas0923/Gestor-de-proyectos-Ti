@@ -50,16 +50,6 @@ services:
     networks:
       - app-network
 
-  adminer:
-    image: adminer
-    container_name: gestor-de-proyectos-ti-adminer
-    restart: always
-    ports:
-      - "8085:8080"
-    depends_on:
-      - db
-    networks:
-      - app-network
 
   db:
     image: postgres:15-alpine

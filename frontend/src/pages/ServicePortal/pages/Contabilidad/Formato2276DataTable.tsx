@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Title, Text, Button, MaterialCard, Input, Select, Checkbox } from '../../../../components/atoms';
+import { Title, Text, Button, MaterialCard, Input, Select } from '../../../../components/atoms';
+import { FilterDropdown } from '../../../../components/molecules';
 import { useAppContext } from '../../../../context/AppContext';
-import { ArrowLeft, Search, FileSpreadsheet, Filter, X } from 'lucide-react';
+import { ArrowLeft, Search, FileSpreadsheet, Filter } from 'lucide-react';
 import { ImpuestosService } from '../../../../services/ImpuestosService';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 
@@ -36,193 +36,7 @@ interface FilterState {
     };
 }
 
-interface ColumnFilterPopoverProps {
-    columnKey: string;
-    title: string;
-    type: 'categorical' | 'numeric';
-    options: string[];
-    currentState: FilterState[string];
-    onSelectionChange: (key: string, newState: FilterState[string]) => void;
-    onClose: () => void;
-    anchorRect: DOMRect | null;
-}
-
-const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
-    columnKey, title, type, options, currentState, onSelectionChange, onClose, anchorRect
-}) => {
-    const [search, setSearch] = useState('');
-    const popoverRef = useRef<HTMLDivElement>(null);
-
-    // Aplicar posicionamiento dinámico vía Ref para evitar violaciones de estilos inline en JSX
-    React.useLayoutEffect(() => {
-        if (popoverRef.current && anchorRect) {
-            const POPOVER_WIDTH = 280;
-            const POPOVER_HEIGHT = 400;
-            const MARGIN = 16;
-            
-            let top = anchorRect.bottom + 8;
-            let left = anchorRect.left;
-
-            if (top + POPOVER_HEIGHT > window.innerHeight) {
-                top = anchorRect.top - POPOVER_HEIGHT - 8;
-            }
-            if (left + POPOVER_WIDTH > window.innerWidth) {
-                left = window.innerWidth - POPOVER_WIDTH - MARGIN;
-            }
-
-            popoverRef.current.style.top = `${top}px`;
-            popoverRef.current.style.left = `${left}px`;
-            popoverRef.current.style.width = `${POPOVER_WIDTH}px`;
-        }
-    }, [anchorRect]);
-
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) onClose();
-        };
-        const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        document.addEventListener('mousedown', handler);
-        document.addEventListener('keydown', handleEsc);
-        return () => {
-            document.removeEventListener('mousedown', handler);
-            document.removeEventListener('keydown', handleEsc);
-        };
-    }, [onClose]);
-
-    if (!anchorRect) return null;
-
-
-    const filteredOptions = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
-
-    const toggleOption = (opt: string) => {
-        const newSelected = new Set(currentState.selected || []);
-        if (newSelected.has(opt)) newSelected.delete(opt);
-        else newSelected.add(opt);
-        onSelectionChange(columnKey, { ...currentState, selected: newSelected });
-    };
-
-    const updateRange = (field: 'min' | 'max', val: string) => {
-        const numVal = val === '' ? '' : Number(val);
-        const newRange = { ...(currentState.range || { min: '', max: '' }), [field]: numVal };
-        onSelectionChange(columnKey, { ...currentState, range: newRange });
-    };
-
-    return createPortal(
-        <div 
-            ref={popoverRef}
-            className="fixed z-[9999] bg-white/95 dark:bg-neutral-800/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[400px]"
-        >
-            <div className="p-4 border-b border-neutral-100 dark:border-neutral-700 flex justify-between items-center">
-                <Text variant="caption" weight="bold" className="uppercase tracking-widest opacity-60">Filtrar: {title}</Text>
-                <Button 
-                    variant="ghost" 
-                    onClick={onClose} 
-                    className="p-1 h-8 w-8 rounded-full"
-                    icon={X}
-                />
-            </div>
-
-            {type === 'categorical' ? (
-                <>
-                    <div className="p-3">
-                        <Input 
-                            placeholder="Buscar valor..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            icon={Search}
-                            className="bg-neutral-100 dark:bg-neutral-700 border-none"
-                            fullWidth
-                            size="sm"
-                            autoFocus
-                        />
-                    </div>
-                    <div className="px-3 pb-2 flex gap-2">
-                        <Button 
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onSelectionChange(columnKey, { ...currentState, selected: new Set(options) })}
-                            className="text-[10px] text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 font-bold uppercase h-6 px-2"
-                        >
-                            Todos
-                        </Button>
-                        <Button 
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onSelectionChange(columnKey, { ...currentState, selected: new Set() })}
-                            className="text-[10px] text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-900/20 font-bold uppercase h-6 px-2"
-                        >
-                            Limpiar
-                        </Button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto px-1 py-1 custom-scrollbar">
-                        {filteredOptions.length > 0 ? filteredOptions.map(opt => (
-                            <div 
-                                key={opt} 
-                                onClick={() => toggleOption(opt)}
-                                className="flex items-center gap-2 px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 rounded-lg cursor-pointer transition-colors group"
-                            >
-                                <Checkbox 
-                                    checked={!!currentState.selected?.has(opt)} 
-                                    onChange={() => {}} 
-                                />
-                                <Text className="text-sm truncate opacity-80 group-hover:opacity-100">{opt || '(Vacío)'}</Text>
-                            </div>
-                        )) : (
-                            <div className="p-8 text-center">
-                                <Text variant="caption" className="opacity-40 italic">No hay coincidencias</Text>
-                            </div>
-                        )}
-                    </div>
-                </>
-            ) : (
-                <div className="p-4 space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                            <Text variant="caption" className="text-[10px] opacity-60 uppercase">Desde</Text>
-                            <Input 
-                                type="number" 
-                                value={currentState.range?.min?.toString() ?? ''}
-                                onChange={(e) => updateRange('min', e.target.value)}
-                                placeholder="Min"
-                                className="bg-neutral-100 dark:bg-neutral-700 border-none"
-                                size="sm"
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <Text variant="caption" className="text-[10px] opacity-60 uppercase">Hasta</Text>
-                            <Input 
-                                type="number" 
-                                value={currentState.range?.max?.toString() ?? ''}
-                                onChange={(e) => updateRange('max', e.target.value)}
-                                placeholder="Max"
-                                className="bg-neutral-100 dark:bg-neutral-700 border-none"
-                                size="sm"
-                            />
-                        </div>
-                    </div>
-                    <Button 
-                        fullWidth 
-                        size="sm" 
-                        variant="custom" 
-                        onClick={() => onSelectionChange(columnKey, { ...currentState, range: { min: '', max: '' } })}
-                        className="bg-neutral-100 hover:bg-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-300"
-                    >
-                        Resetear Rango
-                    </Button>
-                </div>
-            )}
-
-            <div className="p-3 border-t border-neutral-100 dark:border-neutral-700 flex justify-between items-center bg-neutral-50/50 dark:bg-neutral-800/50">
-                <Text variant="caption" className="text-[10px] opacity-50">
-                    {type === 'categorical' ? `${currentState.selected?.size} seleccionados` : 'Filtro por rango'}
-                </Text>
-            </div>
-        </div>,
-        document.body
-    );
-};
+// El componente ColumnFilterPopover local ha sido eliminado a favor de FilterDropdown del sistema de diseño.
 
 interface Formato2276DataTableProps {
     onBack: () => void;
@@ -240,6 +54,7 @@ const Formato2276DataTable: React.FC<Formato2276DataTableProps> = ({ onBack }) =
     // --- ESTADO DE FILTROS AVANZADOS ---
     const [filters, setFilters] = useState<FilterState>({});
     const [activeFilter, setActiveFilter] = useState<{ key: string, title: string, type: 'categorical' | 'numeric', rect: DOMRect } | null>(null);
+    const [filterSearch, setFilterSearch] = useState('');
 
     const isContabilidad = user?.role === 'contabilidad' || user?.role === 'admin' || user?.role === 'admin_sistemas';
 
@@ -319,6 +134,7 @@ const Formato2276DataTable: React.FC<Formato2276DataTableProps> = ({ onBack }) =
                     size="sm"
                     onClick={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
+                        setFilterSearch('');
                         setActiveFilter({ key, title, type, rect });
                     }}
                     className={`p-1 h-6 w-6 rounded-md transition-all shadow-none border-none ${hasFilter ? 'text-yellow-400 bg-white/20' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
@@ -463,15 +279,48 @@ const Formato2276DataTable: React.FC<Formato2276DataTableProps> = ({ onBack }) =
                 )}
                 {/* Popover de Filtro */}
                 {activeFilter && (
-                    <ColumnFilterPopover 
-                        columnKey={activeFilter.key}
-                        title={activeFilter.title}
-                        type={activeFilter.type}
-                        options={getUniqueValues(activeFilter.key)}
-                        currentState={filters[activeFilter.key] || { type: activeFilter.type, selected: new Set(), range: { min: '', max: '' } }}
-                        onSelectionChange={(key: string, state: any) => setFilters((prev: any) => ({ ...prev, [key]: state }))}
+                    <FilterDropdown
+                        isOpen={!!activeFilter}
                         onClose={() => setActiveFilter(null)}
                         anchorRect={activeFilter.rect}
+                        title={activeFilter.title}
+                        type={activeFilter.type === 'categorical' ? 'categorical' : 'numeric'}
+                        
+                        // Categorical
+                        searchTerm={filterSearch}
+                        onSearchChange={setFilterSearch}
+                        options={getUniqueValues(activeFilter.key)
+                            .filter(o => o.toLowerCase().includes(filterSearch.toLowerCase()))
+                            .map(o => ({ value: o, label: o }))}
+                        tempValue={Array.from((filters[activeFilter.key] as any)?.selected || [])}
+                        onToggleOption={(val) => {
+                            const current = filters[activeFilter.key] || { type: activeFilter.type, selected: new Set(), range: { min: '', max: '' } };
+                            const newSelected = new Set(current.selected || []);
+                            if (newSelected.has(val)) newSelected.delete(val);
+                            else newSelected.add(val);
+                            setFilters(prev => ({ ...prev, [activeFilter.key]: { ...current, selected: newSelected } }));
+                        }}
+                        onSelectAll={() => {
+                            const current = filters[activeFilter.key] || { type: activeFilter.type, selected: new Set(), range: { min: '', max: '' } };
+                            setFilters(prev => ({ ...prev, [activeFilter.key]: { ...current, selected: new Set(getUniqueValues(activeFilter.key)) } }));
+                        }}
+                        isAllSelected={(filters[activeFilter.key] as any)?.selected?.size === getUniqueValues(activeFilter.key).length}
+                        
+                        // Numeric
+                        rangeValue={{ 
+                            min: (filters[activeFilter.key] as any)?.range?.min ?? '', 
+                            max: (filters[activeFilter.key] as any)?.range?.max ?? '' 
+                        }}
+                        onRangeChange={(range) => {
+                            const current = filters[activeFilter.key] || { type: activeFilter.type, selected: new Set(), range: { min: '', max: '' } };
+                            const numericRange: { min: number | '', max: number | '' } = {
+                                min: range.min === '' ? '' : Number(range.min),
+                                max: range.max === '' ? '' : Number(range.max)
+                            };
+                            setFilters(prev => ({ ...prev, [activeFilter.key]: { ...current, range: numericRange } }));
+                        }}
+                        
+                        onApply={() => setActiveFilter(null)}
                     />
                 )}
             </MaterialCard>

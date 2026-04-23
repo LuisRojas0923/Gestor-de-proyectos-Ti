@@ -6,6 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from jinja2 import Environment, FileSystemLoader
 from app.config import config
+from .email_utils import EmailUtils
 
 
 class EmailService:
@@ -17,18 +18,11 @@ class EmailService:
     )
     _jinja_env = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
 
-    @staticmethod
-    def _render_template(template_name: str, **context) -> str:
-        """Renderiza una plantilla de Jinja2"""
-        template = EmailService._jinja_env.get_template(template_name)
-        return template.render(**context)
-
-    @staticmethod
-    def get_frontend_url() -> str:
-        """
-        Retorna la URL del frontend configurada en el sistema (.env).
-        """
-        return (config.hostveremail or config.frontend_url).rstrip("/")
+    _render_template = EmailUtils._render_template if hasattr(EmailUtils, "_render_template") else None
+    get_frontend_url = EmailUtils.get_frontend_url
+    _standardize_ticket_subject = EmailUtils._standardize_ticket_subject
+    _get_ticket_message_id = EmailUtils._get_ticket_message_id
+    _get_attachments = EmailUtils._get_attachments
 
     @staticmethod
     async def enviar_correo(
@@ -36,10 +30,13 @@ class EmailService:
         destinatarios: List[str],
         contenido_html: str,
         contenido_texto: Optional[str] = None,
-        attachments: Optional[List[dict]] = None
+        attachments: Optional[List[dict]] = None,
+        message_id: Optional[str] = None,
+        in_reply_to: Optional[str] = None
     ) -> bool:
         """
         Envía un correo electrónico utilizando la configuración SMTP del sistema.
+        Soporta cabeceras de threading (Message-ID, In-Reply-To).
         """
         if not config.smtp_host or not config.smtp_user or not config.smtp_pass:
             print("WARNING: Configuración SMTP incompleta. El correo no será enviado.")
@@ -57,6 +54,14 @@ class EmailService:
             msg_root["Subject"] = asunto
             msg_root["From"] = config.smtp_from or config.smtp_user
             msg_root["To"] = ", ".join(destinatarios)
+
+            # Cabeceras para Hilos (Threading)
+            if message_id:
+                msg_root["Message-ID"] = message_id
+            if in_reply_to:
+                msg_root["In-Reply-To"] = in_reply_to
+                # References suele contener el historial de IDs, pero el raíz es el más importante
+                msg_root["References"] = in_reply_to
 
             msg_alternative = MIMEMultipart("alternative")
             msg_root.attach(msg_alternative)
@@ -109,103 +114,7 @@ class EmailService:
 
     @staticmethod
     def _get_base_layout(titulo: str, contenido_html: str) -> str:
-        """
-        Envuelve el contenido específico en una plantilla base universal 
-        compatible con todos los clientes de Outlook y con estética Premium Corporativa.
-        Usa la paleta de colores del portal (Navy Blue #002060).
-        """
-        navy_blue = "#002060"
-        light_blue = "#f0f4f8"
-        
-        return f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>{titulo}</title>
-            <!--[if mso]>
-            <style type="text/css">
-                body, table, td, h1, h2, h3, h4, span, div {{ font-family: Segoe UI, Arial, sans-serif !important; }}
-            </style>
-            <![endif]-->
-        </head>
-        <body style="margin: 0; padding: 0; background-color: {light_blue}; font-family: 'Segoe UI', Arial, sans-serif;">
-            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: {light_blue};">
-                <tr>
-                    <td align="center" style="padding: 40px 10px;">
-                        <!--[if mso]>
-                        <table align="center" width="600" border="0" cellspacing="0" cellpadding="0" style="width: 600px;">
-                        <tr><td>
-                        <![endif]-->
-                        <table align="center" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; border-collapse: separate; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #e1e8e5;">
-                            <tr>
-                                <td>
-                                    <!-- Header Corporativo -->
-                                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: {navy_blue}; border-collapse: collapse;">
-                                        <tr>
-                                            <td style="padding: 30px 40px;">
-                                                <table border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
-                                                    <tr>
-                                                        <!-- Logo -->
-                                                        <td width="50" valign="middle" style="vertical-align: middle;">
-                                                            <img src="cid:logo_refridcol" alt="Refridcol Logo" width="50" height="auto" style="display: block; border: 0;">
-                                                        </td>
-                                                        <!-- Spacer -->
-                                                        <td width="20" style="width: 20px;">&nbsp;</td>
-                                                        <!-- Texto -->
-                                                        <td valign="middle" style="vertical-align: middle;">
-                                                            <div style="margin: 0; padding: 0;">
-                                                                <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 1px; font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.2;">
-                                                                    INDUSTRIAS <span style="color: #b4c6e7;">REFRIDCOL</span>
-                                                                </h2>
-                                                                <div style="color: #b4c6e7; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; font-family: 'Segoe UI', Arial, sans-serif; margin-top: 2px;">
-                                                                    Portal de Servicios Solid
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    
-                                    <!-- Cuerpo del Correo -->
-                                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                                        <tr>
-                                            <td style="padding: 40px;">
-                                                <h1 style="color: #2c3e50; font-size: 24px; font-weight: 700; text-align: left; margin: 0 0 25px 0; font-family: 'Segoe UI', Arial, sans-serif;">
-                                                    {titulo}
-                                                </h1>
-                                                
-                                                {contenido_html}
-                                                
-                                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-top: 1px solid #edf2f7; margin-top: 25px;">
-                                                    <tr>
-                                                        <td style="padding-top: 25px; text-align: center;">
-                                                            <p style="color: #a0aec0; font-size: 13px; margin: 0; font-family: 'Segoe UI', Arial, sans-serif;">
-                                                                Solid - Industrias Refridcol S.A. &copy; 2026<br>
-                                                                <strong style="color: #718096;">Hacemos el mejor frío</strong><br>
-                                                                <span style="font-size: 11px; color: #a0aec0;">Una iniciativa del Departamento de Desarrollo e Innovación</span>
-                                                            </p>
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
-                        <!--[if mso]>
-                        </td></tr></table>
-                        <![endif]-->
-                    </td>
-                </tr>
-            </table>
-        </body>
-        </html>
-        """
+        return EmailUtils._get_base_layout(titulo, contenido_html)
 
     # Ruta al logo corporativo (usado en CIDs) - Dinámica para facilitar Docker
     LOGO_PATH = os.path.join(
@@ -298,6 +207,7 @@ class EmailService:
             print(f"ERROR al renderizar/enviar correo de éxito: {e}")
             return False
 
+
     @staticmethod
     async def enviar_confirmacion_ticket(
         email: Union[str, List[str]],
@@ -308,7 +218,8 @@ class EmailService:
         categoria: str,
     ) -> bool:
         """Envía un correo de acuse de recibo premium con los colores del portal (Navy Blue)"""
-        asunto = f"Recibimos tu solicitud: {ticket_id}"
+        # Formato de asunto estandarizado para hilos
+        asunto = EmailService._standardize_ticket_subject(ticket_id, asunto_ticket)
         titulo = "¡Solicitud Recibida!"
         
         # Asegurar que email sea una lista para el envío
@@ -365,18 +276,21 @@ class EmailService:
             asunto, 
             destinatarios, 
             html_final, 
-            attachments=EmailService._get_attachments()
+            attachments=EmailService._get_attachments(),
+            message_id=EmailService._get_ticket_message_id(ticket_id)
         )
     @staticmethod
     async def enviar_notificacion_chat(
         email_destinatario: str,
         nombre_destinatario: str,
         ticket_id: str,
+        asunto_ticket: str,
         nombre_remitente: str,
         mensaje: str
     ) -> bool:
         """Envía una notificación de nuevo mensaje en el chat"""
-        asunto = f"Nuevo mensaje en tu solicitud: {ticket_id}"
+        # Mantener el asunto idéntico (o con Re:) para favorecer el threading
+        asunto = EmailService._standardize_ticket_subject(ticket_id, asunto_ticket, es_respuesta=True)
         
         try:
             # Limitar mensaje si es muy largo
@@ -398,10 +312,61 @@ class EmailService:
                 asunto, 
                 [email_destinatario], 
                 html_final, 
-                attachments=EmailService._get_attachments()
+                attachments=EmailService._get_attachments(),
+                in_reply_to=EmailService._get_ticket_message_id(ticket_id)
             )
         except Exception as e:
             print(f"ERROR al enviar notificación de chat: {e}")
+            return False
+
+    @staticmethod
+    async def enviar_notificacion_cambio_estado(
+        email_destinatario: str,
+        nombre_destinatario: str,
+        ticket_id: str,
+        asunto_ticket: str,
+        nuevo_estado: str,
+        comentario: Optional[str] = None
+    ) -> bool:
+        """Notifica al usuario que el estado de su ticket ha cambiado"""
+        asunto = EmailService._standardize_ticket_subject(ticket_id, asunto_ticket, es_respuesta=True)
+        
+        # Mapeo de colores por estado
+        colores = {
+            "Pendiente": {"fondo": "#fef3c7", "texto": "#92400e", "borde": "#fde68a"},
+            "Proceso": {"fondo": "#e0f2fe", "texto": "#075985", "borde": "#bae6fd"},
+            "Resuelto": {"fondo": "#dcfce7", "texto": "#166534", "borde": "#bbf7d0"},
+            "Cerrado": {"fondo": "#f1f5f9", "texto": "#334155", "borde": "#e2e8f0"},
+            "Cancelado": {"fondo": "#fee2e2", "texto": "#991b1b", "borde": "#fecaca"}
+        }
+        
+        conf_color = colores.get(nuevo_estado, {"fondo": "#ebf8ff", "texto": "#2b6cb0", "borde": "#bee3f8"})
+        
+        try:
+            portal_url = f"{EmailService.get_frontend_url()}/tickets/{ticket_id}"
+            
+            html_final = EmailService._render_template(
+                "emails/status_update.html",
+                titulo="Actualización de Estado",
+                nombre_destinatario=nombre_destinatario,
+                ticket_id=ticket_id,
+                nuevo_estado=nuevo_estado,
+                comentario_resolucion=comentario,
+                portal_url=portal_url,
+                color_fondo=conf_color["fondo"],
+                color_texto=conf_color["texto"],
+                color_borde=conf_color["borde"]
+            )
+            
+            return await EmailService.enviar_correo(
+                asunto, 
+                [email_destinatario], 
+                html_final, 
+                attachments=EmailService._get_attachments(),
+                in_reply_to=EmailService._get_ticket_message_id(ticket_id)
+            )
+        except Exception as e:
+            print(f"ERROR al enviar notificación de cambio de estado: {e}")
             return False
 
     @staticmethod

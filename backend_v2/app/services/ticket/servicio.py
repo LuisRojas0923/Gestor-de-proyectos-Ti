@@ -2,12 +2,12 @@
 Servicio de Tickets - Backend V2 (Facade)
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, or_
 from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
-from fastapi import HTTPException
+from fastapi import HTTPException, BackgroundTasks
 import json
 
 from app.models.ticket.ticket import (
@@ -28,6 +28,7 @@ from .stats_service import StatService
 from .category_service import CategoryService
 from .attachment_service import AttachmentService
 from .ticket_utils import TicketUtils
+from .list_service import TicketListService
 from ..notifications.email_service import EmailService
 from ...models.ticket.ticket import CategoriaTicket
 from ...utils_cache import global_cache
@@ -48,9 +49,14 @@ class ServicioTicket:
     # Delegación de categorías y adjuntos
     listar_categorias = CategoryService.listar_categorias
     subir_adjunto = AttachmentService.subir_adjunto
+    
+    # Delegación de listado
+    listar_tickets = TicketListService.listar_tickets
 
     @classmethod
-    async def crear_ticket(cls, db: AsyncSession, ticket_data: TicketCrear) -> Ticket:
+    async def crear_ticket(
+        cls, db: AsyncSession, ticket_data: TicketCrear, background_tasks: Optional[BackgroundTasks] = None
+    ) -> Ticket:
         """Crea un nuevo ticket (Async)"""
         # Validación obligatoria de correo para notificaciones
         if not ticket_data.correo_creador or "@" not in ticket_data.correo_creador:
@@ -194,14 +200,25 @@ class ServicioTicket:
                 cat_obj = res_cat.scalars().first()
                 cat_nombre = cat_obj.nombre if cat_obj else ticket_data.categoria_id
 
-                await EmailService.enviar_confirmacion_ticket(
-                    email=ticket_data.correo_creador,
-                    nombre=ticket_data.nombre_creador,
-                    ticket_id=ticket_id,
-                    asunto_ticket=ticket_data.asunto,
-                    descripcion=ticket_data.descripcion,
-                    categoria=cat_nombre,
-                )
+                if background_tasks:
+                    background_tasks.add_task(
+                        EmailService.enviar_confirmacion_ticket,
+                        email=ticket_data.correo_creador,
+                        nombre=ticket_data.nombre_creador,
+                        ticket_id=ticket_id,
+                        asunto_ticket=ticket_data.asunto,
+                        descripcion=ticket_data.descripcion,
+                        categoria=cat_nombre,
+                    )
+                else:
+                    await EmailService.enviar_confirmacion_ticket(
+                        email=ticket_data.correo_creador,
+                        nombre=ticket_data.nombre_creador,
+                        ticket_id=ticket_id,
+                        asunto_ticket=ticket_data.asunto,
+                        descripcion=ticket_data.descripcion,
+                        categoria=cat_nombre,
+                    )
             except Exception as mail_err:
                 print(f"WARNING: No se pudo enviar el correo de confirmación: {mail_err}")
 
@@ -212,7 +229,7 @@ class ServicioTicket:
 
     @classmethod
     async def actualizar_ticket(
-        cls, db: AsyncSession, ticket_id: str, ticket_in: TicketActualizar
+        cls, db: AsyncSession, ticket_id: str, ticket_in: TicketActualizar, background_tasks: Optional[BackgroundTasks] = None
     ) -> Ticket:
         """Actualiza un ticket existente (Async)"""
         result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
@@ -268,6 +285,31 @@ class ServicioTicket:
             else:
                 db_ticket.fecha_cierre = db_ticket.resuelto_en = None
 
+            # Notificación por correo de cambio de estado (Best-effort)
+            if db_ticket.correo_creador:
+                try:
+                    if background_tasks:
+                        background_tasks.add_task(
+                            EmailService.enviar_notificacion_cambio_estado,
+                            email_destinatario=db_ticket.correo_creador,
+                            nombre_destinatario=db_ticket.nombre_creador or "Usuario",
+                            ticket_id=ticket_id,
+                            asunto_ticket=db_ticket.asunto,
+                            nuevo_estado=db_ticket.estado,
+                            comentario=db_ticket.resolucion if db_ticket.estado == "Resuelto" else None
+                        )
+                    else:
+                        await EmailService.enviar_notificacion_cambio_estado(
+                            email_destinatario=db_ticket.correo_creador,
+                            nombre_destinatario=db_ticket.nombre_creador or "Usuario",
+                            ticket_id=ticket_id,
+                            asunto_ticket=db_ticket.asunto,
+                            nuevo_estado=db_ticket.estado,
+                            comentario=db_ticket.resolucion if db_ticket.estado == "Resuelto" else None
+                        )
+                except Exception as mail_err:
+                    print(f"WARNING: No se pudo enviar notificación de cambio de estado: {mail_err}")
+
         await db.commit()
         
         # Notificación en tiempo real vía WebSocket
@@ -321,7 +363,7 @@ class ServicioTicket:
 
     @classmethod
     async def agregar_comentario(
-        cls, db: AsyncSession, ticket_id: str, comentario_data: ComentarioCrear
+        cls, db: AsyncSession, ticket_id: str, comentario_data: ComentarioCrear, background_tasks: Optional[BackgroundTasks] = None
     ) -> ComentarioTicket:
         """Agrega un comentario y dispara notificación si aplica"""
         try:
@@ -347,13 +389,25 @@ class ServicioTicket:
                         cache_key = f"chat_notif_throttle:{ticket_id}"
                         if not global_cache.get(cache_key):
                             try:
-                                await EmailService.enviar_notificacion_chat(
-                                    email_destinatario=ticket.correo_creador,
-                                    nombre_destinatario=ticket.nombre_creador or "Usuario",
-                                    ticket_id=ticket_id,
-                                    nombre_remitente=nuevo_comentario.nombre_usuario or "Soporte",
-                                    mensaje=nuevo_comentario.comentario,
-                                )
+                                if background_tasks:
+                                    background_tasks.add_task(
+                                        EmailService.enviar_notificacion_chat,
+                                        email_destinatario=ticket.correo_creador,
+                                        nombre_destinatario=ticket.nombre_creador or "Usuario",
+                                        ticket_id=ticket_id,
+                                        asunto_ticket=ticket.asunto,
+                                        nombre_remitente=nuevo_comentario.nombre_usuario or "Soporte",
+                                        mensaje=nuevo_comentario.comentario,
+                                    )
+                                else:
+                                    await EmailService.enviar_notificacion_chat(
+                                        email_destinatario=ticket.correo_creador,
+                                        nombre_destinatario=ticket.nombre_creador or "Usuario",
+                                        ticket_id=ticket_id,
+                                        asunto_ticket=ticket.asunto,
+                                        nombre_remitente=nuevo_comentario.nombre_usuario or "Soporte",
+                                        mensaje=nuevo_comentario.comentario,
+                                    )
                                 # Activar el seguro por 30 minutos
                                 global_cache.set(cache_key, True, ttl=1800)
                             except Exception as e:
@@ -381,114 +435,6 @@ class ServicioTicket:
             await db.rollback()
             raise e
 
-    @staticmethod
-    async def listar_tickets(
-        db: AsyncSession,
-        skip: int = 0,
-        limit: int = 100,
-        creador_id: Optional[str] = None,
-        estado: Optional[str] = None,
-        asignado_a: Optional[str] = None,
-        search: Optional[str] = None,
-        sub_estado: Optional[str] = None,
-        categoria_id: Optional[str] = None,
-        usuario_peticion: Optional[Usuario] = None,
-    ) -> List[Ticket]:
-        """Lista tickets con paginacion, extensiones y filtros (Async)"""
-        query = select(Ticket, Usuario.correo_verificado).outerjoin(Usuario, Ticket.creador_id == Usuario.id).options(
-            joinedload(Ticket.solicitud_activo),
-            joinedload(Ticket.solicitud_desarrollo),
-            joinedload(Ticket.control_cambios),
-        )
-
-        if creador_id:
-            query = query.where(Ticket.creador_id == creador_id)
-        if estado:
-            query = query.where(Ticket.estado == estado)
-        if sub_estado:
-            query = query.where(Ticket.sub_estado == sub_estado)
-        if asignado_a:
-            query = query.where(Ticket.asignado_a == asignado_a)
-        if categoria_id:
-            if categoria_id == "grupo_ti":
-                categorias_ti = [
-                    "soporte_hardware",
-                    "soporte_software",
-                    "soporte_impresoras",
-                    "perifericos",
-                    "compra_licencias",
-                ]
-                query = query.where(Ticket.categoria_id.in_(categorias_ti))
-            elif categoria_id == "grupo_mejoramiento":
-                categorias_mejora = [
-                    "soporte_mejora",
-                    "nuevos_desarrollos_solid",
-                    "nuevos_desarrollos_mejora",
-                ]
-                query = query.where(Ticket.categoria_id.in_(categorias_mejora))
-            else:
-                query = query.where(Ticket.categoria_id == categoria_id)
-
-        if usuario_peticion:
-            if usuario_peticion.rol in ["admin_sistemas", "admin_mejoramiento"]:
-                specs = json.loads(usuario_peticion.especialidades or "[]")
-                areas = json.loads(usuario_peticion.areas_asignadas or "[]")
-                filtros_visibilidad = [
-                    Ticket.asignado_a == usuario_peticion.nombre,
-                    Ticket.creador_id == usuario_peticion.id,
-                ]
-                if specs:
-                    filtros_visibilidad.append(Ticket.categoria_id.in_(specs))
-                if areas:
-                    filtros_visibilidad.append(Ticket.area_creador.in_(areas))
-                query = query.where(or_(*filtros_visibilidad))
-            elif usuario_peticion.rol == "analyst" and not creador_id:
-                query = query.where(
-                    or_(
-                        Ticket.asignado_a == usuario_peticion.nombre,
-                        Ticket.creador_id == usuario_peticion.id,
-                    )
-                )
-
-        if search:
-            p = f"%{search}%"
-            query = query.where(
-                or_(
-                    Ticket.id.ilike(p),
-                    Ticket.asunto.ilike(p),
-                    Ticket.nombre_creador.ilike(p),
-                    Ticket.area_creador.ilike(p),
-                )
-            )
-
-        query = query.order_by(Ticket.creado_en.desc()).offset(skip).limit(limit)
-        
-        try:
-            result = await db.execute(query)
-            
-            tickets = []
-            for row in result:
-                # SQLAlchemy 2.0 Row puede comportarse como secuencia
-                # La consulta siempre devuelve (Ticket, correo_verificado)
-                try:
-                    # Intento de desempaquetado directo (forma recomendada en SQLA 2.0)
-                    ticket, verificado = row
-                    ticket.correo_verificado_creador = bool(verificado) if verificado is not None else False
-                    tickets.append(ticket)
-                except (TypeError, ValueError):
-                    # Fallback si el resultado no es una tupla/row de 2 elementos
-                    ticket = row[0] if hasattr(row, "__getitem__") else row
-                    if isinstance(ticket, Ticket):
-                        ticket.correo_verificado_creador = False
-                    tickets.append(ticket)
-
-            return tickets
-        except Exception as e:
-            import logging
-            logging.error(f"ERROR en listar_tickets: {str(e)}")
-            # Fallback preventivo: intentar una consulta básica si la compleja falla
-            res_fallback = await db.execute(select(Ticket).offset(skip).limit(limit))
-            return list(res_fallback.scalars().all())
 
     @staticmethod
     async def listar_tickets_por_usuario(

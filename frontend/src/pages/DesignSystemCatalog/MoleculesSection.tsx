@@ -1,5 +1,5 @@
 import React from 'react';
-import { MaterialCard, Title, Subtitle, Text } from '../../components/atoms';
+import { MaterialCard, Title, Subtitle, Text, Button } from '../../components/atoms';
 import {
     ActivityCard,
     // ActivityForm, // Note: mentioned in original but unused directly in render except as text descriptions
@@ -11,7 +11,8 @@ import {
     MaterialMetricCard,
     MaterialSearchBar,
     MetricCard,
-    ProviderSelector
+    ProviderSelector,
+    FilterDropdown
 } from '../../components/molecules';
 import ApiDebug from '../../components/molecules/ApiDebug';
 import { CheckCircle, Star } from 'lucide-react';
@@ -19,6 +20,9 @@ import { useNotifications } from '../../components/notifications/NotificationsCo
 
 const MoleculesSection: React.FC = () => {
     const { addNotification } = useNotifications();
+    const [demoOpen, setDemoOpen] = React.useState(false);
+    const [demoSearch, setDemoSearch] = React.useState('');
+    const [demoAnchor, setDemoAnchor] = React.useState<{ top: number, left: number, width: number } | null>(null);
 
     return (
         <div className="lg:col-span-3 space-y-6 animate-in slide-in-from-right-4 duration-500">
@@ -155,10 +159,50 @@ const MoleculesSection: React.FC = () => {
 
                     {/* ApiDebug */}
                     <div>
-                        <Title variant="h6" className="mb-2">ApiDebug</Title>
-                        <Text color="text-secondary" className="mb-4">Componente de depuración para ver estado de API.</Text>
                         <div className="bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-lg max-h-40 overflow-auto">
                             <ApiDebug />
+                        </div>
+                    </div>
+
+                    {/* FilterDropdown */}
+                    <div className="pt-6">
+                        <Title variant="h6" className="mb-2">FilterDropdown</Title>
+                        <Text color="text-secondary" className="mb-4">Portal de filtrado avanzado con búsqueda y selección múltiple, diseñado bajo el estándar de catálogo.</Text>
+                        <div className="bg-neutral-50 dark:bg-neutral-800/50 p-8 rounded-lg flex flex-col items-center gap-4">
+                            <Button 
+                                variant="primary"
+                                onClick={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setDemoAnchor(rect);
+                                    setDemoOpen(true);
+                                }}
+                            >
+                                Probar FilterDropdown
+                            </Button>
+                            
+                            <FilterDropdown
+                                isOpen={demoOpen}
+                                onClose={() => setDemoOpen(false)}
+                                anchorRect={demoAnchor}
+                                title="Filtro de Ejemplo"
+                                type="categorical"
+                                searchTerm={demoSearch}
+                                onSearchChange={setDemoSearch}
+                                onSelectAll={() => addNotification('info', 'Seleccionar todos clickeado')}
+                                isAllSelected={false}
+                                options={[
+                                    { value: '1', label: 'Item de ejemplo A' },
+                                    { value: '2', label: 'Item de ejemplo B' },
+                                    { value: '3', label: 'Item de ejemplo C' },
+                                    { value: '', label: '(Vacío)' }
+                                ]}
+                                tempValue={['1', '2']}
+                                onToggleOption={(val) => addNotification('success', `Toggle: ${val}`)}
+                                onApply={() => {
+                                    addNotification('info', 'Filtros aplicados');
+                                    setDemoOpen(false);
+                                }}
+                            />
                         </div>
                     </div>
                 </div>

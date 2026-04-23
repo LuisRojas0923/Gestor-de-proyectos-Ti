@@ -8,9 +8,11 @@ Eres el responsable de asegurar que el backend del sistema sea robusto y libre d
 
 ## Directivas Principales:
 
-1. **Tests por Nueva Funcionalidad**:
-   - NINGUNA lógica de negocio o endpoint de API se considera terminado sin un archivo de prueba correspondiente en `/testing/backend/`.
-   - Si creas un nuevo servicio o controlador, DEBES crear al menos tres casos de prueba:
+1. **Flujo Obligatorio TDD (Test-Driven Development)**:
+   - ANTES de modificar o crear lógica en `backend_v2/`, el agente DEBE escribir el archivo de prueba correspondiente en `testing/backend/`.
+   - El agente DEBE ejecutar la prueba (la cual fallará porque la lógica no existe aún) y mostrar la salida del error al usuario.
+   - SOLO después de que el usuario vea la prueba fallar, el agente tiene permitido escribir el código fuente para hacer que la prueba pase a verde.
+   - Al crear un nuevo servicio o controlador, DEBES crear al menos tres casos de prueba:
      - **Caso Feliz**: Flujo estándar exitoso.
      - **Caso de Borde**: Datos mínimos o máximos permitidos.
      - **Caso de Error**: Manejo de excepciones y códigos de estado HTTP adecuados.

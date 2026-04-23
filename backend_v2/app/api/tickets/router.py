@@ -3,7 +3,7 @@ Router de Tickets - Backend V2 (Async + SQLModel)
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.responses import FileResponse
 from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -218,10 +218,14 @@ async def listar_tickets(
 
 
 @router.post("/", response_model=TicketResumen)
-async def crear_ticket(ticket: TicketCrear, db: AsyncSession = Depends(obtener_db)):
+async def crear_ticket(
+    ticket: TicketCrear, 
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(obtener_db)
+):
     """Crea un nuevo ticket de soporte delegando al servicio"""
     try:
-        return await ServicioTicket.crear_ticket(db, ticket)
+        return await ServicioTicket.crear_ticket(db, ticket, background_tasks)
     except Exception as e:
         import traceback
 
@@ -286,11 +290,12 @@ async def websocket_ticket_chat(websocket: WebSocket, ticket_id: str):
 async def agregar_comentario(
     ticket_id: str,
     comentario_data: ComentarioCrear,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(obtener_db),
 ):
     """Agrega un comentario a un ticket delegando al servicio para notificaciones"""
     try:
-        return await ServicioTicket.agregar_comentario(db, ticket_id, comentario_data)
+        return await ServicioTicket.agregar_comentario(db, ticket_id, comentario_data, background_tasks)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -327,11 +332,14 @@ async def marcar_comentarios_leidos(
 
 @router.patch("/{ticket_id}", response_model=TicketResumen)
 async def actualizar_ticket(
-    ticket_id: str, ticket_in: TicketActualizar, db: AsyncSession = Depends(obtener_db)
+    ticket_id: str, 
+    ticket_in: TicketActualizar, 
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(obtener_db)
 ):
     """Actualiza campos de un ticket existente delegando al servicio"""
     try:
-        return await ServicioTicket.actualizar_ticket(db, ticket_id, ticket_in)
+        return await ServicioTicket.actualizar_ticket(db, ticket_id, ticket_in, background_tasks)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
