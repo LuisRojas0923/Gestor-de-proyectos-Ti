@@ -1,9 +1,8 @@
 import os
-from typing import Optional, List
+from typing import List
 from app.config import config
 
 from jinja2 import Environment, FileSystemLoader
-from app.config import config
 
 class EmailUtils:
     """Utilidades para el formateo y preparación de correos"""

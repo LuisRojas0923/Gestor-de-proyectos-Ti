@@ -2,13 +2,12 @@
 Servicio de Tickets - Backend V2 (Facade)
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text, or_
+from sqlalchemy import text
 from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 from fastapi import HTTPException, BackgroundTasks
-import json
 
 from app.models.ticket.ticket import (
     Ticket,

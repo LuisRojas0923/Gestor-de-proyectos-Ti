@@ -88,15 +88,15 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
             }
         }
     }, [isOpen, anchorRect, triggerHeight]);
-    
-    const dynamicStyle: React.CSSProperties = {
-        top: position.top ?? 0,
-        left: position.left ?? 0,
-        width: Math.max(anchorRect?.width ?? 0, 240),
-        maxHeight: maxHeight
-    };
 
     if (!isOpen || !anchorRect || !position) return null;
+    
+    const dynamicStyle: React.CSSProperties = {
+        top: position.top,
+        left: position.left,
+        width: Math.max(anchorRect.width, 240),
+        maxHeight: maxHeight
+    };
 
     return createPortal(
         <div 

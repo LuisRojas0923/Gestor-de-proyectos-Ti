@@ -2,7 +2,7 @@ import json
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_, text
+from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
 from app.models.ticket import Ticket
@@ -65,8 +65,10 @@ class TicketListService:
                     Ticket.asignado_a == usuario_peticion.nombre,
                     Ticket.creador_id == usuario_peticion.id,
                 ]
-                if specs: filtros_visibilidad.append(Ticket.categoria_id.in_(specs))
-                if areas: filtros_visibilidad.append(Ticket.area_creador.in_(areas))
+                if specs:
+                    filtros_visibilidad.append(Ticket.categoria_id.in_(specs))
+                if areas:
+                    filtros_visibilidad.append(Ticket.area_creador.in_(areas))
                 query = query.where(or_(*filtros_visibilidad))
             elif usuario_peticion.rol == "analyst" and not creador_id:
                 query = query.where(or_(Ticket.asignado_a == usuario_peticion.nombre, Ticket.creador_id == usuario_peticion.id))
@@ -87,7 +89,8 @@ class TicketListService:
                     tickets.append(ticket)
                 except (TypeError, ValueError):
                     ticket = row[0] if hasattr(row, "__getitem__") else row
-                    if isinstance(ticket, Ticket): ticket.correo_verificado_creador = False
+                    if isinstance(ticket, Ticket):
+                        ticket.correo_verificado_creador = False
                     tickets.append(ticket)
             return tickets
         except Exception as e:
