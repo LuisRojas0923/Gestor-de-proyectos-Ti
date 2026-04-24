@@ -15,6 +15,13 @@ if (Test-Path "$ROOT_DIR/.env") {
     }
 }
 
+if (Test-Path "$ROOT_DIR/.env") {
+    Get-Content "$ROOT_DIR/.env" | Where-Object { $_ -match "=" -and $_ -notmatch "^#" } | ForEach-Object {
+        $name, $value = $_.Split('=', 2)
+        Set-Variable -Name "LOCAL_$($name.Trim())" -Value $value.Trim() -Scope Script
+    }
+}
+
 $HOST_IP = "192.168.0.21"
 $PROD_PORT = "5433"
 $PROD_DB = $PROD_DB_NAME
@@ -23,8 +30,8 @@ $PROD_PASS = $PROD_DB_PASS
 
 $TARGET_CONTAINER = "gestor-de-proyectos-ti-db"
 $BACKEND_CONTAINER = "gestor-de-proyectos-ti-backend-1"
-$TARGET_DB = $PROD_DB  # Usamos el mismo nombre en local o el definido en .env
-$TARGET_USER = "postgres" # Usuario por defecto en local
+$TARGET_DB = $LOCAL_DB_NAME
+$TARGET_USER = $LOCAL_DB_USER
 
 Write-Host "--- Iniciando clonacion de PRODUCCION a LOCAL ---" -ForegroundColor Cyan
 Write-Host "ADVERTENCIA: Se borraran todos los datos actuales en LOCAL ($TARGET_DB)." -ForegroundColor Red
@@ -47,7 +54,7 @@ Write-Host "3. Iniciando transferencia de datos (Produccion -> Local)..." -Foreg
 
 # Ejecucion directa de la tuberia con pg_dump y psql
 $PG_IMAGE = "postgres:15-alpine"
-docker run --rm -e PGPASSWORD=$PROD_PASS $PG_IMAGE pg_dump -h $HOST_IP -p $PROD_PORT -U $PROD_USER -d $PROD_DB --clean --if-exists --no-owner --no-privileges | docker exec -i $TARGET_CONTAINER psql -U $TARGET_USER -d $TARGET_DB
+docker run --rm -e PGPASSWORD="$PROD_PASS" $PG_IMAGE pg_dump -h $HOST_IP -p $PROD_PORT -U $PROD_USER -d $PROD_DB --clean --if-exists --no-owner --no-privileges | docker exec -i $TARGET_CONTAINER psql -U $TARGET_USER -d $TARGET_DB
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "4. Reiniciando backend local para aplicar autosanacion..." -ForegroundColor Yellow

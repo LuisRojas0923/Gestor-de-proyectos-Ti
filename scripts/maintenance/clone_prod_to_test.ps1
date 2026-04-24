@@ -25,15 +25,23 @@ $HOST_IP = "192.168.0.21"
 $PROD_PORT = "5433"
 $TEST_PORT = "5435"
 
-# Usar nombres de variables cargadas (PROD_DB_NAME, etc)
+# Usar nombres de variables cargadas
 $PROD_DB = $PROD_DB_NAME
+$PROD_USER = $PROD_DB_USER
+$PROD_PASS = $PROD_DB_PASS
+
 $TEST_DB = $TEST_DB_NAME
-$USER = $PROD_DB_USER
-$PASS = $PROD_DB_PASS
+$TEST_USER = $TEST_DB_USER
+$TEST_PASS = $TEST_DB_PASS
 
 $TEST_BACKEND_CONTAINER = "gestor-de-proyectos-ti-backend-pruebas3"
 
-Write-Host "--- Iniciando clonacion de PRODUCCION a PRUEBAS ---" -ForegroundColor Cyan
+# Validacion de carga
+if (-not $PROD_DB -or -not $TEST_DB -or -not $PROD_PASS -or -not $TEST_PASS) {
+    Write-Host "ERROR: No se pudieron cargar todas las variables necesarias de los archivos .env" -ForegroundColor Red
+    Write-Host "Verifique que existan .env y .env.pruebas3 con las llaves DB_NAME, DB_USER y DB_PASS." -ForegroundColor Yellow
+    exit 1
+}
 Write-Host "ADVERTENCIA: Se borraran todos los datos actuales en PRUEBAS ($TEST_DB)." -ForegroundColor Red
 
 # 1. Confirmacion de seguridad
@@ -49,11 +57,13 @@ if (!(Test-NetConnection ${HOST_IP} -Port ${PROD_PORT}).TcpTestSucceeded) {
     exit 1
 }
 
-Write-Host "3. Iniciando transferencia de datos (Produccion -> Pruebas)..." -ForegroundColor Yellow
-
-# Ejecucion directa de la tuberia (mas robusto que Invoke-Expression)
+# Ejecucion directa de la tuberia (con credenciales separadas y protegidas)
 $PG_IMAGE = "postgres:15-alpine"
-docker run --rm -e PGPASSWORD=$PASS $PG_IMAGE pg_dump -h $HOST_IP -p $PROD_PORT -U $USER -d $PROD_DB --clean --if-exists --no-owner --no-privileges | docker run --rm -i -e PGPASSWORD=$PASS $PG_IMAGE psql -h $HOST_IP -p $TEST_PORT -U $USER -d $TEST_DB
+
+Write-Host "Iniciando volcado desde Produccion ($PROD_DB) y restauracion en Pruebas ($TEST_DB)..." -ForegroundColor Gray
+
+docker run --rm -e PGPASSWORD="$PROD_PASS" $PG_IMAGE pg_dump -h $HOST_IP -p $PROD_PORT -U $PROD_USER -d $PROD_DB --clean --if-exists --no-owner --no-privileges | `
+docker run --rm -i -e PGPASSWORD="$TEST_PASS" $PG_IMAGE psql -h $HOST_IP -p $TEST_PORT -U $TEST_USER -d $TEST_DB
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "4. Reiniciando backend de Pruebas para aplicar autosanacion..." -ForegroundColor Yellow

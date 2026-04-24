@@ -61,6 +61,18 @@ $env:PYTHONPATH = "backend_v2;" + $env:PYTHONPATH
 python -m pytest testing/backend/ -v
 ```
 
+### 🖥️ Interfaz Gráfica (GUI)
+Para una experiencia más visual y sencilla, puedes usar el lanzador de pruebas:
+```powershell
+$env:PYTHONPATH = "backend_v2;" + $env:PYTHONPATH
+python testing/GUI_TESTS.py
+```
+Esta herramienta permite:
+*   Correr la suite completa con un clic.
+*   Filtrar por pruebas críticas.
+*   Ver logs coloreados (Éxitos en verde, Fallos en rojo).
+*   Generar el informe automático en `testing/logs/`.
+
 ### Carga
 ```bash
 locust -f testing/backend/load_test.py --host=http://localhost:8000

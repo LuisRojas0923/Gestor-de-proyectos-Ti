@@ -2,6 +2,8 @@ import pytest_asyncio
 import httpx
 import os
 import asyncio
+import json
+from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -74,3 +76,59 @@ async def auth_token(client):
     except Exception as e:
         print(f"DEBUG: Auth exception: {str(e)}")
         return None
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """
+    Hook de Pytest que se ejecuta al finalizar la sesin de pruebas.
+    Genera un informe detallado en la carpeta testing/logs/.
+    """
+    # Crear carpeta de logs si no existe (por seguridad)
+    log_dir = Path("testing/logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Datos del informe
+    now = datetime.now()
+    timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+    report_filename = log_dir / f"test_report_{timestamp}.log"
+    
+    # Resumen de resultados
+    passed = len(terminalreporter.stats.get('passed', []))
+    failed = len(terminalreporter.stats.get('failed', []))
+    skipped = len(terminalreporter.stats.get('skipped', []))
+    error = len(terminalreporter.stats.get('error', []))
+    total = passed + failed + skipped + error
+    
+    # Identificar mdulos probados
+    modules = set()
+    for key in terminalreporter.stats:
+        for report in terminalreporter.stats[key]:
+            if hasattr(report, 'fspath'):
+                modules.add(os.path.basename(report.fspath))
+
+    with open(report_filename, "w", encoding="utf-8") as f:
+        f.write("="*60 + "\n")
+        f.write(f"📊 INFORME DE EJECUCION DE PRUEBAS - GESTOR TI\n")
+        f.write("="*60 + "\n")
+        f.write(f"Fecha/Hora: {now.strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Estado Final: {'EXITO' if exitstatus == 0 else 'FALLO'}\n")
+        f.write("-"*60 + "\n")
+        f.write(f"Resumen de Resultados:\n")
+        f.write(f"  ✅ Pasados:   {passed}\n")
+        f.write(f"  ❌ Fallidos:  {failed}\n")
+        f.write(f"  ⚠️ Saltados:  {skipped}\n")
+        f.write(f"  🔥 Errores:   {error}\n")
+        f.write(f"  📦 Total:     {total}\n")
+        f.write("-"*60 + "\n")
+        f.write(f"Modulos Evaluados:\n")
+        for module in sorted(list(modules)):
+            f.write(f"  • {module}\n")
+        f.write("="*60 + "\n")
+        
+        # Si hubo fallos, listar los tests fallidos
+        if failed > 0:
+            f.write("\nDetalle de Fallos:\n")
+            for rep in terminalreporter.stats.get('failed', []):
+                f.write(f"  ❌ {rep.nodeid}\n")
+            f.write("\n" + "="*60 + "\n")
+
+    print(f"\n[REPORT] Informe de pruebas generado en: {report_filename}")

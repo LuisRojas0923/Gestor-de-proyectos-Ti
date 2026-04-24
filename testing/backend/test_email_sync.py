@@ -9,7 +9,7 @@ async def test_login_email_needs_update_flag(client):
     reciba el flag 'email_needs_update' en true.
     """
     # Usamos la cédula de prueba que sabemos que tiene el flag en False en el ERP
-    test_cedula = "94041597"
+    test_cedula = "1146437946"
     
     response = await client.post("/auth/portal-login", json={"username": test_cedula})
     
@@ -29,7 +29,7 @@ async def test_yo_endpoint_consistency(client):
     """
     Valida que el endpoint /yo también devuelva el flag de actualización.
     """
-    test_cedula = "94041597"
+    test_cedula = "1146437946"
     
     # 1. Login para obtener token
     login_res = await client.post("/auth/portal-login", json={"username": test_cedula})

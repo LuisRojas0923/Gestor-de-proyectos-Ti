@@ -18,11 +18,11 @@ class EmailService:
     )
     _jinja_env = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
 
-    _render_template = EmailUtils._render_template if hasattr(EmailUtils, "_render_template") else None
-    get_frontend_url = EmailUtils.get_frontend_url
-    _standardize_ticket_subject = EmailUtils._standardize_ticket_subject
-    _get_ticket_message_id = EmailUtils._get_ticket_message_id
-    _get_attachments = EmailUtils._get_attachments
+    _render_template = staticmethod(EmailUtils._render_template) if hasattr(EmailUtils, "_render_template") else None
+    get_frontend_url = staticmethod(EmailUtils.get_frontend_url)
+    _standardize_ticket_subject = staticmethod(EmailUtils._standardize_ticket_subject)
+    _get_ticket_message_id = staticmethod(EmailUtils._get_ticket_message_id)
+    _get_attachments = staticmethod(EmailUtils._get_attachments)
 
     @staticmethod
     async def enviar_correo(
