@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Title, Text } from '../../../../components/atoms';
+import { Title, Text, Button } from '../../../../components/atoms';
 import { ActionCard } from '../../../../components/molecules';
 import { FileText, ClipboardList, ReceiptText } from 'lucide-react';
 import CertificadoIngresosView from './CertificadoIngresosView';
