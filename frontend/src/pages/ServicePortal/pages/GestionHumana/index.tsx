@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Title, Text, Button } from '../../../../components/atoms';
 import { ActionCard } from '../../../../components/molecules';
-import { FileText, ClipboardList, ReceiptText } from 'lucide-react';
+import { FileText, ClipboardList, ReceiptText, ArrowLeft } from 'lucide-react';
 import CertificadoIngresosView from './CertificadoIngresosView';
 
 interface User {
@@ -56,7 +56,20 @@ const GestionHumanaPortal: React.FC<GestionHumanaPortalProps> = ({ user, onBack 
   }
 
   return (
-    <div className="p-6 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-[var(--portal-max-width)] mx-auto">
+    <div className="p-6 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-[var(--portal-max-width)] mx-auto">
+      
+      {/* Botón de Navegación Superior (UX Pattern: Salida Clara) */}
+      <div className="flex w-full mb-[-1rem]">
+        <Button 
+          variant="outline" 
+          onClick={handleBack} 
+          className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-[var(--deep-navy)] dark:text-slate-300 dark:hover:text-white border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Volver al Menú Principal
+        </Button>
+      </div>
+
       <div className="text-center space-y-4">
         <Title variant="h2" weight="bold" className="text-[var(--deep-navy)] dark:text-white">
           Gestión Humana
