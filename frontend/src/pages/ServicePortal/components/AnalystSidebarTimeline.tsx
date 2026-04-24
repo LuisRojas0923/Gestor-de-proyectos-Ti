@@ -9,7 +9,7 @@ interface AnalystSidebarTimelineProps {
 
 const AnalystSidebarTimeline: React.FC<AnalystSidebarTimelineProps> = ({ history }) => {
     return (
-        <aside className="col-span-3 bg-[var(--color-background)] border-l border-[var(--color-border)] p-4 flex flex-col hidden lg:flex custom-scrollbar transition-colors">
+        <aside className="col-span-3 h-full max-h-full bg-[var(--color-background)] border-l border-[var(--color-border)] p-4 flex flex-col hidden lg:flex overflow-hidden transition-colors">
             <div className="flex items-center gap-3 mb-6">
                 <Icon name={History} size="sm" className="text-slate-400" />
                 <Text variant="caption" weight="bold" color="navy" className="uppercase tracking-widest">Auditoría del Ticket</Text>

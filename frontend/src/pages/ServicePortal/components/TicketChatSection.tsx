@@ -9,6 +9,7 @@ interface TicketChatSectionProps {
     currentUserId?: string;
     isAnalyst?: boolean;
     isSaving?: boolean;
+    isClosed?: boolean;
 }
 
 const TicketChatSection: React.FC<TicketChatSectionProps> = ({
@@ -17,6 +18,7 @@ const TicketChatSection: React.FC<TicketChatSectionProps> = ({
     currentUserId,
     isAnalyst = false,
     isSaving = false,
+    isClosed = false,
 }) => {
     const [message, setMessage] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -29,7 +31,7 @@ const TicketChatSection: React.FC<TicketChatSectionProps> = ({
     }, [comments]);
 
     const handleSend = async () => {
-        if (!message.trim() || isSaving) return;
+        if (!message.trim() || isSaving || isClosed) return;
         await onSendComment(message, false);
         setMessage('');
     };
@@ -45,7 +47,7 @@ const TicketChatSection: React.FC<TicketChatSectionProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-full min-h-0 bg-transparent animate-in fade-in duration-500">
+        <div className="flex flex-col flex-1 min-h-0 bg-transparent animate-in fade-in duration-500 overflow-hidden">
             {/* Mensaje Informativo sobre el chat */}
             <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl flex items-center gap-3 shrink-0">
                 <div className="p-2 bg-blue-500 rounded-lg text-white">
@@ -129,37 +131,45 @@ const TicketChatSection: React.FC<TicketChatSectionProps> = ({
                 )}
             </div>
 
-            {/* Input de Texto */}
-            <div className="shrink-0 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg mt-auto">
-                <div className="flex flex-col gap-3">
-                    <Textarea 
-                        placeholder="Escribe tu mensaje aquí..."
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        rows={2}
-                        onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSend();
-                            }
-                        }}
-                    />
-                    <div className="flex justify-between items-center">
-                        <Text variant="caption" className="opacity-40 italic">Shift + Enter para nueva línea</Text>
-                        <Button 
-                            variant="primary" 
-                            size="md" 
-                            onClick={handleSend}
-                            disabled={!message.trim() || isSaving}
-                            loading={isSaving}
-                            className="px-6 rounded-xl shadow-blue-500/20 shadow-lg"
-                            icon={Send}
-                        >
-                            Enviar Mensaje
-                        </Button>
+            {/* Input de Texto / Mensaje de Ticket Cerrado */}
+            {!isClosed ? (
+                <div className="shrink-0 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg mt-auto">
+                    <div className="flex flex-col gap-3">
+                        <Textarea 
+                            placeholder="Escribe tu mensaje aquí..."
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            rows={2}
+                            onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSend();
+                                }
+                            }}
+                        />
+                        <div className="flex justify-between items-center">
+                            <Text variant="caption" className="opacity-40 italic">Shift + Enter para nueva línea</Text>
+                            <Button 
+                                variant="primary" 
+                                size="md" 
+                                onClick={handleSend}
+                                disabled={!message.trim() || isSaving}
+                                loading={isSaving}
+                                className="px-6 rounded-xl shadow-blue-500/20 shadow-lg"
+                                icon={Send}
+                            >
+                                Enviar Mensaje
+                            </Button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            ) : (
+                <div className="shrink-0 bg-slate-100 dark:bg-slate-800/50 p-4 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-center">
+                    <Text variant="body2" className="italic opacity-60">
+                        El ticket se encuentra <strong>Cerrado</strong>. El chat ya no está disponible para nuevos mensajes.
+                    </Text>
+                </div>
+            )}
         </div>
     );
 };
