@@ -3,7 +3,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import or_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.models.ticket import Ticket
 from app.models.auth.usuario import Usuario
@@ -30,11 +30,12 @@ class TicketListService:
             select(Ticket, Usuario.correo_verificado)
             .outerjoin(Usuario, Ticket.creador_id == Usuario.id)
             .options(
-                joinedload(Ticket.adjuntos),
-                joinedload(Ticket.historial),
-                joinedload(Ticket.comentarios),
+                selectinload(Ticket.adjuntos),
+                selectinload(Ticket.historial),
+                selectinload(Ticket.comentarios),
                 joinedload(Ticket.solicitud_desarrollo),
                 joinedload(Ticket.control_cambios),
+                joinedload(Ticket.solicitud_activo),
             )
         )
 
@@ -80,18 +81,21 @@ class TicketListService:
         query = query.order_by(Ticket.creado_en.desc()).offset(skip).limit(limit)
         
         try:
-            result = await db.execute(query)
+            # .unique() es vital cuando se usan eager loads
+            result = (await db.execute(query)).unique()
             tickets = []
             for row in result:
+                # El resultado es una tupla (Ticket, bool) por el select(Ticket, Usuario.correo_verificado)
                 try:
                     ticket, verificado = row
                     ticket.correo_verificado_creador = bool(verificado) if verificado is not None else False
                     tickets.append(ticket)
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, IndexError):
+                    # Fallback por si la estructura de la fila cambia
                     ticket = row[0] if hasattr(row, "__getitem__") else row
                     if isinstance(ticket, Ticket):
                         ticket.correo_verificado_creador = False
-                    tickets.append(ticket)
+                        tickets.append(ticket)
             return tickets
         except Exception as e:
             import logging

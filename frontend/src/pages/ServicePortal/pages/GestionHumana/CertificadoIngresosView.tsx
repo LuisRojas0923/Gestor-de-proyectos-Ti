@@ -12,12 +12,12 @@ interface User {
   role: string;
 }
 
-interface ContabilidadPortalProps {
+interface CertificadoIngresosViewProps {
   user: User;
   onBack: () => void;
 }
 
-const ContabilidadPortal: React.FC<ContabilidadPortalProps> = ({ user, onBack }) => {
+const CertificadoIngresosView: React.FC<CertificadoIngresosViewProps> = ({ user, onBack }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addNotification } = useNotifications();
@@ -26,7 +26,7 @@ const ContabilidadPortal: React.FC<ContabilidadPortalProps> = ({ user, onBack })
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadYear, setUploadYear] = useState<number>(new Date().getFullYear() - 1);
 
-  const isContabilidad = user.role === 'contabilidad' || user.role === 'admin' || user.role === 'admin_sistemas';
+  const isAdminAccess = user.role === 'contabilidad' || user.role === 'admin' || user.role === 'admin_sistemas';
 
   useEffect(() => {
     cargarAños();
@@ -66,7 +66,7 @@ const ContabilidadPortal: React.FC<ContabilidadPortalProps> = ({ user, onBack })
   };
 
   return (
-    <div className="p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-[var(--portal-max-width)] mx-auto">
+    <div className="p-0 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header Vanguard: Glassmorphism effect and integrated navigation */}
       <div className="relative overflow-hidden rounded-3xl bg-primary-500 p-8 text-white shadow-xl dark:bg-gradient-to-br dark:from-primary-900/80 dark:via-primary-900/60 dark:to-primary-800/40 dark:backdrop-blur-xl border border-white/10 dark:border-white/20">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
@@ -91,9 +91,9 @@ const ContabilidadPortal: React.FC<ContabilidadPortalProps> = ({ user, onBack })
         </div>
       </div>
 
-      <div className={`grid gap-6 ${isContabilidad ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+      <div className={`grid gap-6 ${isAdminAccess ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
         {/* Lado Contabilidad: Carga de Datos */}
-        {isContabilidad && (
+        {isAdminAccess && (
           <MaterialCard className="group relative overflow-hidden border-none shadow-lg transition-all hover:shadow-2xl dark:bg-neutral-800/40 dark:backdrop-blur-md dark:border dark:border-white/5">
             <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-primary-400 to-primary-600"></div>
             <div className="p-8 space-y-8">
@@ -177,7 +177,7 @@ const ContabilidadPortal: React.FC<ContabilidadPortalProps> = ({ user, onBack })
                   <Button
                     variant="ghost"
                     fullWidth
-                    onClick={() => navigate('/service-portal/contabilidad/datos')}
+                    onClick={() => navigate('/service-portal/gestion-humana/datos')}
                     className="justify-start text-primary-500 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-500/10"
                   >
                     <FileText size={18} className="mr-2" />
@@ -277,4 +277,4 @@ const ContabilidadPortal: React.FC<ContabilidadPortalProps> = ({ user, onBack })
   );
 };
 
-export default ContabilidadPortal;
+export default CertificadoIngresosView;

@@ -107,8 +107,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
 
                 {canSeeContabilidad && (
                     <ActionCard
-                        title="Certificado de Ingresos y Retenciones"
-                        description="Descarga tu certificado 220 o gestiona información exógena."
+                        title="Gestión Humana"
+                        description="Certificados laborales, desprendibles de pago e información tributaria."
                         icon={<FileText className="w-10 h-10 text-primary-600" />}
                         onClick={() => onNavigate('contabilidad')}
                     />

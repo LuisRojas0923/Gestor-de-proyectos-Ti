@@ -95,11 +95,11 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "descripcion": "Herramienta de asistencia basada en Inteligencia Artificial.",
     },
     {
-        "id": "contabilidad",
-        "nombre": "Certificado de Ingresos y Retenciones",
+        "id": "gestion_humana",
+        "nombre": "Gestión Humana",
         "categoria": "portal",
         "es_critico": False,
-        "descripcion": "Gestión de información exógena y descarga de certificados de retenciones.",
+        "descripcion": "Gestión de certificados laborales, desprendibles de pago e información tributaria.",
     },
 
     # --- CATEGORÍA: ANALISTAS (Herramientas de Operación TI) ---
