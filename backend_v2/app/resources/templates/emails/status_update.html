@@ -1,0 +1,42 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+{% set bg_color = color_fondo|default('#ebf8ff') %}
+{% set txt_color = color_texto|default('#2b6cb0') %}
+{% set border_color = color_borde|default('#bee3f8') %}
+
+<p style="color: #4a5568; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+    Hola <strong>{{ nombre_destinatario }}</strong>,
+</p>
+
+<p style="color: #4a5568; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+    Tu solicitud <strong>{{ ticket_id }}</strong> ha tenido una actualización en su estado:
+</p>
+
+<!-- Indicador de Estado -->
+<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 30px; text-align: center;">
+    <span style="color: #718096; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 10px;">Estado Actual</span>
+    <div style="display: inline-block; background-color: {{ bg_color }}; color: {{ txt_color }}; border: 1px solid {{ border_color }}; padding: 8px 24px; border-radius: 50px; font-weight: 700; font-size: 18px;">
+        {{ nuevo_estado }}
+    </div>
+    
+    {% if comentario_resolucion %}
+    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #edf2f7; text-align: left;">
+        <span style="color: #718096; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Notas de Seguimiento / Resolución</span>
+        <div style="background-color: #ffffff; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e0; color: #2d3748; font-size: 14px; line-height: 1.6; font-style: italic;">
+            "{{ comentario_resolucion }}"
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div style="text-align: center; margin-bottom: 10px;">
+    <a href="{{ portal_url }}" style="background-color: #002060; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 12px rgba(0,32,96,0.2);">
+        Ver Detalles en el Portal
+    </a>
+</div>
+
+<p style="color: #718096; font-size: 13px; text-align: center; margin-top: 30px;">
+    Este es un mensaje automático del Portal de Servicios Solid.
+</p>
+{% endblock %}

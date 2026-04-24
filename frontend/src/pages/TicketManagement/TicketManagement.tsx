@@ -22,7 +22,7 @@ import {
 
 import TicketTooltip from './TicketTooltip';
 import TicketActionModal from './TicketActionModal';
-import { ColumnFilterPopover } from '../../components/molecules';
+import { FilterDropdown } from '../../components/molecules';
 
 import { useTicketManagement, formatName, Ticket } from './hooks/useTicketManagement';
 import {
@@ -37,7 +37,6 @@ const TicketManagement: React.FC = () => {
     const navigate = useNavigate();
     const {
         user,
-        tickets,
         isLoading,
         isLoadMoreLoading,
         searchTerm,
@@ -69,14 +68,17 @@ const TicketManagement: React.FC = () => {
 
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+    const [filterSearchTerm, setFilterSearchTerm] = useState('');
 
     const toggleFilter = (key: string, rect: DOMRect) => {
         if (activeFilter === key) {
             setActiveFilter(null);
             setAnchorRect(null);
+            setFilterSearchTerm('');
         } else {
             setActiveFilter(key);
             setAnchorRect(rect);
+            setFilterSearchTerm('');
         }
     };
 
@@ -299,21 +301,37 @@ const TicketManagement: React.FC = () => {
 
                     {/* Popover de Filtro */}
                     {activeFilter && (
-                        <ColumnFilterPopover
-                            title={activeFilter === 'fecha_creacion' ? 'Fecha' : activeFilter === 'nombre_creador' ? 'Solicitante' : activeFilter === 'area_creador' ? 'Área' : activeFilter === 'asignado_a' ? 'Analista' : activeFilter}
-                            type={activeFilter === 'fecha_creacion' ? 'date' : 'text'}
-                            options={columnOptions(activeFilter as any)}
-                            selectedValues={columnFilters[activeFilter] || new Set()}
-                            dateRange={dateRange}
-                            onDateRangeChange={setDateRange}
-                            onSelectionChange={(values) => {
-                                setColumnFilters(prev => ({
-                                    ...prev,
-                                    [activeFilter]: values
-                                }));
-                            }}
+                        <FilterDropdown
+                            isOpen={!!activeFilter}
                             onClose={() => setActiveFilter(null)}
                             anchorRect={anchorRect}
+                            title={activeFilter === 'fecha_creacion' ? 'Fecha' : activeFilter === 'nombre_creador' ? 'Solicitante' : activeFilter === 'area_creador' ? 'Área' : activeFilter === 'asignado_a' ? 'Analista' : activeFilter}
+                            type={activeFilter === 'fecha_creacion' ? 'date' : 'categorical'}
+                            
+                            // Categorical Props
+                            searchTerm={filterSearchTerm}
+                            onSearchChange={setFilterSearchTerm}
+                            options={columnOptions(activeFilter as any)
+                                .filter(opt => opt.toLowerCase().includes(filterSearchTerm.toLowerCase()))
+                                .map(opt => ({ value: opt, label: activeFilter === 'fecha_creacion' ? opt.split('-').reverse().join('/') : opt }))}
+                            tempValue={Array.from(columnFilters[activeFilter] || [])}
+                            onToggleOption={(val) => {
+                                const newSet = new Set(columnFilters[activeFilter] || []);
+                                if (newSet.has(val)) newSet.delete(val);
+                                else newSet.add(val);
+                                setColumnFilters(prev => ({ ...prev, [activeFilter]: newSet }));
+                            }}
+                            onSelectAll={() => {
+                                const options = columnOptions(activeFilter as any);
+                                setColumnFilters(prev => ({ ...prev, [activeFilter]: new Set(options) }));
+                            }}
+                            isAllSelected={(columnFilters[activeFilter]?.size || 0) === columnOptions(activeFilter as any).length}
+                            
+                            // Range/Date Props
+                            rangeValue={{ min: dateRange.start, max: dateRange.end }}
+                            onRangeChange={(range) => setDateRange({ start: String(range.min), end: String(range.max) })}
+                            
+                            onApply={() => setActiveFilter(null)}
                         />
                     )}
 

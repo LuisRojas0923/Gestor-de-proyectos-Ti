@@ -46,7 +46,7 @@ Write-Host "2. Restaurando en contenedor local ($TARGET_CONTAINER)..." -Foregrou
 
 # Ejecucion directa de la tuberia
 $PG_IMAGE = "postgres:15-alpine"
-docker run --rm -e PGPASSWORD=$SOURCE_PASS $PG_IMAGE pg_dump -h $SOURCE_HOST -p $SOURCE_PORT -U $SOURCE_USER -d $SOURCE_DB --clean --if-exists --no-owner --no-privileges | docker exec -i $TARGET_CONTAINER psql -U $TARGET_USER -d $TARGET_DB
+docker run --rm -e PGPASSWORD="$SOURCE_PASS" $PG_IMAGE pg_dump -h $SOURCE_HOST -p $SOURCE_PORT -U $SOURCE_USER -d $SOURCE_DB --clean --if-exists --no-owner --no-privileges | docker exec -i $TARGET_CONTAINER psql -U $TARGET_USER -d $TARGET_DB
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "3. Reiniciando backend para aplicar autosanacion y limpiar cache..." -ForegroundColor Yellow

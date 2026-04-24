@@ -25,9 +25,9 @@ if ($confirmation -ne "S" -and $confirmation -ne "s") {
 
 Write-Host "2. Iniciando transferencia de datos (ERP Prod -> ERP Pruebas)..." -ForegroundColor Yellow
 
-# Ejecucion de pg_dump y psql vía Docker
-$PG_IMAGE = "postgres:15-alpine"
-docker run --rm -e PGPASSWORD=$PASS $PG_IMAGE pg_dump -h $HOST_IP -p $PORT -U $USER -d $SRC_DB --clean --if-exists --no-owner --no-privileges | docker run --rm -i -e PGPASSWORD=$PASS $PG_IMAGE psql -h $HOST_IP -p $PORT -U $USER -d $DST_DB
+# Ejecucion de pg_dump y psql vía Docker (Unificado para evitar errores de codificación en PS)
+$PG_IMAGE = "postgres:16-alpine"
+docker run --rm -e PGPASSWORD=$PASS $PG_IMAGE sh -c "pg_dump -h $HOST_IP -p $PORT -U $USER -d $SRC_DB --clean --if-exists --no-owner --no-privileges | psql -h $HOST_IP -p $PORT -U $USER -d $DST_DB"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "--- Clonacion de ERP completada exitosamente ---" -ForegroundColor Green
