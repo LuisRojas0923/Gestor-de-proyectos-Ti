@@ -71,6 +71,7 @@ class NominaRegistroNormalizado(SQLModel, table=True):
     dias: float = Field(default=0)
     
     fila_origen: int
+    observaciones: Optional[str] = Field(default=None)
     
     archivo: NominaArchivo = Relationship(back_populates="registros_normalizados")
 
@@ -166,9 +167,13 @@ class NominaExcepcion(SQLModel, table=True):
         if isinstance(date_val, datetime):
             return date_val
         try:
-            return datetime.fromisoformat(date_val.replace('Z', '+00:00'))
+            # Convertir a datetime y forzar a ser naive (quitar +00:00 / Z) para evitar conflictos con PG TIMESTAMP
+            dt = datetime.fromisoformat(date_val.replace('Z', '+00:00'))
+            return dt.replace(tzinfo=None)
         except:
-            return datetime.strptime(date_val.split('T')[0], '%Y-%m-%d')
+            dt_str = date_val.split('T')[0]
+            dt = datetime.strptime(dt_str, '%Y-%m-%d')
+            return dt.replace(tzinfo=None)
 
 
 class NominaExcepcionHistorial(SQLModel, table=True):

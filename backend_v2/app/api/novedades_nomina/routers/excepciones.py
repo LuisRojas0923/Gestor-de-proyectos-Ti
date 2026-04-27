@@ -38,14 +38,21 @@ async def crear_excepcion(
     excepcion: NominaExcepcion,
     session: AsyncSession = Depends(obtener_db)
 ):
-    # Asegurar conversión manual si el validador fue omitido por SQLModel
+    # Asegurar que todas las fechas sean naive (sin zona horaria) para PostgreSQL
     try:
-        if isinstance(excepcion.fecha_inicio, str):
-            excepcion.fecha_inicio = NominaExcepcion.parse_dates(excepcion.fecha_inicio)
-        if isinstance(excepcion.fecha_fin, str):
-            excepcion.fecha_fin = NominaExcepcion.parse_dates(excepcion.fecha_fin)
-    except:
-        pass
+        if excepcion.fecha_inicio:
+            if isinstance(excepcion.fecha_inicio, str):
+                excepcion.fecha_inicio = NominaExcepcion.parse_dates(excepcion.fecha_inicio)
+            elif isinstance(excepcion.fecha_inicio, datetime) and excepcion.fecha_inicio.tzinfo:
+                excepcion.fecha_inicio = excepcion.fecha_inicio.replace(tzinfo=None)
+        
+        if excepcion.fecha_fin:
+            if isinstance(excepcion.fecha_fin, str):
+                excepcion.fecha_fin = NominaExcepcion.parse_dates(excepcion.fecha_fin)
+            elif isinstance(excepcion.fecha_fin, datetime) and excepcion.fecha_fin.tzinfo:
+                excepcion.fecha_fin = excepcion.fecha_fin.replace(tzinfo=None)
+    except Exception as e:
+        logger.warning(f"Error normalizando fechas de excepción: {e}")
 
     # Validar que no exista otra excepción activa incompatible
     try:

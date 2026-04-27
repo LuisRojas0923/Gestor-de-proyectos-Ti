@@ -47,6 +47,8 @@ class NominaService:
         """Persiste una lista de registros normalizados en la base de datos aplicando excepciones."""
         registros = []
         cedulas_procesadas = set()
+        # 0. Crear mapa de excepciones para búsqueda rápida O(1)
+        mapa_ex = {str(e.cedula): e for e in excepciones_activas}
         
         # 1. Procesar registros que vienen del archivo
         for i, row in enumerate(rows):
@@ -58,7 +60,7 @@ class NominaService:
             concepto_final = row["concepto"]
             cedula_final = cedula_original
             # Buscar excepción vigente para este colaborador y subcategoría
-            ex = next((e for e in excepciones_activas if e.cedula == cedula_original), None)
+            ex = mapa_ex.get(cedula_original)
             
             # Fallback de nombre: ERP -> Excepción (Manual) -> Archivo
             nombre_final = info_original["nombre"] if info_original else (ex.nombre_asociado if ex and ex.nombre_asociado else row.get("nombre_asociado", ""))
@@ -225,7 +227,7 @@ class NominaService:
                         estado_validacion=estado_val,
                         horas=0,
                         dias=0,
-                        fila_origen=0 # Inyectado
+                        fila_origen=0
                     )
                     session.add(reg)
                     registros.append(reg)
@@ -302,8 +304,9 @@ class NominaService:
             with open(ruta_almacenamiento, "wb") as f_out:
                 f_out.write(contenido)
         
-        # 2. Extraer datos usando la función específica
-        rows, summary, warnings_txt = extractor_fn(archivos_binarios)
+        # 2. Extraer datos usando la función específica en un hilo separado para no bloquear el event loop
+        import asyncio
+        rows, summary, warnings_txt = await asyncio.to_thread(extractor_fn, archivos_binarios)
         summary.update({"mes": mes, "anio": anio})
 
         # 3. Obtener info ERP y Excepciones

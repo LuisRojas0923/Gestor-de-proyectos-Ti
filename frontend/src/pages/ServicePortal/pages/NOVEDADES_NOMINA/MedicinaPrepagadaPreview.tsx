@@ -253,7 +253,7 @@ const MedicinaPrepagadaPreview: React.FC = () => {
             </div>
 
             {/* Loading saved data */}
-            {isLoading && (
+            {isLoading && !isProcessing && (
                 <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)]" />
                     <Text className="ml-3" color="text-secondary">Cargando datos guardados...</Text>

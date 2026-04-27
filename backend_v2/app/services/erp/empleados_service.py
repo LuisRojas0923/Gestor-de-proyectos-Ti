@@ -78,7 +78,7 @@ class EmpleadosService:
             FROM establecimiento E
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
-            WHERE TRIM(CAST(E.nrocedula AS TEXT)) IN ({placeholders})
+            WHERE E.nrocedula IN ({placeholders})
             ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST
         """)
 
