@@ -6,6 +6,7 @@ import imgGestionViaticos from '../../../assets/images/categories/gestion_viatic
 import imgReunion from '../../../assets/images/categories/Reunion.png';
 import sistemasolicitudes from '../../../assets/images/categories/logistico.png';
 import imgInventario from '../../../assets/images/categories/Consultar Reportes.png';
+import imgNovedadesNomina from '../../../assets/images/categories/NOVEDADES_NOMINA.png';
 
 interface DashboardViewProps {
     user: any;
@@ -98,9 +99,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
 
                 {(userRole === 'admin' || userRole === 'director') && (
                     <ActionCard
-                        title="Descuentos de Nómina"
-                        description="Carga y procesamiento de descuentos para SOLID."
-                        icon={<div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-teal-500/20 to-blue-500/20 rounded-xl"><Plus className="w-12 h-12 text-teal-600" /></div>}
+                        title="Novedades de Nómina"
+                        description="Carga y procesamiento de novedades para SOLID."
+                        icon={<img src={imgNovedadesNomina} alt="Novedades de Nómina" className="w-full h-full object-contain p-2" />}
                         onClick={() => onNavigate('nomina')}
                     />
                 )}

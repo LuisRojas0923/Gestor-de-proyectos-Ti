@@ -30,7 +30,7 @@ const CargaMasiva: React.FC<CargaMasivaProps> = ({
     isUploading,
     handleUploadTransito,
     isUploadingTransito,
-    apiBase = 'http://localhost:8000',
+    apiBase = 'http://localhost:8001',
     uploadResult,
     setUploadResult,
     limpiarPrevio,

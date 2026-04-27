@@ -20,6 +20,7 @@ import MedicinaPrepagadaIcon from '../../../../assets/images/categories/MEDICINA
 import ControlDescuentosIcon from '../../../../assets/images/categories/CONTROL_DESCUENTOS.png';
 import CelularesIcon from '../../../../assets/images/categories/CELULARES.png';
 import EmbargosIcon from '../../../../assets/images/categories/EMBARGOS.png';
+import ExcepcionesIcon from '../../../../assets/images/categories/EXCEPCIONES.png';
 
 
 
@@ -34,154 +35,46 @@ const SubcategoriaCard: React.FC<{
     // Función para determinar el icono a mostrar
     const getSubcategoryIcon = (sub: string) => {
         const subUpper = sub.toUpperCase();
-        if (subUpper === 'GRANCOOP') {
+        
+        // Mapeo de subcategorías a sus respectivos iconos
+        const iconMap: Record<string, any> = {
+            'GRANCOOP': GrancoopIcon,
+            'BENEFICIAR': BeneficiarIcon,
+            'SEGUROS HDI': HdiIcon,
+            'BOGOTA LIBRANZA': BancoBogotaIcon,
+            'DAVIVIENDA LIBRANZA': BancoDaviviendaIcon,
+            'OCCIDENTE LIBRANZA': BancoOccidenteIcon,
+            'RECORDAR': RecordarIcon,
+            'CAMPOSANTO': CamposantoIcon,
+            'POLIZAS VEHICULOS': PolizasVehiculosIcon,
+            'OTROS GERENCIA': OtrosGerenciaIcon,
+            'MEDICINA PREPAGADA': MedicinaPrepagadaIcon,
+            'CONTROL DE DESCUENTOS': ControlDescuentosIcon,
+            'CELULARES': CelularesIcon,
+            'EMBARGOS': EmbargosIcon,
+            'GESTION EXCEPCIONES': ExcepcionesIcon
+        };
+
+        const iconSrc = iconMap[subUpper];
+
+        // Escalas especiales para iconos que por su forma se ven más pequeños
+        const specialScales: Record<string, string> = {
+            'CAMPOSANTO': 'scale-[1.8]',
+            'RECORDAR': 'scale-[1.5]',
+            'POLIZAS VEHICULOS': 'scale-[1.8]',
+            'OCCIDENTE LIBRANZA': 'scale-[1.4]',
+            'DAVIVIENDA LIBRANZA': 'scale-[1.4]'
+        };
+
+        const extraScale = specialScales[subUpper] || '';
+
+        if (iconSrc) {
             return (
-                <div className="w-14 h-14 flex items-center justify-center">
+                <div className="w-[90px] h-[90px] flex items-center justify-center">
                     <img
-                        src={GrancoopIcon}
-                        alt="Grancoop"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'BENEFICIAR') {
-            return (
-                <div className="w-14 h-14 flex items-center justify-center">
-                    <img
-                        src={BeneficiarIcon}
-                        alt="Beneficiar"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'SEGUROS HDI') {
-            return (
-                <div className="w-14 h-14 flex items-center justify-center">
-                    <img
-                        src={HdiIcon}
-                        alt="HDI"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'BOGOTA LIBRANZA') {
-            return (
-                <div className="w-20 h-20 flex items-center justify-center scale-110">
-                    <img
-                        src={BancoBogotaIcon}
-                        alt="Banco Bogota"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'DAVIVIENDA LIBRANZA') {
-            return (
-                <div className="w-20 h-20 flex items-center justify-center scale-110">
-                    <img
-                        src={BancoDaviviendaIcon}
-                        alt="Banco Davivienda"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'OCCIDENTE LIBRANZA') {
-            return (
-                <div className="w-20 h-20 flex items-center justify-center scale-110">
-                    <img
-                        src={BancoOccidenteIcon}
-                        alt="Banco Occidente"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'RECORDAR') {
-            return (
-                <div className="w-20 h-20 flex items-center justify-center scale-110">
-                    <img
-                        src={RecordarIcon}
-                        alt="Recordar"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'CAMPOSANTO') {
-            return (
-                <div className="w-28 h-28 flex items-center justify-center scale-150">
-                    <img
-                        src={CamposantoIcon}
-                        alt="Camposanto"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'POLIZAS VEHICULOS') {
-            return (
-                <img
-                    src={PolizasVehiculosIcon}
-                    alt="Pólizas Vehículos"
-                    className="w-48 h-48 object-contain scale-150"
-                />
-            );
-        }
-        if (subUpper === 'OTROS GERENCIA') {
-            return (
-                <div className="w-20 h-20 flex items-center justify-center scale-110">
-                    <img
-                        src={OtrosGerenciaIcon}
-                        alt="Otros Gerencia"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'MEDICINA PREPAGADA') {
-            return (
-                <div className="w-20 h-20 flex items-center justify-center scale-110">
-                    <img
-                        src={MedicinaPrepagadaIcon}
-                        alt="Medicina Prepagada"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'CONTROL DE DESCUENTOS') {
-            return (
-                <div className="w-20 h-20 flex items-center justify-center scale-110">
-                    <img
-                        src={ControlDescuentosIcon}
-                        alt="Control Descuentos"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'CELULARES') {
-            return (
-                <div className="w-20 h-20 flex items-center justify-center scale-110">
-                    <img
-                        src={CelularesIcon}
-                        alt="Celulares"
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            );
-        }
-        if (subUpper === 'EMBARGOS') {
-            return (
-                <div className="w-20 h-20 flex items-center justify-center scale-110">
-                    <img
-                        src={EmbargosIcon}
-                        alt="Embargos"
-                        className="max-w-full max-h-full object-contain"
+                        src={iconSrc}
+                        alt={sub}
+                        className={`max-w-full max-h-full object-contain ${extraScale} ${subUpper === 'POLIZAS VEHICULOS' ? 'dark:invert-0 invert' : ''}`}
                     />
                 </div>
             );
@@ -270,7 +163,7 @@ const NominaDashboard: React.FC = () => {
                     </Button>
                     <div>
                         <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
-                            Descuentos de Nómina
+                            Novedades de Nómina
                         </Title>
                     </div>
                 </div>

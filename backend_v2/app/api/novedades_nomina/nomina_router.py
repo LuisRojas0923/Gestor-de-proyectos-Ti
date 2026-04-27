@@ -29,6 +29,11 @@ from ...services.novedades_nomina.medicina_prepagada_extractor import extraer_me
 from ...services.novedades_nomina.control_descuentos_extractor import extraer_control_descuentos
 from ...services.novedades_nomina.celulares_extractor import extraer_celulares
 from ...services.novedades_nomina.embargos_extractor import extraer_embargos
+from .routers import (
+    cooperativas_router, libranzas_router, funebres_router, otros_router,
+    descuentos_router, excepciones_router, novedades_router,
+    tabla_maestra_router, comisiones_router
+)
 
 
 
@@ -36,6 +41,15 @@ from ...services.novedades_nomina.embargos_extractor import extraer_embargos
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+router.include_router(excepciones_router)
+router.include_router(descuentos_router)
+router.include_router(comisiones_router)
+router.include_router(otros_router)
+router.include_router(cooperativas_router)
+router.include_router(libranzas_router)
+router.include_router(funebres_router)
+router.include_router(novedades_router)
+router.include_router(tabla_maestra_router)
 
 
 STORAGE_DIR = "uploads/nomina"
@@ -81,7 +95,7 @@ async def obtener_catalogo():
         "LIBRANZAS": ["BOGOTA LIBRANZA", "DAVIVIENDA LIBRANZA", "OCCIDENTE LIBRANZA"],
         "FUNEBRES": ["CAMPOSANTO", "RECORDAR"],
         "COOPERATIVAS": ["BENEFICIAR", "GRANCOOP"],
-        "OTROS": ["OTROS GERENCIA", "POLIZAS VEHICULOS", "SEGUROS HDI", "MEDICINA PREPAGADA"],
+        "OTROS": ["OTROS GERENCIA", "POLIZAS VEHICULOS", "SEGUROS HDI", "MEDICINA PREPAGADA", "GESTION EXCEPCIONES"],
         "DESCUENTOS": ["CONTROL DE DESCUENTOS", "CELULARES", "RETENCIONES", "EMBARGOS"],
         "NOVEDADES": ["PLANILLAS REGIONALES", "NOVEDADES ADMON", "COMISIONES"]
     }
