@@ -52,6 +52,14 @@ class ServicioTicket:
     # Delegación de listado
     listar_tickets = TicketListService.listar_tickets
 
+    @staticmethod
+    async def _obtener_usuario_por_nombre(db: AsyncSession, nombre: str) -> Optional[Usuario]:
+        """Helper para resolver un usuario por su nombre exacto (usado para analistas)"""
+        if not nombre:
+            return None
+        result = await db.execute(select(Usuario).where(Usuario.nombre == nombre))
+        return result.scalars().first()
+
     @classmethod
     async def crear_ticket(
         cls, db: AsyncSession, ticket_data: TicketCrear, background_tasks: Optional[BackgroundTasks] = None
@@ -188,17 +196,42 @@ class ServicioTicket:
 
             await db.commit()
 
-            # Notificación Best-Effort (no bloquea la creación si falla el SMTP)
+            # Notificación de Asignación al Analista (Nueva prioridad)
             try:
-                # Obtener nombre legible de la categoría para el correo
-                res_cat = await db.execute(
-                    select(CategoriaTicket).where(
-                        CategoriaTicket.id == ticket_data.categoria_id
-                    )
-                )
-                cat_obj = res_cat.scalars().first()
-                cat_nombre = cat_obj.nombre if cat_obj else ticket_data.categoria_id
+                if nuevo_ticket.asignado_a:
+                    analista_obj = await cls._obtener_usuario_por_nombre(db, nuevo_ticket.asignado_a)
+                    if analista_obj and analista_obj.correo:
+                        res_cat = await db.execute(
+                            select(CategoriaTicket).where(CategoriaTicket.id == ticket_data.categoria_id)
+                        )
+                        cat_obj = res_cat.scalars().first()
+                        cat_nombre = cat_obj.nombre if cat_obj else ticket_data.categoria_id
 
+                        if background_tasks:
+                            background_tasks.add_task(
+                                EmailService.enviar_aviso_asignacion,
+                                email_analista=analista_obj.correo,
+                                nombre_analista=analista_obj.nombre,
+                                ticket_id=ticket_id,
+                                asunto_ticket=ticket_data.asunto,
+                                nombre_solicitante=ticket_data.nombre_creador,
+                                categoria=cat_nombre,
+                            )
+                        else:
+                            await EmailService.enviar_aviso_asignacion(
+                                email_analista=analista_obj.correo,
+                                nombre_analista=analista_obj.nombre,
+                                ticket_id=ticket_id,
+                                asunto_ticket=ticket_data.asunto,
+                                nombre_solicitante=ticket_data.nombre_creador,
+                                categoria=cat_nombre,
+                            )
+            except Exception as e_analista:
+                print(f"WARNING: No se pudo notificar al analista: {e_analista}")
+
+            # Notificación de Confirmación al Creador (Desactivada por petición: evitar auto-notificación)
+            """
+            try:
                 if background_tasks:
                     background_tasks.add_task(
                         EmailService.enviar_confirmacion_ticket,
@@ -207,7 +240,7 @@ class ServicioTicket:
                         ticket_id=ticket_id,
                         asunto_ticket=ticket_data.asunto,
                         descripcion=ticket_data.descripcion,
-                        categoria=cat_nombre,
+                        categoria=cat_nombre if 'cat_nombre' in locals() else ticket_data.categoria_id,
                     )
                 else:
                     await EmailService.enviar_confirmacion_ticket(
@@ -216,10 +249,11 @@ class ServicioTicket:
                         ticket_id=ticket_id,
                         asunto_ticket=ticket_data.asunto,
                         descripcion=ticket_data.descripcion,
-                        categoria=cat_nombre,
+                        categoria=cat_nombre if 'cat_nombre' in locals() else ticket_data.categoria_id,
                     )
             except Exception as mail_err:
                 print(f"WARNING: No se pudo enviar el correo de confirmación: {mail_err}")
+            """
 
             return await cls.obtener_ticket_por_id(db, ticket_id)
         except Exception as e:
@@ -377,22 +411,37 @@ class ServicioTicket:
             await db.commit()
             await db.refresh(nuevo_comentario)
 
-            # Lógica de notificación:
-            # Solo si NO es interno y hay un correo de creador válido
+            # Lógica de notificación Bidireccional:
             if not nuevo_comentario.es_interno:
                 ticket = await cls.obtener_ticket_por_id(db, ticket_id)
-                if ticket and ticket.correo_creador:
-                    # No notificar si el que escribe es el mismo creador
-                    if nuevo_comentario.usuario_id != ticket.creador_id:
-                        # THROTTLE: Verificar si ya se envió notificación en los últimos 30 min (1800 seg)
-                        cache_key = f"chat_notif_throttle:{ticket_id}"
+                if ticket:
+                    destinatario_email = None
+                    nombre_destinatario = None
+                    
+                    # Caso A: El creador del ticket responde -> Notificar al analista asignado
+                    # Usamos str() para asegurar comparación robusta entre UUIDs y strings
+                    if str(nuevo_comentario.usuario_id) == str(ticket.creador_id):
+                        if ticket.asignado_a:
+                            analista = await cls._obtener_usuario_por_nombre(db, ticket.asignado_a)
+                            if analista and analista.correo:
+                                destinatario_email = analista.correo
+                                nombre_destinatario = analista.nombre
+                    
+                    # Caso B: Alguien más responde (Analista u otro) -> Notificar al creador
+                    else:
+                        destinatario_email = ticket.correo_creador
+                        nombre_destinatario = ticket.nombre_creador or "Usuario"
+
+                    if destinatario_email:
+                        # THROTTLE: 30 min por ticket/destinatario para evitar spam
+                        cache_key = f"chat_notif_throttle:{ticket_id}:{destinatario_email}"
                         if not global_cache.get(cache_key):
                             try:
                                 if background_tasks:
                                     background_tasks.add_task(
                                         EmailService.enviar_notificacion_chat,
-                                        email_destinatario=ticket.correo_creador,
-                                        nombre_destinatario=ticket.nombre_creador or "Usuario",
+                                        email_destinatario=destinatario_email,
+                                        nombre_destinatario=nombre_destinatario,
                                         ticket_id=ticket_id,
                                         asunto_ticket=ticket.asunto,
                                         nombre_remitente=nuevo_comentario.nombre_usuario or "Soporte",
@@ -400,19 +449,16 @@ class ServicioTicket:
                                     )
                                 else:
                                     await EmailService.enviar_notificacion_chat(
-                                        email_destinatario=ticket.correo_creador,
-                                        nombre_destinatario=ticket.nombre_creador or "Usuario",
+                                        email_destinatario=destinatario_email,
+                                        nombre_destinatario=nombre_destinatario,
                                         ticket_id=ticket_id,
                                         asunto_ticket=ticket.asunto,
                                         nombre_remitente=nuevo_comentario.nombre_usuario or "Soporte",
                                         mensaje=nuevo_comentario.comentario,
                                     )
-                                # Activar el seguro por 30 minutos
                                 global_cache.set(cache_key, True, ttl=1800)
                             except Exception as e:
                                 print(f"WARNING: No se pudo enviar notificación de chat: {e}")
-                        else:
-                            print(f"DEBUG: Notificación de chat omitida por throttle (30 min) para {ticket_id}")
                 
             # Notificación en tiempo real vía WebSocket
             try:

@@ -20,6 +20,7 @@ class ServicioAuth:
     """Clase principal para logica de autenticacion (Async)"""
 
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v2/auth/login")
+    oauth2_scheme_opcional = OAuth2PasswordBearer(tokenUrl="api/v2/auth/login", auto_error=False)
 
     @staticmethod
     def es_password_configurado(hash_contrasena: str, cedula: Optional[str] = None) -> bool:

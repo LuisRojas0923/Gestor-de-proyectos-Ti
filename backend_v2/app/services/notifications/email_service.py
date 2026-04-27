@@ -279,6 +279,69 @@ class EmailService:
             attachments=EmailService._get_attachments(),
             message_id=EmailService._get_ticket_message_id(ticket_id)
         )
+
+    @staticmethod
+    async def enviar_aviso_asignacion(
+        email_analista: str,
+        nombre_analista: str,
+        ticket_id: str,
+        asunto_ticket: str,
+        nombre_solicitante: str,
+        categoria: str,
+    ) -> bool:
+        """Notifica al analista que se le ha asignado un nuevo ticket"""
+        asunto = EmailService._standardize_ticket_subject(ticket_id, f"Nueva Asignación: {asunto_ticket}")
+        titulo = "Nueva Tarea Asignada"
+        
+        cuerpo_html = f"""
+        <p style="color: #4a5568; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+            Hola <strong>{nombre_analista}</strong>,<br><br>
+            Se te ha asignado una nueva solicitud en el Portal de Servicios. Por favor, revísala para iniciar la gestión.
+        </p>
+        
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px;">
+            <tr>
+                <td style="padding: 25px;">
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="padding-bottom: 15px;">
+                                <span style="color: #718096; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">ID del Ticket</span>
+                                <span style="color: #002060; font-size: 20px; font-weight: 700;">{ticket_id}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding-bottom: 15px; border-top: 1px solid #edf2f7; padding-top: 15px;">
+                                <span style="color: #718096; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Solicitante</span>
+                                <span style="color: #2c3e50; font-size: 15px; font-weight: 600;">{nombre_solicitante}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="border-top: 1px solid #edf2f7; padding-top: 15px;">
+                                <span style="color: #718096; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px;">Categoría</span>
+                                <span style="color: #2c3e50; font-size: 15px; font-weight: 600;">{categoria}</span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        
+        <div style="text-align: center;">
+            <a href="{config.frontend_url.rstrip("/")}/tickets/{ticket_id}" style="background-color: #002060; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; display: inline-block;">
+                Ver Detalle del Ticket
+            </a>
+        </div>
+        """
+        
+        html_final = EmailService._get_base_layout(titulo, cuerpo_html)
+        return await EmailService.enviar_correo(
+            asunto, 
+            [email_analista], 
+            html_final, 
+            attachments=EmailService._get_attachments(),
+            message_id=EmailService._get_ticket_message_id(ticket_id)
+        )
+
     @staticmethod
     async def enviar_notificacion_chat(
         email_destinatario: str,

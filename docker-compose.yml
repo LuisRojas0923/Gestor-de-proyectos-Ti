@@ -16,6 +16,7 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY} # [CONTROLADO]
       - ALGORITHM=${ALGORITHM}
       - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES} # [CONTROLADO]
+      - REDIS_URL=redis://redis:6379/0
       - SYNC_EXTERNAL_URL=${SYNC_EXTERNAL_URL}
       - FRONTEND_URL=http://${FRONTEND_HOST:-localhost}
       - TZ=America/Bogota
@@ -25,8 +26,14 @@ services:
       - ./GestionTi_SoporteFiles:/app/storage/attachments
     depends_on:
       - db
-    # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 # Modo Produccion
+      - redis
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload # Modo Desarrollo
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    container_name: gestor-de-proyectos-ti-redis
     networks:
       - app-network
 
