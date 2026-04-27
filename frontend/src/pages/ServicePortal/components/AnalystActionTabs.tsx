@@ -66,7 +66,7 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
     ];
 
     return (
-        <section className="col-span-12 lg:col-span-7 flex flex-col h-full bg-transparent overflow-hidden transition-colors">
+        <section className="col-span-12 lg:col-span-7 flex flex-col flex-1 bg-transparent overflow-hidden transition-colors">
             {/* Header Tarjeta */}
             <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 mb-4 shrink-0 shadow-sm transition-all">
                 <div className="flex items-start justify-between mb-3">
@@ -143,11 +143,11 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                     </Button>
                 </div>
 
-                <div className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-b-2xl rounded-tr-2xl p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar shadow-sm transition-all">
+                <div className={`flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-b-2xl rounded-tr-2xl p-6 flex flex-col overflow-hidden custom-scrollbar shadow-sm transition-all ${activeTab !== 'chat' ? 'gap-6' : 'max-h-[650px]'}`}>
 
                     {/* TAB DIAGNÓSTICO */}
                     {activeTab === 'diagnostico' && (
-                        <>
+                        <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
                             {/* Información de Solicitud de Activo (Trazabilidad) */}
                             {(ticket.solicitud_activo || ticket.datos_extra?.hardware_solicitado) && (
                                 <div className="bg-blue-50/50 dark:bg-blue-900/10 p-5 rounded-2xl border border-blue-100 dark:border-blue-800 animate-in fade-in duration-500 shadow-sm transition-all hover:shadow-md">
@@ -330,7 +330,7 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                                     onChange={(e) => onFieldChange('resolucion', e.target.value)}
                                 />
                             </div>
-                        </>
+                        </div>
                     )}
 
                     {/* TAB CHAT */}
@@ -341,6 +341,7 @@ const AnalystActionTabs: React.FC<AnalystActionTabsProps> = ({
                             currentUserId={state.user?.id}
                             isAnalyst={true}
                             isSaving={isSaving}
+                            isClosed={ticket.estado === 'Cerrado'}
                         />
                     )}
 
