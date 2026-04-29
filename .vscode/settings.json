@@ -6,5 +6,8 @@
   },
   "files.associations": {
     "*.css": "tailwindcss"
+  },
+  "files.exclude": {
+    "c:/__pyrefly_virtual__/**": true
   }
 }
