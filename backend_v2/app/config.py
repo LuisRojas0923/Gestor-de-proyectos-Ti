@@ -69,6 +69,11 @@ class Configuracion(BaseSettings):
     smtp_from: Optional[str] = None
     smtp_use_ssl: bool = True
 
+    # Configuración de IA
+    ia_provider: str = "openai"
+    ia_api_key: Optional[str] = None
+    ia_base_url: str = "https://api.openai.com/v1"
+
     class Config:
         # Buscamos el .env en la raíz del proyecto (un nivel arriba de backend_v2)
         # o en la carpeta actual de ejecución.

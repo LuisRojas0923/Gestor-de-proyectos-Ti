@@ -19,6 +19,8 @@ interface MultiSelectProps {
     size?: 'md' | 'sm' | 'xs';
     className?: string;
     triggerLabel?: string;
+    triggerClassName?: string;
+    activeClassName?: string;
 }
 
 /**
@@ -34,7 +36,9 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
     disabled = false,
     size = 'md',
     className = '',
-    triggerLabel = ''
+    triggerLabel = '',
+    triggerClassName = '',
+    activeClassName = ''
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -143,7 +147,11 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                 {minimal ? (
                     <div className="relative flex items-center justify-center gap-1 w-full h-full">
                         {triggerLabel ? (
-                            <Text as="span" align="center" weight="bold" className={`text-[10px] uppercase tracking-wider leading-none transition-colors ${isOpen || value.length > 0 ? 'text-primary-400 font-black underline decoration-2' : 'text-white/70'}`}>
+                            <Text as="span" align="center" weight="bold" className={`text-[8.5px] uppercase leading-none transition-colors px-1
+                                ${isOpen || value.length > 0 
+                                    ? activeClassName || 'text-primary-400 font-black underline decoration-2' 
+                                    : triggerClassName || 'text-white/70'}
+                            `}>
                                 {triggerLabel}
                             </Text>
                         ) : (

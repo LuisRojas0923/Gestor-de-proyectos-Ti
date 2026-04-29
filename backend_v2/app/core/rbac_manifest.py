@@ -238,4 +238,11 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": True,
         "descripcion": "Vista de digitalización para operarios en el portal.",
     },
+    {
+        "id": "herramientas_informaticas",
+        "nombre": "Maestro de Herramientas Informáticas",
+        "categoria": "panel",
+        "es_critico": False,
+        "descripcion": "Registro y control centralizado de herramientas, software y procesos informáticos.",
+    },
 ]

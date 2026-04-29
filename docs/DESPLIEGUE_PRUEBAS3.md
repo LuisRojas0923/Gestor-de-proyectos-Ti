@@ -65,14 +65,17 @@ nano .env.pruebas3   # Abre un editor de texto simple para revisar/cambiar valor
 ```
 
 ### Paso 4: Levantar el ambiente con Docker
-Ejecuta el comando inyectando el archivo de variables y el compose específico:
+Ejecuta el comando inyectando el archivo de variables y el compose específico. **Recomendamos el modo silencioso** para que el despliegue sea más rápido y cómodo:
+
 ```bash
-# --env-file: Usa el archivo de variables separado
-# -f: Usa el archivo de configuración de Pruebas 3
-# up -d: Levanta los servicios en segundo plano
 # --build: Reconstruye las imágenes con el código nuevo
-sudo docker compose --env-file .env.pruebas3 -f docker-compose.Pruebas3.yml up -d --build
+# > resultado.txt 2>&1: Guarda todo el proceso en un archivo para revisión fácil
+sudo docker compose --env-file .env.pruebas3 -f docker-compose.Pruebas3.yml up -d --build > resultado.txt 2>&1
 ```
+
+> [!TIP]
+> Si el comando anterior falla o Nginx no toma los cambios, fuerza el reinicio:
+> `sudo docker compose -f docker-compose.Pruebas3.yml up -d --force-recreate nginx > resultado_nginx.txt 2>&1`
 
 ---
 
@@ -109,13 +112,17 @@ Si algo no carga, ejecuta estos comandos en el servidor para "ver" qué pasa:
 
 1. **Ver si los contenedores están corriendo:**
    ```bash
-   sudo docker ps | grep pruebas3   # Lista solo los contenedores del entorno de pruebas 3
+   sudo docker ps | grep pruebas3
    ```
-   *(Deberías ver 4 contenedores con el sufijo `-pruebas3`).*
 
-2. **Ver errores en tiempo real del API:**
+2. **Diagnóstico Silencioso (Logs a archivo):**
+   Si el sitio da error 502 o 504, guarda los logs en archivos para revisarlos sin saturar la terminal:
    ```bash
-   sudo docker compose -f docker-compose.Pruebas3.yml logs -f backend   # Muestra la salida del servidor API en vivo
+   # Ver logs del Backend
+   sudo docker logs gestor-de-proyectos-ti-backend-pruebas3 --tail 100 > logs_backend.txt 2>&1
+
+   # Ver logs de Nginx (Proxy)
+   sudo docker logs gestor-de-proyectos-ti-nginx-pruebas3 --tail 100 > logs_nginx.txt 2>&1
    ```
 
 3. **Ver si el puerto está escuchando en Windows:**

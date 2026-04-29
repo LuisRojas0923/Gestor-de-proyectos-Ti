@@ -35,6 +35,7 @@ from .api.reserva_salas import router as reserva_salas_router
 from .api.inventario.router import router as inventario_router
 from .api.impuestos import router as impuestos_router
 from .api.lineas_corporativas.router import router as lineas_corporativas_router
+from .api.herramientas_informaticas_router import router as herramientas_informaticas_router
 
 # Configurar logging centralizado
 logging.basicConfig(
@@ -183,3 +184,4 @@ app.include_router(
     prefix=f"{api_prefix}/lineas-corporativas",
     tags=["Lineas Corporativas"],
 )
+app.include_router(herramientas_informaticas_router, prefix=api_prefix)

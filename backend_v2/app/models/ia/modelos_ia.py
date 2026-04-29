@@ -123,3 +123,14 @@ class SolicitudAnalisisIA(SQLModel):
     desarrollo_id: str
     pregunta: str
     incluir_historial: bool = True
+
+class SolicitudChatTicket(SQLModel):
+    """Schema para el chat conversacional de creación de tickets"""
+    mensaje: str
+    historial: list[dict[str, str]] = []
+
+class RespuestaChatTicket(SQLModel):
+    """Schema para la respuesta del chat conversacional"""
+    respuesta: str
+    ticket_data: Optional[dict[str, Any]] = None
+    ticket_id: Optional[str] = None

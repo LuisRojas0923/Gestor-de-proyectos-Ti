@@ -43,12 +43,16 @@ cd /mnt/c/GestorTI
 git pull origin main    # Trae y combina las últimas mejoras desde GitHub
 ```
 
-### Paso 2: Levantar Contenedores
+### Paso 2: Levantar Contenedores (Despliegue Silencioso)
 ```bash
 # --build: Reconstruye las imágenes con el código nuevo descargado
-# -d: Mantiene los servicios corriendo en segundo plano
-sudo docker compose -f docker-compose.prod.yml up -d --build
+# > resultado_prod.txt: Guarda el progreso para revisión cómoda y ejecución rápida
+sudo docker compose -f docker-compose.prod.yml up -d --build > resultado_prod.txt 2>&1
 ```
+
+> [!IMPORTANT]
+> Si actualizaste la configuración de Nginx (SSL o WebSockets), fuerza su recreación:
+> `sudo docker compose -f docker-compose.prod.yml up -d --force-recreate nginx > resultado_nginx.txt 2>&1`
 
 ---
 
@@ -72,12 +76,12 @@ sudo docker compose -f docker-compose.prod.yml down    # Apaga todo el sistema
 
 Si algo no funciona correctamente, inspecciona el interior de los contenedores:
 
-| Comando | Función |
-|---------|---------|
-| `sudo docker ps` | Lista qué contenedores están corriendo actualmente |
-| `sudo docker compose -f docker-compose.prod.yml logs -f backend` | Ver errores del API en tiempo real |
-| `sudo docker compose -f docker-compose.prod.yml logs -f nginx` | Ver logs de peticiones web y certificados |
-| `sudo docker compose -f docker-compose.prod.yml logs -f db` | Ver errores de conexión a la base de datos |
+| Función | Comando (Ver en vivo) | Comando (Guardar a .txt) |
+|---------|-----------------------|--------------------------|
+| **Estado General** | `sudo docker ps` | `sudo docker ps > status.txt` |
+| **Logs API** | `sudo docker logs gestorti-backend-1 -f` | `sudo docker logs gestorti-backend-1 --tail 200 > logs_api.txt` |
+| **Logs Nginx** | `sudo docker logs gestor-de-proyectos-ti-nginx -f` | `sudo docker logs gestor-de-proyectos-ti-nginx --tail 200 > logs_nginx.txt` |
+| **Logs Redis** | `sudo docker logs gestor-de-proyectos-ti-redis-prod -f` | `sudo docker logs gestor-de-proyectos-ti-redis-prod > logs_redis.txt` |
 
 ---
 

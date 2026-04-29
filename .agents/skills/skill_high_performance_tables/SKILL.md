@@ -14,6 +14,7 @@ Esta skill define los estándares para implementar tablas que manejan grandes vo
 3. **Jerarquía Visual Premium**: Uso de colores corporativos (Navy Blue `#000080`) para los encabezados y tipografías legibles (Inter/Roboto).
 4. **Manejadores de Carga**: Implementación de skeletons o estados de carga asíncrona para retroalimentación inmediata.
 5. **Filtros por Columna (Excel-like)**: Cada columna puede tener un filtro popover que NO ocupa espacio vertical extra y se activa al hacer click.
+6. **Prioridad de Visibilidad de Títulos**: En tablas densas, se debe **reducir el tamaño de fuente (hasta 8.5px/9px)** y eliminar el espaciado entre letras (`tracking`) antes de aplicar truncado (`truncate`), para asegurar que los títulos sean legibles por completo.
 
 ---
 

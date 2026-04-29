@@ -3,28 +3,33 @@ name: Protocolo de Análisis y Resolución de Errores
 description: Prohíbe realizar correcciones de errores sin antes entregar un análisis detallado de la causa raíz y una propuesta de solución clara.
 ---
 
-# Protocolo de Análisis y Resolución de Errores
+# Protocolo de Análisis y Resolución de Errores (Investigator Mode)
 
-Este protocolo es de cumplimiento **OBLIGATORIO** cada vez que el usuario presente un error, fallo, comportamiento inesperado o reporte de bug.
+Este protocolo es de cumplimiento **OBLIGATORIO** cada vez que el usuario presente un error, fallo, comportamiento inesperado o reporte de bug. Se basa en la "Ley de Hierro": **No existe el arreglo sin investigación previa.**
 
-## 1. Fase de Análisis Obligatoria
-Ante cualquier error, el agente **NO** debe realizar cambios en el código sin antes presentar:
+## 1. Fase de Investigación Estricta
+Antes de proponer cualquier cambio, el agente debe:
+1.  **Rastrear el Flujo de Datos:** Seguir los datos desde el punto de entrada (API, UI, DB) hasta el punto del fallo.
+2.  **Formular Hipótesis:** Listar al menos 2 posibles causas antes de decidirse por una.
+3.  **Probar la Hipótesis:** Usar herramientas de lectura, logs o scripts de scratch para confirmar la causa.
 
-1.  **Causa Raíz**:
-    - Identificación exacta del archivo y línea de código afectada.
-    - Explicación técnica del porqué ocurre el error (ej: desbordamiento, falta de sincronización, error de tipo, etc).
-    - Impacto del error en la funcionalidad actual.
-
+## 2. Fase de Análisis Obligatoria
+Tras la investigación, presentar al usuario:
+1.  **Causa Raíz Verificada**:
+    - Identificación exacta del archivo y línea.
+    - Evidencia de la investigación (ej: "Confirmado que el valor llega nulo en el paso X").
+    - Explicación técnica profunda.
 2.  **Propuesta de Solución**:
-    - Descripción clara de la estrategia para corregirlo.
-    - Comparativa (si aplica) de por qué esta solución es mejor que otras alternativas.
+    - Estrategia para corregirlo.
+    - **Plan de Prevención:** Cómo evitaremos que este error (o errores similares) vuelvan a ocurrir.
 
-## 2. Prohibición de Acción Inmediata
-- El agente **TIENE PROHIBIDO** ejecutar herramientas de edición de archivos (`replace_file_content`, `multi_replace_file_content`, etc.) antes de que el usuario haya recibido y entendido el análisis previo.
-- Solo tras la entrega del análisis y la propuesta de solución, el agente podrá proceder con la corrección (o esperar la aprobación si está en Planning Mode).
+## 3. Límites de Ejecución (3-Strike Rule)
+- El agente tiene un máximo de **3 intentos** para arreglar un bug persistente.
+- Si tras 3 intentos el bug sigue ahí, el agente debe detenerse, admitir el bloqueo y pedir una sesión de "Office Hours" con el usuario para replantear el problema.
 
-## 3. Formato de Entrega
-El análisis debe entregarse de forma estructurada usando alertas de GitHub (TIP/IMPORTANT/CAUTION) para resaltar la gravedad y la solución propuesta.
+## 4. Prohibición de Acción Inmediata
+- **PROHIBIDO** editar archivos antes de entregar este análisis.
+- **PROHIBIDO** usar "vibe coding" (suponer que algo funciona sin probarlo).
 
 > [!IMPORTANT]
-> El objetivo de esta skill es evitar "parches" rápidos que no ataquen el problema de fondo y asegurar que el usuario siempre entienda qué se está modificando y por qué.
+> El objetivo es eliminar la deuda técnica y los parches rápidos. Cada error es una oportunidad para fortalecer la arquitectura.

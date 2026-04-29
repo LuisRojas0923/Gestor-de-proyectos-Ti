@@ -53,8 +53,19 @@ Al construir el componente visual en React/Vite:
   </ProtectedRoute>
   ```
 
+### 4. Registro en Navegación (Sidebar)
+
+**OBLIGATORIO**: Todo módulo registrado en el manifiesto debe estar presente en el sistema de navegación global para ser accesible.
+
+- Abre `frontend/src/components/layout/Sidebar.tsx`.
+- Añade el módulo al array `navigation` usando el `"id"` exacto del manifiesto:
+  ```tsx
+  { id: 'nuevo_modulo_id', name: 'Nombre Menú', href: '/ruta/nueva', icon: IconoLucide },
+  ```
+
 ## Lista de Verificación
 
 - [ ] ¿Modifiqué el archivo `rbac_manifest.py` para agregar la nueva funcionalidad?
 - [ ] ¿El ID en TypeScript/React coincide *exactamente* con el ID del manifiesto en Python?
 - [ ] ¿Hice un reinicio rápido del backend para que aplique el Auto-Discovery?
+- [ ] ¿Agregué el acceso directo en `frontend/src/components/layout/Sidebar.tsx`?

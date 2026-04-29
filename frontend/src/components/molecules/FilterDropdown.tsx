@@ -101,7 +101,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
     return createPortal(
         <div 
             ref={dropdownRef}
-            className="multiselect-dropdown-portal fixed z-[9999] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
+            className="multiselect-dropdown-portal fixed z-[9999] bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-neutral-200/50 dark:border-slate-800/50 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
             style={dynamicStyle}
         >
             {/* Header */}
