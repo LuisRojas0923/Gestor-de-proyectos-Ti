@@ -9,7 +9,7 @@ KEYWORDS = ["hardcoded_ip", "192.168.", "10.0."]
 # Carpetas técnicas que se excluyen del escaneo
 IGNORE_DIRS = [
     "dist/", ".map", ".min.js", "node_modules/", ".env", "settings.tsx",
-    "auditoria/", "scripts/", "tools/", "testing/", "monitoring/", "package-lock.json", "macros/", "docs/", ".png", ".jpg", ".jpeg", ".pdf"
+    "auditoria/", "scripts/", "tools/", "testing/", "monitoring/", "package-lock.json", "macros/", "docs/", ".png", ".jpg", ".jpeg", ".pdf", "herramientas_data.json"
 ]
 
 def main():
