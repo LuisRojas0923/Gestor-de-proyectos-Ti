@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, X, Sparkles, CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Send, Bot, User, X, Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button, Text, Title, Textarea } from '../../../components/atoms';
 import { IAService, ChatHistoryItem, AIChatResponse } from '../../../services/IAService';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
