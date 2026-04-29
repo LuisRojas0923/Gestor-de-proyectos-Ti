@@ -177,7 +177,7 @@ const OccidenteLibranzaPreview: React.FC = () => {
                             <History className="w-4 h-4 text-[var(--color-primary)]" />
                         </div>
                         <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                            <span>OCCIDENTE LIBRANZA / HISTORIAL</span>
+                            <Text as="span" size="xs" color="inherit" className="font-bold">OCCIDENTE LIBRANZA / HISTORIAL</Text>
                             <ChevronRight className="w-3 h-3" />
                         </div>
                     </Button>
@@ -210,8 +210,7 @@ const OccidenteLibranzaPreview: React.FC = () => {
                             Archivos Excel ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
-                            <input
-                                id="file-upload"
+                            <input id="file-upload"
                                 type="file"
                                 accept=".xlsx"
                                 multiple

@@ -69,7 +69,7 @@ const SubcategorySummaryCard: React.FC<SubcategorySummaryCardProps> = ({
                     <Title 
                         variant="h5" 
                         weight="black" 
-                        className={`text-[var(--color-text-primary)] leading-tight text-[11px] ${isCentered ? 'text-center' : ''}`}
+                        className={`text-[var(--color-text-primary)] leading-tight text-[18px] ${isCentered ? 'text-center' : ''}`}
                     >
                         {typeof value === 'number' 
                             ? value.toLocaleString('es-CO', { 
@@ -77,7 +77,7 @@ const SubcategorySummaryCard: React.FC<SubcategorySummaryCardProps> = ({
                                 currency: 'COP', 
                                 maximumFractionDigits: 0 
                               }) 
-                            : value}
+                            : (value ?? '0')}
                     </Title>
                 )}
             </div>

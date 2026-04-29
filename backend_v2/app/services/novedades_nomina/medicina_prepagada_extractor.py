@@ -108,8 +108,24 @@ def extraer_medicina_prepagada(archivos_binarios: List[bytes]) -> Tuple[List[Dic
             
             # Volver a posicionar el puntero para read_excel
             decrypted_handle.seek(0)
-            # El usuario indica que los encabezados empiezan en la fila 17 (skiprows=16)
-            df = pd.read_excel(decrypted_handle, sheet_name=target_sheet, skiprows=16)
+            # Detección dinámica de encabezados: buscar la fila que contiene 'CEDULA' o 'DOCUMENTO'
+            df_initial = pd.read_excel(decrypted_handle, sheet_name=target_sheet, header=None, nrows=50)
+            header_row = 0
+            for idx, row in df_initial.iterrows():
+                row_vals = [str(v).upper() for v in row.values if pd.notna(v)]
+                # Una fila de encabezado válida debe tener identificación Y algo de valores/cuotas
+                has_id = any(any(kw in v for kw in ['CEDULA', 'DOCUMENTO', 'IDENTIFICACION']) for v in row_vals)
+                has_value = any(any(kw in v for kw in ['CUOTA', 'VALOR', 'PREPAGADA']) for v in row_vals)
+                
+                if has_id and has_value:
+                    header_row = idx
+                    break
+            
+            logger.info(f"Fila de encabezado detectada en índice: {header_row}")
+            
+            # Volver a posicionar el puntero y leer desde la fila detectada
+            decrypted_handle.seek(0)
+            df = pd.read_excel(decrypted_handle, sheet_name=target_sheet, skiprows=header_row)
             
             # Limpiar nombres de columnas: eliminar espacios, saltos de línea y pasar a UPPER
             df.columns = [str(c).replace('\n', ' ').strip().upper() for c in df.columns]
@@ -117,20 +133,23 @@ def extraer_medicina_prepagada(archivos_binarios: List[bytes]) -> Tuple[List[Dic
             # Buscar columnas específicas según requerimiento
             col_cedula = None
             col_cuota = None
+            col_total = None
             col_descuento = None
             col_iva = None
             
-            # Mapeo exacto o aproximado de columnas
+            # Mapeo exacto o aproximado de columnas (tomando la primera coincidencia)
             for c in df.columns:
                 c_clean = str(c).strip().upper()
-                if any(kw in c_clean for kw in ['NÚMERO DE DOCUMENTO', 'DOCUMENTO', 'CEDULA', 'IDENTIFICACION']):
-                    col_cedula = c
+                if any(kw in c_clean for kw in ['NÚMERO DE DOCUMENTO', 'DOCUMENTO', 'CEDULA', 'IDENTIFICACION']) and 'TIPO' not in c_clean:
+                    if not col_cedula: col_cedula = c
+                elif any(kw in c_clean for kw in ['TOTAL', 'VALOR MENSUAL']) and 'IVA' not in c_clean:
+                    if not col_total: col_total = c
                 elif 'CUOTA' in c_clean:
-                    col_cuota = c
+                    if not col_cuota: col_cuota = c
                 elif 'DESCUENTO COMERCIAL' in c_clean or 'DESCUENTO' in c_clean:
-                    col_descuento = c
+                    if not col_descuento: col_descuento = c
                 elif 'IVA' in c_clean:
-                    col_iva = c
+                    if not col_iva: col_iva = c
             
             if not col_cedula or not col_cuota:
                 warnings.append(f"No se pudieron identificar las columnas requeridas en la hoja '{target_sheet}'. Columnas encontradas: {list(df.columns)}")
@@ -147,24 +166,29 @@ def extraer_medicina_prepagada(archivos_binarios: List[bytes]) -> Tuple[List[Dic
                 if not cedula or len(cedula) < 3:
                     continue
 
-                # Validar y calcular valor: (Cuota - Descuento Comercial)
+                # Validar y calcular valor: CUOTA - ABS(DESCUENTO COMERCIAL)
                 try:
+                    # Siempre separar Cuota e IVA para que el servicio decida si sumarlos (según excepción)
                     cuota = float(row[col_cuota]) if pd.notna(row[col_cuota]) else 0.0
-                    descuento = float(row[col_descuento]) if col_descuento and pd.notna(row[col_descuento]) else 0.0
+                    # Aseguramos valor absoluto del descuento para que la resta sea siempre correcta
+                    descuento = abs(float(row[col_descuento])) if col_descuento and pd.notna(row[col_descuento]) else 0.0
                     
                     valor = cuota - descuento
+                    iva_fila = float(row[col_iva]) if col_iva and pd.notna(row[col_iva]) else 0.0
                     
-                    if valor <= 0:
+                    if valor <= 0 and iva_fila <= 0:
                         continue
                 except (ValueError, TypeError):
                     continue
 
                 if cedula in mapa_agrupado:
                     mapa_agrupado[cedula]["valor"] += valor
+                    mapa_agrupado[cedula]["iva"] += iva_fila
                 else:
                     mapa_agrupado[cedula] = {
                         "cedula": cedula,
                         "valor": valor,
+                        "iva": iva_fila,
                         "concepto": "MEDICINA PREPAGADA"
                     }
 

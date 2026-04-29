@@ -60,3 +60,53 @@ class ExcepcionService:
                 excepcion.estado = "AGOTADO"
             excepcion.actualizado_en = datetime.now()
             session.add(excepcion)
+
+    @staticmethod
+    async def aplicar_saldo_favor(session: Session, excepcion: NominaExcepcion, valor_cobro: float, mes: int, anio: int) -> float:
+        """
+        Aplica un saldo a favor a un cobro, disminuyendo el saldo actual.
+        Implementa idempotencia: si ya se aplicó en el mismo periodo, revierte antes de aplicar.
+        Retorna el valor_final_a_cobrar.
+        """
+        # 1. Buscar si ya se aplicó en este mes/año para esta excepción
+        stmt = select(NominaExcepcionHistorial).where(
+            NominaExcepcionHistorial.excepcion_id == excepcion.id,
+            NominaExcepcionHistorial.mes == mes,
+            NominaExcepcionHistorial.anio == anio
+        )
+        result = await session.execute(stmt)
+        historial_previo = result.scalars().first()
+        
+        if historial_previo:
+            # Revertir saldo anterior al saldo_actual de la excepción
+            excepcion.saldo_actual += historial_previo.valor_aplicado
+            # Borrar historial previo para reemplazarlo
+            await session.delete(historial_previo)
+        
+        # 2. Calcular descuento (Opción A: Restar lo que se pueda hasta llegar a 0)
+        descuento = min(valor_cobro, excepcion.saldo_actual)
+        valor_final = valor_cobro - descuento
+        
+        # 3. Actualizar saldo y estado
+        excepcion.saldo_actual -= descuento
+        if excepcion.saldo_actual <= 0:
+            excepcion.saldo_actual = 0
+            excepcion.estado = "AGOTADO"
+        else:
+            excepcion.estado = "ACTIVO"
+            
+        excepcion.actualizado_en = datetime.now()
+        
+        # 4. Registrar nuevo historial si hubo descuento
+        if descuento > 0:
+            nuevo_hist = NominaExcepcionHistorial(
+                excepcion_id=excepcion.id,
+                mes=mes,
+                anio=anio,
+                valor_aplicado=descuento,
+                mensaje=f"Aplicado saldo favor: ${descuento:,.0f}. Cobro original: ${valor_cobro:,.0f} -> Cobro final: ${valor_final:,.0f}"
+            )
+            session.add(nuevo_hist)
+        
+        session.add(excepcion)
+        return valor_final

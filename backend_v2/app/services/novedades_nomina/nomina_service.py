@@ -69,79 +69,77 @@ class NominaService:
             
             estado_val = estado_default
             
-            # Aplicar lógica de excepciones
+            # Aplicar lógica de excepciones (con soporte para herencia de beneficios)
             if ex:
-                if ex.tipo == 'EXCLUSION':
-                    valor_final = 0
-                    estado_val = "EXCEPCION_EXCLUIDO"
-                    observacion_ex = f"Excluido por: {ex.observacion}"
-                elif ex.tipo == 'VALOR_FIJO':
-                    valor_final = ex.valor_configurado
-                    estado_val = "EXCEPCION_VALOR_FIJO"
-                    observacion_ex = f"Valor fijo aplicado: {ex.valor_configurado}"
-                elif ex.tipo == 'PAGO_TERCERO' and ex.pagador_cedula:
-                    # REPLAZO DE REGISTRO: El tercero asume la identidad del registro
+                # --- FASE 1: Redirección de cobro (Vínculo Beneficiario -> Titular) ---
+                if ex.tipo == 'PAGO_TERCERO' and ex.pagador_cedula:
+                    msg_origen = f" (Original: {cedula_original})"
                     cedula_final = ex.pagador_cedula
-                    info_tercero = mapa_erp.get(cedula_final)
-                    if info_tercero:
-                        nombre_final = info_tercero["nombre"]
-                        empresa_final = info_tercero["empresa"]
-                    else:
-                        nombre_final = f"PAGO TERCERO: {cedula_final}"
+                    info_original = mapa_erp.get(cedula_final) # Actualizamos info al titular para validar su estado ERP
+                    nombre_final = info_original["nombre"] if info_original else f"TITULAR: {cedula_final}"
+                    empresa_final = info_original["empresa"] if info_original else "N/A"
                     
-                    estado_val = "EXCEPCION_PAGO_TERCERO"
-                    observacion_ex = f"Pago asumido por {cedula_final} (Original: {cedula_original})"
-                elif ex.tipo == 'EXONERACION':
-                    # Solo aplica si está activo en ERP
-                    if info_original and str(info_original.get("estado", "")).strip().upper() == "ACTIVO":
+                    # RE-EVALUAR: ¿El titular tiene un beneficio propio?
+                    ex = mapa_ex.get(cedula_final)
+                    if not ex or ex.tipo == 'PAGO_TERCERO':
+                        estado_val = "EXCEPCION_PAGO_TERCERO"
+                        observacion_ex = f"Pago asumido por titular{msg_origen}"
+
+                # --- FASE 2: Aplicación del beneficio final (Sea del original o heredado) ---
+                if ex:
+                    if ex.tipo == 'EXCLUSION':
+                        valor_final = 0
+                        estado_val = "EXCEPCION_EXCLUIDO"
+                        observacion_ex = f"Excluido por: {ex.observacion}"
+                    elif ex.tipo == 'VALOR_FIJO':
+                        valor_final = ex.valor_configurado
+                        estado_val = "EXCEPCION_VALOR_FIJO"
+                        observacion_ex = f"Valor fijo aplicado: {ex.valor_configurado}"
+                    elif ex.tipo == 'EXONERACION':
+                        # Se aplica valor 0 siempre por petición del usuario, independientemente del ERP
                         valor_final = 0
                         estado_val = "EXCEPCION_EXONERADO"
-                        observacion_ex = f"Exonerado de pago: {ex.observacion}"
-                    else:
-                        estado_val = "ERROR_EXONERACION_NO_ACTIVO"
-                        observacion_ex = "Exoneración requiere empleado activo en ERP"
-                elif ex.tipo == 'PORCENTAJE_EMPRESA':
-                    # Si tiene pagador_cedula, redirigir al pagador (como PAGO_TERCERO)
-                    info_target = info_original
-                    if ex.pagador_cedula:
-                        cedula_final = ex.pagador_cedula
-                        info_target = mapa_erp.get(cedula_final)
-                        if info_target:
-                            nombre_final = info_target["nombre"]
-                            empresa_final = info_target["empresa"]
+                        if info_original and str(info_original.get("estado", "")).strip().upper() == "ACTIVO":
+                            observacion_ex = f"Exonerado de pago: {ex.observacion}"
                         else:
-                            nombre_final = f"PAGO TERCERO: {cedula_final}"
+                            observacion_ex = f"Exonerado (Sin validación ERP): {ex.observacion}"
+                    elif ex.tipo == 'PORCENTAJE_EMPRESA':
+                        # Si tiene pagador_cedula, redirigir al pagador (como PAGO_TERCERO)
+                        info_target = info_original
+                        if ex.pagador_cedula:
+                            cedula_final = ex.pagador_cedula
+                            info_target = mapa_erp.get(cedula_final)
+                            if info_target:
+                                nombre_final = info_target["nombre"]
+                                empresa_final = info_target["empresa"]
+                            else:
+                                nombre_final = f"PAGO TERCERO: {cedula_final}"
 
-                    # El pagador (o la persona original) debe estar activo en ERP
-                    if info_target and str(info_target.get("estado", "")).strip().upper() == "ACTIVO":
-                        porcentaje = ex.valor_configurado  # ej: 50 = 50%
-                        # Incluir IVA en la base de cálculo para % empresa
-                        iva_row = row.get("iva", 0) or 0
-                        valor_base = valor_final + iva_row
-                        descuento_empresa = round(valor_base * (porcentaje / 100), 2)
-                        valor_final = round(valor_base - descuento_empresa, 2)
-                        estado_val = "EXCEPCION_PORCENTAJE_EMPRESA"
-                        origen = f" (Original: {cedula_original})" if ex.pagador_cedula else ""
-                        observacion_ex = f"Empresa asume {porcentaje}% (${descuento_empresa:,.0f}). Cobro: ${valor_final:,.0f}{origen}"
-                    else:
-                        estado_val = "ERROR_PORCENTAJE_NO_ACTIVO"
-                        observacion_ex = "Porcentaje empresa requiere empleado activo en ERP"
-                elif ex.tipo == 'RETIRADO_AUTORIZADO':
-                    estado_val = "EXCEPCION_AUTORIZADA"
-                    observacion_ex = f"Retirado Autorizado: {ex.observacion}"
-                elif ex.tipo == 'CONTRATISTAS':
-                    estado_val = "EXCEPCION_AUTORIZADA"
-                    observacion_ex = f"Contratista: {ex.observacion}"
-                elif ex.tipo == 'SALDO_FAVOR':
-                    if ex.saldo_actual < valor_final:
-                        observacion_ex = f"Saldo insuficiente ($ {ex.saldo_actual}) para cubrir cobro de $ {valor_final}"
-                        valor_final = 0
-                        estado_val = "ERROR_SALDO_INSUFICIENTE"
-                    else:
-                        descuento = valor_final
+                        # El pagador (o la persona original) debe estar activo en ERP
+                        if info_target and str(info_target.get("estado", "")).strip().upper() == "ACTIVO":
+                            porcentaje = ex.valor_configurado  # ej: 50 = 50%
+                            # Incluir IVA en la base de cálculo para % empresa
+                            iva_row = row.get("iva", 0) or 0
+                            valor_base = valor_final + iva_row
+                            descuento_empresa = round(valor_base * (porcentaje / 100), 2)
+                            valor_final = round(valor_base - descuento_empresa, 2)
+                            estado_val = "EXCEPCION_PORCENTAJE_EMPRESA"
+                            origen = f" (Original: {cedula_original})" if ex.pagador_cedula else ""
+                            observacion_ex = f"Empresa asume {porcentaje}% (${descuento_empresa:,.0f}). Cobro: ${valor_final:,.0f}{origen}"
+                        else:
+                            estado_val = "ERROR_PORCENTAJE_NO_ACTIVO"
+                            observacion_ex = "Porcentaje empresa requiere empleado activo en ERP"
+                    elif ex.tipo == 'RETIRADO_AUTORIZADO':
+                        estado_val = "EXCEPCION_AUTORIZADA"
+                        observacion_ex = f"Retirado Autorizado: {ex.observacion}"
+                    elif ex.tipo == 'CONTRATISTAS':
+                        estado_val = "EXCEPCION_AUTORIZADA"
+                        observacion_ex = f"Contratista: {ex.observacion}"
+                    elif ex.tipo == 'SALDO_FAVOR':
+                        valor_orig = valor_final
+                        valor_final = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
                         estado_val = "EXCEPCION_SALDO_FAVOR"
-                        ExcepcionService.actualizar_estado_saldo(session, ex, descuento)
-                        ExcepcionService.registrar_historial(session, ex.id, mes, anio, descuento, f"Aplicado saldo a favor en procesamiento de archivo")
+                        observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
 
             # Lógica de estados si no hay excepción dominante que autorice
             if estado_val == estado_default:
@@ -177,41 +175,25 @@ class NominaService:
             if ex.cedula not in cedulas_procesadas:
                 inyectar = False
                 descuento = 0
-                msg_historial = ""
                 estado_val = "OK"
-                
                 if ex.tipo == 'SALDO_FAVOR' and ex.saldo_actual > 0:
                     inyectar = True
-                    if ex.saldo_actual < ex.valor_configurado:
-                        descuento = 0
-                        estado_val = "ERROR_SALDO_INSUFICIENTE"
-                    else:
-                        descuento = ex.valor_configurado
-                        estado_val = "EXCEPCION_SALDO_FAVOR"
-                        msg_historial = "Inyectado por saldo a favor (No estaba en archivo)"
+                    valor_orig = ex.valor_configurado # El valor a cobrar por defecto
+                    descuento = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+                    estado_val = "EXCEPCION_SALDO_FAVOR"
                 
                 elif ex.tipo == 'CONTRATISTAS':
                     inyectar = True
-                    # Si no está en el archivo, usamos el valor configurado (si existe)
                     descuento = ex.valor_configurado
                     estado_val = "EXCEPCION_AUTORIZADA"
-                    msg_historial = "Inyectado como Contratista (No ERP)"
                 
                 elif ex.tipo == 'RETIRADO_AUTORIZADO' and ex.valor_configurado > 0:
                     inyectar = True
                     descuento = ex.valor_configurado
                     estado_val = "EXCEPCION_AUTORIZADA"
-                    msg_historial = "Inyectado como Retirado Autorizado"
 
                 if inyectar:
                     info = mapa_erp.get(ex.cedula)
-                    
-                    if ex.tipo == 'SALDO_FAVOR' and descuento > 0:
-                        ExcepcionService.actualizar_estado_saldo(session, ex, descuento)
-                    
-                    if msg_historial and descuento > 0:
-                        ExcepcionService.registrar_historial(session, ex.id, mes, anio, descuento, msg_historial)
-
                     reg = NominaRegistroNormalizado(
                         archivo_id=archivo_id,
                         fecha_creacion=datetime.now(),

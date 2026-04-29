@@ -23,11 +23,15 @@ async def datos_comisiones(
     res = await NominaService.obtener_datos_periodo(session, "COMISIONES", mes, anio)
     
     # Obtener favoritos del usuario
-    stmt = select(NominaFavorito.cedula).where(
-        NominaFavorito.usuario_id == user.id,
-        NominaFavorito.subcategoria == "COMISIONES"
-    )
-    favs = (await session.execute(stmt)).scalars().all()
+    try:
+        stmt = select(NominaFavorito.cedula).where(
+            NominaFavorito.usuario_id == user.id,
+            NominaFavorito.subcategoria == "COMISIONES"
+        )
+        result = await session.execute(stmt)
+        favs = result.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al consultar favoritos: {str(e)}")
     fav_set = set(favs)
     
     # Marcar filas como favoritas
@@ -47,7 +51,11 @@ async def listar_favoritos_comisiones(
         NominaFavorito.usuario_id == user.id,
         NominaFavorito.subcategoria == "COMISIONES"
     )
-    cedulas = (await session.execute(stmt)).scalars().all()
+    try:
+        result = await session.execute(stmt)
+        cedulas = result.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al consultar favoritos del usuario: {str(e)}")
     
     if not cedulas:
         return []
@@ -83,21 +91,29 @@ async def toggle_favorito_comisiones(
         NominaFavorito.cedula == cedula,
         NominaFavorito.subcategoria == "COMISIONES"
     )
-    fav = (await session.execute(stmt)).scalar_one_or_none()
+    try:
+        result = await session.execute(stmt)
+        fav = result.scalar_one_or_none()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al verificar estado de favorito: {str(e)}")
     
-    if fav:
-        await session.delete(fav)
-        await session.commit()
-        return {"status": "removed", "cedula": cedula}
-    else:
-        nuevo_fav = NominaFavorito(
-            usuario_id=user.id,
-            cedula=cedula,
-            subcategoria="COMISIONES"
-        )
-        session.add(nuevo_fav)
-        await session.commit()
-        return {"status": "added", "cedula": cedula}
+    try:
+        if fav:
+            await session.delete(fav)
+            await session.commit()
+            return {"status": "removed", "cedula": cedula}
+        else:
+            nuevo_fav = NominaFavorito(
+                usuario_id=user.id,
+                cedula=cedula,
+                subcategoria="COMISIONES"
+            )
+            session.add(nuevo_fav)
+            await session.commit()
+            return {"status": "added", "cedula": cedula}
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar favorito: {str(e)}")
 
 @router.post("/procesar-manual")
 async def procesar_manual_comisiones(

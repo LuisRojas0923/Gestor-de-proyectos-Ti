@@ -138,4 +138,3 @@ def import_historical_data():
 
 if __name__ == "__main__":
     import_historical_data()
-

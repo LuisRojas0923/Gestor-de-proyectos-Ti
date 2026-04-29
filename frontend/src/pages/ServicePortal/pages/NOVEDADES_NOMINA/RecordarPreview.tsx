@@ -185,7 +185,7 @@ const RecordarPreview: React.FC = () => {
                             <History className="w-4 h-4 text-[var(--color-primary)]" />
                         </div>
                         <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                            <span>RECORDAR / HISTORIAL</span>
+                            <Text as="span" size="xs" color="inherit" className="font-bold">RECORDAR / HISTORIAL</Text>
                             <ChevronRight className="w-3 h-3" />
                         </div>
                     </Button>
@@ -218,8 +218,7 @@ const RecordarPreview: React.FC = () => {
                             Archivos Excel ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
-                            <input
-                                id="file-upload"
+                            <input id="file-upload"
                                 type="file"
                                 accept=".xlsx,.xls"
                                 multiple
@@ -359,7 +358,7 @@ const RecordarPreview: React.FC = () => {
                         <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
                             <div className="flex items-center gap-2">
                                 <Database className="w-3.5 h-3.5 text-slate-400" />
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">REGISTROS CARGADOS</span>
+                                <Text as="span" weight="bold" color="text-tertiary" className="text-[10px] uppercase tracking-wider">REGISTROS CARGADOS</Text>
                             </div>
                             <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
                                 {filteredRows.length} REGISTROS

@@ -15,6 +15,7 @@ interface HdiRow {
     concepto: string;
     estado_erp?: string;
     estado_validacion?: string;
+    observaciones?: string;
 }
 
 interface WarningDetalle {
@@ -179,9 +180,11 @@ const HdiPreview: React.FC = () => {
                             <Title variant="h5" weight="bold" className="text-slate-800 dark:text-slate-200">Ver Histórico</Title>
                             <History className="w-4 h-4 text-[var(--color-primary)]" />
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                            <span>HDI / HISTORIAL</span>
-                            <ChevronRight className="w-3 h-3" />
+                        <div className="flex items-center gap-1">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
+                                HDI / HISTORIAL
+                            </Text>
+                            <ChevronRight className="w-3 h-3 text-slate-400" />
                         </div>
                     </Button>
                 </div>
@@ -213,8 +216,7 @@ const HdiPreview: React.FC = () => {
                             Archivos PDF ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
-                            <input
-                                id="file-upload"
+                            <input id="file-upload"
                                 type="file"
                                 multiple
                                 accept=".pdf"
@@ -351,18 +353,40 @@ const HdiPreview: React.FC = () => {
 
                     {/* Table - Self scrolling */}
                     <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-                        <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+                        <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30 gap-4">
+                            <div className="flex items-center gap-2">
+                                <Database className="w-3.5 h-3.5 text-slate-400" />
+                                <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
+                                    REGISTROS CARGADOS
+                                </Text>
+                            </div>
+                            
+                            <div className="flex-1 max-w-sm">
+                                <Input
+                                    size="xs"
+                                    type="text"
+                                    placeholder="Filtrar por cédula o nombre..."
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    icon={Search}
+                                    className="!h-8"
+                                />
+                            </div>
+
                             <div className="flex items-center gap-2">
                                 <Filter className="w-3.5 h-3.5 text-slate-400" />
-                                <select 
-                                    className="text-[10px] bg-transparent border-none focus:ring-0 font-bold text-slate-500 uppercase tracking-wider cursor-pointer"
+                                <Select 
+                                    size="xs"
+                                    className="!border-none !bg-transparent !p-0 !h-auto !w-auto [&_select]:font-bold [&_select]:text-slate-500 [&_select]:uppercase [&_select]:tracking-wider"
                                     value={conceptoFilter}
                                     onChange={(e) => setConceptoFilter(e.target.value)}
-                                >
-                                    <option value="">TODOS LOS CONCEPTOS</option>
-                                    <option value="SEGURO HDI">SEGURO HDI</option>
-                                </select>
+                                    options={[
+                                        { value: "", label: "TODOS LOS CONCEPTOS" },
+                                        { value: "SEGURO HDI", label: "SEGURO HDI" }
+                                    ]}
+                                />
                             </div>
+
                             <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
                                 {filteredRows.length} REGISTROS
                             </Text>
@@ -376,7 +400,7 @@ const HdiPreview: React.FC = () => {
                                         <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">NOMBRE</th>
                                         <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">EMPRESA</th>
                                         <th className="text-right p-2 font-bold text-slate-500 uppercase tracking-wider">VALOR</th>
-                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">CONCEPTO</th>
+                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">MOTIVO</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -397,7 +421,7 @@ const HdiPreview: React.FC = () => {
                                                 {formatCurrency(row.valor)}
                                             </td>
                                             <td className="p-2">
-                                                <ConceptoBadge concepto={row.concepto} />
+                                                <Badge variant="info" size="xs">{row.motivo || row.MOTIVO || 'N/A'}</Badge>
                                             </td>
                                         </tr>
                                     ))}
@@ -425,17 +449,5 @@ const HdiPreview: React.FC = () => {
 };
 
 /* ---- Sub-components ---- */
-
-const ConceptoBadge: React.FC<{ concepto: string }> = ({ concepto }) => {
-    const variantMap: Record<string, 'success' | 'info' | 'warning' | 'default'> = {
-        'SEGURO HDI': 'info',
-        'SEGURO HDI VALOR': 'info',
-    };
-    return (
-        <Badge variant={variantMap[concepto] || 'default'} size="sm">
-            {concepto}
-        </Badge>
-    );
-};
 
 export default HdiPreview;

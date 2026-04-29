@@ -1,6 +1,6 @@
 import React from 'react';
 import { Upload } from 'lucide-react';
-import { Text } from '../atoms';
+import { Text, Input } from '../atoms';
 
 interface FilePickerProps {
     id?: string;
@@ -27,7 +27,7 @@ const FilePicker: React.FC<FilePickerProps> = ({
 }) => {
     return (
         <div className={`relative group ${className}`}>
-            <input
+            <Input
                 id={id}
                 type="file"
                 multiple={multiple}

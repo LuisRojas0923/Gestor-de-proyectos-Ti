@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Title, Text, Button, Input, Badge } from '../../../../components/atoms';
+import { Title, Text, Button, Input, Badge, Checkbox } from '../../../../components/atoms';
 import Modal from '../../../../components/molecules/Modal';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Settings2, Plus, Pencil, Trash2, Save, X, Hash, Tag } from 'lucide-react';
@@ -142,9 +142,10 @@ const ControlDescuentosConceptos: React.FC = () => {
                 <Button
                     variant="primary"
                     onClick={handleOpenCreate}
-                    className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 font-bold shadow-lg hover:shadow-blue-500/20 h-10 px-5 rounded-xl active:scale-95 transition-all"
+                    icon={Plus}
+                    className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 font-bold shadow-lg hover:shadow-blue-500/20"
                 >
-                    <span className="flex items-center gap-2"><Plus className="w-4 h-4" /> Nuevo Concepto</span>
+                    Nuevo Concepto
                 </Button>
             </div>
 
@@ -193,10 +194,10 @@ const ControlDescuentosConceptos: React.FC = () => {
                                                 <Text weight="medium" className="text-slate-800 dark:text-slate-200 font-semibold">{c.nombre}</Text>
                                             </td>
                                             <td className="px-5 py-3.5 text-center">
-                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 font-mono text-sm font-bold">
+                                                <Text as="span" className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 font-mono text-sm font-bold">
                                                     <Hash className="w-3 h-3" />
                                                     {c.concepto_nomina}
-                                                </span>
+                                                </Text>
                                             </td>
                                             <td className="px-5 py-3.5 text-center">
                                                 <Badge variant={c.activo ? 'success' : 'neutral'} size="sm">
@@ -205,20 +206,22 @@ const ControlDescuentosConceptos: React.FC = () => {
                                             </td>
                                             <td className="px-5 py-3.5">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <button
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
                                                         onClick={() => handleOpenEdit(c)}
-                                                        className="p-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 dark:hover:text-blue-400 transition-colors"
+                                                        icon={Pencil}
+                                                        className="text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
                                                         title="Editar"
-                                                    >
-                                                        <Pencil className="w-4 h-4" />
-                                                    </button>
-                                                    <button
+                                                    />
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
                                                         onClick={() => setDeleteModal({ isOpen: true, concepto: c })}
-                                                        className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-colors"
+                                                        icon={Trash2}
+                                                        className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                                                         title="Eliminar"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                    />
                                                 </div>
                                             </td>
                                         </tr>
@@ -239,56 +242,45 @@ const ControlDescuentosConceptos: React.FC = () => {
                 closeOnOverlayClick={false}
             >
                 <div className="space-y-5 pt-2">
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                            Nombre del Concepto <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            placeholder="Ej: GAFAS, ZOOLOGICO, CELULAR..."
-                            value={form.nombre}
-                            onChange={e => setForm(f => ({ ...f, nombre: e.target.value.toUpperCase() }))}
-                            className="uppercase"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                            Concepto de Nómina <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            placeholder="Ej: 111"
-                            value={form.concepto_nomina}
-                            onChange={e => setForm(f => ({ ...f, concepto_nomina: e.target.value }))}
-                        />
-                        <Text size="xs" color="text-tertiary" className="mt-1.5">
-                            Código que se usa en la liquidación de nómina. Por defecto: 111.
-                        </Text>
-                    </div>
-                    <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                        <input
-                            type="checkbox"
+                    <Input
+                        label="Nombre del Concepto"
+                        required
+                        placeholder="Ej: GAFAS, ZOOLOGICO, CELULAR..."
+                        value={form.nombre}
+                        onChange={e => setForm(f => ({ ...f, nombre: e.target.value.toUpperCase() }))}
+                        className="uppercase"
+                    />
+                    <Input
+                        label="Concepto de Nómina"
+                        required
+                        placeholder="Ej: 111"
+                        value={form.concepto_nomina}
+                        onChange={e => setForm(f => ({ ...f, concepto_nomina: e.target.value }))}
+                        helperText="Código que se usa en la liquidación de nómina. Por defecto: 111."
+                    />
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                        <Checkbox
                             id="activo-check"
+                            label="Concepto activo (visible en el formulario de registro)"
                             checked={form.activo}
                             onChange={e => setForm(f => ({ ...f, activo: e.target.checked }))}
-                            className="w-4 h-4 accent-blue-600 cursor-pointer"
                         />
-                        <label htmlFor="activo-check" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-                            Concepto <strong>activo</strong> (visible en el formulario de registro)
-                        </label>
                     </div>
                     <div className="flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
-                        <Button variant="ghost" onClick={handleCloseForm} disabled={isSaving}>
-                            <span className="flex items-center gap-2"><X className="w-4 h-4" /> Cancelar</span>
+                        <Button variant="ghost" onClick={handleCloseForm} disabled={isSaving} icon={X}>
+                            Cancelar
                         </Button>
                         <Button
                             variant="primary"
                             onClick={handleSave}
                             disabled={isSaving}
+                            icon={isSaving ? undefined : (editingId !== null ? Save : Plus)}
                             className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
                         >
                             {isSaving ? (
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                             ) : (
-                                <span className="flex items-center gap-2"><Save className="w-4 h-4" /> {editingId !== null ? 'Actualizar' : 'Guardar'}</span>
+                                editingId !== null ? 'Actualizar' : 'Guardar'
                             )}
                         </Button>
                     </div>
@@ -317,15 +309,16 @@ const ControlDescuentosConceptos: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
-                        <Button variant="ghost" onClick={() => setDeleteModal({ isOpen: false, concepto: null })}>
-                            <span className="flex items-center gap-2"><X className="w-4 h-4" /> Cancelar</span>
+                        <Button variant="ghost" onClick={() => setDeleteModal({ isOpen: false, concepto: null })} icon={X}>
+                            Cancelar
                         </Button>
                         <Button
                             variant="primary"
                             onClick={handleConfirmDelete}
+                            icon={Trash2}
                             className="bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 border-none"
                         >
-                            <span className="flex items-center gap-2"><Trash2 className="w-4 h-4" /> Sí, Eliminar</span>
+                            Sí, Eliminar
                         </Button>
                     </div>
                 </div>

@@ -474,5 +474,3 @@ const ExcepcionesPreview: React.FC = () => {
 };
 
 export default ExcepcionesPreview;
-
-

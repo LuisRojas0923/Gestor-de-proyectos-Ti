@@ -14,6 +14,7 @@ interface BeneficiarRow {
     valor: number;
     concepto: string;
     estado_erp?: string;
+    observaciones?: string;
 }
 
 interface WarningDetalle {
@@ -178,9 +179,11 @@ const BeneficiarPreview: React.FC = () => {
                             <Title variant="h5" weight="bold" className="text-slate-800 dark:text-slate-200">Ver Histórico</Title>
                             <History className="w-4 h-4 text-[var(--color-primary)]" />
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                            <span>BENEFICIAR / HISTORIAL</span>
-                            <ChevronRight className="w-3 h-3" />
+                        <div className="flex items-center gap-1">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
+                                BENEFICIAR / HISTORIAL
+                            </Text>
+                            <ChevronRight className="w-3 h-3 text-slate-400" />
                         </div>
                     </Button>
                 </div>
@@ -212,8 +215,7 @@ const BeneficiarPreview: React.FC = () => {
                             Archivos Excel ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
-                            <input
-                                id="file-upload"
+                            <input id="file-upload"
                                 type="file"
                                 multiple
                                 accept=".xls,.xlsx"
@@ -350,20 +352,42 @@ const BeneficiarPreview: React.FC = () => {
 
                     {/* Table - Self scrolling */}
                     <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-                        <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+                        <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30 gap-4">
+                            <div className="flex items-center gap-2">
+                                <Database className="w-3.5 h-3.5 text-slate-400" />
+                                <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
+                                    REGISTROS CARGADOS
+                                </Text>
+                            </div>
+                            
+                            <div className="flex-1 max-w-sm">
+                                <Input
+                                    size="xs"
+                                    type="text"
+                                    placeholder="Filtrar por cédula o nombre..."
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    icon={Search}
+                                    className="!h-8"
+                                />
+                            </div>
+
                             <div className="flex items-center gap-2">
                                 <Filter className="w-3.5 h-3.5 text-slate-400" />
-                                <select 
-                                    className="text-[10px] bg-transparent border-none focus:ring-0 font-bold text-slate-500 uppercase tracking-wider cursor-pointer"
+                                <Select 
+                                    size="xs"
+                                    className="!border-none !bg-transparent !p-0 !h-auto !w-auto [&_select]:font-bold [&_select]:text-slate-500 [&_select]:uppercase [&_select]:tracking-wider"
                                     value={conceptoFilter}
                                     onChange={(e) => setConceptoFilter(e.target.value)}
-                                >
-                                    <option value="">TODOS LOS CONCEPTOS</option>
-                                    <option value="BENEFICIAR APORTE">BENEFICIAR APORTE</option>
-                                    <option value="BENEFICIAR CREDITO">BENEFICIAR CREDITO</option>
-                                    <option value="BENEFICIAR OTROS DESCUENTOS">BENEFICIAR OTROS DESCUENTOS</option>
-                                </select>
+                                    options={[
+                                        { value: "", label: "TODOS LOS CONCEPTOS" },
+                                        { value: "BENEFICIAR APORTE", label: "BENEFICIAR APORTE" },
+                                        { value: "BENEFICIAR CREDITO", label: "BENEFICIAR CREDITO" },
+                                        { value: "BENEFICIAR OTROS DESCUENTOS", label: "BENEFICIAR OTROS DESCUENTOS" }
+                                    ]}
+                                />
                             </div>
+
                             <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
                                 {filteredRows.length} REGISTROS
                             </Text>
@@ -386,12 +410,19 @@ const BeneficiarPreview: React.FC = () => {
                                             <td className="p-2 text-slate-400 font-mono w-10">{i + 1}</td>
                                             <td className="p-2 font-mono">{row.cedula}</td>
                                             <td className="p-2">{row.nombre_asociado}</td>
-                                            <td className="p-2">{row.empresa}</td>
+                                            <td className="p-2">
+                                                <Badge
+                                                    variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'}
+                                                    size="xs"
+                                                >
+                                                    {row.empresa || 'REFRIDCOL'}
+                                                </Badge>
+                                            </td>
                                             <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)]">
                                                 {formatCurrency(row.valor)}
                                             </td>
                                             <td className="p-2">
-                                                <ConceptoBadge concepto={row.concepto} />
+                                                <Badge variant="info" size="xs">{row.concepto || row.CONCEPTO || 'N/A'}</Badge>
                                             </td>
                                         </tr>
                                     ))}
@@ -419,18 +450,5 @@ const BeneficiarPreview: React.FC = () => {
 };
 
 /* ---- Sub-components ---- */
-
-const ConceptoBadge: React.FC<{ concepto: string }> = ({ concepto }) => {
-    const variantMap: Record<string, 'success' | 'info' | 'warning' | 'default'> = {
-        'BENEFICIAR APORTE': 'success',
-        'BENEFICIAR CREDITO': 'info',
-        'BENEFICIAR OTROS DESCUENTOS': 'warning',
-    };
-    return (
-        <Badge variant={variantMap[concepto] || 'default'} size="sm">
-            {concepto}
-        </Badge>
-    );
-};
 
 export default BeneficiarPreview;

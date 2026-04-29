@@ -14,6 +14,7 @@ interface PolizasVehiculosRow {
     valor: number;
     concepto: string;
     estado_erp?: string;
+    observaciones?: string;
 }
 
 interface WarningDetalle {
@@ -171,9 +172,11 @@ const PolizasVehiculosPreview: React.FC = () => {
                             <Title variant="h5" weight="bold" className="text-slate-800 dark:text-slate-200">Ver Histórico</Title>
                             <History className="w-4 h-4 text-[var(--color-primary)]" />
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                            <span>POLIZAS / HISTORIAL</span>
-                            <ChevronRight className="w-3 h-3" />
+                        <div className="flex items-center gap-1">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
+                                POLIZAS / HISTORIAL
+                            </Text>
+                            <ChevronRight className="w-3 h-3 text-slate-400" />
                         </div>
                     </Button>
                 </div>
@@ -205,8 +208,7 @@ const PolizasVehiculosPreview: React.FC = () => {
                             Archivo Excel ({files.length} seleccionado)
                         </Text>
                         <div className="relative group">
-                            <input
-                                id="file-upload-polizas"
+                            <input id="file-upload-polizas"
                                 type="file"
                                 multiple
                                 accept=".xlsx,.xls"
@@ -343,16 +345,26 @@ const PolizasVehiculosPreview: React.FC = () => {
 
                     {/* Table - Self scrolling */}
                     <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-                        <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+                        <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30 gap-4">
                             <div className="flex items-center gap-2">
-                                <Filter className="w-3.5 h-3.5 text-slate-400" />
-                                <select 
-                                    className="text-[10px] bg-transparent border-none focus:ring-0 font-bold text-slate-500 uppercase tracking-wider cursor-pointer"
-                                    disabled
-                                >
-                                    <option value="">PÓLIZA VEHÍCULOS VALOR</option>
-                                </select>
+                                <Database className="w-3.5 h-3.5 text-slate-400" />
+                                <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
+                                    REGISTROS CARGADOS
+                                </Text>
                             </div>
+                            
+                            <div className="flex-1 max-w-sm">
+                                <Input
+                                    size="xs"
+                                    type="text"
+                                    placeholder="Filtrar por cédula o nombre..."
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    icon={Search}
+                                    className="!h-8"
+                                />
+                            </div>
+
                             <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
                                 {filteredRows.length} REGISTROS
                             </Text>
@@ -377,28 +389,21 @@ const PolizasVehiculosPreview: React.FC = () => {
                                             <td className="p-2">
                                                 <div className="flex items-center gap-2">
                                                     {row.nombre_asociado}
-                                                    {row.estado_erp === 'RETIRADO' && (
-                                                        <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full font-bold">
-                                                            <AlertTriangle className="w-2.5 h-2.5" />
-                                                            RETIRADO
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </td>
                                             <td className="p-2">
-                                                {row.empresa ? (
-                                                    row.empresa
-                                                ) : (
-                                                    <span className="text-red-600 dark:text-red-400 font-bold uppercase text-[9px]">
-                                                        RETIRADO
-                                                    </span>
-                                                )}
+                                                <Badge
+                                                    variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'}
+                                                    size="xs"
+                                                >
+                                                    {row.empresa || 'REFRIDCOL'}
+                                                </Badge>
                                             </td>
                                             <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)]">
                                                 {formatCurrency(row.valor)}
                                             </td>
                                             <td className="p-2">
-                                                <Badge variant="info" size="xs">{row.concepto}</Badge>
+                                                <Badge variant="info" size="xs">{row.concepto || row.CONCEPTO || 'N/A'}</Badge>
                                             </td>
                                         </tr>
                                     ))}

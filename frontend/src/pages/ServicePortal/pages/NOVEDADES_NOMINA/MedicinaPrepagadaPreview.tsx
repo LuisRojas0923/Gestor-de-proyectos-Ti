@@ -8,11 +8,11 @@ import { useNotifications } from '../../../../components/notifications/Notificat
 import SubcategorySummaryCard from './components/SubcategorySummaryCard';
 
 interface MedicinaPrepagadaRow {
-    CEDULA: string;
-    NOMBRE: string;
-    VALOR: number;
-    EMPRESA: string;
-    CONCEPTO: string;
+    cedula: string;
+    nombre_asociado: string;
+    valor: number;
+    empresa: string;
+    concepto: string;
 }
 
 interface WarningDetalle {
@@ -122,11 +122,11 @@ const MedicinaPrepagadaPreview: React.FC = () => {
         return data.rows
             .filter(r => {
                 const matchText = searchText === ''
-                    || r.CEDULA.toLowerCase().includes(searchText.toLowerCase())
-                    || (r.NOMBRE && r.NOMBRE.toLowerCase().includes(searchText.toLowerCase()));
+                    || r.cedula.toLowerCase().includes(searchText.toLowerCase())
+                    || (r.nombre_asociado && r.nombre_asociado.toLowerCase().includes(searchText.toLowerCase()));
                 return matchText;
             })
-            .sort((a, b) => (a.NOMBRE || "").localeCompare(b.NOMBRE || ""));
+            .sort((a, b) => (a.nombre_asociado || "").localeCompare(b.nombre_asociado || ""));
     }, [data, searchText]);
 
     const formatCurrency = (val: number) =>
@@ -138,9 +138,9 @@ const MedicinaPrepagadaPreview: React.FC = () => {
         
         if (data && data.rows) {
             data.rows.forEach(row => {
-                const emp = row.EMPRESA || 'REFRIDCOL';
-                const con = row.CONCEPTO || 'N/A';
-                const val = row.VALOR || 0;
+                const emp = row.empresa || 'REFRIDCOL';
+                const con = row.concepto || 'N/A';
+                const val = row.valor || 0;
                 
                 porEmpresa[emp] = (porEmpresa[emp] || 0) + val;
                 porConcepto[con] = (porConcepto[con] || 0) + val;
@@ -178,9 +178,11 @@ const MedicinaPrepagadaPreview: React.FC = () => {
                             <Title variant="h5" weight="bold" className="text-slate-800 dark:text-slate-200">Ver Histórico</Title>
                             <History className="w-4 h-4 text-[var(--color-primary)]" />
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                            <span>PREPAGADA / HISTORIAL</span>
-                            <ChevronRight className="w-3 h-3" />
+                        <div className="flex items-center gap-1">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
+                                PREPAGADA / HISTORIAL
+                            </Text>
+                            <ChevronRight className="w-3 h-3 text-slate-400" />
                         </div>
                     </Button>
                 </div>
@@ -212,8 +214,7 @@ const MedicinaPrepagadaPreview: React.FC = () => {
                             Archivo Excel ({files.length} seleccionado)
                         </Text>
                         <div className="relative group">
-                            <input
-                                id="file-upload"
+                            <input id="file-upload"
                                 type="file"
                                 multiple
                                 accept=".xlsx,.xls"
@@ -353,7 +354,9 @@ const MedicinaPrepagadaPreview: React.FC = () => {
                         <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
                             <div className="flex items-center gap-2">
                                 <Database className="w-3.5 h-3.5 text-slate-400" />
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">REGISTROS CARGADOS</span>
+                                <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
+                                    REGISTROS CARGADOS
+                                </Text>
                             </div>
                             <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
                                 {filteredRows.length} REGISTROS
@@ -375,14 +378,14 @@ const MedicinaPrepagadaPreview: React.FC = () => {
                                     {filteredRows.map((row, i) => (
                                         <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
                                             <td className="p-2 text-slate-400 font-mono w-10">{i + 1}</td>
-                                            <td className="p-2 font-mono">{row.CEDULA}</td>
-                                            <td className="p-2">{row.NOMBRE}</td>
-                                            <td className="p-2">{row.EMPRESA}</td>
+                                            <td className="p-2 font-mono">{row.cedula}</td>
+                                            <td className="p-2">{row.nombre_asociado}</td>
+                                            <td className="p-2">{row.empresa}</td>
                                             <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)]">
-                                                {formatCurrency(row.VALOR)}
+                                                {formatCurrency(row.valor)}
                                             </td>
                                             <td className="p-2">
-                                                <Badge variant="info" size="xs">{row.CONCEPTO}</Badge>
+                                                <Badge variant="info" size="xs">{row.concepto}</Badge>
                                             </td>
                                         </tr>
                                     ))}

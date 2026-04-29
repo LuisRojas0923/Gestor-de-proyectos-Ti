@@ -8,12 +8,13 @@ import { useNotifications } from '../../../../components/notifications/Notificat
 import SubcategorySummaryCard from './components/SubcategorySummaryCard';
 
 interface BogotaLibranzaRow {
-    CEDULA: string;
-    EMPLEADO: string;
-    "VALOR MES": number;
-    EMPRESA: string;
-    CONCEPTO: string;
+    cedula: string;
+    nombre_asociado: string;
+    valor: number;
+    empresa: string;
+    concepto: string;
     estado_erp?: string;
+    observaciones?: string;
 }
 
 interface WarningDetalle {
@@ -119,12 +120,14 @@ const BogotaLibranzaPreview: React.FC = () => {
         if (!data) return [];
         return data.rows
             .filter(r => {
+                const c = r.cedula || "";
+                const n = r.nombre_asociado || "";
                 const matchText = searchText === ''
-                    || r.CEDULA.toLowerCase().includes(searchText.toLowerCase())
-                    || (r.EMPLEADO && r.EMPLEADO.toLowerCase().includes(searchText.toLowerCase()));
+                    || c.toString().toLowerCase().includes(searchText.toLowerCase())
+                    || n.toLowerCase().includes(searchText.toLowerCase());
                 return matchText;
             })
-            .sort((a, b) => (a.EMPLEADO || "").localeCompare(b.EMPLEADO || ""));
+            .sort((a, b) => (a.nombre_asociado || "").localeCompare(b.nombre_asociado || ""));
     }, [data, searchText]);
 
     const formatCurrency = (val: number) =>
@@ -136,9 +139,9 @@ const BogotaLibranzaPreview: React.FC = () => {
         
         if (data && data.rows) {
             data.rows.forEach(row => {
-                const emp = row.EMPRESA || 'REFRIDCOL';
-                const con = row.CONCEPTO || 'N/A';
-                const val = row["VALOR MES"] || 0;
+                const emp = row.empresa || 'REFRIDCOL';
+                const con = row.concepto || 'N/A';
+                const val = row.valor ?? 0;
                 
                 porEmpresa[emp] = (porEmpresa[emp] || 0) + val;
                 porConcepto[con] = (porConcepto[con] || 0) + val;
@@ -176,9 +179,11 @@ const BogotaLibranzaPreview: React.FC = () => {
                             <Title variant="h5" weight="bold" className="text-slate-800 dark:text-slate-200">Ver Histórico</Title>
                             <History className="w-4 h-4 text-[var(--color-primary)]" />
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                            <span>BOGOTA LIBRANZA / HISTORIAL</span>
-                            <ChevronRight className="w-3 h-3" />
+                        <div className="flex items-center gap-1">
+                            <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
+                                BOGOTA LIBRANZA / HISTORIAL
+                            </Text>
+                            <ChevronRight className="w-3 h-3 text-slate-400" />
                         </div>
                     </Button>
                 </div>
@@ -210,8 +215,7 @@ const BogotaLibranzaPreview: React.FC = () => {
                             Archivos Excel ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
-                            <input
-                                id="file-upload"
+                            <input id="file-upload"
                                 type="file"
                                 accept=".xlsx,.xls"
                                 multiple
@@ -258,7 +262,6 @@ const BogotaLibranzaPreview: React.FC = () => {
                 </div>
             )}
 
-            {/* Results */}
             {/* Results */}
             {!isLoading && (
                 <div className="flex-1 min-h-0 flex flex-col space-y-2 overflow-hidden">
@@ -351,6 +354,30 @@ const BogotaLibranzaPreview: React.FC = () => {
 
                             {/* Table - Self scrolling */}
                             <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
+                                <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30 gap-4">
+                                    <div className="flex items-center gap-2">
+                                        <Database className="w-3.5 h-3.5 text-slate-400" />
+                                        <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
+                                            REGISTROS CARGADOS
+                                        </Text>
+                                    </div>
+                                    
+                                    <div className="flex-1 max-w-sm">
+                                        <Input
+                                            size="xs"
+                                            type="text"
+                                            placeholder="Filtrar por cédula o nombre..."
+                                            value={searchText}
+                                            onChange={(e) => setSearchText(e.target.value)}
+                                            icon={Search}
+                                            className="!h-8"
+                                        />
+                                    </div>
+
+                                    <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
+                                        {filteredRows.length} REGISTROS
+                                    </Text>
+                                </div>
                                 <div className="flex-1 overflow-auto">
                                     <table className="w-full text-[11px] border-collapse">
                                         <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm border-b border-slate-100 dark:border-slate-700">
@@ -367,16 +394,14 @@ const BogotaLibranzaPreview: React.FC = () => {
                                             {filteredRows.map((row, i) => (
                                                 <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
                                                     <td className="p-2 text-slate-400 font-mono w-10">{i + 1}</td>
-                                                    <td className="p-2 font-mono">{row.CEDULA}</td>
-                                                    <td className="p-2">{row.EMPLEADO}</td>
-                                                    <td className="p-2">{row.EMPRESA}</td>
+                                                    <td className="p-2 font-mono">{row.cedula}</td>
+                                                    <td className="p-2">{row.nombre_asociado}</td>
+                                                    <td className="p-2">{row.empresa}</td>
                                                     <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)]">
-                                                        {formatCurrency(row["VALOR MES"])}
+                                                        {formatCurrency(row.valor)}
                                                     </td>
                                                     <td className="p-2">
-                                                        <Badge variant="default" size="xs">
-                                                            {row.CONCEPTO}
-                                                        </Badge>
+                                                        <Badge variant="info" size="xs">{row.concepto || 'N/A'}</Badge>
                                                     </td>
                                                 </tr>
                                             ))}

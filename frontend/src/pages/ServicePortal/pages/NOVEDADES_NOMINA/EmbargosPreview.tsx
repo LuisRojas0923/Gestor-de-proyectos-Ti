@@ -9,7 +9,7 @@ import SubcategorySummaryCard from './components/SubcategorySummaryCard';
 
 interface EmbargosRow {
     cedula: string;
-    nombre: string;
+    nombre_asociado: string;
     valor: number;
     empresa: string;
     concepto: string;
@@ -22,7 +22,7 @@ interface WarningDetalle {
 }
 
 interface EmbargosResponse {
-    filas: EmbargosRow[];
+    rows: EmbargosRow[];
     summary: {
         total_asociados: number;
         total_filas: number;
@@ -62,7 +62,7 @@ const EmbargosPreview: React.FC = () => {
                     `${API_CONFIG.BASE_URL}/novedades-nomina/embargos/datos`,
                     { params: { mes, anio } }
                 );
-                if (res.data.filas && res.data.filas.length > 0) {
+                if (res.data.rows && res.data.rows.length > 0) {
                     setData(res.data);
                     setWarningsDetalle(res.data.warnings_detalle || []);
                 } else {
@@ -110,14 +110,14 @@ const EmbargosPreview: React.FC = () => {
 
     const filteredRows = useMemo(() => {
         if (!data) return [];
-        return data.filas
+        return data.rows
             .filter(r => {
                 const matchText = searchText === ''
                     || r.cedula.toLowerCase().includes(searchText.toLowerCase())
-                    || (r.nombre && r.nombre.toLowerCase().includes(searchText.toLowerCase()));
+                    || (r.nombre_asociado && r.nombre_asociado.toLowerCase().includes(searchText.toLowerCase()));
                 return matchText;
             })
-            .sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
+            .sort((a, b) => (a.nombre_asociado || "").localeCompare(b.nombre_asociado || ""));
     }, [data, searchText]);
 
     const formatCurrency = (val: number) =>
@@ -127,8 +127,8 @@ const EmbargosPreview: React.FC = () => {
         const porEmpresa: Record<string, number> = {};
         const porConcepto: Record<string, number> = {};
         
-        if (data && data.filas) {
-            data.filas.forEach(row => {
+        if (data && data.rows) {
+            data.rows.forEach(row => {
                 const emp = row.empresa || 'REFRIDCOL';
                 const con = row.concepto || 'N/A';
                 const val = row.valor || 0;
@@ -170,7 +170,7 @@ const EmbargosPreview: React.FC = () => {
                             <History className="w-4 h-4 text-[var(--color-primary)]" />
                         </div>
                         <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                            <span>EMBARGOS / HISTORIAL</span>
+                            <Text as="span" size="xs" color="inherit" className="font-bold">EMBARGOS / HISTORIAL</Text>
                             <ChevronRight className="w-3 h-3" />
                         </div>
                     </Button>
@@ -203,8 +203,7 @@ const EmbargosPreview: React.FC = () => {
                             Archivos Excel ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
-                            <input
-                                id="file-upload"
+                            <input id="file-upload"
                                 type="file"
                                 accept=".xlsx,.xls,.xlsm"
                                 multiple
@@ -344,7 +343,7 @@ const EmbargosPreview: React.FC = () => {
                         <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
                             <div className="flex items-center gap-2">
                                 <Database className="w-3.5 h-3.5 text-slate-400" />
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">REGISTROS CARGADOS</span>
+                                <Text as="span" weight="bold" color="text-tertiary" className="text-[10px] uppercase tracking-wider">REGISTROS CARGADOS</Text>
                             </div>
                             <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
                                 {filteredRows.length} REGISTROS
@@ -367,7 +366,7 @@ const EmbargosPreview: React.FC = () => {
                                         <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
                                             <td className="p-2 text-slate-400 font-mono w-10">{i + 1}</td>
                                             <td className="p-2 font-mono">{row.cedula}</td>
-                                            <td className="p-2">{row.nombre}</td>
+                                            <td className="p-2">{row.nombre_asociado}</td>
                                             <td className="p-2">{row.empresa}</td>
                                             <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)]">
                                                 {formatCurrency(row.valor)}

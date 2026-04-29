@@ -10,11 +10,12 @@ import SubcategorySummaryCard from '../NOVEDADES_NOMINA/components/SubcategorySu
 import ComisionesForm, { ManualComisionRow } from './components/ComisionesForm';
 
 interface ComisionRow {
-    CEDULA: string;
-    NOMBRE: string;
-    VALOR: number;
-    EMPRESA: string;
-    CONCEPTO: string;
+    cedula: string;
+    nombre_asociado: string;
+    valor: number;
+    empresa: string;
+    concepto: string;
+    is_favorite?: boolean;
 }
 
 interface WarningDetalle {
@@ -120,13 +121,12 @@ const ComisionesView: React.FC = () => {
     };
 
     const summaryCalculated = useMemo(() => {
-        if (!data || !data.rows) return { porEmpresa: {} };
-        const porEmpresa: Record<string, number> = {};
-
-        data.rows.forEach(row => {
-            const emp = row.EMPRESA || 'N/A';
-            porEmpresa[emp] = (porEmpresa[emp] || 0) + row.VALOR;
-        });
+        if (data && data.rows) {
+            data.rows.forEach(row => {
+                const emp = row.empresa || 'N/A';
+                porEmpresa[emp] = (porEmpresa[emp] || 0) + row.valor;
+            });
+        }
 
         return { porEmpresa };
     }, [data]);
@@ -135,10 +135,10 @@ const ComisionesView: React.FC = () => {
         new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
     const columns = useMemo<ColumnDef<ComisionRow>[]>(() => [
-        { header: 'CÉDULA', accessorKey: 'CEDULA' },
-        { header: 'NOMBRE', accessorKey: 'NOMBRE' },
-        { header: 'EMPRESA', accessorKey: 'EMPRESA' },
-        { header: 'VALOR', accessorKey: 'VALOR', align: 'right', cell: (row: ComisionRow) => formatCurrency(row.VALOR) },
+        { header: 'CÉDULA', accessorKey: 'cedula' },
+        { header: 'NOMBRE', accessorKey: 'nombre_asociado' },
+        { header: 'EMPRESA', accessorKey: 'empresa' },
+        { header: 'VALOR', accessorKey: 'valor', align: 'right', cell: (row: ComisionRow) => formatCurrency(row.valor) },
     ], []);
 
     return (
@@ -323,7 +323,7 @@ const ComisionesView: React.FC = () => {
                                         columns={columns}
                                         globalFilterText={searchText}
                                         onGlobalFilterChange={setSearchText}
-                                        customSort={(a, b) => (a.NOMBRE || "").localeCompare(b.NOMBRE || "")}
+                                        customSort={(a, b) => (a.nombre_asociado || "").localeCompare(b.nombre_asociado || "")}
                                         fullHeight
                                     />
                                 </div>

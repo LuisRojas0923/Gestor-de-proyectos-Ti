@@ -206,7 +206,7 @@ const PlanillasRegionales2QPreview: React.FC = () => {
                             <History className="w-4 h-4 text-[var(--color-primary)]" />
                         </div>
                         <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                            <span>PLANILLAS REGIONALES 2Q / HISTORIAL</span>
+                            <Text as="span" size="xs" color="inherit" className="font-bold">PLANILLAS REGIONALES 2Q / HISTORIAL</Text>
                             <ChevronRight className="w-3 h-3" />
                         </div>
                     </Button>
@@ -396,5 +396,3 @@ const PlanillasRegionales2QPreview: React.FC = () => {
 };
 
 export default PlanillasRegionales2QPreview;
-
-

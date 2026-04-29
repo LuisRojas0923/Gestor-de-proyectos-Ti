@@ -185,7 +185,7 @@ class NominaExcepcionHistorial(SQLModel, table=True):
     
     mes: int
     anio: int
-    valor_applied: float = Field(default=0, sa_column_kwargs={"name": "valor_aplicado"})
+    valor_aplicado: float = Field(default=0)
     mensaje: str
     creado_en: datetime = Field(default_factory=datetime.now)
 

@@ -179,7 +179,7 @@ const GrancoopPreview: React.FC = () => {
                             <History className="w-4 h-4 text-[var(--color-primary)]" />
                         </div>
                         <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                            <span>GRANCOOP / HISTORIAL</span>
+                            <Text as="span" size="xs" color="inherit" className="font-bold">GRANCOOP / HISTORIAL</Text>
                             <ChevronRight className="w-3 h-3" />
                         </div>
                     </Button>
@@ -212,8 +212,7 @@ const GrancoopPreview: React.FC = () => {
                             Archivos PDF ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
-                            <input
-                                id="file-upload"
+                            <input id="file-upload"
                                 type="file"
                                 multiple
                                 accept=".pdf"
@@ -353,16 +352,17 @@ const GrancoopPreview: React.FC = () => {
                         <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
                             <div className="flex items-center gap-2">
                                 <Filter className="w-3.5 h-3.5 text-slate-400" />
-                                <select 
-                                    className="text-[10px] bg-transparent border-none focus:ring-0 font-bold text-slate-500 uppercase tracking-wider cursor-pointer"
+                                <Select 
+                                    className="[&_select]:text-[10px] [&_select]:bg-transparent [&_select]:border-none [&_select]:focus:ring-0 [&_select]:font-bold [&_select]:text-slate-500 [&_select]:uppercase [&_select]:tracking-wider [&_select]:cursor-pointer [&_select]:h-auto [&_select]:py-0"
                                     value={conceptoFilter}
                                     onChange={(e) => setConceptoFilter(e.target.value)}
-                                >
-                                    <option value="">TODOS LOS CONCEPTOS</option>
-                                    <option value="GRANCOOP APORTES">GRANCOOP APORTES</option>
-                                    <option value="GRANCOOP PRESTAMOS">GRANCOOP PRESTAMOS</option>
-                                    <option value="GRANCOOP ADICIONALES">GRANCOOP ADICIONALES</option>
-                                </select>
+                                    options={[
+                                        { value: "", label: "TODOS LOS CONCEPTOS" },
+                                        { value: "GRANCOOP APORTES", label: "GRANCOOP APORTES" },
+                                        { value: "GRANCOOP PRESTAMOS", label: "GRANCOOP PRESTAMOS" },
+                                        { value: "GRANCOOP ADICIONALES", label: "GRANCOOP ADICIONALES" }
+                                    ]}
+                                />
                             </div>
                             <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
                                 {filteredRows.length} REGISTROS

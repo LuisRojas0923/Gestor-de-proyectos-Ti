@@ -274,10 +274,11 @@ const ControlDescuentosRegistro: React.FC = () => {
                             {/* Cédula */}
                             <div className="flex items-center gap-2 w-[160px]">
                                 <Text size="xs" weight="bold" className="text-slate-500 uppercase whitespace-nowrap">Cédula:</Text>
-                                <input
+                                <Input
+                                    id="cedula-input"
                                     type="text"
                                     placeholder="00000000"
-                                    className="w-[100px] h-7 px-2 text-[11px] font-mono border border-slate-200 dark:border-slate-700 rounded outline-none focus:border-[var(--color-primary)] bg-white dark:bg-slate-900 transition-all"
+                                    className="[&_input]:h-7 [&_input]:px-2 [&_input]:text-[11px] [&_input]:font-mono [&_input]:w-[100px]"
                                     value={formData.cedula}
                                     onChange={e => setFormData({ ...formData, cedula: e.target.value })}
                                     onKeyDown={e => e.key === 'Enter' && handleSearchEmpleado()}
@@ -288,9 +289,9 @@ const ControlDescuentosRegistro: React.FC = () => {
                             {/* Nombre */}
                             <div className="flex-[1.8] flex items-center gap-2 min-w-[200px]">
                                 <Text size="xs" weight="bold" className="text-slate-500 uppercase whitespace-nowrap">Nombre:</Text>
-                                <input
+                                <Input
                                     readOnly
-                                    className="flex-1 h-7 px-2 text-[11px] border border-slate-200 dark:border-slate-700 rounded bg-slate-100 dark:bg-slate-800 cursor-not-allowed font-bold overflow-hidden text-ellipsis shadow-inner"
+                                    className="flex-1 [&_input]:h-7 [&_input]:px-2 [&_input]:text-[11px] [&_input]:bg-slate-100 dark:[&_input]:bg-slate-800 [&_input]:cursor-not-allowed [&_input]:font-bold"
                                     value={formData.nombre}
                                 />
                             </div>
@@ -298,9 +299,9 @@ const ControlDescuentosRegistro: React.FC = () => {
                             {/* Empresa */}
                             <div className="flex-1 flex items-center gap-2 min-w-[150px]">
                                 <Text size="xs" weight="bold" className="text-slate-500 uppercase whitespace-nowrap">Empresa:</Text>
-                                <input
+                                <Input
                                     readOnly
-                                    className="flex-1 h-7 px-2 text-[11px] border border-slate-200 dark:border-slate-700 rounded bg-slate-100 dark:bg-slate-800 cursor-not-allowed shadow-inner"
+                                    className="flex-1 [&_input]:h-7 [&_input]:px-2 [&_input]:text-[11px] [&_input]:bg-slate-100 dark:[&_input]:bg-slate-800 [&_input]:cursor-not-allowed"
                                     value={formData.empresa}
                                 />
                             </div>
@@ -308,9 +309,9 @@ const ControlDescuentosRegistro: React.FC = () => {
                             {/* Área */}
                             <div className="flex-1 flex items-center gap-2 min-w-[150px]">
                                 <Text size="xs" weight="bold" className="text-slate-500 uppercase whitespace-nowrap">Área:</Text>
-                                <input
+                                <Input
                                     readOnly
-                                    className="flex-1 h-7 px-2 text-[11px] border border-slate-200 dark:border-slate-700 rounded bg-slate-100 dark:bg-slate-800 cursor-not-allowed shadow-inner"
+                                    className="flex-1 [&_input]:h-7 [&_input]:px-2 [&_input]:text-[11px] [&_input]:bg-slate-100 dark:[&_input]:bg-slate-800 [&_input]:cursor-not-allowed"
                                     value={formData.area}
                                 />
                             </div>
@@ -323,24 +324,24 @@ const ControlDescuentosRegistro: React.FC = () => {
                             <div className="flex-1 min-w-[300px] flex items-center gap-2">
                                 <Text size="xs" weight="bold" className="text-slate-500 uppercase whitespace-nowrap">Concepto:</Text>
                                 <div className="flex-1 flex gap-1">
-                                    <select
-                                        className="flex-1 h-7 px-2 text-[11px] border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 outline-none focus:border-[var(--color-primary)]"
+                                    <Select
                                         value={formData.concepto}
                                         onChange={e => setFormData({ ...formData, concepto: e.target.value })}
-                                    >
-                                        <option value="">Seleccionar concepto...</option>
-                                        {conceptos.map(c => (
-                                            <option key={c.id} value={c.nombre}>{c.nombre}</option>
-                                        ))}
-                                    </select>
-                                    <button 
+                                        options={[
+                                            { value: "", label: "Seleccionar concepto..." },
+                                            ...conceptos.map(c => ({ value: c.nombre, label: c.nombre }))
+                                        ]}
+                                        className="flex-1 [&_select]:h-7 [&_select]:px-2 [&_select]:text-[11px]"
+                                    />
+                                    <Button 
                                         type="button"
+                                        variant="ghost"
+                                        size="icon"
                                         title="Configurar Conceptos"
-                                        className="h-7 w-7 flex items-center justify-center bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all rounded"
+                                        className="h-7 w-7 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
                                         onClick={() => navigate('/service-portal/novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/conceptos')}
-                                    >
-                                        <Settings2 className="w-3.5 h-3.5 text-slate-500" />
-                                    </button>
+                                        icon={Settings2}
+                                    />
                                 </div>
                             </div>
 
@@ -348,10 +349,10 @@ const ControlDescuentosRegistro: React.FC = () => {
                             <div className="flex items-center gap-2">
                                 <Text size="xs" weight="bold" className="text-slate-500 uppercase whitespace-nowrap">Valor:</Text>
                                 <div className="relative">
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-900 font-bold">$</span>
-                                    <input
+                                    <Text as="span" weight="bold" color="text-primary" className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px]">$</Text>
+                                    <Input
                                         type="text"
-                                        className="w-[130px] h-7 pl-5 pr-2 text-[11px] font-black text-slate-900 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 outline-none text-right shadow-sm focus:border-slate-400 transition-all"
+                                        className="w-[130px] [&_input]:h-7 [&_input]:pl-5 [&_input]:pr-2 [&_input]:text-[11px] [&_input]:font-black [&_input]:text-right"
                                         placeholder="0"
                                         value={formData.valor_descuento ? Number(formData.valor_descuento).toLocaleString('es-CO') : ''}
                                         onChange={e => {
@@ -365,9 +366,9 @@ const ControlDescuentosRegistro: React.FC = () => {
                             {/* Cuotas */}
                             <div className="flex items-center gap-2">
                                 <Text size="xs" weight="bold" className="text-slate-500 uppercase whitespace-nowrap">Cuotas:</Text>
-                                <input
+                                <Input
                                     type="number"
-                                    className="w-[50px] h-7 px-2 text-[11px] border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 outline-none"
+                                    className="w-[50px] [&_input]:h-7 [&_input]:px-2 [&_input]:text-[11px]"
                                     min="1"
                                     value={formData.n_cuotas}
                                     onChange={e => setFormData({ ...formData, n_cuotas: e.target.value })}
@@ -377,34 +378,32 @@ const ControlDescuentosRegistro: React.FC = () => {
                             {/* Fecha (15/30) */}
                             <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 p-1 rounded border border-slate-100 dark:border-slate-800">
                                 <Text size="xs" weight="bold" className="text-slate-400 uppercase ml-1">Fecha:</Text>
-                                <select
-                                    className="h-6 px-1 text-[10px] border-none bg-transparent outline-none font-bold"
+                                <Select
                                     value={formData.fecha_inicio.split('-')[2] === '15' ? '15' : '30'}
                                     onChange={e => {
                                         const parts = formData.fecha_inicio.split('-');
                                         parts[2] = e.target.value;
                                         setFormData({ ...formData, fecha_inicio: parts.join('-') });
                                     }}
-                                >
-                                    <option value="15">15</option>
-                                    <option value="30">30</option>
-                                </select>
-                                <select
-                                    className="h-6 px-1 text-[10px] border-none bg-transparent outline-none font-bold"
+                                    options={[{ value: "15", label: "15" }, { value: "30", label: "30" }]}
+                                    className="[&_select]:h-6 [&_select]:px-1 [&_select]:text-[10px] [&_select]:bg-transparent [&_select]:border-none [&_select]:font-bold [&_select]:w-10"
+                                />
+                                <Select
                                     value={formData.fecha_inicio.split('-')[1]}
                                     onChange={e => {
                                         const parts = formData.fecha_inicio.split('-');
                                         parts[1] = e.target.value;
                                         setFormData({ ...formData, fecha_inicio: parts.join('-') });
                                     }}
-                                >
-                                    {['01','02','03','04','05','06','07','08','09','10','11','12'].map((m, i) => (
-                                        <option key={m} value={m}>{['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][i]}</option>
-                                    ))}
-                                </select>
-                                <input
+                                    options={['01','02','03','04','05','06','07','08','09','10','11','12'].map((m, i) => ({
+                                        value: m,
+                                        label: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][i]
+                                    }))}
+                                    className="[&_select]:h-6 [&_select]:px-1 [&_select]:text-[10px] [&_select]:bg-transparent [&_select]:border-none [&_select]:font-bold [&_select]:w-14"
+                                />
+                                <Input
                                     type="number"
-                                    className="w-12 h-6 px-1 text-[10px] border-none bg-transparent outline-none font-bold"
+                                    className="w-14 [&_input]:h-6 [&_input]:px-1 [&_input]:text-[10px] [&_input]:bg-transparent [&_input]:border-none [&_input]:font-bold"
                                     value={formData.fecha_inicio.split('-')[0]}
                                     onChange={e => {
                                         const parts = formData.fecha_inicio.split('-');
@@ -417,27 +416,28 @@ const ControlDescuentosRegistro: React.FC = () => {
                             {/* Botón Guardar - ERP STYLE FINAL */}
                             <div className="flex items-center gap-2 ml-auto">
                                 {formData.id && (
-                                    <button 
-                                        type="button"
+                                    <Button 
+                                        variant="ghost"
                                         onClick={resetForm}
-                                        className="h-8 px-3 text-[10px] font-bold text-slate-500 hover:text-slate-700 uppercase tracking-wider"
+                                        className="h-8 px-3"
                                     >
-                                        Cancelar
-                                    </button>
+                                        <Text size="xs" weight="bold" color="text-tertiary" className="uppercase tracking-wider">Cancelar</Text>
+                                    </Button>
                                 )}
-                                <button
+                                <Button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-white to-slate-200 text-[#2b4c7e] border border-slate-300 shadow-sm hover:from-slate-50 hover:to-slate-300 active:shadow-inner dark:from-slate-800 dark:to-slate-900 dark:text-blue-300 dark:border-slate-700 dark:hover:from-slate-700 dark:hover:to-slate-800 dark:active:shadow-black/40 px-6 h-8 rounded-lg"
+                                    variant="primary"
+                                    className="px-6 h-8 rounded-lg bg-gradient-to-b from-white to-slate-200 dark:from-slate-800 dark:to-slate-900 !text-[#2b4c7e] dark:!text-blue-300 border border-slate-300 dark:border-slate-700 shadow-sm"
                                 >
                                     {isLoading ? (
                                         <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
                                     ) : (
-                                        <span className="text-[10px] font-black uppercase tracking-widest">
+                                        <Text as="span" weight="black" className="text-[10px] uppercase tracking-widest text-inherit">
                                             {formData.id ? 'ACTUALIZAR' : 'GENERAR DESCUENTO'}
-                                        </span>
+                                        </Text>
                                     )}
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </form>

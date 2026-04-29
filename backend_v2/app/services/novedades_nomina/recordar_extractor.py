@@ -72,6 +72,10 @@ def extraer_recordar(
                 if not identificacion or identificacion.lower() == 'nan':
                     continue
                 
+                # Manejar formato float de pandas (evitar que 123.0 se convierta en 1230)
+                if identificacion.endswith('.0'):
+                    identificacion = identificacion[:-2]
+                
                 cedula = re.sub(r"[^0-9]", "", identificacion)
                 if not cedula:
                     continue
