@@ -207,10 +207,10 @@ const CelularesPreview: React.FC = () => {
                             Archivos Excel ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
-                            <input id="file-upload"
+                            <Input id="file-upload"
                                 type="file"
-                                accept=".xlsx,.xls,.xlsm"
                                 multiple
+                                accept=".xlsx,.xls,.xlsm"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={handleFilesChange}
                             />

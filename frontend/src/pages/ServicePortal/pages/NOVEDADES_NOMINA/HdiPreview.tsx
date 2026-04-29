@@ -216,7 +216,7 @@ const HdiPreview: React.FC = () => {
                             Archivos PDF ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
-                            <input id="file-upload"
+                            <Input id="file-upload"
                                 type="file"
                                 multiple
                                 accept=".pdf"

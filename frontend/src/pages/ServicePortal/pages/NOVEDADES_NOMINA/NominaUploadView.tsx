@@ -104,7 +104,7 @@ const NominaUploadView: React.FC = () => {
 
                 <div className={`relative border-2 border-dashed rounded-2xl p-12 text-center transition-all ${files.length > 0 ? 'border-teal-500 bg-teal-50/10' : 'border-slate-300 dark:border-slate-600 hover:border-[var(--color-primary)]'
                     }`}>
-                    <input type="file"
+                    <Input type="file"
                         id="file-upload"
                         multiple
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"

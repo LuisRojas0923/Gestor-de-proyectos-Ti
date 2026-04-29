@@ -214,7 +214,7 @@ const MedicinaPrepagadaPreview: React.FC = () => {
                             Archivo Excel ({files.length} seleccionado)
                         </Text>
                         <div className="relative group">
-                            <input id="file-upload"
+                            <Input id="file-upload"
                                 type="file"
                                 multiple
                                 accept=".xlsx,.xls"

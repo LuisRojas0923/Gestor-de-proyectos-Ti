@@ -208,7 +208,7 @@ const PolizasVehiculosPreview: React.FC = () => {
                             Archivo Excel ({files.length} seleccionado)
                         </Text>
                         <div className="relative group">
-                            <input id="file-upload-polizas"
+                            <Input id="file-upload-polizas"
                                 type="file"
                                 multiple
                                 accept=".xlsx,.xls"
