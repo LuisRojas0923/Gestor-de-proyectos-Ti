@@ -46,7 +46,8 @@ class Configuracion(BaseSettings):
 
     # Ambiente
     environment: str = "development"
-    redis_url: str = "redis://localhost:6379/0"
+    # Por defecto intentamos 'redis' (Docker) y luego 'localhost'
+    redis_url: str = "redis://redis:6379/0" 
 
     # CORS y Links de Verificación
     frontend_host: Optional[str] = None

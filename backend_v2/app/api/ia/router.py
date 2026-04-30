@@ -3,6 +3,7 @@ API de IA - Backend V2
 """
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db
 from app.api.auth.router import obtener_usuario_actual_db
@@ -62,11 +63,9 @@ async def chat_ticket_asistente(
     usuario_actual: Usuario = Depends(obtener_usuario_actual_db)
 ):
     """
-    Endpoint conversacional para crear tickets usando IA.
-    Extrae datos del lenguaje natural y crea el ticket cuando tiene info completa.
+    Endpoint conversacional (Síncrono) para crear tickets usando IA.
     """
     try:
-        # 1. Procesar con IA
         resultado = await chat_service.procesar_mensaje(
             mensaje_usuario=solicitud.mensaje,
             historial=solicitud.historial,
@@ -74,12 +73,8 @@ async def chat_ticket_asistente(
         )
 
         ticket_id = None
-        
-        # 2. Si la IA extrajo datos completos, crear el ticket
         if resultado["ticket_data"]:
             data = resultado["ticket_data"]
-            
-            # Preparar objeto de creación con datos del usuario actual
             ticket_crear = TicketCrear(
                 asunto=data["asunto"],
                 descripcion=data["descripcion"],
@@ -92,8 +87,6 @@ async def chat_ticket_asistente(
                 cargo_creador=usuario_actual.cargo,
                 sede_creador=usuario_actual.sede
             )
-            
-            # Crear ticket usando el servicio existente
             nuevo_ticket = await ServicioTicket.crear_ticket(db, ticket_crear)
             ticket_id = nuevo_ticket.id
 
@@ -102,8 +95,50 @@ async def chat_ticket_asistente(
             ticket_data=resultado["ticket_data"],
             ticket_id=ticket_id
         )
-
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error en el asistente de IA: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error en IA: {str(e)}")
+
+
+@router.post("/chat-ticket-stream")
+async def chat_ticket_asistente_stream(
+    solicitud: SolicitudChatTicket,
+    db: AsyncSession = Depends(obtener_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db)
+):
+    """
+    Endpoint conversacional con Streaming (SSE).
+    Envía el texto conforme se genera y el ticket_id al final si se crea.
+    """
+    async def event_generator():
+        full_text = ""
+        try:
+            async for chunk in chat_service.procesar_mensaje_stream(
+                mensaje_usuario=solicitud.mensaje,
+                historial=solicitud.historial,
+                db=db
+            ):
+                full_text += chunk
+                yield chunk
+            
+            # Al terminar el stream, ver si hay ticket
+            ticket_data = chat_service.extraer_ticket_data(full_text)
+            if ticket_data:
+                ticket_crear = TicketCrear(
+                    asunto=ticket_data["asunto"],
+                    descripcion=ticket_data["descripcion"],
+                    prioridad=ticket_data["prioridad"],
+                    categoria_id=ticket_data["categoria_id"],
+                    creador_id=usuario_actual.id,
+                    nombre_creador=usuario_actual.nombre,
+                    correo_creador=usuario_actual.correo,
+                    area_creador=usuario_actual.area,
+                    cargo_creador=usuario_actual.cargo,
+                    sede_creador=usuario_actual.sede
+                )
+                nuevo_ticket = await ServicioTicket.crear_ticket(db, ticket_crear)
+                # Enviar metadata final
+                yield f"\n\n__TICKET_ID__:{nuevo_ticket.id}"
+        except Exception as e:
+            yield f"\n\n__ERROR__:{str(e)}"
+
+    return StreamingResponse(event_generator(), media_type="text/plain")

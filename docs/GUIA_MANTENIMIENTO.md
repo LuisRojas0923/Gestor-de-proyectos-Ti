@@ -4,6 +4,24 @@ Este manual operativo detalla los procedimientos esenciales para el despliegue, 
 
 ---
 
+## 🔌 0. Acceso Remoto al Servidor (SSH)
+
+Para facilitar la conexión desde tu máquina local, agrega la siguiente configuración a tu archivo `~/.ssh/config`:
+
+```text
+Host GestorTI-Server
+    HostName 192.168.0.21
+    User amejoramiento6
+    StrictHostKeyChecking no
+```
+
+### Cómo entrar al servidor:
+1.  **Conexión SSH**: Abre una terminal y ejecuta `ssh GestorTI-Server`.
+2.  **Entrar a Linux (WSL2)**: Una vez dentro del prompt de Windows del servidor, escribe `wsl`.
+3.  **Ir a la carpeta del proyecto**: `cd /mnt/c/GestorTI`.
+
+---
+
 ## 🏗️ 1. Instalación Inicial (Setup desde Cero)
 
 Sigue estos pasos en la terminal de **Ubuntu (WSL2)** si necesitas recrear el ambiente en el servidor:

@@ -17,7 +17,24 @@ Antes de ir al servidor, debes asegurar que los cambios estén en GitHub.
 
 ---
 
-## 🔑 2. Conexión y Autenticación del Servidor
+## 🔌 2. Acceso Remoto al Servidor (SSH)
+
+Para conectarte al servidor desde tu máquina local de forma rápida:
+
+1.  **Configurar SSH Local**: Agrega esto a tu archivo `~/.ssh/config` en tu PC:
+    ```text
+    Host GestorTI-Server
+        HostName 192.168.0.21
+        User amejoramiento6
+        StrictHostKeyChecking no
+    ```
+2.  **Entrar al servidor**: Ejecuta `ssh GestorTI-Server` en tu terminal.
+3.  **Activar WSL**: Una vez logueado en Windows, escribe `wsl` para entrar al entorno Linux.
+4.  **Ir a Pruebas 3**: `cd /mnt/c/GestorTI_Pruebas3`.
+
+---
+
+## 🔑 3. Conexión y Autenticación del Servidor (GitHub)
 
 El servidor utiliza una **Deploy Key** (llave SSH) para conectarse a GitHub de forma segura sin pedir contraseña constantemente.
 
@@ -35,7 +52,7 @@ ssh -T git@github.com   # Intenta establecer una conexión de prueba con GitHub 
 
 ---
 
-## 🚀 3. Despliegue en el Servidor (Paso a Paso)
+## 🚀 4. Despliegue en el Servidor (Paso a Paso)
 
 Sigue estos comandos estrictamente en la terminal de **Ubuntu** del servidor:
 
@@ -79,7 +96,7 @@ sudo docker compose --env-file .env.pruebas3 -f docker-compose.Pruebas3.yml up -
 
 ---
 
-## 🌐 4. Configuración de Red y Puertos
+## 🌐 5. Configuración de Red y Puertos
 
 Para evitar choques con Producción y otros ambientes, **Pruebas 3** utiliza estos puertos exclusivos:
 
@@ -106,7 +123,7 @@ netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5435 conne
 
 ---
 
-## 🛠️ 5. Comandos de Verificación (¿Cómo saber si todo está bien?)
+## 🛠️ 6. Comandos de Verificación (¿Cómo saber si todo está bien?)
 
 Si algo no carga, ejecuta estos comandos en el servidor para "ver" qué pasa:
 
@@ -133,7 +150,7 @@ Si algo no carga, ejecuta estos comandos en el servidor para "ver" qué pasa:
 
 ---
 
-## 💾 6. Inicializar Datos (Si la base está vacía)
+## 💾 7. Inicializar Datos (Si la base está vacía)
 Si es la primera vez que despliegas o borraste la base de datos, carga los permisos y categorías:
 ```bash
 # Copia el archivo SQL desde Windows a la carpeta temporal del contenedor de base de datos
