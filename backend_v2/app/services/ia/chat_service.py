@@ -135,7 +135,7 @@ class ChatTicketService:
         messages.append({"role": "user", "content": mensaje_usuario})
 
         response = await self.client.chat.completions.create(
-            model=self.model, messages=messages, temperature=0.7, max_tokens=1000
+            model=self.model, messages=messages, temperature=0.1, max_tokens=600
         )
 
         respuesta_texto = response.choices[0].message.content
@@ -184,8 +184,8 @@ class ChatTicketService:
         stream = await self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            temperature=0.7,
-            max_tokens=1000,
+            temperature=0.1,
+            max_tokens=600,
             stream=True
         )
 
