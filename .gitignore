@@ -51,4 +51,3 @@ resources/data_maestra/
 testing/logs/
 *.log
 test_output.txt
-nginx/certs/
