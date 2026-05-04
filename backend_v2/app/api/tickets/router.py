@@ -11,7 +11,7 @@ from sqlmodel import select
 from sqlalchemy import func as sa_func
 
 from app.database import obtener_db
-from app.api.auth.router import obtener_usuario_actual_db
+from app.api.auth.router import obtener_usuario_actual_db, obtener_usuario_actual_opcional
 from app.models.auth.usuario import Usuario
 from app.models.ticket.ticket import (
     Ticket,
@@ -221,9 +221,16 @@ async def listar_tickets(
 async def crear_ticket(
     ticket: TicketCrear, 
     background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(obtener_db)
+    db: AsyncSession = Depends(obtener_db),
+    usuario_actual: Optional[Usuario] = Depends(obtener_usuario_actual_opcional),
 ):
     """Crea un nuevo ticket de soporte delegando al servicio"""
+    # Si hay sesión activa, forzar identidad para seguridad y consistencia
+    if usuario_actual:
+        ticket.creador_id = str(usuario_actual.id)
+        ticket.nombre_creador = usuario_actual.nombre
+        ticket.correo_creador = usuario_actual.correo
+    
     try:
         return await ServicioTicket.crear_ticket(db, ticket, background_tasks)
     except Exception as e:
@@ -278,7 +285,7 @@ async def websocket_ticket_chat(websocket: WebSocket, ticket_id: str):
         while True:
             # Mantener la conexión abierta escuchando mensajes (opcional)
             # Por ahora solo escuchamos para detectar desconexión (Heartbeat)
-            data = await websocket.receive_text()
+            _ = await websocket.receive_text()
             # Si el cliente envía algo, podríamos procesarlo aquí
     except WebSocketDisconnect:
         manager.disconnect(websocket, ticket_id)
@@ -292,8 +299,14 @@ async def agregar_comentario(
     comentario_data: ComentarioCrear,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(obtener_db),
+    usuario_actual: Optional[Usuario] = Depends(obtener_usuario_actual_opcional),
 ):
     """Agrega un comentario a un ticket delegando al servicio para notificaciones"""
+    # Asegurar identidad del remitente desde el Token si existe sesión
+    if usuario_actual:
+        comentario_data.usuario_id = str(usuario_actual.id)
+        comentario_data.nombre_usuario = usuario_actual.nombre
+    
     try:
         return await ServicioTicket.agregar_comentario(db, ticket_id, comentario_data, background_tasks)
     except Exception as e:

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
@@ -69,7 +69,7 @@ async def obtener_usuario_actual_db(
                 )
             except Exception as e:
                 print(f"DEBUG: ERP no disponible o fallo en sincronizacion local: {e}")
-
+        
         return usuario
     except HTTPException:
         raise
@@ -77,6 +77,23 @@ async def obtener_usuario_actual_db(
         raise HTTPException(
             status_code=500, detail=f"Error al validar usuario: {str(e)}"
         )
+
+
+async def obtener_usuario_actual_opcional(
+    token: Optional[str] = Depends(ServicioAuth.oauth2_scheme_opcional),
+    db: AsyncSession = Depends(obtener_db),
+    db_erp=Depends(obtener_erp_db_opcional),
+) -> Optional[Usuario]:
+    """
+    Versión opcional de obtener_usuario_actual_db.
+    Si no hay token o es inválido, retorna None en lugar de lanzar 401.
+    """
+    if not token:
+        return None
+    try:
+        return await obtener_usuario_actual_db(token, db, db_erp)
+    except Exception:
+        return None
 
 
 @router.get("/yo")
