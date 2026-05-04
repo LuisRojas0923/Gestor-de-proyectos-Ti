@@ -49,6 +49,7 @@ import EmbargosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/EmbargosPrev
 import ExcepcionesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/ExcepcionesPreview';
 import PlanillasRegionales1QPreview from './ServicePortal/pages/NOVEDADES_NOMINA/PlanillasRegionales1QPreview';
 import PlanillasRegionales2QPreview from './ServicePortal/pages/NOVEDADES_NOMINA/PlanillasRegionales2QPreview';
+import TablaMaestraView from './ServicePortal/pages/NOVEDADES_NOMINA/TablaMaestraView';
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
 import ComisionesView from './ServicePortal/pages/Comisiones';
@@ -388,6 +389,7 @@ const ServicePortal: React.FC = () => {
                 <Route path="novedades-nomina/:category/:subcategory" element={<NominaUploadView />} />
                 <Route path="novedades-nomina/preview/:archivoId" element={<NominaPreviewView />} />
                 <Route path="novedades-nomina/resumen" element={<NominaSummaryView />} />
+                <Route path="novedades-nomina/tabla-maestra" element={<TablaMaestraView />} />
                 <Route path="novedades-nomina/historial" element={<NominaHistorialView />} />
                 
                 <Route path="comisiones" element={

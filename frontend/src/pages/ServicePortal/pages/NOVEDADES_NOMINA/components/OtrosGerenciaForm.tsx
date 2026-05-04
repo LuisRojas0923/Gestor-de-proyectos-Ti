@@ -151,48 +151,52 @@ const OtrosGerenciaForm: React.FC<OtrosGerenciaFormProps> = ({ onProcess, isProc
                 <table className="w-full text-sm">
                     <thead className="bg-[var(--color-primary-500)] sticky top-0 z-10">
                         <tr>
-                            <th className="p-3 text-center w-12 text-white font-black border-b border-white/10 text-[10px] uppercase tracking-wider">#</th>
-                            <th className="p-3 text-center w-32 text-white font-black uppercase border-b border-white/10 text-[10px] tracking-wider relative">
+                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-10 text-white border-b border-white/10 border-r border-white/10 first:rounded-tl-lg">
+                                <Text as="span" size="xs" color="inherit">#</Text>
+                            </th>
+                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-24 text-white border-b border-white/10 border-r border-white/10">
                                 <div className="flex items-center justify-center gap-1.5">
-                                    <span>CEDULA</span>
-                                    <button onClick={(e) => toggleFilter(e, 'cedula')} className={`p-1 rounded hover:bg-white/20 transition-colors ${(activeFilters['cedula']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
+                                    <Text as="span" size="xs" color="inherit">CEDULA</Text>
+                                    <Button variant="ghost" onClick={(e) => toggleFilter(e, 'cedula')} className={`p-1 h-auto w-auto rounded hover:bg-white/20 transition-colors ${(activeFilters['cedula']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
                                         <Filter size={10} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </th>
-                            <th className="p-3 text-center w-[232px] text-white font-black uppercase border-b border-white/10 text-[10px] tracking-wider relative">
+                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-[232px] text-white border-b border-white/10 border-r border-white/10">
                                 <div className="flex items-center justify-center gap-1.5">
-                                    <span>NOMBRE</span>
-                                    <button onClick={(e) => toggleFilter(e, 'nombre')} className={`p-1 rounded hover:bg-white/20 transition-colors ${(activeFilters['nombre']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
+                                    <Text as="span" size="xs" color="inherit">NOMBRE</Text>
+                                    <Button variant="ghost" onClick={(e) => toggleFilter(e, 'nombre')} className={`p-1 h-auto w-auto rounded hover:bg-white/20 transition-colors ${(activeFilters['nombre']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
                                         <Filter size={10} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </th>
-                            <th className="p-3 text-center w-36 text-white font-black uppercase border-b border-white/10 text-[10px] tracking-wider relative">
+                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-24 text-white border-b border-white/10 border-r border-white/10">
                                 <div className="flex items-center justify-center gap-1.5">
-                                    <span>FONDO COMÚN</span>
-                                    <button onClick={(e) => toggleFilter(e, 'fondo_comun')} className={`p-1 rounded hover:bg-white/20 transition-colors ${(activeFilters['fondo_comun']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
+                                    <Text as="span" size="xs" color="inherit">FONDO COMÚN</Text>
+                                    <Button variant="ghost" onClick={(e) => toggleFilter(e, 'fondo_comun')} className={`p-1 h-auto w-auto rounded hover:bg-white/20 transition-colors ${(activeFilters['fondo_comun']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
                                         <Filter size={10} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </th>
-                            <th className="p-3 text-center w-36 text-white font-black uppercase border-b border-white/10 text-[10px] tracking-wider relative">
+                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-36 text-white border-b border-white/10 border-r border-white/10">
                                 <div className="flex items-center justify-center gap-1.5">
-                                    <span>DESC. EMPLEADAS</span>
-                                    <button onClick={(e) => toggleFilter(e, 'descuento_empleadas')} className={`p-1 rounded hover:bg-white/20 transition-colors ${(activeFilters['descuento_empleadas']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
+                                    <Text as="span" size="xs" color="inherit">DESC. EMPLEADAS</Text>
+                                    <Button variant="ghost" onClick={(e) => toggleFilter(e, 'descuento_empleadas')} className={`p-1 h-auto w-auto rounded hover:bg-white/20 transition-colors ${(activeFilters['descuento_empleadas']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
                                         <Filter size={10} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </th>
-                            <th className="p-3 text-center w-36 text-white font-black uppercase border-b border-white/10 text-[10px] tracking-wider relative">
+                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-24 text-white border-b border-white/10 border-r border-white/10">
                                 <div className="flex items-center justify-center gap-1.5">
-                                    <span>PAGO EMPLEADAS</span>
-                                    <button onClick={(e) => toggleFilter(e, 'pago_empleadas')} className={`p-1 rounded hover:bg-white/20 transition-colors ${(activeFilters['pago_empleadas']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
+                                    <Text as="span" size="xs" color="inherit">PAGO EMPLEADAS</Text>
+                                    <Button variant="ghost" onClick={(e) => toggleFilter(e, 'pago_empleadas')} className={`p-1 h-auto w-auto rounded hover:bg-white/20 transition-colors ${(activeFilters['pago_empleadas']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
                                         <Filter size={10} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </th>
-                            <th className="p-3 text-center w-24 border-b border-white/10 text-[10px] text-white uppercase tracking-wider">ACCIONES</th>
+                            <th className="py-2 px-4 text-center w-24 border-b border-white/10 text-white font-bold uppercase tracking-wider">
+                                <Text as="span" size="xs" color="inherit">ACCIONES</Text>
+                            </th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -205,7 +209,7 @@ const OtrosGerenciaForm: React.FC<OtrosGerenciaFormProps> = ({ onProcess, isProc
                                             size="xs" value={row.cedula}
                                             onChange={(e) => handleChange(row.id, 'cedula', e.target.value)}
                                             onBlur={() => handleLookup(row.id)}
-                                            className="h-8 !mb-0 font-mono text-center shadow-none border-slate-200" placeholder="Cédula..."
+                                            className="h-8 !mb-0 font-mono text-center shadow-none border-slate-200 text-slate-700" placeholder="Cédula..."
                                         />
                                         {lookupLoading[row.id] && <div className="absolute right-2 top-2"><Search className="w-3 h-3 animate-pulse text-[var(--color-primary-500)]" /></div>}
                                     </div>
@@ -213,7 +217,7 @@ const OtrosGerenciaForm: React.FC<OtrosGerenciaFormProps> = ({ onProcess, isProc
                                 <td className="p-2">
                                     <Input
                                         size="xs" value={row.nombre} disabled
-                                        className="h-8 !mb-0 uppercase w-full font-bold text-slate-700 bg-slate-50/50 border-none shadow-none text-center"
+                                        className="h-8 !mb-0 uppercase w-full text-slate-700 bg-slate-50/50 border-none shadow-none text-center"
                                     />
                                 </td>
                                 <td className="p-2">
@@ -221,7 +225,7 @@ const OtrosGerenciaForm: React.FC<OtrosGerenciaFormProps> = ({ onProcess, isProc
                                         size="xs" icon={DollarSign}
                                         value={formatCurrencyInput(row.fondo_comun)}
                                         onChange={(e) => handleChange(row.id, 'fondo_comun', parseCurrencyInput(e.target.value))}
-                                        className="h-8 !mb-0 text-right font-mono border-slate-200"
+                                        className="h-8 !mb-0 text-right font-mono border-slate-200 text-slate-700"
                                     />
                                 </td>
                                 <td className="p-2">
@@ -229,7 +233,7 @@ const OtrosGerenciaForm: React.FC<OtrosGerenciaFormProps> = ({ onProcess, isProc
                                         size="xs" icon={DollarSign}
                                         value={formatCurrencyInput(row.descuento_empleadas)}
                                         onChange={(e) => handleChange(row.id, 'descuento_empleadas', parseCurrencyInput(e.target.value))}
-                                        className="h-8 !mb-0 text-right font-mono border-slate-200"
+                                        className="h-8 !mb-0 text-right font-mono border-slate-200 text-slate-700"
                                     />
                                 </td>
                                 <td className="p-2">
@@ -237,7 +241,7 @@ const OtrosGerenciaForm: React.FC<OtrosGerenciaFormProps> = ({ onProcess, isProc
                                         size="xs" icon={DollarSign}
                                         value={formatCurrencyInput(row.pago_empleadas)}
                                         onChange={(e) => handleChange(row.id, 'pago_empleadas', parseCurrencyInput(e.target.value))}
-                                        className="h-8 !mb-0 text-right font-mono border-slate-200"
+                                        className="h-8 !mb-0 text-right font-mono border-slate-200 text-slate-700"
                                     />
                                 </td>
                                 <td className="p-2">

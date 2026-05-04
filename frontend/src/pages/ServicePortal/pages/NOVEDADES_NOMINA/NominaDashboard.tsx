@@ -20,6 +20,8 @@ import MedicinaPrepagadaIcon from '../../../../assets/images/categories/MEDICINA
 import ControlDescuentosIcon from '../../../../assets/images/categories/CONTROL_DESCUENTOS.png';
 import CelularesIcon from '../../../../assets/images/categories/CELULARES.png';
 import EmbargosIcon from '../../../../assets/images/categories/EMBARGOS.png';
+import RetencionesIcon from '../../../../assets/images/categories/RETENCIONES.png';
+import PlanillasRegionalesIcon from '../../../../assets/images/categories/PLANILLAS REGIONALES.png';
 import ExcepcionesIcon from '../../../../assets/images/categories/EXCEPCIONES.png';
 
 
@@ -52,6 +54,9 @@ const SubcategoriaCard: React.FC<{
             'CONTROL DE DESCUENTOS': ControlDescuentosIcon,
             'CELULARES': CelularesIcon,
             'EMBARGOS': EmbargosIcon,
+            'RETENCIONES': RetencionesIcon,
+            'PLANILLAS REGIONALES 1Q': PlanillasRegionalesIcon,
+            'PLANILLAS REGIONALES 2Q': PlanillasRegionalesIcon,
             'GESTION EXCEPCIONES': ExcepcionesIcon
         };
 
@@ -169,11 +174,11 @@ const NominaDashboard: React.FC = () => {
                 </div>
                 <Button
                     variant="custom"
-                    onClick={() => navigate('/service-portal/novedades-nomina/resumen')}
+                    onClick={() => navigate('/service-portal/novedades-nomina/tabla-maestra')}
                     className="group flex items-center gap-2 hover:opacity-80 transition-all duration-300 p-0 h-auto bg-transparent border-none"
                 >
                     <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
-                        Resumen Mensual
+                        Tabla Descuentos Nómina
                     </Title>
                     <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
                 </Button>

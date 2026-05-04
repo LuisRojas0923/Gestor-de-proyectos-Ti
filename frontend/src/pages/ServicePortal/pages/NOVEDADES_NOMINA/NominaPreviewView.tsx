@@ -86,8 +86,8 @@ const NominaPreviewView: React.FC = () => {
                         <Text color="text-secondary">Revisa los registros normalizados antes de finalizar</Text>
                     </div>
                 </div>
-                <Button variant="primary" onClick={() => navigate('/service-portal/novedades-nomina/resumen')}>
-                    Ver Resumen Mensual
+                <Button variant="primary" onClick={() => navigate('/service-portal/novedades-nomina/tabla-maestra')}>
+                    Ver Tabla Maestra
                 </Button>
             </div>
 
@@ -178,7 +178,7 @@ const NominaPreviewView: React.FC = () => {
                         className="gap-2"
                         onClick={() => {
                             addNotification('success', 'Novedades confirmadas y guardadas en el histórico.');
-                            navigate('/service-portal/novedades-nomina/resumen');
+                            navigate('/service-portal/novedades-nomina/tabla-maestra');
                         }}
                     >
                         <CheckCircle className="w-4 h-4" /> Confirmar y Guardar

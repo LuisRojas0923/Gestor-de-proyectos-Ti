@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Title, Text, Button, Badge, Select, MaterialCard } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, XCircle, Loader2, Download, Table2, Search } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Loader2, Download, Table2, Search, Send } from 'lucide-react';
 import { NominaTable, ColumnDef } from '../../../../components/organisms/NominaTable';
 import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
@@ -69,6 +69,7 @@ const TablaMaestraView: React.FC = () => {
     // Estado
     const [isValidating, setIsValidating] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     const [validation, setValidation] = useState<ValidationResult | null>(null);
     const [showValidation, setShowValidation] = useState(true);
     const [filas, setFilas] = useState<TablaMaestraRow[]>([]);
@@ -123,6 +124,23 @@ const TablaMaestraView: React.FC = () => {
             }
         } finally {
             setIsGenerating(false);
+        }
+    };
+
+    /* ─── Exportación a SOLID ─── */
+    const handleExportSolid = async () => {
+        setIsExporting(true);
+        try {
+            await axios.post(`${API_CONFIG.BASE_URL}/novedades-nomina/exportar-solid`, {
+                mes,
+                año: anio
+            });
+            addNotification('success', 'Datos exportados correctamente a SOLID ERP.');
+        } catch (err) {
+            console.error("Error exporting to SOLID:", err);
+            addNotification('error', 'Error al exportar los datos a SOLID.');
+        } finally {
+            setIsExporting(false);
         }
     };
 
@@ -317,6 +335,18 @@ const TablaMaestraView: React.FC = () => {
                             <Text size="xs" color="text-secondary" className="opacity-70">
                                 {filas.length} registros consolidados de {summary?.subcategorias_incluidas.length || 0} subcategorías
                             </Text>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Button 
+                                variant="success" 
+                                size="sm" 
+                                className="h-9 px-4 font-bold shadow-lg shadow-emerald-500/20 gap-2"
+                                onClick={handleExportSolid}
+                                disabled={isExporting}
+                            >
+                                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                <Text as="span" color="inherit" size="xs" weight="black" className="uppercase tracking-wider">Exportar a SOLID</Text>
+                            </Button>
                         </div>
                     </div>
                     <div className="flex-1 min-h-0 bg-white rounded-lg overflow-hidden border border-slate-200">

@@ -427,10 +427,10 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                 <table className="w-full text-[11px] border-collapse">
                                     <thead className="sticky top-0 z-10">
                                         <tr className="bg-[var(--color-primary-900)] text-white shadow-md">
-                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-12 border-b border-white/5 border-r border-white/5 first:rounded-tl-xl">#</th>
-                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5">
+                                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-12 border-b border-white/5 border-r border-white/5 first:rounded-tl-xl">#</th>
+                                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5">
                                                 <div className="flex items-center justify-center gap-1">
-                                                    <span>CEDULA</span>
+                                                    <Text as="span" size="xs" color="inherit">CEDULA</Text>
                                                     <FilterDropdown 
                                                         options={getColumnOptions('cedula')}
                                                         selectedOptions={activeFilters['cedula'] || []}
@@ -439,9 +439,9 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                                     />
                                                 </div>
                                             </th>
-                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
+                                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
                                                 <div className="flex items-center justify-center gap-1">
-                                                    <span>NOMBRE</span>
+                                                    <Text as="span" size="xs" color="inherit">NOMBRE</Text>
                                                     <FilterDropdown 
                                                         options={getColumnOptions('nombre')}
                                                         selectedOptions={activeFilters['nombre'] || []}
@@ -450,9 +450,9 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                                     />
                                                 </div>
                                             </th>
-                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
+                                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
                                                 <div className="flex items-center justify-center gap-1">
-                                                    <span>EMPRESA</span>
+                                                    <Text as="span" size="xs" color="inherit">EMPRESA</Text>
                                                     <FilterDropdown 
                                                         options={getColumnOptions('empresa')}
                                                         selectedOptions={activeFilters['empresa'] || []}
@@ -461,11 +461,11 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                                     />
                                                 </div>
                                             </th>
-                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5">HORAS</th>
-                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5">DIAS</th>
-                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 last:rounded-tr-xl">
+                                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5"><Text as="span" size="xs" color="inherit">HORAS</Text></th>
+                                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5"><Text as="span" size="xs" color="inherit">DIAS</Text></th>
+                                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 last:rounded-tr-xl">
                                                 <div className="flex items-center justify-center gap-1">
-                                                    <span>CONCEPTO</span>
+                                                    <Text as="span" size="xs" color="inherit">CONCEPTO</Text>
                                                     <FilterDropdown 
                                                         options={getColumnOptions('concepto')}
                                                         selectedOptions={activeFilters['concepto'] || []}

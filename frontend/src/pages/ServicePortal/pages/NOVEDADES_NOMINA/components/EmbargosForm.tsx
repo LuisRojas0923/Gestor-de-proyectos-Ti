@@ -145,40 +145,44 @@ const EmbargosForm: React.FC<EmbargosFormProps> = ({ onProcess, isProcessing }) 
                 <table className="w-full text-sm">
                     <thead className="bg-[var(--color-primary-500)] sticky top-0 z-10">
                         <tr>
-                            <th className="p-3 text-center w-12 text-white font-black border-b border-white/10 text-[10px] uppercase tracking-wider">#</th>
-                            <th className="p-3 text-center w-32 text-white font-black uppercase border-b border-white/10 text-[10px] tracking-wider relative">
+                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-12 text-white border-b border-white/10">
+                                <Text as="span" size="xs" color="inherit">#</Text>
+                            </th>
+                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-32 text-white border-b border-white/10">
                                 <div className="flex items-center justify-center gap-1.5">
-                                    <span>CEDULA</span>
-                                    <button onClick={(e) => toggleFilter(e, 'cedula')} className={`p-1 rounded hover:bg-white/20 transition-colors ${(activeFilters['cedula']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
+                                    <Text as="span" size="xs" color="inherit">CEDULA</Text>
+                                    <Button variant="ghost" onClick={(e) => toggleFilter(e, 'cedula')} className={`p-1 h-auto w-auto rounded hover:bg-white/20 transition-colors ${(activeFilters['cedula']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
                                         <Filter size={10} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </th>
-                            <th className="p-3 text-center w-[232px] text-white font-black uppercase border-b border-white/10 text-[10px] tracking-wider relative">
+                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-[232px] text-white border-b border-white/10">
                                 <div className="flex items-center justify-center gap-1.5">
-                                    <span>NOMBRE</span>
-                                    <button onClick={(e) => toggleFilter(e, 'nombre')} className={`p-1 rounded hover:bg-white/20 transition-colors ${(activeFilters['nombre']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
+                                    <Text as="span" size="xs" color="inherit">NOMBRE</Text>
+                                    <Button variant="ghost" onClick={(e) => toggleFilter(e, 'nombre')} className={`p-1 h-auto w-auto rounded hover:bg-white/20 transition-colors ${(activeFilters['nombre']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
                                         <Filter size={10} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </th>
-                            <th className="p-3 text-center w-36 text-white font-black uppercase border-b border-white/10 text-[10px] tracking-wider relative">
+                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-36 text-white border-b border-white/10">
                                 <div className="flex items-center justify-center gap-1.5">
-                                    <span>EMPRESA</span>
-                                    <button onClick={(e) => toggleFilter(e, 'empresa')} className={`p-1 rounded hover:bg-white/20 transition-colors ${(activeFilters['empresa']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
+                                    <Text as="span" size="xs" color="inherit">EMPRESA</Text>
+                                    <Button variant="ghost" onClick={(e) => toggleFilter(e, 'empresa')} className={`p-1 h-auto w-auto rounded hover:bg-white/20 transition-colors ${(activeFilters['empresa']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
                                         <Filter size={10} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </th>
-                            <th className="p-3 text-center w-36 text-white font-black uppercase border-b border-white/10 text-[10px] tracking-wider relative">
+                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-36 text-white border-b border-white/10">
                                 <div className="flex items-center justify-center gap-1.5">
-                                    <span>VALOR</span>
-                                    <button onClick={(e) => toggleFilter(e, 'valor')} className={`p-1 rounded hover:bg-white/20 transition-colors ${(activeFilters['valor']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
+                                    <Text as="span" size="xs" color="inherit">VALOR</Text>
+                                    <Button variant="ghost" onClick={(e) => toggleFilter(e, 'valor')} className={`p-1 h-auto w-auto rounded hover:bg-white/20 transition-colors ${(activeFilters['valor']?.size ?? 0) > 0 ? 'text-yellow-400' : 'text-white/40'}`}>
                                         <Filter size={10} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </th>
-                            <th className="p-3 text-center w-24 border-b border-white/10 text-[10px] text-white uppercase tracking-wider">ACCIONES</th>
+                            <th className="py-2 px-4 text-center w-24 border-b border-white/10 text-white font-bold uppercase tracking-wider">
+                                <Text as="span" size="xs" color="inherit">ACCIONES</Text>
+                            </th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -191,7 +195,7 @@ const EmbargosForm: React.FC<EmbargosFormProps> = ({ onProcess, isProcessing }) 
                                             size="xs" value={row.cedula}
                                             onChange={(e) => handleChange(row.id, 'cedula', e.target.value)}
                                             onBlur={() => handleLookup(row.id)}
-                                            className="h-8 !mb-0 font-mono text-center shadow-none border-slate-200" placeholder="Cédula..."
+                                            className="h-8 !mb-0 font-mono text-center shadow-none border-slate-200 text-slate-700" placeholder="Cédula..."
                                         />
                                         {lookupLoading[row.id] && <div className="absolute right-2 top-2"><Search className="w-3 h-3 animate-pulse text-[var(--color-primary-500)]" /></div>}
                                     </div>
@@ -199,13 +203,13 @@ const EmbargosForm: React.FC<EmbargosFormProps> = ({ onProcess, isProcessing }) 
                                 <td className="p-2">
                                     <Input
                                         size="xs" value={row.nombre} disabled
-                                        className="h-8 !mb-0 uppercase w-full font-bold text-slate-700 bg-slate-50/50 border-none shadow-none text-center"
+                                        className="h-8 !mb-0 uppercase w-full text-slate-700 bg-slate-50/50 border-none shadow-none text-center"
                                     />
                                 </td>
                                 <td className="p-2">
                                     <Input
                                         size="xs" value={row.empresa} disabled
-                                        className="h-8 !mb-0 uppercase w-full text-slate-500 bg-slate-50/10 border-none shadow-none text-center"
+                                        className="h-8 !mb-0 uppercase w-full text-slate-700 bg-slate-50/10 border-none shadow-none text-center"
                                     />
                                 </td>
                                 <td className="p-2">
@@ -213,7 +217,7 @@ const EmbargosForm: React.FC<EmbargosFormProps> = ({ onProcess, isProcessing }) 
                                         size="xs" icon={DollarSign}
                                         value={formatCurrencyInput(row.valor)}
                                         onChange={(e) => handleChange(row.id, 'valor', parseCurrencyInput(e.target.value))}
-                                        className="h-8 !mb-0 text-right font-mono border-slate-200"
+                                        className="h-8 !mb-0 text-right font-mono border-slate-200 text-slate-700"
                                     />
                                 </td>
                                 <td className="p-2">
