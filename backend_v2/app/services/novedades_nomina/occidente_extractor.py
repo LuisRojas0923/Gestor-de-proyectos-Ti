@@ -88,7 +88,7 @@ def extraer_occidente_libranza(
                         "nombre_asociado": "", # Se llenará en el router
                         "empresa": "",        # Se llenará en el router
                         "valor": valor_val,
-                        "concepto": "LIBRANZA OCCIDENTE", # Concepto fijo solicitado
+                        "concepto": "OCCIDENTE LIBRANZA", # Concepto fijo solicitado
                     })
                     
                     total_filas += 1

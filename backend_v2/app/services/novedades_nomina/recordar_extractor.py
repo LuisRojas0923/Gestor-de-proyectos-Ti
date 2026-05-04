@@ -92,7 +92,7 @@ def extraer_recordar(
                     "nombre_asociado": "", # Se enriquecerá con el ERP en el router
                     "empresa": "", # Se enriquecerá con el ERP en el router
                     "valor": valor,
-                    "concepto": "RECORDAR VALOR",
+                    "concepto": "RECORDAR",
                 })
                 total_filas += 1
                 total_valor += valor

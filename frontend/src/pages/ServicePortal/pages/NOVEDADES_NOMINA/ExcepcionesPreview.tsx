@@ -33,8 +33,6 @@ const TIPOS_EXCEPCION = [
     { value: 'PORCENTAJE_EMPRESA', label: 'Porcentaje Pago Empresa' }
 ];
 
-
-
 const ExcepcionesPreview: React.FC = () => {
     const navigate = useNavigate();
     const { addNotification } = useNotifications();
@@ -57,13 +55,11 @@ const ExcepcionesPreview: React.FC = () => {
         nombre_asociado: ''
     });
 
-    // Formateador de moneda para visualización
     const formatCurrencyInput = (val?: number) => {
         if (!val && val !== 0) return "";
         return new Intl.NumberFormat('es-CO').format(val);
     };
 
-    // Parser para quitar formato al guardar
     const parseCurrencyInput = (val: string) => {
         return parseFloat(val.replace(/\./g, '')) || 0;
     };
@@ -86,7 +82,6 @@ const ExcepcionesPreview: React.FC = () => {
             const res = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/catalogo`);
             if (res.data) {
                 const subs = Object.values(res.data).flat().filter(s => typeof s === 'string') as string[];
-                // Filter out 'GESTION EXCEPCIONES' to avoid self-reference
                 const filteredSubs = subs.filter(s => 
                     s !== 'GESTION EXCEPCIONES' && 
                     s !== 'PLANILLAS REGIONALES 1Q' && 
@@ -127,7 +122,6 @@ const ExcepcionesPreview: React.FC = () => {
                     addNotification('info', `Colaborador encontrado: ${res.data.nombre} (Estado: ${res.data.estado})`);
                 } else {
                     addNotification('success', 'Colaborador encontrado en base de datos');
-                    // Si está activo, limpiar pagador ya que no se necesita
                     setFormData(prev => ({ ...prev, pagador_cedula: '' }));
                 }
             } else {
@@ -156,7 +150,6 @@ const ExcepcionesPreview: React.FC = () => {
 
             for (const sub of selectedSubs) {
                 try {
-                    // Asegurar que la fecha se envíe en un formato que el backend maneje bien
                     const fechaEnvio = formData.fecha_inicio ? new Date(formData.fecha_inicio).toISOString() : new Date().toISOString();
                     const payload = { ...formData, subcategoria: sub, creado_por: 'ADMIN', fecha_inicio: fechaEnvio };
                     await axios.post(`${API_CONFIG.BASE_URL}/novedades-nomina/excepciones/`, payload);
@@ -197,7 +190,7 @@ const ExcepcionesPreview: React.FC = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (!window.confirm('Â¿Estás seguro de eliminar esta excepción?')) return;
+        if (!window.confirm('¿Estás seguro de eliminar esta excepción?')) return;
         try {
             await axios.delete(`${API_CONFIG.BASE_URL}/novedades-nomina/excepciones/${id}`);
             addNotification('success', 'Eliminada');
@@ -208,17 +201,17 @@ const ExcepcionesPreview: React.FC = () => {
     };
 
     const columns = useMemo<ColumnDef<Excepcion>[]>(() => [
-        { header: 'COLABORADOR', accessorKey: 'cedula', cell: (row) => (
+        { header: 'COLABORADOR', accessorKey: 'cedula', align: 'center', cell: (row) => (
             <div className="flex flex-col">
                 <Text size="sm" weight="bold">{row.cedula}</Text>
                 <Text size="xs" color="text-tertiary">{row.nombre_asociado || 'N/A'}</Text>
             </div>
         )},
-        { header: 'SUBCATEGORÃA', accessorKey: 'subcategoria' },
-        { header: 'TIPO', accessorKey: 'tipo', cell: (row) => (
+        { header: 'SUBCATEGORÍA', accessorKey: 'subcategoria', align: 'center' },
+        { header: 'TIPO', accessorKey: 'tipo', align: 'center', cell: (row) => (
             <Badge variant="info" size="sm">{row.tipo}</Badge>
         )},
-        { header: 'ESTADO', accessorKey: 'estado', cell: (row) => (
+        { header: 'ESTADO', accessorKey: 'estado', align: 'center', cell: (row) => (
             <Badge variant={row.estado === 'ACTIVO' ? 'success' : 'warning'} size="sm">{row.estado}</Badge>
         )},
         { header: 'VALOR/SALDO', accessorKey: 'saldo_actual', align: 'right', cell: (row) => (

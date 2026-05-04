@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 router.include_router(excepciones_router)
 router.include_router(descuentos_router)
-router.include_router(comisiones_router)
+router.include_router(comisiones_router, prefix="/comisiones")
 router.include_router(otros_router)
 router.include_router(cooperativas_router)
 router.include_router(funebres_router)
@@ -49,7 +49,7 @@ async def obtener_catalogo():
         "COOPERATIVAS": ["BENEFICIAR", "GRANCOOP"],
         "OTROS": ["OTROS GERENCIA", "POLIZAS VEHICULOS", "SEGUROS HDI", "MEDICINA PREPAGADA", "GESTION EXCEPCIONES"],
         "DESCUENTOS": ["CONTROL DE DESCUENTOS", "CELULARES", "RETENCIONES", "EMBARGOS"],
-        "NOVEDADES": ["PLANILLAS REGIONALES", "NOVEDADES ADMON", "COMISIONES"]
+        "NOVEDADES": ["PLANILLAS REGIONALES"]
     }
 
 @router.post("/archivos", response_model=NominaUploadResponse)

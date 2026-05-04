@@ -159,7 +159,7 @@ async def preview_bogota_libranza(
         await session.rollback()
         raise HTTPException(status_code=500, detail=f"Error al guardar registros de Bogotá Libranza: {str(e)}")
 
-    formatted_rows = [{"cedula": r["cedula"], "CEDULA": r["cedula"], "nombre_asociado": r.get("nombre_asociado", ""), "nombre": r.get("nombre_asociado", ""), "NOMBRE": r.get("nombre_asociado", ""), "valor": r["valor"], "VALOR": r["valor"], "empresa": r.get("empresa", ""), "EMPRESA": r.get("empresa", ""), "concepto": r.get("concepto", "LIBRANZA BOGOTA"), "CONCEPTO": r.get("concepto", "LIBRANZA BOGOTA")} for r in rows_facturables]
+    formatted_rows = [{"cedula": r["cedula"], "CEDULA": r["cedula"], "nombre_asociado": r.get("nombre_asociado", ""), "nombre": r.get("nombre_asociado", ""), "NOMBRE": r.get("nombre_asociado", ""), "valor": r["valor"], "VALOR": r["valor"], "empresa": r.get("empresa", ""), "EMPRESA": r.get("empresa", ""), "concepto": r.get("concepto", "BOGOTA LIBRANZA"), "CONCEPTO": r.get("concepto", "BOGOTA LIBRANZA")} for r in rows_facturables]
     return {"rows": formatted_rows, "summary": summary, "warnings": warnings_txt, "warnings_detalle": warnings_detalle}
 
 @router.get("/bogota_libranza/datos")
@@ -171,7 +171,7 @@ async def obtener_datos_bogota_libranza(mes: int = Query(...), anio: int = Query
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al consultar datos de Bogotá Libranza: {str(e)}")
     
-    rows_final = [{"cedula": r.cedula, "CEDULA": r.cedula, "nombre_asociado": r.nombre_asociado or "", "nombre": r.nombre_asociado or "", "NOMBRE": r.nombre_asociado or "", "valor": r.valor, "VALOR": r.valor, "empresa": r.empresa, "EMPRESA": r.empresa, "concepto": r.concepto or "LIBRANZA BOGOTA", "CONCEPTO": r.concepto or "LIBRANZA BOGOTA", "estado_validacion": r.estado_validacion} 
+    rows_final = [{"cedula": r.cedula, "CEDULA": r.cedula, "nombre_asociado": r.nombre_asociado or "", "nombre": r.nombre_asociado or "", "NOMBRE": r.nombre_asociado or "", "valor": r.valor, "VALOR": r.valor, "empresa": r.empresa, "EMPRESA": r.empresa, "concepto": r.concepto or "BOGOTA LIBRANZA", "CONCEPTO": r.concepto or "BOGOTA LIBRANZA", "estado_validacion": r.estado_validacion} 
                   for r in registros 
                   if r.estado_validacion == "OK" or ("EXCEPCION" in str(r.estado_validacion).upper() and r.estado_validacion != "EXCEPCION_EXONERADO") or str(r.estado_validacion).upper() == "REDIRECCIONADO" or str(r.estado_validacion).upper() == "ACTIVO"]
     

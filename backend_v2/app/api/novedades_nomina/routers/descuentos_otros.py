@@ -14,6 +14,10 @@ from ....services.novedades_nomina.retenciones_extractor import extraer_retencio
 from ....services.novedades_nomina.embargos_extractor import extraer_embargos
 from ....services.novedades_nomina.nomina_service import NominaService
 from ....services.novedades_nomina.excepcion_service import ExcepcionService
+from ....services.novedades_nomina.nomina_manual_service import NominaManualService
+from ....models.novedades_nomina.nomina import NominaFavorito
+from ....api.auth.router import obtener_usuario_actual_db
+from ....models.auth.usuario import Usuario
 
 router = APIRouter(tags=["Descuentos - Otros"])
 
@@ -248,3 +252,24 @@ async def preview_embargos(mes: int = Form(...), anio: int = Form(...), files: L
         await session.rollback()
         raise HTTPException(status_code=500, detail=f"Error al guardar registros de Embargos: {str(e)}")
     return {"rows": rows, "summary": summary, "warnings": warnings_txt, "warnings_detalle": warnings_detalle}
+
+@router.post("/embargos/procesar-manual")
+async def procesar_manual_embargos(payload: Dict = None, session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
+    if not payload: raise HTTPException(status_code=400, detail="Payload no proporcionado")
+    mes, anio, rows_data = payload.get("mes"), payload.get("anio"), payload.get("rows")
+    if not mes or not anio or rows_data is None: raise HTTPException(status_code=400, detail="Faltan parámetros")
+    try:
+        return await NominaManualService.procesar_manual_embargos(session, db_erp, rows_data, mes, anio)
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/embargos/empleado/{cedula}")
+async def buscar_empleado_embargos(
+    cedula: str, 
+    session: AsyncSession = Depends(obtener_db),
+    db_erp = Depends(obtener_erp_db_opcional),
+    user: Usuario = Depends(obtener_usuario_actual_db)
+):
+    if not db_erp: raise HTTPException(status_code=400, detail="ERP no disponible")
+    empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula, solo_activos=False)
+    if not empleado: raise HTTPException(status_code=404, detail="No encontrado")
+    return empleado

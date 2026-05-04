@@ -91,11 +91,12 @@ const ControlDescuentosTabla: React.FC = () => {
     // ── Columnas de la tabla ──────────────────────────────────────────────────
 
     const columns = useMemo<ColumnDef<TablaQuincenalRow>[]>(() => [
-        { header: 'CÉDULA', accessorKey: 'cedula' },
-        { header: 'NOMBRE', accessorKey: 'nombre' },
+        { header: 'CÉDULA', accessorKey: 'cedula', align: 'center' },
+        { header: 'NOMBRE', accessorKey: 'nombre', align: 'center' },
         {
             header: 'EMPRESA',
             accessorKey: 'empresa',
+            align: 'center',
             cell: (row: TablaQuincenalRow) => (
                 <Badge variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'} size="sm">
                     {row.empresa || 'REFRIDCOL'}
@@ -115,6 +116,7 @@ const ControlDescuentosTabla: React.FC = () => {
         {
             header: 'CONCEPTO',
             accessorKey: 'concepto',
+            align: 'center',
             cell: (row: TablaQuincenalRow) => (
                 <Badge variant={row.concepto.includes('Q1') ? 'info' : 'success'} size="sm">
                     {row.concepto}

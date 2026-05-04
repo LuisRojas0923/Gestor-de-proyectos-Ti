@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Text, MaterialCard, Title, Badge } from '../../../../../components/atoms';
-import { Plus, Trash2, Send, Search, DollarSign, Star } from 'lucide-react';
+import { Plus, Trash2, Send, Search, DollarSign } from 'lucide-react';
 import axios from 'axios';
 import { API_CONFIG } from '../../../../../config/api';
 
@@ -10,7 +10,6 @@ export interface ManualComisionRow {
     estado: string;
     empresa: string;
     valor: number;
-    is_favorite?: boolean;
 }
 
 interface ComisionesFormProps {
@@ -23,24 +22,6 @@ const ComisionesForm: React.FC<ComisionesFormProps> = ({ onProcess, isProcessing
         { cedula: "", nombre: "", estado: "", empresa: "", valor: 0 }
     ]);
     const [lookupLoading, setLookupLoading] = useState<Record<number, boolean>>({});
-
-    // Cargar favoritos al montar el componente
-    useEffect(() => {
-        const fetchFavoritos = async () => {
-            const token = localStorage.getItem('token');
-            try {
-                const res = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/comisiones/favoritos`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (res.data && res.data.length > 0) {
-                    setRows(res.data);
-                }
-            } catch (err) {
-                console.error('Error cargando favoritos:', err);
-            }
-        };
-        fetchFavoritos();
-    }, []);
 
     const handleAddRow = () => {
         setRows([...rows, { cedula: "", nombre: "", estado: "", empresa: "", valor: 0 }]);
@@ -81,8 +62,7 @@ const ComisionesForm: React.FC<ComisionesFormProps> = ({ onProcess, isProcessing
                         ...newRows[index], 
                         nombre: (res.data.nombre || "").toUpperCase(),
                         estado: (res.data.estado || "N/A").toUpperCase(),
-                        empresa: (res.data.empresa || "N/A").toUpperCase(),
-                        is_favorite: res.data.is_favorite
+                        empresa: (res.data.empresa || "N/A").toUpperCase()
                     };
                     return newRows;
                 });
@@ -91,52 +71,6 @@ const ComisionesForm: React.FC<ComisionesFormProps> = ({ onProcess, isProcessing
             console.error('Error buscando empleado:', err);
         } finally {
             setLookupLoading(prev => ({ ...prev, [index]: false }));
-        }
-    };
-
-    const handleToggleFavorite = async (index: number) => {
-        const row = rows[index];
-        if (!row.cedula) return;
-
-        const token = localStorage.getItem('token');
-        try {
-            // Toggle favorite status on backend
-            const toggleRes = await axios.post(`${API_CONFIG.BASE_URL}/novedades-nomina/comisiones/favoritos/toggle`, null, {
-                params: { cedula: row.cedula },
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            // Update favorite flag locally
-            setRows(prev => {
-                const newRows = [...prev];
-                newRows[index] = { ...newRows[index], is_favorite: toggleRes.data.status === 'added' };
-                return newRows;
-            });
-
-            // If we just added the favorite, fetch employee details to pre‑fill fields
-            if (toggleRes.data.status === 'added') {
-                try {
-                    const empRes = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/comisiones/empleado/${row.cedula}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    if (empRes.data) {
-                        setRows(prev => {
-                            const newRows = [...prev];
-                            newRows[index] = {
-                                ...newRows[index],
-                                nombre: (empRes.data.nombre || "").toUpperCase(),
-                                estado: (empRes.data.estado || "N/A").toUpperCase(),
-                                empresa: (empRes.data.empresa || "N/A").toUpperCase()
-                            };
-                            return newRows;
-                        });
-                    }
-                } catch (e) {
-                    console.error('Error al cargar datos del favorito:', e);
-                }
-            }
-        } catch (err) {
-            console.error('Error al cambiar favorito:', err);
         }
     };
 
@@ -154,7 +88,7 @@ const ComisionesForm: React.FC<ComisionesFormProps> = ({ onProcess, isProcessing
             <div className="flex items-center justify-between mb-4">
                 <div>
                     <Title variant="h6" weight="black" className="uppercase tracking-tight text-[var(--color-primary)]">Entrada de Comisiones</Title>
-                    <Text size="xs" color="text-secondary" className="opacity-70">Ingresa las cédulas y valores. Tus favoritos se cargan automáticamente.</Text>
+                    <Text size="xs" color="text-secondary" className="opacity-70">Ingresa las cédulas y valores de las comisiones del periodo.</Text>
                 </div>
                 <Button 
                     variant="erp" 
@@ -243,15 +177,6 @@ const ComisionesForm: React.FC<ComisionesFormProps> = ({ onProcess, isProcessing
                                 </td>
                                 <td className="p-2 text-center">
                                     <div className="flex items-center justify-center gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleToggleFavorite(idx)}
-                                            className={`h-7 w-7 ${row.is_favorite ? 'text-amber-500' : 'text-slate-300'} hover:text-amber-600 transition-colors`}
-                                            disabled={!row.cedula}
-                                        >
-                                            <Star className={`w-4 h-4 ${row.is_favorite ? 'fill-current' : ''}`} />
-                                        </Button>
                                         <Button
                                             variant="ghost"
                                             size="icon"

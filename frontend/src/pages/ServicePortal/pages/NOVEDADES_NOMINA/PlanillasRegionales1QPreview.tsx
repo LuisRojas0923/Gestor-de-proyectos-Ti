@@ -8,6 +8,7 @@ import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import SubcategorySummaryCard from './components/SubcategorySummaryCard';
+import { FilterDropdown } from '../../../../components/molecules/FilterDropdown';
 
 interface PlanillaRow {
     cedula: string;
@@ -54,6 +55,9 @@ const PlanillasRegionales1QPreview: React.FC = () => {
 
     // Filtros
     const [searchText, setSearchText] = useState('');
+
+    // Filtros por columna (Excel style)
+    const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
     const [warningsDetalle, setWarningsDetalle] = useState<WarningDetalle[]>([]);
     const [showWarnings, setShowWarnings] = useState(false);
 
@@ -119,7 +123,35 @@ const PlanillasRegionales1QPreview: React.FC = () => {
         }
     };
 
-    // Cálculos de resumen adicionales
+    const filteredRows = useMemo(() => {
+        if (!data || !data.filas) return [];
+        return data.filas
+            .filter(r => {
+                // Filtro de búsqueda global
+                const matchGlobal = searchText === ''
+                    || r.cedula.toLowerCase().includes(searchText.toLowerCase())
+                    || r.nombre.toLowerCase().includes(searchText.toLowerCase());
+                
+                if (!matchGlobal) return false;
+
+                // Filtros por columna
+                for (const [key, values] of Object.entries(activeFilters)) {
+                    if (values.length === 0) continue;
+                    const rowValue = String((r as any)[key] || '').toUpperCase();
+                    if (!values.includes(rowValue)) return false;
+                }
+
+                return true;
+            })
+            .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    }, [data, searchText, activeFilters]);
+
+    const getColumnOptions = (key: keyof PlanillaRow) => {
+        if (!data || !data.filas) return [];
+        const uniqueValues = Array.from(new Set(data.filas.map(r => String(r[key] || '').toUpperCase())));
+        return uniqueValues.sort().map(v => ({ label: v, value: v }));
+    };
+
     const summaryCalculated = useMemo(() => {
         if (!data || !data.filas) return { porEmpresa: {}, porNovedad: {}, horasPorConcepto: {}, diasPorConcepto: {} };
         const asociadosEmpresa = new Map<string, string>(); // Cedula -> Empresa
@@ -371,14 +403,78 @@ const PlanillasRegionales1QPreview: React.FC = () => {
 
                         {/* Table */}
                         <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <NominaTable
-                                data={data.filas}
-                                columns={columns}
-                                globalFilterText={searchText}
-                                onGlobalFilterChange={setSearchText}
-                                customSort={(a, b) => (a.nombre || "").localeCompare(b.nombre || "")}
-                                fullHeight
-                            />
+                            <div className="h-full overflow-auto">
+                                <table className="w-full text-[11px] border-collapse">
+                                    <thead className="sticky top-0 z-10">
+                                        <tr className="bg-[var(--color-primary-900)] text-white shadow-md">
+                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-12 border-b border-white/5 border-r border-white/5 first:rounded-tl-xl">#</th>
+                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <span>CEDULA</span>
+                                                    <FilterDropdown 
+                                                        options={getColumnOptions('cedula')}
+                                                        selectedOptions={activeFilters['cedula'] || []}
+                                                        onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, cedula: vals }))}
+                                                        dark
+                                                    />
+                                                </div>
+                                            </th>
+                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <span>NOMBRE</span>
+                                                    <FilterDropdown 
+                                                        options={getColumnOptions('nombre')}
+                                                        selectedOptions={activeFilters['nombre'] || []}
+                                                        onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, nombre: vals }))}
+                                                        dark
+                                                    />
+                                                </div>
+                                            </th>
+                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <span>EMPRESA</span>
+                                                    <FilterDropdown 
+                                                        options={getColumnOptions('empresa')}
+                                                        selectedOptions={activeFilters['empresa'] || []}
+                                                        onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, empresa: vals }))}
+                                                        dark
+                                                    />
+                                                </div>
+                                            </th>
+                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5">HORAS</th>
+                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5">DIAS</th>
+                                            <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 last:rounded-tr-xl">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <span>CONCEPTO</span>
+                                                    <FilterDropdown 
+                                                        options={getColumnOptions('concepto')}
+                                                        selectedOptions={activeFilters['concepto'] || []}
+                                                        onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, concepto: vals }))}
+                                                        dark
+                                                    />
+                                                </div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                        {filteredRows.map((row, i) => (
+                                            <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                                <td className="p-2 text-slate-400 font-mono w-12 border-r border-slate-50 text-center">{i + 1}</td>
+                                                <td className="p-2 font-mono border-r border-slate-50 text-center">{row.cedula}</td>
+                                                <td className="p-2 border-r border-slate-50 text-center">{row.nombre}</td>
+                                                <td className="p-2 border-r border-slate-50 text-center">
+                                                    <Badge variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'} size="xs">{row.empresa || 'REFRIDCOL'}</Badge>
+                                                </td>
+                                                <td className="p-2 text-center font-mono font-bold border-r border-slate-50">{row.horas}</td>
+                                                <td className="p-2 text-center font-mono font-bold border-r border-slate-50">{row.dias}</td>
+                                                <td className="p-2 text-center">
+                                                    <Badge variant="default" size="xs">{row.concepto}</Badge>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </>
                 )}

@@ -7,11 +7,12 @@ import imgReunion from '../../../assets/images/categories/Reunion.png';
 import sistemasolicitudes from '../../../assets/images/categories/logistico.png';
 import imgInventario from '../../../assets/images/categories/Consultar Reportes.png';
 import imgNovedadesNomina from '../../../assets/images/categories/NOVEDADES_NOMINA.png';
+import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'comisiones') => void;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
@@ -103,6 +104,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                         description="Carga y procesamiento de novedades para SOLID."
                         icon={<img src={imgNovedadesNomina} alt="Novedades de Nómina" className="w-full h-full object-contain p-2" />}
                         onClick={() => onNavigate('nomina')}
+                    />
+                )}
+
+                {(userRole === 'admin' || userRole === 'director') && (
+                    <ActionCard
+                        title="Comisiones"
+                        description="Cálculo y procesamiento de comisiones para el personal."
+                        icon={<img src={imgComisiones} alt="Gestión de Comisiones" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onNavigate('comisiones')}
                     />
                 )}
                 {canSeeInventario && (

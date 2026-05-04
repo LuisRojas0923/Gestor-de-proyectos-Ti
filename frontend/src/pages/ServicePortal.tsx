@@ -48,6 +48,7 @@ import EmbargosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/EmbargosPrev
 import ExcepcionesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/ExcepcionesPreview';
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
+import ComisionesView from './ServicePortal/pages/Comisiones';
 
 import {
     CategoryWrapper,
@@ -186,6 +187,7 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'requisiciones') navigate('/service-portal/requisiciones');
                             else if (v === 'inventario') navigate('/service-portal/inventario');
                             else if (v === 'contabilidad') navigate('/service-portal/gestion-humana');
+                            else if (v === 'comisiones') navigate('/service-portal/comisiones');
                         }}
                     />
                 } />
@@ -381,6 +383,13 @@ const ServicePortal: React.FC = () => {
                 <Route path="novedades-nomina/preview/:archivoId" element={<NominaPreviewView />} />
                 <Route path="novedades-nomina/resumen" element={<NominaSummaryView />} />
                 <Route path="novedades-nomina/historial" element={<NominaHistorialView />} />
+                
+                <Route path="comisiones" element={
+                    <ProtectedRoute moduleCode="comisiones">
+                        <ComisionesView />
+                    </ProtectedRoute>
+                } />
+
                 <Route path="inventario" element={
                     <ProtectedRoute moduleCode="inventario_2026">
                         <InventarioView onBack={() => navigate('/service-portal/inicio')} />

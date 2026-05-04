@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Search, Filter, X } from 'lucide-react';
 import { Input, Text, Button } from '../atoms';
 import ExcelIcon from '../../assets/images/categories/Soporte Mejoramiento.png';
+import { FilterDropdown } from '../molecules/FilterDropdown';
 
 export interface ColumnDef<T> {
     header: string;
@@ -40,7 +41,7 @@ export function NominaTable<T extends Record<string, any>>({
     const location = useLocation();
     const storageKey = `nomina_table_filters_${location.pathname}`;
 
-    const [columnFilters, setColumnFilters] = useState<Record<string, string>>(() => {
+    const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>(() => {
         try {
             const saved = sessionStorage.getItem(`${storageKey}_columns`);
             return saved ? JSON.parse(saved) : {};
@@ -48,8 +49,6 @@ export function NominaTable<T extends Record<string, any>>({
             return {};
         }
     });
-
-    const [activeFilterColumn, setActiveFilterColumn] = useState<string | null>(null);
 
     // Guardar filtros de columna en sessionStorage
     useEffect(() => {
@@ -72,11 +71,16 @@ export function NominaTable<T extends Record<string, any>>({
         }
     }, [globalFilterText, storageKey]);
 
-    const handleFilterChange = (key: string, value: string) => {
+    const handleFilterChange = (key: string, values: string[]) => {
         setColumnFilters(prev => ({
             ...prev,
-            [key]: value
+            [key]: values
         }));
+    };
+
+    const getColumnOptions = (key: string) => {
+        const uniqueValues = Array.from(new Set(data.map(r => String((r as any)[key] || '').toUpperCase())));
+        return uniqueValues.sort().map(v => ({ label: v, value: v }));
     };
 
     const filteredAndSortedData = useMemo(() => {
@@ -92,13 +96,13 @@ export function NominaTable<T extends Record<string, any>>({
             });
         }
 
-        // 2. Column Filters
-        const activeFilters = Object.entries(columnFilters).filter(([_, val]: [string, string]) => val.trim() !== '');
-        if (activeFilters.length > 0) {
+        // 2. Column Filters (Excel style multi-select)
+        const activeFiltersEntries = Object.entries(columnFilters).filter(([_, vals]: [string, string[]]) => vals.length > 0);
+        if (activeFiltersEntries.length > 0) {
             result = result.filter(row => {
-                return activeFilters.every(([key, filterVal]: [string, string]) => {
-                    const cellValue = String(row[key] || '').toLowerCase();
-                    return cellValue.includes(filterVal.toLowerCase());
+                return activeFiltersEntries.every(([key, filterVals]: [string, string[]]) => {
+                    const cellValue = String(row[key] || '').toUpperCase();
+                    return filterVals.includes(cellValue);
                 });
             });
         }
@@ -122,36 +126,25 @@ export function NominaTable<T extends Record<string, any>>({
     const handleExport = () => {
         if (filteredAndSortedData.length === 0) return;
 
-        // Get headers from columns
         const headers = columns.map(col => col.header);
-
-        // Map rows to CSV values
-        // Numeric values: written WITHOUT quotes and WITH comma as decimal separator.
-        // A semicolon-delimited CSV with unquoted "10130,03" tokens is what
-        // Spanish-locale Excel (es-CO) expects to recognize a cell as a real number.
-        // We use Intl.NumberFormat from the numeric type — not a string replace.
         const decimalFormatter = new Intl.NumberFormat('es-CO', {
-            useGrouping: false,          // no thousands separator → no ambiguity
+            useGrouping: false,
             minimumFractionDigits: 0,
-            maximumFractionDigits: 10,   // preserve up to 10 decimal places
+            maximumFractionDigits: 10,
         });
 
         const rows = filteredAndSortedData.map(row =>
             columns.map(col => {
                 const val = row[col.accessorKey as keyof T];
                 if (val === null || val === undefined) return '';
-                // Numeric type → unquoted token with locale decimal comma
-                // Excel (es-CO) reads this as a real number, not text.
                 if (typeof val === 'number') {
-                    return decimalFormatter.format(val); // e.g. 10130,03
+                    return decimalFormatter.format(val);
                 }
-                // Text values → escape internal quotes and wrap in double-quotes
                 const stringVal = String(val).replace(/"/g, '""');
                 return `"${stringVal}"`;
             }).join(';')
         );
 
-        // Assemble CSV with UTF-8 BOM for Excel compatibility
         const csvContent = "\uFEFF" + [headers.join(';'), ...rows].join('\n');
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -167,9 +160,7 @@ export function NominaTable<T extends Record<string, any>>({
 
     return (
         <div className={`space-y-1 ${fullHeight ? 'h-full flex flex-col' : ''}`}>
-            {/* Table Header Controls */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 flex-none items-center mb-0.5 py-0">
-                {/* Export Button (Aligned with "Asociados" width) */}
                 <div className="lg:col-span-2">
                     {data.length > 0 && (
                         <Button
@@ -185,7 +176,6 @@ export function NominaTable<T extends Record<string, any>>({
                     )}
                 </div>
 
-                {/* Container for alignment/search */}
                 <div className="lg:col-span-10 flex justify-end items-center">
                     {onGlobalFilterChange !== undefined && !hideSearch && (
                         <div className="relative w-full max-w-md">
@@ -203,75 +193,40 @@ export function NominaTable<T extends Record<string, any>>({
                     )}
                 </div>
             </div>
-            {/* Table */}
+
             <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden ${fullHeight ? 'flex-1 min-h-0' : ''}`}>
                 <div className={`${fullHeight ? 'h-full' : 'max-h-[600px]'} overflow-x-auto overflow-y-auto`}>
                     <table className="w-full text-sm border-collapse">
-                        <thead className="sticky top-0 z-10 bg-primary-500 shadow-md text-sm">
-                            <tr>
-                                <th className="text-left py-2 px-4 font-bold text-white bg-inherit w-12 align-middle border-b border-primary-600">
-                                    <Text as="span" weight="bold" color="inherit" size="sm">#</Text>
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-[var(--color-primary-900)] text-white shadow-md overflow-hidden">
+                                <th className="text-center py-3 px-4 font-bold w-12 align-middle first:rounded-tl-xl border-b border-white/5 border-r border-white/5">
+                                    <Text as="span" weight="bold" color="inherit" size="xs">#</Text>
                                 </th>
                                 {columns.map((col, idx) => {
                                     const colKey = col.accessorKey as string;
-                                    const hasActiveFilter = !!columnFilters[colKey];
-                                    const isFilterOpen = activeFilterColumn === colKey;
-
+                                    const isLast = idx === columns.length - 1;
                                     return (
                                         <th 
                                             key={idx} 
-                                            className={`py-2 px-4 font-bold text-white bg-inherit whitespace-nowrap align-middle relative border-b border-primary-600 ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}
+                                            className={`
+                                                py-3 px-4 font-bold text-white whitespace-nowrap align-middle relative border-b border-white/5 border-r border-white/5
+                                                ${isLast ? 'last:rounded-tr-xl border-r-0' : ''}
+                                                text-center
+                                            `}
                                         >
-                                            <div className={`flex items-center gap-2 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
-                                                <Text as="span" weight="semibold" color="inherit" size="sm">{col.header}</Text>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Text as="span" weight="bold" color="inherit" size="xs" className="uppercase tracking-wider">
+                                                    {col.header}
+                                                </Text>
                                                 {col.enableColumnFilter !== false && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="xs"
-                                                        onClick={() => setActiveFilterColumn(isFilterOpen ? null : colKey)}
-                                                        className={`p-1 rounded transition-colors ${hasActiveFilter ? 'bg-[var(--color-primary)] text-white' : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
-                                                    >
-                                                        <Filter className="w-3.5 h-3.5" />
-                                                    </Button>
+                                                    <FilterDropdown 
+                                                        options={getColumnOptions(colKey)}
+                                                        selectedOptions={columnFilters[colKey] || []}
+                                                        onFilterChange={(vals) => handleFilterChange(colKey, vals)}
+                                                        dark
+                                                    />
                                                 )}
                                             </div>
-
-                                            {isFilterOpen && (
-                                                <div className="absolute top-full left-4 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-3 z-50 min-w-[200px] text-left">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <Text size="sm" weight="bold">Filtrar {col.header}</Text>
-                                                        <Button 
-                                                            variant="ghost"
-                                                            size="xs"
-                                                            onClick={() => setActiveFilterColumn(null)}
-                                                            className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </Button>
-                                                    </div>
-                                                    <Input 
-                                                        type="text" 
-                                                        placeholder="Buscar..."
-                                                        className="h-9 text-sm"
-                                                        value={columnFilters[colKey] || ''}
-                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFilterChange(colKey, e.target.value)}
-                                                        autoFocus
-                                                    />
-                                                    <div className="mt-3 flex justify-end">
-                                                        <Button 
-                                                            variant="ghost"
-                                                            size="xs"
-                                                            className="text-xs text-[var(--color-primary)] font-semibold hover:underline p-0 h-auto"
-                                                            onClick={() => {
-                                                                handleFilterChange(colKey, '');
-                                                                setActiveFilterColumn(null);
-                                                            }}
-                                                        >
-                                                            Limpiar
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            )}
                                         </th>
                                     );
                                 })}
@@ -280,11 +235,11 @@ export function NominaTable<T extends Record<string, any>>({
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
                             {filteredAndSortedData.map((row, rowIndex) => (
                                 <tr key={rowIndex} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                                    <td className="py-2 px-4 text-slate-400 font-mono w-12">{rowIndex + 1}</td>
+                                    <td className="py-2 px-4 text-slate-400 font-mono w-12 border-r border-slate-50 dark:border-slate-700/50 text-center">{rowIndex + 1}</td>
                                     {columns.map((col, colIndex) => (
                                         <td 
                                             key={colIndex} 
-                                            className={`py-2 px-4 ${col.align === 'right' ? 'text-right font-mono font-semibold' : col.align === 'center' ? 'text-center' : 'text-left'}`}
+                                            className={`py-2 px-4 border-r border-slate-50 dark:border-slate-700/50 ${col.align === 'right' ? 'text-right font-mono font-semibold' : col.align === 'center' ? 'text-center' : 'text-left'}`}
                                         >
                                             {col.cell ? col.cell(row) : (row[col.accessorKey as keyof T] as React.ReactNode)}
                                         </td>

@@ -80,6 +80,7 @@ class NominaManualService:
                 base_item = {
                     "cedula": r.cedula,
                     "nombre": r.nombre_asociado,
+                    "nombre_asociado": r.nombre_asociado,
                     "valor": r.valor,
                     "empresa": r.empresa,
                     "concepto": r.concepto,
@@ -94,6 +95,7 @@ class NominaManualService:
                     warnings_detalle.append({
                         "cedula": r.cedula,
                         "nombre": r.nombre_asociado,
+                        "nombre_asociado": r.nombre_asociado,
                         "motivo": r.estado_validacion
                     })
                 
@@ -188,6 +190,7 @@ class NominaManualService:
                 base_item = {
                     "cedula": r.cedula,
                     "nombre": r.nombre_asociado,
+                    "nombre_asociado": r.nombre_asociado,
                     "valor": r.valor,
                     "empresa": r.empresa,
                     "concepto": r.concepto,
@@ -197,6 +200,7 @@ class NominaManualService:
                     warnings_detalle.append({
                         "cedula": r.cedula,
                         "nombre": r.nombre_asociado,
+                        "nombre_asociado": r.nombre_asociado,
                         "motivo": r.estado_validacion
                     })
                 
@@ -205,6 +209,7 @@ class NominaManualService:
 
             return {
                 "filas": filas_frontend,
+                "rows": filas_frontend,
                 "summary": {
                     "total_asociados": len(set(r.cedula for r in registros)),
                     "total_filas": len(registros),
@@ -289,6 +294,7 @@ class NominaManualService:
                 base_item = {
                     "cedula": r.cedula,
                     "nombre": r.nombre_asociado,
+                    "nombre_asociado": r.nombre_asociado,
                     "valor": r.valor,
                     "empresa": r.empresa,
                     "concepto": r.concepto,

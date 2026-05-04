@@ -480,18 +480,22 @@ class NominaService:
 
     @staticmethod
     def _agrupar_por_cedula(filas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Agrupa filas por cédula, sumando valor/horas/dias."""
+        """Agrupa filas por cédula y concepto, sumando valor/horas/dias."""
         agrupado: Dict[str, Dict[str, Any]] = {}
         for fila in filas:
-            key = fila["cedula"]
+            # Agrupar por la combinación de cédula y concepto para no perder discriminación
+            cedula = str(fila.get("cedula", ""))
+            concepto = str(fila.get("concepto", "")).upper()
+            key = f"{cedula}_{concepto}"
+            
             if key in agrupado:
                 agrupado[key]["valor"] += fila["valor"]
-                agrupado[key]["VALOR"] += fila["VALOR"]
-                agrupado[key]["VALOR MES"] += fila.get("VALOR MES", 0)
+                if "VALOR" in agrupado[key]: agrupado[key]["VALOR"] += fila["VALOR"]
+                if "VALOR MES" in agrupado[key]: agrupado[key]["VALOR MES"] += fila.get("VALOR MES", 0)
                 agrupado[key]["horas"] += fila.get("horas", 0)
                 agrupado[key]["dias"] += fila.get("dias", 0)
-                agrupado[key]["HORAS"] += fila.get("HORAS", 0)
-                agrupado[key]["DIAS"] += fila.get("DIAS", 0)
+                if "HORAS" in agrupado[key]: agrupado[key]["HORAS"] += fila.get("HORAS", 0)
+                if "DIAS" in agrupado[key]: agrupado[key]["DIAS"] += fila.get("DIAS", 0)
             else:
                 agrupado[key] = fila.copy()
         return list(agrupado.values())

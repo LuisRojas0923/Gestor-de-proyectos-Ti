@@ -16,13 +16,13 @@ router = APIRouter(tags=["Libranzas - Davivienda"])
 
 @router.post("/l_davivienda/preview")
 async def preview_davivienda_libranza(mes: int = Form(...), anio: int = Form(...), files: List[UploadFile] = File(...), session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
-    """Procesa Excel de LIBRANZA DAVIVIENDA, enriquece con ERP, guarda en BD."""
+    """Procesa Excel de DAVIVIENDA LIBRANZA, enriquece con ERP, guarda en BD."""
     archivos_binarios = [await f.read() for f in files]
     rows, summary, warnings_txt = extraer_davivienda_libranza(archivos_binarios)
     summary.update({"mes": mes, "anio": anio})
 
     stmt_exc = select(NominaExcepcion).where(
-        NominaExcepcion.subcategoria == "LIBRANZA DAVIVIENDA",
+        NominaExcepcion.subcategoria == "DAVIVIENDA LIBRANZA",
         NominaExcepcion.estado == "ACTIVO"
     )
     try:
@@ -133,32 +133,32 @@ async def preview_davivienda_libranza(mes: int = Form(...), anio: int = Form(...
     })
 
     try:
-        await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "LIBRANZA DAVIVIENDA", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
-        archivo = NominaArchivo(nombre_archivo=f"davivienda_libranza_{mes}_{anio}.xlsx", hash_archivo=hashlib.md5(archivos_binarios[0][:1024]).hexdigest() if archivos_binarios else "none", tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento="memory", mes_fact=mes, año_fact=anio, categoria="LIBRANZAS", subcategoria="LIBRANZA DAVIVIENDA", estado="Procesado")
+        await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "DAVIVIENDA LIBRANZA", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
+        archivo = NominaArchivo(nombre_archivo=f"davivienda_libranza_{mes}_{anio}.xlsx", hash_archivo=hashlib.md5(archivos_binarios[0][:1024]).hexdigest() if archivos_binarios else "none", tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento="memory", mes_fact=mes, año_fact=anio, categoria="LIBRANZAS", subcategoria="DAVIVIENDA LIBRANZA", estado="Procesado")
         session.add(archivo); await session.flush()
         for idx, row in enumerate(rows_facturables):
-            reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="LIBRANZAS", subcategoria_final="LIBRANZA DAVIVIENDA", estado_validacion="OK" if str(row.get("estado_erp")).upper() == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)
+            reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="LIBRANZAS", subcategoria_final="DAVIVIENDA LIBRANZA", estado_validacion="OK" if str(row.get("estado_erp")).upper() == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)
             session.add(reg)
         for idx, row in enumerate(rows_no_facturables):
-            reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="LIBRANZAS", subcategoria_final="LIBRANZA DAVIVIENDA", estado_validacion=row.get("estado_erp", "ADVERTENCIA"), observaciones=row.get("observaciones"), fila_origen=len(rows_facturables) + idx + 1)
+            reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="LIBRANZAS", subcategoria_final="DAVIVIENDA LIBRANZA", estado_validacion=row.get("estado_erp", "ADVERTENCIA"), observaciones=row.get("observaciones"), fila_origen=len(rows_facturables) + idx + 1)
             session.add(reg)
         await session.commit()
     except Exception as e:
         await session.rollback()
         raise HTTPException(status_code=500, detail=f"Error al guardar registros de Davivienda Libranza: {str(e)}")
-    formatted_rows = [{"cedula": r["cedula"], "nombre_asociado": r.get("nombre_asociado", ""), "valor": r["valor"], "empresa": r.get("empresa", ""), "concepto": "LIBRANZA DAVIVIENDA"} for r in rows_facturables]
+    formatted_rows = [{"cedula": r["cedula"], "nombre_asociado": r.get("nombre_asociado", ""), "valor": r["valor"], "empresa": r.get("empresa", ""), "concepto": "DAVIVIENDA LIBRANZA"} for r in rows_facturables]
     return {"rows": formatted_rows, "summary": summary, "warnings": warnings_txt, "warnings_detalle": warnings_detalle}
 
 @router.get("/l_davivienda/datos")
 async def obtener_datos_davivienda_libranza(mes: int = Query(...), anio: int = Query(...), session: AsyncSession = Depends(obtener_db)):
-    """Devuelve datos LIBRANZA DAVIVIENDA guardados para un mes/año."""
-    stmt = select(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "LIBRANZA DAVIVIENDA", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio)
+    """Devuelve datos DAVIVIENDA LIBRANZA guardados para un mes/año."""
+    stmt = select(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "DAVIVIENDA LIBRANZA", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio)
     try:
         result = await session.execute(stmt); registros = result.scalars().all()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al consultar datos de Davivienda Libranza: {str(e)}")
     
-    rows_final = [{"cedula": r.cedula, "nombre_asociado": r.nombre_asociado, "valor": r.valor, "empresa": r.empresa, "concepto": r.concepto or "LIBRANZA DAVIVIENDA", "estado_validacion": r.estado_validacion} 
+    rows_final = [{"cedula": r.cedula, "nombre_asociado": r.nombre_asociado, "valor": r.valor, "empresa": r.empresa, "concepto": r.concepto or "DAVIVIENDA LIBRANZA", "estado_validacion": r.estado_validacion} 
                   for r in registros 
                   if r.estado_validacion == "OK" or ("EXCEPCION" in str(r.estado_validacion).upper() and r.estado_validacion != "EXCEPCION_EXONERADO") or str(r.estado_validacion).upper() == "REDIRECCIONADO" or str(r.estado_validacion).upper() == "ACTIVO"]
     

@@ -121,6 +121,7 @@ const ComisionesView: React.FC = () => {
     };
 
     const summaryCalculated = useMemo(() => {
+        const porEmpresa: Record<string, number> = {};
         if (data && data.rows) {
             data.rows.forEach(row => {
                 const emp = row.empresa || 'N/A';
@@ -155,7 +156,7 @@ const ComisionesView: React.FC = () => {
                                 <TrendingUp className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <Title variant="h5" weight="bold">Gestión de Comisiones</Title>
+                                <Title variant="h5" weight="bold">Comisiones</Title>
                                 <Text color="text-secondary" className="text-[10px] leading-none uppercase tracking-widest">Novedades / Comisiones</Text>
                             </div>
                         </div>

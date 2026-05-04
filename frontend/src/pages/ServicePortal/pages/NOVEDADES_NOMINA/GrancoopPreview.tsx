@@ -6,6 +6,7 @@ import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import SubcategorySummaryCard from './components/SubcategorySummaryCard';
+import { FilterDropdown } from '../../../../components/molecules/FilterDropdown';
 
 interface GrancoopRow {
     cedula: string;
@@ -55,7 +56,9 @@ const GrancoopPreview: React.FC = () => {
 
     // Filtros
     const [searchText, setSearchText] = useState('');
-    const [conceptoFilter, setConceptoFilter] = useState<string>('');
+
+    // Filtros por columna (Excel style)
+    const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
     // Warnings ERP
     const [warningsDetalle, setWarningsDetalle] = useState<WarningDetalle[]>([]);
@@ -120,14 +123,30 @@ const GrancoopPreview: React.FC = () => {
         if (!data) return [];
         return data.rows
             .filter(r => {
-                const matchText = searchText === ''
+                // Filtro de búsqueda global
+                const matchGlobal = searchText === ''
                     || r.cedula.toLowerCase().includes(searchText.toLowerCase())
                     || r.nombre_asociado.toLowerCase().includes(searchText.toLowerCase());
-                const matchConcepto = conceptoFilter === '' || r.concepto === conceptoFilter;
-                return matchText && matchConcepto;
+                
+                if (!matchGlobal) return false;
+
+                // Filtros por columna
+                for (const [key, values] of Object.entries(activeFilters)) {
+                    if (values.length === 0) continue;
+                    const rowValue = String((r as any)[key] || '').toUpperCase();
+                    if (!values.includes(rowValue)) return false;
+                }
+
+                return true;
             })
             .sort((a, b) => a.nombre_asociado.localeCompare(b.nombre_asociado));
-    }, [data, searchText, conceptoFilter]);
+    }, [data, searchText, activeFilters]);
+
+    const getColumnOptions = (key: keyof GrancoopRow) => {
+        if (!data) return [];
+        const uniqueValues = Array.from(new Set(data.rows.map(r => String(r[key] || '').toUpperCase())));
+        return uniqueValues.sort().map(v => ({ label: v, value: v }));
+    };
 
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
@@ -212,7 +231,7 @@ const GrancoopPreview: React.FC = () => {
                             Archivos PDF ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
-                            <Input id="file-upload"
+                            <input id="file-upload" // @audit-ok
                                 type="file"
                                 multiple
                                 accept=".xlsx,.xls"
@@ -349,19 +368,16 @@ const GrancoopPreview: React.FC = () => {
 
                     {/* Table - Self scrolling */}
                     <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-                        <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
-                            <div className="flex items-center gap-2">
-                                <Filter className="w-3.5 h-3.5 text-slate-400" />
-                                <Select 
-                                    className="[&_select]:text-[10px] [&_select]:bg-transparent [&_select]:border-none [&_select]:focus:ring-0 [&_select]:font-bold [&_select]:text-slate-500 [&_select]:uppercase [&_select]:tracking-wider [&_select]:cursor-pointer [&_select]:h-auto [&_select]:py-0"
-                                    value={conceptoFilter}
-                                    onChange={(e) => setConceptoFilter(e.target.value)}
-                                    options={[
-                                        { value: "", label: "TODOS LOS CONCEPTOS" },
-                                        { value: "GRANCOOP APORTES", label: "GRANCOOP APORTES" },
-                                        { value: "GRANCOOP PRESTAMOS", label: "GRANCOOP PRESTAMOS" },
-                                        { value: "GRANCOOP ADICIONALES", label: "GRANCOOP ADICIONALES" }
-                                    ]}
+                        <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30 gap-4">
+                            <div className="flex-1 max-w-sm">
+                                <Input
+                                    size="xs"
+                                    type="text"
+                                    placeholder="Filtrar por cédula o nombre..."
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    icon={Search}
+                                    className="!h-8"
                                 />
                             </div>
                             <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
@@ -370,27 +386,71 @@ const GrancoopPreview: React.FC = () => {
                         </div>
                         <div className="flex-1 overflow-auto">
                             <table className="w-full text-[11px] border-collapse">
-                                <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm border-b border-slate-100 dark:border-slate-700">
-                                    <tr>
-                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider w-10">#</th>
-                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">CEDULA</th>
-                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">NOMBRE</th>
-                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">EMPRESA</th>
-                                        <th className="text-right p-2 font-bold text-slate-500 uppercase tracking-wider">VALOR</th>
-                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">CONCEPTO</th>
+                                <thead className="sticky top-0 z-10">
+                                    <tr className="bg-[var(--color-primary-900)] text-white shadow-md">
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-12 border-b border-white/5 border-r border-white/5 first:rounded-tl-xl">#</th>
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>CEDULA</span>
+                                                <FilterDropdown 
+                                                    options={getColumnOptions('cedula')}
+                                                    selectedOptions={activeFilters['cedula'] || []}
+                                                    onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, cedula: vals }))}
+                                                    dark
+                                                />
+                                            </div>
+                                        </th>
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>NOMBRE</span>
+                                                <FilterDropdown 
+                                                    options={getColumnOptions('nombre_asociado')}
+                                                    selectedOptions={activeFilters['nombre_asociado'] || []}
+                                                    onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, nombre_asociado: vals }))}
+                                                    dark
+                                                />
+                                            </div>
+                                        </th>
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>EMPRESA</span>
+                                                <FilterDropdown 
+                                                    options={getColumnOptions('empresa')}
+                                                    selectedOptions={activeFilters['empresa'] || []}
+                                                    onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, empresa: vals }))}
+                                                    dark
+                                                />
+                                            </div>
+                                        </th>
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>VALOR</span>
+                                            </div>
+                                        </th>
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 last:rounded-tr-xl">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>CONCEPTO</span>
+                                                <FilterDropdown 
+                                                    options={getColumnOptions('concepto')}
+                                                    selectedOptions={activeFilters['concepto'] || []}
+                                                    onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, concepto: vals }))}
+                                                    dark
+                                                />
+                                            </div>
+                                        </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {filteredRows.map((row, i) => (
-                                        <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
-                                            <td className="p-2 text-slate-400 font-mono w-10">{i + 1}</td>
-                                            <td className="p-2 font-mono">{row.cedula}</td>
-                                            <td className="p-2">{row.nombre_asociado}</td>
-                                            <td className="p-2">{row.empresa}</td>
-                                            <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)]">
+                                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                            <td className="p-2 text-slate-400 font-mono w-12 border-r border-slate-50 text-center">{i + 1}</td>
+                                            <td className="p-2 font-mono border-r border-slate-50 text-center">{row.cedula}</td>
+                                            <td className="p-2 border-r border-slate-50 text-center">{row.nombre_asociado}</td>
+                                            <td className="p-2 border-r border-slate-50 text-center">{row.empresa}</td>
+                                            <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)] border-r border-slate-50">
                                                 {formatCurrency(row.valor)}
                                             </td>
-                                            <td className="p-2">
+                                            <td className="p-2 text-center">
                                                 <ConceptoBadge concepto={row.concepto} />
                                             </td>
                                         </tr>

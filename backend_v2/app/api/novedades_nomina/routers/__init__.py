@@ -25,7 +25,7 @@ cooperativas_router.include_router(beneficiar_router)
 otros_router = APIRouter()
 otros_router.include_router(hdi_router)
 otros_router.include_router(med_pre_router)
-otros_router.include_router(gerencia_router)
+otros_router.include_router(gerencia_router, prefix="/otros_gerencia")
 otros_router.include_router(polizas_router)
 
 # Router Agregador de Libranzas

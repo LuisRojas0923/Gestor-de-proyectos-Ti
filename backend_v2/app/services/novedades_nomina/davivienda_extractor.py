@@ -72,7 +72,7 @@ def extraer_davivienda_libranza(
                         "nombre_asociado": "", # Se llenará en el router via ERP
                         "empresa": "", # Se llenará en el router via ERP
                         "valor": cuota_val, # VALOR MES
-                        "concepto": "LIBRANZA DAVIVIENDA",
+                        "concepto": "DAVIVIENDA LIBRANZA",
                     })
                     
                     total_filas += 1

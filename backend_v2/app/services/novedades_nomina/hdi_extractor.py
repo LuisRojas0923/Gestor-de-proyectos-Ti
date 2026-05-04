@@ -82,7 +82,7 @@ def _extraer_por_regex(text: str) -> List[Dict[str, Any]]:
                         "nombre_asociado": _formatear_nombre(nombre),
                         "empresa": "REFRIDCOL",
                         "valor": valor,
-                        "concepto": "SEGURO HDI VALOR", # Paso 7
+                        "concepto": "SEGURO DE VIDA", # Paso 7
                     })
     return rows
 
@@ -151,7 +151,7 @@ def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
             "nombre_asociado": nombre,
             "empresa": "REFRIDCOL",
             "valor": valor,
-            "concepto": "SEGURO HDI VALOR" # Paso 7
+            "concepto": "SEGURO DE VIDA" # Paso 7
         })
 
     return pd.DataFrame(valid_rows)

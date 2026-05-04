@@ -258,3 +258,52 @@ async def obtener_tabla_quincenal(anio: int, mes: int, quincena: int, session: A
             por_empresa[emp] = por_empresa.get(emp, 0) + f["valor"]
         return {"filas": filas, "summary": {"total_registros": len(filas), "total_valor": total_valor, "por_empresa": por_empresa, "anio": anio, "mes": mes, "quincena": label_quincena}}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/control_descuentos/registro/{id}")
+async def actualizar_control_descuento(id: int, req: RegistroDescuentoRequest, session: AsyncSession = Depends(obtener_db)):
+    try:
+        stmt = select(ControlDescuentoActivo).where(ControlDescuentoActivo.id == id)
+        result = await session.execute(stmt)
+        registro = result.scalars().first()
+        if not registro:
+            raise HTTPException(status_code=404, detail="Registro no encontrado")
+        
+        fecha_fin = calcular_fecha_finalizacion(req.fecha_inicio, req.n_cuotas)
+        valor_cuota = round(req.valor_descuento / req.n_cuotas, 2)
+        
+        registro.cedula = req.cedula
+        registro.nombre = req.nombre.upper()
+        registro.empresa = req.empresa.upper()
+        registro.cargo = req.cargo.upper() if req.cargo else None
+        registro.area = req.area.upper() if req.area else None
+        registro.concepto = req.concepto.upper()
+        registro.valor_descuento = req.valor_descuento
+        registro.n_cuotas = req.n_cuotas
+        registro.valor_cuota = valor_cuota
+        registro.fecha_inicio = req.fecha_inicio
+        registro.fecha_finalizacion = fecha_fin
+        registro.observaciones = req.observaciones
+        
+        await session.commit()
+        return {"mensaje": "Registro actualizado"}
+    except HTTPException: raise
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/control_descuentos/registro/{id}")
+async def eliminar_control_descuento(id: int, session: AsyncSession = Depends(obtener_db)):
+    try:
+        stmt = select(ControlDescuentoActivo).where(ControlDescuentoActivo.id == id)
+        result = await session.execute(stmt)
+        registro = result.scalars().first()
+        if not registro:
+            raise HTTPException(status_code=404, detail="Registro no encontrado")
+        
+        await session.delete(registro)
+        await session.commit()
+        return {"mensaje": "Registro eliminado"}
+    except HTTPException: raise
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

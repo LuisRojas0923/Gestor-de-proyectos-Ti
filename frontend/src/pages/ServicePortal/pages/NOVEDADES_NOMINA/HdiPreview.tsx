@@ -6,6 +6,7 @@ import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import SubcategorySummaryCard from './components/SubcategorySummaryCard';
+import { FilterDropdown } from '../../../../components/molecules/FilterDropdown';
 
 interface HdiRow {
     cedula: string;
@@ -57,7 +58,9 @@ const HdiPreview: React.FC = () => {
 
     // Filtros
     const [searchText, setSearchText] = useState('');
-    const [conceptoFilter, setConceptoFilter] = useState<string>('');
+
+    // Filtros por columna (Excel style)
+    const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
     // Warnings ERP
     const [warningsDetalle, setWarningsDetalle] = useState<WarningDetalle[]>([]);
@@ -122,14 +125,30 @@ const HdiPreview: React.FC = () => {
         if (!data) return [];
         return data.rows
             .filter(r => {
-                const matchText = searchText === ''
+                // Filtro de búsqueda global
+                const matchGlobal = searchText === ''
                     || r.cedula.toLowerCase().includes(searchText.toLowerCase())
                     || r.nombre_asociado.toLowerCase().includes(searchText.toLowerCase());
-                const matchConcepto = conceptoFilter === '' || r.concepto === conceptoFilter;
-                return matchText && matchConcepto;
+                
+                if (!matchGlobal) return false;
+
+                // Filtros por columna
+                for (const [key, values] of Object.entries(activeFilters)) {
+                    if (values.length === 0) continue;
+                    const rowValue = String((r as any)[key] || '').toUpperCase();
+                    if (!values.includes(rowValue)) return false;
+                }
+
+                return true;
             })
             .sort((a, b) => a.nombre_asociado.localeCompare(b.nombre_asociado));
-    }, [data, searchText, conceptoFilter]);
+    }, [data, searchText, activeFilters]);
+
+    const getColumnOptions = (key: keyof HdiRow) => {
+        if (!data) return [];
+        const uniqueValues = Array.from(new Set(data.rows.map(r => String(r[key] || '').toUpperCase())));
+        return uniqueValues.sort().map(v => ({ label: v, value: v }));
+    };
 
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
@@ -216,7 +235,7 @@ const HdiPreview: React.FC = () => {
                             Archivos PDF ({files.length} seleccionados)
                         </Text>
                         <div className="relative group">
-                            <Input id="file-upload"
+                            <input id="file-upload" // @audit-ok
                                 type="file"
                                 multiple
                                 accept=".pdf"
@@ -373,43 +392,73 @@ const HdiPreview: React.FC = () => {
                                 />
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <Filter className="w-3.5 h-3.5 text-slate-400" />
-                                <Select 
-                                    size="xs"
-                                    className="!border-none !bg-transparent !p-0 !h-auto !w-auto [&_select]:font-bold [&_select]:text-slate-500 [&_select]:uppercase [&_select]:tracking-wider"
-                                    value={conceptoFilter}
-                                    onChange={(e) => setConceptoFilter(e.target.value)}
-                                    options={[
-                                        { value: "", label: "TODOS LOS CONCEPTOS" },
-                                        { value: "SEGURO HDI", label: "SEGURO HDI" }
-                                    ]}
-                                />
-                            </div>
-
                             <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
                                 {filteredRows.length} REGISTROS
                             </Text>
                         </div>
                         <div className="flex-1 overflow-auto">
                             <table className="w-full text-[11px] border-collapse">
-                                <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm border-b border-slate-100 dark:border-slate-700">
-                                    <tr>
-                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider w-10">#</th>
-                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">CEDULA</th>
-                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">NOMBRE</th>
-                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">EMPRESA</th>
-                                        <th className="text-right p-2 font-bold text-slate-500 uppercase tracking-wider">VALOR</th>
-                                        <th className="text-left p-2 font-bold text-slate-500 uppercase tracking-wider">MOTIVO</th>
+                                <thead className="sticky top-0 z-10">
+                                    <tr className="bg-[var(--color-primary-900)] text-white shadow-md">
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-12 border-b border-white/5 border-r border-white/5 first:rounded-tl-xl">#</th>
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>CEDULA</span>
+                                                <FilterDropdown 
+                                                    options={getColumnOptions('cedula')}
+                                                    selectedOptions={activeFilters['cedula'] || []}
+                                                    onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, cedula: vals }))}
+                                                    dark
+                                                />
+                                            </div>
+                                        </th>
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>NOMBRE</span>
+                                                <FilterDropdown 
+                                                    options={getColumnOptions('nombre_asociado')}
+                                                    selectedOptions={activeFilters['nombre_asociado'] || []}
+                                                    onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, nombre_asociado: vals }))}
+                                                    dark
+                                                />
+                                            </div>
+                                        </th>
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>EMPRESA</span>
+                                                <FilterDropdown 
+                                                    options={getColumnOptions('empresa')}
+                                                    selectedOptions={activeFilters['empresa'] || []}
+                                                    onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, empresa: vals }))}
+                                                    dark
+                                                />
+                                            </div>
+                                        </th>
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>VALOR</span>
+                                            </div>
+                                        </th>
+                                        <th className="text-center py-3 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 last:rounded-tr-xl">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>CONCEPTO</span>
+                                                <FilterDropdown 
+                                                    options={getColumnOptions('concepto')}
+                                                    selectedOptions={activeFilters['concepto'] || []}
+                                                    onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, concepto: vals }))}
+                                                    dark
+                                                />
+                                            </div>
+                                        </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {filteredRows.map((row, i) => (
-                                        <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
-                                            <td className="p-2 text-slate-400 font-mono w-10">{i + 1}</td>
-                                            <td className="p-2 font-mono">{row.cedula}</td>
-                                            <td className="p-2">{row.nombre_asociado}</td>
-                                            <td className="p-2">
+                                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                            <td className="p-2 text-slate-400 font-mono w-12 border-r border-slate-50 text-center">{i + 1}</td>
+                                            <td className="p-2 font-mono border-r border-slate-50 text-center">{row.cedula}</td>
+                                            <td className="p-2 border-r border-slate-50 text-center">{row.nombre_asociado}</td>
+                                            <td className="p-2 border-r border-slate-50 text-center">
                                                 <Badge
                                                     variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'}
                                                     size="xs"
@@ -417,11 +466,11 @@ const HdiPreview: React.FC = () => {
                                                     {row.empresa || 'REFRIDCOL'}
                                                 </Badge>
                                             </td>
-                                            <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)]">
+                                            <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)] border-r border-slate-50">
                                                 {formatCurrency(row.valor)}
                                             </td>
-                                            <td className="p-2">
-                                                <Badge variant="info" size="xs">{row.motivo || row.MOTIVO || 'N/A'}</Badge>
+                                            <td className="p-2 text-center">
+                                                <Badge variant="info" size="xs">{row.concepto || row.CONCEPTO || 'N/A'}</Badge>
                                             </td>
                                         </tr>
                                     ))}

@@ -235,7 +235,7 @@ const Dashboard: React.FC = () => {
           </Title>
           <div className="h-[300px] w-full min-h-[300px]">
             {isMounted && analystData.length > 0 && (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
                 <BarChart data={analystData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
                   <XAxis
@@ -265,7 +265,7 @@ const Dashboard: React.FC = () => {
           </Title>
           <div className="h-[300px] w-full relative">
             {isMounted && priorityData.length > 0 && (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
                 <PieChart>
                   <Pie
                     data={priorityData as any[]}
