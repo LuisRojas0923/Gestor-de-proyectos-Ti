@@ -44,8 +44,11 @@ import ControlDescuentosTabla from './ServicePortal/pages/NOVEDADES_NOMINA/Contr
 import ControlDescuentosConceptos from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosConceptos';
 import ControlDescuentosRegistro from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosRegistro';
 import CelularesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/CelularesPreview';
+import RetencionesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/RetencionesPreview';
 import EmbargosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/EmbargosPreview';
 import ExcepcionesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/ExcepcionesPreview';
+import PlanillasRegionales1QPreview from './ServicePortal/pages/NOVEDADES_NOMINA/PlanillasRegionales1QPreview';
+import PlanillasRegionales2QPreview from './ServicePortal/pages/NOVEDADES_NOMINA/PlanillasRegionales2QPreview';
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
 import ComisionesView from './ServicePortal/pages/Comisiones';
@@ -372,12 +375,15 @@ const ServicePortal: React.FC = () => {
                 <Route path="novedades-nomina/OTROS/MEDICINA PREPAGADA" element={<MedicinaPrepagadaPreview />} />
                 <Route path="novedades-nomina/OTROS/OTROS GERENCIA" element={<OtrosGerenciaPreview />} />
                 <Route path="novedades-nomina/OTROS/GESTION EXCEPCIONES" element={<ExcepcionesPreview />} />
+                <Route path="novedades-nomina/NOVEDADES/PLANILLAS REGIONALES 1Q" element={<PlanillasRegionales1QPreview />} />
+                <Route path="novedades-nomina/NOVEDADES/PLANILLAS REGIONALES 2Q" element={<PlanillasRegionales2QPreview />} />
                 <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS" element={<ControlDescuentosTabla />} />
                 <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/preview" element={<ControlDescuentosPreview />} />
                 <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/tabla" element={<ControlDescuentosTabla />} />
                 <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/conceptos" element={<ControlDescuentosConceptos />} />
                 <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/registro" element={<ControlDescuentosRegistro />} />
                 <Route path="novedades-nomina/DESCUENTOS/CELULARES" element={<CelularesPreview />} />
+                <Route path="novedades-nomina/DESCUENTOS/RETENCIONES" element={<RetencionesPreview />} />
                 <Route path="novedades-nomina/DESCUENTOS/EMBARGOS" element={<EmbargosPreview />} />
                 <Route path="novedades-nomina/:category/:subcategory" element={<NominaUploadView />} />
                 <Route path="novedades-nomina/preview/:archivoId" element={<NominaPreviewView />} />

@@ -166,6 +166,15 @@ const RetencionesPreview: React.FC = () => {
         return { porEmpresa, porConcepto };
     }, [data]);
 
+    const getBadgeVariantForEmpresa = (empresa: string) => {
+        const emp = empresa?.toUpperCase() || '';
+        if (emp.includes('REFRIDCOL')) return 'info';
+        if (emp.includes('REDES HUMANAS')) return 'success';
+        if (emp.includes('CONTRATISTA')) return 'warning';
+        if (emp.includes('SERDAN') || emp.includes('TEMPO')) return 'primary';
+        return 'default';
+    };
+
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
@@ -444,13 +453,13 @@ const RetencionesPreview: React.FC = () => {
                                             <td className="p-2 font-mono border-r border-slate-50 text-center">{row.cedula}</td>
                                             <td className="p-2 border-r border-slate-50 text-center">{row.nombre_asociado}</td>
                                             <td className="p-2 border-r border-slate-50 text-center">
-                                                <Badge variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'} size="xs">{row.empresa || 'REFRIDCOL'}</Badge>
+                                                <Badge variant={getBadgeVariantForEmpresa(row.empresa)} size="xs">{row.empresa || 'REFRIDCOL'}</Badge>
                                             </td>
                                             <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)] border-r border-slate-50">
                                                 {formatCurrency(row.valor)}
                                             </td>
-                                            <td className="p-2 text-center">
-                                                <Badge variant="info" size="xs">{row.motivo || row.MOTIVO || 'N/A'}</Badge>
+                                            <td className="p-2 text-center font-bold text-slate-600 dark:text-slate-400">
+                                                {row.concepto}
                                             </td>
                                         </tr>
                                     ))}

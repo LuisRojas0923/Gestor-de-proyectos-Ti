@@ -187,6 +187,15 @@ const PlanillasRegionales2QPreview: React.FC = () => {
         return { porEmpresa, porNovedad, horasPorConcepto, diasPorConcepto };
     }, [data]);
 
+    const getBadgeVariantForEmpresa = (empresa: string) => {
+        const emp = empresa?.toUpperCase() || '';
+        if (emp.includes('REFRIDCOL')) return 'info';
+        if (emp.includes('REDES HUMANAS')) return 'success';
+        if (emp.includes('CONTRATISTA')) return 'warning';
+        if (emp.includes('SERDAN') || emp.includes('TEMPO')) return 'primary';
+        return 'default';
+    };
+
     const columns = useMemo<ColumnDef<PlanillaRow>[]>(() => [
         { header: 'CÉDULA', accessorKey: 'cedula' },
         { header: 'NOMBRE', accessorKey: 'nombre' },
@@ -401,9 +410,20 @@ const PlanillasRegionales2QPreview: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Table */}
-                        <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <div className="h-full overflow-auto">
+                        {/* Table - Self scrolling */}
+                        <div className="flex-1 min-h-0 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
+                            <div className="flex-none p-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+                                <div className="flex items-center gap-2">
+                                    <Database className="w-3.5 h-3.5 text-slate-400" />
+                                    <Text variant="caption" weight="bold" className="uppercase tracking-wider text-slate-500">
+                                        REGISTROS CARGADOS
+                                    </Text>
+                                </div>
+                                <Text size="xs" color="text-secondary" className="text-[10px] font-bold">
+                                    {filteredRows.length} REGISTROS
+                                </Text>
+                            </div>
+                            <div className="flex-1 overflow-auto">
                                 <table className="w-full text-[11px] border-collapse">
                                     <thead className="sticky top-0 z-10">
                                         <tr className="bg-[var(--color-primary-900)] text-white shadow-md">
@@ -463,12 +483,12 @@ const PlanillasRegionales2QPreview: React.FC = () => {
                                                 <td className="p-2 font-mono border-r border-slate-50 text-center">{row.cedula}</td>
                                                 <td className="p-2 border-r border-slate-50 text-center">{row.nombre}</td>
                                                 <td className="p-2 border-r border-slate-50 text-center">
-                                                    <Badge variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'} size="xs">{row.empresa || 'REFRIDCOL'}</Badge>
+                                                    <Badge variant={getBadgeVariantForEmpresa(row.empresa)} size="xs">{row.empresa || 'REFRIDCOL'}</Badge>
                                                 </td>
                                                 <td className="p-2 text-center font-mono font-bold border-r border-slate-50">{row.horas}</td>
                                                 <td className="p-2 text-center font-mono font-bold border-r border-slate-50">{row.dias}</td>
-                                                <td className="p-2 text-center">
-                                                    <Badge variant="default" size="xs">{row.concepto}</Badge>
+                                                <td className="p-2 text-center font-bold text-slate-600 dark:text-slate-400">
+                                                    {row.concepto}
                                                 </td>
                                             </tr>
                                         ))}
