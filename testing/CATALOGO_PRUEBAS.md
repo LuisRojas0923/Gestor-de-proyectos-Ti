@@ -27,6 +27,7 @@ Ubicación: `testing/backend/`
 | **Core API** | `test_api_v2.py` | Salud general y Auth básico. | ✅ PASSED |
 | **ERP Sync** | `test_requisiciones.py` | Sincronización de catálogos con el ERP. | ✅ PASSED |
 | **Viáticos** | `test_viaticos.py` | Flujo de legalización y solicitudes. | ✅ PASSED |
+| **Desarrollos** | `test_desarrollos_update.py` | Actualización de proyectos/desarrollos existentes y manejo 404. | ✅ PASSED |
 
 ### 2. Rendimiento (Locust)
 Ubicación: `testing/backend/load_test.py`

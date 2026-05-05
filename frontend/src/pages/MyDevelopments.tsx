@@ -25,8 +25,6 @@ const valueOrFallback = (value?: string | number | null) => value ?? 'N/A';
 
 const getDevelopmentName = (dev: DevelopmentRow) => dev.name ?? dev.nombre ?? '';
 const getDevelopmentDescription = (dev: DevelopmentRow) => dev.description ?? dev.descripcion;
-const getDevelopmentModule = (dev: DevelopmentRow) => dev.module ?? dev.modulo;
-const getDevelopmentType = (dev: DevelopmentRow) => dev.type ?? dev.tipo;
 const getDevelopmentStartDate = (dev: DevelopmentRow) => dev.start_date ?? dev.fecha_inicio;
 const getDevelopmentEndDate = (dev: DevelopmentRow) => dev.estimated_end_date ?? dev.fecha_estimada_fin;
 const getDevelopmentResponsible = (dev: DevelopmentRow) => dev.responsible ?? dev.responsable;
@@ -94,13 +92,66 @@ const MyDevelopments: React.FC = () => {
     return colors[status] || 'text-gray-800 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
   };
 
+  const renderSlicer = (key: string, label: string) => {
+    const options = uniqueValues[key] || [];
+    const selectedValues = filters[key] || new Set<string>();
+    const hasFilter = selectedValues.size > 0;
+
+    if (options.length === 0) return null;
+
+    return (
+      <div className="min-w-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 shadow-sm">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[10px] text-[var(--color-text-secondary)]">
+            {label}
+          </Text>
+          {hasFilter && (
+            <Button
+              variant="custom"
+              size="xs"
+              onClick={() => clearColumnFilter(key)}
+              className="h-auto p-0 text-[9px] font-bold uppercase tracking-wider text-red-500 hover:text-red-600"
+            >
+              Limpiar
+            </Button>
+          )}
+        </div>
+        <div className="flex max-h-20 flex-wrap content-start gap-1.5 overflow-y-auto pr-1 custom-scrollbar">
+          {options.map((option) => {
+            const isActive = selectedValues.has(option);
+
+            return (
+              <Button
+                key={`${key}-${option}`}
+                variant="custom"
+                size="xs"
+                onClick={() => toggleOption(key, option)}
+                className={`min-h-[28px] rounded-lg border px-2.5 py-1 text-sm font-semibold leading-tight transition-all ${
+                  isActive
+                    ? 'border-[var(--deep-navy)] bg-[var(--deep-navy)] text-white shadow-md'
+                    : 'border-[var(--color-border)] bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)] hover:border-[var(--deep-navy)] hover:text-[var(--deep-navy)]'
+                }`}
+              >
+                <Text as="span" variant="body2" weight="semibold" color="inherit" className="leading-tight">
+                  {option}
+                </Text>
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const columns = [
     { key: 'id', label: 'ID', width: 'md:w-24' },
     { key: 'name', label: 'Proyecto', width: 'flex-1 min-w-[260px]' },
     { key: 'status', label: 'Estado', width: 'md:w-24' },
     { key: 'progress', label: 'Progreso', width: 'md:w-28' },
-    { key: 'start_date', label: 'Fechas', width: 'md:w-40' },
-    { key: 'area_desarrollo', label: 'Área / Analista', width: 'md:w-44' },
+    { key: 'start_date', label: 'Inicio', width: 'md:w-28' },
+    { key: 'estimated_end_date', label: 'Fin', width: 'md:w-28' },
+    { key: 'area_desarrollo', label: 'Área', width: 'md:w-36' },
+    { key: 'analista', label: 'Analista', width: 'md:w-36' },
     { key: 'responsible', label: 'Responsable', width: 'md:w-32' }
   ];
 
@@ -138,6 +189,13 @@ const MyDevelopments: React.FC = () => {
         >
           Nueva Actividad
         </Button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+        {renderSlicer('status', 'Estado')}
+        {renderSlicer('area_desarrollo', 'Área')}
+        {renderSlicer('analista', 'Ejecutor / Asignado')}
+        {renderSlicer('responsible', 'Responsable')}
       </div>
 
       {/* Tabla de Desarrollos - Contenedor de Alto Rendimiento */}
@@ -224,25 +282,27 @@ const MyDevelopments: React.FC = () => {
                         </Text>
                       </div>
                     </td>
-                    <td className="md:w-40 shrink-0 py-3 px-3">
-                      <div className="flex flex-col gap-0.5">
-                        <Text as="span" variant="caption" weight="semibold" className="!text-[11px] text-gray-700 dark:text-gray-200">
-                          {valueOrFallback(getDevelopmentStartDate(dev))}
-                        </Text>
-                        <Text as="span" variant="caption" color="text-secondary" className="!text-[10px]">
-                          Fin: {valueOrFallback(getDevelopmentEndDate(dev))}
-                        </Text>
-                      </div>
+                    <td className="md:w-28 shrink-0 py-3 px-3">
+                      <Text as="span" variant="caption" weight="semibold" className="!text-[11px] text-gray-700 dark:text-gray-200">
+                        {valueOrFallback(getDevelopmentStartDate(dev))}
+                      </Text>
                     </td>
-                    <td className="md:w-44 shrink-0 py-3 px-3">
+                    <td className="md:w-28 shrink-0 py-3 px-3">
+                      <Text as="span" variant="caption" color="text-secondary" className="!text-[11px]">
+                        {valueOrFallback(getDevelopmentEndDate(dev))}
+                      </Text>
+                    </td>
+                    <td className="md:w-36 shrink-0 py-3 px-3">
+                      <Text as="span" variant="caption" weight="semibold" className="block truncate !text-[11px] text-gray-700 dark:text-gray-200">
+                        {dev.area_desarrollo ?? 'N/A'}
+                      </Text>
+                    </td>
+                    <td className="md:w-36 shrink-0 py-3 px-3">
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
                           {(dev.analista ?? 'A')[0].toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <Text as="span" variant="caption" weight="semibold" className="block truncate !text-[11px] text-gray-700 dark:text-gray-200">
-                            {dev.area_desarrollo ?? 'N/A'}
-                          </Text>
                           <Text as="span" variant="caption" color="text-secondary" className="block truncate !text-[10px]">
                             {dev.analista ?? 'N/A'}
                           </Text>

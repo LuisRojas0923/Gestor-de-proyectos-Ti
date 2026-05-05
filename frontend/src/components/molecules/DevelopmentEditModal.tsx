@@ -1,22 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Select, Title, Text } from '../atoms';
+import { Button, Input, Select, Title, Text, Textarea } from '../atoms';
 import Modal from './Modal';
 
 interface DevelopmentData {
   id: string;
   name: string;
+  nombre?: string;
   description?: string;
+  descripcion?: string;
   module?: string;
+  modulo?: string;
   type?: string;
+  tipo?: string;
   environment?: string;
+  ambiente?: string;
   portal_link?: string;
+  enlace_portal?: string;
   current_phase_id?: number;
   current_stage_id?: number;
   stage_progress_percentage?: number;
   general_status?: 'Pendiente' | 'En curso' | 'Completado' | 'Cancelado';
+  estado_general?: string;
+  start_date?: string;
+  fecha_inicio?: string;
   estimated_end_date?: string;
+  fecha_estimada_fin?: string;
   provider?: string;
+  proveedor?: string;
   responsible?: string;
+  responsable?: string;
   area_desarrollo?: string;
   analista?: string;
 }
@@ -42,16 +54,17 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
   useEffect(() => {
     if (isOpen && development) {
       setFormData({
-        name: development.name || '',
-        description: development.description || '',
-        module: development.module || '',
-        type: development.type || '',
-        environment: development.environment || '',
-        portal_link: development.portal_link || '',
-        general_status: development.general_status || undefined,
-        estimated_end_date: development.estimated_end_date || '',
-        provider: development.provider || '',
-        responsible: development.responsible || '',
+        name: development.name || development.nombre || '',
+        description: development.description || development.descripcion || '',
+        module: development.module || development.modulo || '',
+        type: development.type || development.tipo || '',
+        environment: development.environment || development.ambiente || '',
+        portal_link: development.portal_link || development.enlace_portal || '',
+        general_status: development.general_status || development.estado_general || undefined,
+        start_date: development.start_date || development.fecha_inicio || '',
+        estimated_end_date: development.estimated_end_date || development.fecha_estimada_fin || '',
+        provider: development.provider || development.proveedor || '',
+        responsible: development.responsible || development.responsable || '',
         area_desarrollo: development.area_desarrollo || '',
         analista: development.analista || '',
       });
@@ -92,11 +105,22 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
     }
 
     // Validar fecha estimada
+    if (formData.start_date) {
+      const date = new Date(formData.start_date);
+      if (isNaN(date.getTime())) {
+        newErrors.push('La fecha de inicio no es válida');
+      }
+    }
+
     if (formData.estimated_end_date) {
       const date = new Date(formData.estimated_end_date);
       if (isNaN(date.getTime())) {
         newErrors.push('La fecha estimada no es válida');
       }
+    }
+
+    if (formData.start_date && formData.estimated_end_date && new Date(formData.start_date) > new Date(formData.estimated_end_date)) {
+      newErrors.push('La fecha de inicio no puede ser mayor que la fecha estimada de fin');
     }
 
     return newErrors;
@@ -136,8 +160,11 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
   // Opciones para el estado general
   const statusOptions = [
     { value: 'Pendiente', label: 'Pendiente' },
+    { value: 'pendiente', label: 'Pendiente (seed)' },
     { value: 'En curso', label: 'En curso' },
+    { value: 'en_progreso', label: 'En progreso (seed)' },
     { value: 'Completado', label: 'Completado' },
+    { value: 'completada', label: 'Completada (seed)' },
     { value: 'Cancelado', label: 'Cancelado' },
   ];
 
@@ -147,7 +174,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Editar Desarrollo"
+      title="Editar Proyecto"
       size="xl"
       showCloseButton={true}
     >
@@ -175,7 +202,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Input
-                    label="Nombre *"
+                    label="Nombre del Proyecto *"
                     value={formData.name || ''}
                     onChange={(e) => handleFieldChange('name', e.target.value)}
                     required
@@ -194,11 +221,10 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
               </div>
 
               <div>
-                <Input
+                <Textarea
                   label="Descripción"
                   value={formData.description || ''}
                   onChange={(e) => handleFieldChange('description', e.target.value)}
-                  className="w-full"
                 />
               </div>
             </div>
@@ -283,7 +309,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
 
                 <div>
                   <Input
-                    label="Analista"
+                    label="Ejecutor / Asignado"
                     value={formData.analista || ''}
                     onChange={(e) => handleFieldChange('analista', e.target.value)}
                     maxLength={100}
@@ -291,13 +317,23 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
                 </div>
               </div>
 
-              <div>
-                <Input
-                  label="Fecha Estimada de Fin"
-                  value={formData.estimated_end_date || ''}
-                  onChange={(e) => handleFieldChange('estimated_end_date', e.target.value)}
-                  type="date"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Input
+                    label="Fecha de Inicio"
+                    value={formData.start_date || ''}
+                    onChange={(e) => handleFieldChange('start_date', e.target.value)}
+                    type="date"
+                  />
+                </div>
+                <div>
+                  <Input
+                    label="Fecha Estimada de Fin"
+                    value={formData.estimated_end_date || ''}
+                    onChange={(e) => handleFieldChange('estimated_end_date', e.target.value)}
+                    type="date"
+                  />
+                </div>
               </div>
             </div>
           </div>

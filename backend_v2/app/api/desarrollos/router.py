@@ -113,9 +113,22 @@ async def actualizar_desarrollo(
 ):
     """Actualiza un desarrollo existente"""
     try:
-        # TODO: Implementar lógica con el servicio de desarrollos
-        raise HTTPException(status_code=501, detail="Endpoint no implementado")
+        query = select(Desarrollo).where(Desarrollo.id == desarrollo_id)
+        result = await db.execute(query)
+        db_desarrollo = result.scalar_one_or_none()
+
+        if not db_desarrollo:
+            raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
+
+        update_data = desarrollo.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_desarrollo, key, value)
+
+        await db.commit()
+        await db.refresh(db_desarrollo)
+        return db_desarrollo
     except HTTPException:
         raise
     except Exception as e:
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al actualizar desarrollo: {str(e)}")

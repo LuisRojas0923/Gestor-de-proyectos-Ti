@@ -8,6 +8,51 @@ import { Button, Title, Text } from '../components/atoms';
 import { DevelopmentEditModal } from '../components/molecules';
 import ConsolidatedTableById from '../components/ConsolidatedTableById';
 
+type ApiDevelopment = DevelopmentWithCurrentStatus & {
+  nombre?: string;
+  descripcion?: string;
+  modulo?: string;
+  tipo?: string;
+  ambiente?: string;
+  enlace_portal?: string;
+  estado_general?: DevelopmentWithCurrentStatus['general_status'];
+  fecha_inicio?: string;
+  fecha_estimada_fin?: string;
+  proveedor?: string;
+  responsable?: string;
+};
+
+const normalizeDevelopment = (development: ApiDevelopment): DevelopmentWithCurrentStatus => ({
+  ...development,
+  name: development.name || development.nombre || '',
+  description: development.description || development.descripcion,
+  module: development.module || development.modulo,
+  type: development.type || development.tipo,
+  environment: development.environment || development.ambiente,
+  portal_link: development.portal_link || development.enlace_portal,
+  general_status: development.general_status || development.estado_general || 'Pendiente',
+  start_date: development.start_date || development.fecha_inicio,
+  estimated_end_date: development.estimated_end_date || development.fecha_estimada_fin,
+  provider: development.provider || development.proveedor,
+  responsible: development.responsible || development.responsable,
+});
+
+const toApiDevelopmentPayload = (data: Partial<ApiDevelopment>) => ({
+  nombre: data.name,
+  descripcion: data.description,
+  modulo: data.module,
+  tipo: data.type,
+  ambiente: data.environment,
+  enlace_portal: data.portal_link,
+  estado_general: data.general_status,
+  fecha_inicio: data.start_date,
+  fecha_estimada_fin: data.estimated_end_date,
+  proveedor: data.provider,
+  responsable: data.responsible,
+  area_desarrollo: data.area_desarrollo,
+  analista: data.analista,
+});
+
 const DevelopmentDetail: React.FC = () => {
   const navigate = useNavigate();
   const { darkMode } = useAppContext().state;
@@ -25,7 +70,9 @@ const DevelopmentDetail: React.FC = () => {
       setLoading(true);
       try {
         const dev = await get(API_ENDPOINTS.DEVELOPMENT_BY_ID(developmentId));
-        setDevelopment(dev as unknown as DevelopmentWithCurrentStatus);
+        if (dev) {
+          setDevelopment(normalizeDevelopment(dev as ApiDevelopment));
+        }
       } finally {
         setLoading(false);
       }
@@ -33,12 +80,12 @@ const DevelopmentDetail: React.FC = () => {
     load();
   }, [developmentId, get]);
 
-  const updateDevelopment = async (updatedData: Partial<DevelopmentWithCurrentStatus>): Promise<boolean> => {
+  const updateDevelopment = async (updatedData: Partial<ApiDevelopment>): Promise<boolean> => {
     if (!development) return false;
     try {
-      const result = await put(API_ENDPOINTS.DEVELOPMENT_BY_ID(development.id), updatedData);
+      const result = await put(API_ENDPOINTS.DEVELOPMENT_BY_ID(development.id), toApiDevelopmentPayload(updatedData));
       if (result) {
-        setDevelopment(prev => prev ? { ...prev, ...updatedData } : null);
+        setDevelopment(normalizeDevelopment(result as ApiDevelopment));
         return true;
       }
       return false;
