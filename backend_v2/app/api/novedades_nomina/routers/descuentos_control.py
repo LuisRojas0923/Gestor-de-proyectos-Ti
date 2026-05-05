@@ -140,8 +140,18 @@ async def preview_control_descuentos(mes: int = Form(...), anio: int = Form(...)
             warnings_detalle.append({"cedula": row["cedula"], "nombre": row.get("nombre_asociado", ""), "motivo": f"EXCEPCIÓN APLICADA: {exc['motivo']}"})
 
     try:
+        # Guardar archivo físico en disco para permitir descargas posteriores
+        import os, hashlib
+        STORAGE_DIR = "uploads/nomina"
+        os.makedirs(STORAGE_DIR, exist_ok=True)
+        contenido = archivos_binarios[0] if archivos_binarios else b""
+        file_hash = hashlib.sha256(contenido).hexdigest()
+        filename = f"{file_hash}.xlsx"
+        path = os.path.join(STORAGE_DIR, filename)
+        with open(path, "wb") as f_out: f_out.write(contenido)
+
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "CONTROL DE DESCUENTOS", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
-        archivo = NominaArchivo(nombre_archivo=f"control_descuentos_{mes}_{anio}.xlsx", hash_archivo=hashlib.md5(archivos_binarios[0][:1024]).hexdigest() if archivos_binarios else "none", tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento="memory", mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="CONTROL DE DESCUENTOS", estado="Procesado")
+        archivo = NominaArchivo(nombre_archivo=f"control_descuentos_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="CONTROL DE DESCUENTOS", estado="Procesado")
         session.add(archivo); await session.flush()
         for idx, row in enumerate(rows):
             reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="DESCUENTOS", subcategoria_final="CONTROL DE DESCUENTOS", estado_validacion="OK" if "EXCEPCIÓN APLICADA" in str(row.get("estado_erp")) or row.get("estado_erp") == "ACTIVO" else "NO_CLASIFICADO", observaciones=row.get("observaciones"), fila_origen=idx + 1)

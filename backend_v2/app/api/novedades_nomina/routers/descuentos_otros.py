@@ -93,8 +93,18 @@ async def preview_celulares(mes: int = Form(...), anio: int = Form(...), files: 
             warnings_detalle.append({"cedula": row["cedula"], "nombre": row.get("nombre_asociado", ""), "motivo": f"EXCEPCIÓN APLICADA: {exc['motivo']}"})
 
     try:
+        # Guardar archivo físico en disco para permitir descargas posteriores
+        import os, hashlib
+        STORAGE_DIR = "uploads/nomina"
+        os.makedirs(STORAGE_DIR, exist_ok=True)
+        contenido = archivos_binarios[0] if archivos_binarios else b""
+        file_hash = hashlib.sha256(contenido).hexdigest()
+        filename = f"{file_hash}.xlsx"
+        path = os.path.join(STORAGE_DIR, filename)
+        with open(path, "wb") as f_out: f_out.write(contenido)
+
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "CELULARES", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
-        archivo = NominaArchivo(nombre_archivo=f"celulares_{mes}_{anio}.xlsx", hash_archivo=hashlib.md5(archivos_binarios[0][:1024]).hexdigest() if archivos_binarios else "none", tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento="memory", mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="CELULARES", estado="Procesado")
+        archivo = NominaArchivo(nombre_archivo=f"celulares_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="CELULARES", estado="Procesado")
         session.add(archivo); await session.flush()
         for idx, row in enumerate(rows):
             reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="DESCUENTOS", subcategoria_final="CELULARES", estado_validacion="OK" if "EXCEPCIÓN APLICADA" in str(row.get("estado_erp")) or row.get("estado_erp") == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)
@@ -167,8 +177,18 @@ async def preview_retenciones(mes: int = Form(...), anio: int = Form(...), files
             warnings_detalle.append({"cedula": row["cedula"], "nombre": row.get("nombre_asociado", ""), "motivo": f"EXCEPCIÓN APLICADA: {exc['motivo']}"})
 
     try:
+        # Guardar archivo físico en disco para permitir descargas posteriores
+        import os, hashlib
+        STORAGE_DIR = "uploads/nomina"
+        os.makedirs(STORAGE_DIR, exist_ok=True)
+        contenido = archivos_binarios[0] if archivos_binarios else b""
+        file_hash = hashlib.sha256(contenido).hexdigest()
+        filename = f"{file_hash}.xlsx"
+        path = os.path.join(STORAGE_DIR, filename)
+        with open(path, "wb") as f_out: f_out.write(contenido)
+
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "RETENCIONES", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
-        archivo = NominaArchivo(nombre_archivo=f"retenciones_{mes}_{anio}.xlsx", hash_archivo=hashlib.md5(archivos_binarios[0][:1024]).hexdigest() if archivos_binarios else "none", tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento="memory", mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="RETENCIONES", estado="Procesado")
+        archivo = NominaArchivo(nombre_archivo=f"retenciones_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="RETENCIONES", estado="Procesado")
         session.add(archivo); await session.flush()
         for idx, row in enumerate(rows):
             reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="DESCUENTOS", subcategoria_final="RETENCIONES", estado_validacion="OK" if "EXCEPCIÓN APLICADA" in str(row.get("estado_erp")) or row.get("estado_erp") == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)
@@ -241,8 +261,18 @@ async def preview_embargos(mes: int = Form(...), anio: int = Form(...), files: L
             warnings_detalle.append({"cedula": row["cedula"], "nombre": row.get("nombre_asociado", ""), "motivo": f"EXCEPCIÓN APLICADA: {exc['motivo']}"})
 
     try:
+        # Guardar archivo físico en disco para permitir descargas posteriores
+        import os, hashlib
+        STORAGE_DIR = "uploads/nomina"
+        os.makedirs(STORAGE_DIR, exist_ok=True)
+        contenido = archivos_binarios[0] if archivos_binarios else b""
+        file_hash = hashlib.sha256(contenido).hexdigest()
+        filename = f"{file_hash}.xlsx"
+        path = os.path.join(STORAGE_DIR, filename)
+        with open(path, "wb") as f_out: f_out.write(contenido)
+
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "EMBARGOS", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
-        archivo = NominaArchivo(nombre_archivo=f"embargos_{mes}_{anio}.xlsx", hash_archivo=hashlib.md5(archivos_binarios[0][:1024]).hexdigest() if archivos_binarios else "none", tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento="memory", mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="EMBARGOS", estado="Procesado")
+        archivo = NominaArchivo(nombre_archivo=f"embargos_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="EMBARGOS", estado="Procesado")
         session.add(archivo); await session.flush()
         for idx, row in enumerate(rows):
             reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="DESCUENTOS", subcategoria_final="EMBARGOS", estado_validacion="OK" if "EXCEPCIÓN APLICADA" in str(row.get("estado_erp")) or row.get("estado_erp") == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)

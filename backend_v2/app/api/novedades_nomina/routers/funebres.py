@@ -164,10 +164,20 @@ async def preview_camposanto(
     })
 
     try:
+        # Guardar archivo físico en disco para permitir descargas posteriores
+        import os, hashlib
+        STORAGE_DIR = "uploads/nomina"
+        os.makedirs(STORAGE_DIR, exist_ok=True)
+        contenido = archivos_binarios[0] if archivos_binarios else b""
+        file_hash = hashlib.sha256(contenido).hexdigest()
+        filename = f"{file_hash}.pdf"
+        path = os.path.join(STORAGE_DIR, filename)
+        with open(path, "wb") as f_out: f_out.write(contenido)
+
         stmt_del = delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "CAMPOSANTO", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio)
         await session.execute(stmt_del)
 
-        archivo = NominaArchivo(nombre_archivo=f"camposanto_{mes}_{anio}.pdf", hash_archivo=hashlib.md5(archivos_binarios[0][:1024]).hexdigest() if archivos_binarios else "none", tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="pdf", ruta_almacenamiento="memory", mes_fact=mes, año_fact=anio, categoria="FUNEBRES", subcategoria="CAMPOSANTO", estado="Procesado")
+        archivo = NominaArchivo(nombre_archivo=f"camposanto_{mes}_{anio}.pdf", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="pdf", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="FUNEBRES", subcategoria="CAMPOSANTO", estado="Procesado")
         session.add(archivo)
         await session.flush()
 
@@ -368,10 +378,20 @@ async def preview_recordar(
     })
 
     try:
+        # Guardar archivo físico en disco para permitir descargas posteriores
+        import os, hashlib
+        STORAGE_DIR = "uploads/nomina"
+        os.makedirs(STORAGE_DIR, exist_ok=True)
+        contenido = archivos_binarios[0] if archivos_binarios else b""
+        file_hash = hashlib.sha256(contenido).hexdigest()
+        filename = f"{file_hash}.xlsx"
+        path = os.path.join(STORAGE_DIR, filename)
+        with open(path, "wb") as f_out: f_out.write(contenido)
+
         stmt_del = delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "RECORDAR", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio)
         await session.execute(stmt_del)
 
-        archivo = NominaArchivo(nombre_archivo=f"recordar_{mes}_{anio}.xlsx", hash_archivo=hashlib.md5(archivos_binarios[0][:1024]).hexdigest() if archivos_binarios else "none", tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento="memory", mes_fact=mes, año_fact=anio, categoria="FUNEBRES", subcategoria="RECORDAR", estado="Procesado")
+        archivo = NominaArchivo(nombre_archivo=f"recordar_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="FUNEBRES", subcategoria="RECORDAR", estado="Procesado")
         session.add(archivo)
         await session.flush()
 

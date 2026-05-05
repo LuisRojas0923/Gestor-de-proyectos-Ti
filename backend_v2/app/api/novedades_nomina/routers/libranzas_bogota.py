@@ -145,8 +145,32 @@ async def preview_bogota_libranza(
     })
 
     try:
+        # Guardar archivo físico en disco para permitir descargas posteriores
+        import os
+        STORAGE_DIR = "uploads/nomina"
+        os.makedirs(STORAGE_DIR, exist_ok=True)
+        
+        contenido = archivos_binarios[0] if archivos_binarios else b""
+        file_hash = hashlib.sha256(contenido).hexdigest()
+        filename = f"{file_hash}.xlsx"
+        path = os.path.join(STORAGE_DIR, filename)
+        
+        with open(path, "wb") as f_out:
+            f_out.write(contenido)
+
         await session.execute(delete(NominaRegistroNormalizado).where(NominaRegistroNormalizado.subcategoria_final == "BOGOTA LIBRANZA", NominaRegistroNormalizado.mes_fact == mes, NominaRegistroNormalizado.año_fact == anio))
-        archivo = NominaArchivo(nombre_archivo=f"bogota_libranza_{mes}_{anio}.xlsx", hash_archivo=hashlib.md5(archivos_binarios[0][:1024]).hexdigest() if archivos_binarios else "none", tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento="memory", mes_fact=mes, año_fact=anio, categoria="LIBRANZAS", subcategoria="BOGOTA LIBRANZA", estado="Procesado")
+        archivo = NominaArchivo(
+            nombre_archivo=f"bogota_libranza_{mes}_{anio}.xlsx", 
+            hash_archivo=file_hash, 
+            tamaño_bytes=sum(len(b) for b in archivos_binarios), 
+            tipo_archivo="xlsx", 
+            ruta_almacenamiento=path, 
+            mes_fact=mes, 
+            año_fact=anio, 
+            categoria="LIBRANZAS", 
+            subcategoria="BOGOTA LIBRANZA", 
+            estado="Procesado"
+        )
         session.add(archivo); await session.flush()
         for idx, row in enumerate(rows_facturables):
             reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="LIBRANZAS", subcategoria_final="BOGOTA LIBRANZA", estado_validacion="OK" if str(row.get("estado_erp")).upper() == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)

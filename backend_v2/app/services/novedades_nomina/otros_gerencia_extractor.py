@@ -24,15 +24,18 @@ def extraer_otros_gerencia(archivos_binarios: List[bytes]) -> Tuple[List[Dict[st
     
     for content in archivos_binarios:
         try:
-            # Leer excel desde la fila 2 (índice 1 en pandas)
-            df = pd.read_excel(io.BytesIO(content), skiprows=1)
-            
-            # Limpiar nombres de columnas (quitar espacios, saltos de línea, etc.)
+            # Intentar detectar automáticamente dónde están las cabeceras
+            # Primero probar fila 0
+            df = pd.read_excel(io.BytesIO(content))
             df.columns = [str(c).strip().upper() for c in df.columns]
             
-            # Verificar si las columnas de interés existen
-            present_cols = [c for c in COLS_INTERES if c in df.columns]
-            if 'CEDULA' not in present_cols:
+            if 'CEDULA' not in df.columns:
+                # Si no está en fila 0, probar fila 1 (skiprows=1)
+                df = pd.read_excel(io.BytesIO(content), skiprows=1)
+                df.columns = [str(c).strip().upper() for c in df.columns]
+
+            # Verificar si las columnas de interés existen tras el intento de detección
+            if 'CEDULA' not in df.columns:
                 warnings.append(f"No se encontró la columna 'CEDULA' en uno de los archivos.")
                 continue
             

@@ -161,7 +161,7 @@ class NominaService:
                 empresa=empresa_final,
                 concepto=concepto_final,
                 categoria_final=categoria,
-                subcategoria_final=subcategoria,
+                subcategoria_final=subcategoria.strip(),
                 estado_validacion=estado_val,
                 horas=row.get("horas", 0),
                 dias=row.get("dias", 0),
@@ -205,7 +205,7 @@ class NominaService:
                         empresa=info["empresa"] if info else "N/A",
                         concepto=f"{subcategoria} (EXCEPCION)",
                         categoria_final=categoria,
-                        subcategoria_final=subcategoria,
+                        subcategoria_final=subcategoria.strip(),
                         estado_validacion=estado_val,
                         horas=0,
                         dias=0,
@@ -240,7 +240,7 @@ class NominaService:
             mes_fact=mes,
             año_fact=anio,
             categoria=categoria,
-            subcategoria=subcategoria,
+            subcategoria=subcategoria.strip(),
             estado="Procesado",
         )
         session.add(archivo)
@@ -296,8 +296,9 @@ class NominaService:
         mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, excepciones)
         
         # 4. Borrar antiguos para evitar duplicados en el mismo periodo/subcat
+        subcategoria_clean = subcategoria.strip()
         stmt_del = delete(NominaRegistroNormalizado).where(
-            NominaRegistroNormalizado.subcategoria_final == subcategoria,
+            NominaRegistroNormalizado.subcategoria_final == subcategoria_clean,
             NominaRegistroNormalizado.mes_fact == mes,
             NominaRegistroNormalizado.año_fact == anio,
         )
@@ -313,7 +314,7 @@ class NominaService:
 
             # 7. Persistir registros (con excepciones)
             registros = await NominaService.persistir_registros_normalizados(
-                session, archivo.id, mes, anio, rows, categoria, subcategoria, mapa_erp, excepciones
+                session, archivo.id, mes, anio, rows, categoria, subcategoria_clean, mapa_erp, excepciones
             )
             
             await session.commit()
@@ -402,8 +403,9 @@ class NominaService:
     ) -> Dict[str, Any]:
         """Obtiene los registros normalizados de un periodo específico."""
         try:
+            subcat_clean = subcategoria.strip()
             stmt = select(NominaRegistroNormalizado).where(
-                NominaRegistroNormalizado.subcategoria_final == subcategoria,
+                NominaRegistroNormalizado.subcategoria_final == subcat_clean,
                 NominaRegistroNormalizado.mes_fact == mes,
                 NominaRegistroNormalizado.año_fact == anio
             )

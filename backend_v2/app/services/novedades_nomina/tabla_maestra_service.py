@@ -107,10 +107,14 @@ class TablaMaestraService:
                     "faltantes": validacion["faltantes"],
                 }
 
-            # 2. Cargar todos los registros normalizados del período
+            # Consultar registros normalizados (incluyendo estados de excepción y legados válidos)
             stmt = select(NominaRegistroNormalizado).where(
                 NominaRegistroNormalizado.mes_fact == mes,
                 NominaRegistroNormalizado.año_fact == anio,
+                NominaRegistroNormalizado.estado_validacion.in_([
+                    "OK", "Activo", "EXCEPCION_PAGO_TERCERO", "EXCEPCION_VALOR_FIJO", 
+                    "EXCEPCION_PORCENTAJE_EMPRESA", "EXCEPCION_AUTORIZADA", "EXCEPCION_SALDO_FAVOR"
+                ])
             )
             result = await session.execute(stmt)
             todos_los_registros = result.scalars().all()
@@ -147,9 +151,17 @@ class TablaMaestraService:
                 # Filtrar RETENCIONES según quincena
                 if subcat == "RETENCIONES":
                     concepto = (r.concepto or "").strip().upper()
-                    if quincena == "Q1" and concepto != "CON COMISION 1Q":
+                    # Si el concepto está vacío, le asignamos uno genérico según quincena para que pase el filtro
+                    if not concepto:
+                        concepto = "CON COMISION 1Q" if quincena == "Q1" else "SIN COMISION 2Q"
+                    
+                    # Filtro flexible: buscar si contiene la quincena o si es el concepto exacto
+                    es_q1 = "1Q" in concepto or "Q1" in concepto or concepto == "CON COMISION 1Q"
+                    es_q2 = "2Q" in concepto or "Q2" in concepto or concepto == "SIN COMISION 2Q"
+                    
+                    if quincena == "Q1" and not es_q1:
                         continue
-                    if quincena == "Q2" and concepto != "SIN COMISION 2Q":
+                    if quincena == "Q2" and not es_q2:
                         continue
 
                 # Calcular valor quincenal

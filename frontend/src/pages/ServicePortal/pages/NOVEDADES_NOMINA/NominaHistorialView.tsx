@@ -4,7 +4,7 @@ import { MaterialCard } from '../../../../components/atoms';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
-import { ArrowLeft, History, Eye, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, History, Eye, FileText, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 
 // ── Tipos ──────────────────────────────────────
 interface ArchivoHistorial {
@@ -92,6 +92,27 @@ const NominaHistorialView: React.FC = () => {
             console.error('Error fetching historial:', err);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleDownload = async (archivo: ArchivoHistorial) => {
+        try {
+            const response = await axios.get(
+                `${API_CONFIG.BASE_URL}/novedades-nomina/archivos/${archivo.id}/descargar`,
+                { responseType: 'blob' }
+            );
+            
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', archivo.nombre_archivo);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Error descargando archivo:', err);
+            alert('No se pudo descargar el archivo original.');
         }
     };
 
@@ -188,9 +209,14 @@ const NominaHistorialView: React.FC = () => {
                                     <tr key={a.id} className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)] transition-colors">
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0">
-                                                    <FileText className="w-4 h-4 text-[var(--color-primary)]" />
-                                                </div>
+                                                <button 
+                                                    className="w-9 h-9 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0 hover:bg-[var(--color-primary)]/20 transition-all group"
+                                                    onClick={() => handleDownload(a)}
+                                                    title="Descargar archivo original"
+                                                >
+                                                    <FileText className="w-4 h-4 text-[var(--color-primary)] group-hover:hidden" />
+                                                    <Download className="w-4 h-4 text-[var(--color-primary)] hidden group-hover:block" />
+                                                </button>
                                                 <div className="min-w-0">
                                                     <Text weight="medium" className="truncate max-w-[200px] block">{a.nombre_archivo}</Text>
                                                     <Text className="text-xs opacity-50">{a.tipo_archivo.toUpperCase()}</Text>
@@ -238,7 +264,12 @@ const NominaHistorialView: React.FC = () => {
                             <div key={a.id} className="p-4 space-y-3">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex items-center gap-2 min-w-0">
-                                        <FileText className="w-4 h-4 text-[var(--color-primary)] flex-shrink-0" />
+                                        <button 
+                                            className="w-8 h-8 rounded bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0"
+                                            onClick={() => handleDownload(a)}
+                                        >
+                                            <Download className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                                        </button>
                                         <Text weight="medium" className="truncate">{a.nombre_archivo}</Text>
                                     </div>
                                     <Badge variant={ESTADO_BADGE[a.estado] || 'neutral'} className="flex-shrink-0">{a.estado}</Badge>

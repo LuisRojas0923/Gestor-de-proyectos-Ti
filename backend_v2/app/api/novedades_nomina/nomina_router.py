@@ -6,6 +6,7 @@ from datetime import datetime
 
 from typing import List, Optional
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlmodel import Session, select, func, delete
 from ...database import obtener_db, obtener_erp_db_opcional
 from ...services.erp.empleados_service import EmpleadosService
@@ -65,21 +66,33 @@ async def cargar_archivo(
     content = await file.read()
     file_hash = hashlib.sha256(content).hexdigest()
     
-    # Verificar si ya existe
+    # Guardar en disco (siempre, por si se perdió físicamente)
+    ext = file.filename.split('.')[-1].lower()
+    filename = f"{file_hash}.{ext}"
+    path = os.path.join(STORAGE_DIR, filename)
+    try:
+        with open(path, "wb") as f_out:
+            f_out.write(content)
+    except Exception as e:
+        logger.error(f"Error guardando archivo físico: {str(e)}")
+        # Continuamos, el error real saltará en la descarga si falla
+
+    # Verificar si ya existe en DB para actualizar metadatos
     try:
         result = await session.execute(select(NominaArchivo).where(NominaArchivo.hash_archivo == file_hash))
         existing = result.scalars().first()
         if existing:
+            # Si ya existe, actualizamos su fecha de creación y ruta por si acaso
+            existing.creado_en = datetime.now()
+            existing.mes_fact = mes
+            existing.año_fact = año
+            existing.subcategoria = subcategoria.strip()
+            existing.ruta_almacenamiento = path
+            await session.commit()
+            await session.refresh(existing)
             return existing
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al verificar archivo existente: {str(e)}")
-
-    # Guardar en disco
-    ext = file.filename.split('.')[-1].lower()
-    filename = f"{file_hash}.{ext}"
-    path = os.path.join(STORAGE_DIR, filename)
-    with open(path, "wb") as f:
-        f.write(content)
+        logger.error(f"Error al verificar duplicado: {str(e)}")
     
     try:
         archivo = NominaArchivo(
@@ -91,7 +104,7 @@ async def cargar_archivo(
             mes_fact=mes,
             año_fact=año,
             categoria=categoria or "VARIOS",
-            subcategoria=subcategoria,
+            subcategoria=subcategoria.strip(),
             estado="Cargado"
         )
         session.add(archivo)
@@ -179,6 +192,29 @@ async def obtener_preview(
         return result.scalars().all()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al consultar preview del archivo: {str(e)}")
+
+@router.get("/archivos/{archivo_id}/descargar")
+async def descargar_archivo(
+    archivo_id: int, 
+    session: Session = Depends(obtener_db)
+):
+    """Descarga el archivo original cargado"""
+    try:
+        archivo = await session.get(NominaArchivo, archivo_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener archivo: {str(e)}")
+
+    if not archivo:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado en base de datos")
+    
+    if not os.path.exists(archivo.ruta_almacenamiento):
+        raise HTTPException(status_code=404, detail="El archivo físico no se encuentra en el servidor")
+    
+    return FileResponse(
+        path=archivo.ruta_almacenamiento,
+        filename=archivo.nombre_archivo,
+        media_type='application/octet-stream'
+    )
 
 @router.get("/subcategorias/resumen", response_model=List[NominaResumenSubcat])
 async def obtener_resumen_mensual(

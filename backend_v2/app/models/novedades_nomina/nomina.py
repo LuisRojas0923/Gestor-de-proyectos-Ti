@@ -24,8 +24,7 @@ class NominaArchivo(SQLModel, table=True):
     
     estado: str = Field(default="Cargado", max_length=50) # 'Cargado', 'Procesando', 'Procesado', 'Error'
     error_log: Optional[str] = Field(default=None)
-    
-    creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+    creado_en: Optional[datetime] = Field(default_factory=datetime.now)
     actualizado_en: Optional[datetime] = Field(default=None)
     
     registros_crudos: List["NominaRegistroCrudo"] = Relationship(back_populates="archivo", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
