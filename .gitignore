@@ -51,3 +51,6 @@ resources/data_maestra/
 testing/logs/
 *.log
 test_output.txt
+
+# Uploads
+backend_v2/uploads/nomina/
