@@ -17,9 +17,9 @@ import WbsTab from './DevelopmentDetail/WbsTab';
 
 const tabs = [
   { key: 'detalle', label: 'Detalle' },
-  { key: 'bitacora', label: 'Bitácora' },
-  { key: 'actividades', label: 'WBS / Tareas' },
-  { key: 'fases', label: 'Fases' },
+  { key: 'bitacora', label: 'Historial / Comentarios' },
+  { key: 'actividades', label: 'Tareas del Proyecto' },
+  { key: 'fases', label: 'Estados' },
   { key: 'requerimientos', label: 'Requerimientos' },
 ];
 
@@ -40,6 +40,7 @@ const DevelopmentDetail: React.FC = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [developmentEditOpen, setDevelopmentEditOpen] = useState(false);
+  const [isEditingActivity, setIsEditingActivity] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [editForm, setEditForm] = useState<{ status: string; notes?: string; next_follow_up_at?: string; start_date?: string; end_date?: string; follow_up_config?: FollowUpConfig } | null>(null);
   const [editErrors, setEditErrors] = useState<string[]>([]);
@@ -110,14 +111,21 @@ const DevelopmentDetail: React.FC = () => {
   const onEditConfirm = async () => {
     if (!selectedActivity || !editForm) return;
     if (editErrors.length > 0) return;
-    const ok = await confirmEditActivity(selectedActivity.id, {
-      status: editForm.status,
-      notes: editForm.notes || undefined,
-      next_follow_up_at: editForm.next_follow_up_at || undefined,
-      start_date: editForm.start_date || undefined,
-      end_date: editForm.end_date || undefined
-    });
-    if (ok) setEditOpen(false);
+    
+    setIsEditingActivity(true);
+    try {
+      const ok = await confirmEditActivity(selectedActivity.id, {
+        status: editForm.status,
+        notes: editForm.notes || undefined,
+        next_follow_up_at: editForm.next_follow_up_at || undefined,
+        start_date: editForm.start_date || undefined,
+        end_date: editForm.end_date || undefined,
+        follow_up_config: editForm.follow_up_config || undefined
+      });
+      if (ok) setEditOpen(false);
+    } finally {
+      setIsEditingActivity(false);
+    }
   };
 
   const openDelete = (activity: Activity) => {
@@ -165,15 +173,13 @@ const DevelopmentDetail: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
             onClick={() => navigate('/developments')}
-            className="p-0 h-auto font-medium"
+            className="p-0 h-auto font-medium text-neutral-600 hover:text-neutral-900 transition-colors dark:text-neutral-300 dark:hover:text-white"
           >
-            ← Volver a actividades
-          </Button>
-          <Title variant="h3" weight="bold" color="text-primary" className="mt-2">{development?.name || (loading ? 'Cargando...' : 'Actividad')}</Title>
+            ← Volver a proyectos
+          </button>
+          <Title variant="h3" weight="bold" color={darkMode ? 'white' : 'navy'} className="mt-2">{development?.name || (loading ? 'Cargando...' : 'Proyecto')}</Title>
           <Text variant="caption" color="text-secondary">{development?.id}</Text>
         </div>
 
@@ -194,28 +200,31 @@ const DevelopmentDetail: React.FC = () => {
             disabled={loading || !development}
             className="w-full sm:w-auto min-h-[44px]"
           >
-            ✏️ Editar Actividad
+            ✏️ Editar Proyecto
           </Button>
         </div>
       </div>
 
-      <div className={`rounded-lg p-1 ${darkMode ? 'bg-neutral-800' : 'bg-neutral-100'}`}>
+      <div className="rounded-lg p-1 bg-[var(--color-surface)] border border-[var(--color-border)]">
         <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0">
           {tabs.map(t => (
-            <Button
+            <button
               key={t.key}
-              variant={activeTab === t.key ? 'primary' : 'ghost'}
-              size="sm"
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2 rounded-md text-sm whitespace-nowrap ${activeTab === t.key ? (darkMode ? 'bg-neutral-700 text-white' : 'bg-white text-neutral-900 border-none shadow-sm') : (darkMode ? 'text-neutral-400 hover:text-white' : 'text-neutral-600 hover:text-neutral-900')}`}
+              className={`
+                px-4 py-2 rounded-xl text-sm whitespace-nowrap font-medium transition-all duration-300
+                ${activeTab === t.key 
+                  ? 'bg-primary-500 text-white shadow-sm hover:shadow-md dark:bg-primary-600 dark:hover:bg-primary-700' 
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/10 border border-transparent dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white'}
+              `}
             >
               {t.label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
-      <div className={`${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'} border rounded-xl p-6`}>
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
         {activeTab === 'detalle' && (
           <GeneralInfoTab
             development={development}
@@ -247,7 +256,7 @@ const DevelopmentDetail: React.FC = () => {
         )}
 
         {activeTab === 'actividades' && developmentId && (
-          <WbsTab developmentId={developmentId} darkMode={darkMode} />
+          <WbsTab development={development} developmentId={developmentId} darkMode={darkMode} />
         )}
 
         {activeTab === 'fases' && (
@@ -265,6 +274,7 @@ const DevelopmentDetail: React.FC = () => {
         activity={selectedActivity}
         form={editForm}
         errors={editErrors}
+        loading={isEditingActivity}
         onFormChange={onEditChange}
         onConfirm={onEditConfirm}
         onCancel={() => setEditOpen(false)}

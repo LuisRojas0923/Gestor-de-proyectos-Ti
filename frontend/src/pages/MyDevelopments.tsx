@@ -1,306 +1,302 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Eye, Search, X, Plus } from 'lucide-react';
+import { Eye, Plus, RotateCcw, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
-import { useFilters, UseFiltersReturn } from './MyDevelopments/hooks/useFilters';
 import { useNotifications } from '../components/notifications/NotificationsContext';
-import { MaterialCard, Input, Select, Button, Title, Text } from '../components/atoms';
+import { Button, Title, Text } from '../components/atoms';
 import { CreateDevelopmentModal } from './MyDevelopments/CreateDevelopmentModal';
-
-// Hook personalizado para persistir filtros
-const usePersistedFilters = (filters: UseFiltersReturn) => {
-  const STORAGE_KEY = 'myDevelopments_filters';
-  const [isInitialized, setIsInitialized] = React.useState(false);
-
-  // Cargar filtros guardados al inicializar (solo una vez)
-  useEffect(() => {
-    const savedFilters = localStorage.getItem(STORAGE_KEY);
-    if (savedFilters && !isInitialized) {
-      try {
-        const parsed = JSON.parse(savedFilters);
-        // Aplicar filtros guardados
-        if (parsed.searchTerm !== undefined) filters.setSearchTerm(parsed.searchTerm);
-        if (parsed.sortBy) filters.setSortBy(parsed.sortBy);
-        if (parsed.providerFilter) filters.setProviderFilter(parsed.providerFilter);
-        if (parsed.moduleFilter) filters.setModuleFilter(parsed.moduleFilter);
-        if (parsed.responsibleFilter) filters.setResponsibleFilter(parsed.responsibleFilter);
-        if (parsed.statusFilter) filters.setStatusFilter(parsed.statusFilter);
-        if (parsed.stageFilter) filters.setStageFilter(parsed.stageFilter);
-        if (parsed.groupBy) filters.setGroupBy(parsed.groupBy);
-        console.log('Filtros cargados:', parsed); // Debug
-        setIsInitialized(true);
-      } catch (error) {
-        console.warn('Error cargando filtros guardados:', error);
-        setIsInitialized(true);
-      }
-    } else {
-      setIsInitialized(true);
-    }
-  }, [isInitialized]);
-
-  // Guardar filtros cuando cambien (solo después de la inicialización)
-  useEffect(() => {
-    if (isInitialized) {
-      const filtersToSave = {
-        searchTerm: filters.searchTerm,
-        sortBy: filters.sortBy,
-        providerFilter: filters.providerFilter,
-        moduleFilter: filters.moduleFilter,
-        responsibleFilter: filters.responsibleFilter,
-        statusFilter: filters.statusFilter,
-        stageFilter: filters.stageFilter,
-        groupBy: filters.groupBy,
-      };
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtersToSave));
-      console.log('Filtros guardados:', filtersToSave); // Debug
-    }
-  }, [
-    isInitialized,
-    filters.searchTerm,
-    filters.sortBy,
-    filters.providerFilter,
-    filters.moduleFilter,
-    filters.responsibleFilter,
-    filters.statusFilter,
-    filters.stageFilter,
-    filters.groupBy
-  ]);
-};
+import { useColumnFilters } from '../hooks/useColumnFilters';
+import { ColumnFilterPopover } from '../components/molecules/ColumnFilterPopover';
 
 const MyDevelopments: React.FC = () => {
   const navigate = useNavigate();
   const { developments, loadDevelopments } = useDevelopments();
-  const filters = useFilters(developments);
   const { addNotification } = useNotifications();
-  
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  // Persistir filtros en localStorage
-  usePersistedFilters(filters);
-
-  // Función para limpiar todos los filtros
-  const clearAllFilters = () => {
-    filters.setSearchTerm('');
-    filters.setSortBy('id');
-    filters.setProviderFilter('all');
-    filters.setModuleFilter('all');
-    filters.setResponsibleFilter('all');
-    filters.setStatusFilter('all');
-    filters.setStageFilter('all');
-    filters.setGroupBy('none');
-    addNotification('success', 'Filtros limpiados');
-  };
 
   // Cargar desarrollos al montar el componente
   useEffect(() => {
     loadDevelopments();
   }, [loadDevelopments]);
 
-  // Notificación informativa (solo una vez)
-  const hasShownLoadNotif = useRef(false);
-  useEffect(() => {
-    if (!hasShownLoadNotif.current && developments?.length > 0) {
-      addNotification('info', `${developments.length} actividades cargadas`);
-      hasShownLoadNotif.current = true;
-    }
-  }, [developments, addNotification]);
+  // Configuración de accesores para filtros por columna
+  const columnAccessors = {
+    id: (dev: any) => dev.id,
+    responsible: (dev: any) => dev.responsible,
+    module: (dev: any) => dev.module,
+    type: (dev: any) => dev.type,
+    name: (dev: any) => dev.name,
+    start_date: (dev: any) => dev.start_date,
+    estimated_end_date: (dev: any) => dev.estimated_end_date,
+    status: (dev: any) => dev.general_status,
+    area_desarrollo: (dev: any) => dev.area_desarrollo,
+    analista: (dev: any) => dev.analista,
+  };
 
+  const {
+    filteredData,
+    uniqueValues,
+    activePopover,
+    setActivePopover,
+    hasActiveFilter,
+    toggleOption,
+    selectAll,
+    clearColumnFilter,
+    clearAllFilters,
+    filters,
+    activeFilterCount
+  } = useColumnFilters(developments || [], columnAccessors);
+
+  const anchorRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   // Utilidades
   const getStatusColor = (status: string) => {
-    const colors = {
-      'En curso': 'text-blue-600 bg-blue-100 dark:bg-blue-900/20',
-      'Pendiente': 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20',
-      'Completado': 'text-green-600 bg-green-100 dark:bg-green-900/20',
+    const colors: Record<string, string> = {
+      'En curso': 'text-blue-800 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400',
+      'Pendiente': 'text-yellow-800 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400',
+      'Completado': 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400',
     };
-    return colors[status as keyof typeof colors] || 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
+    return colors[status] || 'text-gray-800 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
   };
 
-  const handleColumnSort = (column: UseFiltersReturn['sortBy']) => {
-    filters.setSortBy(column);
-    filters.setSortOrder('asc');
-  };
-
-  // Opciones para los selects
-  const groupOptions = [
-    { value: 'none', label: 'Sin agrupar' },
-    { value: 'module', label: 'Agrupar por Módulo' },
-    { value: 'responsible', label: 'Agrupar por Responsable' },
-    { value: 'stage', label: 'Agrupar por Estado Real' }
+  const columns = [
+    { key: 'id', label: 'ID', width: 'md:w-24' },
+    { key: 'responsible', label: 'Responsable', width: 'md:w-32' },
+    { key: 'module', label: 'Área', width: 'md:w-28' },
+    { key: 'count', label: '#', width: 'md:w-12 text-center', noFilter: true },
+    { key: 'type', label: 'Tipo', width: 'md:w-28' },
+    { key: 'name', label: 'Actividad', width: 'flex-1 min-w-0' },
+    { key: 'start_date', label: 'Inicio', width: 'md:w-24' },
+    { key: 'estimated_end_date', label: 'Fin', width: 'md:w-24' },
+    { key: 'description', label: 'Objetivo', width: 'md:w-40', noFilter: true },
+    { key: 'stage_progress_percentage', label: '%', width: 'md:w-20', noFilter: true },
+    { key: 'status', label: 'Estado', width: 'md:w-24' },
+    { key: 'area_desarrollo', label: 'Área Desarrollo', width: 'md:w-32' },
+    { key: 'analista', label: 'Analista', width: 'md:w-32' }
   ];
 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <Title variant="h1">
-          Gestión de Actividades
-        </Title>
+      <div className="flex justify-between items-center bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm">
+        <div className="flex items-center gap-4">
+          <Title variant="h1" className="m-0">
+            Gestión de Actividades
+          </Title>
+          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
+          <div className="flex items-center gap-2">
+            <Text variant="caption" weight="bold" className="bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800/50">
+              {filteredData.length} Actividades
+            </Text>
+            {activeFilterCount > 0 && (
+              <button 
+                onClick={clearAllFilters}
+                className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-red-500 hover:text-red-600 transition-colors bg-red-50 dark:bg-red-900/10 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/20"
+              >
+                <RotateCcw size={12} />
+                Limpiar {activeFilterCount} filtros
+              </button>
+            )}
+          </div>
+        </div>
         <Button
           variant="primary"
           icon={Plus}
           onClick={() => setIsCreateModalOpen(true)}
+          className="shadow-lg shadow-primary-500/20"
         >
           Nueva Actividad
         </Button>
       </div>
 
-      {/* Panel de Filtros */}
-      <MaterialCard elevation={1}>
-        <MaterialCard.Header>
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Title variant="h6">
-                Filtros y Ordenamiento
-              </Title>
-              <Text as="span" variant="caption" weight="medium" className="px-2 py-1 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
-                {filters.filteredDevelopments.length} actividad{filters.filteredDevelopments.length !== 1 ? 'es' : ''}
-              </Text>
-            </div>
-            <Button
-              onClick={clearAllFilters}
-              variant="ghost"
-              size="sm"
-              icon={X}
-              className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+      {/* Tabla de Desarrollos - Contenedor de Alto Rendimiento */}
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+        {/* Header de la tabla */}
+        <div className="hidden md:flex items-stretch gap-0 bg-[var(--deep-navy)] rounded-t-2xl border-b border-[var(--color-border)] overflow-hidden sticky top-0 z-20">
+          {columns.map((col, idx) => (
+            <button
+              key={col.key}
+              ref={(el) => (anchorRefs.current[col.key] = el)}
+              onClick={() => !col.noFilter && setActivePopover(activePopover === col.key ? null : col.key)}
+              disabled={col.noFilter}
+              className={`
+                ${col.width} shrink-0 flex items-center py-2.5 px-4
+                ${idx === 0 ? 'bg-blue-500/20 border-r border-white/10' : 'hover:bg-white/5 border-r border-white/10 transition-all duration-200'}
+                ${!col.noFilter ? 'cursor-pointer outline-none group' : 'cursor-default'}
+              `}
             >
-              Limpiar
-            </Button>
+              <span className={`
+                text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
+                ${hasActiveFilter(col.key) 
+                  ? 'text-yellow-400' 
+                  : idx === 0 
+                    ? 'text-blue-300' 
+                    : 'text-white/70 group-hover:text-white'}
+              `}>
+                {col.label}
+              </span>
+            </button>
+          ))}
+          <div className="md:w-24 shrink-0 flex items-center justify-center py-2.5 px-4 bg-white/10">
+            <span className="text-xs font-bold uppercase tracking-wider !text-[11px] text-white">
+              Acciones
+            </span>
           </div>
-        </MaterialCard.Header>
+        </div>
 
-        <MaterialCard.Content className="space-y-3">
-          {/* Todos los controles en una sola fila */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-7 gap-2">
-            <Input
-              type="search"
-              label="Búsqueda"
-              placeholder="Buscar..."
-              value={filters.searchTerm}
-              onChange={(e) => filters.setSearchTerm(e.target.value)}
-              icon={Search}
-            />
-            <Select
-              label="Agrupación"
-              value={filters.groupBy}
-              onChange={(e) => filters.setGroupBy(e.target.value as UseFiltersReturn['groupBy'])}
-              className="max-w-xs"
-              options={groupOptions}
-            />
-          </div>
-        </MaterialCard.Content>
-      </MaterialCard>
-
-
-      {/* Tabla de Desarrollos */}
-      <MaterialCard elevation={1} className="overflow-hidden">
-        {Object.entries(filters.groupedDevelopments).map(([groupName, groupDevelopments]) => (
-          <div key={groupName}>
-            {filters.groupBy !== 'none' && (
-              <MaterialCard.Header>
-                <Title variant="h5" as="h3">
-                  {groupName}
-                  <Text as="span" variant="caption" weight="medium" className="ml-2 px-2 py-1 rounded-full bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
-                    {groupDevelopments.length} actividad{groupDevelopments.length !== 1 ? 'es' : ''}
-                  </Text>
-                </Title>
-              </MaterialCard.Header>
-            )}
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-[var(--color-surface-variant)]">
-                  <tr>
-                    {[
-                      { key: 'id', label: 'ID' },
-                      { key: 'responsible', label: 'Responsable' },
-                      { key: 'module', label: 'Área' },
-                      { key: 'type', label: 'Tipo' },
-                      { key: 'name', label: 'Actividad' },
-                      { key: 'start_date', label: 'Inicio' },
-                      { key: 'estimated_end_date', label: 'Fin' },
-                      { key: 'description', label: 'Objetivo' },
-                      { key: 'stage_progress_percentage', label: '% Cumplimiento' },
-                      { key: 'status', label: 'Estado' },
-                      { key: 'area_desarrollo', label: 'Área Desarrollo' },
-                      { key: 'analista', label: 'Analista' }
-                    ].map(({ key, label }) => (
-                      <th
-                        key={key}
-                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[var(--color-surface-variant)]/50 transition-colors text-[var(--color-text-secondary)]"
-                        onClick={() => handleColumnSort(key as UseFiltersReturn['sortBy'])}
-                      >
-                        {label}
-                      </th>
-                    ))}
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-border)]">
-                  {groupDevelopments.map((dev) => (
-                    <tr key={dev.id} className="hover:bg-[var(--color-surface-variant)]/50 transition-colors">
-                      <td className="px-4 py-3 text-sm font-bold text-[var(--color-primary)]">
+        {/* Contenedor con tabla */}
+        <div className="max-h-[calc(100vh-220px)] overflow-y-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse">
+            <tbody className="divide-y divide-[var(--color-border)]">
+              {filteredData.length > 0 ? (
+                filteredData.map((dev) => (
+                  <tr 
+                    key={dev.id} 
+                    className="group hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer relative"
+                  >
+                    {/* Indicador lateral */}
+                    <td className="absolute left-0 top-0 bottom-0 w-1.5 bg-[var(--deep-navy)]"></td>
+                    
+                    {/* ID */}
+                    <td className="md:w-24 shrink-0 pl-4 py-2.5">
+                      <span className="font-mono text-xs text-gray-400 whitespace-nowrap">
                         {dev.id}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                      </span>
+                    </td>
+                    {/* Responsable */}
+                    <td className="md:w-32 shrink-0 py-2.5 px-3">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate uppercase text-[10px]">
                         {dev.responsible ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                      </span>
+                    </td>
+                    {/* Área */}
+                    <td className="md:w-28 shrink-0 py-2.5 px-3">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate text-[10px]">
                         {dev.module ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                      </span>
+                    </td>
+                    {/* # */}
+                    <td className="md:w-12 shrink-0 py-2.5 text-center">
+                      <span className="text-xs text-gray-400 font-medium">1</span>
+                    </td>
+                    {/* Tipo */}
+                    <td className="md:w-28 shrink-0 py-2.5 px-3">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate text-[10px]">
                         {dev.type ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-bold text-[var(--color-text-primary)]">
+                      </span>
+                    </td>
+                    {/* Actividad */}
+                    <td className="flex-1 min-w-0 py-2.5 px-3">
+                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-[var(--color-primary)] transition-colors">
                         {dev.name}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                      </p>
+                    </td>
+                    {/* Inicio */}
+                    <td className="md:w-24 shrink-0 py-2.5 px-3">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 text-[10px]">
                         {dev.start_date ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                      </span>
+                    </td>
+                    {/* Fin */}
+                    <td className="md:w-24 shrink-0 py-2.5 px-3">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 text-[10px]">
                         {dev.estimated_end_date ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)] max-w-xs truncate" title={dev.description}>
+                      </span>
+                    </td>
+                    {/* Objetivo */}
+                    <td className="md:w-40 shrink-0 py-2.5 px-3">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate text-[10px]" title={dev.description}>
                         {dev.description ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.stage_progress_percentage ?? 0}%
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <Text as="span" className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(dev.general_status)
-                          }`}>
-                          {dev.general_status}
-                        </Text>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                      </span>
+                    </td>
+                    {/* % Cumplimiento */}
+                    <td className="md:w-20 shrink-0 py-2.5 px-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-[var(--deep-navy)] transition-all duration-500" 
+                            style={{ width: `${dev.stage_progress_percentage ?? 0}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 w-8 text-right">
+                          {dev.stage_progress_percentage ?? 0}%
+                        </span>
+                      </div>
+                    </td>
+                    {/* Estado */}
+                    <td className="md:w-24 shrink-0 py-2.5 px-3 text-center">
+                      <span className={`inline-flex items-center font-medium rounded-full transition-all text-[10px] uppercase tracking-wider px-2 py-0.5 ${getStatusColor(dev.general_status)} shadow-md hover:shadow-lg`}>
+                        {dev.general_status}
+                      </span>
+                    </td>
+                    {/* Área Desarrollo */}
+                    <td className="md:w-32 shrink-0 py-2.5 px-3">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate text-[10px]">
                         {dev.area_desarrollo ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.analista ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <Button
-                          onClick={() => navigate(`/developments/${dev.id}?tab=bitacora`)}
-                          variant="ghost"
-                          size="sm"
-                          icon={Eye}
-                        >
-                          Ver
+                      </span>
+                    </td>
+                    {/* Analista */}
+                    <td className="md:w-32 shrink-0 py-2.5 px-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
+                          {(dev.analista ?? 'A')[0].toUpperCase()}
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 truncate text-[10px]">
+                          {dev.analista ?? 'N/A'}
+                        </span>
+                      </div>
+                    </td>
+                    {/* Acciones */}
+                    <td className="md:w-24 shrink-0 py-2.5 px-3 text-center">
+                      <button
+                        onClick={() => navigate(`/developments/${dev.id}?tab=bitacora`)}
+                        className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20 inline-flex items-center justify-center"
+                        title="Ver detalle"
+                      >
+                        <Eye size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={columns.length + 1} className="py-12 text-center">
+                    <div className="flex flex-col items-center gap-3 opacity-40">
+                      <Search size={40} />
+                      <Text variant="body" weight="medium">No se encontraron actividades</Text>
+                      {activeFilterCount > 0 && (
+                        <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                          Limpiar todos los filtros
                         </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))}
-      </MaterialCard>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-      {/* Modal de Importación u otros */}
+      {/* Popovers de Filtro */}
+      {Object.keys(columnAccessors).map((key) => (
+        activePopover === key && (
+          <ColumnFilterPopover
+            key={key}
+            columnKey={key}
+            title={columns.find(c => c.key === key)?.label || key}
+            options={uniqueValues[key] || []}
+            selectedValues={filters[key] || new Set()}
+            onToggleOption={toggleOption}
+            onSelectAll={selectAll}
+            onClear={clearColumnFilter}
+            onClose={() => setActivePopover(null)}
+            anchorRef={{ current: anchorRefs.current[key] }}
+          />
+        )
+      ))}
+
+      {/* Modal de Creación */}
       <CreateDevelopmentModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
