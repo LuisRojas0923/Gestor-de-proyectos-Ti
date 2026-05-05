@@ -173,12 +173,13 @@ const DevelopmentDetail: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <button
+          <Button
+            variant="custom"
             onClick={() => navigate('/developments')}
             className="p-0 h-auto font-medium text-neutral-600 hover:text-neutral-900 transition-colors dark:text-neutral-300 dark:hover:text-white"
           >
             ← Volver a proyectos
-          </button>
+          </Button>
           <Title variant="h3" weight="bold" color={darkMode ? 'white' : 'navy'} className="mt-2">{development?.name || (loading ? 'Cargando...' : 'Proyecto')}</Title>
           <Text variant="caption" color="text-secondary">{development?.id}</Text>
         </div>
@@ -208,8 +209,9 @@ const DevelopmentDetail: React.FC = () => {
       <div className="rounded-lg p-1 bg-[var(--color-surface)] border border-[var(--color-border)]">
         <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0">
           {tabs.map(t => (
-            <button
+            <Button
               key={t.key}
+              variant="custom"
               onClick={() => setTab(t.key)}
               className={`
                 px-4 py-2 rounded-xl text-sm whitespace-nowrap font-medium transition-all duration-300
@@ -219,7 +221,7 @@ const DevelopmentDetail: React.FC = () => {
               `}
             >
               {t.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
