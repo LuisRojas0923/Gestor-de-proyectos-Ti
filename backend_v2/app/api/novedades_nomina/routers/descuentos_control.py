@@ -52,7 +52,8 @@ def calcular_saldo_y_estado(registro: ControlDescuentoActivo, hoy: date = None) 
             next_y = current.year if current.month < 12 else current.year + 1
             current = date(next_y, next_m, 15)
     saldo = max(0.0, registro.valor_descuento - (cuotas_pasadas * registro.valor_cuota))
-    return float(saldo), ("CERRADO" if saldo < 0.01 else "PENDIENTE")
+    estado = "CERRADO" if (saldo < 1.0 or cuotas_pasadas >= registro.n_cuotas) else "PENDIENTE"
+    return float(saldo), estado
 
 # ── MODELS ──────────────────────────────────────────────────────────────────
 
@@ -256,7 +257,8 @@ async def obtener_tabla_quincenal(anio: int, mes: int, quincena: int, session: A
             pertenece = False
             for fp in fechas_pago:
                 if fp.year == anio and fp.month == mes:
-                    if (quincena == 1 and fp.day == 15) or (quincena == 2 and fp.day >= 28):
+                    # Q1: Dias 1-15, Q2: Dias 16-31
+                    if (quincena == 1 and fp.day <= 15) or (quincena == 2 and fp.day > 15):
                         pertenece = True; break
             if pertenece:
                 filas.append({"indice": indice, "cedula": r.cedula, "nombre": r.nombre, "empresa": r.empresa, "valor": r.valor_cuota, "concepto": f"CONTROL DE DESCUENTO {label_quincena}"})
