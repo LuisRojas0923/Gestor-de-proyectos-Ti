@@ -55,6 +55,84 @@ def calcular_saldo_y_estado(registro: ControlDescuentoActivo, hoy: date = None) 
     estado = "CERRADO" if (saldo < 1.0 or cuotas_pasadas >= registro.n_cuotas) else "PENDIENTE"
     return float(saldo), estado
 
+async def _sincronizar_descuento_nomina(session: AsyncSession, db_erp, registro: ControlDescuentoActivo, eliminar_solamente: bool = False):
+    from ....models.novedades_nomina.nomina import NominaArchivo, NominaRegistroNormalizado
+    from sqlalchemy import select, delete
+    
+    # 1. Eliminar proyecciones anteriores de este descuento
+    await session.execute(
+        delete(NominaRegistroNormalizado).where(
+            NominaRegistroNormalizado.observaciones.like(f"%[SYNC_CD:{registro.id}]%")
+        )
+    )
+    
+    if eliminar_solamente:
+        return
+        
+    # 2. Buscar o crear el archivo dummy
+    result = await session.execute(select(NominaArchivo).where(NominaArchivo.nombre_archivo == "SYNC_CONTROL_DESCUENTOS"))
+    archivo = result.scalars().first()
+    if not archivo:
+        archivo = NominaArchivo(
+            nombre_archivo="SYNC_CONTROL_DESCUENTOS", hash_archivo="SYNC_CD",
+            tamaño_bytes=0, tipo_archivo="sync", ruta_almacenamiento="internal",
+            mes_fact=1, año_fact=2000, categoria="DESCUENTOS",
+            subcategoria="CONTROL DE DESCUENTOS", estado="Procesado"
+        )
+        session.add(archivo)
+        await session.flush()
+
+    # 3. Determinar estado ERP
+    estado_erp = "OK"
+    if db_erp:
+        info = EmpleadosService.consultar_empleados_bulk(db_erp, [registro.cedula]).get(registro.cedula)
+        if info and str(info.get("estado", "")).strip().upper() != "ACTIVO":
+            estado_erp = "RETIRADO"
+        elif not info:
+            estado_erp = "NO ENCONTRADO"
+
+    # 4. Calcular el cronograma y crear los registros normalizados
+    fechas_pago = []
+    curr = registro.fecha_inicio
+    if hasattr(curr, "date"): curr = curr.date()
+    
+    for _ in range(registro.n_cuotas):
+        fechas_pago.append(curr)
+        if curr.day == 15:
+            try: curr = curr.replace(day=30)
+            except ValueError:
+                next_m = curr.month + 1 if curr.month < 12 else 1
+                next_y = curr.year if curr.month < 12 else curr.year + 1
+                curr = date(next_y, next_m, 1) - timedelta(days=1)
+        else:
+            next_m = curr.month + 1 if curr.month < 12 else 1
+            next_y = curr.year if curr.month < 12 else curr.year + 1
+            curr = date(next_y, next_m, 15)
+            
+    for fp in fechas_pago:
+        mes_fact, año_fact = fp.month, fp.year
+        # Q1 = días 1-15, Q2 = días 16-31
+        quincena = "Q1" if fp.day <= 15 else "Q2"
+        concepto = f"CONTROL DE DESCUENTO {quincena}"
+        
+        reg = NominaRegistroNormalizado(
+            archivo_id=archivo.id,
+            fecha_creacion=datetime.now(),
+            mes_fact=mes_fact,
+            año_fact=año_fact,
+            cedula=registro.cedula,
+            nombre_asociado=registro.nombre,
+            valor=registro.valor_cuota,
+            empresa=registro.empresa,
+            concepto=concepto,
+            categoria_final="DESCUENTOS",
+            subcategoria_final="CONTROL DE DESCUENTOS",
+            estado_validacion=estado_erp,
+            observaciones=f"[SYNC_CD:{registro.id}] {registro.observaciones or ''}".strip(),
+            fila_origen=1
+        )
+        session.add(reg)
+
 # ── MODELS ──────────────────────────────────────────────────────────────────
 
 class RegistroDescuentoRequest(BaseModel):
@@ -185,12 +263,17 @@ async def buscar_empleado_control(cedula: str, db_erp: Session = Depends(obtener
     return empleado
 
 @router.post("/control_descuentos/registro")
-async def registrar_control_descuento(req: RegistroDescuentoRequest, session: AsyncSession = Depends(obtener_db)):
+async def registrar_control_descuento(req: RegistroDescuentoRequest, session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
     try:
         fecha_fin = calcular_fecha_finalizacion(req.fecha_inicio, req.n_cuotas)
         valor_cuota = round(req.valor_descuento / req.n_cuotas, 2)
         nuevo = ControlDescuentoActivo(cedula=req.cedula, nombre=req.nombre.upper(), empresa=req.empresa.upper(), cargo=req.cargo.upper() if req.cargo else None, area=req.area.upper() if req.area else None, concepto=req.concepto.upper(), valor_descuento=req.valor_descuento, n_cuotas=req.n_cuotas, valor_cuota=valor_cuota, concepto_nomina="111", fecha_inicio=req.fecha_inicio, fecha_finalizacion=fecha_fin, observaciones=req.observaciones)
-        session.add(nuevo); await session.commit(); await session.refresh(nuevo)
+        session.add(nuevo); await session.flush(); await session.refresh(nuevo)
+        
+        # Sincronización automática a nómina
+        await _sincronizar_descuento_nomina(session, db_erp, nuevo)
+        
+        await session.commit()
         return {"mensaje": "Registro guardado", "id": nuevo.id}
     except Exception as e: await session.rollback(); raise HTTPException(status_code=500, detail=str(e))
 
@@ -272,7 +355,7 @@ async def obtener_tabla_quincenal(anio: int, mes: int, quincena: int, session: A
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/control_descuentos/registro/{id}")
-async def actualizar_control_descuento(id: int, req: RegistroDescuentoRequest, session: AsyncSession = Depends(obtener_db)):
+async def actualizar_control_descuento(id: int, req: RegistroDescuentoRequest, session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
     try:
         stmt = select(ControlDescuentoActivo).where(ControlDescuentoActivo.id == id)
         result = await session.execute(stmt)
@@ -296,6 +379,11 @@ async def actualizar_control_descuento(id: int, req: RegistroDescuentoRequest, s
         registro.fecha_finalizacion = fecha_fin
         registro.observaciones = req.observaciones
         
+        await session.flush()
+        
+        # Sincronización automática a nómina
+        await _sincronizar_descuento_nomina(session, db_erp, registro)
+        
         await session.commit()
         return {"mensaje": "Registro actualizado"}
     except HTTPException: raise
@@ -313,6 +401,10 @@ async def eliminar_control_descuento(id: int, session: AsyncSession = Depends(ob
             raise HTTPException(status_code=404, detail="Registro no encontrado")
         
         await session.delete(registro)
+        
+        # Sincronización automática a nómina (eliminar proyecciones)
+        await _sincronizar_descuento_nomina(session, None, registro, eliminar_solamente=True)
+        
         await session.commit()
         return {"mensaje": "Registro eliminado"}
     except HTTPException: raise

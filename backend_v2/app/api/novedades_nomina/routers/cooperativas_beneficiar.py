@@ -110,22 +110,22 @@ async def preview_beneficiar(
             
             warnings_detalle.append({"cedula": row["cedula"], "nombre": row.get("nombre_asociado", ""), "motivo": f"EXCEPCIÓN APLICADA: {exc['motivo']}"})
 
-    # --- RE-AGRUPACIÓN POR CÉDULA POST-EXCEPCIONES ---
+    # --- RE-AGRUPACIÓN POR CÉDULA Y CONCEPTO POST-EXCEPCIONES ---
     mapa_agrupado_final = {}
     for r in rows:
-        ced_final = r["cedula"]
-        if ced_final in mapa_agrupado_final:
-            mapa_agrupado_final[ced_final]["valor"] += r["valor"]
+        key_final = (r["cedula"], r.get("concepto", ""))
+        if key_final in mapa_agrupado_final:
+            mapa_agrupado_final[key_final]["valor"] += r["valor"]
             obs_nueva = r.get("observaciones")
             if obs_nueva:
-                obs_prev = mapa_agrupado_final[ced_final].get("observaciones")
+                obs_prev = mapa_agrupado_final[key_final].get("observaciones")
                 if obs_prev:
                     if obs_nueva not in obs_prev:
-                        mapa_agrupado_final[ced_final]["observaciones"] = f"{obs_prev} | {obs_nueva}"
+                        mapa_agrupado_final[key_final]["observaciones"] = f"{obs_prev} | {obs_nueva}"
                 else:
-                    mapa_agrupado_final[ced_final]["observaciones"] = obs_nueva
+                    mapa_agrupado_final[key_final]["observaciones"] = obs_nueva
         else:
-            mapa_agrupado_final[ced_final] = r.copy()
+            mapa_agrupado_final[key_final] = r.copy()
     
     rows = list(mapa_agrupado_final.values())
 

@@ -107,7 +107,9 @@ async def preview_celulares(mes: int = Form(...), anio: int = Form(...), files: 
         archivo = NominaArchivo(nombre_archivo=f"celulares_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="CELULARES", estado="Procesado")
         session.add(archivo); await session.flush()
         for idx, row in enumerate(rows):
-            reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="DESCUENTOS", subcategoria_final="CELULARES", estado_validacion="OK" if "EXCEPCIÓN APLICADA" in str(row.get("estado_erp")) or row.get("estado_erp") == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)
+            estado_erp_upper = str(row.get("estado_erp", "OK")).upper()
+            estado_val = "OK" if "EXCEPCION_SALDO_FAVOR" in estado_erp_upper or "REDIRECCIONADO" in estado_erp_upper or "EXCEPCION" in estado_erp_upper or estado_erp_upper == "ACTIVO" else row.get("estado_erp", "OK")
+            reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="DESCUENTOS", subcategoria_final="CELULARES", estado_validacion=estado_val, observaciones=row.get("observaciones"), fila_origen=idx + 1)
             session.add(reg)
         await session.commit()
     except Exception as e:
@@ -191,7 +193,9 @@ async def preview_retenciones(mes: int = Form(...), anio: int = Form(...), files
         archivo = NominaArchivo(nombre_archivo=f"retenciones_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="RETENCIONES", estado="Procesado")
         session.add(archivo); await session.flush()
         for idx, row in enumerate(rows):
-            reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="DESCUENTOS", subcategoria_final="RETENCIONES", estado_validacion="OK" if "EXCEPCIÓN APLICADA" in str(row.get("estado_erp")) or row.get("estado_erp") == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)
+            estado_erp_upper = str(row.get("estado_erp", "OK")).upper()
+            estado_val = "OK" if "EXCEPCION_SALDO_FAVOR" in estado_erp_upper or "REDIRECCIONADO" in estado_erp_upper or "EXCEPCION" in estado_erp_upper or estado_erp_upper == "ACTIVO" else row.get("estado_erp", "OK")
+            reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="DESCUENTOS", subcategoria_final="RETENCIONES", estado_validacion=estado_val, observaciones=row.get("observaciones"), fila_origen=idx + 1)
             session.add(reg)
         await session.commit()
     except Exception as e:
@@ -275,7 +279,9 @@ async def preview_embargos(mes: int = Form(...), anio: int = Form(...), files: L
         archivo = NominaArchivo(nombre_archivo=f"embargos_{mes}_{anio}.xlsx", hash_archivo=file_hash, tamaño_bytes=sum(len(b) for b in archivos_binarios), tipo_archivo="xlsx", ruta_almacenamiento=path, mes_fact=mes, año_fact=anio, categoria="DESCUENTOS", subcategoria="EMBARGOS", estado="Procesado")
         session.add(archivo); await session.flush()
         for idx, row in enumerate(rows):
-            reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="DESCUENTOS", subcategoria_final="EMBARGOS", estado_validacion="OK" if "EXCEPCIÓN APLICADA" in str(row.get("estado_erp")) or row.get("estado_erp") == "ACTIVO" else row.get("estado_erp", "OK"), observaciones=row.get("observaciones"), fila_origen=idx + 1)
+            estado_erp_upper = str(row.get("estado_erp", "OK")).upper()
+            estado_val = "OK" if "EXCEPCION_SALDO_FAVOR" in estado_erp_upper or "REDIRECCIONADO" in estado_erp_upper or "EXCEPCION" in estado_erp_upper or estado_erp_upper == "ACTIVO" else row.get("estado_erp", "OK")
+            reg = NominaRegistroNormalizado(archivo_id=archivo.id, fecha_creacion=datetime.now(), mes_fact=mes, año_fact=anio, cedula=row["cedula"], nombre_asociado=row.get("nombre_asociado", ""), valor=row["valor"], empresa=row.get("empresa", ""), concepto=row["concepto"], categoria_final="DESCUENTOS", subcategoria_final="EMBARGOS", estado_validacion=estado_val, observaciones=row.get("observaciones"), fila_origen=idx + 1)
             session.add(reg)
         await session.commit()
     except Exception as e:

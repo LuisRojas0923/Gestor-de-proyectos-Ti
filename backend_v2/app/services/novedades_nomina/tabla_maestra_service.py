@@ -112,7 +112,7 @@ class TablaMaestraService:
                 NominaRegistroNormalizado.mes_fact == mes,
                 NominaRegistroNormalizado.año_fact == anio,
                 NominaRegistroNormalizado.estado_validacion.in_([
-                    "OK", "Activo", "EXCEPCION_PAGO_TERCERO", "EXCEPCION_VALOR_FIJO", 
+                    "OK", "Activo", "REDIRECCIONADO", "EXCEPCION", "EXCEPCION_PAGO_TERCERO", "EXCEPCION_VALOR_FIJO", 
                     "EXCEPCION_PORCENTAJE_EMPRESA", "EXCEPCION_AUTORIZADA", "EXCEPCION_SALDO_FAVOR"
                 ])
             )
@@ -166,7 +166,7 @@ class TablaMaestraService:
 
                 # Calcular valor quincenal
                 valor_mensual = r.valor or 0
-                if subcat == "OTROS GERENCIA":
+                if subcat in ["OTROS GERENCIA", "RETENCIONES"]:
                     valor_quincenal = round(valor_mensual, 2)
                 else:
                     valor_quincenal = round(valor_mensual / 2, 2)
