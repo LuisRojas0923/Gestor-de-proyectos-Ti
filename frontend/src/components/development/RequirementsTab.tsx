@@ -36,7 +36,7 @@ interface RequirementsTabProps {
 
 const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMode }) => {
   const { t } = useTranslation();
-  const api = useApi();
+  const { get } = useApi();
 
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,36 +51,23 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
     const fetchRequirements = async () => {
       try {
         setLoading(true);
-        // TODO: Implementar endpoint específico para requerimientos de un desarrollo
-        // const response = await api.get(`/developments/${developmentId}/requirements`);
-        // Por ahora usamos datos mock
-        const mockRequirements: Requirement[] = [
-          {
-            id: 1,
-            external_id: 'FD-FT-284',
-            title: 'Implementación de validación de datos',
-            description: 'Desarrollar validación de datos de entrada para el módulo de usuarios',
-            status: 'validated',
-            priority: 'high',
-            due_date: '2025-02-15',
-            assigned_user_id: 1,
-            created_at: '2025-01-15T10:00:00Z',
-            updated_at: '2025-01-20T14:30:00Z',
-          },
-          {
-            id: 2,
-            external_id: 'FD-FT-285',
-            title: 'Optimización de consultas SQL',
-            description: 'Mejorar rendimiento de consultas en el módulo de reportes',
-            status: 'testing',
-            priority: 'medium',
-            due_date: '2025-02-20',
-            assigned_user_id: 2,
-            created_at: '2025-01-16T09:00:00Z',
-            updated_at: '2025-01-21T16:45:00Z',
-          },
-        ];
-        setRequirements(mockRequirements);
+        const response = await get(`/requerimientos/desarrollo/${developmentId}`);
+        
+        // Map backend (Spanish) to frontend (English) names
+        const mappedData = (response as any[]).map(item => ({
+          id: item.id,
+          external_id: item.external_id,
+          title: item.titulo,
+          description: item.descripcion,
+          status: item.estado,
+          priority: item.prioridad,
+          due_date: item.fecha_limite,
+          assigned_user_id: item.responsable_id,
+          created_at: item.creado_en,
+          updated_at: item.actualizado_en,
+        }));
+        
+        setRequirements(mappedData);
         setError(null);
       } catch (err) {
         setError('Failed to fetch requirements');
@@ -91,7 +78,7 @@ const RequirementsTab: React.FC<RequirementsTabProps> = ({ developmentId, darkMo
     };
 
     fetchRequirements();
-  }, [api, developmentId]);
+  }, [get, developmentId]);
 
   const filteredRequirements = useMemo(() => {
     return requirements.filter((req) => {

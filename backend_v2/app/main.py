@@ -16,20 +16,20 @@ from .services.panel_control.metrica_service import MetricaService
 from .services.auth.rbac_discovery import sincronizar_manifiesto_rbac
 
 # Importar routers
-from .api.auth import router as auth_router
 from .api.desarrollos import router as desarrollos_router
-from .api.desarrollos.actividades_router import router as actividades_router
-from .api.desarrollos.plantillas_router import router as plantillas_router
+from .api.development_by_number import router as development_by_number_router
+from .api.desarrollos.reporte_router import router as reporte_router
 from .api.kpis import router as kpis_router
 from .api.alertas import router as alertas_router
 from .api.tickets import router as tickets_router
 from .api.ia import router as ia_router
-from .api.log_actividades.router import router as log_actividades_router
 from .api.erp import router as erp_router
 from .api.panel_control import router as panel_control_router
 from .api.etapas_router import router as etapas_router
 from .api.solid.router import router as solid_router
 from .api.viaticos.router import router as viaticos_router
+from .api.auth import router as auth_router
+from .api.desarrollos_actividades import router as desarrollos_actividades_router
 from .api.auth.config_router import router as config_router
 from .api.reserva_salas import router as reserva_salas_router
 from .api.inventario.router import router as inventario_router
@@ -149,21 +149,13 @@ app.include_router(
     desarrollos_router, prefix=f"{api_prefix}/desarrollos", tags=["Desarrollos"]
 )
 app.include_router(
-    actividades_router, prefix=f"{api_prefix}/actividades", tags=["Actividades WBS"]
-)
-app.include_router(
-    plantillas_router,
-    prefix=f"{api_prefix}/desarrollos/plantillas",
-    tags=["Plantillas WBS"],
+    reporte_router, prefix=f"{api_prefix}/reportes", tags=["Reportes Consolidados"]
 )
 app.include_router(kpis_router, prefix=f"{api_prefix}/kpis", tags=["KPIs"])
 app.include_router(alertas_router, prefix=f"{api_prefix}/alertas", tags=["Alertas"])
 app.include_router(tickets_router, prefix=f"{api_prefix}/soporte", tags=["Tickets"])
 app.include_router(ia_router, prefix=f"{api_prefix}/ia", tags=["IA"])
 app.include_router(erp_router, prefix=f"{api_prefix}/erp", tags=["ERP"])
-app.include_router(
-    log_actividades_router, prefix=f"{api_prefix}/log-actividades", tags=["Bitácora"]
-)
 app.include_router(
     panel_control_router, prefix=f"{api_prefix}/panel-control", tags=["Panel Control"]
 )
@@ -183,3 +175,7 @@ app.include_router(
     prefix=f"{api_prefix}/lineas-corporativas",
     tags=["Lineas Corporativas"],
 )
+
+# Consolidated developments-activities endpoint and number-mapped endpoint
+app.include_router(desarrollos_actividades_router, prefix=api_prefix)
+app.include_router(development_by_number_router, prefix=api_prefix)

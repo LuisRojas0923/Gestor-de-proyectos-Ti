@@ -1,150 +1,37 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
-import { DevelopmentWithCurrentStatus, Activity } from '../types';
-import { useActivities } from './MyDevelopments/hooks/useActivities';
-import { ActivityCreateModal, ActivityEditModal, ActivityDeleteModal } from '../components/organisms/activities';
-import { FollowUpConfig } from '../components/organisms/activities/hooks/useActivityValidation';
-import { DevelopmentEditModal } from '../components/molecules';
+import { DevelopmentWithCurrentStatus } from '../types';
 import { Button, Title, Text } from '../components/atoms';
-
-// Sub-componentes
-import GeneralInfoTab from './DevelopmentDetail/GeneralInfoTab';
-import ActivityLogTab from './DevelopmentDetail/ActivityLogTab';
-import WbsTab from './DevelopmentDetail/WbsTab';
-
-const tabs = [
-  { key: 'detalle', label: 'Detalle' },
-  { key: 'bitacora', label: 'Historial / Comentarios' },
-  { key: 'actividades', label: 'Tareas del Proyecto' },
-  { key: 'fases', label: 'Estados' },
-  { key: 'requerimientos', label: 'Requerimientos' },
-];
+import { DevelopmentEditModal } from '../components/molecules';
+import ConsolidatedTableById from '../components/ConsolidatedTableById';
 
 const DevelopmentDetail: React.FC = () => {
   const navigate = useNavigate();
   const { darkMode } = useAppContext().state;
   const { get, put } = useApi<DevelopmentWithCurrentStatus>();
   const { developmentId } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'detalle';
 
   const [development, setDevelopment] = useState<DevelopmentWithCurrentStatus | null>(null);
   const [loading, setLoading] = useState(false);
-  const [lastActivity, setLastActivity] = useState<Activity | null>(null);
-
-  // Modales de actividad
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
   const [developmentEditOpen, setDevelopmentEditOpen] = useState(false);
-  const [isEditingActivity, setIsEditingActivity] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
-  const [editForm, setEditForm] = useState<{ status: string; notes?: string; next_follow_up_at?: string; start_date?: string; end_date?: string; follow_up_config?: FollowUpConfig } | null>(null);
-  const [editErrors, setEditErrors] = useState<string[]>([]);
-  const [shouldRollback, setShouldRollback] = useState(false);
 
   // Cargar desarrollo
   useEffect(() => {
     const load = async () => {
       if (!developmentId) return;
       setLoading(true);
-      const dev = await get(API_ENDPOINTS.DEVELOPMENT_BY_ID(developmentId));
-      setDevelopment(dev as unknown as DevelopmentWithCurrentStatus);
-      setLoading(false);
+      try {
+        const dev = await get(API_ENDPOINTS.DEVELOPMENT_BY_ID(developmentId));
+        setDevelopment(dev as unknown as DevelopmentWithCurrentStatus);
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, [developmentId, get]);
-
-  // Actividades
-  const { activities, activitiesLoading, loadActivities, confirmDeleteActivity, confirmEditActivity } = useActivities(development);
-
-  useEffect(() => {
-    if (development && (activeTab === 'bitacora' || activeTab === 'detalle')) {
-      loadActivities();
-    }
-  }, [development, activeTab, loadActivities]);
-
-  useEffect(() => {
-    if (activities && activities.length > 0) {
-      const sortedActivities = [...activities].sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      setLastActivity(sortedActivities[0]);
-    }
-  }, [activities]);
-
-  // Validación
-  const validate = useMemo(() => (form: Required<typeof editForm>) => {
-    if (!form) return [];
-    const errs: string[] = [];
-    if (form.start_date && form.end_date && new Date(form.start_date) > new Date(form.end_date)) {
-      errs.push('La fecha de inicio no puede ser mayor que la fecha de fin.');
-    }
-    return errs;
-  }, []);
-
-  const openEdit = (activity: Activity) => {
-    setSelectedActivity(activity);
-    const form = {
-      status: activity.status || 'pendiente',
-      notes: activity.notes || '',
-      next_follow_up_at: activity.next_follow_up_at || '',
-      start_date: activity.start_date || '',
-      end_date: activity.end_date || '',
-      follow_up_config: activity.follow_up_config || undefined
-    };
-    setEditForm(form);
-    setEditErrors(validate(form as Required<typeof editForm>));
-    setEditOpen(true);
-  };
-
-  const onEditChange = (patch: Partial<NonNullable<typeof editForm>>) => {
-    if (!editForm) return;
-    const newForm = { ...editForm, ...patch };
-    setEditForm(newForm);
-    setEditErrors(validate(newForm as Required<typeof editForm>));
-  };
-
-  const onEditConfirm = async () => {
-    if (!selectedActivity || !editForm) return;
-    if (editErrors.length > 0) return;
-    
-    setIsEditingActivity(true);
-    try {
-      const ok = await confirmEditActivity(selectedActivity.id, {
-        status: editForm.status,
-        notes: editForm.notes || undefined,
-        next_follow_up_at: editForm.next_follow_up_at || undefined,
-        start_date: editForm.start_date || undefined,
-        end_date: editForm.end_date || undefined,
-        follow_up_config: editForm.follow_up_config || undefined
-      });
-      if (ok) setEditOpen(false);
-    } finally {
-      setIsEditingActivity(false);
-    }
-  };
-
-  const openDelete = (activity: Activity) => {
-    setSelectedActivity(activity);
-    setShouldRollback(false);
-    setDeleteOpen(true);
-  };
-
-  const onDeleteConfirm = async () => {
-    if (!selectedActivity) return;
-    await confirmDeleteActivity(selectedActivity.id);
-    setDeleteOpen(false);
-  };
-
-  const completeActivity = async (activity: Activity) => {
-    if (!activity) return;
-    const ok = await confirmEditActivity(activity.id, { status: 'completada' });
-    if (ok) { /* Auto update via hook */ }
-  };
 
   const updateDevelopment = async (updatedData: Partial<DevelopmentWithCurrentStatus>): Promise<boolean> => {
     if (!development) return false;
@@ -161,14 +48,6 @@ const DevelopmentDetail: React.FC = () => {
     }
   };
 
-  const setTab = (tabKey: string) => {
-    setSearchParams(prev => {
-      const p = new URLSearchParams(prev);
-      p.set('tab', tabKey);
-      return p;
-    }, { replace: true });
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -180,7 +59,9 @@ const DevelopmentDetail: React.FC = () => {
           >
             ← Volver a proyectos
           </Button>
-          <Title variant="h3" weight="bold" color={darkMode ? 'white' : 'navy'} className="mt-2">{development?.name || (loading ? 'Cargando...' : 'Proyecto')}</Title>
+          <Title variant="h3" weight="bold" color={darkMode ? 'white' : 'navy'} className="mt-2">
+            {development?.name || (loading ? 'Cargando...' : 'Proyecto')}
+          </Title>
           <Text variant="caption" color="text-secondary">{development?.id}</Text>
         </div>
 
@@ -206,97 +87,9 @@ const DevelopmentDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="rounded-lg p-1 bg-[var(--color-surface)] border border-[var(--color-border)]">
-        <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0">
-          {tabs.map(t => (
-            <Button
-              key={t.key}
-              variant="custom"
-              onClick={() => setTab(t.key)}
-              className={`
-                px-4 py-2 rounded-xl text-sm whitespace-nowrap font-medium transition-all duration-300
-                ${activeTab === t.key 
-                  ? 'bg-primary-500 text-white shadow-sm hover:shadow-md dark:bg-primary-600 dark:hover:bg-primary-700' 
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/10 border border-transparent dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white'}
-              `}
-            >
-              {t.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
-        {activeTab === 'detalle' && (
-          <GeneralInfoTab
-            development={development}
-            darkMode={darkMode}
-            activitiesLoading={activitiesLoading}
-            lastActivity={lastActivity}
-          />
-        )}
-
-        {activeTab === 'bitacora' && (
-          <ActivityLogTab
-            activities={activities}
-            loading={activitiesLoading}
-            darkMode={darkMode}
-            hideCompleted={searchParams.get('hideCompleted') === 'true'}
-            onHideCompletedChange={(hide) => {
-              setSearchParams(prev => {
-                const p = new URLSearchParams(prev);
-                if (hide) p.set('hideCompleted', 'true');
-                else p.delete('hideCompleted');
-                return p;
-              }, { replace: true });
-            }}
-            onCreateOpen={() => setCreateOpen(true)}
-            onComplete={completeActivity}
-            onEdit={openEdit}
-            onDelete={openDelete}
-          />
-        )}
-
-        {activeTab === 'actividades' && developmentId && (
-          <WbsTab development={development} developmentId={developmentId} darkMode={darkMode} />
-        )}
-
-        {activeTab === 'fases' && (
-          <Text color="text-secondary">Contenido de Fases (pendiente de integrar).</Text>
-        )}
-
-        {activeTab === 'requerimientos' && (
-          <Text color="text-secondary">Contenido de Requerimientos (pendiente de integrar).</Text>
-        )}
-      </div>
-
-      {/* Modales */}
-      <ActivityEditModal
-        isOpen={editOpen}
-        activity={selectedActivity}
-        form={editForm}
-        errors={editErrors}
-        loading={isEditingActivity}
-        onFormChange={onEditChange}
-        onConfirm={onEditConfirm}
-        onCancel={() => setEditOpen(false)}
-      />
-      <ActivityDeleteModal
-        isOpen={deleteOpen}
-        activity={selectedActivity}
-        shouldRollbackStage={shouldRollback}
-        onRollbackChange={setShouldRollback}
-        onConfirm={onDeleteConfirm}
-        onCancel={() => setDeleteOpen(false)}
-      />
-      <ActivityCreateModal
-        isOpen={createOpen}
-        developmentId={developmentId as string}
-        defaultStageId={development?.current_stage_id ?? null}
-        darkMode={darkMode}
-        onClose={() => setCreateOpen(false)}
-        onCreated={loadActivities}
-      />
+      {development && (
+        <ConsolidatedTableById desarrolloId={development.id} />
+      )}
 
       {development && (
         <DevelopmentEditModal

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { API_CONFIG, ERROR_MESSAGES, HTTP_STATUS } from '../config/api';
 import { useAppContext } from '../context/AppContext';
@@ -148,12 +148,12 @@ export function useApi<T>() {
     [request]
   );
 
-  return {
+  return useMemo(() => ({
     ...state,
     get,
     post,
     put,
     patch,
     delete: del,
-  };
+  }), [state, get, post, put, patch, del]);
 }

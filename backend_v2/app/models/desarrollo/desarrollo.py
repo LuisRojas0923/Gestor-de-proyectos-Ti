@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .actividad import Actividad
+    from .requerimiento import RequerimientoDesarrollo
 
 
 # --- Modelos de Base de Datos (table=True) ---
@@ -103,6 +104,7 @@ class Desarrollo(SQLModel, table=True):
     fase_actual: Optional[FaseDesarrollo] = Relationship(back_populates="desarrollos")
     etapa_actual: Optional[EtapaDesarrollo] = Relationship(back_populates="desarrollos")
     actividades: List["Actividad"] = Relationship(back_populates="desarrollo")
+    requerimientos: List["RequerimientoDesarrollo"] = Relationship(back_populates="desarrollo")
 
 
 # --- Schemas de Validacion ---
