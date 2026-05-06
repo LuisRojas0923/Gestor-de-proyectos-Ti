@@ -135,14 +135,12 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                 variant="ghost"
                 ref={triggerRef}
                 onClick={toggleSimple}
-                className={`flex items-center justify-center p-1 h-auto min-w-0 rounded-md transition-all relative ${
-                    hasFilters ? 'bg-primary-500 text-white shadow-sm' : 
-                    props.dark ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                className={`flex items-center justify-center p-0 h-auto min-w-0 rounded-md transition-all relative ${
+                    hasFilters ? 'w-4 h-4 ml-1' : 'w-0 h-0 opacity-0 pointer-events-none'
                 }`}
             >
-                <Filter className={`w-3.5 h-3.5 ${hasFilters ? 'fill-current' : ''}`} />
                 {hasFilters && (
-                    <Text as="span" className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 text-white text-[8px] flex items-center justify-center rounded-full border border-white dark:border-slate-900 font-bold">
+                    <Text as="span" className="w-4 h-4 bg-red-500 text-white text-[9px] flex items-center justify-center rounded-full font-bold">
                         {props.selectedOptions?.length}
                     </Text>
                 )}
