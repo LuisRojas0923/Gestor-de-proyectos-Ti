@@ -4,7 +4,7 @@ import { Title, Text, Button, Badge, ProgressBar, Input, Select, Textarea } from
 import Skeleton from '../../components/atoms/Skeleton';
 import Checkbox from '../../components/atoms/Checkbox';
 import MaterialCard from '../../components/atoms/MaterialCard';
-import { Plus, ChevronDown, ChevronRight, Download, RotateCcw, Filter } from 'lucide-react';
+import { Trash2, Plus, ChevronDown, ChevronRight, Download, RotateCcw, Filter } from 'lucide-react';
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
 import { DeleteActivityModal } from './DeleteActivityModal';
