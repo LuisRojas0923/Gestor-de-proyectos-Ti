@@ -241,8 +241,18 @@ table {
 }
 
 table th {
+  position: relative !important;
   padding-top: 5px !important;
   padding-bottom: 5px !important;
+  transition: background-color 0.2s ease-in-out, filter 0.2s ease-in-out !important;
+}
+
+table th:has(button) {
+  cursor: pointer !important;
+}
+
+table th:has(button):hover {
+  filter: brightness(1.15) !important;
 }
 
 table th,

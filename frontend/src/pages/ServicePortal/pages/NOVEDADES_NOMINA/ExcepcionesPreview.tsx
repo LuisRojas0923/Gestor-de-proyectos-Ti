@@ -99,6 +99,7 @@ const ExcepcionesPreview: React.FC = () => {
     };
 
     useEffect(() => {
+        window.scrollTo({ top: 0 });
         fetchExcepciones();
         fetchCatalog();
     }, []);
@@ -201,11 +202,11 @@ const ExcepcionesPreview: React.FC = () => {
     };
 
     const columns = useMemo<ColumnDef<Excepcion>[]>(() => [
-        { header: 'COLABORADOR', accessorKey: 'cedula', align: 'center', cell: (row) => (
-            <div className="flex flex-col">
-                <Text size="sm" weight="bold">{row.cedula}</Text>
-                <Text size="xs" color="text-tertiary">{row.nombre_asociado || 'N/A'}</Text>
-            </div>
+        { header: 'CÉDULA', accessorKey: 'cedula', align: 'center', cell: (row) => (
+            <Text size="sm" weight="bold" className="font-mono text-center w-full block">{row.cedula}</Text>
+        )},
+        { header: 'COLABORADOR', accessorKey: 'nombre_asociado', align: 'center', cell: (row) => (
+            <Text size="sm" className="text-center w-full block">{row.nombre_asociado || 'N/A'}</Text>
         )},
         { header: 'SUBCATEGORÍA', accessorKey: 'subcategoria', align: 'center' },
         { header: 'TIPO', accessorKey: 'tipo', align: 'center', cell: (row) => (
