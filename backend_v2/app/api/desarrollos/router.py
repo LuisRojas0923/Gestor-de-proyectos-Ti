@@ -6,7 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db
 from sqlalchemy import select
-from app.models.desarrollo.desarrollo import Desarrollo, DesarrolloCrear, DesarrolloActualizar
+from app.models.desarrollo.desarrollo import (
+    Desarrollo,
+    DesarrolloActualizar,
+    DesarrolloCrear,
+    TipoDesarrollo,
+)
 
 router = APIRouter()
 
@@ -82,6 +87,24 @@ async def informe_detallado_casos_portal(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener informe de casos: {str(e)}")
+
+
+@router.get("/tipos", response_model=List[TipoDesarrollo])
+async def listar_tipos_desarrollo(
+    incluir_inactivos: bool = False,
+    db: AsyncSession = Depends(obtener_db),
+):
+    """Lista los tipos de desarrollo configurados"""
+    try:
+        query = select(TipoDesarrollo).order_by(TipoDesarrollo.orden, TipoDesarrollo.etiqueta)
+
+        if not incluir_inactivos:
+            query = query.where(TipoDesarrollo.esta_activo.is_(True))
+
+        result = await db.execute(query)
+        return result.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al listar tipos de desarrollo: {str(e)}")
 
 
 @router.get("/{desarrollo_id}", response_model=Desarrollo)

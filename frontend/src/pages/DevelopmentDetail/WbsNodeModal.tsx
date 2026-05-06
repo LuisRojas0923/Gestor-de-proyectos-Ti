@@ -3,6 +3,8 @@ import { X } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { Title, Button, Input, Select, Textarea } from '../../components/atoms';
 import { WbsActivityCreate, WbsActivityUpdate, WbsActivityTree } from '../../types/wbs';
+import { AssignableUserSelect } from '../../components/assignments/AssignableUserSelect';
+import { useAppContext } from '../../context/AppContext';
 
 interface WbsNodeModalProps {
     isOpen: boolean;
@@ -18,6 +20,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     isOpen, onClose, onSaved, developmentId, parentId, editNode, darkMode
 }) => {
     const { post, patch } = useApi();
+    const { state } = useAppContext();
     const [loading, setLoading] = useState(false);
 
     // Estado del formulario
@@ -28,6 +31,8 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     const [seguimiento, setSeguimiento] = useState('');
     const [compromiso, setCompromiso] = useState('');
     const [archivoUrl, setArchivoUrl] = useState('');
+    const [responsableId, setResponsableId] = useState('');
+    const [asignadoAId, setAsignadoAId] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -39,6 +44,8 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 setSeguimiento(editNode.seguimiento || '');
                 setCompromiso(editNode.compromiso || '');
                 setArchivoUrl(editNode.archivo_url || '');
+                setResponsableId(editNode.responsable_id || '');
+                setAsignadoAId(editNode.asignado_a_id || '');
             } else {
                 setTitulo('');
                 setDescripcion('');
@@ -47,6 +54,8 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 setSeguimiento('');
                 setCompromiso('');
                 setArchivoUrl('');
+                setResponsableId('');
+                setAsignadoAId('');
             }
         }
     }, [isOpen, editNode]);
@@ -65,6 +74,9 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     descripcion,
                     estado,
                     porcentaje_avance: parseFloat(avance.toString()),
+                    responsable_id: responsableId || undefined,
+                    asignado_a_id: asignadoAId || undefined,
+                    delegado_por_id: state.user?.id || undefined,
                     seguimiento,
                     compromiso,
                     archivo_url: archivoUrl
@@ -80,6 +92,9 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     estado,
                     porcentaje_avance: parseFloat(avance.toString()),
                     horas_estimadas: 0,
+                    responsable_id: responsableId || undefined,
+                    asignado_a_id: asignadoAId || undefined,
+                    delegado_por_id: state.user?.id || undefined,
                     seguimiento,
                     compromiso,
                     archivo_url: archivoUrl
@@ -144,6 +159,21 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                 const val = Number(e.target.value);
                                 if (val >= 0 && val <= 100) setAvance(val);
                             }}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <AssignableUserSelect
+                            label="Responsable"
+                            value={responsableId}
+                            onChange={setResponsableId}
+                            helperText="Persona que responde por la tarea."
+                        />
+                        <AssignableUserSelect
+                            label="Líder de actividad"
+                            value={asignadoAId}
+                            onChange={setAsignadoAId}
+                            helperText="Persona que ejecutará la tarea."
                         />
                     </div>
 

@@ -27,6 +27,8 @@ interface DevelopmentData {
   fecha_estimada_fin?: string;
   provider?: string;
   proveedor?: string;
+  authority?: string;
+  autoridad?: string;
   responsible?: string;
   responsable?: string;
   area_desarrollo?: string;
@@ -64,6 +66,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
         start_date: development.start_date || development.fecha_inicio || '',
         estimated_end_date: development.estimated_end_date || development.fecha_estimada_fin || '',
         provider: development.provider || development.proveedor || '',
+        authority: development.authority || development.autoridad || '',
         responsible: development.responsible || development.responsable || '',
         area_desarrollo: development.area_desarrollo || '',
         analista: development.analista || '',
@@ -102,6 +105,10 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
 
     if (formData.responsible && formData.responsible.length > 255) {
       newErrors.push('El responsable no puede exceder 255 caracteres');
+    }
+
+    if (formData.authority && formData.authority.length > 255) {
+      newErrors.push('La autoridad no puede exceder 255 caracteres');
     }
 
     // Validar fecha estimada
@@ -238,7 +245,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Input
-                    label="Módulo"
+                    label="Proceso"
                     value={formData.module || ''}
                     onChange={(e) => handleFieldChange('module', e.target.value)}
                     maxLength={100}
@@ -300,7 +307,16 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
 
                 <div>
                   <Input
-                    label="Área de Desarrollo"
+                    label="Autoridad"
+                    value={formData.authority || ''}
+                    onChange={(e) => handleFieldChange('authority', e.target.value)}
+                    maxLength={255}
+                  />
+                </div>
+
+                <div>
+                  <Input
+                    label="Área de impacto"
                     value={formData.area_desarrollo || ''}
                     onChange={(e) => handleFieldChange('area_desarrollo', e.target.value)}
                     maxLength={100}
@@ -309,7 +325,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
 
                 <div>
                   <Input
-                    label="Ejecutor / Asignado"
+                    label="Líder de actividad"
                     value={formData.analista || ''}
                     onChange={(e) => handleFieldChange('analista', e.target.value)}
                     maxLength={100}

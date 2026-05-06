@@ -6,7 +6,7 @@ import { API_ENDPOINTS } from '../config/api';
 import { DevelopmentWithCurrentStatus } from '../types';
 import { Button, Title, Text } from '../components/atoms';
 import { DevelopmentEditModal } from '../components/molecules';
-import ConsolidatedTableById from '../components/ConsolidatedTableById';
+import WbsTab from './DevelopmentDetail/WbsTab';
 
 type ApiDevelopment = DevelopmentWithCurrentStatus & {
   nombre?: string;
@@ -19,6 +19,7 @@ type ApiDevelopment = DevelopmentWithCurrentStatus & {
   fecha_inicio?: string;
   fecha_estimada_fin?: string;
   proveedor?: string;
+  autoridad?: string;
   responsable?: string;
 };
 
@@ -34,6 +35,7 @@ const normalizeDevelopment = (development: ApiDevelopment): DevelopmentWithCurre
   start_date: development.start_date || development.fecha_inicio,
   estimated_end_date: development.estimated_end_date || development.fecha_estimada_fin,
   provider: development.provider || development.proveedor,
+  authority: development.authority || development.autoridad,
   responsible: development.responsible || development.responsable,
 });
 
@@ -48,6 +50,7 @@ const toApiDevelopmentPayload = (data: Partial<ApiDevelopment>) => ({
   fecha_inicio: data.start_date,
   fecha_estimada_fin: data.estimated_end_date,
   proveedor: data.provider,
+  autoridad: data.authority,
   responsable: data.responsible,
   area_desarrollo: data.area_desarrollo,
   analista: data.analista,
@@ -134,8 +137,10 @@ const DevelopmentDetail: React.FC = () => {
         </div>
       </div>
 
+
+
       {development && (
-        <ConsolidatedTableById desarrolloId={development.id} />
+        <WbsTab developmentId={development.id} darkMode={darkMode} />
       )}
 
       {development && (

@@ -25,13 +25,11 @@ type DesarrolloCon = {
 };
 
 const getStatusClass = (estado: string) => {
-  const colors: Record<string, string> = {
-    completada: 'text-green-700 bg-green-100 dark:bg-green-900/20 dark:text-green-300',
-    en_progreso: 'text-blue-700 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300',
-    pendiente: 'text-yellow-700 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-300',
-  };
-
-  return colors[estado] || 'text-gray-700 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-300';
+  const normalized = estado.toLowerCase();
+  if (normalized.includes('pendiente')) return 'text-red-700 bg-red-100 dark:bg-red-900/20 dark:text-red-300';
+  if (normalized.includes('progreso') || normalized.includes('curso')) return 'text-yellow-700 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-300';
+  if (normalized.includes('complet')) return 'text-green-700 bg-green-100 dark:bg-green-900/20 dark:text-green-300';
+  return 'text-gray-700 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-300';
 };
 
 const formatDateRange = (start?: string, end?: string) => {
@@ -95,7 +93,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
               {data.nombre}
             </Title>
             <Text variant="body2" color="text-secondary" className="mt-1">
-              {data.area_desarrollo ?? 'Sin area'} · {data.analista ?? 'Sin analista'}
+              {data.area_desarrollo ?? 'Sin área de impacto'} · {data.analista ?? 'Sin líder de actividad'}
             </Text>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:min-w-[420px]">
@@ -141,7 +139,7 @@ const ConsolidatedTableById: React.FC<{ desarrolloId: string }> = ({ desarrolloI
                 )}
               </div>
               <div className="flex items-start px-0 md:px-4 md:py-3">
-                <Text as="span" variant="caption" weight="bold" color="inherit" className={`inline-flex rounded-full px-2 py-1 !text-[10px] uppercase tracking-wider ${getStatusClass(a.estado)}`}>
+                <Text as="span" variant="caption" weight="bold" color="inherit" className={`inline-flex rounded-full px-2 py-1 !text-[10px] tracking-wider ${getStatusClass(a.estado)}`}>
                   {a.estado}
                 </Text>
               </div>

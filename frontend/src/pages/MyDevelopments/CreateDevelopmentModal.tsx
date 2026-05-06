@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { Title, Button, Input, Select, Textarea } from '../../components/atoms';
@@ -10,11 +10,26 @@ interface CreateDevelopmentModalProps {
     darkMode: boolean;
 }
 
+interface TipoDesarrollo {
+    valor: string;
+    etiqueta: string;
+}
+
+const DEFAULT_TIPO_OPTIONS = [
+    { value: 'Proyecto', label: 'Proyecto' },
+    { value: 'Mejora', label: 'Mejora' },
+    { value: 'Soporte', label: 'Soporte' },
+    { value: 'Renovación', label: 'Renovación' },
+    { value: 'Actividad frecuente', label: 'Actividad frecuente' },
+    { value: 'Actividad', label: 'Actividad' },
+];
+
 export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     isOpen, onClose, onSaved, darkMode
 }) => {
-    const { post } = useApi();
+    const { get, post } = useApi<unknown>();
     const [loading, setLoading] = useState(false);
+    const [tipoOptions, setTipoOptions] = useState(DEFAULT_TIPO_OPTIONS);
 
     // Form State
     const [id, setId] = useState(`DEV-${Math.floor(Date.now() / 1000).toString().slice(-5)}`);
@@ -22,11 +37,48 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     const [descripcion, setDescripcion] = useState('');
     const [modulo, setModulo] = useState('');
     const [tipo, setTipo] = useState('Proyecto');
+    const [autoridad, setAutoridad] = useState('');
     const [responsable, setResponsable] = useState('');
     const [areaDesarrollo, setAreaDesarrollo] = useState('');
     const [analista, setAnalista] = useState('');
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaEstimadaFin, setFechaEstimadaFin] = useState('');
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const loadTipos = async () => {
+            try {
+                const tipos = await get('/desarrollos/tipos');
+                if (!Array.isArray(tipos)) return;
+
+                const options = tipos
+                    .filter((tipoItem): tipoItem is TipoDesarrollo => (
+                        typeof tipoItem === 'object' &&
+                        tipoItem !== null &&
+                        'valor' in tipoItem &&
+                        'etiqueta' in tipoItem &&
+                        typeof tipoItem.valor === 'string' &&
+                        typeof tipoItem.etiqueta === 'string'
+                    ))
+                    .map((tipoItem) => ({
+                        value: tipoItem.valor,
+                        label: tipoItem.etiqueta,
+                    }));
+
+                if (options.length > 0) {
+                    setTipoOptions(options);
+                    if (!options.some((option) => option.value === tipo)) {
+                        setTipo(options[0].value);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading development types:', error);
+            }
+        };
+
+        void loadTipos();
+    }, [get, isOpen, tipo]);
 
     const handleSave = async () => {
         if (!nombre.trim() || !id.trim()) return;
@@ -39,6 +91,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                 descripcion: descripcion || undefined,
                 modulo: modulo || id,
                 tipo,
+                autoridad: autoridad || undefined,
                 responsable: responsable || undefined,
                 area_desarrollo: areaDesarrollo || undefined,
                 analista: analista || undefined,
@@ -59,6 +112,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
             setDescripcion('');
             setModulo('');
             setTipo('Proyecto');
+            setAutoridad('');
             setResponsable('');
             setAreaDesarrollo('');
             setAnalista('');
@@ -97,12 +151,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                             label="Tipo"
                             value={tipo}
                             onChange={(e) => setTipo(e.target.value)}
-                            options={[
-                                { value: 'Proyecto', label: 'Proyecto' },
-                                { value: 'Mejora', label: 'Mejora' },
-                                { value: 'Soporte', label: 'Soporte' },
-                                { value: 'Renovación', label: 'Renovación' },
-                            ]}
+                            options={tipoOptions}
                         />
                     </div>
 
@@ -123,13 +172,13 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
-                            label="Área de Desarrollo"
+                            label="Área de impacto"
                             placeholder="Ej. Gestión Humana"
                             value={areaDesarrollo}
                             onChange={(e) => setAreaDesarrollo(e.target.value)}
                         />
                         <Input
-                            label="Ejecutor / Asignado"
+                            label="Líder de actividad"
                             placeholder="Ej. LUIS ENRIQUE"
                             value={analista}
                             onChange={(e) => setAnalista(e.target.value)}
@@ -144,7 +193,16 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                             onChange={(e) => setResponsable(e.target.value)}
                         />
                         <Input
-                            label="Módulo"
+                            label="Autoridad"
+                            placeholder="Ej. Gerencia Administrativa"
+                            value={autoridad}
+                            onChange={(e) => setAutoridad(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                            label="Proceso"
                             placeholder="Ej. Logística o código del proyecto"
                             value={modulo}
                             onChange={(e) => setModulo(e.target.value)}

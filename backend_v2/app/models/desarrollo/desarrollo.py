@@ -62,6 +62,46 @@ class EtapaDesarrollo(SQLModel, table=True):
     desarrollos: List["Desarrollo"] = Relationship(back_populates="etapa_actual")
 
 
+class TipoDesarrollo(SQLModel, table=True):
+    """Catalogo de tipos de desarrollo/proyecto"""
+
+    __tablename__ = "tipos_desarrollo"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    valor: str = Field(unique=True, max_length=50)
+    etiqueta: str = Field(max_length=100)
+    orden: int = Field(default=0)
+    esta_activo: bool = Field(default=True)
+    creado_en: Optional[datetime] = Field(
+        default=None, sa_column_kwargs={"server_default": text("now()")}
+    )
+
+
+class ValidacionAsignacion(SQLModel, table=True):
+    """Validación de asignaciones que saltan niveles jerárquicos."""
+
+    __tablename__ = "validaciones_asignacion"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    desarrollo_id: Optional[str] = Field(default=None, foreign_key="desarrollos.id", max_length=50)
+    actividad_id: Optional[int] = Field(default=None, foreign_key="actividades.id")
+    solicitado_por_id: str = Field(max_length=50)
+    validador_id: str = Field(max_length=50)
+    asignado_a_id: str = Field(max_length=50)
+    estado: str = Field(default="pendiente", max_length=50)
+    motivo: Optional[str] = Field(default=None)
+    observacion: Optional[str] = Field(default=None)
+    creado_en: Optional[datetime] = Field(
+        default=None, sa_column_kwargs={"server_default": text("now()")}
+    )
+    validado_en: Optional[datetime] = Field(default=None)
+
+
+class ValidacionAsignacionResolver(SQLModel):
+    estado: str
+    observacion: Optional[str] = None
+
+
 class Desarrollo(SQLModel, table=True):
     """Modelo principal de desarrollo/proyecto"""
 
@@ -75,12 +115,17 @@ class Desarrollo(SQLModel, table=True):
     ambiente: Optional[str] = Field(default=None, max_length=100)
     enlace_portal: Optional[str] = Field(default=None)
     proveedor: Optional[str] = Field(default=None, max_length=100)
+    autoridad: Optional[str] = Field(default=None, max_length=255)
     responsable: Optional[str] = Field(default=None, max_length=255)
     area_desarrollo: Optional[str] = Field(default=None, max_length=100)
     analista: Optional[str] = Field(default=None, max_length=100)
+    creado_por_id: Optional[str] = Field(default=None, max_length=50)
+    responsable_id: Optional[str] = Field(default=None, max_length=50)
 
     # Estado y progreso
     estado_general: str = Field(default="Pendiente", max_length=50)
+    estado_validacion: str = Field(default="aprobada", max_length=50)
+    validado_por_id: Optional[str] = Field(default=None, max_length=50)
     fase_actual_id: Optional[int] = Field(
         default=None, foreign_key="fases_desarrollo.id"
     )
@@ -93,6 +138,7 @@ class Desarrollo(SQLModel, table=True):
     fecha_inicio: Optional[date] = Field(default=None)
     fecha_estimada_fin: Optional[date] = Field(default=None)
     fecha_real_fin: Optional[date] = Field(default=None)
+    validado_en: Optional[datetime] = Field(default=None)
 
     # Auditoria
     creado_en: Optional[datetime] = Field(
@@ -146,15 +192,21 @@ class DesarrolloCrear(SQLModel):
     ambiente: Optional[str] = None
     enlace_portal: Optional[str] = None
     proveedor: Optional[str] = None
+    autoridad: Optional[str] = None
     responsable: Optional[str] = None
     area_desarrollo: Optional[str] = None
     analista: Optional[str] = None
+    creado_por_id: Optional[str] = None
+    responsable_id: Optional[str] = None
     estado_general: str = "Pendiente"
+    estado_validacion: str = "aprobada"
+    validado_por_id: Optional[str] = None
     fase_actual_id: Optional[int] = None
     etapa_actual_id: Optional[int] = None
     porcentaje_progreso: Decimal = Decimal("0.0")
     fecha_inicio: Optional[date] = None
     fecha_estimada_fin: Optional[date] = None
+    validado_en: Optional[datetime] = None
 
 
 class DesarrolloActualizar(SQLModel):
@@ -167,13 +219,19 @@ class DesarrolloActualizar(SQLModel):
     ambiente: Optional[str] = None
     enlace_portal: Optional[str] = None
     proveedor: Optional[str] = None
+    autoridad: Optional[str] = None
     responsable: Optional[str] = None
     area_desarrollo: Optional[str] = None
     analista: Optional[str] = None
+    creado_por_id: Optional[str] = None
+    responsable_id: Optional[str] = None
     estado_general: Optional[str] = None
+    estado_validacion: Optional[str] = None
+    validado_por_id: Optional[str] = None
     fase_actual_id: Optional[int] = None
     etapa_actual_id: Optional[int] = None
     porcentaje_progreso: Optional[Decimal] = None
     fecha_inicio: Optional[date] = None
     fecha_estimada_fin: Optional[date] = None
     fecha_real_fin: Optional[date] = None
+    validado_en: Optional[datetime] = None

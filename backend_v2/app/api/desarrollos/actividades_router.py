@@ -14,8 +14,38 @@ from app.models.desarrollo.actividad import (
     ActividadLeer,
     ActividadArbol,
 )
+from app.services.jerarquia import AsignacionJerarquicaService
 
 router = APIRouter()
+
+
+def actividad_a_arbol(actividad: Actividad) -> ActividadArbol:
+    return ActividadArbol(
+        id=actividad.id,
+        desarrollo_id=actividad.desarrollo_id,
+        parent_id=actividad.parent_id,
+        titulo=actividad.titulo,
+        descripcion=actividad.descripcion,
+        estado=actividad.estado,
+        responsable_id=actividad.responsable_id,
+        asignado_a_id=actividad.asignado_a_id,
+        delegado_por_id=actividad.delegado_por_id,
+        estado_validacion=actividad.estado_validacion,
+        validacion_id=actividad.validacion_id,
+        fecha_inicio_estimada=actividad.fecha_inicio_estimada,
+        fecha_fin_estimada=actividad.fecha_fin_estimada,
+        fecha_inicio_real=actividad.fecha_inicio_real,
+        fecha_fin_real=actividad.fecha_fin_real,
+        horas_estimadas=actividad.horas_estimadas,
+        horas_reales=actividad.horas_reales,
+        porcentaje_avance=actividad.porcentaje_avance,
+        seguimiento=actividad.seguimiento,
+        compromiso=actividad.compromiso,
+        archivo_url=actividad.archivo_url,
+        creado_en=actividad.creado_en,
+        actualizado_en=actividad.actualizado_en,
+        subactividades=[],
+    )
 
 
 @router.post("/", response_model=ActividadLeer)
@@ -27,6 +57,13 @@ async def crear_actividad(
         nueva_act_data = actividad_in.model_dump()
         nueva_act = Actividad(**nueva_act_data)
         db.add(nueva_act)
+        await db.flush()
+        await AsignacionJerarquicaService.aplicar_validacion_actividad(
+            db,
+            nueva_act,
+            nueva_act.delegado_por_id,
+            nueva_act.asignado_a_id,
+        )
         await db.commit()
         await db.refresh(nueva_act)
         return nueva_act
@@ -50,8 +87,8 @@ async def obtener_arbol_actividades(
         result = await db.execute(stmt)
         actividades = result.scalars().all()
 
-        # Diccionario para busqueda y construcción de la respuesta
-        actividades_dict = {a.id: ActividadArbol.model_validate(a) for a in actividades}
+        # Construye DTOs explícitos para evitar lazy loading async de subactividades.
+        actividades_dict = {a.id: actividad_a_arbol(a) for a in actividades}
 
         arbol = []
         for a in actividades:
@@ -86,6 +123,14 @@ async def actualizar_actividad(
         act_data = actividad_in.model_dump(exclude_unset=True)
         for key, value in act_data.items():
             setattr(act_db, key, value)
+
+        if "asignado_a_id" in act_data or "delegado_por_id" in act_data:
+            await AsignacionJerarquicaService.aplicar_validacion_actividad(
+                db,
+                act_db,
+                act_db.delegado_por_id,
+                act_db.asignado_a_id,
+            )
 
         await db.commit()
         await db.refresh(act_db)

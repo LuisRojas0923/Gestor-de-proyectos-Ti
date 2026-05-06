@@ -17,6 +17,8 @@ from .services.auth.rbac_discovery import sincronizar_manifiesto_rbac
 
 # Importar routers
 from .api.desarrollos import router as desarrollos_router
+from .api.desarrollos.actividades_router import router as actividades_router
+from .api.desarrollos.plantillas_router import router as plantillas_router
 from .api.development_by_number import router as development_by_number_router
 from .api.desarrollos.reporte_router import router as reporte_router
 from .api.kpis import router as kpis_router
@@ -31,10 +33,12 @@ from .api.viaticos.router import router as viaticos_router
 from .api.auth import router as auth_router
 from .api.desarrollos_actividades import router as desarrollos_actividades_router
 from .api.auth.config_router import router as config_router
+from .api.validaciones_asignacion import router as validaciones_asignacion_router
 from .api.reserva_salas import router as reserva_salas_router
 from .api.inventario.router import router as inventario_router
 from .api.impuestos import router as impuestos_router
 from .api.lineas_corporativas.router import router as lineas_corporativas_router
+from .api.jerarquia import router as jerarquia_router
 
 # Configurar logging centralizado
 logging.basicConfig(
@@ -149,6 +153,14 @@ app.include_router(
     desarrollos_router, prefix=f"{api_prefix}/desarrollos", tags=["Desarrollos"]
 )
 app.include_router(
+    actividades_router, prefix=f"{api_prefix}/actividades", tags=["Actividades"]
+)
+app.include_router(
+    plantillas_router,
+    prefix=f"{api_prefix}/desarrollos/plantillas",
+    tags=["Plantillas WBS"],
+)
+app.include_router(
     reporte_router, prefix=f"{api_prefix}/reportes", tags=["Reportes Consolidados"]
 )
 app.include_router(kpis_router, prefix=f"{api_prefix}/kpis", tags=["KPIs"])
@@ -174,6 +186,12 @@ app.include_router(
     lineas_corporativas_router,
     prefix=f"{api_prefix}/lineas-corporativas",
     tags=["Lineas Corporativas"],
+)
+app.include_router(jerarquia_router, prefix=f"{api_prefix}/jerarquia", tags=["Jerarquia"])
+app.include_router(
+    validaciones_asignacion_router,
+    prefix=f"{api_prefix}/validaciones-asignacion",
+    tags=["Validaciones Asignacion"],
 )
 
 # Consolidated developments-activities endpoint and number-mapped endpoint

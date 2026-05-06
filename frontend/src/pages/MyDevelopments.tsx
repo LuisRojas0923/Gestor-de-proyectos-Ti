@@ -16,6 +16,7 @@ type DevelopmentRow = DevelopmentWithCurrentStatus & {
   tipo?: string;
   fecha_inicio?: string;
   fecha_estimada_fin?: string;
+  autoridad?: string;
   responsable?: string;
   estado_general?: string;
   porcentaje_progreso?: string | number;
@@ -27,6 +28,7 @@ const getDevelopmentName = (dev: DevelopmentRow) => dev.name ?? dev.nombre ?? ''
 const getDevelopmentDescription = (dev: DevelopmentRow) => dev.description ?? dev.descripcion;
 const getDevelopmentStartDate = (dev: DevelopmentRow) => dev.start_date ?? dev.fecha_inicio;
 const getDevelopmentEndDate = (dev: DevelopmentRow) => dev.estimated_end_date ?? dev.fecha_estimada_fin;
+const getDevelopmentAuthority = (dev: DevelopmentRow) => dev.authority ?? dev.autoridad;
 const getDevelopmentResponsible = (dev: DevelopmentRow) => dev.responsible ?? dev.responsable;
 const getDevelopmentStatus = (dev: DevelopmentRow) => dev.general_status ?? dev.estado_general ?? '';
 const getDevelopmentProgress = (dev: DevelopmentRow) => Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
@@ -60,6 +62,7 @@ const MyDevelopments: React.FC = () => {
     estimated_end_date: getDevelopmentEndDate,
     area_desarrollo: (dev: DevelopmentRow) => dev.area_desarrollo,
     analista: (dev: DevelopmentRow) => dev.analista,
+    authority: getDevelopmentAuthority,
     responsible: getDevelopmentResponsible,
   };
 
@@ -81,15 +84,11 @@ const MyDevelopments: React.FC = () => {
 
   // Utilidades
   const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      'En curso': 'text-blue-800 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400',
-      'en_progreso': 'text-blue-800 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400',
-      'Pendiente': 'text-yellow-800 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400',
-      'pendiente': 'text-yellow-800 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400',
-      'Completado': 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400',
-      'completada': 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400',
-    };
-    return colors[status] || 'text-gray-800 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
+    const normalized = status.toLowerCase();
+    if (normalized.includes('pendiente')) return 'text-red-800 bg-red-100 dark:bg-red-900/20 dark:text-red-400';
+    if (normalized.includes('progreso') || normalized.includes('curso')) return 'text-yellow-800 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400';
+    if (normalized.includes('complet')) return 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400';
+    return 'text-gray-800 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
   };
 
   const renderSlicer = (key: string, label: string) => {
@@ -128,8 +127,8 @@ const MyDevelopments: React.FC = () => {
                 onClick={() => toggleOption(key, option)}
                 className={`min-h-[28px] rounded-lg border px-2.5 py-1 text-sm font-semibold leading-tight transition-all ${
                   isActive
-                    ? 'border-[var(--deep-navy)] bg-[var(--deep-navy)] text-white shadow-md'
-                    : 'border-[var(--color-border)] bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)] hover:border-[var(--deep-navy)] hover:text-[var(--deep-navy)]'
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-md'
+                    : 'border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20'
                 }`}
               >
                 <Text as="span" variant="body2" weight="semibold" color="inherit" className="leading-tight">
@@ -150,8 +149,9 @@ const MyDevelopments: React.FC = () => {
     { key: 'progress', label: 'Progreso', width: 'md:w-28' },
     { key: 'start_date', label: 'Inicio', width: 'md:w-28' },
     { key: 'estimated_end_date', label: 'Fin', width: 'md:w-28' },
-    { key: 'area_desarrollo', label: 'Área', width: 'md:w-36' },
-    { key: 'analista', label: 'Analista', width: 'md:w-36' },
+    { key: 'area_desarrollo', label: 'Área de impacto', width: 'md:w-36' },
+    { key: 'analista', label: 'Líder', width: 'md:w-36' },
+    { key: 'authority', label: 'Autoridad', width: 'md:w-36' },
     { key: 'responsible', label: 'Responsable', width: 'md:w-32' }
   ];
 
@@ -193,8 +193,8 @@ const MyDevelopments: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
         {renderSlicer('status', 'Estado')}
-        {renderSlicer('area_desarrollo', 'Área')}
-        {renderSlicer('analista', 'Ejecutor / Asignado')}
+        {renderSlicer('area_desarrollo', 'Área de impacto')}
+        {renderSlicer('analista', 'Líder de actividad')}
         {renderSlicer('responsible', 'Responsable')}
       </div>
 
@@ -268,7 +268,7 @@ const MyDevelopments: React.FC = () => {
                       )}
                     </td>
                     <td className="md:w-24 shrink-0 py-3 px-3 text-center">
-                      <Text as="span" variant="caption" weight="medium" color="inherit" className={`inline-flex items-center rounded-full transition-all !text-[10px] uppercase tracking-wider px-2 py-0.5 ${getStatusColor(status)} shadow-md hover:shadow-lg`}>
+                      <Text as="span" variant="caption" weight="medium" color="inherit" className={`inline-flex items-center rounded-full transition-all !text-[10px] tracking-wider px-2 py-0.5 ${getStatusColor(status)} shadow-md hover:shadow-lg`}>
                         {status}
                       </Text>
                     </td>
@@ -308,6 +308,11 @@ const MyDevelopments: React.FC = () => {
                           </Text>
                         </div>
                       </div>
+                    </td>
+                    <td className="md:w-32 shrink-0 py-3 px-3">
+                      <Text as="span" variant="caption" color="text-secondary" className="truncate uppercase !text-[10px]">
+                        {valueOrFallback(getDevelopmentAuthority(dev))}
+                      </Text>
                     </td>
                     <td className="md:w-32 shrink-0 py-3 px-3">
                       <Text as="span" variant="caption" color="text-secondary" className="truncate uppercase !text-[10px]">

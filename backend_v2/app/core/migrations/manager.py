@@ -52,6 +52,7 @@ async def ejecutar_seeds(AsyncSessionLocal):
     """Ejecuta los semilleros de datos necesarios"""
     try:
         from app.models.auth.usuario import Usuario
+        from app.models.desarrollo.desarrollo import TipoDesarrollo
         from app.services.auth.servicio import ServicioAuth
         from app.models.reserva_salas.models import Room
         import uuid
@@ -92,6 +93,27 @@ async def ejecutar_seeds(AsyncSessionLocal):
                     await session.commit()
             except Exception as e:
                 logger.warning(f"Error al verificar/crear sala seed: {e}")
+
+            # Seed tipos de desarrollo
+            try:
+                tipos_desarrollo = [
+                    ("Proyecto", "Proyecto", 1),
+                    ("Mejora", "Mejora", 2),
+                    ("Soporte", "Soporte", 3),
+                    ("Renovación", "Renovación", 4),
+                    ("Actividad frecuente", "Actividad frecuente", 5),
+                    ("Actividad", "Actividad", 6),
+                ]
+                for valor, etiqueta, orden in tipos_desarrollo:
+                    result_tipo = await session.execute(
+                        select(TipoDesarrollo).where(TipoDesarrollo.valor == valor)
+                    )
+                    if result_tipo.scalar_one_or_none() is None:
+                        session.add(TipoDesarrollo(valor=valor, etiqueta=etiqueta, orden=orden))
+                await session.commit()
+            except Exception as e:
+                await session.rollback()
+                logger.warning(f"Error al verificar/crear tipos de desarrollo seed: {e}")
                 
     except Exception as e:
         logger.error(f"Error fatal en ejecución de seeds: {e}")
