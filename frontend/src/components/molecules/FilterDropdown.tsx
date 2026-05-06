@@ -66,8 +66,45 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                 width: rect.width
             });
         }
-        setInternalIsOpen(!internalIsOpen);
+        setInternalIsOpen(prev => !prev);
     };
+
+    // --- Vincular clic del th padre de forma automática ---
+    useEffect(() => {
+        if (isSimpleMode && triggerRef.current) {
+            const parentTh = triggerRef.current.closest('th');
+            if (parentTh) {
+                parentTh.style.cursor = 'pointer';
+                parentTh.style.transition = 'background-color 0.2s ease-in-out, filter 0.2s ease-in-out';
+                
+                const handleMouseEnter = () => {
+                    parentTh.style.filter = 'brightness(1.15)';
+                };
+                const handleMouseLeave = () => {
+                    parentTh.style.filter = 'none';
+                };
+                
+                const handleThClick = (e: MouseEvent) => {
+                    if (triggerRef.current && triggerRef.current.contains(e.target as Node)) {
+                        return;
+                    }
+                    toggleSimple(e as any);
+                };
+                
+                parentTh.addEventListener('mouseenter', handleMouseEnter);
+                parentTh.addEventListener('mouseleave', handleMouseLeave);
+                parentTh.addEventListener('click', handleThClick);
+                
+                return () => {
+                    parentTh.removeEventListener('mouseenter', handleMouseEnter);
+                    parentTh.removeEventListener('mouseleave', handleMouseLeave);
+                    parentTh.removeEventListener('click', handleThClick);
+                    parentTh.style.cursor = '';
+                    parentTh.style.filter = '';
+                };
+            }
+        }
+    }, [isSimpleMode, triggerRef.current]);
 
     // --- Contenido del Dropdown ---
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -76,6 +113,12 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         const handleClickOutside = (event: MouseEvent) => {
             if (effectiveIsOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 if (isSimpleMode && triggerRef.current && triggerRef.current.contains(event.target as Node)) return;
+                
+                // Si el clic fue en el th padre, evitamos cerrar/abrir de golpe
+                if (isSimpleMode && triggerRef.current) {
+                    const parentTh = triggerRef.current.closest('th');
+                    if (parentTh && parentTh.contains(event.target as Node)) return;
+                }
                 
                 if (isSimpleMode) setInternalIsOpen(false);
                 else props.onClose?.();
