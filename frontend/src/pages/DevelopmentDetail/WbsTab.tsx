@@ -2,11 +2,12 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { Title, Text, Button, Badge, ProgressBar, Input, Select, Textarea } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
+import Checkbox from '../../components/atoms/Checkbox';
 import MaterialCard from '../../components/atoms/MaterialCard';
-import { WbsActivityCreate, WbsActivityTree } from '../../types/wbs';
 import { Plus, ChevronDown, ChevronRight, Download, RotateCcw, Filter } from 'lucide-react';
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
+import { DeleteActivityModal } from './DeleteActivityModal';
 import { ValidationStatusBadge } from '../../components/assignments/ValidationStatusBadge';
 import { AssignableUserSelect } from '../../components/assignments/AssignableUserSelect';
 import { ColumnFilterPopover } from '../../components/molecules/ColumnFilterPopover';
@@ -34,7 +35,9 @@ const WbsNode = React.memo<{
     onEditTask: (node: WbsActivityTree) => void;
     displayIndex: number;
     getLider: (node: WbsActivityTree) => string;
-}>(({ node, darkMode, level, onAddSubtask, onEditTask, displayIndex, getLider }) => {
+    onToggleComplete: (id: number, completed: boolean) => void;
+    onDeleteActivity: (id: number) => void;
+}>(({ node, darkMode, level, onAddSubtask, onEditTask, displayIndex, getLider, onToggleComplete, onDeleteActivity }) => {
     const [expanded, setExpanded] = useState(true);
     const hasChildren = node.subactividades && node.subactividades.length > 0;
 
@@ -60,6 +63,17 @@ const WbsNode = React.memo<{
                     )}
                 </div>
 
+                <div className="w-12 flex items-center justify-center">
+                    <Checkbox
+                        checked={node.estado === 'Completada'}
+                        disabled={(node.subactividades?.length ?? 0) > 0}
+                        onChange={(e) => {
+                            e.stopPropagation();
+                            onToggleComplete(node.id, e.target.checked);
+                        }}
+                    />
+                </div>
+
                 <div className="flex-1 min-w-0 pr-4">
                     <Text weight="bold" className="truncate">{node.titulo}</Text>
                     {node.descripcion && (
@@ -69,7 +83,7 @@ const WbsNode = React.memo<{
 
                 <div className="flex items-center gap-4 flex-shrink-0">
                     <div className="w-20 text-right">
-                        <Text variant="caption" color="text-secondary">{node.porcentaje_avance}%</Text>
+                        <Text variant="caption">{node.porcentaje_avance}%</Text>
                         <ProgressBar
                             progress={node.porcentaje_avance}
                             variant={node.porcentaje_avance === 100 ? 'success' : 'primary'}
@@ -115,9 +129,10 @@ const WbsNode = React.memo<{
                         )}
                     </div>
 
-                    <div className="flex gap-2 w-24 justify-center">
+                    <div className="flex gap-1 w-36 justify-center">
                         <Button variant="ghost" size="sm" onClick={() => onEditTask(node)} className="h-8 px-2 text-xs">Editar</Button>
                         <Button variant="ghost" size="sm" onClick={() => onAddSubtask(node.id)} icon={Plus} className="h-8 px-2" />
+                        <Button variant="ghost" size="sm" onClick={() => onDeleteActivity(node.id)} icon={Trash2} className="h-8 px-2 !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-950" />
                     </div>
                 </div>
             </div>
@@ -134,6 +149,8 @@ const WbsNode = React.memo<{
                             onEditTask={onEditTask}
                             displayIndex={idx + 1}
                             getLider={getLider}
+                            onToggleComplete={onToggleComplete}
+                            onDeleteActivity={onDeleteActivity}
                         />
                     ))}
                 </div>
@@ -143,7 +160,7 @@ const WbsNode = React.memo<{
 });
 
 const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
-    const { get, post } = useApi<WbsActivityTree[]>();
+    const { get, post, patch, del } = useApi<WbsActivityTree[]>();
     const { state } = useAppContext();
     const [tree, setTree] = useState<WbsActivityTree[]>([]);
     const [loading, setLoading] = useState(true);
@@ -161,6 +178,12 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
     const [modalParentId, setModalParentId] = useState<number | null>(null);
     const [modalEditNode, setModalEditNode] = useState<WbsActivityTree | null>(null);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deletePreview, setDeletePreview] = useState<{
+        actividad: { id: number; titulo: string; estado: string };
+        hijos: { id: number; titulo: string; nivel: number; estado: string }[];
+        total_eliminaciones: number;
+    } | null>(null);
 
     // Refs por columna para anclar popovers (estado, líder, validación)
     const headerRefs = useRef<Record<string, React.RefObject<HTMLElement>>>({});
@@ -293,8 +316,41 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
         }
     };
 
+    const handleToggleComplete = async (id: number, completed: boolean) => {
+        try {
+            const newEstado = completed ? 'Completada' : 'En Progreso';
+            await patch(`/actividades/${id}`, { estado: newEstado });
+            await fetchTree();
+        } catch (error) {
+            console.error('Error toggling complete:', error);
+        }
+    };
+
+    const handleDeleteClick = async (id: number) => {
+        try {
+            const preview = await get(`/actividades/${id}/preview`);
+            setDeletePreview(preview as typeof deletePreview);
+            setDeleteModalOpen(true);
+        } catch (error) {
+            console.error('Error fetching delete preview:', error);
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deletePreview) return;
+        try {
+            await del(`/actividades/${deletePreview.actividad.id}`);
+            await fetchTree();
+            setDeleteModalOpen(false);
+            setDeletePreview(null);
+        } catch (error) {
+            console.error('Error deleting activity:', error);
+        }
+    };
+
     const COLUMNS = [
         { key: 'index', label: '#', width: 'w-12', filterable: false },
+        { key: 'completado', label: '', width: '48px', filterable: false },
         { key: 'tarea', label: 'Tarea', width: 'flex-1 min-w-[260px]', filterable: false },
         { key: 'avance', label: 'Avance', width: 'w-20', filterable: false },
         { key: 'estado', label: 'Estado', width: 'w-24', filterable: true },
@@ -303,7 +359,7 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
         { key: 'validacion', label: 'Validación', width: 'w-28', filterable: true },
         { key: 'compromiso', label: 'Compromiso', width: 'w-48', filterable: false },
         { key: 'archivo', label: 'Archivo', width: 'w-12', filterable: false },
-        { key: 'acciones', label: 'Acciones', width: 'w-24', filterable: false },
+        {key: 'acciones', label: 'Acciones', width: 'w-36', filterable: false },
     ];
 
     const statsCards = (
@@ -483,6 +539,8 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
                                         onEditTask={handleEditTask}
                                         displayIndex={idx + 1}
                                         getLider={getLider}
+                                        onToggleComplete={handleToggleComplete}
+                                        onDeleteActivity={handleDeleteClick}
                                     />
                                 ))}
                             </div>
@@ -518,10 +576,17 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
                 darkMode={darkMode}
             />
 
-            <WbsTemplateSelectorModal
+<WbsTemplateSelectorModal
                 isOpen={isTemplateModalOpen}
                 onClose={() => setIsTemplateModalOpen(false)}
                 onApply={handleApplyTemplate}
+            />
+
+            <DeleteActivityModal
+                isOpen={deleteModalOpen}
+                preview={deletePreview}
+                onClose={() => { setDeleteModalOpen(false); setDeletePreview(null); }}
+                onConfirm={handleConfirmDelete}
             />
         </div>
     );
