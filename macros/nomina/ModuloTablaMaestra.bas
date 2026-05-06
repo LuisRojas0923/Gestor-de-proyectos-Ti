@@ -125,7 +125,9 @@ Sub ExtraerTablaMaestra()
     sql = "SELECT " & vbCrLf & _
           "    cedula AS ""CEDULA""," & vbCrLf & _
           "    MAX(COALESCE(nombre_asociado, '')) AS ""NOMBRE REAL""," & vbCrLf & _
-          "    MAX(COALESCE(empresa, '')) AS ""EMPRESA""," & vbCrLf
+          "    MAX(COALESCE(empresa, '')) AS ""EMPRESA""," & vbCrLf & _
+          "    SUM(COALESCE(horas, 0)) AS ""HORAS""," & vbCrLf & _
+          "    SUM(COALESCE(dias, 0)) AS ""DIAS""," & vbCrLf
           
     sql = sql & "    SUM(CASE WHEN concepto = 'BENEFICIAR APORTE' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BENEFICIAR.1Q APORTE""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'BENEFICIAR APORTE' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BENEFICIAR.2Q APORTE""," & vbCrLf
@@ -249,7 +251,8 @@ Sub ExtraerTablaMaestra()
     
     ' Formato
     wsData.Columns.AutoFit
-    wsData.Range(wsData.Cells(6, 4), wsData.Cells(lastRow, lastCol)).NumberFormat = "$ #,##0.00"
+    wsData.Range(wsData.Cells(6, 4), wsData.Cells(lastRow, 5)).NumberFormat = "#,##0"
+    wsData.Range(wsData.Cells(6, 6), wsData.Cells(lastRow, lastCol)).NumberFormat = "$ #,##0.00"
     
     totalRegs = lastRow - 5
     

@@ -230,3 +230,40 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }
+
+/* ===================================================
+   SISTEMA DE DISEÑO: Unificación y Reducción de Fuentes en Tablas
+   Garantiza que todas las tablas tengan el mismo tamaño de letra
+   y disminuye el tamaño de los encabezados de forma armónica.
+   =================================================== */
+table {
+  font-size: 11px !important;
+}
+
+table th {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+
+table th,
+table th *,
+table th span,
+table th p {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+table td,
+table td *,
+table td span,
+table td p,
+table td div {
+  font-size: 11px !important;
+}
+
+/* Conservar el tamaño ultra-compacto de las etiquetas del sistema de diseño */
+table td .tag-badge {
+  font-size: 9px !important;
+}

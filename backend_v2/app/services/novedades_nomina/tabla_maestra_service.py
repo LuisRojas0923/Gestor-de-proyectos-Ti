@@ -37,8 +37,10 @@ PLANILLAS_REGIONALES = {"PLANILLAS REGIONALES 1Q", "PLANILLAS REGIONALES 2Q"}
 
 def _get_subcategorias_requeridas(quincena: str) -> List[str]:
     """Retorna la lista de subcategorías requeridas según la quincena."""
-    extras = SUBCATEGORIAS_Q1 if quincena == "Q1" else SUBCATEGORIAS_Q2
-    return SUBCATEGORIAS_BASE + extras
+    if quincena == "Q1":
+        return SUBCATEGORIAS_BASE + SUBCATEGORIAS_Q1
+    else:
+        return SUBCATEGORIAS_BASE + SUBCATEGORIAS_Q1 + SUBCATEGORIAS_Q2
 
 
 class TablaMaestraService:
@@ -130,7 +132,7 @@ class TablaMaestraService:
             planilla_excluida = (
                 "PLANILLAS REGIONALES 2Q"
                 if quincena == "Q1"
-                else "PLANILLAS REGIONALES 1Q"
+                else None
             )
 
             for r in todos_los_registros:
@@ -145,7 +147,7 @@ class TablaMaestraService:
                     continue
 
                 # Excluir la planilla regional de la quincena contraria
-                if subcat == planilla_excluida:
+                if planilla_excluida and subcat == planilla_excluida:
                     continue
 
                 # Filtrar RETENCIONES según quincena

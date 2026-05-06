@@ -129,11 +129,11 @@ def extraer_planillas_regionales_1q(archivos_binarios: List[bytes]) -> Tuple[Lis
                         "nombre_asociado": empleado,
                         "empresa": empresa,
                         "sucursal": sucursal,
-                        "novedad": novedad,
+                        "novedad": f"1Q {novedad}",
                         "horas": horas,
                         "dias": dias,
                         "valor": 0,
-                        "concepto": novedad
+                        "concepto": f"1Q {novedad}"
                     }
 
         except Exception as e:
