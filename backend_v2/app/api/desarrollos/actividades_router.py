@@ -205,7 +205,7 @@ class EliminarPreviewResponse(BaseModel):
     total_eliminaciones: int
 
 
-@router.delete("/{actividad_id}/preview", response_model=EliminarPreviewResponse)
+@router.get("/{actividad_id}/preview", response_model=EliminarPreviewResponse)
 async def eliminar_actividad_preview(
     actividad_id: int, db: AsyncSession = Depends(obtener_db)
 ):

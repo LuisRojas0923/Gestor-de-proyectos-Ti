@@ -236,119 +236,115 @@ const MyDevelopments: React.FC = () => {
 
         {/* Contenedor con tabla */}
         <div className="min-h-0 flex-1 overflow-y-scroll custom-scrollbar">
-          <table className="w-full text-left border-collapse">
-            <tbody className="divide-y divide-[var(--color-border)]">
-              {filteredData.length > 0 ? (
-                filteredData.map((dev: DevelopmentRow) => {
-                  const description = getDevelopmentDescription(dev);
-                  const progress = getDevelopmentProgress(dev);
-                  const status = getDevelopmentStatus(dev);
+          <div className="divide-y divide-[var(--color-border)]">
+            {filteredData.length > 0 ? (
+              filteredData.map((dev: DevelopmentRow) => {
+                const description = getDevelopmentDescription(dev);
+                const progress = getDevelopmentProgress(dev);
+                const status = getDevelopmentStatus(dev);
 
-                  return (
-                  <tr 
-                    key={dev.id} 
-                    className="group hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer relative"
-                  >
-                    {/* Indicador lateral */}
-                    <td className="absolute left-0 top-0 bottom-0 w-1.5 bg-[var(--deep-navy)]"></td>
-                    
-                    <td className="md:w-24 shrink-0 pl-4 py-3">
-                      <Text as="span" variant="caption" color="gray" className="font-mono whitespace-nowrap">
-                        {dev.id}
+                return (
+                <div
+                  key={dev.id}
+                  className="group relative flex items-stretch hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer"
+                >
+                  {/* Indicador lateral */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[var(--deep-navy)]" />
+
+                  <div className="md:w-24 shrink-0 pl-4 py-3">
+                    <Text as="span" variant="caption" color="gray" className="font-mono whitespace-nowrap">
+                      {dev.id}
+                    </Text>
+                  </div>
+                  <div className="flex-1 min-w-[260px] py-3 px-3">
+                    <Text variant="body2" weight="bold" className="truncate group-hover:text-[var(--color-primary)] transition-colors">
+                      {getDevelopmentName(dev)}
+                    </Text>
+                    {description && (
+                      <Text as="span" variant="caption" color="text-secondary" className="mt-0.5 block max-w-[560px] truncate !text-[11px]" title={description}>
+                        {description}
                       </Text>
-                    </td>
-                    <td className="flex-1 min-w-[260px] py-3 px-3">
-                      <Text variant="body2" weight="bold" className="truncate group-hover:text-[var(--color-primary)] transition-colors">
-                        {getDevelopmentName(dev)}
-                      </Text>
-                      {description && (
-                        <Text as="span" variant="caption" color="text-secondary" className="mt-0.5 block max-w-[560px] truncate !text-[11px]" title={description}>
-                          {description}
-                        </Text>
-                      )}
-                    </td>
-                    <td className="md:w-24 shrink-0 py-3 px-3 text-center">
-                      <Text as="span" variant="caption" weight="medium" color="inherit" className={`inline-flex items-center rounded-full transition-all !text-[10px] tracking-wider px-2 py-0.5 ${getStatusColor(status)} shadow-md hover:shadow-lg`}>
-                        {status}
-                      </Text>
-                    </td>
-                    <td className="md:w-28 shrink-0 py-3 px-3">
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div className={`h-full bg-[var(--deep-navy)] transition-all duration-500 ${getProgressWidthClass(progress)}`} />
-                        </div>
-                        <Text as="span" variant="caption" weight="bold" color="text-secondary" className="w-8 text-right !text-[10px]">
-                          {progress}%
-                        </Text>
+                    )}
+                  </div>
+                  <div className="md:w-24 shrink-0 py-3 px-3 flex items-center justify-center text-center">
+                    <Text as="span" variant="caption" weight="medium" color="inherit" className={`inline-flex items-center rounded-full transition-all !text-[10px] tracking-wider px-2 py-0.5 ${getStatusColor(status)} shadow-md hover:shadow-lg`}>
+                      {status}
+                    </Text>
+                  </div>
+                  <div className="md:w-28 shrink-0 py-3 px-3 flex items-center">
+                    <div className="flex items-center gap-1.5 w-full">
+                      <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className={`h-full bg-[var(--deep-navy)] transition-all duration-500 ${getProgressWidthClass(progress)}`} />
                       </div>
-                    </td>
-                    <td className="md:w-28 shrink-0 py-3 px-3">
-                      <Text as="span" variant="caption" weight="semibold" className="!text-[11px] text-gray-700 dark:text-gray-200">
-                        {valueOrFallback(getDevelopmentStartDate(dev))}
+                      <Text as="span" variant="caption" weight="bold" color="text-secondary" className="w-8 text-right !text-[10px]">
+                        {progress}%
                       </Text>
-                    </td>
-                    <td className="md:w-28 shrink-0 py-3 px-3">
-                      <Text as="span" variant="caption" color="text-secondary" className="!text-[11px]">
-                        {valueOrFallback(getDevelopmentEndDate(dev))}
-                      </Text>
-                    </td>
-                    <td className="md:w-36 shrink-0 py-3 px-3">
-                      <Text as="span" variant="caption" weight="semibold" className="block truncate !text-[11px] text-gray-700 dark:text-gray-200">
-                        {dev.area_desarrollo ?? 'N/A'}
-                      </Text>
-                    </td>
-                    <td className="md:w-36 shrink-0 py-3 px-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
-                          {(dev.analista ?? 'A')[0].toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <Text as="span" variant="caption" color="text-secondary" className="block truncate !text-[10px]">
-                            {dev.analista ?? 'N/A'}
-                          </Text>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="md:w-32 shrink-0 py-3 px-3">
-                      <Text as="span" variant="caption" color="text-secondary" className="truncate uppercase !text-[10px]">
-                        {valueOrFallback(getDevelopmentAuthority(dev))}
-                      </Text>
-                    </td>
-                    <td className="md:w-32 shrink-0 py-3 px-3">
-                      <Text as="span" variant="caption" color="text-secondary" className="truncate uppercase !text-[10px]">
-                        {valueOrFallback(getDevelopmentResponsible(dev))}
-                      </Text>
-                    </td>
-                    <td className="md:w-24 shrink-0 py-3 px-3 text-center">
-                      <Button
-                        variant="custom"
-                        onClick={() => navigate(`/developments/${dev.id}?tab=bitacora`)}
-                        className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20 inline-flex items-center justify-center"
-                        title="Ver detalles"
-                      >
-                        <Eye size={14} />
-                      </Button>
-                    </td>
-                  </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={columns.length + 1} className="py-12 text-center">
-                    <div className="flex flex-col items-center gap-3 opacity-40">
-                      <Search size={40} />
-                      <Text variant="body" weight="medium">No se encontraron actividades</Text>
-                      {activeFilterCount > 0 && (
-                        <Button variant="ghost" size="sm" onClick={clearAllFilters}>
-                          Limpiar todos los filtros
-                        </Button>
-                      )}
                     </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </div>
+                  <div className="md:w-28 shrink-0 py-3 px-3 flex items-center">
+                    <Text as="span" variant="caption" weight="semibold" className="!text-[11px] text-gray-700 dark:text-gray-200">
+                      {valueOrFallback(getDevelopmentStartDate(dev))}
+                    </Text>
+                  </div>
+                  <div className="md:w-28 shrink-0 py-3 px-3 flex items-center">
+                    <Text as="span" variant="caption" color="text-secondary" className="!text-[11px]">
+                      {valueOrFallback(getDevelopmentEndDate(dev))}
+                    </Text>
+                  </div>
+                  <div className="md:w-36 shrink-0 py-3 px-3 flex items-center">
+                    <Text as="span" variant="caption" weight="semibold" className="block truncate !text-[11px] text-gray-700 dark:text-gray-200">
+                      {dev.area_desarrollo ?? 'N/A'}
+                    </Text>
+                  </div>
+                  <div className="md:w-36 shrink-0 py-3 px-3 flex items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
+                        {(dev.analista ?? 'A')[0].toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <Text as="span" variant="caption" color="text-secondary" className="block truncate !text-[10px]">
+                          {dev.analista ?? 'N/A'}
+                        </Text>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="md:w-32 shrink-0 py-3 px-3 flex items-center">
+                    <Text as="span" variant="caption" color="text-secondary" className="truncate uppercase !text-[10px]">
+                      {valueOrFallback(getDevelopmentAuthority(dev))}
+                    </Text>
+                  </div>
+                  <div className="md:w-32 shrink-0 py-3 px-3 flex items-center">
+                    <Text as="span" variant="caption" color="text-secondary" className="truncate uppercase !text-[10px]">
+                      {valueOrFallback(getDevelopmentResponsible(dev))}
+                    </Text>
+                  </div>
+                  <div className="md:w-24 shrink-0 py-3 px-3 flex items-center justify-center text-center">
+                    <Button
+                      variant="custom"
+                      onClick={() => navigate(`/developments/${dev.id}?tab=bitacora`)}
+                      className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20 inline-flex items-center justify-center"
+                      title="Ver detalles"
+                    >
+                      <Eye size={14} />
+                    </Button>
+                  </div>
+                </div>
+                );
+              })
+            ) : (
+              <div className="py-12 text-center">
+                <div className="flex flex-col items-center gap-3 opacity-40">
+                  <Search size={40} />
+                  <Text variant="body" weight="medium">No se encontraron actividades</Text>
+                  {activeFilterCount > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                      Limpiar todos los filtros
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -3,8 +3,7 @@ import { useApi } from '../../hooks/useApi';
 import { Title, Text, Button, Badge, ProgressBar, Input, Select, Textarea } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
 import Checkbox from '../../components/atoms/Checkbox';
-import MaterialCard from '../../components/atoms/MaterialCard';
-import { Trash2, Plus, ChevronDown, ChevronRight, Download, RotateCcw, Filter } from 'lucide-react';
+import { Trash2, Plus, ChevronDown, ChevronRight, Download, RotateCcw, Filter, ClipboardList } from 'lucide-react';
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
 import { DeleteActivityModal } from './DeleteActivityModal';
@@ -46,10 +45,10 @@ const WbsNode = React.memo<{
 
     return (
         <div className="w-full">
-            <div
-                className={`flex items-center p-3 border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors ${plClass}`}
-            >
-                <div className="w-6 flex-shrink-0">
+            <div className="group relative flex items-stretch border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer">
+                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[var(--deep-navy)]" />
+
+                <div className={`w-6 shrink-0 flex items-center justify-center py-3 px-2 ${plClass}`}>
                     {hasChildren ? (
                         <Button
                             variant="ghost"
@@ -63,7 +62,7 @@ const WbsNode = React.memo<{
                     )}
                 </div>
 
-                <div className="w-12 flex items-center justify-center">
+                <div className="w-12 shrink-0 flex items-center justify-center py-3 px-2">
                     <Checkbox
                         checked={node.estado === 'Completada'}
                         disabled={(node.subactividades?.length ?? 0) > 0}
@@ -74,66 +73,64 @@ const WbsNode = React.memo<{
                     />
                 </div>
 
-                <div className="flex-1 min-w-0 pr-4">
+                <div className="flex-1 min-w-[260px] py-3 px-3 flex flex-col justify-center min-w-0">
                     <Text weight="bold" className="truncate">{node.titulo}</Text>
                     {node.descripcion && (
                         <Text variant="caption" color="text-secondary" className="truncate mt-0.5">{node.descripcion}</Text>
                     )}
                 </div>
 
-                <div className="flex items-center gap-4 flex-shrink-0">
-                    <div className="w-20 text-right">
-                        <Text variant="caption">{node.porcentaje_avance}%</Text>
-                        <ProgressBar
-                            progress={node.porcentaje_avance}
-                            variant={node.porcentaje_avance === 100 ? 'success' : 'primary'}
-                            className="h-1 mt-1"
-                        />
-                    </div>
+                <div className="w-20 shrink-0 px-2 py-3 flex flex-col justify-center text-right">
+                    <Text variant="caption">{node.porcentaje_avance}%</Text>
+                    <ProgressBar
+                        progress={node.porcentaje_avance}
+                        variant={node.porcentaje_avance === 100 ? 'success' : 'primary'}
+                        className="h-1 mt-1"
+                    />
+                </div>
 
-                    <div className="w-24">
-                        <Badge variant={getStatusVariant(node.estado)} size="sm">
-                            {node.estado}
-                        </Badge>
-                    </div>
+                <div className="w-24 shrink-0 px-2 py-3 flex items-center">
+                    <Badge variant={getStatusVariant(node.estado)} size="sm">
+                        {node.estado}
+                    </Badge>
+                </div>
 
-                    <div className="w-48">
-                        <Text variant="caption" className="truncate" title={node.seguimiento}>
-                            {node.seguimiento || '-'}
-                        </Text>
-                    </div>
+                <div className="w-48 shrink-0 px-2 py-3 flex items-center">
+                    <Text variant="caption" className="truncate" title={node.seguimiento}>
+                        {node.seguimiento || '-'}
+                    </Text>
+                </div>
 
-                    <div className="w-36">
-                        <Text variant="caption" className="truncate" title={getLider(node)}>
-                            {getLider(node) || '-'}
-                        </Text>
-                    </div>
+                <div className="w-36 shrink-0 px-2 py-3 flex items-center">
+                    <Text variant="caption" className="truncate" title={getLider(node)}>
+                        {getLider(node) || '-'}
+                    </Text>
+                </div>
 
-                    <div className="w-28">
-                        <ValidationStatusBadge status={node.estado_validacion} />
-                    </div>
+                <div className="w-28 shrink-0 px-2 py-3 flex items-center">
+                    <ValidationStatusBadge status={node.estado_validacion} />
+                </div>
 
-                    <div className="w-48">
-                        <Text variant="caption" className="truncate" title={node.compromiso}>
-                            {node.compromiso || '-'}
-                        </Text>
-                    </div>
+                <div className="w-48 shrink-0 px-2 py-3 flex items-center">
+                    <Text variant="caption" className="truncate" title={node.compromiso}>
+                        {node.compromiso || '-'}
+                    </Text>
+                </div>
 
-                    <div className="w-12 flex justify-center">
-                        {node.archivo_url ? (
-                            <a href={node.archivo_url} target="_blank" rel="noreferrer" className="text-[var(--color-primary)] hover:underline">
-                                <Download size={14} />
-                            </a>
-                        ) : (
-                            <Text variant="caption" color="text-secondary">-</Text>
-                        )}
-                    </div>
+                <div className="w-12 shrink-0 px-2 py-3 flex items-center justify-center">
+                    {node.archivo_url ? (
+                        <a href={node.archivo_url} target="_blank" rel="noreferrer" className="text-[var(--color-primary)] hover:underline">
+                            <Download size={14} />
+                        </a>
+                    ) : (
+                        <Text variant="caption" color="text-secondary">-</Text>
+                    )}
+                </div>
 
-                    <div className="flex gap-1 w-36 justify-center">
-                        <Button variant="ghost" size="sm" onClick={() => onEditTask(node)} className="h-8 px-2 text-xs">Editar</Button>
-                        <Button variant="ghost" size="sm" onClick={() => onAddSubtask(node.id)} icon={Plus} className="h-8 px-2" />
-                        <Button variant="ghost" size="sm" onClick={() => onDeleteActivity(node.id)} icon={Trash2} className="h-8 px-2 !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-950" />
-                    </div>
+                <div className="w-36 shrink-0 px-2 py-3 flex gap-1 items-center justify-center">
+                    <Button variant="ghost" size="sm" onClick={() => onEditTask(node)} className="h-8 px-2 text-xs">Editar</Button>
+                    <Button variant="ghost" size="sm" onClick={() => onAddSubtask(node.id)} icon={Plus} className="h-8 px-2" />
+                    <Button variant="ghost" size="sm" onClick={() => onDeleteActivity(node.id)} icon={Trash2} className="h-8 px-2 !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-950" />
                 </div>
             </div>
 
@@ -160,7 +157,7 @@ const WbsNode = React.memo<{
 });
 
 const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
-    const { get, post, patch, del } = useApi<WbsActivityTree[]>();
+    const { get, post, patch, delete: del } = useApi<WbsActivityTree[]>();
     const { state } = useAppContext();
     const [tree, setTree] = useState<WbsActivityTree[]>([]);
     const [loading, setLoading] = useState(true);
@@ -349,8 +346,8 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
     };
 
     const COLUMNS = [
-        { key: 'index', label: '#', width: 'w-12', filterable: false },
-        { key: 'completado', label: '', width: '48px', filterable: false },
+        { key: 'index', label: '#', width: 'w-6', filterable: false },
+        { key: 'completado', label: '', width: 'w-12', filterable: false },
         { key: 'tarea', label: 'Tarea', width: 'flex-1 min-w-[260px]', filterable: false },
         { key: 'avance', label: 'Avance', width: 'w-20', filterable: false },
         { key: 'estado', label: 'Estado', width: 'w-24', filterable: true },
@@ -412,51 +409,32 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
                 </div>
             </div>
 
-            <MaterialCard elevation={1}>
+            <div className="relative flex max-h-[calc(100vh-300px)] min-h-[320px] flex-col overflow-x-auto overflow-y-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
                 {loading ? (
                     <div className="p-4 space-y-3">
                         {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
                     </div>
                 ) : tree.length === 0 ? (
                     <>
-                        {statsCards}
-                        <div className="border-t border-[var(--color-border)]" />
-                        <div className="w-full overflow-x-auto custom-scrollbar">
-                            <div className={`flex min-w-[1180px] items-center border-b border-[var(--color-border)] p-3 bg-[var(--deep-navy)]`}>
-                                {COLUMNS.map(col => (
-                                    <div key={col.key} className={`${col.width} shrink-0 ${col.key === 'tarea' ? '' : 'px-2'}`}>
-                                        <Text as="span" variant="caption" weight="bold" color="white" className="text-xs uppercase tracking-wider">
-                                            {col.label}
-                                        </Text>
-                                    </div>
-                                ))}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar bg-[var(--color-surface)] px-6 py-10 space-y-8">
+                            <div className="flex flex-col items-center justify-center text-center space-y-3">
+                                <ClipboardList className="w-16 h-16 text-[var(--color-border)]" strokeWidth={1.5} />
+                                <Title level={4} className="!mb-0">Sin tareas aún</Title>
+                                <Text variant="body" color="text-secondary" className="max-w-md">
+                                    Crea la primera tarea de este desarrollo o importa una estructura desde plantilla
+                                </Text>
                             </div>
-                            <div className="min-h-[280px] min-w-[1180px] bg-[var(--color-surface)]">
-                                <div className={`flex items-start gap-4 border-b border-[var(--color-border)] p-3 bg-[var(--color-surface)]`}>
-                                    <div className="flex-1 min-w-0 space-y-2">
-                                        <Input
-                                            label="Primera tarea"
-                                            placeholder="Ej. Levantar requerimientos del proceso"
-                                            value={inlineDraft.titulo}
-                                            onChange={(e) => setInlineDraft(d => ({ ...d, titulo: e.target.value }))}
-                                            required
-                                        />
-                                        <Text variant="caption" color="text-secondary">
-                                            Escribe la tarea directamente en la tabla. Al guardar se convertirá en la primera tarea principal.
-                                        </Text>
-                                    </div>
-                                    <div className="w-20">
-                                        <Input
-                                            label="Avance"
-                                            type="number"
-                                            value={inlineDraft.porcentaje_avance.toString()}
-                                            onChange={(e) => {
-                                                const v = Number(e.target.value);
-                                                if (v >= 0 && v <= 100) setInlineDraft(d => ({ ...d, porcentaje_avance: v }));
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="w-24">
+
+                            <div className="mx-auto max-w-3xl rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-variant)] p-6 space-y-4">
+                                <Input
+                                    label="Título de la tarea"
+                                    placeholder="Ej. Levantar requerimientos del proceso"
+                                    value={inlineDraft.titulo}
+                                    onChange={(e) => setInlineDraft(d => ({ ...d, titulo: e.target.value }))}
+                                    required
+                                />
+                                <div className="flex flex-wrap items-end gap-3">
+                                    <div className="w-40">
                                         <Select
                                             label="Estado"
                                             value={inlineDraft.estado}
@@ -469,66 +447,103 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
                                             ]}
                                         />
                                     </div>
-                                    <div className="w-48">
-                                        <Textarea label="Seguimiento" placeholder="Nota inicial..." value={inlineDraft.seguimiento} onChange={(e) => setInlineDraft(d => ({ ...d, seguimiento: e.target.value }))} />
+                                    <div className="w-24">
+                                        <Input
+                                            label="Avance %"
+                                            type="number"
+                                            value={inlineDraft.porcentaje_avance.toString()}
+                                            onChange={(e) => {
+                                                const v = Number(e.target.value);
+                                                if (v >= 0 && v <= 100) setInlineDraft(d => ({ ...d, porcentaje_avance: v }));
+                                            }}
+                                        />
                                     </div>
-                                    <div className="w-36">
-                                        <AssignableUserSelect label="Líder" value={inlineDraft.asignado_a_id} onChange={(v) => setInlineDraft(d => ({ ...d, asignado_a_id: v }))} />
+                                    <div className="flex-1 min-w-[200px]">
+                                        <AssignableUserSelect
+                                            label="Líder"
+                                            value={inlineDraft.asignado_a_id}
+                                            onChange={(v) => setInlineDraft(d => ({ ...d, asignado_a_id: v }))}
+                                        />
                                     </div>
-                                    <div className="w-28 pt-7">
-                                        <ValidationStatusBadge status="aprobada" />
-                                    </div>
-                                    <div className="w-48">
-                                        <Textarea label="Compromiso" placeholder="Compromiso inicial..." value={inlineDraft.compromiso} onChange={(e) => setInlineDraft(d => ({ ...d, compromiso: e.target.value }))} />
-                                    </div>
-                                    <div className="w-12 pt-8 text-center">
-                                        <Text variant="caption" color="text-secondary">-</Text>
-                                    </div>
-                                    <div className="flex w-24 flex-col gap-2 pt-7">
-                                        <Button variant="primary" size="sm" onClick={handleInlineSave} disabled={inlineSaving || !inlineDraft.titulo.trim()}>
-                                            {inlineSaving ? '...' : 'Guardar'}
+                                </div>
+                                <div className="flex items-center justify-between gap-3 pt-2">
+                                    <Text variant="caption" color="text-secondary">
+                                        Al guardar se creará como primera tarea principal del WBS
+                                    </Text>
+                                    <div className="flex items-center gap-2">
+                                        <Button variant="ghost" size="sm" onClick={resetInlineDraft} disabled={inlineSaving}>
+                                            Limpiar
                                         </Button>
-                                        <Button variant="ghost" size="sm" onClick={resetInlineDraft} disabled={inlineSaving}>Limpiar</Button>
+                                        <Button
+                                            variant="primary"
+                                            size="sm"
+                                            onClick={handleInlineSave}
+                                            disabled={inlineSaving || !inlineDraft.titulo.trim()}
+                                        >
+                                            {inlineSaving ? 'Guardando...' : 'Guardar'}
+                                        </Button>
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between gap-4 p-4">
-                                    <Text variant="caption" color="text-secondary">También puedes cargar una estructura existente desde una plantilla.</Text>
-                                    <Button variant="outline" size="sm" icon={Download} onClick={() => setIsTemplateModalOpen(true)}>Importar plantilla</Button>
-                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 mx-auto max-w-3xl">
+                                <div className="flex-1 border-t border-[var(--color-border)]" />
+                                <Text variant="caption" color="text-secondary" className="uppercase tracking-wider">o</Text>
+                                <div className="flex-1 border-t border-[var(--color-border)]" />
+                            </div>
+
+                            <div className="flex justify-center">
+                                <Button variant="outline" size="md" icon={Download} onClick={() => setIsTemplateModalOpen(true)}>
+                                    Importar Plantilla
+                                </Button>
                             </div>
                         </div>
                     </>
                 ) : (
                     <>
-                        {statsCards}
-                        <div className="border-t border-[var(--color-border)]" />
-                        <div className="w-full overflow-x-auto custom-scrollbar">
-                            <div className={`sticky top-0 z-20 flex min-w-[1180px] items-center border-b border-[var(--color-border)] p-3 bg-[var(--deep-navy)]`}>
-                                {COLUMNS.map(col => (
-                                    <div key={col.key} className={`${col.width} shrink-0 ${col.key === 'tarea' ? '' : 'px-2'}`}>
-                                        {col.filterable ? (
-                                            <Button
-                                                ref={ensureAnchorRef(col.key) as React.RefObject<HTMLButtonElement>}
-                                                variant="ghost"
-                                                onClick={() => setActivePopover(activePopover === col.key ? null : col.key)}
-                                                className="flex items-center gap-1 group outline-none"
-                                                size="xs"
-                                            >
-                                                <Text as="span" variant="caption" weight="bold" color="inherit" className={`text-xs uppercase tracking-wider transition-colors ${hasActiveFilter(col.key) ? 'text-yellow-400' : 'text-white/70 group-hover:text-white'}`}>
-                                                    {col.label}
-                                                </Text>
-                                                <Filter size={12} className={hasActiveFilter(col.key) ? 'text-yellow-400' : 'text-white/50 group-hover:text-white/80'} />
-                                            </Button>
-                                        ) : (
-                                            <Text as="span" variant="caption" weight="bold" color="white" className={`text-xs uppercase tracking-wider ${col.key === 'index' ? 'text-center' : ''}`}>
-                                                {col.label}
-                                            </Text>
-                                        )}
+                        {/* Header fijo fuera del scroll — misma estructura que MyDevelopments */}
+                        <div className="shrink-0 flex min-w-[1180px] items-stretch gap-0 bg-[var(--deep-navy)] rounded-t-2xl border-b border-[var(--color-border)] overflow-hidden z-20">
+                            {COLUMNS.map((col, idx) => (
+                                col.key === 'acciones' ? (
+                                    <div key={col.key} className="w-36 shrink-0 flex items-center justify-center py-2.5 px-4 bg-white/10">
+                                        <Text as="span" variant="caption" weight="bold" color="white" className="uppercase tracking-wider !text-[11px]">
+                                            Acciones
+                                        </Text>
                                     </div>
-                                ))}
-                            </div>
+                                ) : (
+                                    <Button
+                                        key={col.key}
+                                        ref={col.filterable ? ensureAnchorRef(col.key) as React.RefObject<HTMLButtonElement> : undefined}
+                                        variant="custom"
+                                        disabled={!col.filterable}
+                                        onClick={() => col.filterable && setActivePopover(activePopover === col.key ? null : col.key)}
+                                        className={`
+                                            ${col.width} shrink-0 flex items-center py-2.5 px-4
+                                            ${idx === 0 ? 'bg-blue-500/20 border-r border-white/10' : 'border-r border-white/10 transition-all duration-200'}
+                                            ${col.filterable ? 'hover:bg-white/5 cursor-pointer outline-none group' : 'cursor-default'}
+                                        `}
+                                    >
+                                        <Text as="span" variant="caption" weight="bold" color="inherit" className={`
+                                            text-xs font-bold uppercase tracking-wider !text-[11px] transition-colors
+                                            ${hasActiveFilter(col.key)
+                                                ? 'text-yellow-400'
+                                                : idx === 0
+                                                    ? 'text-blue-300'
+                                                    : 'text-white/70 group-hover:text-white'}
+                                        `}>
+                                            {col.label}
+                                        </Text>
+                                        {col.filterable && (
+                                            <Filter size={12} className={`ml-1 ${hasActiveFilter(col.key) ? 'text-yellow-400' : 'text-white/50 group-hover:text-white/80'}`} />
+                                        )}
+                                    </Button>
+                                )
+                            ))}
+                        </div>
 
-                            <div className="flex min-w-[1180px] flex-col max-h-[calc(100vh-520px)] overflow-y-auto custom-scrollbar pb-4">
+                        {/* Body con scroll vertical */}
+                        <div className="flex-1 min-h-0 overflow-y-scroll overflow-x-hidden custom-scrollbar">
+                            <div className="flex min-w-[1180px] flex-col pb-4">
                                 {flattenedFiltered.map((node, idx) => (
                                     <WbsNode
                                         key={node.id}
@@ -547,7 +562,7 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
                         </div>
                     </>
                 )}
-            </MaterialCard>
+            </div>
 
             {(['estado', 'lider', 'validacion'] as const).map(colKey => (
                 activePopover === colKey ? (
