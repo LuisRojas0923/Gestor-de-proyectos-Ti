@@ -73,6 +73,10 @@ export function useColumnFilters<T>(
 
   const clearAllFilters = () => setFilters({});
 
+  const setColumnFilter = (columnKey: string, newSet: Set<string>) => {
+    setFilters(prev => ({ ...prev, [columnKey]: newSet }));
+  };
+
   return {
     filters,
     filteredData,
@@ -85,5 +89,6 @@ export function useColumnFilters<T>(
     selectAll,
     clearColumnFilter,
     clearAllFilters,
+    setColumnFilter,
   };
 }

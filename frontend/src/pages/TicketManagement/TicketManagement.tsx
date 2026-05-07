@@ -4,10 +4,7 @@ import {
     Search,
     FilterX,
     UserCheck,
-    RefreshCw,
-    UserPlus,
-    Play,
-    Clock
+    RefreshCw
 } from 'lucide-react';
 
 import {
@@ -16,20 +13,16 @@ import {
     Input,
     Title,
     Text,
-    Icon,
-    Badge
+    Icon
 } from '../../components/atoms';
 
 import TicketTooltip from './TicketTooltip';
 import TicketActionModal from './TicketActionModal';
-import { FilterDropdown } from '../../components/molecules';
+import TicketTable from './components/TicketTable';
 
-import { useTicketManagement, formatName, Ticket } from './hooks/useTicketManagement';
+import { useTicketManagement, Ticket } from './hooks/useTicketManagement';
 import {
-    COLUMN_WIDTHS,
     SUB_STATUS_OPTIONS,
-    getStatusVariant,
-    getPriorityVariant,
     STATS_CARDS
 } from './constants';
 
@@ -66,29 +59,13 @@ const TicketManagement: React.FC = () => {
         hasActiveFilters
     } = useTicketManagement();
 
-    const [activeFilter, setActiveFilter] = useState<string | null>(null);
-    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
-    const [filterSearchTerm, setFilterSearchTerm] = useState('');
-
-    const toggleFilter = (key: string, rect: DOMRect) => {
-        if (activeFilter === key) {
-            setActiveFilter(null);
-            setAnchorRect(null);
-            setFilterSearchTerm('');
-        } else {
-            setActiveFilter(key);
-            setAnchorRect(rect);
-            setFilterSearchTerm('');
-        }
-    };
-
     // Tooltip hover state
     const [hoveredTicket, setHoveredTicket] = useState<Ticket | null>(null);
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
     const [tooltipVisible, setTooltipVisible] = useState(false);
     const hoverTimeout = React.useRef<NodeJS.Timeout | null>(null);
 
-    const handleTicketMouseEnter = useCallback((e: React.MouseEvent, ticket: Ticket) => {
+    const handleTicketMouseEnter = useCallback((ticket: Ticket, e: React.MouseEvent) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         setTooltipPos({ x: rect.left, y: rect.bottom });
         setHoveredTicket(ticket);
@@ -234,121 +211,28 @@ const TicketManagement: React.FC = () => {
                     <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
                     <Text variant="body2" color="text-secondary" weight="medium">Cargando tickets...</Text>
                 </div>
-            ) : filteredTickets.length > 0 ? (
-                <div className="relative">
-                    <div className="hidden md:flex items-stretch gap-0 mb-3 bg-[var(--deep-navy)] rounded-2xl border border-[var(--color-border)] shadow-xl overflow-hidden sticky top-0 z-20 px-3">
-                        <HeaderCell
-                            width={COLUMN_WIDTHS.id}
-                            label="ID"
-                            centered
-                            hasFilter={columnFilters['id']?.size > 0}
-                            onClick={(rect) => toggleFilter('id', rect)}
-                        />
-                        <HeaderCell
-                            width={COLUMN_WIDTHS.fecha}
-                            label="Fecha"
-                            hasFilter={columnFilters['fecha_creacion']?.size > 0 || dateRange.start !== '' || dateRange.end !== ''}
-                            onClick={(rect) => toggleFilter('fecha_creacion', rect)}
-                        />
-                        <HeaderCell
-                            width={COLUMN_WIDTHS.hora}
-                            label="Hora"
-                            hasFilter={columnFilters['hora']?.size > 0}
-                            onClick={(rect) => toggleFilter('hora', rect)}
-                        />
-                        <HeaderCell
-                            width={COLUMN_WIDTHS.area}
-                            label="Área"
-                            hasFilter={columnFilters['area_creador']?.size > 0}
-                            onClick={(rect) => toggleFilter('area_creador', rect)}
-                        />
-                        <HeaderCell
-                            width={COLUMN_WIDTHS.solicitante}
-                            label="Solicitante"
-                            hasFilter={columnFilters['nombre_creador']?.size > 0}
-                            onClick={(rect) => toggleFilter('nombre_creador', rect)}
-                        />
-                        <HeaderCell
-                            width={COLUMN_WIDTHS.asunto}
-                            label="Asunto"
-                            hasFilter={columnFilters['asunto']?.size > 0}
-                            onClick={(rect) => toggleFilter('asunto', rect)}
-                        />
-                        <HeaderCell
-                            width={COLUMN_WIDTHS.prioridad}
-                            label="Prioridad"
-                            centered
-                            hasFilter={columnFilters['prioridad']?.size > 0}
-                            onClick={(rect) => toggleFilter('prioridad', rect)}
-                        />
-                        <HeaderCell
-                            width={COLUMN_WIDTHS.estado}
-                            label="Estado"
-                            centered
-                            hasFilter={columnFilters['estado']?.size > 0}
-                            onClick={(rect) => toggleFilter('estado', rect)}
-                        />
-                        <HeaderCell
-                            width={COLUMN_WIDTHS.analista}
-                            label="Analista"
-                            hasFilter={columnFilters['asignado_a']?.size > 0}
-                            onClick={(rect) => toggleFilter('asignado_a', rect)}
-                        />
-                        <div className={`${COLUMN_WIDTHS.acciones} shrink-0 flex items-center justify-center py-2.5 bg-white/10`}>
-                            <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white">Acciones</Text>
-                        </div>
-                    </div>
-
-                    {/* Popover de Filtro */}
-                    {activeFilter && (
-                        <FilterDropdown
-                            isOpen={!!activeFilter}
-                            onClose={() => setActiveFilter(null)}
-                            anchorRect={anchorRect}
-                            title={activeFilter === 'fecha_creacion' ? 'Fecha' : activeFilter === 'nombre_creador' ? 'Solicitante' : activeFilter === 'area_creador' ? 'Área' : activeFilter === 'asignado_a' ? 'Analista' : activeFilter}
-                            type={activeFilter === 'fecha_creacion' ? 'date' : 'categorical'}
-                            
-                            // Categorical Props
-                            searchTerm={filterSearchTerm}
-                            onSearchChange={setFilterSearchTerm}
-                            options={columnOptions(activeFilter as any)
-                                .filter(opt => opt.toLowerCase().includes(filterSearchTerm.toLowerCase()))
-                                .map(opt => ({ value: opt, label: activeFilter === 'fecha_creacion' ? opt.split('-').reverse().join('/') : opt }))}
-                            tempValue={Array.from(columnFilters[activeFilter] || [])}
-                            onToggleOption={(val) => {
-                                const newSet = new Set(columnFilters[activeFilter] || []);
-                                if (newSet.has(val)) newSet.delete(val);
-                                else newSet.add(val);
-                                setColumnFilters(prev => ({ ...prev, [activeFilter]: newSet }));
-                            }}
-                            onSelectAll={() => {
-                                const options = columnOptions(activeFilter as any);
-                                setColumnFilters(prev => ({ ...prev, [activeFilter]: new Set(options) }));
-                            }}
-                            isAllSelected={(columnFilters[activeFilter]?.size || 0) === columnOptions(activeFilter as any).length}
-                            
-                            // Range/Date Props
-                            rangeValue={{ min: dateRange.start, max: dateRange.end }}
-                            onRangeChange={(range) => setDateRange({ start: String(range.min), end: String(range.max) })}
-                            
-                            onApply={() => setActiveFilter(null)}
-                        />
-                    )}
-
-                    <div className="max-h-[650px] overflow-y-auto pr-1 space-y-2 pb-6 custom-scrollbar">
-                        {filteredTickets.map((ticket) => (
-                            <TicketRow
-                                key={ticket.id}
-                                ticket={ticket}
-                                user={user}
-                                navigate={navigate}
-                                onMouseEnter={handleTicketMouseEnter}
-                                onMouseLeave={handleTicketMouseLeave}
-                                onAssignMe={handleAssignToMe}
-                                onQuickAction={handleQuickAction}
-                            />
-                        ))}
-
+) : filteredTickets.length > 0 ? (
+                <>
+                    <TicketTable
+                        tickets={filteredTickets}
+                        user={user}
+                        onRowClick={(ticket) => navigate(`/tickets/${ticket.id}`)}
+                        onAssignMe={handleAssignToMe}
+                        onQuickAction={handleQuickAction}
+                        onMouseEnter={handleTicketMouseEnter}
+                        onMouseLeave={handleTicketMouseLeave}
+                        columnFilters={columnFilters}
+                        columnOptions={Object.fromEntries(
+                            (['id', 'fecha_creacion', 'hora', 'area_creador', 'nombre_creador', 'asunto', 'prioridad', 'estado', 'asignado_a'] as const)
+                                .map(key => [key, columnOptions(key)])
+                        )}
+                        onFilterChange={(columnKey, filter) => {
+                            if (typeof filter !== 'object' || !('size' in filter)) return;
+                            setColumnFilters(prev => ({ ...prev, [columnKey]: filter as Set<string> }));
+                        }}
+                    />
+                    
+                    <div>
                         {hasMore && (
                             <div className="py-8 flex justify-center">
                                 <Button
@@ -362,166 +246,28 @@ const TicketManagement: React.FC = () => {
                                 </Button>
                             </div>
                         )}
-                    </div>
 
-                    {hoveredTicket && (
-                        <TicketTooltip
-                            ticket={hoveredTicket}
-                            position={tooltipPos}
-                            visible={tooltipVisible}
+                        {hoveredTicket && (
+                            <TicketTooltip
+                                ticket={hoveredTicket}
+                                position={tooltipPos}
+                                visible={tooltipVisible}
+                            />
+                        )}
+
+                        <TicketActionModal
+                            isOpen={actionModal.isOpen}
+                            actionType={actionModal.type}
+                            ticketId={actionModal.ticketId}
+                            userName={(user as any)?.nombre || (user as any)?.name}
+                            onConfirm={confirmAction}
+                            onCancel={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
                         />
-                    )}
-
-                    <TicketActionModal
-                        isOpen={actionModal.isOpen}
-                        actionType={actionModal.type}
-                        ticketId={actionModal.ticketId}
-                        userName={(user as any)?.nombre || (user as any)?.name}
-                        onConfirm={confirmAction}
-                        onCancel={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
-                    />
-                </div>
+                    </div>
+                </>
             ) : (
                 <EmptyState />
             )}
-        </div>
-    );
-};
-
-const HeaderCell: React.FC<{
-    width: string,
-    label: string,
-    centered?: boolean,
-    className?: string,
-    last?: boolean,
-    hasFilter?: boolean,
-    onClick: (rect: DOMRect) => void
-}> = ({ width, label, centered, className = "px-4", last, hasFilter, onClick }) => {
-    const cellRef = React.useRef<HTMLButtonElement>(null);
-
-    return (
-        <Button
-            variant="custom"
-            ref={cellRef}
-            onClick={() => cellRef.current && onClick(cellRef.current.getBoundingClientRect())}
-            className={`
-                ${width} shrink-0 flex items-center ${centered ? 'justify-center' : ''} py-2.5 
-                ${!last ? 'border-r border-white/10' : ''} 
-                ${hasFilter ? 'bg-blue-500/20' : 'hover:bg-white/5'} 
-                transition-all duration-200 outline-none group
-                ${className}
-            `}
-        >
-            <Text
-                variant="caption"
-                weight="bold"
-                className={`uppercase tracking-wider !text-[11px] transition-colors ${hasFilter ? 'text-blue-300' : 'text-white/70 group-hover:text-white'}`}
-            >
-                {label}
-            </Text>
-        </Button>
-    );
-};
-
-const TicketRow: React.FC<{
-    ticket: Ticket,
-    user: any,
-    navigate: any,
-    onMouseEnter: any,
-    onMouseLeave: any,
-    onAssignMe: any,
-    onQuickAction: any
-}> = ({ ticket, user, navigate, onMouseEnter, onMouseLeave, onAssignMe, onQuickAction }) => {
-    const cleanId = ticket.id.replace('TKT-', '');
-
-    return (
-        <div
-            onClick={() => navigate(`/tickets/${ticket.id}`)}
-            className="group bg-[var(--color-surface)] p-3 rounded-xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden"
-        >
-            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-900 dark:bg-blue-800"></div>
-            <div className="flex flex-col md:flex-row md:items-center gap-0">
-                <div className={`${COLUMN_WIDTHS.id} shrink-0 pl-4 flex items-center`}>
-                    <Text variant="caption" className="font-mono text-xs text-gray-400 whitespace-nowrap">#TKT-{cleanId}</Text>
-                </div>
-
-                <div className={`${COLUMN_WIDTHS.fecha} shrink-0 flex items-center justify-center text-gray-400 px-4`}>
-                    <Icon name={Clock} size="xs" className="mr-1.5" />
-                    <Text variant="caption" color="text-secondary" className="text-[10px]">
-                        {new Date(ticket.fecha_creacion).toLocaleDateString()}
-                    </Text>
-                </div>
-
-                <div className={`${COLUMN_WIDTHS.hora} shrink-0 flex items-center justify-center text-gray-400 px-2`}>
-                    <Text variant="caption" color="text-secondary" className="text-[10px] font-medium">
-                        {new Date(ticket.fecha_creacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                    </Text>
-                </div>
-
-                <div className={`${COLUMN_WIDTHS.area} shrink-0 flex items-center px-4`}>
-                    <Text variant="body2" weight="bold" className="truncate text-[11px] max-w-full" title={ticket.area_creador}>
-                        {ticket.area_creador || 'S/A'}
-                    </Text>
-                </div>
-
-                <div className={`${COLUMN_WIDTHS.solicitante} shrink-0 flex items-center text-gray-400 px-6`}>
-                    <Icon name={UserCheck} size="xs" className="w-3 h-3 mr-2" />
-                    <Text variant="caption" color="text-secondary" className="truncate text-[10px] uppercase">{ticket.nombre_creador}</Text>
-                </div>
-
-                <div
-                    className={`${COLUMN_WIDTHS.asunto} min-w-0 flex flex-col justify-center px-6`}
-                    onMouseEnter={(e) => onMouseEnter(e, ticket)}
-                    onMouseLeave={onMouseLeave}
-                >
-                    <Text variant="body2" weight="bold" color="text-primary" className="truncate group-hover:text-[var(--color-primary)] transition-colors text-sm">
-                        {ticket.asunto}
-                    </Text>
-                </div>
-
-                <div className={`${COLUMN_WIDTHS.prioridad} shrink-0 flex items-center justify-center px-4`}>
-                    <Badge variant={getPriorityVariant(ticket.prioridad)} size="sm">
-                        {ticket.prioridad}
-                    </Badge>
-                </div>
-
-                <div className={`${COLUMN_WIDTHS.estado} shrink-0 flex items-center justify-center px-4`}>
-                    <Badge variant={getStatusVariant(ticket.estado)} size="sm" className="uppercase tracking-wider">
-                        {ticket.estado || 'PENDIENTE'}
-                    </Badge>
-                </div>
-
-                <div className={`${COLUMN_WIDTHS.analista} shrink-0 flex items-center px-4 gap-2`}>
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${ticket.asignado_a ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]' : 'bg-gray-100 text-gray-400'}`}>
-                        {ticket.asignado_a ? ticket.asignado_a.charAt(0).toUpperCase() : '?'}
-                    </div>
-                    <Text variant="caption" color="text-secondary" className="text-[10px] truncate" title={ticket.asignado_a}>
-                        {ticket.asignado_a ? formatName(ticket.asignado_a) : 'Sin asignar'}
-                    </Text>
-                </div>
-
-                <div className={`flex items-center justify-center ${COLUMN_WIDTHS.acciones} gap-2 px-4`}>
-                    {(!ticket.asignado_a || (user && ticket.asignado_a !== (user as any).nombre)) && ticket.estado !== 'Cerrado' && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => onAssignMe(e, ticket.id)}
-                            className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20"
-                            icon={UserPlus}
-                        />
-                    )}
-
-                    {ticket.estado !== 'Proceso' && ticket.estado !== 'Cerrado' && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => onQuickAction(e, ticket.id)}
-                            className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white transition-all border border-amber-500/20"
-                            icon={Play}
-                        />
-                    )}
-                </div>
-            </div>
         </div>
     );
 };
