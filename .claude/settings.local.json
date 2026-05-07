@@ -3,7 +3,17 @@
     "allow": [
       "Bash(PYTHONPATH=\"backend_v2\" python -m pytest testing/backend/test_auth_escalation.py -v 2>&1)",
       "Bash(git -C \"c:\\\\Users\\\\amejoramiento6\\\\Gestor-de-proyectos-Ti\" log --oneline -10)",
-      "Bash(git -C \"c:\\\\Users\\\\amejoramiento6\\\\Gestor-de-proyectos-Ti\" status)"
+      "Bash(git -C \"c:\\\\Users\\\\amejoramiento6\\\\Gestor-de-proyectos-Ti\" status)",
+      "PowerShell(netsh advfirewall *)",
+      "Bash(Get-ChildItem *)",
+      "Bash(xargs grep -l \"aprobacion\\\\|aprob\\\\|jerarqu\")",
+      "Bash(grep -E \"\\\\.\\(py\\)$\")",
+      "Bash(xargs grep -l \"ValidacionAsignacion\")",
+      "Bash(Select-Object FullName)",
+      "Bash(git add *)",
+      "Bash(git restore *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
