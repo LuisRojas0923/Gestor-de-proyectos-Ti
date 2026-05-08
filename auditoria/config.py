@@ -46,7 +46,6 @@ TARGET_EXTENSIONS = {
     ".bat",
     ".sh",
     ".sql",
-    ".md",
 }
 
 # Archivos específicos a excluir (generados automáticamente)
