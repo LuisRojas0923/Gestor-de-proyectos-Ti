@@ -78,11 +78,15 @@ export function DataTable<T>({
     const bodyGridRef = useRef<HTMLDivElement>(null);
     const headerGridRef = useRef<HTMLDivElement>(null);
 
-    /*
-     * Sincroniza los anchos del header con los anchos reales calculados por el browser
-     * en el body grid. Se re-ejecuta cuando los datos o columnas cambian, y también
-     * cuando el contenedor cambia de tamaño (ResizeObserver).
-     */
+    const gridTemplateColumns = [
+        ...columns.map(col =>
+            col.flex
+                ? `minmax(${col.minWidth ?? 'min-content'}, 1fr)`
+                : `minmax(${col.minWidth ?? 'min-content'}, auto)`
+        ),
+        ...(renderRowActions ? [`minmax(${actionsMinWidth}, auto)`] : []),
+    ].join(' ');
+
     useLayoutEffect(() => {
         if (headerGridRef.current) {
             headerGridRef.current.style.display = 'grid';
@@ -105,20 +109,6 @@ export function DataTable<T>({
         if (bodyGridRef.current) observer.observe(bodyGridRef.current);
         return () => observer.disconnect();
     }, [data, columns, renderRowActions, gridTemplateColumns]);
-
-    /*
-     * Template CSS Grid compartido entre header y body.
-     * Las columnas auto-expanden desde minWidth hasta el contenido más ancho
-     * de cada fila (auto). La columna flex crece con 1fr para absorber espacio.
-     */
-    const gridTemplateColumns = [
-        ...columns.map(col =>
-            col.flex
-                ? `minmax(${col.minWidth ?? 'min-content'}, 1fr)`
-                : `minmax(${col.minWidth ?? 'min-content'}, auto)`
-        ),
-        ...(renderRowActions ? [`minmax(${actionsMinWidth}, auto)`] : []),
-    ].join(' ');
 
     const toggleFilter = useCallback((key: string) => {
         const el = headerRefs.current[key];
