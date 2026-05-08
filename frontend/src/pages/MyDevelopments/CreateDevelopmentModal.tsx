@@ -130,8 +130,8 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className={`w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col ${darkMode ? 'bg-neutral-800 border border-neutral-700' : 'bg-white'}`}>
-                <div className={`p-6 border-b ${darkMode ? 'border-neutral-700' : ' border-neutral-100'}`}>
+            <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)]">
+                <div className="p-6 border-b border-[var(--color-border)]">
                     <div className="flex justify-between items-center">
                         <Title variant="h5" weight="bold">Nuevo Proyecto</Title>
                         <Button variant="ghost" onClick={onClose} icon={X} className="!p-1.5 text-neutral-400 hover:text-neutral-500" />
@@ -225,7 +225,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                     </div>
                 </div>
 
-                <div className={`p-6 border-t ${darkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-neutral-50 border-neutral-100'} flex justify-end gap-3`}>
+                <div className="p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-variant)] flex justify-end gap-3">
                     <Button variant="ghost" onClick={onClose} disabled={loading}>
                         Cancelar
                     </Button>
