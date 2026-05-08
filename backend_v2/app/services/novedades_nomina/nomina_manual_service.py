@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
 from typing import List, Dict, Any
-from sqlmodel import Session, delete
+from sqlmodel import delete
+from sqlalchemy.ext.asyncio import AsyncSession
 from ...models.novedades_nomina.nomina import (
     NominaRegistroNormalizado
 )
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 class NominaManualService:
     @staticmethod
     async def procesar_manual_otros_gerencia(
-        session: Session,
+        session: AsyncSession,
         db_erp: Any,
         data: List[Dict[str, Any]],
         mes: int,
@@ -124,7 +125,7 @@ class NominaManualService:
 
     @staticmethod
     async def procesar_manual_embargos(
-        session: Session,
+        session: AsyncSession,
         db_erp: Any,
         data: List[Dict[str, Any]],
         mes: int,
@@ -229,7 +230,7 @@ class NominaManualService:
 
     @staticmethod
     async def procesar_manual_comisiones(
-        session: Session,
+        session: AsyncSession,
         db_erp: Any,
         data: List[Dict[str, Any]],
         mes: int,

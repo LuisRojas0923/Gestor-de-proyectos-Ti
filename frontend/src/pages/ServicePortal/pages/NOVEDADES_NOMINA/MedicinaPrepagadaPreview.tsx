@@ -399,8 +399,8 @@ const MedicinaPrepagadaPreview: React.FC = () => {
                                                 />
                                             </div>
                                         </th>
-                                        <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
-                                            <div className="flex items-center justify-center gap-1">
+                                        <th className="text-left py-2 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
+                                            <div className="flex items-center justify-start gap-1">
                                                 <Text as="span" size="xs" color="inherit">NOMBRE</Text>
                                                 <FilterDropdown 
                                                     options={getColumnOptions('nombre_asociado')}
@@ -444,7 +444,7 @@ const MedicinaPrepagadaPreview: React.FC = () => {
                                         <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                             <td className="p-2 text-slate-400 font-mono w-12 border-r border-slate-50 text-center">{i + 1}</td>
                                             <td className="p-2 font-mono border-r border-slate-50 text-center">{row.cedula}</td>
-                                            <td className="p-2 border-r border-slate-50 text-center">{row.nombre_asociado}</td>
+                                            <td className="p-2 border-r border-slate-50 text-left pl-4">{row.nombre_asociado}</td>
                                             <td className="p-2 border-r border-slate-50 text-center">{row.empresa}</td>
                                             <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)] border-r border-slate-50">
                                                 {formatCurrency(row.valor)}

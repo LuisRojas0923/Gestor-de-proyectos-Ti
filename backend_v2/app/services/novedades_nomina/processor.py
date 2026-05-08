@@ -2,7 +2,8 @@ import re
 import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from ...models.novedades_nomina.nomina import (
     NominaArchivo, NominaRegistroCrudo, NominaRegistroNormalizado, NominaConcepto
 )
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 class NominaProcessor:
     """Servicio para normalizar y clasificar registros de nómina"""
 
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     async def normalize_record(self, raw_data: Dict[str, Any], archivo: NominaArchivo, fila: int) -> NominaRegistroNormalizado:

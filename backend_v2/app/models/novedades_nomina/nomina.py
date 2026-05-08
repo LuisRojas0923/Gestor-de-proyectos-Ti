@@ -68,6 +68,7 @@ class NominaRegistroNormalizado(SQLModel, table=True):
     # Nuevos campos para planillas y otros
     horas: float = Field(default=0)
     dias: float = Field(default=0)
+    ciudad: Optional[str] = Field(default=None, max_length=100)
     
     fila_origen: int
     observaciones: Optional[str] = Field(default=None)

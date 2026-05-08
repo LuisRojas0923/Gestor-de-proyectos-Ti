@@ -1,6 +1,7 @@
 import logging
 from typing import List, Dict, Any
-from sqlmodel import Session, select, func
+from sqlmodel import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 from ...models.novedades_nomina.nomina import NominaRegistroNormalizado, ControlDescuentoActivo
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ class TablaMaestraService:
 
     @staticmethod
     async def validar_disponibilidad(
-        session: Session, mes: int, anio: int, quincena: str
+        session: AsyncSession, mes: int, anio: int, quincena: str
     ) -> Dict[str, Any]:
         """Verifica qué subcategorías tienen datos para el período dado."""
         try:
@@ -94,7 +95,7 @@ class TablaMaestraService:
 
     @staticmethod
     async def generar_tabla_maestra(
-        session: Session, mes: int, anio: int, quincena: str
+        session: AsyncSession, mes: int, anio: int, quincena: str
     ) -> Dict[str, Any]:
         """Genera la tabla maestra consolidada para el período dado."""
         try:

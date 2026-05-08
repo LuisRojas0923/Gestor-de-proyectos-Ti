@@ -2,7 +2,8 @@ import logging
 import hashlib
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from sqlmodel import Session, select, func, delete
+from sqlmodel import select, func, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 from ...models.novedades_nomina.nomina import (
     NominaArchivo, NominaRegistroCrudo, NominaRegistroNormalizado, NominaExcepcion
 )
@@ -33,7 +34,7 @@ class NominaService:
 
     @staticmethod
     async def persistir_registros_normalizados(
-        session: Session,
+        session: AsyncSession,
         archivo_id: int,
         mes: int,
         anio: int,
@@ -150,6 +151,8 @@ class NominaService:
                     estado_val = "RETIRADO"
                     valor_final = 0 # No se contabiliza si está retirado y no hay excepción
 
+            ciudad = (info_original.get("ciudadcontratacion", "") if info_original else "") or row.get("sucursal", "")
+
             reg = NominaRegistroNormalizado(
                 archivo_id=archivo_id,
                 fecha_creacion=datetime.now(),
@@ -166,6 +169,8 @@ class NominaService:
                 horas=row.get("horas", 0),
                 dias=row.get("dias", 0),
                 fila_origen=i + 1,
+                ciudad=ciudad or None,
+                observaciones=None,
             )
             session.add(reg)
             registros.append(reg)
@@ -194,6 +199,7 @@ class NominaService:
 
                 if inyectar:
                     info = mapa_erp.get(ex.cedula)
+                    ciudad_inyectado = info.get("ciudadcontratacion", "") if info else ""
                     reg = NominaRegistroNormalizado(
                         archivo_id=archivo_id,
                         fecha_creacion=datetime.now(),
@@ -209,7 +215,9 @@ class NominaService:
                         estado_validacion=estado_val,
                         horas=0,
                         dias=0,
-                        fila_origen=0
+                        fila_origen=0,
+                        ciudad=ciudad_inyectado or None,
+                        observaciones=None
                     )
                     session.add(reg)
                     registros.append(reg)
@@ -219,7 +227,7 @@ class NominaService:
 
     @staticmethod
     async def crear_archivo_procesado(
-        session: Session,
+        session: AsyncSession,
         nombre: str,
         content_prefix: bytes,
         size: int,
@@ -248,7 +256,7 @@ class NominaService:
         return archivo
     @staticmethod
     async def procesar_flujo(
-        session: Session,
+        session: AsyncSession,
         db_erp: Any,
         files: List[Any],
         categoria: str,
@@ -331,6 +339,7 @@ class NominaService:
                     "valor": r.valor,
                     "empresa": r.empresa,
                     "concepto": r.concepto,
+                    "ciudad": r.ciudad,
                     
                     # Mayúsculas / Variaciones (Legacy)
                     "CEDULA": r.cedula,
@@ -341,6 +350,7 @@ class NominaService:
                     "VALOR MES": r.valor,
                     "EMPRESA": r.empresa,
                     "CONCEPTO": r.concepto,
+                    "CIUDAD": r.ciudad,
                     
                     # Campos específicos Planillas
                     "horas": r.horas,
@@ -396,7 +406,7 @@ class NominaService:
             raise e
     @staticmethod
     async def obtener_datos_periodo(
-        session: Session,
+        session: AsyncSession,
         subcategoria: str,
         mes: int,
         anio: int
@@ -426,6 +436,7 @@ class NominaService:
                     "valor": f.valor,
                     "empresa": f.empresa,
                     "concepto": f.concepto,
+                    "ciudad": f.ciudad,
                     
                     # Mayúsculas / Variaciones
                     "CEDULA": f.cedula,
@@ -436,6 +447,7 @@ class NominaService:
                     "VALOR MES": f.valor,
                     "EMPRESA": f.empresa,
                     "CONCEPTO": f.concepto,
+                    "CIUDAD": f.ciudad,
                     
                     # Campos específicos Planillas
                     "horas": f.horas,

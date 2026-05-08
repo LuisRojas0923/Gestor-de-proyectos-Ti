@@ -1,14 +1,15 @@
 import logging
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from sqlmodel import Session, select, func, and_, or_
+from sqlmodel import select, func, and_, or_
+from sqlalchemy.ext.asyncio import AsyncSession
 from ...models.novedades_nomina.nomina import NominaExcepcion, NominaExcepcionHistorial
 
 logger = logging.getLogger(__name__)
 
 class ExcepcionService:
     @staticmethod
-    async def obtener_excepciones_activas(session: Session, subcategoria: Optional[str] = None) -> List[NominaExcepcion]:
+    async def obtener_excepciones_activas(session: AsyncSession, subcategoria: Optional[str] = None) -> List[NominaExcepcion]:
         """Obtiene las excepciones vigentes para una subcategoría."""
         now = datetime.now()
         stmt = select(NominaExcepcion).where(
@@ -23,7 +24,7 @@ class ExcepcionService:
         return result.scalars().all()
 
     @staticmethod
-    def registrar_historial(session: Session, excepcion_id: int, mes: int, anio: int, valor: float, mensaje: str):
+    def registrar_historial(session: AsyncSession, excepcion_id: int, mes: int, anio: int, valor: float, mensaje: str):
         """Registra un evento en el historial de la excepción."""
         hist = NominaExcepcionHistorial(
             excepcion_id=excepcion_id,
@@ -35,7 +36,7 @@ class ExcepcionService:
         session.add(hist)
 
     @staticmethod
-    async def crear_excepcion(session: Session, data: Dict[str, Any], usuario: str) -> NominaExcepcion:
+    async def crear_excepcion(session: AsyncSession, data: Dict[str, Any], usuario: str) -> NominaExcepcion:
         """Crea una nueva excepción."""
         exc = NominaExcepcion(
             **data,
@@ -51,7 +52,7 @@ class ExcepcionService:
         return exc
 
     @staticmethod
-    def actualizar_estado_saldo(session: Session, excepcion: NominaExcepcion, valor_descontado: float):
+    def actualizar_estado_saldo(session: AsyncSession, excepcion: NominaExcepcion, valor_descontado: float):
         """Actualiza el saldo y estado de una excepción de tipo SALDO_FAVOR."""
         if excepcion.tipo == 'SALDO_FAVOR':
             excepcion.saldo_actual -= valor_descontado
@@ -62,7 +63,7 @@ class ExcepcionService:
             session.add(excepcion)
 
     @staticmethod
-    async def aplicar_saldo_favor(session: Session, excepcion: NominaExcepcion, valor_cobro: float, mes: int, anio: int) -> float:
+    async def aplicar_saldo_favor(session: AsyncSession, excepcion: NominaExcepcion, valor_cobro: float, mes: int, anio: int) -> float:
         """
         Aplica un saldo a favor a un cobro, disminuyendo el saldo actual.
         Implementa idempotencia: si ya se aplicó en el mismo periodo, revierte antes de aplicar.

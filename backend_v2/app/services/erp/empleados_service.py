@@ -74,7 +74,8 @@ class EmpleadosService:
                 E.nrocedula      AS "nrocedula",
                 E.nombre::text   AS "nombre",
                 C.estado::text   AS "estado",
-                C.empresa::text  AS "empresa"
+                C.empresa::text  AS "empresa",
+                C.ciudadcontratacion::text AS "ciudadcontratacion"
             FROM establecimiento E
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
@@ -89,6 +90,7 @@ class EmpleadosService:
                 "nombre": r.nombre,
                 "estado": r.estado or "Desconocido",
                 "empresa": r.empresa or "",
+                "ciudadcontratacion": r.ciudadcontratacion or "",
             }
         return mapa
 

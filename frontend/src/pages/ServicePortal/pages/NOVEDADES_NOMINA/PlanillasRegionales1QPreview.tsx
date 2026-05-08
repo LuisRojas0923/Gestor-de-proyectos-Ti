@@ -3,7 +3,7 @@ import { Title, Text, Button, Select, Input, Badge } from '../../../../component
 import { FilePicker } from '../../../../components/molecules';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileText, AlertTriangle, History, Database, ChevronRight } from 'lucide-react';
-import { NominaTable, ColumnDef } from '../../../../components/organisms/NominaTable';
+
 import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
@@ -17,6 +17,7 @@ interface PlanillaRow {
     horas: number;
     dias: number;
     concepto: string;
+    ciudad?: string;
 }
 
 interface WarningDetalle {
@@ -54,7 +55,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
     const [data, setData] = useState<PlanillaResponse | null>(null);
 
     // Filtros
-    const [searchText, setSearchText] = useState('');
+    const [searchText] = useState('');
 
     // Filtros por columna (Excel style)
     const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
@@ -126,7 +127,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
     const filteredRows = useMemo(() => {
         if (!data || !data.filas) return [];
         return data.filas
-            .filter(r => {
+            .filter((r: PlanillaRow) => {
                 // Filtro de búsqueda global
                 const matchGlobal = searchText === ''
                     || r.cedula.toLowerCase().includes(searchText.toLowerCase())
@@ -135,7 +136,9 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                 if (!matchGlobal) return false;
 
                 // Filtros por columna
-                for (const [key, values] of Object.entries(activeFilters)) {
+                for (const entry of Object.entries(activeFilters)) {
+                    const key = entry[0];
+                    const values = entry[1] as string[];
                     if (values.length === 0) continue;
                     const rowValue = String((r as any)[key] || '').toUpperCase();
                     if (!values.includes(rowValue)) return false;
@@ -143,12 +146,12 @@ const PlanillasRegionales1QPreview: React.FC = () => {
 
                 return true;
             })
-            .sort((a, b) => a.nombre.localeCompare(b.nombre));
+            .sort((a: PlanillaRow, b: PlanillaRow) => a.nombre.localeCompare(b.nombre));
     }, [data, searchText, activeFilters]);
 
     const getColumnOptions = (key: keyof PlanillaRow) => {
         if (!data || !data.filas) return [];
-        const uniqueValues = Array.from(new Set(data.filas.map(r => String(r[key] || '').toUpperCase())));
+        const uniqueValues = Array.from(new Set(data.filas.map((r: PlanillaRow) => String(r[key] || '').toUpperCase())));
         return uniqueValues.sort().map(v => ({ label: v, value: v }));
     };
 
@@ -159,7 +162,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
         const horasPorConcepto: Record<string, number> = {};
         const diasPorConcepto: Record<string, number> = {};
  
-        data.filas.forEach(row => {
+        data.filas.forEach((row: PlanillaRow) => {
             const cedula = row.cedula?.toString() || '';
             const emp = row.empresa || 'REFRIDCOL';
             const nov = row.concepto || 'N/A';
@@ -196,32 +199,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
         return 'default';
     };
 
-    const columns = useMemo<ColumnDef<PlanillaRow>[]>(() => [
-        { header: 'CÉDULA', accessorKey: 'cedula' },
-        { header: 'NOMBRE', accessorKey: 'nombre' },
-        { 
-            header: 'EMPRESA', 
-            accessorKey: 'empresa', 
-            cell: (row: PlanillaRow) => <Badge variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'} size="sm">{row.empresa || 'REFRIDCOL'}</Badge> 
-        },
-        { 
-            header: 'HORAS', 
-            accessorKey: 'horas', 
-            align: 'right',
-            cell: (row: PlanillaRow) => <Text weight="bold">{row.horas}</Text>
-        },
-        { 
-            header: 'DIAS', 
-            accessorKey: 'dias', 
-            align: 'right',
-            cell: (row: PlanillaRow) => <Text weight="bold">{row.dias}</Text>
-        },
-        { 
-            header: 'CONCEPTO', 
-            accessorKey: 'concepto', 
-            cell: (row: PlanillaRow) => <Badge variant="default" size="sm">{row.concepto}</Badge> 
-        }
-    ], []);
+
 
     return (
         <div className="max-w-[1600px] mx-auto h-[calc(100vh-170px)] flex flex-col animate-in fade-in duration-500 overflow-hidden px-1 space-y-2">
@@ -364,7 +342,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                     <Text weight="bold" size="xs" className="text-amber-800 dark:text-amber-300">Advertencias</Text>
                                 </div>
                                 <ul className="space-y-0.5 ml-5 list-disc">
-                                    {data.warnings.map((w, i) => (
+                                    {data.warnings.map((w: string, i: number) => (
                                         <li key={i}><Text size="xs" className="text-amber-700 dark:text-amber-400 text-[10px]">{w}</Text></li>
                                     ))}
                                 </ul>
@@ -396,7 +374,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-amber-100 dark:divide-amber-800">
-                                                {warningsDetalle.map((w, i) => (
+                                                {warningsDetalle.map((w: WarningDetalle, i: number) => (
                                                     <tr key={i} className="hover:bg-amber-50 dark:hover:bg-amber-900/20">
                                                         <td className="p-2"><Text size="xs" className="font-mono uppercase">{w.cedula}</Text></td>
                                                         <td className="p-2"><Text size="xs" className="uppercase">{w.nombre}</Text></td>
@@ -434,31 +412,42 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                                     <FilterDropdown 
                                                         options={getColumnOptions('cedula')}
                                                         selectedOptions={activeFilters['cedula'] || []}
-                                                        onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, cedula: vals }))}
+                                                        onFilterChange={(vals: string[]) => setActiveFilters((prev: Record<string, string[]>) => ({ ...prev, cedula: vals }))}
                                                         dark
                                                     />
                                                 </div>
                                             </th>
-                                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
-                                                <div className="flex items-center justify-center gap-1">
+                                            <th className="text-left py-2 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
+                                                <div className="flex items-center justify-start gap-1">
                                                     <Text as="span" size="xs" color="inherit">NOMBRE</Text>
                                                     <FilterDropdown 
                                                         options={getColumnOptions('nombre')}
                                                         selectedOptions={activeFilters['nombre'] || []}
-                                                        onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, nombre: vals }))}
+                                                        onFilterChange={(vals: string[]) => setActiveFilters((prev: Record<string, string[]>) => ({ ...prev, nombre: vals }))}
                                                         dark
                                                     />
                                                 </div>
                                             </th>
                                             <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
                                                 <div className="flex items-center justify-center gap-1">
-                                                    <Text as="span" size="xs" color="inherit">EMPRESA</Text>
-                                                    <FilterDropdown 
-                                                        options={getColumnOptions('empresa')}
-                                                        selectedOptions={activeFilters['empresa'] || []}
-                                                        onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, empresa: vals }))}
-                                                        dark
-                                                    />
+                                                     <Text as="span" size="xs" color="inherit">EMPRESA</Text>
+                                                     <FilterDropdown 
+                                                         options={getColumnOptions('empresa')}
+                                                         selectedOptions={activeFilters['empresa'] || []}
+                                                         onFilterChange={(vals: string[]) => setActiveFilters((prev: Record<string, string[]>) => ({ ...prev, empresa: vals }))}
+                                                         dark
+                                                     />
+                                                 </div>
+                                             </th>
+                                             <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
+                                                 <div className="flex items-center justify-center gap-1">
+                                                     <Text as="span" size="xs" color="inherit">CIUDAD</Text>
+                                                     <FilterDropdown 
+                                                         options={getColumnOptions('ciudad' as any)}
+                                                         selectedOptions={activeFilters['ciudad'] || []}
+                                                         onFilterChange={(vals: string[]) => setActiveFilters((prev: Record<string, string[]>) => ({ ...prev, ciudad: vals }))}
+                                                         dark
+                                                     />
                                                 </div>
                                             </th>
                                             <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5"><Text as="span" size="xs" color="inherit">HORAS</Text></th>
@@ -469,7 +458,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                                     <FilterDropdown 
                                                         options={getColumnOptions('concepto')}
                                                         selectedOptions={activeFilters['concepto'] || []}
-                                                        onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, concepto: vals }))}
+                                                        onFilterChange={(vals: string[]) => setActiveFilters((prev: Record<string, string[]>) => ({ ...prev, concepto: vals }))}
                                                         dark
                                                     />
                                                 </div>
@@ -477,13 +466,16 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        {filteredRows.map((row, i) => (
+                                        {filteredRows.map((row: PlanillaRow, i: number) => (
                                             <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                                 <td className="p-2 text-slate-400 font-mono w-12 border-r border-slate-50 text-center">{i + 1}</td>
                                                 <td className="p-2 font-mono border-r border-slate-50 text-center">{row.cedula}</td>
-                                                <td className="p-2 border-r border-slate-50 text-center">{row.nombre}</td>
+                                                <td className="p-2 border-r border-slate-50 text-left pl-4">{row.nombre}</td>
                                                 <td className="p-2 border-r border-slate-50 text-center">
                                                     <Badge variant={getBadgeVariantForEmpresa(row.empresa)} size="xs">{row.empresa || 'REFRIDCOL'}</Badge>
+                                                </td>
+                                                <td className="p-2 border-r border-slate-50 text-center">
+                                                    <Text size="xs" align="center" className="uppercase font-semibold text-slate-600 dark:text-slate-400">{row.ciudad || 'N/A'}</Text>
                                                 </td>
                                                 <td className="p-2 text-center font-mono font-bold border-r border-slate-50">{row.horas}</td>
                                                 <td className="p-2 text-center font-mono font-bold border-r border-slate-50">{row.dias}</td>

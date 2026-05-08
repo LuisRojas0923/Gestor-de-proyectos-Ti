@@ -1,4 +1,4 @@
-Attribute VB_Name = "ModuloTablaMaestraPlana"
+Attribute VB_Name = "ModuloExtraccionPlanillas1Q2Q"
 ' ====================================================================
 ' MACRO PARA EXTRACCIÓN DE TABLA MAESTRA PLANA DE NÓMINA (SÍN PIVOT)
 ' Base de datos: project_manager (Portal)
@@ -80,7 +80,7 @@ End Function
 
 ' --- PROCESO PRINCIPAL ---
 
-Sub ExtraerTablaMaestraPlana()
+Sub ExtraccionPlanilla1Q2Q()
     Dim conn As Object
     Dim rs As Object
     Dim wsParams As Worksheet
@@ -120,6 +120,7 @@ Sub ExtraerTablaMaestraPlana()
           "    cedula AS ""CEDULA""," & vbCrLf & _
           "    COALESCE(nombre_asociado, '') AS ""NOMBRE""," & vbCrLf & _
           "    COALESCE(empresa, '') AS ""EMPRESA""," & vbCrLf & _
+          "    COALESCE(ciudad, '') AS ""CIUDAD""," & vbCrLf & _
           "    COALESCE(horas, 0) AS ""HORAS""," & vbCrLf & _
           "    COALESCE(dias, 0) AS ""DIAS""," & vbCrLf & _
           "    COALESCE(concepto, subcategoria_final) AS ""CONCEPTO""," & vbCrLf & _
@@ -199,8 +200,8 @@ Sub ExtraerTablaMaestraPlana()
     
     ' Formato
     wsData.Columns.AutoFit
-    wsData.Range(wsData.Cells(6, 4), wsData.Cells(lastRow, 5)).NumberFormat = "#,##0"
-    wsData.Range(wsData.Cells(6, 7), wsData.Cells(lastRow, lastCol)).NumberFormat = "$ #,##0.00"
+    wsData.Range(wsData.Cells(6, 5), wsData.Cells(lastRow, 6)).NumberFormat = "#,##0"
+    wsData.Range(wsData.Cells(6, 8), wsData.Cells(lastRow, lastCol)).NumberFormat = "$ #,##0.00"
     
     totalRegs = lastRow - 5
     

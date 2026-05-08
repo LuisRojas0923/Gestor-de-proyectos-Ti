@@ -17,6 +17,7 @@ interface PlanillaRow {
     horas: number;
     dias: number;
     concepto: string;
+    ciudad?: string;
 }
 
 interface WarningDetalle {
@@ -203,6 +204,11 @@ const PlanillasRegionales2QPreview: React.FC = () => {
             header: 'EMPRESA', 
             accessorKey: 'empresa', 
             cell: (row: PlanillaRow) => <Badge variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'} size="sm">{row.empresa || 'REFRIDCOL'}</Badge> 
+        },
+        { 
+            header: 'CIUDAD', 
+            accessorKey: 'ciudad' as any, 
+            cell: (row: PlanillaRow) => <Text size="xs" className="uppercase font-semibold">{row.ciudad || 'N/A'}</Text> 
         },
         { 
             header: 'HORAS', 
@@ -439,8 +445,8 @@ const PlanillasRegionales2QPreview: React.FC = () => {
                                                     />
                                                 </div>
                                             </th>
-                                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
-                                                <div className="flex items-center justify-center gap-1">
+                                            <th className="text-left py-2 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
+                                                <div className="flex items-center justify-start gap-1">
                                                     <Text as="span" size="xs" color="inherit">NOMBRE</Text>
                                                     <FilterDropdown 
                                                         options={getColumnOptions('nombre')}
@@ -452,13 +458,24 @@ const PlanillasRegionales2QPreview: React.FC = () => {
                                             </th>
                                             <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
                                                 <div className="flex items-center justify-center gap-1">
-                                                    <Text as="span" size="xs" color="inherit">EMPRESA</Text>
-                                                    <FilterDropdown 
-                                                        options={getColumnOptions('empresa')}
-                                                        selectedOptions={activeFilters['empresa'] || []}
-                                                        onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, empresa: vals }))}
-                                                        dark
-                                                    />
+                                                     <Text as="span" size="xs" color="inherit">EMPRESA</Text>
+                                                     <FilterDropdown 
+                                                         options={getColumnOptions('empresa')}
+                                                         selectedOptions={activeFilters['empresa'] || []}
+                                                         onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, empresa: vals }))}
+                                                         dark
+                                                     />
+                                                 </div>
+                                             </th>
+                                             <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
+                                                 <div className="flex items-center justify-center gap-1">
+                                                     <Text as="span" size="xs" color="inherit">CIUDAD</Text>
+                                                     <FilterDropdown 
+                                                         options={getColumnOptions('ciudad' as any)}
+                                                         selectedOptions={activeFilters['ciudad'] || []}
+                                                         onFilterChange={(vals) => setActiveFilters(prev => ({ ...prev, ciudad: vals }))}
+                                                         dark
+                                                     />
                                                 </div>
                                             </th>
                                             <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-32 border-b border-white/5 border-r border-white/5"><Text as="span" size="xs" color="inherit">HORAS</Text></th>
@@ -481,9 +498,12 @@ const PlanillasRegionales2QPreview: React.FC = () => {
                                             <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                                 <td className="p-2 text-slate-400 font-mono w-12 border-r border-slate-50 text-center">{i + 1}</td>
                                                 <td className="p-2 font-mono border-r border-slate-50 text-center">{row.cedula}</td>
-                                                <td className="p-2 border-r border-slate-50 text-center">{row.nombre}</td>
+                                                <td className="p-2 border-r border-slate-50 text-left pl-4">{row.nombre}</td>
                                                 <td className="p-2 border-r border-slate-50 text-center">
                                                     <Badge variant={getBadgeVariantForEmpresa(row.empresa)} size="xs">{row.empresa || 'REFRIDCOL'}</Badge>
+                                                </td>
+                                                <td className="p-2 border-r border-slate-50 text-center">
+                                                    <Text size="xs" align="center" className="uppercase font-semibold text-slate-600 dark:text-slate-400">{row.ciudad || 'N/A'}</Text>
                                                 </td>
                                                 <td className="p-2 text-center font-mono font-bold border-r border-slate-50">{row.horas}</td>
                                                 <td className="p-2 text-center font-mono font-bold border-r border-slate-50">{row.dias}</td>

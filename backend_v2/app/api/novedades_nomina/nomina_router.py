@@ -7,7 +7,8 @@ from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query
 from fastapi.responses import FileResponse
-from sqlmodel import Session, select, func, delete
+from sqlmodel import select, func, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 from ...database import obtener_db, obtener_erp_db_opcional
 from ...services.erp.empleados_service import EmpleadosService
 from ...models.novedades_nomina.nomina import (
@@ -60,7 +61,7 @@ async def cargar_archivo(
     subcategoria: str = Form(...),
     categoria: Optional[str] = Form(None),
     file: UploadFile = File(...),
-    session: Session = Depends(obtener_db)
+    session: AsyncSession = Depends(obtener_db)
 ):
     """Carga un archivo y guarda sus metadatos"""
     content = await file.read()
@@ -118,7 +119,7 @@ async def cargar_archivo(
 @router.post("/archivos/{archivo_id}/procesar")
 async def procesar_archivo(
     archivo_id: int, 
-    session: Session = Depends(obtener_db),
+    session: AsyncSession = Depends(obtener_db),
     db_erp = Depends(obtener_erp_db_opcional)
 ):
     """Extrae, normaliza y clasifica los registros de un archivo"""
@@ -183,7 +184,7 @@ async def obtener_preview(
     archivo_id: int, 
     skip: int = 0, 
     limit: int = 50, 
-    session: Session = Depends(obtener_db)
+    session: AsyncSession = Depends(obtener_db)
 ):
     """Devuelve los registros normalizados de un archivo (paginado)"""
     statement = select(NominaRegistroNormalizado).where(NominaRegistroNormalizado.archivo_id == archivo_id).offset(skip).limit(limit)
@@ -196,7 +197,7 @@ async def obtener_preview(
 @router.get("/archivos/{archivo_id}/descargar")
 async def descargar_archivo(
     archivo_id: int, 
-    session: Session = Depends(obtener_db)
+    session: AsyncSession = Depends(obtener_db)
 ):
     """Descarga el archivo original cargado"""
     try:
@@ -220,7 +221,7 @@ async def descargar_archivo(
 async def obtener_resumen_mensual(
     mes: int, 
     año: int, 
-    session: Session = Depends(obtener_db)
+    session: AsyncSession = Depends(obtener_db)
 ):
     """Resumen mensual por subcategoría con conteos y totales"""
     # Consulta agrupada
@@ -247,7 +248,7 @@ async def obtener_detalles_subcategoria(
     año: int, 
     skip: int = 0, 
     limit: int = 100,
-    session: Session = Depends(obtener_db)
+    session: AsyncSession = Depends(obtener_db)
 ):
     """Devuelve registros mensuales de una subcategoría específica"""
     statement = select(NominaRegistroNormalizado).where(
@@ -269,7 +270,7 @@ async def obtener_historial(
     subcategoria: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
-    session: Session = Depends(obtener_db),
+    session: AsyncSession = Depends(obtener_db),
 ):
     """Devuelve el histórico de archivos cargados con filtros opcionales"""
     # Consulta base
@@ -335,7 +336,7 @@ async def obtener_historial(
 async def exportar_a_solid(
     mes: int,
     año: int,
-    session: Session = Depends(obtener_db)
+    session: AsyncSession = Depends(obtener_db)
 ):
     """Genera el payload mensual para Solid ERP"""
     statement = select(NominaRegistroNormalizado).where(

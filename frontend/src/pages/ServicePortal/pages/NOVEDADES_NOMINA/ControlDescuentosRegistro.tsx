@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Title, Text, Button, Input, Select, Badge } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calculator, Search, Save, User, DollarSign, ListOrdered, Database, Trash2, Edit2, CheckCircle2, Clock, Settings2 } from 'lucide-react';
+import { ArrowLeft, Database, Trash2, Edit2, CheckCircle2, Clock, Settings2 } from 'lucide-react';
 import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
@@ -41,12 +41,10 @@ const ControlDescuentosRegistro: React.FC = () => {
     const { addNotification } = useNotifications();
 
     const [isLoading, setIsLoading] = useState(false);
-    const [isSearching, setIsSearching] = useState(false);
     const [isLoadingTable, setIsLoadingTable] = useState(false);
     
     const [conceptos, setConceptos] = useState<Concepto[]>([]);
     const [registros, setRegistros] = useState<RegistroActivo[]>([]);
-    const [searchText, setSearchText] = useState('');
 
     // Form State
     const [formData, setFormData] = useState({
@@ -90,11 +88,10 @@ const ControlDescuentosRegistro: React.FC = () => {
 
     const handleSearchEmpleado = async () => {
         if (!formData.cedula) return;
-        setIsSearching(true);
         try {
             const res = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/control_descuentos/empleado/${formData.cedula}`);
             const emp = res.data as Empleado;
-            setFormData(prev => ({
+            setFormData((prev: typeof formData) => ({
                 ...prev,
                 nombre: emp.nombre,
                 empresa: emp.empresa,
@@ -105,8 +102,6 @@ const ControlDescuentosRegistro: React.FC = () => {
         } catch (err: any) {
             console.error(err);
             addNotification('error', 'Empleado no encontrado en el ERP');
-        } finally {
-            setIsSearching(false);
         }
     };
 
@@ -200,20 +195,20 @@ const ControlDescuentosRegistro: React.FC = () => {
             header: 'VALOR TOTAL', 
             accessorKey: 'valor_descuento',
             align: 'right',
-            cell: (row) => <Text align="right" className="font-mono">{formatCurrency(row.valor_descuento)}</Text>
+            cell: (row: RegistroActivo) => <Text align="right" className="font-mono">{formatCurrency(row.valor_descuento)}</Text>
         },
         { header: 'CUOTAS', accessorKey: 'n_cuotas', align: 'center' },
         { 
             header: 'SALDO', 
             accessorKey: 'saldo',
             align: 'right',
-            cell: (row) => <Text color="text-primary" align="right" className="font-mono">{formatCurrency(row.saldo)}</Text>
+            cell: (row: RegistroActivo) => <Text color="text-primary" align="right" className="font-mono">{formatCurrency(row.saldo)}</Text>
         },
         { 
             header: 'ESTADO', 
             accessorKey: 'estado',
             align: 'center',
-            cell: (row) => (
+            cell: (row: RegistroActivo) => (
                 <Badge variant={row.estado === 'CERRADO' ? 'success' : 'warning'} size="sm">
                     {row.estado === 'CERRADO' ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <Clock className="w-3 h-3 mr-1" />}
                     {row.estado}
@@ -226,7 +221,7 @@ const ControlDescuentosRegistro: React.FC = () => {
             header: 'ACCIONES',
             accessorKey: 'id',
             align: 'center',
-            cell: (row) => (
+            cell: (row: RegistroActivo) => (
                 <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(row)}>
                         <Edit2 className="w-3.5 h-3.5 text-blue-500" />
@@ -281,8 +276,8 @@ const ControlDescuentosRegistro: React.FC = () => {
                                     placeholder="00000000"
                                     className="[&_input]:h-8 [&_input]:px-3 [&_input]:text-[11px] [&_input]:font-mono [&_input]:w-[120px] shadow-sm"
                                     value={formData.cedula}
-                                    onChange={e => setFormData({ ...formData, cedula: e.target.value })}
-                                    onKeyDown={e => e.key === 'Enter' && handleSearchEmpleado()}
+                                    onChange={(e: any) => setFormData({ ...formData, cedula: e.target.value })}
+                                    onKeyDown={(e: any) => e.key === 'Enter' && handleSearchEmpleado()}
                                     onBlur={() => formData.cedula && handleSearchEmpleado()}
                                 />
                             </div>
@@ -327,10 +322,10 @@ const ControlDescuentosRegistro: React.FC = () => {
                                 <div className="flex-1 flex gap-1">
                                     <Select
                                         value={formData.concepto}
-                                        onChange={e => setFormData({ ...formData, concepto: e.target.value })}
+                                        onChange={(e: any) => setFormData({ ...formData, concepto: e.target.value })}
                                         options={[
                                             { value: "", label: "Seleccionar concepto..." },
-                                            ...conceptos.map(c => ({ value: c.nombre, label: c.nombre }))
+                                            ...conceptos.map((c: any) => ({ value: c.nombre, label: c.nombre }))
                                         ]}
                                         className="flex-1 [&_select]:h-8 [&_select]:px-3 [&_select]:text-[11px] shadow-sm"
                                     />
@@ -355,7 +350,7 @@ const ControlDescuentosRegistro: React.FC = () => {
                                         className="w-[150px] [&_input]:h-8 [&_input]:px-3 [&_input]:text-[11px] [&_input]:font-black [&_input]:text-right shadow-sm"
                                         placeholder="$ 0"
                                         value={formData.valor_descuento ? `$ ${Number(formData.valor_descuento).toLocaleString('es-CO')}` : ''}
-                                        onChange={e => {
+                                        onChange={(e: any) => {
                                             const rawValue = e.target.value.replace(/\D/g, '');
                                             setFormData({ ...formData, valor_descuento: rawValue });
                                         }}
@@ -371,7 +366,7 @@ const ControlDescuentosRegistro: React.FC = () => {
                                     className="w-[70px] [&_input]:h-8 [&_input]:px-3 [&_input]:text-[11px] shadow-sm"
                                     min="1"
                                     value={formData.n_cuotas}
-                                    onChange={e => setFormData({ ...formData, n_cuotas: e.target.value })}
+                                    onChange={(e: any) => setFormData({ ...formData, n_cuotas: e.target.value })}
                                 />
                             </div>
 
@@ -380,7 +375,7 @@ const ControlDescuentosRegistro: React.FC = () => {
                                 <Text variant="caption" weight="bold" className="text-slate-400 uppercase ml-1 text-[10px]">Fecha:</Text>
                                 <Select
                                     value={formData.fecha_inicio.split('-')[2] === '15' ? '15' : '30'}
-                                    onChange={e => {
+                                    onChange={(e: any) => {
                                         const parts = formData.fecha_inicio.split('-');
                                         parts[2] = e.target.value;
                                         setFormData({ ...formData, fecha_inicio: parts.join('-') });
@@ -390,7 +385,7 @@ const ControlDescuentosRegistro: React.FC = () => {
                                 />
                                 <Select
                                     value={formData.fecha_inicio.split('-')[1]}
-                                    onChange={e => {
+                                    onChange={(e: any) => {
                                         const parts = formData.fecha_inicio.split('-');
                                         parts[1] = e.target.value;
                                         setFormData({ ...formData, fecha_inicio: parts.join('-') });
@@ -405,7 +400,7 @@ const ControlDescuentosRegistro: React.FC = () => {
                                     type="number"
                                     className="w-20 [&_input]:h-8 [&_input]:px-2 [&_input]:text-xs [&_input]:bg-transparent [&_input]:border-none [&_input]:font-bold"
                                     value={formData.fecha_inicio.split('-')[0]}
-                                    onChange={e => {
+                                    onChange={(e: any) => {
                                         const parts = formData.fecha_inicio.split('-');
                                         parts[0] = e.target.value;
                                         setFormData({ ...formData, fecha_inicio: parts.join('-') });
@@ -476,13 +471,6 @@ const ControlDescuentosRegistro: React.FC = () => {
     );
 };
 
-/* Icons */
-const PlusCircleIcon = (props: any) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="16" />
-        <line x1="8" y1="12" x2="16" y2="12" />
-    </svg>
-);
+
 
 export default ControlDescuentosRegistro;

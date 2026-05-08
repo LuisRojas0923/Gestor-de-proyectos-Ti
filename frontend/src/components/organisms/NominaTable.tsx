@@ -72,7 +72,7 @@ export function NominaTable<T extends Record<string, any>>({
     }, [globalFilterText, storageKey]);
 
     const handleFilterChange = (key: string, values: string[]) => {
-        setColumnFilters(prev => ({
+        setColumnFilters((prev: Record<string, string[]>) => ({
             ...prev,
             [key]: values
         }));
@@ -97,10 +97,11 @@ export function NominaTable<T extends Record<string, any>>({
         }
 
         // 2. Column Filters (Excel style multi-select)
-        const activeFiltersEntries = Object.entries(columnFilters).filter(([_, vals]: [string, string[]]) => vals.length > 0);
+        const activeFiltersEntries = Object.entries(columnFilters).filter((entry) => entry[1] && entry[1].length > 0);
         if (activeFiltersEntries.length > 0) {
             result = result.filter(row => {
-                return activeFiltersEntries.every(([key, filterVals]: [string, string[]]) => {
+                return activeFiltersEntries.every((entry) => {
+                    const [key, filterVals] = entry as [string, string[]];
                     const cellValue = String(row[key] || '').toUpperCase();
                     return filterVals.includes(cellValue);
                 });
@@ -133,7 +134,7 @@ export function NominaTable<T extends Record<string, any>>({
             maximumFractionDigits: 10,
         });
 
-        const rows = filteredAndSortedData.map(row =>
+        const rows = filteredAndSortedData.map((row: T) =>
             columns.map(col => {
                 const val = row[col.accessorKey as keyof T];
                 if (val === null || val === undefined) return '';
@@ -222,7 +223,7 @@ export function NominaTable<T extends Record<string, any>>({
                                                     <FilterDropdown 
                                                         options={getColumnOptions(colKey)}
                                                         selectedOptions={columnFilters[colKey] || []}
-                                                        onFilterChange={(vals) => handleFilterChange(colKey, vals)}
+                                                        onFilterChange={(vals: string[]) => handleFilterChange(colKey, vals)}
                                                         dark
                                                     />
                                                 )}
@@ -233,7 +234,7 @@ export function NominaTable<T extends Record<string, any>>({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
-                            {filteredAndSortedData.map((row, rowIndex) => (
+                            {filteredAndSortedData.map((row: T, rowIndex: number) => (
                                 <tr key={rowIndex} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                     <td className="py-2 px-4 text-slate-400 font-mono w-12 border-r border-slate-50 dark:border-slate-700/50 text-center">{rowIndex + 1}</td>
                                     {columns.map((col, colIndex) => (

@@ -205,8 +205,8 @@ const ExcepcionesPreview: React.FC = () => {
         { header: 'CÉDULA', accessorKey: 'cedula', align: 'center', cell: (row) => (
             <Text size="sm" weight="bold" className="font-mono text-center w-full block">{row.cedula}</Text>
         )},
-        { header: 'COLABORADOR', accessorKey: 'nombre_asociado', align: 'center', cell: (row) => (
-            <Text size="sm" className="text-center w-full block">{row.nombre_asociado || 'N/A'}</Text>
+        { header: 'COLABORADOR', accessorKey: 'nombre_asociado', align: 'left', cell: (row) => (
+            <Text size="sm" className="text-left w-full block pl-4">{row.nombre_asociado || 'N/A'}</Text>
         )},
         { header: 'SUBCATEGORÍA', accessorKey: 'subcategoria', align: 'center' },
         { header: 'TIPO', accessorKey: 'tipo', align: 'center', cell: (row) => (
