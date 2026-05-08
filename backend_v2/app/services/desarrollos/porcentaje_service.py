@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 
 from app.models.desarrollo.actividad import Actividad
+from app.models.desarrollo.desarrollo import Desarrollo
 
 
 async def recalcular_porcentaje_jerarquico(db: AsyncSession, actividad: Actividad) -> None:
@@ -92,3 +93,29 @@ async def _actualizar_porcentaje_actividad(db: AsyncSession, actividad: Activida
         actividad.porcentaje_avance = Decimal(str(promedio))
     
     return actividad.porcentaje_avance
+
+
+async def recalcular_progreso_desarrollo(db: AsyncSession, desarrollo_id: str) -> None:
+    """Recalcula porcentaje_progreso del desarrollo basado en sus actividades (completadas/total)."""
+    if not desarrollo_id:
+        return
+
+    raw_sql = text("""
+        SELECT estado FROM actividades WHERE desarrollo_id = :did
+    """)
+    result = await db.execute(raw_sql, {"did": desarrollo_id})
+    rows = result.fetchall()
+
+    total = len(rows)
+    if total == 0:
+        progreso = Decimal("0")
+    else:
+        completadas = sum(1 for r in rows if r.estado in ("Completada", "Completado"))
+        progreso = Decimal(str(round((completadas / total) * 100)))
+
+    stmt = select(Desarrollo).where(Desarrollo.id == desarrollo_id)
+    result_dev = await db.execute(stmt)
+    desarrollo = result_dev.scalar_one_or_none()
+    if desarrollo:
+        desarrollo.porcentaje_progreso = progreso
+        await db.flush()

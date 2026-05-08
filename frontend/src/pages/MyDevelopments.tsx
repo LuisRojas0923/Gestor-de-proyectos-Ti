@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, Plus, RotateCcw, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Eye, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { Button, Title, Text } from '../components/atoms';
@@ -8,6 +8,7 @@ import { CreateDevelopmentModal } from './MyDevelopments/CreateDevelopmentModal'
 import { useColumnFilters } from '../hooks/useColumnFilters';
 import { DataTable, DataTableColumn } from '../components/molecules/DataTable';
 import { DevelopmentWithCurrentStatus } from '../types';
+import { useApi } from '../hooks/useApi';
 
 type DevelopmentRow = DevelopmentWithCurrentStatus & {
   nombre?: string;
@@ -30,14 +31,20 @@ const getDevelopmentStartDate = (dev: DevelopmentRow) => dev.start_date ?? dev.f
 const getDevelopmentEndDate = (dev: DevelopmentRow) => dev.estimated_end_date ?? dev.fecha_estimada_fin;
 const getDevelopmentAuthority = (dev: DevelopmentRow) => dev.authority ?? dev.autoridad;
 const getDevelopmentResponsible = (dev: DevelopmentRow) => dev.responsible ?? dev.responsable;
-const getDevelopmentStatus = (dev: DevelopmentRow) => dev.general_status ?? dev.estado_general ?? '';
+const getDevelopmentStatus = (dev: DevelopmentRow) => {
+  const status = dev.general_status ?? dev.estado_general ?? '';
+  const progress = Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
+  if (status === 'Pendiente' && progress >= 100) return 'Completado';
+  if (status === 'Pendiente' && progress > 0) return 'En proceso';
+  return status;
+};
 const getDevelopmentProgress = (dev: DevelopmentRow) =>
   Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
 
 const getStatusColor = (status: string) => {
   const s = status.toLowerCase();
   if (s.includes('pendiente')) return 'text-red-800 bg-red-100 dark:bg-red-900/20 dark:text-red-400';
-  if (s.includes('progreso') || s.includes('curso')) return 'text-yellow-800 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400';
+  if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 'text-yellow-800 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400';
   if (s.includes('complet')) return 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400';
   return 'text-gray-800 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
 };
@@ -53,11 +60,31 @@ const getProgressWidthClass = (p: number) => {
 
 const MyDevelopments: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPortal = location.pathname.startsWith('/service-portal');
   const { developments, loadDevelopments } = useDevelopments();
   const { addNotification } = useNotifications();
+  const { delete: apiDelete } = useApi();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DevelopmentRow | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => { loadDevelopments(); }, [loadDevelopments]);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await apiDelete(`/desarrollos/${deleteTarget.id}`);
+      addNotification('success', `Actividad "${getDevelopmentName(deleteTarget)}" eliminada`);
+      setDeleteTarget(null);
+      loadDevelopments();
+    } catch {
+      addNotification('error', 'Error al eliminar la actividad');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const columnAccessors = {
     id:                 (dev: DevelopmentRow) => dev.id,
@@ -138,7 +165,7 @@ const MyDevelopments: React.FC = () => {
         return (
           <div className="flex items-center gap-1.5 w-full">
             <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div className={`h-full bg-[var(--deep-navy)] transition-all duration-500 ${getProgressWidthClass(progress)}`} />
+              <div className={`h-full bg-green-500 transition-all duration-500 ${getProgressWidthClass(progress)}`} />
             </div>
             <Text as="span" variant="caption" weight="bold" color="text-secondary" className="w-8 text-right !text-[10px]">
               {progress}%
@@ -153,7 +180,7 @@ const MyDevelopments: React.FC = () => {
       minWidth: '90px',
       filterable: true,
       render: (dev) => (
-        <Text as="span" variant="caption" weight="semibold" className="!text-[11px] text-gray-700 dark:text-gray-200">
+        <Text as="span" variant="caption" color="text-secondary" className="!text-[11px]">
           {valueOrFallback(getDevelopmentStartDate(dev))}
         </Text>
       ),
@@ -175,7 +202,7 @@ const MyDevelopments: React.FC = () => {
       minWidth: '120px',
       filterable: true,
       render: (dev) => (
-        <Text as="span" variant="caption" weight="semibold" className="truncate !text-[11px] text-gray-700 dark:text-gray-200">
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
           {dev.area_desarrollo ?? 'N/A'}
         </Text>
       ),
@@ -190,7 +217,7 @@ const MyDevelopments: React.FC = () => {
           <div className="w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
             {(dev.analista ?? 'A')[0].toUpperCase()}
           </div>
-          <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[10px]">
+          <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
             {dev.analista ?? 'N/A'}
           </Text>
         </div>
@@ -202,7 +229,7 @@ const MyDevelopments: React.FC = () => {
       minWidth: '110px',
       filterable: true,
       render: (dev) => (
-        <Text as="span" variant="caption" color="text-secondary" className="truncate uppercase !text-[10px]">
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
           {valueOrFallback(getDevelopmentAuthority(dev))}
         </Text>
       ),
@@ -213,7 +240,7 @@ const MyDevelopments: React.FC = () => {
       minWidth: '110px',
       filterable: true,
       render: (dev) => (
-        <Text as="span" variant="caption" color="text-secondary" className="truncate uppercase !text-[10px]">
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
           {valueOrFallback(getDevelopmentResponsible(dev))}
         </Text>
       ),
@@ -267,6 +294,15 @@ const MyDevelopments: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {isPortal && (
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/service-portal/gestion-actividades')}
+          className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
+        >
+          ← Volver
+        </Button>
+      )}
       {/* Header */}
       <div className="flex justify-between items-center bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm">
         <div className="flex items-center gap-4">
@@ -304,21 +340,31 @@ const MyDevelopments: React.FC = () => {
         columns={columns}
         data={filteredData}
         keyExtractor={(dev) => String(dev.id)}
-        onRowClick={(dev) => navigate(`/developments/${dev.id}?tab=bitacora`)}
+        onRowClick={(dev) => navigate(isPortal ? `/service-portal/desarrollos/${dev.id}?tab=bitacora` : `/developments/${dev.id}?tab=bitacora`)}
         columnFilters={filters}
         columnOptions={uniqueValues}
         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
         renderRowActions={(dev) => (
-          <Button
-            variant="custom"
-            onClick={(e) => { e.stopPropagation(); navigate(`/developments/${dev.id}?tab=bitacora`); }}
-            className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20 inline-flex items-center justify-center"
-            title="Ver detalles"
-          >
-            <Eye size={14} />
-          </Button>
+          <>
+            <Button
+              variant="custom"
+              onClick={(e) => { e.stopPropagation(); navigate(isPortal ? `/service-portal/desarrollos/${dev.id}?tab=bitacora` : `/developments/${dev.id}?tab=bitacora`); }}
+              className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20 inline-flex items-center justify-center"
+              title="Ver detalles"
+            >
+              <Eye size={14} />
+            </Button>
+            <Button
+              variant="custom"
+              onClick={(e) => { e.stopPropagation(); setDeleteTarget(dev); }}
+              className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 inline-flex items-center justify-center"
+              title="Eliminar"
+            >
+              <Trash2 size={14} />
+            </Button>
+          </>
         )}
-        actionsMinWidth="80px"
+        actionsMinWidth="100px"
         emptyIcon={<Search size={40} className="opacity-40" />}
         emptyMessage="No se encontraron actividades"
         maxHeight="max-h-[calc(100vh-420px)]"
@@ -330,6 +376,38 @@ const MyDevelopments: React.FC = () => {
         onSaved={() => { loadDevelopments(); addNotification('success', 'Actividad creada exitosamente'); }}
         darkMode={document.documentElement.classList.contains('dark')}
       />
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)]">
+            <div className="p-6 border-b border-[var(--color-border)]">
+              <Title variant="h5" weight="bold">Eliminar actividad</Title>
+            </div>
+            <div className="p-6 space-y-2">
+              <Text variant="body2">
+                ¿Estás seguro de que deseas eliminar la actividad{' '}
+                <Text as="span" weight="bold">"{getDevelopmentName(deleteTarget)}"</Text>?
+              </Text>
+              <Text variant="caption" color="text-secondary">
+                Esta acción eliminará la actividad y todas sus tareas WBS. No se puede deshacer.
+              </Text>
+            </div>
+            <div className="p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-variant)] flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={deleteLoading}>
+                Cancelar
+              </Button>
+              <Button
+                variant="custom"
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
+              >
+                {deleteLoading ? 'Eliminando...' : 'Eliminar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

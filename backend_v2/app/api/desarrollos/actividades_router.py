@@ -16,7 +16,7 @@ from app.models.desarrollo.actividad import (
     ActividadArbol,
 )
 from app.services.jerarquia import AsignacionJerarquicaService
-from app.services.desarrollos.porcentaje_service import recalcular_porcentaje_jerarquico
+from app.services.desarrollos.porcentaje_service import recalcular_porcentaje_jerarquico, recalcular_progreso_desarrollo
 from app.services.desarrollos.actividad_delete_service import (
     obtener_hijos_preview,
     eliminar_actividad_cascade,
@@ -80,7 +80,8 @@ async def crear_actividad(
         if nueva_act.parent_id is not None:
             await recalcular_porcentaje_jerarquico(db, nueva_act)
             await db.flush()
-        
+
+        await recalcular_progreso_desarrollo(db, nueva_act.desarrollo_id)
         await db.commit()
         await db.refresh(nueva_act)
         return nueva_act
@@ -100,7 +101,7 @@ async def obtener_arbol_actividades(
     Carga todas las actividades relacionadas al desarrollo en memoria y arma la estructura.
     """
     try:
-        stmt = select(Actividad).where(Actividad.desarrollo_id == desarrollo_id)
+        stmt = select(Actividad).where(Actividad.desarrollo_id == desarrollo_id).order_by(Actividad.id)
         result = await db.execute(stmt)
         actividades = result.scalars().all()
 
@@ -182,6 +183,7 @@ async def actualizar_actividad(
             await recalcular_porcentaje_jerarquico(db, act_db)
             await db.flush()
 
+        await recalcular_progreso_desarrollo(db, act_db.desarrollo_id)
         await db.commit()
         if nuevo_estado is not None:
             await db.refresh(act_db)
@@ -251,6 +253,7 @@ async def eliminar_actividad(actividad_id: int, db: AsyncSession = Depends(obten
             raise HTTPException(status_code=404, detail="Actividad no encontrada")
 
         parent_id_original = act_db.parent_id
+        desarrollo_id = act_db.desarrollo_id
         count = await eliminar_actividad_cascade(db, actividad_id)
 
         if parent_id_original is not None:
@@ -262,6 +265,7 @@ async def eliminar_actividad(actividad_id: int, db: AsyncSession = Depends(obten
                 await recalcular_porcentaje_jerarquico(db, padre)
                 await db.flush()
 
+        await recalcular_progreso_desarrollo(db, desarrollo_id)
         await db.commit()
 
         return EliminarConfirmResponse(eliminadas=count)

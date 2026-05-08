@@ -11,13 +11,12 @@ interface WbsNodeModalProps {
     onClose: () => void;
     onSaved: () => void;
     developmentId: string;
-    parentId?: number | null; // Si existe, es una subactividad
-    editNode?: WbsActivityTree | null; // Si existe, es edición
+    editNode?: WbsActivityTree | null;
     darkMode: boolean;
 }
 
 export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
-    isOpen, onClose, onSaved, developmentId, parentId, editNode, darkMode
+    isOpen, onClose, onSaved, developmentId, editNode, darkMode
 }) => {
     const { post, patch } = useApi();
     const { state } = useAppContext();
@@ -86,7 +85,6 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 // Create mode
                 const payload: WbsActivityCreate = {
                     desarrollo_id: developmentId,
-                    parent_id: parentId || undefined,
                     titulo,
                     descripcion,
                     estado,
@@ -116,7 +114,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 <div className="p-6 border-b border-[var(--color-border)]">
                     <div className="flex justify-between items-center">
                         <Title variant="h5" weight="bold">
-                            {editNode ? 'Editar Tarea' : parentId ? 'Nueva Sub-tarea' : 'Nueva Tarea Principal'}
+                            {editNode ? 'Editar Tarea' : 'Nueva Tarea'}
                         </Title>
                         <Button variant="ghost" onClick={onClose} icon={X} className="!p-1.5 text-neutral-400 hover:text-neutral-500" />
                     </div>

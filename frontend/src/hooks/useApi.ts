@@ -84,6 +84,10 @@ export function useApi<T>() {
         throw new Error(errorMessage);
       }
 
+      if (response.status === 204 || response.headers.get('content-length') === '0') {
+        setState({ data: null, loading: false, error: null });
+        return null;
+      }
       const data = await response.json(); // [CONTROLADO]
       setState({ data, loading: false, error: null });
       return data;

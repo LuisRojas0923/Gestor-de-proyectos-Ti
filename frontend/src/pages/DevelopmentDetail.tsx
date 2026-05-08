@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
@@ -58,6 +58,8 @@ const toApiDevelopmentPayload = (data: Partial<ApiDevelopment>) => ({
 
 const DevelopmentDetail: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPortal = location.pathname.startsWith('/service-portal');
   const { darkMode } = useAppContext().state;
   const { get, put } = useApi<DevelopmentWithCurrentStatus>();
   const { developmentId } = useParams();
@@ -104,7 +106,7 @@ const DevelopmentDetail: React.FC = () => {
         <div>
           <Button
             variant="custom"
-            onClick={() => navigate('/developments')}
+            onClick={() => navigate(isPortal ? '/service-portal/desarrollos' : '/developments')}
             className="p-0 h-auto font-medium text-neutral-600 hover:text-neutral-900 transition-colors dark:text-neutral-300 dark:hover:text-white"
           >
             ← Volver a proyectos

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '../components/atoms';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import axios from 'axios';
@@ -20,6 +21,11 @@ import MisRequisicionesView from './ServicePortal/pages/Requests/MisRequisicione
 import InventarioView from './ServicePortal/pages/Inventario';
 import GestionHumanaPortal from './ServicePortal/pages/GestionHumana';
 import Formato2276DataTable from './ServicePortal/pages/GestionHumana/Formato2276DataTable';
+import GestionActividadesView from './ServicePortal/pages/GestionActividadesView';
+import MyDevelopments from './MyDevelopments';
+import DevelopmentDetail from './DevelopmentDetail';
+import AssignmentValidations from './AssignmentValidations';
+import OrganizationalHierarchy from './OrganizationalHierarchy';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import PortalLayout from './ServicePortal/PortalLayout';
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
@@ -161,6 +167,7 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'requisiciones') navigate('/service-portal/requisiciones');
                             else if (v === 'inventario') navigate('/service-portal/inventario');
                             else if (v === 'contabilidad') navigate('/service-portal/gestion-humana');
+                            else if (v === 'gestion_actividades') navigate('/service-portal/gestion-actividades');
                         }}
                     />
                 } />
@@ -347,6 +354,53 @@ const ServicePortal: React.FC = () => {
                 <Route path="gestion-humana/datos" element={
                     <ProtectedRoute moduleCode="gestion_humana">
                         <Formato2276DataTable onBack={() => navigate('/service-portal/gestion-humana')} />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="gestion-actividades" element={
+                    <GestionActividadesView
+                        user={user}
+                        moduleStatus={moduleStatus}
+                        onNavigate={(v) => {
+                            if (v === 'desarrollos') navigate('/service-portal/desarrollos');
+                            else if (v === 'validaciones') navigate('/service-portal/validaciones-asignacion');
+                            else if (v === 'jerarquia') navigate('/service-portal/jerarquia-organizacional');
+                        }}
+                        onBack={() => navigate('/service-portal/inicio')}
+                    />
+                } />
+
+                <Route path="desarrollos" element={
+                    <ProtectedRoute moduleCode="developments">
+                        <MyDevelopments />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="desarrollos/:developmentId" element={
+                    <ProtectedRoute moduleCode="developments">
+                        <DevelopmentDetail />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="validaciones-asignacion" element={
+                    <ProtectedRoute moduleCode="validaciones_asignacion">
+                        <div className="space-y-4">
+                            <Button variant="ghost" onClick={() => navigate('/service-portal/gestion-actividades')}>
+                                ← Volver
+                            </Button>
+                            <AssignmentValidations />
+                        </div>
+                    </ProtectedRoute>
+                } />
+
+                <Route path="jerarquia-organizacional" element={
+                    <ProtectedRoute moduleCode="jerarquia_organizacional">
+                        <div className="space-y-4">
+                            <Button variant="ghost" onClick={() => navigate('/service-portal/gestion-actividades')}>
+                                ← Volver
+                            </Button>
+                            <OrganizationalHierarchy />
+                        </div>
                     </ProtectedRoute>
                 } />
 

@@ -5,13 +5,14 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from app.models.desarrollo.desarrollo import (
     Desarrollo,
     DesarrolloActualizar,
     DesarrolloCrear,
     TipoDesarrollo,
 )
+from app.models.desarrollo.actividad import Actividad
 
 router = APIRouter()
 
@@ -126,6 +127,30 @@ async def obtener_desarrollo(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener desarrollo: {str(e)}")
+
+
+@router.delete("/{desarrollo_id}", status_code=204)
+async def eliminar_desarrollo(
+    desarrollo_id: str,
+    db: AsyncSession = Depends(obtener_db)
+):
+    """Elimina un desarrollo y todas sus actividades asociadas"""
+    try:
+        query = select(Desarrollo).where(Desarrollo.id == desarrollo_id)
+        result = await db.execute(query)
+        db_desarrollo = result.scalar_one_or_none()
+
+        if not db_desarrollo:
+            raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
+
+        await db.execute(delete(Actividad).where(Actividad.desarrollo_id == desarrollo_id))
+        await db.delete(db_desarrollo)
+        await db.commit()
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al eliminar desarrollo: {str(e)}")
 
 
 @router.put("/{desarrollo_id}", response_model=Desarrollo)

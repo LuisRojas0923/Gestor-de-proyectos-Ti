@@ -1,11 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitBranch, RefreshCw, Search, UserPlus, X } from 'lucide-react';
-import { Badge, Button, Input, MaterialCard, Select, Skeleton, Text, Textarea, Title } from '../components/atoms';
+import { Badge, Button, Input, MaterialCard, Skeleton, Text, Textarea, Title } from '../components/atoms';
 import { useApi } from '../hooks/useApi';
+import { useAppContext } from '../context/AppContext';
 import { HierarchyNode, HierarchyRelation, HierarchyUser } from '../types/hierarchy';
 
 const OrganizationalHierarchy: React.FC = () => {
   const { get, post, delete: deleteRequest } = useApi<unknown>();
+  const { state } = useAppContext();
+  const currentUserId: string = (state.user as any)?.id || (state.user as any)?.usuario_id || '';
   const [tree, setTree] = useState<HierarchyNode[]>([]);
   const [relations, setRelations] = useState<HierarchyRelation[]>([]);
   const [users, setUsers] = useState<HierarchyUser[]>([]);
@@ -67,19 +70,31 @@ const OrganizationalHierarchy: React.FC = () => {
     return filterNodes(tree);
   }, [searchTerm, tree]);
 
+  const reachableUsers = useMemo(() => {
+    if (!currentUserId) return [];
+    const inHierarchy = relations.some((r) => r.usuario_id === currentUserId || r.superior_id === currentUserId);
+    if (!inHierarchy) return [];
+    const ids = new Set<string>([currentUserId]);
+    let cursor = currentUserId;
+    let safety = 0;
+    while (safety++ < 50) {
+      const rel = relations.find((r) => r.usuario_id === cursor);
+      if (!rel) break;
+      ids.add(rel.superior_id);
+      cursor = rel.superior_id;
+    }
+    const collectSubs = (supId: string) => {
+      relations.filter((r) => r.superior_id === supId).forEach((r) => {
+        if (!ids.has(r.usuario_id)) { ids.add(r.usuario_id); collectSubs(r.usuario_id); }
+      });
+    };
+    collectSubs(currentUserId);
+    return users.filter((u) => ids.has(u.id));
+  }, [currentUserId, relations, users]);
+
   const usersWithoutSuperior = users.filter((user) => !relations.some((relation) => relation.usuario_id === user.id));
   const totalNodes = users.length;
 
-  const userOptions = [
-    { value: '', label: 'Selecciona una persona' },
-    ...users.map((user) => ({ value: user.id, label: `${user.nombre} · ${user.cargo || user.rol}` })),
-  ];
-  const superiorOptions = [
-    { value: '', label: 'Selecciona superior directo' },
-    ...users
-      .filter((user) => user.id !== selectedUserId)
-      .map((user) => ({ value: user.id, label: `${user.nombre} · ${user.cargo || user.rol}` })),
-  ];
 
   const handleSave = async () => {
     if (!selectedUserId || !selectedSuperiorId) return;
@@ -186,8 +201,20 @@ const OrganizationalHierarchy: React.FC = () => {
           </div>
 
           <div className="space-y-4 p-5">
-            <Select label="Persona" value={selectedUserId} options={userOptions} onChange={(event) => setSelectedUserId(event.target.value)} />
-            <Select label="Superior directo" value={selectedSuperiorId} options={superiorOptions} onChange={(event) => setSelectedSuperiorId(event.target.value)} disabled={!selectedUserId} />
+            <AutocompleteUserField
+              label="Empleado"
+              value={selectedUserId}
+              users={reachableUsers}
+              onChange={setSelectedUserId}
+            />
+            <AutocompleteUserField
+              label="Jefe directo"
+              value={selectedSuperiorId}
+              users={reachableUsers}
+              onChange={setSelectedSuperiorId}
+              excludeId={selectedUserId}
+              disabled={!selectedUserId}
+            />
 
             {selectedUser && (
               <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-variant)]/50 p-4">
@@ -219,6 +246,93 @@ const OrganizationalHierarchy: React.FC = () => {
             </div>
           </div>
         </MaterialCard>
+      </div>
+    </div>
+  );
+};
+
+const AutocompleteUserField: React.FC<{
+  label: string;
+  value: string;
+  users: HierarchyUser[];
+  onChange: (userId: string) => void;
+  excludeId?: string;
+  disabled?: boolean;
+}> = ({ label, value, users, onChange, excludeId, disabled }) => {
+  const availableUsers = users.filter((u) => u.id !== excludeId);
+  const selected = availableUsers.find((u) => u.id === value);
+
+  const [nombreInput, setNombreInput] = useState(selected?.nombre || '');
+  const [cedulaInput, setCedulaInput] = useState(selected?.cedula || '');
+  const [open, setOpen] = useState(false);
+  const [filterBy, setFilterBy] = useState<'nombre' | 'cedula'>('nombre');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const u = availableUsers.find((u) => u.id === value);
+    setNombreInput(u?.nombre || '');
+    setCedulaInput(u?.cedula || '');
+  }, [value, users, excludeId]);
+
+  const filtered = availableUsers.filter((u) => {
+    if (filterBy === 'cedula') return (u.cedula || '').includes(cedulaInput.trim());
+    return u.nombre.toLowerCase().includes(nombreInput.trim().toLowerCase());
+  });
+
+  const select = (user: HierarchyUser) => {
+    setNombreInput(user.nombre);
+    setCedulaInput(user.cedula || '');
+    setOpen(false);
+    onChange(user.id);
+  };
+
+  const clear = () => {
+    setNombreInput('');
+    setCedulaInput('');
+    onChange('');
+  };
+
+  return (
+    <div ref={containerRef} className="space-y-1.5">
+      <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wide">{label}</Text>
+      <div className="flex gap-2">
+        <div className="w-36 shrink-0">
+          <Input
+            label="Cédula"
+            value={cedulaInput}
+            disabled={disabled}
+            placeholder="Buscar..."
+            onChange={(e) => { setCedulaInput(e.target.value); setFilterBy('cedula'); setOpen(true); if (!e.target.value) clear(); }}
+            onFocus={() => { setFilterBy('cedula'); setOpen(true); }}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+          />
+        </div>
+        <div className="relative flex-1">
+          <Input
+            label="Nombre"
+            value={nombreInput}
+            disabled={disabled}
+            placeholder="Buscar empleado..."
+            onChange={(e) => { setNombreInput(e.target.value); setFilterBy('nombre'); setOpen(true); if (!e.target.value) clear(); }}
+            onFocus={() => { setFilterBy('nombre'); setOpen(true); }}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+          />
+          {open && filtered.length > 0 && (
+            <div className="absolute z-50 mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl max-h-52 overflow-y-auto custom-scrollbar">
+              {filtered.map((user) => (
+                <Button
+                  key={user.id}
+                  variant="custom"
+                  className="w-full px-4 py-2.5 text-left hover:bg-[var(--color-primary)]/10 transition-colors border-b border-[var(--color-border)] last:border-0"
+                  onMouseDown={() => select(user)}
+                >
+                  <Text variant="body2" weight="semibold" color="text-primary">{user.nombre}</Text>
+                  <Text variant="caption" color="text-secondary">{user.cedula} · {user.cargo || user.rol}</Text>
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

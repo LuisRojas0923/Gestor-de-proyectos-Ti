@@ -1,6 +1,6 @@
 import { ActionCard } from '../../../components/molecules';
 import { Title, Text } from '../../../components/atoms';
-import { FileText } from 'lucide-react';
+import { FileText, Briefcase } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -10,7 +10,7 @@ import imgInventario from '../../../assets/images/categories/Consultar Reportes.
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'contabilidad') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'contabilidad' | 'gestion_actividades') => void;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
@@ -49,6 +49,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
     );
 
     const canSeeContabilidad = moduleStatus['contabilidad'] !== false; // Visible para todos si está activo
+
+    const canSeeGestionActividades = moduleStatus['developments'] !== false && (
+        permissions.includes('developments') ||
+        permissions.includes('validaciones_asignacion') ||
+        permissions.includes('jerarquia_organizacional') ||
+        ['admin', 'analyst', 'director', 'manager', 'admin_sistemas', 'admin_mejoramiento'].includes(userRole)
+    );
 
     return (
         <div className="space-y-12 py-6">
@@ -111,6 +118,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                         description="Certificados laborales, desprendibles de pago e información tributaria."
                         icon={<FileText className="w-10 h-10 text-primary-600" />}
                         onClick={() => onNavigate('contabilidad')}
+                    />
+                )}
+
+                {canSeeGestionActividades && (
+                    <ActionCard
+                        title="Gestión de Actividades"
+                        description="Accede a desarrollos, aprobaciones y jerarquía organizacional."
+                        icon={<Briefcase className="w-10 h-10 text-primary-600" />}
+                        onClick={() => onNavigate('gestion_actividades')}
                     />
                 )}
             </div>
