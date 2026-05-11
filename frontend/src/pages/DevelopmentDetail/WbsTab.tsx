@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { Title, Text, Button, Badge, ProgressBar, Input } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
@@ -11,6 +11,11 @@ import { AssignableUserSelect } from '../../components/assignments/AssignableUse
 import { useColumnFilters } from '../../hooks/useColumnFilters';
 import { useAppContext } from '../../context/AppContext';
 import { DataTable, DataTableColumn } from '../../components/molecules/DataTable';
+
+export interface WbsTabRef {
+    handleAddRootTask: () => void;
+    handleImportTemplate: () => void;
+}
 
 interface WbsTabProps {
     developmentId: string;
@@ -27,7 +32,7 @@ const getStatusVariant = (estado: string): 'default' | 'success' | 'warning' | '
     return 'default';
 };
 
-const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
+const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, ref) => {
     const { get, post, patch, put, delete: del } = useApi();
     const { state } = useAppContext();
     const [tree, setTree] = useState<WbsActivityTree[]>([]);
@@ -98,6 +103,18 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
         asignado_a_id: draftAsignadoAId || undefined,
     } : null;
     const rowData: WbsRow[] = draftRow ? [...baseRows, draftRow] : baseRows;
+
+    useImperativeHandle(ref, () => ({
+        handleAddRootTask: () => {
+            if (draftActive) return;
+            setDraftActive(true);
+            setDraftTitulo('');
+            setDraftAsignadoAId('');
+        },
+        handleImportTemplate: () => {
+            setIsTemplateModalOpen(true);
+        }
+    }), [draftActive]);
 
     const allFlat = flattenTree(tree);
     const completed = allFlat.filter(n => n.estado.toLowerCase().includes('complet')).length;
@@ -435,29 +452,6 @@ setTogglingIds(prev => new Set([...prev, id]));
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-between items-start gap-4">
-                <div>
-                    <Title variant="h5" weight="bold">Estructura de desglose del trabajo (WBS)</Title>
-                    <Text variant="body2" color="text-secondary">Gestiona las tareas jerárquicas de la actividad</Text>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    {activeFilterCount > 0 && (
-                        <div className="flex items-center gap-2">
-                            <Badge variant="warning">{activeFilterCount} filtro{activeFilterCount > 1 ? 's' : ''}</Badge>
-                            <Button variant="ghost" size="sm" icon={RotateCcw} onClick={clearAllFilters} className="h-8 text-xs">
-                                Limpiar
-                            </Button>
-                        </div>
-                    )}
-                    <Button variant="outline" icon={Download} onClick={() => setIsTemplateModalOpen(true)}>
-                        Importar Plantilla
-                    </Button>
-                    <Button variant="primary" icon={Plus} onClick={handleAddRootTask} disabled={draftActive}>
-                        Agregar tarea
-                    </Button>
-                </div>
-            </div>
-
             {loading ? (
                 <div className="p-4 space-y-3">
                     {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
@@ -505,6 +499,6 @@ setTogglingIds(prev => new Set([...prev, id]));
             />
         </div>
     );
-};
+});
 
 export default WbsTab;

@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
 import { DevelopmentWithCurrentStatus } from '../types';
-import { Button, Title, Text } from '../components/atoms';
+import { Button, Title, Text, Badge } from '../components/atoms';
 import { DevelopmentEditModal } from '../components/molecules';
-import WbsTab from './DevelopmentDetail/WbsTab';
+import { Download, Plus, Pencil, ExternalLink, ArrowLeft } from 'lucide-react';
+import WbsTab, { WbsTabRef } from './DevelopmentDetail/WbsTab';
 
 type ApiDevelopment = DevelopmentWithCurrentStatus & {
   nombre?: string;
@@ -63,6 +64,7 @@ const DevelopmentDetail: React.FC = () => {
   const { darkMode } = useAppContext().state;
   const { get, put } = useApi<DevelopmentWithCurrentStatus>();
   const { developmentId } = useParams();
+  const wbsRef = useRef<WbsTabRef>(null);
 
   const [development, setDevelopment] = useState<DevelopmentWithCurrentStatus | null>(null);
   const [loading, setLoading] = useState(false);
@@ -101,40 +103,74 @@ const DevelopmentDetail: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[var(--color-surface)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm">
+        <div className="flex-1 min-w-0">
           <Button
-            variant="custom"
+            variant="ghost"
             onClick={() => navigate(isPortal ? '/service-portal/desarrollos' : '/developments')}
-            className="p-0 h-auto font-medium text-neutral-600 hover:text-neutral-900 transition-colors dark:text-neutral-300 dark:hover:text-white"
+            className="p-0 h-auto font-medium text-neutral-500 hover:text-[var(--color-primary)] transition-colors flex items-center gap-2 mb-2 group"
           >
-            ← Volver a proyectos
+            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+            Volver a proyectos
           </Button>
-          <Title variant="h3" weight="bold" color={darkMode ? 'white' : 'navy'} className="mt-2">
-            {development?.name || (loading ? 'Cargando...' : 'Proyecto')}
-          </Title>
-          <Text variant="caption" color="text-secondary">{development?.id}</Text>
+          <div className="flex flex-wrap items-center gap-3">
+            <Title variant="h3" weight="bold" color={darkMode ? 'white' : 'navy'} className="m-0 leading-tight">
+              {development?.name || (loading ? 'Cargando...' : 'Proyecto')}
+            </Title>
+            {development?.id && (
+              <Badge variant="default" size="sm" className="font-mono bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
+                {development.id}
+              </Badge>
+            )}
+          </div>
+          {development?.description && (
+            <Text variant="body2" color="text-secondary" className="mt-1 line-clamp-1 max-w-2xl" title={development.description}>
+              {development.description}
+            </Text>
+          )}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {development?.portal_link && (
             <Button
-              variant="primary"
+              variant="outline"
+              icon={ExternalLink}
               onClick={() => window.open(development.portal_link, '_blank', 'noopener,noreferrer')}
-              className="w-full sm:w-auto min-h-[44px] bg-green-600 hover:bg-green-700 border-none"
+              className="h-10 text-xs border-green-500/30 text-green-600 hover:bg-green-500 hover:text-white"
             >
-              🔗 Ir al Portal
+              Portal
             </Button>
           )}
 
+          <div className="h-8 w-px bg-[var(--color-border)] mx-1 hidden sm:block" />
+
+          <Button
+            variant="outline"
+            icon={Download}
+            onClick={() => wbsRef.current?.handleImportTemplate()}
+            className="h-10 text-xs"
+          >
+            Plantilla
+          </Button>
+
           <Button
             variant="primary"
+            icon={Plus}
+            onClick={() => wbsRef.current?.handleAddRootTask()}
+            className="h-10 text-xs"
+          >
+            Tarea
+          </Button>
+
+          <Button
+            variant="custom"
             onClick={() => setDevelopmentEditOpen(true)}
             disabled={loading || !development}
-            className="w-full sm:w-auto min-h-[44px]"
+            className="h-10 w-10 flex items-center justify-center rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-all border border-[var(--color-primary)]/20"
+            title="Editar Proyecto"
           >
-            ✏️ Editar Proyecto
+            <Pencil size={18} />
           </Button>
         </div>
       </div>
@@ -142,7 +178,7 @@ const DevelopmentDetail: React.FC = () => {
 
 
       {development && (
-        <WbsTab developmentId={development.id} darkMode={darkMode} />
+        <WbsTab ref={wbsRef} developmentId={development.id} darkMode={darkMode} />
       )}
 
       {development && (
