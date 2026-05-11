@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Select, Title, Text, Textarea } from '../atoms';
 import Modal from './Modal';
+import { Info, Cpu, Users, Calendar, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
 
 interface DevelopmentData {
   id: string;
@@ -51,10 +52,12 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
   const [formData, setFormData] = useState<Partial<DevelopmentData>>({});
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [step, setStep] = useState(1);
 
   // Inicializar datos del formulario cuando se abre el modal
   useEffect(() => {
     if (isOpen && development) {
+      setStep(1);
       setFormData({
         name: development.name || development.nombre || '',
         description: development.description || development.descripcion || '',
@@ -75,54 +78,31 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
   }, [isOpen, development]);
 
   // Validación del formulario
-  const validateForm = (): string[] => {
+  const validateStep = (currentStep: number): string[] => {
     const newErrors: string[] = [];
 
-    if (!formData.name || formData.name.trim() === '') {
-      newErrors.push('El nombre es requerido');
-    }
-
-    if (formData.name && formData.name.length > 255) {
-      newErrors.push('El nombre no puede exceder 255 caracteres');
-    }
-
-    if (formData.module && formData.module.length > 100) {
-      newErrors.push('El módulo no puede exceder 100 caracteres');
-    }
-
-    if (formData.type && formData.type.length > 50) {
-      newErrors.push('El tipo no puede exceder 50 caracteres');
-    }
-
-    if (formData.environment && formData.environment.length > 100) {
-      newErrors.push('El ambiente no puede exceder 100 caracteres');
-    }
-
-    if (formData.responsible && formData.responsible.length > 255) {
-      newErrors.push('El responsable no puede exceder 255 caracteres');
-    }
-
-    if (formData.authority && formData.authority.length > 255) {
-      newErrors.push('La autoridad no puede exceder 255 caracteres');
-    }
-
-    // Validar fecha estimada
-    if (formData.start_date) {
-      const date = new Date(formData.start_date);
-      if (isNaN(date.getTime())) {
-        newErrors.push('La fecha de inicio no es válida');
+    if (currentStep === 1) {
+      if (!formData.name || formData.name.trim() === '') {
+        newErrors.push('El nombre del proyecto es requerido');
+      }
+      if (formData.name && formData.name.length > 255) {
+        newErrors.push('El nombre no puede exceder 255 caracteres');
       }
     }
 
-    if (formData.estimated_end_date) {
-      const date = new Date(formData.estimated_end_date);
-      if (isNaN(date.getTime())) {
-        newErrors.push('La fecha estimada no es válida');
+    if (currentStep === 2) {
+      if (formData.module && formData.module.length > 100) {
+        newErrors.push('El proceso/módulo no puede exceder 100 caracteres');
+      }
+      if (formData.type && formData.type.length > 50) {
+        newErrors.push('El tipo no puede exceder 50 caracteres');
       }
     }
 
-    if (formData.start_date && formData.estimated_end_date && new Date(formData.start_date) > new Date(formData.estimated_end_date)) {
-      newErrors.push('La fecha de inicio no puede ser mayor que la fecha estimada de fin');
+    if (currentStep === 3) {
+      if (formData.start_date && formData.estimated_end_date && new Date(formData.start_date) > new Date(formData.estimated_end_date)) {
+        newErrors.push('La fecha de inicio no puede ser mayor que la fecha estimada de fin');
+      }
     }
 
     return newErrors;
@@ -136,11 +116,26 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
     }));
   };
 
+  const nextStep = () => {
+    const stepErrors = validateStep(step);
+    if (stepErrors.length > 0) {
+      setErrors(stepErrors);
+      return;
+    }
+    setErrors([]);
+    setStep(s => Math.min(s + 1, 3));
+  };
+
+  const prevStep = () => {
+    setErrors([]);
+    setStep(s => Math.max(s - 1, 1));
+  };
+
   // Manejar envío del formulario
   const handleSubmit = async () => {
-    const validationErrors = validateForm();
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
+    const finalErrors = validateStep(step);
+    if (finalErrors.length > 0) {
+      setErrors(finalErrors);
       return;
     }
 
@@ -159,15 +154,10 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
     }
   };
 
-  // Opciones para el estado general
-  const statusOptions = [
-    { value: 'Pendiente', label: 'Pendiente' },
-    { value: 'pendiente', label: 'Pendiente (seed)' },
-    { value: 'En curso', label: 'En curso' },
-    { value: 'en_progreso', label: 'En progreso (seed)' },
-    { value: 'Completado', label: 'Completado' },
-    { value: 'completada', label: 'Completada (seed)' },
-    { value: 'Cancelado', label: 'Cancelado' },
+  const steps = [
+    { id: 1, title: 'Básico', icon: Info },
+    { id: 2, title: 'Técnico', icon: Cpu },
+    { id: 3, title: 'Gestión', icon: Users },
   ];
 
   if (!isOpen || !development) return null;
@@ -176,190 +166,200 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Editar Proyecto"
+      title={`Editar Proyecto: ${development.id}`}
       size="xl"
       showCloseButton={true}
     >
-      <div className="max-h-[70vh] flex flex-col">
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="space-y-6">
-            {/* Errores */}
-            {errors.length > 0 && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
-                <div className="space-y-1">
-                  {errors.map((error, index) => (
-                    <Text key={index} variant="caption" color="error" className="block">• {error}</Text>
-                  ))}
+      <div className="max-h-[85vh] flex flex-col transition-all duration-300">
+        {/* Step Indicator */}
+        <div className="px-8 py-6 border-b border-[var(--color-border)] bg-[var(--color-surface-variant)]/30">
+          <div className="flex items-center justify-between px-2 relative">
+            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-[var(--color-border)] -translate-y-1/2 z-0 mx-8" />
+            
+            {steps.map((s) => {
+              const Icon = s.icon;
+              const isActive = step === s.id;
+              const isCompleted = step > s.id;
+              
+              return (
+                <div key={s.id} className="relative z-10 flex flex-col items-center gap-2">
+                  <div className={`
+                    w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 border-2
+                    ${isActive ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white scale-110 shadow-lg shadow-primary-500/20' : 
+                      isCompleted ? 'bg-green-500 border-green-500 text-white' : 
+                      'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]'}
+                  `}>
+                    {isCompleted ? <CheckCircle2 size={18} /> : <Icon size={18} />}
+                  </div>
+                  <Text variant="caption" weight={isActive ? 'bold' : 'medium'} 
+                    className={`uppercase tracking-tighter !text-[10px] ${isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
+                    {s.title}
+                  </Text>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-8 min-h-[420px]">
+          {errors.length > 0 && (
+            <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+              <div className="space-y-1">
+                {errors.map((error, index) => (
+                  <Text key={index} variant="caption" color="error" weight="medium" className="block">• {error}</Text>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Información básica */}
-            <div className="space-y-4">
-              <Title variant="h4" weight="medium">
-                Información Básica
-              </Title>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+          {step === 1 && (
+            <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2">
                   <Input
-                    label="Nombre del Proyecto *"
+                    label="Nombre del Proyecto"
                     value={formData.name || ''}
                     onChange={(e) => handleFieldChange('name', e.target.value)}
                     required
-                    maxLength={255}
+                    placeholder="Escribe el nombre principal..."
                   />
                 </div>
-
                 <div>
                   <Select
                     label="Estado General"
                     value={formData.general_status || ''}
                     onChange={(e) => handleFieldChange('general_status', e.target.value)}
-                    options={statusOptions}
+                    options={[
+                      { value: 'Pendiente', label: 'Pendiente' },
+                      { value: 'En curso', label: 'En curso' },
+                      { value: 'Completado', label: 'Completado' },
+                      { value: 'Cancelado', label: 'Cancelado' },
+                    ]}
                   />
                 </div>
               </div>
+              <Textarea
+                label="Descripción del Requerimiento"
+                value={formData.description || ''}
+                onChange={(e) => handleFieldChange('description', e.target.value)}
+                placeholder="Detalla los objetivos y alcance del proyecto..."
+                rows={6}
+              />
+            </div>
+          )}
 
-              <div>
-                <Textarea
-                  label="Descripción"
-                  value={formData.description || ''}
-                  onChange={(e) => handleFieldChange('description', e.target.value)}
+          {step === 2 && (
+            <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Módulo / Proceso"
+                  value={formData.module || ''}
+                  onChange={(e) => handleFieldChange('module', e.target.value)}
+                  placeholder="Ej. Nómina, Inventarios..."
+                />
+                <Input
+                  label="Tipo de Desarrollo"
+                  value={formData.type || ''}
+                  onChange={(e) => handleFieldChange('type', e.target.value)}
+                  placeholder="Ej. Mejora, Error, Nuevo..."
+                />
+                <Input
+                  label="Ambiente de Ejecución"
+                  value={formData.environment || ''}
+                  onChange={(e) => handleFieldChange('environment', e.target.value)}
+                  placeholder="Ej. Web, Desktop, Producción..."
+                />
+                <Input
+                  label="URL del Portal / Repositorio"
+                  value={formData.portal_link || ''}
+                  onChange={(e) => handleFieldChange('portal_link', e.target.value)}
+                  type="url"
+                  placeholder="https://..."
                 />
               </div>
             </div>
+          )}
 
-            {/* Información técnica */}
-            <div className="space-y-4">
-              <Title variant="h4" weight="medium">
-                Información Técnica
-              </Title>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Input
-                    label="Proceso"
-                    value={formData.module || ''}
-                    onChange={(e) => handleFieldChange('module', e.target.value)}
-                    maxLength={100}
-                  />
-                </div>
-
-                <div>
-                  <Input
-                    label="Tipo"
-                    value={formData.type || ''}
-                    onChange={(e) => handleFieldChange('type', e.target.value)}
-                    maxLength={50}
-                  />
-                </div>
-
-                <div>
-                  <Input
-                    label="Ambiente"
-                    value={formData.environment || ''}
-                    onChange={(e) => handleFieldChange('environment', e.target.value)}
-                    maxLength={100}
-                  />
-                </div>
-
-                <div>
-                  <Input
-                    label="Link del Portal"
-                    value={formData.portal_link || ''}
-                    onChange={(e) => handleFieldChange('portal_link', e.target.value)}
-                    type="url"
-                  />
-                </div>
+          {step === 3 && (
+            <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Responsable del Proyecto"
+                  value={formData.responsible || ''}
+                  onChange={(e) => handleFieldChange('responsible', e.target.value)}
+                  placeholder="Nombre de quien responde..."
+                />
+                <Input
+                  label="Autoridad Solicitante"
+                  value={formData.authority || ''}
+                  onChange={(e) => handleFieldChange('authority', e.target.value)}
+                  placeholder="Nombre de quien autoriza..."
+                />
+                <Input
+                  label="Área de Impacto"
+                  value={formData.area_desarrollo || ''}
+                  onChange={(e) => handleFieldChange('area_desarrollo', e.target.value)}
+                  placeholder="Departamento afectado..."
+                />
+                <Input
+                  label="Líder Técnico / Analista"
+                  value={formData.analista || ''}
+                  onChange={(e) => handleFieldChange('analista', e.target.value)}
+                  placeholder="Analista a cargo..."
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-[var(--color-border)]/50">
+                <Input
+                  label="Fecha de Inicio"
+                  value={formData.start_date || ''}
+                  onChange={(e) => handleFieldChange('start_date', e.target.value)}
+                  type="date"
+                />
+                <Input
+                  label="Fecha Estimada de Fin"
+                  value={formData.estimated_end_date || ''}
+                  onChange={(e) => handleFieldChange('estimated_end_date', e.target.value)}
+                  type="date"
+                />
               </div>
             </div>
-
-            {/* Información de gestión */}
-            <div className="space-y-4">
-              <Title variant="h4" weight="medium">
-                Información de Gestión
-              </Title>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Input
-                    label="Responsable"
-                    value={formData.responsible || ''}
-                    onChange={(e) => handleFieldChange('responsible', e.target.value)}
-                    maxLength={255}
-                  />
-                </div>
-
-                <div>
-                  <Input
-                    label="Autoridad"
-                    value={formData.authority || ''}
-                    onChange={(e) => handleFieldChange('authority', e.target.value)}
-                    maxLength={255}
-                  />
-                </div>
-
-                <div>
-                  <Input
-                    label="Área de impacto"
-                    value={formData.area_desarrollo || ''}
-                    onChange={(e) => handleFieldChange('area_desarrollo', e.target.value)}
-                    maxLength={100}
-                  />
-                </div>
-
-                <div>
-                  <Input
-                    label="Líder de actividad"
-                    value={formData.analista || ''}
-                    onChange={(e) => handleFieldChange('analista', e.target.value)}
-                    maxLength={100}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Input
-                    label="Fecha de Inicio"
-                    value={formData.start_date || ''}
-                    onChange={(e) => handleFieldChange('start_date', e.target.value)}
-                    type="date"
-                  />
-                </div>
-                <div>
-                  <Input
-                    label="Fecha Estimada de Fin"
-                    value={formData.estimated_end_date || ''}
-                    onChange={(e) => handleFieldChange('estimated_end_date', e.target.value)}
-                    type="date"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
-        {/* Actions */}
-        <div className="flex-shrink-0 border-t border-neutral-200 dark:border-neutral-700 p-6">
-          <div className="flex gap-3 w-full">
+
+        {/* Action Footer */}
+        <div className="flex-shrink-0 border-t border-[var(--color-border)] p-8 bg-[var(--color-surface-variant)]/10">
+          <div className="flex justify-between items-center w-full">
             <Button
-              variant="outline"
-              onClick={onClose}
+              variant="ghost"
+              onClick={step === 1 ? onClose : prevStep}
               disabled={loading}
-              className="flex-1"
+              className="px-6 h-11"
             >
-              Cancelar
+              {step === 1 ? 'Cancelar' : 'Anterior'}
             </Button>
-            <Button
-              variant="primary"
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex-1"
-            >
-              {loading ? 'Guardando...' : 'Guardar Cambios'}
-            </Button>
+            
+            <div className="flex gap-3">
+              {step < 3 ? (
+                <Button
+                  variant="primary"
+                  onClick={nextStep}
+                  className="px-8 h-11 rounded-xl"
+                >
+                  Siguiente
+                  <ChevronRight size={18} className="ml-1.5" />
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="px-10 h-11 rounded-xl shadow-lg shadow-primary-500/30"
+                >
+                  {loading ? 'Guardando...' : 'Finalizar Edición'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
