@@ -65,7 +65,6 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
         general_status: development.general_status || development.estado_general || undefined,
         start_date: development.start_date || development.fecha_inicio || '',
         estimated_end_date: development.estimated_end_date || development.fecha_estimada_fin || '',
-        provider: development.provider || development.proveedor || '',
         authority: development.authority || development.autoridad || '',
         responsible: development.responsible || development.responsable || '',
         area_desarrollo: development.area_desarrollo || '',
@@ -97,10 +96,6 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
 
     if (formData.environment && formData.environment.length > 100) {
       newErrors.push('El ambiente no puede exceder 100 caracteres');
-    }
-
-    if (formData.provider && formData.provider.length > 100) {
-      newErrors.push('El proveedor no puede exceder 100 caracteres');
     }
 
     if (formData.responsible && formData.responsible.length > 255) {
@@ -288,14 +283,6 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
               </Title>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Input
-                    label="Proveedor"
-                    value={formData.provider || ''}
-                    onChange={(e) => handleFieldChange('provider', e.target.value)}
-                    maxLength={100}
-                  />
-                </div>
                 <div>
                   <Input
                     label="Responsable"

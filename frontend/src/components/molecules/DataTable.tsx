@@ -67,7 +67,7 @@ export function DataTable<T>({
     emptyMessage = 'No hay datos',
     emptyIcon,
     maxHeight = 'max-h-[calc(100vh-300px)]',
-    minHeight = 'min-h-[320px]',
+    minHeight = 'min-h-[100px]',
     className = '',
 }: DataTableProps<T>) {
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -239,13 +239,12 @@ export function DataTable<T>({
                     </div>
 
                     {/*
-                     * Body — scroll vertical, grid con el mismo template.
-                     * Cada fila usa subgrid para heredar los anchos calculados por el browser
-                     * en base al contenido más ancho dentro del body.
+                     * Body — scroll vertical dinámico, grid con el mismo template.
+                     * Ya no usa flex-1 para que su altura dependa del contenido de las filas.
                      */}
                     <div
                         ref={bodyGridRef}
-                        className="flex-1 min-h-0 overflow-y-scroll custom-scrollbar"
+                        className="overflow-y-auto custom-scrollbar"
                     >
                         {data.map((row) => (
                             <div

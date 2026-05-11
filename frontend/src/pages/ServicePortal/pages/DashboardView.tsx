@@ -14,48 +14,36 @@ interface DashboardViewProps {
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
-    const userRole = (user?.rol || user?.role || '').toLowerCase();
-    const permissions = user?.permissions || [];
+    const permissions: string[] = user?.permissions || [];
 
-    // Lógica de visibilidad por tarjeta (RBAC + Estado Global)
     const canSeeSolicitudes = moduleStatus['mis_solicitudes'] !== false && (
         permissions.includes('mis_solicitudes') ||
         permissions.includes('sistemas') ||
         permissions.includes('mejoramiento') ||
-        permissions.includes('desarrollo') ||
-        permissions.includes('desarrollo') ||
-        ['admin', 'director'].includes(userRole)
+        permissions.includes('desarrollo')
     );
 
-    const canSeeRequisiciones = moduleStatus['requisiciones'] !== false && (
-        permissions.includes('requisiciones') ||
-        ['admin', 'director'].includes(userRole)
-    );
+    const canSeeRequisiciones = moduleStatus['requisiciones'] !== false &&
+        permissions.includes('requisiciones');
 
-    const canSeeReservaSalas = moduleStatus['reserva_salas'] !== false && (
-        permissions.includes('reserva_salas') ||
-        ['admin', 'director'].includes(userRole)
-    );
+    const canSeeReservaSalas = moduleStatus['reserva_salas'] !== false &&
+        permissions.includes('reserva_salas');
 
     const canSeeViaticos = moduleStatus['viaticos_gestion'] !== false && (
         permissions.includes('viaticos_gestion') ||
-        user?.viaticante === true ||
-        ['admin', 'director', 'manager'].includes(userRole)
+        user?.viaticante === true
     );
 
-    const canSeeInventario = moduleStatus['inventario_2026'] !== false && (
-        permissions.includes('inventario_2026') ||
-        ['admin', 'director'].includes(userRole)
-    );
+    const canSeeInventario = moduleStatus['inventario_2026'] !== false &&
+        permissions.includes('inventario_2026');
 
-    const canSeeContabilidad = moduleStatus['contabilidad'] !== false; // Visible para todos si está activo
+    const canSeeContabilidad = moduleStatus['contabilidad'] !== false &&
+        permissions.includes('gestion_humana');
 
-    const canSeeGestionActividades = moduleStatus['developments'] !== false && (
+    const canSeeGestionActividades =
         permissions.includes('developments') ||
         permissions.includes('validaciones_asignacion') ||
-        permissions.includes('jerarquia_organizacional') ||
-        ['admin', 'analyst', 'director', 'manager', 'admin_sistemas', 'admin_mejoramiento'].includes(userRole)
-    );
+        permissions.includes('jerarquia_organizacional');
 
     return (
         <div className="space-y-12 py-6">

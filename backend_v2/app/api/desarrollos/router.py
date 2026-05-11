@@ -4,50 +4,93 @@ API de Desarrollos - Backend V2
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete, or_
 from app.database import obtener_db
-from sqlalchemy import select, delete
 from app.models.desarrollo.desarrollo import (
     Desarrollo,
     DesarrolloActualizar,
     DesarrolloCrear,
     TipoDesarrollo,
+    ValidacionAsignacion,
 )
 from app.models.desarrollo.actividad import Actividad
+from app.models.auth.usuario import Usuario
+from app.api.auth.profile_router import obtener_usuario_actual_opcional
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[Desarrollo])
 async def listar_desarrollos(
-    skip: int = 0, 
+    skip: int = 0,
     limit: int = 100,
     estado: Optional[str] = None,
-    db: AsyncSession = Depends(obtener_db)
+    solo_mios: bool = False,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Optional[Usuario] = Depends(obtener_usuario_actual_opcional),
 ):
-    """Lista todos los desarrollos con filtros opcionales"""
+    """Lista desarrollos. Con solo_mios=true filtra los que involucran al usuario autenticado."""
     try:
         query = select(Desarrollo).offset(skip).limit(limit)
-        
-        # Filtro por estado si se envía
+
         if estado:
             query = query.where(Desarrollo.estado_general == estado)
-            
+
+        if solo_mios and usuario:
+            uid = usuario.id
+            nombre = usuario.nombre
+            query = query.where(
+                or_(
+                    Desarrollo.creado_por_id == uid,
+                    Desarrollo.responsable_id == uid,
+                    Desarrollo.analista == uid,
+                    Desarrollo.analista == nombre,
+                    Desarrollo.autoridad == uid,
+                    Desarrollo.autoridad == nombre,
+                    Desarrollo.responsable == uid,
+                    Desarrollo.responsable == nombre,
+                )
+            )
+
         result = await db.execute(query)
-        desarrollos = result.scalars().all()
-            
-        return desarrollos
+        return result.scalars().all()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al listar desarrollos: {str(e)}")
 
 
 @router.post("/", response_model=Desarrollo)
 async def crear_desarrollo(
-    desarrollo_in: DesarrolloCrear, 
-    db: AsyncSession = Depends(obtener_db)
+    desarrollo_in: DesarrolloCrear,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Optional[Usuario] = Depends(obtener_usuario_actual_opcional),
 ):
-    """Crea un nuevo desarrollo"""
+    """Crea un nuevo desarrollo con ID autogenerado (ACT-XXXXX)."""
     try:
         nueva_data = desarrollo_in.model_dump()
+        
+        # Generar ID consecutivo con prefijo ACT-
+        query_max = select(Desarrollo.id).where(Desarrollo.id.like("ACT-%")).order_by(Desarrollo.id.desc()).limit(1)
+        result_max = await db.execute(query_max)
+        ultimo_id = result_max.scalar_one_or_none()
+        
+        if ultimo_id:
+            try:
+                # Extraer número del final (asumiendo formato ACT-XXXXX)
+                numero = int(ultimo_id.split("-")[1])
+                nuevo_numero = numero + 1
+            except (ValueError, IndexError):
+                # Si falla el parseo, buscamos el total de registros ACT-
+                query_count = select(Desarrollo).where(Desarrollo.id.like("ACT-%"))
+                result_count = await db.execute(query_count)
+                nuevo_numero = len(result_count.scalars().all()) + 1
+        else:
+            nuevo_numero = 1
+            
+        nueva_data["id"] = f"ACT-{nuevo_numero:05d}"
+
+        if usuario and not nueva_data.get("creado_por_id"):
+            nueva_data["creado_por_id"] = usuario.id
+            
         nuevo_desarrollo = Desarrollo(**nueva_data)
         db.add(nuevo_desarrollo)
         await db.commit()
@@ -143,8 +186,24 @@ async def eliminar_desarrollo(
         if not db_desarrollo:
             raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
 
+        # 1. Eliminar validaciones de asignación relacionadas al desarrollo o sus actividades
+        # Esto previene errores de llave foránea (IntegrityError)
+        actividades_ids_q = select(Actividad.id).where(Actividad.desarrollo_id == desarrollo_id)
+        await db.execute(
+            delete(ValidacionAsignacion).where(
+                or_(
+                    ValidacionAsignacion.desarrollo_id == desarrollo_id,
+                    ValidacionAsignacion.actividad_id.in_(actividades_ids_q)
+                )
+            )
+        )
+
+        # 2. Eliminar actividades
         await db.execute(delete(Actividad).where(Actividad.desarrollo_id == desarrollo_id))
+        
+        # 3. Eliminar el desarrollo
         await db.delete(db_desarrollo)
+        
         await db.commit()
     except HTTPException:
         raise

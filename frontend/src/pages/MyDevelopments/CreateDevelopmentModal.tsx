@@ -111,10 +111,10 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     const currentUserId = appState.user?.id ?? '';
 
     const [loading, setLoading] = useState(false);
+    const [step, setStep] = useState(1);
     const [tipoOptions, setTipoOptions] = useState(DEFAULT_TIPO_OPTIONS);
 
     // Form state
-    const [id, setId] = useState(`DEV-${Math.floor(Date.now() / 1000).toString().slice(-5)}`);
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
     const [modulo, setModulo] = useState('');
@@ -129,74 +129,57 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaEstimadaFin, setFechaEstimadaFin] = useState('');
 
-    // Hierarchy data
+    const totalSteps = 3;
+
+    // Reset when closing
+    const handleClose = () => {
+        setStep(1);
+        onClose();
+    };
+
+    // ─── Hierarchy Data ──────────────────────────────────────────────────────
     const [hierarchyUsers, setHierarchyUsers] = useState<HierarchyUser[]>([]);
-    const [hierarchyRelations, setHierarchyRelations] = useState<HierarchyRelation[]>([]);
+    const [relations, setRelations] = useState<HierarchyRelation[]>([]);
 
-    // Load tipos de desarrollo
     useEffect(() => {
-        if (!isOpen) return;
-        const loadTipos = async () => {
+        const fetchHierarchy = async () => {
             try {
-                const tipos = await get('/desarrollos/tipos');
-                if (!Array.isArray(tipos)) return;
-                const options = tipos
-                    .filter((t): t is TipoDesarrollo => (
-                        typeof t === 'object' && t !== null &&
-                        'valor' in t && 'etiqueta' in t &&
-                        typeof t.valor === 'string' && typeof t.etiqueta === 'string'
-                    ))
-                    .map(t => ({ value: t.valor, label: t.etiqueta }));
-                if (options.length > 0) {
-                    setTipoOptions(options);
-                    if (!options.some(o => o.value === tipo)) setTipo(options[0].value);
-                }
-            } catch { /* ignore */ }
-        };
-        void loadTipos();
-    }, [get, isOpen, tipo]);
-
-    // Load hierarchy data once when modal opens
-    useEffect(() => {
-        if (!isOpen) return;
-        const loadHierarchy = async () => {
-            try {
-                const [users, relations] = await Promise.all([
+                const [usersData, relData] = await Promise.all([
                     get('/jerarquia/usuarios-disponibles'),
-                    get('/jerarquia/relaciones'),
+                    get('/jerarquia/relaciones')
                 ]);
-                if (Array.isArray(users)) setHierarchyUsers(users as HierarchyUser[]);
-                if (Array.isArray(relations)) {
-                    const active = (relations as HierarchyRelation[]).filter(r => r.esta_activa);
-                    setHierarchyRelations(active);
-
+                if (usersData) setHierarchyUsers(usersData as HierarchyUser[]);
+                if (relData) {
+                    const active = (relData as HierarchyRelation[]).filter(r => r.esta_activa);
+                    setRelations(active);
                 }
             } catch (err) {
-                console.error('[Modal] Error cargando jerarquía:', err);
+                console.error('Error fetching hierarchy:', err);
             }
         };
-        void loadHierarchy();
+        if (isOpen) fetchHierarchy();
     }, [isOpen]);
 
-    // ── Derivaciones jerárquicas ─────────────────────────────────────────────
+    // ── Derivaciones jerárquicas (Original Logic) ───────────────────────────
     const superiorId = useMemo(() =>
-        hierarchyRelations.find(r => r.usuario_id === currentUserId)?.superior_id ?? '',
-    [hierarchyRelations, currentUserId]);
+        relations.find(r => r.usuario_id === currentUserId)?.superior_id ?? '',
+    [relations, currentUserId]);
 
     const superiorSuperiorId = useMemo(() =>
-        superiorId ? (hierarchyRelations.find(r => r.usuario_id === superiorId)?.superior_id ?? '') : '',
-    [hierarchyRelations, superiorId]);
+        superiorId ? (relations.find(r => r.usuario_id === superiorId)?.superior_id ?? '') : '',
+    [relations, superiorId]);
 
     const subordinateIds = useMemo(() =>
-        hierarchyRelations.filter(r => r.superior_id === currentUserId).map(r => r.usuario_id),
-    [hierarchyRelations, currentUserId]);
+        relations.filter(r => r.superior_id === currentUserId).map(r => r.usuario_id),
+    [relations, currentUserId]);
 
     // Usuarios alcanzables desde la posición del usuario logueado (superiores + subordinados)
-    // Si el usuario no está en ninguna relación, devuelve vacío.
     const reachableUsers = useMemo<HierarchyUser[]>(() => {
-        const inHierarchy = hierarchyRelations.some(
+        const inHierarchy = relations.some(
             r => r.usuario_id === currentUserId || r.superior_id === currentUserId
         );
+        // Si no hay relaciones en el sistema, permitimos ver a todos (bootstrap)
+        if (relations.length === 0) return hierarchyUsers;
         if (!currentUserId || !inHierarchy) return [];
 
         const ids = new Set<string>();
@@ -206,19 +189,24 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         let supId = superiorId;
         while (supId) {
             ids.add(supId);
-            supId = hierarchyRelations.find(r => r.usuario_id === supId)?.superior_id ?? '';
+            supId = relations.find(r => r.usuario_id === supId)?.superior_id ?? '';
         }
 
         // Subordinados de forma recursiva hacia abajo
         const addSubs = (uid: string) => {
-            hierarchyRelations
+            relations
                 .filter(r => r.superior_id === uid)
-                .forEach(r => { ids.add(r.usuario_id); addSubs(r.usuario_id); });
+                .forEach(r => { 
+                    if (!ids.has(r.usuario_id)) {
+                        ids.add(r.usuario_id); 
+                        addSubs(r.usuario_id); 
+                    }
+                });
         };
         addSubs(currentUserId);
 
         return hierarchyUsers.filter(u => ids.has(u.id));
-    }, [hierarchyRelations, hierarchyUsers, currentUserId, superiorId]);
+    }, [relations, hierarchyUsers, currentUserId, superiorId]);
 
     // Opciones de cada campo según el rol que se asignó el usuario logueado
     const analistaOptions = useMemo<HierarchyUser[]>(() => {
@@ -226,13 +214,13 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
             return hierarchyUsers.filter(u => subordinateIds.includes(u.id));
         }
         if (currentUserId && autoridadId === currentUserId && responsableId) {
-            const subOfResponsable = hierarchyRelations
+            const subOfResponsable = relations
                 .filter(r => r.superior_id === responsableId)
                 .map(r => r.usuario_id);
             return hierarchyUsers.filter(u => subOfResponsable.includes(u.id));
         }
         return reachableUsers;
-    }, [responsableId, autoridadId, currentUserId, hierarchyUsers, hierarchyRelations, subordinateIds, reachableUsers]);
+    }, [responsableId, autoridadId, currentUserId, hierarchyUsers, relations, subordinateIds, reachableUsers]);
 
     const responsableOptions = useMemo<HierarchyUser[]>(() => {
         if (currentUserId && analistaId === currentUserId) {
@@ -256,14 +244,13 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     // ─────────────────────────────────────────────────────────────────────────
 
     const handleSave = async () => {
-        if (!nombre.trim() || !id.trim()) return;
+        if (!nombre.trim()) return;
         setLoading(true);
         try {
             await post(`/desarrollos/`, {
-                id,
                 nombre,
                 descripcion: descripcion || undefined,
-                modulo: modulo || id,
+                modulo: modulo || undefined,
                 tipo,
                 autoridad: autoridad || undefined,
                 responsable: responsable || undefined,
@@ -275,8 +262,8 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                 porcentaje_progreso: 0.0,
             });
             onSaved();
-            onClose();
-            setId(`DEV-${Math.floor(Date.now() / 1000).toString().slice(-5)}`);
+            handleClose();
+            // Clear form
             setNombre(''); setDescripcion(''); setModulo(''); setTipo('Proyecto');
             setAutoridad(''); setAutoridadId('');
             setResponsable(''); setResponsableId('');
@@ -292,142 +279,201 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
 
     if (!isOpen) return null;
 
+    const renderStep = () => {
+        switch (step) {
+            case 1:
+                return (
+                    <div className="space-y-4 animate-in slide-in-from-right-2 duration-300">
+                        <div className="mb-6">
+                            <Text variant="body1" weight="bold" color="text-primary">Paso 1: Información Básica</Text>
+                            <Text variant="caption" color="text-secondary">Define de qué trata este nuevo desarrollo.</Text>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
+                            <Select
+                                label="Tipo de Actividad"
+                                value={tipo}
+                                onChange={(e) => setTipo(e.target.value)}
+                                options={tipoOptions}
+                            />
+                            <Input
+                                label="Nombre del Proyecto"
+                                placeholder="Ej. Integración pasarela de pagos"
+                                value={nombre}
+                                onChange={(e) => setNombre(e.target.value)}
+                                required
+                            />
+                            <Textarea
+                                label="Descripción"
+                                placeholder="Detalles sobre el propósito del desarrollo..."
+                                value={descripcion}
+                                onChange={(e) => setDescripcion(e.target.value)}
+                                rows={4}
+                            />
+                        </div>
+                    </div>
+                );
+            case 2:
+                return (
+                    <div className="space-y-4 animate-in slide-in-from-right-2 duration-300">
+                        <div className="mb-6">
+                            <Text variant="body1" weight="bold" color="text-primary">Paso 2: Responsables e Impacto</Text>
+                            <Text variant="caption" color="text-secondary">¿Quiénes intervienen y a qué área afecta?</Text>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
+                            <Input
+                                label="Área de impacto"
+                                placeholder="Ej. Gestión Humana"
+                                value={areaDesarrollo}
+                                onChange={(e) => setAreaDesarrollo(e.target.value)}
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <HierarchyAutocomplete
+                                    label="Responsable"
+                                    placeholder="Buscar empleado..."
+                                    value={responsable}
+                                    options={responsableOptions}
+                                    onChange={(text) => {
+                                        setResponsable(text);
+                                        if (!text) setResponsableId('');
+                                        if (!text && autoridadId === currentUserId) {
+                                            setAnalista(''); setAnalistaId('');
+                                        }
+                                    }}
+                                    onSelect={(user) => {
+                                        setResponsable(user.nombre);
+                                        setResponsableId(user.id);
+                                        if (autoridadId === currentUserId) {
+                                            setAnalista(''); setAnalistaId('');
+                                        }
+                                    }}
+                                />
+                                <HierarchyAutocomplete
+                                    label="Líder de actividad (Ejecutor)"
+                                    placeholder="Buscar empleado..."
+                                    value={analista}
+                                    options={analistaOptions}
+                                    onChange={(text) => {
+                                        setAnalista(text);
+                                        if (!text) setAnalistaId('');
+                                    }}
+                                    onSelect={(user) => {
+                                        setAnalista(user.nombre);
+                                        setAnalistaId(user.id);
+                                    }}
+                                />
+                            </div>
+                            <HierarchyAutocomplete
+                                label="Autoridad"
+                                placeholder="Buscar empleado..."
+                                value={autoridad}
+                                options={autoridadOptions}
+                                onChange={(text) => {
+                                    setAutoridad(text);
+                                    if (!text) setAutoridadId('');
+                                }}
+                                onSelect={(user) => {
+                                    setAutoridad(user.nombre);
+                                    setAutoridadId(user.id);
+                                }}
+                            />
+                        </div>
+                    </div>
+                );
+            case 3:
+                return (
+                    <div className="space-y-4 animate-in slide-in-from-right-2 duration-300">
+                        <div className="mb-6">
+                            <Text variant="body1" weight="bold" color="text-primary">Paso 3: Tiempos y Procesos</Text>
+                            <Text variant="caption" color="text-secondary">Establece las fechas clave y el proceso relacionado.</Text>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
+                            <Input
+                                label="Proceso relacionado"
+                                placeholder="Ej. Logística o código del proyecto"
+                                value={modulo}
+                                onChange={(e) => setModulo(e.target.value)}
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                    label="Fecha de Inicio"
+                                    type="date"
+                                    value={fechaInicio}
+                                    onChange={(e) => setFechaInicio(e.target.value)}
+                                />
+                                <Input
+                                    label="Fecha Estimada de Fin"
+                                    type="date"
+                                    value={fechaEstimadaFin}
+                                    onChange={(e) => setFechaEstimadaFin(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)]">
-                <div className="p-6 border-b border-[var(--color-border)]">
-                    <div className="flex justify-between items-center">
+                {/* Header */}
+                <div className="p-6 border-b border-[var(--color-border)] bg-[var(--color-surface-variant)]/30">
+                    <div className="flex justify-between items-center mb-4">
                         <Title variant="h5" weight="bold">Nuevo Proyecto</Title>
-                        <Button variant="ghost" onClick={onClose} icon={X} className="!p-1.5 text-neutral-400 hover:text-neutral-500" />
+                        <Button variant="ghost" onClick={handleClose} icon={X} className="!p-1.5 text-neutral-400 hover:text-neutral-500" />
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="flex items-center gap-2">
+                        {[1, 2, 3].map((s) => (
+                            <div key={s} className="flex-1 flex flex-col gap-1.5">
+                                <div className={`h-1.5 rounded-full transition-all duration-500 ${
+                                    s <= step ? 'bg-[var(--color-primary)]' : 'bg-neutral-200 dark:bg-neutral-800'
+                                }`} />
+                                <Text variant="caption" weight={s === step ? 'bold' : 'normal'} color={s === step ? 'text-primary' : 'text-secondary'}>
+                                    Paso {s}
+                                </Text>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
-                <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh] custom-scrollbar">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                            label="ID / Código"
-                            placeholder="Ej. DEV-1024"
-                            value={id}
-                            onChange={(e) => setId(e.target.value)}
-                            required
-                        />
-                        <Select
-                            label="Tipo"
-                            value={tipo}
-                            onChange={(e) => setTipo(e.target.value)}
-                            options={tipoOptions}
-                        />
-                    </div>
-
-                    <Input
-                        label="Nombre del Proyecto"
-                        placeholder="Ej. Integración pasarela de pagos"
-                        value={nombre}
-                        onChange={(e) => setNombre(e.target.value)}
-                        required
-                    />
-
-                    <Textarea
-                        label="Descripción"
-                        placeholder="Detalles sobre el propósito del desarrollo..."
-                        value={descripcion}
-                        onChange={(e) => setDescripcion(e.target.value)}
-                    />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                            label="Área de impacto"
-                            placeholder="Ej. Gestión Humana"
-                            value={areaDesarrollo}
-                            onChange={(e) => setAreaDesarrollo(e.target.value)}
-                        />
-                        <HierarchyAutocomplete
-                            label="Líder de actividad"
-                            placeholder="Buscar empleado..."
-                            value={analista}
-                            options={analistaOptions}
-                            onChange={(text) => {
-                                setAnalista(text);
-                                if (!text) setAnalistaId('');
-                            }}
-                            onSelect={(user) => {
-                                setAnalista(user.nombre);
-                                setAnalistaId(user.id);
-                            }}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <HierarchyAutocomplete
-                            label="Responsable"
-                            placeholder="Buscar empleado..."
-                            value={responsable}
-                            options={responsableOptions}
-                            onChange={(text) => {
-                                setResponsable(text);
-                                if (!text) setResponsableId('');
-                                // Al limpiar responsable, limpiar también analista si autoridad es el usuario
-                                if (!text && autoridadId === currentUserId) {
-                                    setAnalista(''); setAnalistaId('');
-                                }
-                            }}
-                            onSelect={(user) => {
-                                setResponsable(user.nombre);
-                                setResponsableId(user.id);
-                                // Al cambiar responsable cuando usuario es autoridad, limpiar analista para que se recalcule
-                                if (autoridadId === currentUserId) {
-                                    setAnalista(''); setAnalistaId('');
-                                }
-                            }}
-                        />
-                        <HierarchyAutocomplete
-                            label="Autoridad"
-                            placeholder="Buscar empleado..."
-                            value={autoridad}
-                            options={autoridadOptions}
-                            onChange={(text) => {
-                                setAutoridad(text);
-                                if (!text) setAutoridadId('');
-                            }}
-                            onSelect={(user) => {
-                                setAutoridad(user.nombre);
-                                setAutoridadId(user.id);
-                            }}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                            label="Proceso"
-                            placeholder="Ej. Logística o código del proyecto"
-                            value={modulo}
-                            onChange={(e) => setModulo(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                            label="Fecha de Inicio"
-                            type="date"
-                            value={fechaInicio}
-                            onChange={(e) => setFechaInicio(e.target.value)}
-                        />
-                        <Input
-                            label="Fecha Estimada de Fin"
-                            type="date"
-                            value={fechaEstimadaFin}
-                            onChange={(e) => setFechaEstimadaFin(e.target.value)}
-                        />
-                    </div>
+                {/* Body */}
+                <div className="p-6 overflow-y-auto max-h-[70vh] custom-scrollbar min-h-[400px]">
+                    {renderStep()}
                 </div>
 
-                <div className="p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-variant)] flex justify-end gap-3">
-                    <Button variant="ghost" onClick={onClose} disabled={loading}>
-                        Cancelar
+                {/* Footer */}
+                <div className="p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-variant)] flex justify-between items-center gap-3">
+                    <Button 
+                        variant="ghost" 
+                        onClick={() => step > 1 ? setStep(step - 1) : handleClose()} 
+                        disabled={loading}
+                    >
+                        {step === 1 ? 'Cancelar' : 'Anterior'}
                     </Button>
-                    <Button variant="primary" onClick={handleSave} disabled={loading || !nombre.trim() || !id.trim()}>
-                        {loading ? 'Creando...' : 'Crear Proyecto'}
-                    </Button>
+                    
+                    <div className="flex gap-2">
+                        {step < totalSteps ? (
+                            <Button 
+                                variant="primary" 
+                                onClick={() => setStep(step + 1)}
+                                disabled={step === 1 && !nombre.trim()}
+                            >
+                                Siguiente
+                            </Button>
+                        ) : (
+                            <Button 
+                                variant="primary" 
+                                onClick={handleSave} 
+                                disabled={loading || !nombre.trim()}
+                            >
+                                {loading ? 'Creando...' : 'Finalizar y Crear'}
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

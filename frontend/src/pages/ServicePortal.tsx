@@ -360,7 +360,6 @@ const ServicePortal: React.FC = () => {
                 <Route path="gestion-actividades" element={
                     <GestionActividadesView
                         user={user}
-                        moduleStatus={moduleStatus}
                         onNavigate={(v) => {
                             if (v === 'desarrollos') navigate('/service-portal/desarrollos');
                             else if (v === 'validaciones') navigate('/service-portal/validaciones-asignacion');
@@ -384,23 +383,13 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="validaciones-asignacion" element={
                     <ProtectedRoute moduleCode="validaciones_asignacion">
-                        <div className="space-y-4">
-                            <Button variant="ghost" onClick={() => navigate('/service-portal/gestion-actividades')}>
-                                ← Volver
-                            </Button>
-                            <AssignmentValidations />
-                        </div>
+                        <AssignmentValidations />
                     </ProtectedRoute>
                 } />
 
                 <Route path="jerarquia-organizacional" element={
                     <ProtectedRoute moduleCode="jerarquia_organizacional">
-                        <div className="space-y-4">
-                            <Button variant="ghost" onClick={() => navigate('/service-portal/gestion-actividades')}>
-                                ← Volver
-                            </Button>
-                            <OrganizationalHierarchy />
-                        </div>
+                        <OrganizationalHierarchy />
                     </ProtectedRoute>
                 } />
 

@@ -97,6 +97,26 @@ class ValidacionAsignacion(SQLModel, table=True):
     validado_en: Optional[datetime] = Field(default=None)
 
 
+class ValidacionAsignacionPublico(SQLModel):
+    id: int
+    desarrollo_id: Optional[str] = None
+    actividad_id: Optional[int] = None
+    solicitado_por_id: str
+    validador_id: str
+    asignado_a_id: str
+    estado: str
+    motivo: Optional[str] = None
+    observacion: Optional[str] = None
+    creado_en: Optional[datetime] = None
+    validado_en: Optional[datetime] = None
+    # Campos extendidos con nombres
+    solicitado_por_nombre: Optional[str] = None
+    validador_nombre: Optional[str] = None
+    asignado_a_nombre: Optional[str] = None
+    actividad_titulo: Optional[str] = None
+    desarrollo_nombre: Optional[str] = None
+
+
 class ValidacionAsignacionResolver(SQLModel):
     estado: str
     observacion: Optional[str] = None
@@ -184,7 +204,7 @@ class EtapaCrear(SQLModel):
 class DesarrolloCrear(SQLModel):
     """Schema para crear un desarrollo"""
 
-    id: str
+    id: Optional[str] = None
     nombre: str
     descripcion: Optional[str] = None
     modulo: Optional[str] = None

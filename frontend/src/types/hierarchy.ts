@@ -34,6 +34,12 @@ export interface AssignmentValidation {
   observacion?: string | null;
   creado_en?: string | null;
   validado_en?: string | null;
+  // Campos opcionales para nombres
+  solicitado_por_nombre?: string;
+  validador_nombre?: string;
+  asignado_a_nombre?: string;
+  actividad_titulo?: string;
+  desarrollo_nombre?: string;
 }
 
 export interface HierarchyRelation {

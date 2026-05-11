@@ -4,7 +4,7 @@ import { Text } from './Text';
 interface BadgeProps {
   children: React.ReactNode;
   variant?: 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
 }
 
@@ -26,6 +26,7 @@ const Badge: React.FC<BadgeProps> = ({
   };
 
   const sizeClasses = {
+    xs: 'px-1.5 py-0 text-[10px]',
     sm: 'px-2 py-0.5 text-xs',
     md: 'px-2.5 py-1 text-sm',
     lg: 'px-3 py-1.5 text-sm',
@@ -34,7 +35,7 @@ const Badge: React.FC<BadgeProps> = ({
   return (
     <Text
       as="span"
-      variant={size === 'sm' ? 'caption' : 'body2'}
+      variant={size === 'sm' || size === 'xs' ? 'caption' : 'body2'}
       weight="medium"
       color="inherit"
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}

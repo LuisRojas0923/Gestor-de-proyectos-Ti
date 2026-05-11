@@ -64,12 +64,27 @@ const MyDevelopments: React.FC = () => {
   const isPortal = location.pathname.startsWith('/service-portal');
   const { developments, loadDevelopments } = useDevelopments();
   const { addNotification } = useNotifications();
-  const { delete: apiDelete } = useApi();
+  const { delete: apiDelete, get: apiGet } = useApi();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DevelopmentRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
 
   useEffect(() => { loadDevelopments(); }, [loadDevelopments]);
+
+  useEffect(() => {
+    apiGet('/jerarquia/usuarios-disponibles').then((users: unknown) => {
+      if (Array.isArray(users)) {
+        setUserMap(new Map((users as { id: string; nombre: string }[]).map((u) => [u.id, u.nombre])));
+      }
+    }).catch(() => undefined);
+  }, [apiGet]);
+
+  const resolveUserName = (value?: string | null) => {
+    if (!value) return undefined;
+    if (value.startsWith('USR-')) return userMap.get(value) ?? value;
+    return value;
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -93,9 +108,9 @@ const MyDevelopments: React.FC = () => {
     start_date:         getDevelopmentStartDate,
     estimated_end_date: getDevelopmentEndDate,
     area_desarrollo:    (dev: DevelopmentRow) => dev.area_desarrollo,
-    analista:           (dev: DevelopmentRow) => dev.analista,
-    authority:          getDevelopmentAuthority,
-    responsible:        getDevelopmentResponsible,
+    analista:           (dev: DevelopmentRow) => resolveUserName(dev.analista) ?? dev.analista,
+    authority:          (dev: DevelopmentRow) => resolveUserName(getDevelopmentAuthority(dev)) ?? getDevelopmentAuthority(dev),
+    responsible:        (dev: DevelopmentRow) => resolveUserName(getDevelopmentResponsible(dev)) ?? getDevelopmentResponsible(dev),
   };
 
   const {
@@ -218,7 +233,7 @@ const MyDevelopments: React.FC = () => {
             {(dev.analista ?? 'A')[0].toUpperCase()}
           </div>
           <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
-            {dev.analista ?? 'N/A'}
+            {resolveUserName(dev.analista) ?? 'N/A'}
           </Text>
         </div>
       ),
@@ -230,7 +245,7 @@ const MyDevelopments: React.FC = () => {
       filterable: true,
       render: (dev) => (
         <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
-          {valueOrFallback(getDevelopmentAuthority(dev))}
+          {valueOrFallback(resolveUserName(getDevelopmentAuthority(dev)))}
         </Text>
       ),
     },
@@ -241,7 +256,7 @@ const MyDevelopments: React.FC = () => {
       filterable: true,
       render: (dev) => (
         <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
-          {valueOrFallback(getDevelopmentResponsible(dev))}
+          {valueOrFallback(resolveUserName(getDevelopmentResponsible(dev)))}
         </Text>
       ),
     },
@@ -294,18 +309,18 @@ const MyDevelopments: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {isPortal && (
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/service-portal/gestion-actividades')}
-          className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
-        >
-          ← Volver
-        </Button>
-      )}
       {/* Header */}
       <div className="flex justify-between items-center bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm">
         <div className="flex items-center gap-4">
+          {isPortal && (
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/service-portal/gestion-actividades')}
+              className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
+            >
+              ← Volver
+            </Button>
+          )}
           <Title variant="h1" className="m-0">Gestión de Actividades</Title>
           <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
           <div className="flex items-center gap-2">

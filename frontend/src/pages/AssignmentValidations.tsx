@@ -90,20 +90,37 @@ const AssignmentValidations: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {validations.map((validation) => (
-            <MaterialCard key={validation.id} className="overflow-hidden" elevation={2}>
-              <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-start lg:justify-between">
+            <MaterialCard key={validation.id} className="relative overflow-hidden" elevation={2}>
+              {/* Decoración: Gradiente y Marca de Agua */}
+              <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-gradient-to-br from-[var(--color-primary)]/5 to-transparent blur-3xl" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-[0.03] dark:opacity-[0.05] pointer-events-none">
+                <ShieldCheck size={180} strokeWidth={1} />
+              </div>
+
+              <div className="relative flex flex-col gap-4 p-5 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0 flex-1 space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <ValidationStatusBadge status={validation.estado} />
                     <Text variant="caption" color="text-secondary">Validación #{validation.id}</Text>
                   </div>
                   <Title variant="h6" weight="bold" color="text-primary">
-                    Actividad {validation.actividad_id ?? 'sin actividad'} · Desarrollo {validation.desarrollo_id ?? 'N/A'}
+                    {validation.actividad_titulo || `Actividad ${validation.actividad_id}`} 
+                    {' · '} 
+                    {validation.desarrollo_nombre || `Desarrollo ${validation.desarrollo_id}`}
                   </Title>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <InfoPill label="Solicitado por" value={validation.solicitado_por_id} />
-                    <InfoPill label="Líder de actividad" value={validation.asignado_a_id} />
-                    <InfoPill label="Validador" value={validation.validador_id} />
+                    <InfoPill 
+                      label="Solicitado por" 
+                      value={validation.solicitado_por_nombre || validation.solicitado_por_id} 
+                    />
+                    <InfoPill 
+                      label="Líder de actividad" 
+                      value={validation.asignado_a_nombre || validation.asignado_a_id} 
+                    />
+                    <InfoPill 
+                      label="Validador" 
+                      value={validation.validador_nombre || validation.validador_id} 
+                    />
                   </div>
                   {rejectingId === validation.id && (
                     <Textarea

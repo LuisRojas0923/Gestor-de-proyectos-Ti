@@ -5,27 +5,16 @@ import { Button, Title, Text } from '../../../components/atoms';
 
 interface Props {
     user: any;
-    moduleStatus: Record<string, boolean>;
     onNavigate: (view: 'desarrollos' | 'validaciones' | 'jerarquia') => void;
     onBack: () => void;
 }
 
-const GestionActividadesView: React.FC<Props> = ({ user, moduleStatus, onNavigate, onBack }) => {
-    const userRole = (user?.rol || user?.role || '').toLowerCase();
-    const permissions = user?.permissions || [];
+const GestionActividadesView: React.FC<Props> = ({ user, onNavigate, onBack }) => {
+    const permissions: string[] = user?.permissions || [];
 
-    const canSeeDesarrollos = moduleStatus['developments'] !== false && (
-        permissions.includes('developments') ||
-        ['admin', 'analyst', 'director', 'manager', 'admin_sistemas', 'admin_mejoramiento'].includes(userRole)
-    );
-    const canSeeValidaciones = moduleStatus['validaciones_asignacion'] !== false && (
-        permissions.includes('validaciones_asignacion') ||
-        ['admin', 'director', 'manager'].includes(userRole)
-    );
-    const canSeeJerarquia = moduleStatus['jerarquia_organizacional'] !== false && (
-        permissions.includes('jerarquia_organizacional') ||
-        ['admin', 'director'].includes(userRole)
-    );
+    const canSeeDesarrollos = permissions.includes('developments');
+    const canSeeValidaciones = permissions.includes('validaciones_asignacion');
+    const canSeeJerarquia = permissions.includes('jerarquia_organizacional');
 
     return (
         <div className="space-y-12 py-6">
