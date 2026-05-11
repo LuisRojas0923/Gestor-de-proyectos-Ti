@@ -28,10 +28,11 @@ const getStatusVariant = (estado: string): 'default' | 'success' | 'warning' | '
 };
 
 const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
-    const { get, post, patch, put, delete: del } = useApi<WbsActivityTree[]>();
+    const { get, post, patch, put, delete: del } = useApi();
     const { state } = useAppContext();
     const [tree, setTree] = useState<WbsActivityTree[]>([]);
     const [loading, setLoading] = useState(true);
+    const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
     const [draftActive, setDraftActive] = useState(false);
     const [draftTitulo, setDraftTitulo] = useState('');
     const [draftAsignadoAId, setDraftAsignadoAId] = useState('');
@@ -48,8 +49,11 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
         total_eliminaciones: number;
     } | null>(null);
 
-    const getLider = useCallback((node: WbsActivityTree) =>
-        node.asignado_a_id || node.responsable_id || '(Sin asignar)', []);
+    const getLider = useCallback((node: WbsActivityTree) => {
+        const id = node.asignado_a_id || node.responsable_id;
+        if (!id) return '(Sin asignar)';
+        return userMap.get(id) ?? id;
+    }, [userMap]);
 
     const flattenTree = useCallback((nodes: WbsActivityTree[]): WbsActivityTree[] => {
         const result: WbsActivityTree[] = [];
@@ -105,7 +109,7 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
         setLoading(true);
         try {
             const data = await get(`/actividades/desarrollo/${developmentId}/arbol`);
-            if (data) setTree(data);
+            if (Array.isArray(data)) setTree(data as WbsActivityTree[]);
         } catch (error) {
             console.error('Error fetching WBS tree:', error);
         } finally {
@@ -113,9 +117,22 @@ const WbsTab: React.FC<WbsTabProps> = ({ developmentId, darkMode }) => {
         }
     };
 
+    const fetchUsers = useCallback(async () => {
+        try {
+            const users = await get('/jerarquia/usuarios-disponibles');
+            if (Array.isArray(users)) {
+                setUserMap(new Map((users as { id: string; nombre: string }[]).map((u) => [u.id, u.nombre])));
+            }
+        } catch (error) {
+            console.error('Error fetching users for map:', error);
+        }
+    }, [get]);
+
     useEffect(() => {
-        if (developmentId) fetchTree();
+        void fetchTree();
+        void fetchUsers();
     }, [developmentId]);
+
 
     useEffect(() => {
         if (!developmentId || tree.length === 0) return;
