@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Info, Users, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
-import { Title, Button, Input, Select, Textarea } from '../../components/atoms';
+import { Title, Button, Input, Select, Textarea, Text } from '../../components/atoms';
 import { WbsActivityCreate, WbsActivityUpdate, WbsActivityTree } from '../../types/wbs';
 import { AssignableUserSelect } from '../../components/assignments/AssignableUserSelect';
 import { useAppContext } from '../../context/AppContext';
@@ -21,6 +21,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     const { post, patch } = useApi();
     const { state } = useAppContext();
     const [loading, setLoading] = useState(false);
+    const [step, setStep] = useState(1);
 
     // Estado del formulario
     const [titulo, setTitulo] = useState('');
@@ -36,11 +37,11 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     useEffect(() => {
         if (estado === 'Completada') setAvance(100);
         else if (estado !== 'En Progreso' && estado !== 'Bloqueado') setAvance(0);
-        // 'En Progreso' mantiene su valor previo o el del backend si ya venía con algo.
     }, [estado]);
 
     useEffect(() => {
         if (isOpen) {
+            setStep(1);
             if (editNode) {
                 setTitulo(editNode.titulo);
                 setDescripcion(editNode.descripcion || '');
@@ -73,7 +74,6 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
 
         try {
             if (editNode) {
-                // Edit mode
                 const payload: WbsActivityUpdate = {
                     titulo,
                     descripcion,
@@ -88,7 +88,6 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 };
                 await patch(`/actividades/${editNode.id}`, payload);
             } else {
-                // Create mode
                 const payload: WbsActivityCreate = {
                     desarrollo_id: developmentId,
                     titulo,
@@ -114,92 +113,174 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
         }
     };
 
+    const nextStep = () => setStep(s => Math.min(s + 1, 3));
+    const prevStep = () => setStep(s => Math.max(s - 1, 1));
+
+    const steps = [
+        { id: 1, title: 'Básico', icon: Info },
+        { id: 2, title: 'Asignación', icon: Users },
+        { id: 3, title: 'Bitácora', icon: ClipboardList },
+    ];
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)]">
-                <div className="p-6 border-b border-[var(--color-border)]">
-                    <div className="flex justify-between items-center">
-                        <Title variant="h5" weight="bold">
-                            {editNode ? 'Editar Tarea' : 'Nueva Tarea'}
-                        </Title>
-                        <Button variant="ghost" onClick={onClose} icon={X} className="!p-1.5 text-neutral-400 hover:text-neutral-500" />
+            <div className="w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)] transition-all duration-300">
+                {/* Header con Step Indicator */}
+                <div className="p-6 border-b border-[var(--color-border)] bg-[var(--color-surface-variant)]/30">
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-[var(--color-primary)]/10 rounded-xl text-[var(--color-primary)]">
+                                <ClipboardList size={20} />
+                            </div>
+                            <Title variant="h5" weight="bold">
+                                {editNode ? 'Editar Tarea' : 'Nueva Tarea'}
+                            </Title>
+                        </div>
+                        <Button variant="ghost" onClick={onClose} icon={X} className="!p-1.5 text-neutral-400 hover:text-neutral-500 rounded-full" />
+                    </div>
+
+                    <div className="flex items-center justify-between px-2 relative">
+                        {/* Línea de fondo */}
+                        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-[var(--color-border)] -translate-y-1/2 z-0 mx-8" />
+                        
+                        {steps.map((s) => {
+                            const Icon = s.icon;
+                            const isActive = step === s.id;
+                            const isCompleted = step > s.id;
+                            
+                            return (
+                                <div key={s.id} className="relative z-10 flex flex-col items-center gap-2">
+                                    <div className={`
+                                        w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 border-2
+                                        ${isActive ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white scale-110 shadow-lg shadow-primary-500/20' : 
+                                          isCompleted ? 'bg-green-500 border-green-500 text-white' : 
+                                          'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)]'}
+                                    `}>
+                                        {isCompleted ? <CheckCircle2 size={18} /> : <Icon size={18} />}
+                                    </div>
+                                    <Text variant="caption" weight={isActive ? 'bold' : 'medium'} 
+                                        className={isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'}>
+                                        {s.title}
+                                    </Text>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
-                <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh] custom-scrollbar">
-                    <Input
-                        label="Título de la Tarea"
-                        placeholder="Ej. Análisis de Requerimientos"
-                        value={titulo}
-                        onChange={(e) => setTitulo(e.target.value)}
-                        required
-                    />
+                {/* Contenido Dinámico */}
+                <div className="p-8 space-y-6 overflow-y-auto max-h-[60vh] min-h-[380px] custom-scrollbar">
+                    {step === 1 && (
+                        <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
+                            <Input
+                                label="Título de la Tarea"
+                                placeholder="Ej. Análisis de Requerimientos"
+                                value={titulo}
+                                onChange={(e) => setTitulo(e.target.value)}
+                                required
+                                className="text-sm font-medium"
+                            />
+                            <Textarea
+                                label="Descripción"
+                                placeholder="Detalles opcionales sobre el alcance..."
+                                value={descripcion}
+                                onChange={(e) => setDescripcion(e.target.value)}
+                                rows={4}
+                            />
+                        </div>
+                    )}
 
-                    <Textarea
-                        label="Descripción"
-                        placeholder="Detalles opcionales..."
-                        value={descripcion}
-                        onChange={(e) => setDescripcion(e.target.value)}
-                    />
+                    {step === 2 && (
+                        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                            <div className="grid grid-cols-1 gap-5">
+                                <Select
+                                    label="Estado Actual"
+                                    value={estado}
+                                    onChange={(e) => setEstado(e.target.value as any)}
+                                    options={[
+                                        { value: 'Pendiente', label: 'Pendiente' },
+                                        { value: 'En Progreso', label: 'En Progreso' },
+                                        { value: 'Bloqueado', label: 'Bloqueado' },
+                                        { value: 'Completada', label: 'Completada' },
+                                    ]}
+                                />
+                            </div>
+                            <div className="space-y-4 pt-2 border-t border-[var(--color-border)]/50">
+                                <AssignableUserSelect
+                                    label="Responsable"
+                                    value={responsableId}
+                                    onChange={setResponsableId}
+                                    helperText="Persona que responde por la entrega."
+                                />
+                                <AssignableUserSelect
+                                    label="Líder de actividad"
+                                    value={asignadoAId}
+                                    onChange={setAsignadoAId}
+                                    helperText="Persona que ejecutará la tarea técnica."
+                                />
+                            </div>
+                        </div>
+                    )}
 
-                    <div className="grid grid-cols-1 gap-4">
-                        <Select
-                            label="Estado"
-                            value={estado}
-                            onChange={(e) => setEstado(e.target.value as any)}
-                            options={[
-                                { value: 'Pendiente', label: 'Pendiente' },
-                                { value: 'En Progreso', label: 'En Progreso' },
-                                { value: 'Bloqueado', label: 'Bloqueado' },
-                                { value: 'Completada', label: 'Completada' },
-                            ]}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <AssignableUserSelect
-                            label="Responsable"
-                            value={responsableId}
-                            onChange={setResponsableId}
-                            helperText="Persona que responde por la tarea."
-                        />
-                        <AssignableUserSelect
-                            label="Líder de actividad"
-                            value={asignadoAId}
-                            onChange={setAsignadoAId}
-                            helperText="Persona que ejecutará la tarea."
-                        />
-                    </div>
-
-                    <Textarea
-                        label="Seguimiento"
-                        placeholder="Bitácora de seguimiento de la tarea..."
-                        value={seguimiento}
-                        onChange={(e) => setSeguimiento(e.target.value)}
-                    />
-
-                    <Textarea
-                        label="Compromiso"
-                        placeholder="Compromisos adquiridos..."
-                        value={compromiso}
-                        onChange={(e) => setCompromiso(e.target.value)}
-                    />
-
-                    <Input
-                        label="URL de Archivo / Evidencia"
-                        placeholder="https://..."
-                        value={archivoUrl}
-                        onChange={(e) => setArchivoUrl(e.target.value)}
-                    />
+                    {step === 3 && (
+                        <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
+                            <Textarea
+                                label="Seguimiento / Bitácora"
+                                placeholder="Avances, hallazgos y notas de ejecución..."
+                                value={seguimiento}
+                                onChange={(e) => setSeguimiento(e.target.value)}
+                                rows={3}
+                            />
+                            <Textarea
+                                label="Compromisos"
+                                placeholder="Acuerdos o fechas clave..."
+                                value={compromiso}
+                                onChange={(e) => setCompromiso(e.target.value)}
+                                rows={2}
+                            />
+                            <Input
+                                label="URL de Evidencia / Entregable"
+                                placeholder="https://sharepoint.com/..."
+                                value={archivoUrl}
+                                onChange={(e) => setArchivoUrl(e.target.value)}
+                            />
+                        </div>
+                    )}
                 </div>
 
-                <div className="p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-variant)] flex justify-end gap-3">
-                    <Button variant="ghost" onClick={onClose} disabled={loading}>
-                        Cancelar
+                {/* Footer con Navegación */}
+                <div className="p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-variant)]/20 flex justify-between items-center">
+                    <Button 
+                        variant="ghost" 
+                        onClick={step === 1 ? onClose : prevStep} 
+                        disabled={loading}
+                        className="px-5"
+                    >
+                        {step === 1 ? 'Cancelar' : 'Anterior'}
                     </Button>
-                    <Button variant="primary" onClick={handleSave} disabled={loading || !titulo.trim()}>
-                        {loading ? 'Guardando...' : 'Guardar Tarea'}
-                    </Button>
+                    
+                    <div className="flex gap-3">
+                        {step < 3 ? (
+                            <Button 
+                                variant="primary" 
+                                onClick={nextStep} 
+                                disabled={step === 1 && !titulo.trim()}
+                                className="px-6 rounded-xl"
+                            >
+                                Siguiente
+                                <ChevronRight size={18} className="ml-1" />
+                            </Button>
+                        ) : (
+                            <Button 
+                                variant="primary" 
+                                onClick={handleSave} 
+                                disabled={loading || !titulo.trim()}
+                                className="px-8 rounded-xl shadow-lg shadow-primary-500/30"
+                            >
+                                {loading ? 'Guardando...' : editNode ? 'Actualizar Tarea' : 'Crear Tarea'}
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
