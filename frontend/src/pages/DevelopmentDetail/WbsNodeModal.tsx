@@ -34,6 +34,12 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     const [asignadoAId, setAsignadoAId] = useState('');
 
     useEffect(() => {
+        if (estado === 'Completada') setAvance(100);
+        else if (estado !== 'En Progreso' && estado !== 'Bloqueado') setAvance(0);
+        // 'En Progreso' mantiene su valor previo o el del backend si ya venía con algo.
+    }, [estado]);
+
+    useEffect(() => {
         if (isOpen) {
             if (editNode) {
                 setTitulo(editNode.titulo);
@@ -136,7 +142,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                         onChange={(e) => setDescripcion(e.target.value)}
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                         <Select
                             label="Estado"
                             value={estado}
@@ -147,16 +153,6 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                 { value: 'Bloqueado', label: 'Bloqueado' },
                                 { value: 'Completada', label: 'Completada' },
                             ]}
-                        />
-
-                        <Input
-                            label="Avance (%)"
-                            type="number"
-                            value={avance.toString()}
-                            onChange={(e) => {
-                                const val = Number(e.target.value);
-                                if (val >= 0 && val <= 100) setAvance(val);
-                            }}
                         />
                     </div>
 
