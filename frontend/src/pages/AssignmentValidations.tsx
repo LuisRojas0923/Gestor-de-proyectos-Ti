@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
+import { CheckCircle2, RefreshCw, ShieldCheck, XCircle, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Button, MaterialCard, Text, Textarea, Title } from '../components/atoms';
 import { ValidationStatusBadge } from '../components/assignments/ValidationStatusBadge';
 import { useApi } from '../hooks/useApi';
 import { AssignmentValidation } from '../types/hierarchy';
 
 const AssignmentValidations: React.FC = () => {
+  const navigate = useNavigate();
   const { get, post } = useApi<AssignmentValidation[] | AssignmentValidation>();
   const [validations, setValidations] = useState<AssignmentValidation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,7 @@ const AssignmentValidations: React.FC = () => {
         <Button variant="outline" icon={RefreshCw} onClick={fetchValidations} disabled={loading}>
           Actualizar
         </Button>
+        <Button variant="ghost" icon={ArrowLeft} onClick={() => navigate('/service-portal/gestion-actividades')} className="!p-2 rounded-full" title="Volver" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

@@ -321,10 +321,11 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                         </div>
                         <div className="grid grid-cols-1 gap-4">
                             <Input
-                                label="Área de impacto"
+                                label="* Área de impacto"
                                 placeholder="Ej. Gestión Humana"
                                 value={areaDesarrollo}
                                 onChange={(e) => setAreaDesarrollo(e.target.value)}
+                                required
                             />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <HierarchyAutocomplete

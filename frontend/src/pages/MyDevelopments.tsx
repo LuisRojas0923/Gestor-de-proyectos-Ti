@@ -4,9 +4,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { Button, Title, Text } from '../components/atoms';
-import { CreateDevelopmentModal } from './MyDevelopments/CreateDevelopmentModal';
-import { useColumnFilters } from '../hooks/useColumnFilters';
 import { DataTable, DataTableColumn } from '../components/molecules/DataTable';
+import { useColumnFilters } from '../hooks/useColumnFilters';
+import { CreateDevelopmentModal } from './MyDevelopments/CreateDevelopmentModal';
 import { DevelopmentWithCurrentStatus } from '../types';
 import { useApi } from '../hooks/useApi';
 
@@ -262,49 +262,11 @@ const MyDevelopments: React.FC = () => {
     },
   ];
 
-  const renderSlicer = (key: string, label: string) => {
-    const options = uniqueValues[key] || [];
-    const selectedValues = filters[key] || new Set<string>();
-    const hasFilter = selectedValues.size > 0;
-    if (options.length === 0) return null;
-    return (
-      <div className="min-w-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 shadow-sm">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[10px] text-[var(--color-text-secondary)]">
-            {label}
-          </Text>
-          {hasFilter && (
-            <Button variant="custom" size="xs" onClick={() => clearColumnFilter(key)}
-              className="h-auto p-0 text-[9px] font-bold uppercase tracking-wider text-red-500 hover:text-red-600">
-              Limpiar
-            </Button>
-          )}
-        </div>
-        <div className="flex max-h-20 flex-wrap content-start gap-1.5 overflow-y-auto pr-1 custom-scrollbar">
-          {options.map((option) => {
-            const isActive = selectedValues.has(option);
-            return (
-              <Button key={`${key}-${option}`} variant="custom" size="xs"
-                onClick={() => {
-                  const next = new Set(selectedValues);
-                  if (next.has(option)) next.delete(option); else next.add(option);
-                  setColumnFilter(key, next);
-                }}
-                className={`min-h-[28px] rounded-lg border px-2.5 py-1 text-sm font-semibold leading-tight transition-all ${
-                  isActive
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-md'
-                    : 'border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20'
-                }`}
-              >
-                <Text as="span" variant="body2" weight="semibold" color="inherit" className="leading-tight">
-                  {option}
-                </Text>
-              </Button>
-            );
-          })}
-        </div>
-      </div>
-    );
+  const toggleOption = (key: string, option: string) => {
+    const selected = filters[key] || new Set<string>();
+    const next = new Set(selected);
+    if (next.has(option)) next.delete(option); else next.add(option);
+    setColumnFilter(key, next);
   };
 
   return (
@@ -340,14 +302,6 @@ const MyDevelopments: React.FC = () => {
           className="shadow-lg shadow-primary-500/20">
           Nueva Actividad
         </Button>
-      </div>
-
-      {/* Slicers */}
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
-        {renderSlicer('status', 'Estado')}
-        {renderSlicer('area_desarrollo', 'Área de impacto')}
-        {renderSlicer('analista', 'Líder de actividad')}
-        {renderSlicer('responsible', 'Responsable')}
       </div>
 
       {/* Tabla */}

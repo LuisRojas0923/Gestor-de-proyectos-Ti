@@ -5,7 +5,6 @@ import { Badge, Button, Input, MaterialCard, Text, Title } from '../components/a
 import { useApi } from '../hooks/useApi';
 import { useAppContext } from '../context/AppContext';
 import { HierarchyNode, HierarchyRelation, HierarchyUser } from '../types/hierarchy';
-import RefridcolLogo from '../assets/images/Logo Refridcol Solo.png';
 
 const OrganizationalHierarchy: React.FC = () => {
   const navigate = useNavigate();
@@ -286,13 +285,6 @@ const OrganizationalHierarchy: React.FC = () => {
           </div>
 
           <div className="max-h-[calc(100vh-230px)] min-h-[500px] overflow-auto p-4 custom-scrollbar custom-scrollbar-x bg-[var(--color-surface-variant)]/5 rounded-xl relative">
-            {/* Marca de Agua */}
-            <img 
-              src={RefridcolLogo} 
-              alt="Refridcol Watermark" 
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] opacity-[0.06] pointer-events-none z-0 dark:invert dark:opacity-[0.12]"
-            />
-
             {loading ? (
               <div className="flex items-center justify-center h-full relative z-10">
                 <div className="flex flex-col items-center gap-4">
