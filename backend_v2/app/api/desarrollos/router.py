@@ -16,6 +16,7 @@ from app.models.desarrollo.desarrollo import (
 from app.models.desarrollo.actividad import Actividad
 from app.models.auth.usuario import Usuario
 from app.api.auth.profile_router import obtener_usuario_actual_opcional
+from app.services.jerarquia.service import JerarquiaService
 
 router = APIRouter()
 
@@ -29,7 +30,7 @@ async def listar_desarrollos(
     db: AsyncSession = Depends(obtener_db),
     usuario: Optional[Usuario] = Depends(obtener_usuario_actual_opcional),
 ):
-    """Lista desarrollos. Con solo_mios=true filtra los que involucran al usuario autenticado."""
+    """Lista desarrollos. Con solo_mios=true filtra los del usuario y sus subordinados jerárquicos."""
     try:
         query = select(Desarrollo).offset(skip).limit(limit)
 
@@ -39,16 +40,19 @@ async def listar_desarrollos(
         if solo_mios and usuario:
             uid = usuario.id
             nombre = usuario.nombre
+
+            # Obtener subordinados jerárquicos del usuario (IDs y nombres)
+            subordinados = await JerarquiaService.obtener_ids_y_nombres_subordinados(db, uid)
+            todos_los_ids = [uid] + subordinados["ids"]
+            todos_los_nombres = [nombre] + subordinados["nombres"]
+
             query = query.where(
                 or_(
-                    Desarrollo.creado_por_id == uid,
-                    Desarrollo.responsable_id == uid,
-                    Desarrollo.analista == uid,
-                    Desarrollo.analista == nombre,
-                    Desarrollo.autoridad == uid,
-                    Desarrollo.autoridad == nombre,
-                    Desarrollo.responsable == uid,
-                    Desarrollo.responsable == nombre,
+                    Desarrollo.creado_por_id.in_(todos_los_ids),
+                    Desarrollo.responsable_id.in_(todos_los_ids),
+                    Desarrollo.analista.in_(todos_los_nombres),
+                    Desarrollo.autoridad.in_(todos_los_nombres),
+                    Desarrollo.responsable.in_(todos_los_nombres),
                 )
             )
 

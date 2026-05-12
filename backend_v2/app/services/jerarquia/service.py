@@ -186,6 +186,23 @@ class JerarquiaService:
         return ids
 
     @staticmethod
+    async def obtener_ids_y_nombres_subordinados(db: AsyncSession, usuario_id: str) -> dict:
+        """Devuelve IDs y nombres de todos los subordinados (directos e indirectos)."""
+        equipo = await JerarquiaService.obtener_equipo(db, usuario_id)
+        ids: List[str] = []
+        nombres: List[str] = []
+
+        def recorrer(nodos: List[NodoJerarquia]) -> None:
+            for nodo in nodos:
+                ids.append(nodo.usuario_id)
+                if nodo.usuario and nodo.usuario.nombre:
+                    nombres.append(nodo.usuario.nombre)
+                recorrer(nodo.subordinados)
+
+        recorrer(equipo)
+        return {"ids": ids, "nombres": nombres}
+
+    @staticmethod
     async def _obtener_relaciones_activas(db: AsyncSession) -> List[RelacionUsuario]:
         result = await db.execute(
             select(RelacionUsuario).where(RelacionUsuario.esta_activa.is_(True))

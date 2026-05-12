@@ -214,7 +214,7 @@ class DesarrolloCrear(SQLModel):
     proveedor: Optional[str] = None
     autoridad: Optional[str] = None
     responsable: Optional[str] = None
-    area_desarrollo: Optional[str] = None
+    area_desarrollo: str
     analista: Optional[str] = None
     creado_por_id: Optional[str] = None
     responsable_id: Optional[str] = None
