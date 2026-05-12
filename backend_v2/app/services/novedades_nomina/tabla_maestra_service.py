@@ -237,6 +237,44 @@ class TablaMaestraService:
                 if count_inyectados > 0:
                     logger.info(f"Inyectados {count_inyectados} registros de Control de Descuentos automáticamente.")
 
+            # 3.2 Inyectar automáticamente registros de COMISIONES desde el mes anterior solo para Q1
+            if quincena == "Q1":
+                mes_ant = mes - 1
+                anio_ant = anio
+                if mes_ant == 0:
+                    mes_ant = 12
+                    anio_ant = anio - 1
+                
+                # Consultar registros de COMISIONES del mes anterior que estén en estado validado
+                stmt_com = select(NominaRegistroNormalizado).where(
+                    NominaRegistroNormalizado.subcategoria_final == "COMISIONES",
+                    NominaRegistroNormalizado.mes_fact == mes_ant,
+                    NominaRegistroNormalizado.año_fact == anio_ant,
+                    NominaRegistroNormalizado.estado_validacion.in_([
+                        "OK", "Activo", "REDIRECCIONADO", "EXCEPCION", "EXCEPCION_PAGO_TERCERO", 
+                        "EXCEPCION_VALOR_FIJO", "EXCEPCION_PORCENTAJE_EMPRESA", "EXCEPCION_AUTORIZADA", "EXCEPCION_SALDO_FAVOR"
+                    ])
+                )
+                res_com = await session.execute(stmt_com)
+                registros_comisiones = res_com.scalars().all()
+                
+                count_com = 0
+                for r_c in registros_comisiones:
+                    filas_maestra.append({
+                        "CEDULA": r_c.cedula,
+                        "NOMBRE": r_c.nombre_asociado or "",
+                        "EMPRESA": r_c.empresa or "",
+                        "VALOR QUINCENAL": round(r_c.valor or 0, 2), # Se paga 100% en la 1Q
+                        "HORAS": None,
+                        "DIAS": None,
+                        "CONCEPTO": "COMISIONES",
+                    })
+                    subcategorias_incluidas.add("COMISIONES")
+                    count_com += 1
+                
+                if count_com > 0:
+                    logger.info(f"Inyectadas {count_com} comisiones desde el periodo anterior ({mes_ant}/{anio_ant}).")
+
             # 4. Generar resumen
             total_valor_quincenal = sum(f["VALOR QUINCENAL"] for f in filas_maestra)
             total_horas = sum(f["HORAS"] or 0 for f in filas_maestra)
