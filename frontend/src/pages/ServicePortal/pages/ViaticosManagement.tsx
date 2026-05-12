@@ -1,4 +1,4 @@
-import { ArrowLeft, ClipboardList, ShieldCheck } from 'lucide-react';
+import { ClipboardList, ShieldCheck } from 'lucide-react';
 import { Button, Text, Title } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
 import { useAppContext } from '../../../context/AppContext';
@@ -9,11 +9,10 @@ import imgEstadoCuenta from '../../../assets/images/categories/estado de cuenta.
 
 interface ViaticosManagementProps {
     onNavigate: (view: 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_estado' | 'director_legalizaciones') => void;
-    onBack: () => void;
     moduleStatus?: Record<string, boolean>;
 }
 
-const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onBack, moduleStatus = {} }) => {
+const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, moduleStatus = {} }) => {
     const { state, dispatch } = useAppContext();
     const { user, isViaticosVerified } = state;
     const userRole = ((user as any)?.rol || user?.role || '').toLowerCase();
@@ -41,7 +40,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
                         });
                     }
                 }}
-                onBack={onBack}
+                onBack={() => navigate('/service-portal/inicio')}
             />
         );
     }
@@ -49,16 +48,6 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, onB
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <Button
-                    variant="ghost"
-                    onClick={onBack}
-                    className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                    <Text weight="medium" className="text-base font-medium text-left text-[var(--color-text)] hidden sm:inline">
-                        Volver
-                    </Text>
-                </Button>
                 <Title variant="h4" weight="bold" color="text-primary" className="uppercase tracking-tight">
                     Gestión de Viáticos
                 </Title>
