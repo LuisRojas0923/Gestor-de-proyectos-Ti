@@ -197,7 +197,7 @@ export function DataTable<T>({
                      */}
                     <div
                         ref={headerGridRef}
-                        className={`shrink-0 bg-[var(--deep-navy)] rounded-t-2xl border-b border-[var(--color-border)] overflow-hidden z-20 ${headerClassName}`}
+                        className={`shrink-0 bg-[var(--color-primary)] rounded-t-2xl border-b border-[var(--color-border)] overflow-hidden z-20 ${headerClassName}`}
                     >
                         {columns.map((col, idx) => (
                             <Button
@@ -209,8 +209,7 @@ export function DataTable<T>({
                                 className={`
                                     flex items-center ${col.centered ? 'justify-center' : ''} py-2.5 px-4
                                     border-r border-white/10
-                                    ${idx === 0 ? 'bg-blue-500/20' : ''}
-                                    ${col.filterable ? 'hover:bg-white/5 cursor-pointer outline-none group' : 'cursor-default'}
+                                    ${col.filterable ? 'hover:bg-white/10 cursor-pointer outline-none group' : 'cursor-default'}
                                     transition-all duration-200
                                 `}
                             >
@@ -219,10 +218,8 @@ export function DataTable<T>({
                                     weight="bold"
                                     className={`uppercase tracking-wider !text-[11px] transition-colors whitespace-nowrap ${
                                         hasFilterActive(col.key)
-                                            ? 'text-yellow-400'
-                                            : idx === 0
-                                                ? 'text-blue-300'
-                                                : 'text-white/70 group-hover:text-white'
+                                            ? 'text-yellow-300'
+                                            : 'text-white group-hover:text-white'
                                     }`}
                                 >
                                     {col.label}
