@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { ClipboardList, ShieldCheck } from 'lucide-react';
 import { Button, Text, Title } from '../../../components/atoms';
 import { ActionCard } from '../../../components/molecules';
@@ -13,6 +14,7 @@ interface ViaticosManagementProps {
 }
 
 const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, moduleStatus = {} }) => {
+    const navigate = useNavigate();
     const { state, dispatch } = useAppContext();
     const { user, isViaticosVerified } = state;
     const userRole = ((user as any)?.rol || user?.role || '').toLowerCase();

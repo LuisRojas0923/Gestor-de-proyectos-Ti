@@ -44,32 +44,6 @@ const ServicePortal: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Compute backTo based on current path
-    const getBackTo = (pathname: string): string | undefined => {
-        if (pathname === '/service-portal/inicio') return undefined;
-        if (pathname.startsWith('/service-portal/servicios/')) return '/service-portal/servicios';
-        if (pathname.startsWith('/service-portal/mis-tickets/')) return '/service-portal/mis-tickets';
-        if (pathname.startsWith('/service-portal/gastos/gestion')) return '/service-portal/inicio';
-        if (pathname.startsWith('/service-portal/gastos/nuevo')) return '/service-portal/gastos/gestion';
-        if (pathname.startsWith('/service-portal/gastos/reportes')) return '/service-portal/gastos/gestion';
-        if (pathname.startsWith('/service-portal/gastos/director')) return '/service-portal/gastos/gestion';
-        if (pathname.startsWith('/service-portal/gastos/estado')) return '/service-portal/gastos/gestion';
-        if (pathname.startsWith('/service-portal/reserva-salas')) return '/service-portal/inicio';
-        if (pathname.startsWith('/service-portal/inventario')) return '/service-portal/inicio';
-        if (pathname.startsWith('/service-portal/gestion-humana/datos')) return '/service-portal/gestion-humana';
-        if (pathname.startsWith('/service-portal/gestion-humana')) return '/service-portal/inicio';
-        if (pathname.startsWith('/service-portal/gestion-actividades')) return '/service-portal/inicio';
-        if (pathname.startsWith('/service-portal/desarrollos')) return '/service-portal/gestion-actividades';
-        if (pathname.startsWith('/service-portal/validaciones-asignacion')) return '/service-portal/gestion-actividades';
-        if (pathname.startsWith('/service-portal/jerarquia-organizacional')) return '/service-portal/gestion-actividades';
-        if (pathname.startsWith('/service-portal/requisiciones/almacen/crear')) return '/service-portal/requisiciones/almacen';
-        if (pathname.startsWith('/service-portal/requisiciones/almacen')) return '/service-portal/requisiciones';
-        if (pathname.startsWith('/service-portal/requisiciones/mis-solicitudes')) return '/service-portal/requisiciones';
-        if (pathname.startsWith('/service-portal/requisiciones')) return '/service-portal/inicio';
-        return '/service-portal/inicio';
-    };
-
-    const backTo = getBackTo(location.pathname);
     const { addNotification } = useNotifications();
     const {
         user,
@@ -161,7 +135,6 @@ const ServicePortal: React.FC = () => {
                     navigate('/login');
                 }
             }}
-            backTo={backTo}
         >
             {/* Banner de Verificación Persistent */}
             {!(user as any).emailVerified && (

@@ -164,47 +164,26 @@ const OrganizationalHierarchy: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-3 pb-6 animate-in fade-in duration-500">
-      {/* Header Compacto */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between border-b border-[var(--color-border)] pb-3">
-        <div className="flex flex-wrap items-center gap-4">
-          {isPortal && (
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/service-portal/gestion-actividades')}
-              className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-2 py-1 text-xs rounded-lg flex items-center gap-2 h-8"
-            >
-              <ArrowLeft size={14} />
-              Volver
-            </Button>
-          )}
+      {/* Banner Header */}
+      <div className="flex justify-between items-center bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/service-portal/gestion-actividades')}
+            className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
+          >
+            ← Volver
+          </Button>
+          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
+          <Title variant="h1" weight="bold" color="text-primary">Jerarquía Organizacional</Title>
+          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-              <GitBranch size={18} />
-            </div>
-            <Title variant="h5" weight="bold" color="text-primary" className="m-0">Jerarquía Organizacional</Title>
-          </div>
-
-          <div className="h-6 w-px bg-[var(--color-border)] hidden sm:block" />
-
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md">
-              <Text variant="caption" weight="bold" color="text-secondary" className="!text-[9px] uppercase tracking-tighter">Usuarios</Text>
-              <Text variant="caption" weight="bold" color="primary">{reachableUsers.length}</Text>
-            </div>
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md">
-              <Text variant="caption" weight="bold" color="text-secondary" className="!text-[9px] uppercase tracking-tighter">Relaciones</Text>
-              <Text variant="caption" weight="bold" color="primary">{reachableRelations.length}</Text>
-            </div>
-            {reachableWithoutSuperior.length > 0 && (
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-                <Text variant="caption" weight="bold" className="text-yellow-700 dark:text-yellow-400 !text-[9px] uppercase tracking-tighter">Sin Jefe</Text>
-                <Text variant="caption" weight="bold" className="text-yellow-700 dark:text-yellow-400">{reachableWithoutSuperior.length}</Text>
-              </div>
-            )}
+            <Text as="span" variant="caption" weight="bold" className="bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800/50">
+              {reachableUsers.length} Usuarios
+            </Text>
           </div>
         </div>
-
-        <Button variant="outline" size="xs" icon={RefreshCw} onClick={fetchData} disabled={loading} className="h-8">
+        <Button variant="outline" icon={RefreshCw} onClick={fetchData} disabled={loading}>
           Actualizar
         </Button>
       </div>

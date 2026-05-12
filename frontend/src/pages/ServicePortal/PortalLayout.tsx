@@ -13,10 +13,9 @@ interface PortalLayoutProps {
     user: any;
     onHome: () => void;
     onLogout: () => void;
-    backTo?: string;
 }
 
-const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onLogout, backTo }) => {
+const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onLogout }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [fromAdmin, setFromAdmin] = useState(false);
@@ -48,15 +47,6 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                     <div className="w-full px-4 sm:px-10 h-full flex items-center justify-between text-white relative py-0">
                         {/* 1. SECCIÓN IZQUIERDA (Navegación y Logo) */}
                         <div className="flex items-center justify-start shrink-0 h-full py-2 gap-3">
-                            {backTo && (
-                                <Button
-                                    variant="ghost"
-                                    icon={ArrowLeft}
-                                    onClick={() => navigate(backTo)}
-                                    className="!p-2 rounded-full text-white hover:bg-white/20"
-                                    title="Volver"
-                                />
-                            )}
                             {fromAdmin && isAdmin && (
                                 <Button
                                     variant="ghost"

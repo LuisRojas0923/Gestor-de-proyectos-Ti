@@ -51,21 +51,28 @@ const AssignmentValidations: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6 pb-10 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1">
-            <ShieldCheck size={16} className="text-[var(--color-primary)]" />
-            <Text variant="caption" weight="bold" color="text-secondary">Control jerárquico</Text>
+      {/* Banner Header */}
+      <div className="flex justify-between items-center bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/service-portal/gestion-actividades')}
+            className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
+          >
+            ← Volver
+          </Button>
+          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
+          <Title variant="h1" weight="bold" color="text-primary">Aprobaciones de asignación</Title>
+          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
+          <div className="flex items-center gap-2">
+            <Text as="span" variant="caption" weight="bold" className="bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800/50">
+              {validations.length} Pendientes
+            </Text>
           </div>
-          <Title variant="h3" weight="bold" color="text-primary">Aprobaciones de asignación</Title>
-          <Text variant="body1" color="text-secondary" className="max-w-2xl">
-            Revisa las tareas que fueron asignadas saltando un nivel jerárquico y decide si deben continuar o devolverse con observación.
-          </Text>
         </div>
         <Button variant="outline" icon={RefreshCw} onClick={fetchValidations} disabled={loading}>
           Actualizar
         </Button>
-        <Button variant="ghost" icon={ArrowLeft} onClick={() => navigate('/service-portal/gestion-actividades')} className="!p-2 rounded-full" title="Volver" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
