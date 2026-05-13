@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm  # @audit-ok
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.services.auth.servicio import ServicioAuth
-from app.models.auth.usuario import RecoveryRequest, PasswordReset
+from app.models.auth.usuario import RecoveryRequest, PasswordReset, UsuarioRegistro
 from app.services.notifications.email_service import EmailService
 
 router = APIRouter()
@@ -128,6 +128,13 @@ async def portal_login(
         )
 
     usuario_local = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+
+    # Verificar si el usuario está pendiente de aprobación
+    if usuario_local and not usuario_local.esta_activo:
+        raise HTTPException(
+            status_code=403,
+            detail="Cuenta pendiente de aprobación. Un administrador debe activar tu cuenta.",
+        )
 
     is_viaticante = bool(empleado.get("viaticante"))
     user_data = {
@@ -354,3 +361,51 @@ async def reset_password(
     except Exception as e:
         print(f"ERROR en Reset Password API: {str(e)}")
         raise HTTPException(status_code=500, detail="Error interno al restablecer la contraseña.")
+
+
+@router.post("/registro")
+async def registro_usuario_portal(
+    payload: UsuarioRegistro,
+    db: AsyncSession = Depends(obtener_db),
+    db_erp=Depends(obtener_erp_db_opcional),
+):
+    """Endpoint público para registro de usuarios en el portal (pendiente de aprobación)"""
+    # 1. Validar que las contraseñas coincidan
+    if payload.contrasena != payload.contrasena_confirmar:
+        raise HTTPException(
+            status_code=400, detail="Las contraseñas no coinciden"
+        )
+
+    # 2. Validar que la contraseña no sea igual a la cédula
+    if payload.contrasena.lower() == payload.cedula.lower():
+        raise HTTPException(
+            status_code=400, detail="La contraseña no puede ser igual a la cédula"
+        )
+
+    # 3. Validar formato de correo si se proporciona
+    if payload.correo and ("@" not in payload.correo or "." not in payload.correo):
+        raise HTTPException(
+            status_code=400, detail="Formato de correo inválido"
+        )
+
+    try:
+        usuario = await ServicioAuth.registrar_usuario_portal(
+            db=db,
+            db_erp=db_erp,
+            cedula=payload.cedula,
+            nombre=payload.nombre,
+            correo=payload.correo,
+            contrasena=payload.contrasena,
+        )
+        return {
+            "message": "Cuenta creada exitosamente. Pendiente de aprobación por un administrador.",
+            "user_id": usuario.id,
+            "cedula": usuario.cedula,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"ERROR en Registro API: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="Error interno al registrar la cuenta"
+        )

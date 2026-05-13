@@ -383,6 +383,82 @@ class ServicioAuth:
         return nuevo_usuario
 
     @staticmethod
+    async def registrar_usuario_portal(
+        db: AsyncSession,
+        db_erp,
+        cedula: str,
+        nombre: str,
+        correo: Optional[str],
+        contrasena: str,
+    ) -> Usuario:
+        """
+        Registra un usuario del portal con cuenta pendiente de aprobación.
+        Si el empleado existe en ERP, sincroniza datos. Si no, crea localmente.
+        """
+        # 1. Verificar que no exista localmente
+        usuario_existente = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+        if usuario_existente:
+            raise ValueError("La cédula ya está registrada en el sistema")
+
+        # 2. Validar que la contraseña no sea igual a la cédula
+        if contrasena.lower() == cedula.lower():
+            raise ValueError("La contraseña no puede ser igual a la cédula")
+
+        # 3. Intentar consultar ERP (con manejo de excepción)
+        datos_erp = None
+        try:
+            if db_erp:
+                datos_erp = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula)
+        except Exception as e:
+            print(f"DEBUG: ERP no disponible o usuario no encontrado en ERP: {e}")
+
+        # 4. Hashear contraseña
+        hash_pwd = ServicioAuth.obtener_hash_contrasena(contrasena)
+
+        # 5. Determinar datos del usuario
+        if datos_erp:
+            nombre_final = datos_erp.get("nombre") or nombre
+            area = datos_erp.get("area")
+            cargo = datos_erp.get("cargo")
+            sede = datos_erp.get("ciudadcontratacion")
+            centrocosto = datos_erp.get("centrocosto")
+            viaticante_val = bool(datos_erp.get("viaticante"))
+            correo_final = datos_erp.get("correocorporativo") if datos_erp.get("correocorporativo") else correo
+        else:
+            nombre_final = nombre
+            area = None
+            cargo = None
+            sede = None
+            centrocosto = None
+            viaticante_val = False
+            correo_final = correo
+
+        # 6. Crear usuario con esta_activo=False (pendiente de aprobación)
+        id_usuario = f"USR-P-{cedula}"
+        nuevo_usuario = Usuario(
+            id=id_usuario,
+            cedula=cedula,
+            nombre=nombre_final,
+            correo=correo_final,
+            hash_contrasena=hash_pwd,
+            rol="viaticante" if viaticante_val else "usuario",
+            esta_activo=False,  # Pendiente de aprobación
+            area=area,
+            cargo=cargo,
+            sede=sede,
+            centrocosto=centrocosto,
+            viaticante=viaticante_val,
+            baseviaticos=datos_erp.get("baseviaticos") if datos_erp else None,
+            correo_actualizado=bool(correo_final),
+            correo_verificado=False,
+        )
+
+        db.add(nuevo_usuario)
+        await db.commit()
+        await db.refresh(nuevo_usuario)
+        return nuevo_usuario
+
+    @staticmethod
     async def registrar_sesion(
         db: AsyncSession,
         usuario_id: str,

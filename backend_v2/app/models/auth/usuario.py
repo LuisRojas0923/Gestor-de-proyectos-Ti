@@ -259,7 +259,7 @@ class ModuloPublico(SQLModel):
 
 
 class UsuarioCrear(SQLModel):
-    """Schema para crear un usuario"""
+    """Schema para crear un usuario (admin)"""
 
     id: str = Field(max_length=50)
     cedula: str = Field(max_length=50)
@@ -270,6 +270,16 @@ class UsuarioCrear(SQLModel):
     url_avatar: Optional[str] = None
     zona_horaria: str = "America/Bogota"
     contrasena: str = Field(min_length=8)
+
+
+class UsuarioRegistro(SQLModel):
+    """Schema para registro público de usuarios en el portal"""
+
+    cedula: str = Field(max_length=50)
+    nombre: str = Field(max_length=255)
+    correo: Optional[str] = Field(default=None, max_length=255)
+    contrasena: str = Field(min_length=8, max_length=255)
+    contrasena_confirmar: str = Field(min_length=8, max_length=255)
 
 
 class UsuarioActualizar(SQLModel):
