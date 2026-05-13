@@ -52,7 +52,7 @@ export function DataTable<T>({
     data,
     keyExtractor,
     headerClassName = '',
-    showRowIndicator = true,
+    showRowIndicator = false,
     rowIndicatorColor = 'bg-[var(--deep-navy)]',
     onRowClick,
     renderRowActions,

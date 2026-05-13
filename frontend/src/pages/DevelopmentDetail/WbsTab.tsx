@@ -282,7 +282,53 @@ setTogglingIds(prev => new Set([...prev, id]));
         }
     };
 
+    const formatDate = (dateStr?: string) => {
+        if (!dateStr) return '-';
+        try {
+            const [y, m, d] = dateStr.split('T')[0].split('-');
+            return `${d}/${m}/${y}`;
+        } catch {
+            return dateStr;
+        }
+    };
+
     const columns: DataTableColumn<WbsRow>[] = [
+        {
+            key: 'index',
+            label: '#',
+            minWidth: '24px',
+            centered: true,
+            filterable: true,
+            render: (row) => (
+                <Text variant="caption" className="w-6 text-center text-[var(--color-text-secondary)]">
+                    {row._rowIndex}
+                </Text>
+            ),
+        },
+        {
+            key: 'completado',
+            label: '',
+            minWidth: '48px',
+            centered: true,
+            render: (row) => row._isDraft ? null : (
+                <Button
+                    variant="custom"
+                    disabled={togglingIds.has(row.id)}
+                    onClick={(e) => { e.stopPropagation(); handleToggleComplete(row.id, row.estado !== 'Completada'); }}
+                    className={`w-5 h-5 border-2 rounded transition-all duration-200 flex items-center justify-center disabled:opacity-50 ${
+                        row.estado === 'Completada'
+                            ? 'bg-primary-500 border-primary-500'
+                            : 'bg-white border-neutral-300 hover:border-primary-400 dark:bg-neutral-800 dark:border-neutral-600'
+                    }`}
+                >
+                    {row.estado === 'Completada' && (
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    )}
+                </Button>
+            ),
+        },
         {
             key: 'titulo',
             label: 'Tarea',
@@ -308,28 +354,34 @@ setTogglingIds(prev => new Set([...prev, id]));
             ),
         },
         {
-            key: 'porcentaje_avance',
-            label: 'Avance',
-            minWidth: '80px',
-            filterable: true,
-            render: (row) => (
-                <div className="w-full text-right">
-                    <Text variant="caption">{row.porcentaje_avance}%</Text>
-                    <ProgressBar
-                        progress={row.porcentaje_avance}
-                        variant={row.porcentaje_avance === 100 ? 'success' : 'primary'}
-                        className="h-1 mt-1"
-                    />
-                </div>
-            ),
-        },
-        {
             key: 'estado',
             label: 'Estado',
             minWidth: '96px',
             filterable: true,
             render: (row) => (
                 <Badge variant={getStatusVariant(row.estado)} size="sm">{row.estado}</Badge>
+            ),
+        },
+        {
+            key: 'fecha_inicio_estimada',
+            label: 'Fecha inicio',
+            minWidth: '80px',
+            filterable: false,
+            render: (row) => (
+                <Text variant="caption" className="truncate">
+                    {formatDate(row.fecha_inicio_estimada || row.fecha_inicio_real)}
+                </Text>
+            ),
+        },
+        {
+            key: 'fecha_fin_estimada',
+            label: 'Fecha Fin',
+            minWidth: '80px',
+            filterable: false,
+            render: (row) => (
+                <Text variant="caption" className="truncate">
+                    {formatDate(row.fecha_fin_estimada || row.fecha_fin_real)}
+                </Text>
             ),
         },
         {
@@ -367,39 +419,13 @@ setTogglingIds(prev => new Set([...prev, id]));
             render: (row) => <ValidationStatusBadge status={row.estado_validacion} />,
         },
         {
-            key: 'index',
-            label: '#',
-            minWidth: '24px',
-            centered: true,
-            filterable: true,
+            key: 'compromiso',
+            label: 'Compromiso',
+            minWidth: '192px',
             render: (row) => (
-                <Text variant="caption" className="w-6 text-center text-[var(--color-text-secondary)]">
-                    {row._rowIndex}
+                <Text variant="caption" className="truncate" title={row.compromiso}>
+                    {row.compromiso || '-'}
                 </Text>
-            ),
-        },
-        {
-            key: 'completado',
-            label: '',
-            minWidth: '48px',
-            centered: true,
-            render: (row) => row._isDraft ? null : (
-                <Button
-                    variant="custom"
-                    disabled={togglingIds.has(row.id)}
-                    onClick={(e) => { e.stopPropagation(); handleToggleComplete(row.id, row.estado !== 'Completada'); }}
-                    className={`w-5 h-5 border-2 rounded transition-all duration-200 flex items-center justify-center disabled:opacity-50 ${
-                        row.estado === 'Completada'
-                            ? 'bg-primary-500 border-primary-500'
-                            : 'bg-white border-neutral-300 hover:border-primary-400 dark:bg-neutral-800 dark:border-neutral-600'
-                    }`}
-                >
-                    {row.estado === 'Completada' && (
-                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                    )}
-                </Button>
             ),
         },
         {
@@ -450,16 +476,6 @@ setTogglingIds(prev => new Set([...prev, id]));
             }
         },
         {
-            key: 'compromiso',
-            label: 'Compromiso',
-            minWidth: '192px',
-            render: (row) => (
-                <Text variant="caption" className="truncate" title={row.compromiso}>
-                    {row.compromiso || '-'}
-                </Text>
-            ),
-        },
-        {
             key: 'archivo',
             label: 'Archivo',
             minWidth: '48px',
@@ -470,6 +486,22 @@ setTogglingIds(prev => new Set([...prev, id]));
                 </a>
             ) : (
                 <Text variant="caption" color="text-secondary">-</Text>
+            ),
+        },
+        {
+            key: 'porcentaje_avance',
+            label: 'Avance',
+            minWidth: '80px',
+            filterable: true,
+            render: (row) => (
+                <div className="w-full text-right">
+                    <Text variant="caption">{row.porcentaje_avance}%</Text>
+                    <ProgressBar
+                        progress={row.porcentaje_avance}
+                        variant={row.porcentaje_avance === 100 ? 'success' : 'primary'}
+                        className="h-1 mt-1"
+                    />
+                </div>
             ),
         },
     ];
