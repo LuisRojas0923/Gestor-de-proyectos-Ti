@@ -8,7 +8,8 @@ interface ActionCardProps {
     description: string;
     icon: React.ReactNode | LucideIcon;
     onClick: () => void;
-    variant?: 'default' | 'primary_light'; // To handle the slight color difference in the dashboard
+    variant?: 'default' | 'primary_light';
+    color?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'purple';
     className?: string;
 }
 
@@ -18,12 +19,24 @@ export const ActionCard: React.FC<ActionCardProps> = ({
     icon,
     onClick,
     variant = 'default',
+    color,
     className = ''
 }) => {
-    // Distinct styles for the icon container based on variant
-    const iconContainerStyles = variant === 'default'
-        ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
-        : "bg-[var(--color-primary-light)]/20 text-[var(--color-primary)]";
+    // Determine color classes based on the 'color' prop or 'variant'
+    const getColorClasses = () => {
+        if (color === 'success') return "bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400";
+        if (color === 'warning') return "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400";
+        if (color === 'error') return "bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400";
+        if (color === 'info') return "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400";
+        if (color === 'purple') return "bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400";
+        
+        // Default / Primary fallback
+        return variant === 'default'
+            ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+            : "bg-[var(--color-primary-light)]/20 text-[var(--color-primary)]";
+    };
+
+    const iconContainerStyles = getColorClasses();
 
     return (
         <Button
