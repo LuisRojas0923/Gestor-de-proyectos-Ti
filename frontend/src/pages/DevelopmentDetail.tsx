@@ -6,7 +6,7 @@ import { API_ENDPOINTS } from '../config/api';
 import { DevelopmentWithCurrentStatus } from '../types';
 import { Button, Title, Text, Badge } from '../components/atoms';
 import { DevelopmentEditModal } from '../components/molecules';
-import { Download, Plus, Pencil, ExternalLink, ArrowLeft } from 'lucide-react';
+import { Plus, Pencil, ExternalLink } from 'lucide-react';
 import WbsTab, { WbsTabRef } from './DevelopmentDetail/WbsTab';
 
 type ApiDevelopment = DevelopmentWithCurrentStatus & {
@@ -104,34 +104,35 @@ const DevelopmentDetail: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[var(--color-surface)] p-6 rounded-2xl border border-[var(--color-border)] shadow-sm">
-        <div className="flex-1 min-w-0">
+      <div className="flex justify-between items-center bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm">
+        <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             onClick={() => navigate(isPortal ? '/service-portal/desarrollos' : '/developments')}
-            className="p-0 h-auto font-medium text-neutral-500 hover:text-[var(--color-primary)] transition-colors flex items-center gap-2 mb-2 group"
+            className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
           >
-            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-            Volver a proyectos
+            ← Volver
           </Button>
-          <div className="flex flex-wrap items-center gap-3">
-            <Title variant="h3" weight="bold" color={darkMode ? 'white' : 'navy'} className="m-0 leading-tight">
-              {development?.name || (loading ? 'Cargando...' : 'Proyecto')}
-            </Title>
-            {development?.id && (
-              <Badge variant="default" size="sm" className="font-mono bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
-                {development.id}
-              </Badge>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-3">
+              <Title variant="h1" weight="bold" className="m-0 leading-tight">
+                {development?.name || (loading ? 'Cargando...' : 'Proyecto')}
+              </Title>
+              {development?.id && (
+                <Text as="span" variant="caption" weight="bold" className="bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800/50">
+                  {development.id}
+                </Text>
+              )}
+            </div>
+            {development?.description && (
+              <Text variant="caption" color="text-secondary" className="line-clamp-1 max-w-2xl" title={development.description}>
+                {development.description}
+              </Text>
             )}
           </div>
-          {development?.description && (
-            <Text variant="body2" color="text-secondary" className="mt-1 line-clamp-1 max-w-2xl" title={development.description}>
-              {development.description}
-            </Text>
-          )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
           {development?.portal_link && (
             <Button
               variant="outline"
@@ -143,22 +144,13 @@ const DevelopmentDetail: React.FC = () => {
             </Button>
           )}
 
-          <div className="h-8 w-px bg-[var(--color-border)] mx-1 hidden sm:block" />
-
-          <Button
-            variant="outline"
-            icon={Download}
-            onClick={() => wbsRef.current?.handleImportTemplate()}
-            className="h-10 text-xs"
-          >
-            Plantilla
-          </Button>
+          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
 
           <Button
             variant="primary"
             icon={Plus}
             onClick={() => wbsRef.current?.handleAddRootTask()}
-            className="h-10 text-xs"
+            className="h-10 text-xs shadow-lg shadow-primary-500/20"
           >
             Tarea
           </Button>

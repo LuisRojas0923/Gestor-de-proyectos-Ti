@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, ChevronLeft, Info, Users, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
-import { Title, Button, Input, Select, Textarea, Text } from '../../components/atoms';
+import { Title, Button, Input, Select, Textarea, Text, ProgressBar } from '../../components/atoms';
 import { WbsActivityCreate, WbsActivityUpdate, WbsActivityTree } from '../../types/wbs';
 import { AssignableUserSelect } from '../../components/assignments/AssignableUserSelect';
 import { useAppContext } from '../../context/AppContext';
@@ -26,17 +26,23 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     // Estado del formulario
     const [titulo, setTitulo] = useState('');
     const [descripcion, setDescripcion] = useState('');
-    const [estado, setEstado] = useState<'Pendiente' | 'En Progreso' | 'Bloqueado' | 'Completada'>('Pendiente');
+    const [estado, setEstado] = useState<'Pendiente' | 'En Progreso' | 'Pausa' | 'Completada'>('Pendiente');
     const [avance, setAvance] = useState(0);
     const [seguimiento, setSeguimiento] = useState('');
     const [compromiso, setCompromiso] = useState('');
     const [archivoUrl, setArchivoUrl] = useState('');
     const [responsableId, setResponsableId] = useState('');
     const [asignadoAId, setAsignadoAId] = useState('');
+    
+    // Fechas
+    const [fechaInicioEstimada, setFechaInicioEstimada] = useState('');
+    const [fechaFinEstimada, setFechaFinEstimada] = useState('');
+    const [fechaInicioReal, setFechaInicioReal] = useState('');
+    const [fechaFinReal, setFechaFinReal] = useState('');
 
     useEffect(() => {
         if (estado === 'Completada') setAvance(100);
-        else if (estado !== 'En Progreso' && estado !== 'Bloqueado') setAvance(0);
+        else if (estado !== 'En Progreso' && estado !== 'Pausa') setAvance(0);
     }, [estado]);
 
     useEffect(() => {
@@ -52,6 +58,10 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 setArchivoUrl(editNode.archivo_url || '');
                 setResponsableId(editNode.responsable_id || '');
                 setAsignadoAId(editNode.asignado_a_id || '');
+                setFechaInicioEstimada(editNode.fecha_inicio_estimada || '');
+                setFechaFinEstimada(editNode.fecha_fin_estimada || '');
+                setFechaInicioReal(editNode.fecha_inicio_real || '');
+                setFechaFinReal(editNode.fecha_fin_real || '');
             } else {
                 setTitulo('');
                 setDescripcion('');
@@ -62,6 +72,10 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 setArchivoUrl('');
                 setResponsableId('');
                 setAsignadoAId('');
+                setFechaInicioEstimada('');
+                setFechaFinEstimada('');
+                setFechaInicioReal('');
+                setFechaFinReal('');
             }
         }
     }, [isOpen, editNode]);
@@ -84,7 +98,11 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     delegado_por_id: state.user?.id || undefined,
                     seguimiento,
                     compromiso,
-                    archivo_url: archivoUrl
+                    archivo_url: archivoUrl,
+                    fecha_inicio_estimada: fechaInicioEstimada || undefined,
+                    fecha_fin_estimada: fechaFinEstimada || undefined,
+                    fecha_inicio_real: fechaInicioReal || undefined,
+                    fecha_fin_real: fechaFinReal || undefined
                 };
                 await patch(`/actividades/${editNode.id}`, payload);
             } else {
@@ -100,7 +118,9 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     delegado_por_id: state.user?.id || undefined,
                     seguimiento,
                     compromiso,
-                    archivo_url: archivoUrl
+                    archivo_url: archivoUrl,
+                    fecha_inicio_estimada: fechaInicioEstimada || undefined,
+                    fecha_fin_estimada: fechaFinEstimada || undefined
                 };
                 await post(`/actividades/`, payload);
             }
@@ -185,14 +205,28 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                 placeholder="Detalles opcionales sobre el alcance..."
                                 value={descripcion}
                                 onChange={(e) => setDescripcion(e.target.value)}
-                                rows={4}
+                                rows={3}
                             />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    type="date"
+                                    label="Inicio Estimado"
+                                    value={fechaInicioEstimada}
+                                    onChange={(e) => setFechaInicioEstimada(e.target.value)}
+                                />
+                                <Input
+                                    type="date"
+                                    label="Fin Estimado"
+                                    value={fechaFinEstimada}
+                                    onChange={(e) => setFechaFinEstimada(e.target.value)}
+                                />
+                            </div>
                         </div>
                     )}
 
                     {step === 2 && (
                         <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                            <div className="grid grid-cols-1 gap-5">
+                            <div className="grid grid-cols-2 gap-5">
                                 <Select
                                     label="Estado Actual"
                                     value={estado}
@@ -200,11 +234,35 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                     options={[
                                         { value: 'Pendiente', label: 'Pendiente' },
                                         { value: 'En Progreso', label: 'En Progreso' },
-                                        { value: 'Bloqueado', label: 'Bloqueado' },
+                                        { value: 'Pausa', label: 'Pausa' },
                                         { value: 'Completada', label: 'Completada' },
                                     ]}
                                 />
+                                <div className="space-y-4">
+                                    <Text variant="caption" weight="medium" color="text-secondary">Progreso: {avance}%</Text>
+                                    <ProgressBar
+                                        progress={avance}
+                                        variant={avance === 100 ? 'success' : 'primary'}
+                                        className="h-2"
+                                    />
+                                </div>
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[var(--color-border)]/50">
+                                <Input
+                                    type="date"
+                                    label="Inicio Real"
+                                    value={fechaInicioReal}
+                                    onChange={(e) => setFechaInicioReal(e.target.value)}
+                                />
+                                <Input
+                                    type="date"
+                                    label="Fin Real"
+                                    value={fechaFinReal}
+                                    onChange={(e) => setFechaFinReal(e.target.value)}
+                                />
+                            </div>
+
                             <div className="space-y-4 pt-2 border-t border-[var(--color-border)]/50">
                                 <AssignableUserSelect
                                     label="Responsable"

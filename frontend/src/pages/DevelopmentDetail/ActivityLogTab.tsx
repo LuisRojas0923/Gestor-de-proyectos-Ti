@@ -1,9 +1,9 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Activity } from '../../types';
 import { Button, Text } from '../../components/atoms';
-import { Filter, RotateCcw, CheckCircle2, Pencil, Trash2, Plus } from 'lucide-react';
+import { RotateCcw, CheckCircle2, Pencil, Trash2, Plus, History } from 'lucide-react';
 import { useColumnFilters } from '../../hooks/useColumnFilters';
-import { ColumnFilterPopover } from '../../components/molecules/ColumnFilterPopover';
+import { DataTable, DataTableColumn } from '../../components/molecules/DataTable';
 
 interface ActivityLogTabProps {
     activities: Activity[];
@@ -25,33 +25,115 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
     onEdit,
     onDelete
 }) => {
-    const columnAccessors = {
+    const columnAccessors = React.useMemo(() => ({
         date: (a: Activity) => new Date(a.created_at).toLocaleDateString(),
         status: (a: Activity) => a.status,
-    };
+    }), []);
 
     const {
         filteredData,
         uniqueValues,
-        activePopover,
-        setActivePopover,
-        hasActiveFilter,
-        toggleOption,
-        selectAll,
-        clearColumnFilter,
         clearAllFilters,
         filters,
-        activeFilterCount
+        activeFilterCount,
+        setColumnFilter
     } = useColumnFilters(activities || [], columnAccessors);
 
-    const anchorRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-
-    const columns = [
-        { key: 'date', label: 'Fecha' },
-        { key: 'status', label: 'Estado' },
-        { key: 'description', label: 'Descripción / Notas', noFilter: true },
-        { key: 'dates', label: 'Fechas Planificadas', noFilter: true },
+    const columns: DataTableColumn<Activity>[] = [
+        {
+            key: 'date',
+            label: 'Fecha',
+            minWidth: '120px',
+            filterable: true,
+            render: (a) => (
+                <Text variant="caption" className="text-gray-500 dark:text-gray-400">
+                    {new Date(a.created_at).toLocaleDateString()}
+                </Text>
+            )
+        },
+        {
+            key: 'status',
+            label: 'Estado',
+            minWidth: '120px',
+            filterable: true,
+            render: (a) => (
+                <span className={`
+                    inline-flex px-2 py-0.5 text-[9px] font-bold rounded-full uppercase border
+                    ${a.status === 'completada' 
+                        ? 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400 border-green-200 dark:border-green-800' 
+                        : 'text-blue-800 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800'}
+                `}>
+                    {a.status}
+                </span>
+            )
+        },
+        {
+            key: 'description',
+            label: 'Descripción / Notas',
+            flex: true,
+            minWidth: '300px',
+            render: (a) => (
+                <div className="flex flex-col min-w-0">
+                    <Text variant="caption" weight="bold" className="truncate text-gray-800 dark:text-gray-200">
+                        {a.description}
+                    </Text>
+                    {a.notes && (
+                        <Text variant="caption" color="text-secondary" className="truncate mt-0.5 italic" title={a.notes}>
+                            {a.notes}
+                        </Text>
+                    )}
+                </div>
+            )
+        },
+        {
+            key: 'dates',
+            label: 'Fechas Planificadas',
+            minWidth: '180px',
+            render: (a) => (
+                <div className="flex flex-col gap-0.5">
+                    {a.start_date && (
+                        <div className="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400">
+                            <span className="font-bold opacity-50 uppercase">Ini:</span> {a.start_date}
+                        </div>
+                    )}
+                    {a.end_date && (
+                        <div className="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400">
+                            <span className="font-bold opacity-50 uppercase">Fin:</span> {a.end_date}
+                        </div>
+                    )}
+                    {!a.start_date && !a.end_date && <Text variant="caption" color="text-secondary">-</Text>}
+                </div>
+            )
+        }
     ];
+
+    const renderRowActions = (a: Activity) => (
+        <div className="flex items-center gap-1">
+            {a.status !== 'completada' && (
+                <button 
+                    onClick={(e) => { e.stopPropagation(); onComplete(a); }}
+                    className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all"
+                    title="Marcar como completada"
+                >
+                    <CheckCircle2 size={16} />
+                </button>
+            )}
+            <button 
+                onClick={(e) => { e.stopPropagation(); onEdit(a); }}
+                className="p-1.5 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
+                title="Editar"
+            >
+                <Pencil size={16} />
+            </button>
+            <button 
+                onClick={(e) => { e.stopPropagation(); onDelete(a); }}
+                className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                title="Eliminar"
+            >
+                <Trash2 size={16} />
+            </button>
+        </div>
+    );
 
     return (
         <div className="space-y-4">
@@ -86,142 +168,24 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
                 </Button>
             </div>
 
-            <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
-                <div className="overflow-auto max-h-[500px] custom-scrollbar">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="sticky top-0 z-20 bg-[var(--deep-navy)] text-white">
-                            <tr>
-                                {columns.map((col) => (
-                                    <th
-                                        key={col.key}
-                                        className={`
-                                            px-4 py-3 text-[10px] font-bold uppercase tracking-widest border-b border-[var(--deep-navy)]
-                                            ${col.key === 'date' ? 'w-[120px]' : ''}
-                                            ${col.key === 'status' ? 'w-[120px]' : ''}
-                                            ${col.key === 'dates' ? 'w-[180px]' : ''}
-                                        `}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <span>{col.label}</span>
-                                            {!col.noFilter && (
-                                                <button
-                                                    ref={(el) => (anchorRefs.current[col.key] = el)}
-                                                    onClick={() => setActivePopover(activePopover === col.key ? null : col.key)}
-                                                    className={`
-                                                        p-1 rounded-md transition-all hover:bg-white/20
-                                                        ${hasActiveFilter(col.key) ? 'text-yellow-400' : 'text-white/40 hover:text-white'}
-                                                    `}
-                                                >
-                                                    <Filter size={12} fill={hasActiveFilter(col.key) ? 'currentColor' : 'none'} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </th>
-                                ))}
-                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest w-[120px] text-center">
-                                    Acciones
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--color-border)]">
-                            {loading ? (
-                                <tr><td colSpan={5} className="p-12 text-center text-gray-400 dark:text-gray-500 italic text-sm">Cargando historial…</td></tr>
-                            ) : filteredData.length === 0 ? (
-                                <tr><td colSpan={5} className="p-12 text-center text-gray-400 dark:text-gray-500 italic text-sm">No hay registros con los filtros aplicados.</td></tr>
-                            ) : (
-                                filteredData.map((a) => (
-                                    <tr key={a.id} className="group hover:bg-[var(--color-surface-variant)] transition-colors">
-                                        <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                            {new Date(a.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <span className={`
-                                                inline-flex px-2 py-0.5 text-[9px] font-bold rounded-full uppercase border
-                                                ${a.status === 'completada' 
-                                                    ? 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400' 
-                                                    : 'text-blue-800 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400'}
-                                            `}>
-                                                {a.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex flex-col">
-                                                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{a.description}</span>
-                                                {a.notes && (
-                                                    <span className="text-[10px] text-gray-500 dark:text-gray-400 italic mt-0.5 line-clamp-2" title={a.notes}>
-                                                        {a.notes}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 whitespace-nowrap">
-                                            <div className="flex flex-col gap-0.5">
-                                                {a.start_date && (
-                                                    <div className="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400">
-                                                        <span className="font-bold opacity-50">INI:</span> {a.start_date}
-                                                    </div>
-                                                )}
-                                                {a.end_date && (
-                                                    <div className="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400">
-                                                        <span className="font-bold opacity-50">FIN:</span> {a.end_date}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {a.status !== 'completada' && (
-                                                    <button 
-                                                        onClick={() => onComplete(a)}
-                                                        className="p-1.5 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all"
-                                                        title="Marcar como completada"
-                                                    >
-                                                        <CheckCircle2 size={14} />
-                                                    </button>
-                                                )}
-                                                <button 
-                                                    onClick={() => onEdit(a)}
-                                                    className="p-1.5 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
-                                                    title="Editar"
-                                                >
-                                                    <Pencil size={14} />
-                                                </button>
-                                                <button 
-                                                    onClick={() => onDelete(a)}
-                                                    className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
-                                                    title="Eliminar"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Popovers de Filtro */}
-            {Object.keys(columnAccessors).map((key) => (
-                activePopover === key && (
-                    <ColumnFilterPopover
-                        key={key}
-                        columnKey={key}
-                        title={columns.find(c => c.key === key)?.label || key}
-                        options={uniqueValues[key] || []}
-                        selectedValues={filters[key] || new Set()}
-                        onToggleOption={toggleOption}
-                        onSelectAll={selectAll}
-                        onClear={clearColumnFilter}
-                        onClose={() => setActivePopover(null)}
-                        anchorRef={{ current: anchorRefs.current[key] }}
-                    />
-                )
-            ))}
+            <DataTable<Activity>
+                columns={columns}
+                data={filteredData}
+                keyExtractor={(a) => String(a.id)}
+                isLoading={loading}
+                renderRowActions={renderRowActions}
+                actionsMinWidth="120px"
+                columnFilters={filters}
+                columnOptions={uniqueValues}
+                onFilterChange={setColumnFilter}
+                emptyMessage="Sin historial de avances aún."
+                emptyIcon={<History size={40} className="opacity-20" />}
+                maxHeight="max-h-[500px]"
+            />
         </div>
     );
 };
+
+export default ActivityLogTab;
 
 export default ActivityLogTab;
