@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Eye, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
@@ -101,17 +101,17 @@ const MyDevelopments: React.FC = () => {
     }
   };
 
-  const columnAccessors = {
-    id:                 (dev: DevelopmentRow) => dev.id,
+  const columnAccessors = useMemo(() => ({
+    id:                 (dev: DevelopmentRow) => String(dev.id),
     name:               getDevelopmentName,
     status:             getDevelopmentStatus,
     start_date:         getDevelopmentStartDate,
     estimated_end_date: getDevelopmentEndDate,
-    area_desarrollo:    (dev: DevelopmentRow) => dev.area_desarrollo,
-    analista:           (dev: DevelopmentRow) => resolveUserName(dev.analista) ?? dev.analista,
-    authority:          (dev: DevelopmentRow) => resolveUserName(getDevelopmentAuthority(dev)) ?? getDevelopmentAuthority(dev),
-    responsible:        (dev: DevelopmentRow) => resolveUserName(getDevelopmentResponsible(dev)) ?? getDevelopmentResponsible(dev),
-  };
+    area_desarrollo:    (dev: DevelopmentRow) => dev.area_desarrollo || '(Vacío)',
+    analista:           (dev: DevelopmentRow) => resolveUserName(dev.analista) || dev.analista || '(Sin asignar)',
+    authority:          (dev: DevelopmentRow) => resolveUserName(getDevelopmentAuthority(dev)) || getDevelopmentAuthority(dev) || '(Sin asignar)',
+    responsible:        (dev: DevelopmentRow) => resolveUserName(getDevelopmentResponsible(dev)) || getDevelopmentResponsible(dev) || '(Sin asignar)',
+  }), [resolveUserName]);
 
   const {
     filteredData,

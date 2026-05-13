@@ -197,7 +197,7 @@ export function DataTable<T>({
                      */}
                     <div
                         ref={headerGridRef}
-                        className={`shrink-0 bg-[var(--color-primary)] rounded-t-2xl border-b border-[var(--color-border)] overflow-hidden z-20 ${headerClassName}`}
+                        className={`shrink-0 bg-[var(--deep-navy)] rounded-t-2xl border-b border-[var(--deep-navy)] overflow-hidden z-20 ${headerClassName}`}
                     >
                         {columns.map((col, idx) => (
                             <Button
@@ -213,21 +213,26 @@ export function DataTable<T>({
                                     transition-all duration-200
                                 `}
                             >
-                                <Text
-                                    variant="caption"
-                                    weight="bold"
-                                    className={`uppercase tracking-wider !text-[11px] transition-colors whitespace-nowrap ${
-                                        hasFilterActive(col.key)
-                                            ? 'text-yellow-300'
-                                            : 'text-white group-hover:text-white'
-                                    }`}
-                                >
-                                    {col.label}
-                                </Text>
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                    <Text
+                                        variant="caption"
+                                        weight="bold"
+                                        className={`uppercase tracking-wider !text-[11px] transition-colors whitespace-nowrap truncate ${
+                                            hasFilterActive(col.key)
+                                                ? 'text-yellow-400'
+                                                : 'text-white'
+                                        }`}
+                                    >
+                                        {col.label}
+                                    </Text>
+                                    {col.filterable && (
+                                        <Text as="span" className={`shrink-0 w-3 h-3 rounded-full transition-colors ${hasFilterActive(col.key) ? 'bg-yellow-400' : 'bg-white/20 group-hover:bg-white/40'}`} />
+                                    )}
+                                </div>
                             </Button>
                         ))}
                         {renderRowActions && (
-                            <div className="flex items-center justify-center py-2.5 px-4 bg-white/10">
+                            <div className="flex items-center justify-center py-2.5 px-4">
                                 <Text variant="caption" weight="bold" className="uppercase tracking-wider !text-[11px] text-white whitespace-nowrap">
                                     Acciones
                                 </Text>

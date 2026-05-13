@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, { useEffect, useState, useCallback, useImperativeHandle, useMemo, forwardRef } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { Title, Text, Button, Badge, ProgressBar, Input } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
-import { Trash2, Plus, Download, RotateCcw, ClipboardList, Pencil } from 'lucide-react';
+import { Trash2, Plus, Download, RotateCcw, ClipboardList, Pencil, Play, CirclePause, CheckCircle2 } from 'lucide-react';
+
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
 import { DeleteActivityModal } from './DeleteActivityModal';
@@ -29,6 +30,7 @@ const getStatusVariant = (estado: string): 'default' | 'success' | 'warning' | '
     if (normalized.includes('pendiente')) return 'error';
     if (normalized.includes('progreso') || normalized.includes('curso')) return 'warning';
     if (normalized.includes('complet')) return 'success';
+    if (normalized.includes('pausa') || normalized.includes('bloqueado')) return 'warning';
     return 'default';
 };
 
@@ -71,11 +73,20 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         return result;
     }, []);
 
-    const columnAccessors = {
+    const columnAccessors = useMemo(() => ({
+        index: (node: WbsActivityTree) => {
+            // Buscamos el nodo en el árbol aplanado original para obtener su índice real
+            const flat = flattenTree(tree);
+            const idx = flat.findIndex(n => n.id === node.id);
+            return idx !== -1 ? String(idx + 1) : '(Draf)';
+        },
+        titulo: (node: WbsActivityTree) => node.titulo,
+        porcentaje_avance: (node: WbsActivityTree) => `${node.porcentaje_avance}%`,
         estado: (node: WbsActivityTree) => node.estado,
+        seguimiento: (node: WbsActivityTree) => node.seguimiento || '(Sin seguimiento)',
         lider: (node: WbsActivityTree) => getLider(node),
         validacion: (node: WbsActivityTree) => node.estado_validacion || 'sin_validar',
-    };
+    }), [tree, flattenTree, getLider]);
 
     const {
         filters,
@@ -121,6 +132,33 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const inProgress = allFlat.filter(n => n.estado.toLowerCase().includes('progreso') || n.estado.toLowerCase().includes('curso')).length;
     const pending = allFlat.filter(n => n.estado.toLowerCase().includes('pendiente')).length;
     const avgProgress = allFlat.length ? Math.round((completed / allFlat.length) * 100) : 0;
+
+    const handleQuickAction = async (id: number, action: 'play' | 'pause' | 'finish', currentNode: WbsActivityTree) => {
+        let payload: any = {};
+        const now = new Date().toISOString().split('T')[0];
+
+        if (action === 'play') {
+            payload = { 
+                estado: 'En Progreso',
+                fecha_inicio_real: currentNode.fecha_inicio_real || now
+            };
+        } else if (action === 'pause') {
+            payload = { estado: 'Pausa' };
+        } else if (action === 'finish') {
+            payload = { 
+                estado: 'Completada',
+                porcentaje_avance: 100,
+                fecha_fin_real: now
+            };
+        }
+
+        try {
+            await patch(`/actividades/${id}`, payload);
+            await fetchTree();
+        } catch (error) {
+            console.error(`Error applying quick action ${action}:`, error);
+        }
+    };
 
     const fetchTree = async () => {
         setLoading(true);
@@ -246,10 +284,94 @@ setTogglingIds(prev => new Set([...prev, id]));
 
     const columns: DataTableColumn<WbsRow>[] = [
         {
+            key: 'titulo',
+            label: 'Tarea',
+            minWidth: '260px',
+            flex: true,
+            filterable: true,
+            render: (row) => row._isDraft ? (
+                <Input
+                    placeholder="Título de la tarea..."
+                    value={draftTitulo}
+                    onChange={(e) => setDraftTitulo(e.target.value)}
+                    autoFocus
+                />
+            ) : (
+                <div className="min-w-0">
+                    <Text weight="bold" className="truncate">{row.titulo}</Text>
+                    {row.descripcion && (
+                        <Text variant="caption" color="text-secondary" className="truncate mt-0.5">
+                            {row.descripcion}
+                        </Text>
+                    )}
+                </div>
+            ),
+        },
+        {
+            key: 'porcentaje_avance',
+            label: 'Avance',
+            minWidth: '80px',
+            filterable: true,
+            render: (row) => (
+                <div className="w-full text-right">
+                    <Text variant="caption">{row.porcentaje_avance}%</Text>
+                    <ProgressBar
+                        progress={row.porcentaje_avance}
+                        variant={row.porcentaje_avance === 100 ? 'success' : 'primary'}
+                        className="h-1 mt-1"
+                    />
+                </div>
+            ),
+        },
+        {
+            key: 'estado',
+            label: 'Estado',
+            minWidth: '96px',
+            filterable: true,
+            render: (row) => (
+                <Badge variant={getStatusVariant(row.estado)} size="sm">{row.estado}</Badge>
+            ),
+        },
+        {
+            key: 'seguimiento',
+            label: 'Seguimiento',
+            minWidth: '192px',
+            filterable: true,
+            render: (row) => (
+                <Text variant="caption" className="truncate" title={row.seguimiento}>
+                    {row.seguimiento || '-'}
+                </Text>
+            ),
+        },
+        {
+            key: 'lider',
+            label: 'Líder de actividad',
+            minWidth: '144px',
+            filterable: true,
+            render: (row) => row._isDraft ? (
+                <AssignableUserSelect
+                    value={draftAsignadoAId}
+                    onChange={setDraftAsignadoAId}
+                />
+            ) : (
+                <Text variant="caption" className="truncate" title={getLider(row)}>
+                    {getLider(row)}
+                </Text>
+            ),
+        },
+        {
+            key: 'validacion',
+            label: 'Validación',
+            minWidth: '112px',
+            filterable: true,
+            render: (row) => <ValidationStatusBadge status={row.estado_validacion} />,
+        },
+        {
             key: 'index',
             label: '#',
             minWidth: '24px',
             centered: true,
+            filterable: true,
             render: (row) => (
                 <Text variant="caption" className="w-6 text-center text-[var(--color-text-secondary)]">
                     {row._rowIndex}
@@ -281,84 +403,51 @@ setTogglingIds(prev => new Set([...prev, id]));
             ),
         },
         {
-            key: 'titulo',
-            label: 'Tarea',
-            minWidth: '260px',
-            flex: true,
-            render: (row) => row._isDraft ? (
-                <Input
-                    placeholder="Título de la tarea..."
-                    value={draftTitulo}
-                    onChange={(e) => setDraftTitulo(e.target.value)}
-                    autoFocus
-                />
-            ) : (
-                <div className="min-w-0">
-                    <Text weight="bold" className="truncate">{row.titulo}</Text>
-                    {row.descripcion && (
-                        <Text variant="caption" color="text-secondary" className="truncate mt-0.5">
-                            {row.descripcion}
-                        </Text>
-                    )}
-                </div>
-            ),
-        },
-        {
-            key: 'porcentaje_avance',
-            label: 'Avance',
-            minWidth: '80px',
-            render: (row) => (
-                <div className="w-full text-right">
-                    <Text variant="caption">{row.porcentaje_avance}%</Text>
-                    <ProgressBar
-                        progress={row.porcentaje_avance}
-                        variant={row.porcentaje_avance === 100 ? 'success' : 'primary'}
-                        className="h-1 mt-1"
-                    />
-                </div>
-            ),
-        },
-        {
-            key: 'estado',
-            label: 'Estado',
-            minWidth: '96px',
-            filterable: true,
-            render: (row) => (
-                <Badge variant={getStatusVariant(row.estado)} size="sm">{row.estado}</Badge>
-            ),
-        },
-        {
-            key: 'seguimiento',
-            label: 'Seguimiento',
-            minWidth: '192px',
-            render: (row) => (
-                <Text variant="caption" className="truncate" title={row.seguimiento}>
-                    {row.seguimiento || '-'}
-                </Text>
-            ),
-        },
-        {
-            key: 'lider',
-            label: 'Líder de actividad',
-            minWidth: '144px',
-            filterable: true,
-            render: (row) => row._isDraft ? (
-                <AssignableUserSelect
-                    value={draftAsignadoAId}
-                    onChange={setDraftAsignadoAId}
-                />
-            ) : (
-                <Text variant="caption" className="truncate" title={getLider(row)}>
-                    {getLider(row)}
-                </Text>
-            ),
-        },
-        {
-            key: 'validacion',
-            label: 'Validación',
-            minWidth: '112px',
-            filterable: true,
-            render: (row) => <ValidationStatusBadge status={row.estado_validacion} />,
+            key: 'gestion',
+            label: 'Gestión',
+            minWidth: '120px',
+            render: (row) => {
+                if (row._isDraft) return null;
+                const normalizedStatus = row.estado.toLowerCase();
+                const isCompleted = normalizedStatus.includes('complet');
+                const isInProgress = normalizedStatus.includes('progreso') || normalizedStatus.includes('curso');
+                const isPaused = normalizedStatus.includes('pausa');
+
+                return (
+                    <div className="flex items-center gap-1">
+                        {!isCompleted && !isInProgress && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'play', row); }}
+                                icon={Play}
+                                className="h-8 w-8 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:scale-110 transition-transform dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 shadow-sm"
+                                title="Iniciar tarea (Play)"
+                            />
+                        )}
+                        {isInProgress && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'pause', row); }}
+                                icon={CirclePause}
+                                className="h-8 w-8 !p-0 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:scale-110 transition-transform dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 shadow-sm"
+                                title="Pausar tarea"
+                            />
+                        )}
+                        {!isCompleted && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'finish', row); }}
+                                icon={CheckCircle2}
+                                className="h-8 w-8 !p-0 text-green-600 bg-green-50 hover:bg-green-100 hover:scale-110 transition-transform dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 shadow-sm"
+                                title="Terminar tarea (Check)"
+                            />
+                        )}
+                    </div>
+                );
+            }
         },
         {
             key: 'compromiso',
