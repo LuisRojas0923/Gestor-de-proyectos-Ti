@@ -71,8 +71,16 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
 
                         {/* 2. SECCIÓN CENTRAL (Identidad del Portal - Centrado Relativo en Móvil, Absoluto en Desktop) */}
                         <div
+                            role="button"
+                            tabIndex={0}
                             className="flex-1 md:absolute md:left-1/2 md:-translate-x-1/2 flex flex-col items-center cursor-pointer select-none z-10 px-2"
                             onClick={onHome}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onHome();
+                                }
+                            }}
                         >
                             <Title variant="h2" color="white" className="tracking-tighter drop-shadow-2xl uppercase text-center font-black leading-tight italic whitespace-nowrap text-base sm:text-2xl lg:text-3xl">
                                 PORTAL SOLID

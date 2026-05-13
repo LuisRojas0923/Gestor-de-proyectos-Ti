@@ -49,6 +49,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         permissions.includes('inventario_2026') ||
         ['admin', 'director'].includes(userRole)
     );
+    
+    const canSeeNomina = moduleStatus['nomina_novedades'] !== false && (
+        permissions.includes('nomina_novedades') ||
+        ['admin', 'director'].includes(userRole)
+    );
 
     const canSeeContabilidad = moduleStatus['contabilidad'] !== false; // Visible para todos si está activo
 
@@ -98,7 +103,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                     />
                 )}
 
-                {(userRole === 'admin' || userRole === 'director') && (
+                {canSeeNomina && (
                     <ActionCard
                         title="Novedades de Nómina"
                         description="Carga y procesamiento de novedades para SOLID."
