@@ -59,7 +59,7 @@ async def listar_analistas(
             # Filtros estrictos para asignación de tickets
             stmt = stmt.where(
                 Usuario.esta_activo,
-                not Usuario.viaticante,
+                Usuario.viaticante.is_(False),
                 Usuario.rol.in_(["analyst", "admin_sistemas", "admin", "director", "manager"])
             )
         # Si no es solo_asignables, se eliminó el filtro estático de roles para que sea dinámico

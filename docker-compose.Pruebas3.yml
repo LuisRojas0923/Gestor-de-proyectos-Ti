@@ -13,6 +13,13 @@ services:
     networks:
       - app-network-pruebas3
 
+  redis:
+    image: redis:alpine
+    container_name: gestor-de-proyectos-ti-redis-pruebas3
+    restart: always
+    networks:
+      - app-network-pruebas3
+
   backend:
     build:
       context: ./backend_v2
@@ -26,10 +33,12 @@ services:
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASS:-password_segura_refridcol}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager_pruebas3}
       - TZ=America/Bogota
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./GestionTi_SoporteFiles_Pruebas3:/app/storage/attachments
     depends_on:
       - db
+      - redis
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
     networks:
       - app-network-pruebas3
