@@ -225,9 +225,6 @@ export function DataTable<T>({
                                     >
                                         {col.label}
                                     </Text>
-                                    {col.filterable && (
-                                        <Text as="span" className={`shrink-0 w-3 h-3 rounded-full transition-colors ${hasFilterActive(col.key) ? 'bg-yellow-400' : 'bg-white/20 group-hover:bg-white/40'}`} />
-                                    )}
                                 </div>
                             </Button>
                         ))}
