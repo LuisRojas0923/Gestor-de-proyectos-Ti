@@ -23,6 +23,7 @@ services:
       - WATCHFILES_FORCE_POLLING=true
     volumes:
       - ./backend_v2:/app
+      - ./backend_v2/uploads:/app/uploads
       - ./GestionTi_SoporteFiles:/app/storage/attachments
     depends_on:
       db:

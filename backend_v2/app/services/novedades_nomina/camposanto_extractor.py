@@ -116,7 +116,7 @@ def extraer_camposanto(
                         "nombre_asociado": nombre,
                         "empresa": "REFRIDCOL",
                         "valor": valor,
-                        "concepto": "CAMPOSANTO VALOR",
+                        "concepto": "CAMPOSANTO",
                     })
                     total_filas += 1
                     total_valor += valor
@@ -180,7 +180,7 @@ def extraer_camposanto(
                         "nombre_asociado": nombre,
                         "empresa": "REFRIDCOL",
                         "valor": valor,
-                        "concepto": "CAMPOSANTO VALOR",
+                        "concepto": "CAMPOSANTO",
                     })
                     total_filas += 1
                     total_valor += valor
@@ -209,7 +209,7 @@ def extraer_camposanto(
                                 "nombre_asociado": nombre,
                                 "empresa": "REFRIDCOL",
                                 "valor": valor,
-                                "concepto": "CAMPOSANTO VALOR",
+                                "concepto": "CAMPOSANTO",
                             })
                             total_filas += 1
                             total_valor += valor

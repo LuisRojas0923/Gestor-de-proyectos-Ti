@@ -110,7 +110,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                             const val = prioridadStats?.[p.key] || 0;
                             const height = (val / maxVal) * 150 + 20;
                             return (
-                                <div key={i} className="flex flex-col items-center w-20">
+                                <div key={`${p.id || p.cedula || 'p'}-${i}`} className="flex flex-col items-center w-20">
                                     <Text weight="bold" className="mb-2 text-blue-900 dark:text-blue-300">{val}</Text>
                                     <div
                                         className={`${p.color} w-full rounded-t-lg transition-all hover:opacity-80`}

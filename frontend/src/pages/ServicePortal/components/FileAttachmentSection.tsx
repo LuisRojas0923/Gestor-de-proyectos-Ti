@@ -46,7 +46,7 @@ export const FileAttachmentSection: React.FC<FileAttachmentSectionProps> = ({
             {selectedFiles.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {selectedFiles.map((file, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm">
+                        <div key={`${file.id || file.cedula || 'file'}-${idx}`} className="flex items-center justify-between p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm">
                             <div className="flex items-center space-x-3 overflow-hidden">
                                 <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-500">
                                     <FileText size={18} />

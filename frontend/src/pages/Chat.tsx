@@ -180,7 +180,7 @@ const Chat: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           {quickActions.map((action, index) => (
             <Button
-              key={index}
+              key={`${action.id || action.cedula || 'action'}-${index}`}
               variant="secondary"
               size="sm"
               onClick={() => handleSendMessage(action.label, 'action')}

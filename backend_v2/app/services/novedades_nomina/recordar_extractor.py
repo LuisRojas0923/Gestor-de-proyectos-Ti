@@ -72,6 +72,10 @@ def extraer_recordar(
                 if not identificacion or identificacion.lower() == 'nan':
                     continue
                 
+                # Manejar formato float de pandas (evitar que 123.0 se convierta en 1230)
+                if identificacion.endswith('.0'):
+                    identificacion = identificacion[:-2]
+                
                 cedula = re.sub(r"[^0-9]", "", identificacion)
                 if not cedula:
                     continue
@@ -88,7 +92,7 @@ def extraer_recordar(
                     "nombre_asociado": "", # Se enriquecerá con el ERP en el router
                     "empresa": "", # Se enriquecerá con el ERP en el router
                     "valor": valor,
-                    "concepto": "RECORDAR VALOR",
+                    "concepto": "RECORDAR",
                 })
                 total_filas += 1
                 total_valor += valor

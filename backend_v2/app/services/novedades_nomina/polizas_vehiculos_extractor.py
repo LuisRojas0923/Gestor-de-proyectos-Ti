@@ -164,7 +164,7 @@ def extraer_polizas_vehiculos(archivos_binarios: List[bytes]) -> Tuple[List[Dict
                     rows.append({
                         "cedula": cedula_final,
                         "nombre_asociado": nombre_asociado,
-                        "concepto": "POLIZA VEHICULOS VALOR",
+                        "concepto": "POLIZA VEHICULOS",
                         "valor": valor,
                         "empresa": ""
                     })

@@ -30,7 +30,7 @@ const CargaMasiva: React.FC<CargaMasivaProps> = ({
     isUploading,
     handleUploadTransito,
     isUploadingTransito,
-    apiBase = 'http://localhost:8000',
+    apiBase = 'http://localhost:8001',
     uploadResult,
     setUploadResult,
     limpiarPrevio,
@@ -164,7 +164,7 @@ const CargaMasiva: React.FC<CargaMasivaProps> = ({
                             </div>
                             <div className="max-h-32 overflow-y-auto pr-2 space-y-1.5">
                                 {uploadResult.errors.map((err, i) => (
-                                    <div key={i} className="flex gap-2 p-2 bg-white/50 dark:bg-neutral-800/20 rounded-lg border border-neutral-100 dark:border-neutral-700">
+                                    <div key={`${err.id || err.cedula || 'err'}-${i}`} className="flex gap-2 p-2 bg-white/50 dark:bg-neutral-800/20 rounded-lg border border-neutral-100 dark:border-neutral-700">
                                         <div className="w-1 h-1 rounded-full bg-red-400 mt-1.5 shrink-0" />
                                         <Text variant="caption" className="text-[10px] text-neutral-600">{err}</Text>
                                     </div>

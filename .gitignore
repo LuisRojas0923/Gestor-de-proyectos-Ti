@@ -27,7 +27,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 /backend/app/__pycache__
-/backend/alembic/__pycache__
 /backend_v2/app/__pycache__
 /backend_v2/app/models/__pycache__
 /backend_v2/app/schemas/__pycache__
@@ -53,3 +52,9 @@ testing/logs/
 test_output.txt
 graphify-out/
 .agent/
+
+# Respaldo de codigo muerto de React Doctor (ignorado en builds)
+/frontend/respaldo_codigo_muerto/
+
+# Archivos cargados por el modulo de Nomina/Descuentos
+backend_v2/uploads/nomina/

@@ -55,7 +55,11 @@ engine = sync_engine
 # --- Configuracion ERP Externo (se mantiene sincrono) ---
 ERP_DATABASE_URL = config.erp_database_url
 erp_engine = create_engine(
-    ERP_DATABASE_URL, pool_pre_ping=True, pool_size=5, max_overflow=10
+    ERP_DATABASE_URL, 
+    pool_pre_ping=True, 
+    pool_size=10, 
+    max_overflow=20,
+    connect_args={"options": "-c statement_timeout=30000"} # 30 segundos de timeout
 )
 SessionErp = sessionmaker(autocommit=False, autoflush=False, bind=erp_engine)
 

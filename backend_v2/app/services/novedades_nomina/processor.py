@@ -2,7 +2,8 @@ import re
 import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from ...models.novedades_nomina.nomina import (
     NominaArchivo, NominaRegistroCrudo, NominaRegistroNormalizado, NominaConcepto
 )
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 class NominaProcessor:
     """Servicio para normalizar y clasificar registros de nómina"""
 
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     async def normalize_record(self, raw_data: Dict[str, Any], archivo: NominaArchivo, fila: int) -> NominaRegistroNormalizado:
@@ -35,6 +36,10 @@ class NominaProcessor:
         # 4. NOMBRE (Opcional)
         nombre = self._find_value(payload, ['NOMBRE', 'ASOCIADO', 'EMPLEADO', 'Nombre Asociado'])
 
+        # 5. HORAS y DIAS (Para planillas)
+        horas = self._parse_float(self._find_value(payload, ['HORAS', 'HRS', 'Hours']))
+        dias = self._parse_float(self._find_value(payload, ['DIAS', 'DAYS', 'Días']))
+
         # Otros campos del archivo
         mes = archivo.mes_fact
         año = archivo.año_fact
@@ -51,6 +56,8 @@ class NominaProcessor:
             concepto=concepto.strip(),
             categoria_final=archivo.categoria,
             subcategoria_final=archivo.subcategoria,
+            horas=horas,
+            dias=dias,
             fila_origen=fila,
             estado_validacion="PENDIENTE"
         )
@@ -61,12 +68,13 @@ class NominaProcessor:
         return registro
 
     def _find_value(self, payload: Dict[str, Any], aliases: List[str]) -> Any:
-        """Busca un valor en el payload usando una lista de alias (case insensitive)"""
+        """Busca un valor en el payload usando una lista de alias (case insensitive y trim)"""
         keys = payload.keys()
         for alias in aliases:
-            # Match exacto
+            # Match exacto ignorando espacios y caso
+            alias_clean = alias.strip().upper()
             for k in keys:
-                if k.upper() == alias.upper():
+                if str(k).strip().upper() == alias_clean:
                     return payload[k]
         return None
 

@@ -86,8 +86,8 @@ const NominaPreviewView: React.FC = () => {
                         <Text color="text-secondary">Revisa los registros normalizados antes de finalizar</Text>
                     </div>
                 </div>
-                <Button variant="primary" onClick={() => navigate('/service-portal/novedades-nomina/resumen')}>
-                    Ver Resumen Mensual
+                <Button variant="primary" onClick={() => navigate('/service-portal/novedades-nomina/tabla-maestra')}>
+                    Ver Tabla Maestra
                 </Button>
             </div>
 
@@ -178,23 +178,23 @@ const NominaPreviewView: React.FC = () => {
                         className="gap-2"
                         onClick={() => {
                             addNotification('success', 'Novedades confirmadas y guardadas en el histórico.');
-                            navigate('/service-portal/novedades-nomina/resumen');
+                            navigate('/service-portal/novedades-nomina/tabla-maestra');
                         }}
                     >
                         <CheckCircle className="w-4 h-4" /> Confirmar y Guardar
                     </Button>
                 </div>
                 <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm">
-                            <tr>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase bg-inherit w-16">#</th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase bg-inherit">Cédula</th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase bg-inherit">Nombre</th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase bg-inherit">Empresa</th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase bg-inherit">Valor</th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase bg-inherit">Concepto</th>
-                                <th className="p-4 text-xs font-bold text-slate-500 uppercase bg-inherit">Estado</th>
+                    <table className="w-full text-center border-collapse">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-[var(--color-primary-900)] text-white shadow-md">
+                                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider w-16 border-b border-white/5 border-r border-white/5 first:rounded-tl-xl">#</th>
+                                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider border-b border-white/5 border-r border-white/5">Cédula</th>
+                                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider border-b border-white/5 border-r border-white/5">Nombre</th>
+                                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider border-b border-white/5 border-r border-white/5">Empresa</th>
+                                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider border-b border-white/5 border-r border-white/5">Valor</th>
+                                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider border-b border-white/5 border-r border-white/5">Concepto</th>
+                                <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider border-b border-white/5 last:rounded-tr-xl">Estado</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -231,7 +231,7 @@ const NominaPreviewView: React.FC = () => {
                                     <td className="p-4 font-medium">{rec.cedula}</td>
                                     <td className="p-4 text-sm">{rec.nombre_asociado || '---'}</td>
                                     <td className="p-4 text-sm text-slate-500">{rec.empresa || '---'}</td>
-                                    <td className="p-4 font-mono font-bold text-blue-600">
+                                    <td className="p-4 text-right font-mono font-bold text-blue-600">
                                         ${rec.valor?.toLocaleString() ?? '0'}
                                     </td>
                                     <td className="p-4 text-sm">

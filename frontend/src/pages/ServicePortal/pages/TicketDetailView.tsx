@@ -160,7 +160,7 @@ const TicketDetailView: React.FC<TicketDetailViewProps> = ({ selectedTicket, use
                                             <Text variant="caption" color="text-secondary" weight="bold" className="uppercase mb-2 block">Áreas Impactadas</Text>
                                             <div className="flex flex-wrap gap-2">
                                                 {selectedTicket.areas_impactadas.map((area, i) => (
-                                                    <Text key={i} as="span" weight="bold" className="px-2 py-0.5 bg-[var(--color-primary)]/10 text-[var(--color-primary)] !text-[10px] rounded-md border border-[var(--color-primary)]/20 uppercase">{area}</Text>
+                                                    <Text key={`${area.id || area.cedula || 'area'}-${i}`} as="span" weight="bold" className="px-2 py-0.5 bg-[var(--color-primary)]/10 text-[var(--color-primary)] !text-[10px] rounded-md border border-[var(--color-primary)]/20 uppercase">{area}</Text>
                                                 ))}
                                             </div>
                                         </div>

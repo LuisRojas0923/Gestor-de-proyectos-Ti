@@ -6,11 +6,13 @@ import imgGestionViaticos from '../../../assets/images/categories/gestion_viatic
 import imgReunion from '../../../assets/images/categories/Reunion.png';
 import sistemasolicitudes from '../../../assets/images/categories/logistico.png';
 import imgInventario from '../../../assets/images/categories/Consultar Reportes.png';
+import imgNovedadesNomina from '../../../assets/images/categories/NOVEDADES_NOMINA.png';
+import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones') => void;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
@@ -43,6 +45,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
 
     const canSeeInventario = moduleStatus['inventario_2026'] !== false && (
         permissions.includes('inventario_2026') ||
+        ['admin', 'director'].includes(userRole)
+    );
+    
+    const canSeeNomina = moduleStatus['nomina_novedades'] !== false && (
+        permissions.includes('nomina_novedades') ||
         ['admin', 'director'].includes(userRole)
     );
 
@@ -103,12 +110,21 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                     />
                 )}
 
+                {canSeeNomina && (
+                    <ActionCard
+                        title="Novedades de Nómina"
+                        description="Carga y procesamiento de novedades para SOLID."
+                        icon={<img src={imgNovedadesNomina} alt="Novedades de Nómina" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onNavigate('nomina')}
+                    />
+                )}
+
                 {(userRole === 'admin' || userRole === 'director') && (
                     <ActionCard
-                        title="Descuentos de Nómina"
-                        description="Carga y procesamiento de descuentos para SOLID."
-                        icon={<div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-teal-500/20 to-blue-500/20 rounded-xl"><Plus className="w-12 h-12 text-teal-600" /></div>}
-                        onClick={() => onNavigate('nomina')}
+                        title="Comisiones"
+                        description="Cálculo y procesamiento de comisiones para el personal."
+                        icon={<img src={imgComisiones} alt="Gestión de Comisiones" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onNavigate('comisiones')}
                     />
                 )}
                 

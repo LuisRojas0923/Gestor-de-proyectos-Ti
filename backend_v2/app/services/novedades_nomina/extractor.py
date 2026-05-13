@@ -53,6 +53,14 @@ class NominaExtractor:
 
     @staticmethod
     def _extract_from_excel(content: bytes) -> List[Dict[str, Any]]:
-        """Extrae datos de un Excel usando pandas"""
+        """Extrae datos de un Excel usando pandas con detección de cabeceras"""
+        # Probar fila 0
         df = pd.read_excel(io.BytesIO(content))
+        cols = [str(c).strip().upper() for c in df.columns]
+        
+        # Si no hay CEDULA o DOCUMENTO en las columnas, probar fila 1
+        INTEREST_COLS = {'CEDULA', 'DOCUMENTO', 'ID', 'NIT', 'VALOR', 'MONTO', 'TOTAL'}
+        if not any(c in INTEREST_COLS for c in cols):
+            df = pd.read_excel(io.BytesIO(content), skiprows=1)
+            
         return df.where(pd.notnull(df), None).to_dict(orient='records')

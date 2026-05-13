@@ -44,7 +44,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
             onClick={onClick}
             className={`group p-8 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2.5rem] shadow-sm hover:shadow-xl hover:border-[var(--color-primary)] transition-all duration-300 transform hover:-translate-y-1 text-center space-y-4 h-auto flex-col block w-full ${className}`}
         >
-            <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 ${iconContainerStyles}`}>
+            <div className={`w-32 h-32 rounded-[2rem] flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 ${iconContainerStyles}`}>
                 {/* Render icon directly if it's a node, or wrap it if it's a function/component pattern */}
                 {icon ? (
                     React.isValidElement(icon) ? icon : <Icon name={icon as any} size="xl" className="w-10 h-10" />

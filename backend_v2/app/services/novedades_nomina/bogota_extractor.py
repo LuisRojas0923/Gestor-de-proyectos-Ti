@@ -80,7 +80,7 @@ def extraer_bogota_libranza(
                         "nombre_asociado": "", # Se llenará en el router via ERP
                         "empresa": "", # Se llenará en el router via ERP
                         "valor": cuota_val, # VALOR MES
-                        "concepto": "BOGOTA LIBRANZA CUOTA",
+                        "concepto": "BOGOTA LIBRANZA",
                     })
                     
                     total_filas += 1

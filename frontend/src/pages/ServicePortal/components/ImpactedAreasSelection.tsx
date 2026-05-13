@@ -40,7 +40,7 @@ export const ImpactedAreasSelection: React.FC<ImpactedAreasSelectionProps> = ({
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {impactedAreas.map((area, idx) => (
-                        <div key={idx} className="bg-[var(--color-primary)]/10 text-[var(--color-primary)] px-3 py-1 rounded-full flex items-center space-x-2 border border-[var(--color-primary)]/20 shadow-sm">
+                        <div key={`${area.id || area.cedula || 'area'}-${idx}`} className="bg-[var(--color-primary)]/10 text-[var(--color-primary)] px-3 py-1 rounded-full flex items-center space-x-2 border border-[var(--color-primary)]/20 shadow-sm">
                             <Text variant="caption" weight="bold">{area}</Text>
                             <X size={14} className="cursor-pointer hover:text-red-500 transition-colors" onClick={() => removeArea(area)} />
                         </div>

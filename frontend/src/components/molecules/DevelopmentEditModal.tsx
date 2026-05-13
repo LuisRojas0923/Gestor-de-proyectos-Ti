@@ -207,7 +207,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
             <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
               <div className="space-y-1">
                 {errors.map((error, index) => (
-                  <Text key={index} variant="caption" color="error" weight="medium" className="block">• {error}</Text>
+                  <Text key={`edit-modal-err-${index}`} variant="caption" color="error" weight="medium" className="block">• {error}</Text>
                 ))}
               </div>
             </div>
