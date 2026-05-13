@@ -367,7 +367,7 @@ export const ActivityEditModal: React.FC<ActivityEditModalProps> = ({
               <div className="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                 <div className="space-y-1">
                   {errors.map((err, idx) => (
-                    <Text key={idx} variant="caption" color="error" className="block">• {err}</Text>
+                    <Text key={`${err.id || err.cedula || 'err'}-${idx}`} variant="caption" color="error" className="block">• {err}</Text>
                   ))}
                 </div>
               </div>

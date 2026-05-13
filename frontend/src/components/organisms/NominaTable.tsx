@@ -208,7 +208,7 @@ export function NominaTable<T extends Record<string, any>>({
                                     const isLast = idx === columns.length - 1;
                                     return (
                                         <th 
-                                            key={idx} 
+                                            key={`${col.id || col.cedula || 'col'}-${idx}`} 
                                             className={`
                                                 py-3 px-4 font-bold text-white whitespace-nowrap align-middle relative border-b border-white/5 border-r border-white/5
                                                 ${isLast ? 'last:rounded-tr-xl border-r-0' : ''}
@@ -235,11 +235,11 @@ export function NominaTable<T extends Record<string, any>>({
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700 text-sm">
                             {filteredAndSortedData.map((row: T, rowIndex: number) => (
-                                <tr key={rowIndex} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                <tr key={`${row.id || row.cedula || 'row'}-${rowIndex}`} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                     <td className="py-2 px-4 text-slate-400 font-mono w-12 border-r border-slate-50 dark:border-slate-700/50 text-center">{rowIndex + 1}</td>
                                     {columns.map((col, colIndex) => (
                                         <td 
-                                            key={colIndex} 
+                                            key={`${col.id || col.cedula || 'col'}-${colIndex}`} 
                                             className={`py-2 px-4 border-r border-slate-50 dark:border-slate-700/50 ${col.align === 'right' ? 'text-right font-mono font-semibold' : col.align === 'center' ? 'text-center' : 'text-left'}`}
                                         >
                                             {col.cell ? col.cell(row) : (row[col.accessorKey as keyof T] as React.ReactNode)}

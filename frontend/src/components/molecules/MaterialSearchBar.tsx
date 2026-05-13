@@ -125,7 +125,7 @@ const MaterialSearchBar: React.FC<MaterialSearchBarProps> = ({
             >
               {filteredSuggestions.map((suggestion, index) => (
                 <div
-                  key={index}
+                  key={`${suggestion.id || suggestion.cedula || 'suggestion'}-${index}`}
                   onClick={() => handleSuggestionClick(suggestion)}
                   className="w-full px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors first:rounded-t-lg last:rounded-b-lg cursor-pointer"
                   style={suggestionItemStyle}

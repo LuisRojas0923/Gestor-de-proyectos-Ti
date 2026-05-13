@@ -43,6 +43,12 @@ const MESES = [
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 
+const CURRENCY_FORMATTER = new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0
+});
+
 const PlanillasRegionales2QPreview: React.FC = () => {
     const navigate = useNavigate();
     const { addNotification } = useNotifications();
@@ -147,11 +153,11 @@ const PlanillasRegionales2QPreview: React.FC = () => {
             .sort((a, b) => a.nombre.localeCompare(b.nombre));
     }, [data, searchText, activeFilters]);
 
-    const getColumnOptions = (key: keyof PlanillaRow) => {
+    const getColumnOptions = React.useCallback((key: keyof PlanillaRow) => {
         if (!data || !data.filas) return [];
         const uniqueValues = Array.from(new Set(data.filas.map(r => String(r[key] || '').toUpperCase())));
         return uniqueValues.sort().map(v => ({ label: v, value: v }));
-    };
+    }, [data]);
 
     const summaryCalculated = useMemo(() => {
         if (!data || !data.filas) return { porEmpresa: {}, porNovedad: {}, horasPorConcepto: {}, diasPorConcepto: {} };
@@ -371,7 +377,7 @@ const PlanillasRegionales2QPreview: React.FC = () => {
                                 </div>
                                 <ul className="space-y-0.5 ml-5 list-disc">
                                     {data.warnings.map((w, i) => (
-                                        <li key={i}><Text size="xs" className="text-amber-700 dark:text-amber-400 text-[10px]">{w}</Text></li>
+                                        <li key={`${w.id || w.cedula || 'w'}-${i}`}><Text size="xs" className="text-amber-700 dark:text-amber-400 text-[10px]">{w}</Text></li>
                                     ))}
                                 </ul>
                             </div>
@@ -403,7 +409,7 @@ const PlanillasRegionales2QPreview: React.FC = () => {
                                             </thead>
                                             <tbody className="divide-y divide-amber-100 dark:divide-amber-800">
                                                 {warningsDetalle.map((w, i) => (
-                                                    <tr key={i} className="hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                                                    <tr key={`${w.cedula || 'warn'}-${i}`} className="hover:bg-amber-50 dark:hover:bg-amber-900/20">
                                                         <td className="p-2"><Text size="xs" className="font-mono uppercase">{w.cedula}</Text></td>
                                                         <td className="p-2"><Text size="xs" className="uppercase">{w.nombre}</Text></td>
                                                         <td className="p-2"><Badge variant={w.motivo.includes('EXCEPCION') ? 'warning' : 'error'} size="xs">{w.motivo}</Badge></td>
@@ -445,8 +451,8 @@ const PlanillasRegionales2QPreview: React.FC = () => {
                                                     />
                                                 </div>
                                             </th>
-                                            <th className="text-left py-2 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
-                                                <div className="flex items-center justify-start gap-1">
+                                            <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
+                                                <div className="flex items-center justify-center gap-1">
                                                     <Text as="span" size="xs" color="inherit">NOMBRE</Text>
                                                     <FilterDropdown 
                                                         options={getColumnOptions('nombre')}
@@ -495,7 +501,7 @@ const PlanillasRegionales2QPreview: React.FC = () => {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                         {filteredRows.map((row, i) => (
-                                            <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                            <tr key={`${row.cedula || 'row'}-${i}`} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                                 <td className="p-2 text-slate-400 font-mono w-12 border-r border-slate-50 text-center">{i + 1}</td>
                                                 <td className="p-2 font-mono border-r border-slate-50 text-center">{row.cedula}</td>
                                                 <td className="p-2 border-r border-slate-50 text-left pl-4">{row.nombre}</td>

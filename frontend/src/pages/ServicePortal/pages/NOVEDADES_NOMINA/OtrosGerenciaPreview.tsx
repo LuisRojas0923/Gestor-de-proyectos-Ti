@@ -44,6 +44,12 @@ const MESES = [
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 
+const CURRENCY_FORMATTER = new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0
+});
+
 const OtrosGerenciaPreview: React.FC = () => {
     const navigate = useNavigate();
     const { addNotification } = useNotifications();
@@ -152,14 +158,14 @@ const OtrosGerenciaPreview: React.FC = () => {
             .sort((a, b) => (a.nombre_asociado || "").localeCompare(b.nombre_asociado || ""));
     }, [data, searchText, activeFilters]);
 
-    const getColumnOptions = (key: keyof OtrosGerenciaRow) => {
+    const getColumnOptions = React.useCallback((key: keyof OtrosGerenciaRow) => {
         if (!data) return [];
         const uniqueValues = Array.from(new Set(data.rows.map(r => String(r[key] || '').toUpperCase())));
         return uniqueValues.sort().map(v => ({ label: v, value: v }));
-    };
+    }, [data]);
 
-    const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
+    const formatCurrency = React.useCallback((val: number) =>
+        CURRENCY_FORMATTER.format(val), []);
 
     const summaries = useMemo(() => {
         const porEmpresa: Record<string, number> = {};
@@ -302,7 +308,7 @@ const OtrosGerenciaPreview: React.FC = () => {
                                             <Text weight="bold" size="xs" className="text-amber-800 dark:text-amber-300">Advertencias ({data.warnings.length})</Text>
                                         </div>
                                         <ul className="space-y-0.5 ml-6 list-disc">
-                                            {data.warnings.map((w, i) => <li key={i}><Text size="xs" className="text-amber-700 dark:text-amber-400 text-[10px]">{w}</Text></li>)}
+                                            {data.warnings.map((w, i) => <li key={`${w.id || w.cedula || 'w'}-${i}`}><Text size="xs" className="text-amber-700 dark:text-amber-400 text-[10px]">{w}</Text></li>)}
                                         </ul>
                                     </div>
                                 )}
@@ -330,7 +336,7 @@ const OtrosGerenciaPreview: React.FC = () => {
                                                     </thead>
                                                     <tbody className="divide-y divide-red-100">
                                                         {warningsDetalle.map((w, i) => (
-                                                            <tr key={i} className="hover:bg-red-50">
+                                                            <tr key={`${w.cedula || 'warn'}-${i}`} className="hover:bg-red-50">
                                                                 <td className="p-1.5 font-mono">{w.cedula}</td>
                                                                 <td className="p-1.5">{w.nombre}</td>
                                                                 <td className="p-1.5"><Badge variant="error" size="xs">{w.motivo}</Badge></td>
@@ -367,8 +373,8 @@ const OtrosGerenciaPreview: React.FC = () => {
                                                             />
                                                         </div>
                                                     </th>
-                                                    <th className="text-left py-2 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
-                                                        <div className="flex items-center justify-start gap-1">
+                                                    <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-[232px] border-b border-white/5 border-r border-white/5">
+                                                        <div className="flex items-center justify-center gap-1">
                                                             <Text as="span" size="xs" color="inherit">NOMBRE</Text>
                                                             <FilterDropdown 
                                                                 options={getColumnOptions('nombre_asociado')}
@@ -409,7 +415,7 @@ const OtrosGerenciaPreview: React.FC = () => {
                                             </thead>
                                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                                 {filteredRows.map((row, i) => (
-                                                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                                    <tr key={`${row.cedula || 'row'}-${i}`} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                                         <td className="p-2 text-slate-400 font-mono w-10 border-r border-slate-50 text-center">{i + 1}</td>
                                                         <td className="p-2 font-mono w-24 border-r border-slate-50 text-center">{row.cedula}</td>
                                                         <td className="p-2 border-r border-slate-50 w-[232px] text-left pl-4">{row.nombre_asociado}</td>

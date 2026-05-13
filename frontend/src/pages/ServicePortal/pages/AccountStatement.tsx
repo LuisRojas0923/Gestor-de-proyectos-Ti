@@ -236,7 +236,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
                                     </td>
                                 </tr>
                             ) : movimientos.map((mov: Movimiento, i: number) => (
-                                <tr key={i} className="hover:bg-blue-100 transition-colors group border-b border-neutral-300">
+                                <tr key={`${mov.id || mov.cedula || 'mov'}-${i}`} className="hover:bg-blue-100 transition-colors group border-b border-neutral-300">
                                     <td className="p-3 border-r border-b border-neutral-300 whitespace-nowrap text-center bg-white group-hover:bg-transparent transition-colors">
                                         <Text variant="caption" weight="medium" color="inherit" className="text-[#374151]">
                                             {mov.fechaaplicacion ? mov.fechaaplicacion.split('T')[0].split('-').reverse().join('/') : '---'}

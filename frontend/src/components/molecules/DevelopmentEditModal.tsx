@@ -160,7 +160,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
                 <div className="space-y-1">
                   {errors.map((error, index) => (
-                    <Text key={index} variant="caption" color="error" className="block">• {error}</Text>
+                    <Text key={`${error.id || error.cedula || 'error'}-${index}`} variant="caption" color="error" className="block">• {error}</Text>
                   ))}
                 </div>
               </div>

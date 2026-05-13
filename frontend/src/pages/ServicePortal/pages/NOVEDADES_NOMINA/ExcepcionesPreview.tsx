@@ -33,6 +33,12 @@ const TIPOS_EXCEPCION = [
     { value: 'PORCENTAJE_EMPRESA', label: 'Porcentaje Pago Empresa' }
 ];
 
+const CURRENCY_FORMATTER = new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0
+});
+
 const ExcepcionesPreview: React.FC = () => {
     const navigate = useNavigate();
     const { addNotification } = useNotifications();

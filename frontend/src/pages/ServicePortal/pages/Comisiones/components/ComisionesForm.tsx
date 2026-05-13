@@ -118,7 +118,7 @@ const ComisionesForm: React.FC<ComisionesFormProps> = ({ onProcess, isProcessing
                     </thead>
                     <tbody className="divide-y divide-[var(--color-border)]/10">
                         {rows.map((row, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20">
+                            <tr key={`${row.id || row.cedula || 'row'}-${idx}`} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/20">
                                 <td className="p-2 text-center text-slate-400 font-mono text-xs">{idx + 1}</td>
                                 <td className="p-2">
                                     <div className="relative">

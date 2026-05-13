@@ -303,7 +303,7 @@ const ComisionesView: React.FC = () => {
                                                     </thead>
                                                     <tbody className="divide-y divide-amber-100 dark:divide-amber-800">
                                                         {warningsDetalle.map((w: WarningDetalle, i: number) => (
-                                                            <tr key={i} className="hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                                                            <tr key={`${w.id || w.cedula || 'w'}-${i}`} className="hover:bg-amber-50 dark:hover:bg-amber-900/20">
                                                                 <td className="p-2"><Text size="xs" className="font-mono uppercase">{w.cedula}</Text></td>
                                                                 <td className="p-2"><Text size="xs" className="uppercase">{w.nombre}</Text></td>
                                                                 <td className="p-2">
