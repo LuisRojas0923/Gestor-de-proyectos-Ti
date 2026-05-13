@@ -431,7 +431,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'gestion',
             label: 'Gestión',
-            minWidth: '90px',
+            minWidth: '120px',
             render: (row) => {
                 if (row._isDraft) return null;
                 const normalizedStatus = row.estado.toLowerCase();
