@@ -128,7 +128,7 @@ const CargaLegacy: React.FC<CargaLegacyProps> = ({ apiBase, onUploadSuccess }) =
                     {result.errores.length > 0 && (
                         <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
                             {result.errores.slice(0, 10).map((err, i) => (
-                                <Text key={i} variant="caption" className="block text-red-500">• {err}</Text>
+                                <Text key={`${err.id || err.cedula || 'err'}-${i}`} variant="caption" className="block text-red-500">• {err}</Text>
                             ))}
                             {result.errores.length > 10 && <Text variant="caption" className="text-neutral-400 italic">...y {result.errores.length - 10} errores más</Text>}
                         </div>

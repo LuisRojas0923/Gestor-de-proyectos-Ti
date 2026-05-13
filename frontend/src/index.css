@@ -318,3 +318,63 @@ body {
   width: 0;
   height: 20px;
 }
+
+/* ===================================================
+   SISTEMA DE DISEÑO: Unificación y Reducción de Fuentes en Tablas
+   Garantiza que todas las tablas tengan el mismo tamaño de letra
+   y disminuye el tamaño de los encabezados de forma armónica.
+   =================================================== */
+table {
+  font-size: 11px !important;
+}
+
+table th {
+  position: relative !important;
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  transition: background-color 0.2s ease-in-out, filter 0.2s ease-in-out !important;
+}
+
+table th:has(button) {
+  cursor: pointer !important;
+}
+
+table th:has(button):hover {
+  filter: brightness(1.15) !important;
+}
+
+table th,
+table th *,
+table th span,
+table th p {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+table td,
+table td *,
+table td span,
+table td p,
+table td div {
+  font-size: 11px !important;
+}
+
+/* Conservar el tamaño ultra-compacto de las etiquetas del sistema de diseño */
+table td .tag-badge {
+  font-size: 9px !important;
+}
+
+/* ===================================================
+   ACCESIBILIDAD WCAG 2.3.3: Modo de Movimiento Reducido
+   =================================================== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

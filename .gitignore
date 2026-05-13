@@ -53,3 +53,7 @@ testing/logs/
 test_output.txt
 graphify-out/
 .agent/
+
+# Uploads
+backend_v2/uploads/nomina/
+/frontend/respaldo_codigo_muerto/

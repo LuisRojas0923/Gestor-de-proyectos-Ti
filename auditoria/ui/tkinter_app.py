@@ -44,7 +44,7 @@ class AuditApp:
         self.lbl_files = tk.Label(top, text="Archivos: 0", font=("Arial", 12), bg="#f0f0f0", fg="#666")
         self.lbl_files.pack(side=tk.LEFT, padx=20)
         
-        self.lbl_info = tk.Label(top, text="📁 Escaneando proyecto...", font=("Arial", 10), bg="#f0f0f0", fg="#888")
+        self.lbl_info = tk.Label(top, text="Escaneando proyecto...", font=("Arial", 10), bg="#f0f0f0", fg="#888")
         self.lbl_info.pack(side=tk.LEFT, padx=20)
         
         # Botones
@@ -190,13 +190,13 @@ class AuditApp:
         # Actualizar labels
         self.lbl_lines.config(text=f"Total Líneas: {summary['total_lines']:,}")
         self.lbl_files.config(text=f"Archivos: {summary['total_files']}")
-        self.lbl_info.config(text=f"🎨 {len(design)} diseño | 🛡️ {len(security)} seguridad | ⚠️ {len(reliability)} fiabilidad | 🏗️ {len(structure)} estructura")
+        self.lbl_info.config(text=f"{len(design)} diseño | {len(security)} seguridad | {len(reliability)} fiabilidad | {len(structure)} estructura")
         self.status.set("Escaneo completado.")
         
         # Imprimir auditoría en consola
         if design:
             print("\n" + "="*80)
-            print("🎨 AUDITORÍA DEL SISTEMA DE DISEÑO")
+            print("AUDITORIA DEL SISTEMA DE DISEÑO")
             print("="*80)
             for item in design:
                 print(f"[{item['severity']}] {item['file']}:{item['line']} - {item['element']}")

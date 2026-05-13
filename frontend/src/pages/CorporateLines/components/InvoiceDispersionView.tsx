@@ -205,7 +205,7 @@ export const InvoiceDispersionView: React.FC<Props> = ({
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700">
                 {report.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/20 transition-colors">
+                  <tr key={`${row.id || row.cedula || 'row'}-${idx}`} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/20 transition-colors">
                     <td className="px-6 py-4 font-medium text-primary">{row.co}</td>
                     <td className="px-6 py-4 text-right">${row.cargo_mes?.toLocaleString()}</td>
                     <td className="px-6 py-4 text-right text-red-500">${row.descuento_mes?.toLocaleString()}</td>

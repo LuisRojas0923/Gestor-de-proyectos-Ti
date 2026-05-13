@@ -400,7 +400,7 @@ export const ActivityCreateModal: React.FC<ActivityCreateModalProps> = ({
             {errors.length > 0 && (
               <div className={`mt-4 p-3 rounded-md ${darkMode ? 'bg-red-900/20 border border-red-800 text-red-300' : 'bg-red-50 border border-red-200 text-red-700'}`}>
                 <ul className="list-disc pl-5 text-sm">
-                  {errors.map((error, i) => (<li key={i}>{error}</li>))}
+                  {errors.map((error, i) => (<li key={`${error.id || error.cedula || 'error'}-${i}`}>{error}</li>))}
                 </ul>
               </div>
             )}

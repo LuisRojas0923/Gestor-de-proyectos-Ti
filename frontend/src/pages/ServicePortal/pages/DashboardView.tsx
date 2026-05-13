@@ -1,49 +1,66 @@
 import { ActionCard } from '../../../components/molecules';
 import { Title, Text } from '../../../components/atoms';
-import { FileText, Briefcase } from 'lucide-react';
+import { FileText, Briefcase, Plus } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
 import sistemasolicitudes from '../../../assets/images/categories/logistico.png';
 import imgInventario from '../../../assets/images/categories/Consultar Reportes.png';
+import imgNovedadesNomina from '../../../assets/images/categories/NOVEDADES_NOMINA.png';
+import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'contabilidad' | 'gestion_actividades') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'comisiones' | 'gestion_actividades') => void;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
+    const userRole = (user?.rol || user?.role || '').toLowerCase();
     const permissions: string[] = user?.permissions || [];
 
     const canSeeSolicitudes = moduleStatus['mis_solicitudes'] !== false && (
         permissions.includes('mis_solicitudes') ||
         permissions.includes('sistemas') ||
         permissions.includes('mejoramiento') ||
-        permissions.includes('desarrollo')
+        permissions.includes('desarrollo') ||
+        ['admin', 'director'].includes(userRole)
     );
 
-    const canSeeRequisiciones = moduleStatus['requisiciones'] !== false &&
-        permissions.includes('requisiciones');
+    const canSeeRequisiciones = moduleStatus['requisiciones'] !== false && (
+        permissions.includes('requisiciones') ||
+        ['admin', 'director'].includes(userRole)
+    );
 
-    const canSeeReservaSalas = moduleStatus['reserva_salas'] !== false &&
-        permissions.includes('reserva_salas');
+    const canSeeReservaSalas = moduleStatus['reserva_salas'] !== false && (
+        permissions.includes('reserva_salas') ||
+        ['admin', 'director'].includes(userRole)
+    );
 
     const canSeeViaticos = moduleStatus['viaticos_gestion'] !== false && (
         permissions.includes('viaticos_gestion') ||
-        user?.viaticante === true
+        user?.viaticante === true ||
+        ['admin', 'director', 'manager'].includes(userRole)
     );
 
-    const canSeeInventario = moduleStatus['inventario_2026'] !== false &&
-        permissions.includes('inventario_2026');
+    const canSeeInventario = moduleStatus['inventario_2026'] !== false && (
+        permissions.includes('inventario_2026') ||
+        ['admin', 'director'].includes(userRole)
+    );
+    
+    const canSeeNomina = moduleStatus['nomina_novedades'] !== false && (
+        permissions.includes('nomina_novedades') ||
+        ['admin', 'director'].includes(userRole)
+    );
 
     const canSeeContabilidad = moduleStatus['contabilidad'] !== false &&
-        permissions.includes('gestion_humana');
+        (permissions.includes('gestion_humana') || ['admin', 'director'].includes(userRole));
 
     const canSeeGestionActividades =
         permissions.includes('developments') ||
         permissions.includes('validaciones_asignacion') ||
-        permissions.includes('jerarquia_organizacional');
+        permissions.includes('jerarquia_organizacional') ||
+        ['admin', 'director'].includes(userRole);
 
     return (
         <div className="space-y-12 py-6">
@@ -91,6 +108,24 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                     />
                 )}
 
+                {canSeeNomina && (
+                    <ActionCard
+                        title="Novedades de Nómina"
+                        description="Carga y procesamiento de novedades para SOLID."
+                        icon={<img src={imgNovedadesNomina} alt="Novedades de Nómina" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onNavigate('nomina')}
+                    />
+                )}
+
+                {(userRole === 'admin' || userRole === 'director') && (
+                    <ActionCard
+                        title="Comisiones"
+                        description="Cálculo y procesamiento de comisiones para el personal."
+                        icon={<img src={imgComisiones} alt="Gestión de Comisiones" className="w-full h-full object-contain p-2" />}
+                        onClick={() => onNavigate('comisiones')}
+                    />
+                )}
+                
                 {canSeeInventario && (
                     <ActionCard
                         title="Inventario 2026"

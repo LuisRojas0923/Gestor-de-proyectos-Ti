@@ -44,7 +44,7 @@ const TicketAdditionalInfo: React.FC<TicketAdditionalInfoProps> = ({ ampliacione
             <div className="relative pl-6 space-y-6 before:content-[''] before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-gradient-to-b before:from-blue-500/40 before:via-slate-200 dark:before:via-slate-800 before:to-transparent">
                 {parsedAmpliaciones.map((amp, index) => (
                     <div 
-                        key={index} 
+                        key={`${amp.id || amp.cedula || 'amp'}-${index}`} 
                         className={`relative animate-in slide-in-from-left-4 duration-500 ${
                             index === 0 ? 'delay-0' : 
                             index === 1 ? 'delay-100' : 

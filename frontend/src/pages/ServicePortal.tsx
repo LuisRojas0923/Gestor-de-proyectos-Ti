@@ -28,8 +28,37 @@ import AssignmentValidations from './AssignmentValidations';
 import OrganizationalHierarchy from './OrganizationalHierarchy';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import PortalLayout from './ServicePortal/PortalLayout';
+import NominaDashboard from './ServicePortal/pages/NOVEDADES_NOMINA/NominaDashboard';
+import NominaUploadView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaUploadView';
+import NominaPreviewView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaPreviewView';
+import NominaSummaryView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaSummaryView';
+import NominaHistorialView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaHistorialView';
+import GrancoopPreview from './ServicePortal/pages/NOVEDADES_NOMINA/GrancoopPreview';
+import BeneficiarPreview from './ServicePortal/pages/NOVEDADES_NOMINA/BeneficiarPreview';
+import HdiPreview from './ServicePortal/pages/NOVEDADES_NOMINA/HdiPreview';
+import BogotaLibranzaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/BogotaLibranzaPreview';
+import DaviviendaLibranzaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/DaviviendaLibranzaPreview';
+import OccidenteLibranzaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/OccidenteLibranzaPreview';
+import CamposantoPreview from './ServicePortal/pages/NOVEDADES_NOMINA/CamposantoPreview';
+import RecordarPreview from './ServicePortal/pages/NOVEDADES_NOMINA/RecordarPreview';
+import PolizasVehiculosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/PolizasVehiculosPreview';
+import MedicinaPrepagadaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/MedicinaPrepagadaPreview';
+import OtrosGerenciaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/OtrosGerenciaPreview';
+import ControlDescuentosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosPreview';
+import ControlDescuentosDashboard from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosDashboard';
+import ControlDescuentosTabla from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosTabla';
+import ControlDescuentosConceptos from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosConceptos';
+import ControlDescuentosRegistro from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosRegistro';
+import CelularesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/CelularesPreview';
+import RetencionesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/RetencionesPreview';
+import EmbargosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/EmbargosPreview';
+import ExcepcionesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/ExcepcionesPreview';
+import PlanillasRegionales1QPreview from './ServicePortal/pages/NOVEDADES_NOMINA/PlanillasRegionales1QPreview';
+import PlanillasRegionales2QPreview from './ServicePortal/pages/NOVEDADES_NOMINA/PlanillasRegionales2QPreview';
+import TablaMaestraView from './ServicePortal/pages/NOVEDADES_NOMINA/TablaMaestraView';
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
+import ComisionesView from './ServicePortal/pages/Comisiones';
 
 import {
     CategoryWrapper,
@@ -165,10 +194,13 @@ const ServicePortal: React.FC = () => {
                             }
                             else if (v === 'status') navigate('/service-portal/mis-tickets');
                             else if (v === 'reserva_salas') navigate('/service-portal/reserva-salas');
+                            else if (v === 'nomina') navigate('/service-portal/novedades-nomina');
                             else if (v === 'requisiciones') navigate('/service-portal/requisiciones');
                             else if (v === 'inventario') navigate('/service-portal/inventario');
                             else if (v === 'contabilidad') navigate('/service-portal/gestion-humana');
                             else if (v === 'gestion_actividades') navigate('/service-portal/gestion-actividades');
+                            else if (v === 'comisiones') navigate('/service-portal/comisiones');
+
                         }}
                     />
                 } />
@@ -337,6 +369,41 @@ const ServicePortal: React.FC = () => {
                 <Route path="reserva-salas" element={
                     <ProtectedRoute moduleCode="reserva_salas">
                         <ReservaSalasView onBack={() => navigate('/service-portal/inicio')} />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="novedades-nomina" element={<NominaDashboard />} />
+                <Route path="novedades-nomina/LIBRANZAS/BOGOTA LIBRANZA" element={<BogotaLibranzaPreview />} />
+                <Route path="novedades-nomina/LIBRANZAS/DAVIVIENDA LIBRANZA" element={<DaviviendaLibranzaPreview />} />
+                <Route path="novedades-nomina/LIBRANZAS/OCCIDENTE LIBRANZA" element={<OccidenteLibranzaPreview />} />
+                <Route path="novedades-nomina/COOPERATIVAS/GRANCOOP" element={<GrancoopPreview />} />
+                <Route path="novedades-nomina/COOPERATIVAS/BENEFICIAR" element={<BeneficiarPreview />} />
+                <Route path="novedades-nomina/OTROS/SEGUROS HDI" element={<HdiPreview />} />
+                <Route path="novedades-nomina/FUNEBRES/CAMPOSANTO" element={<CamposantoPreview />} />
+                <Route path="novedades-nomina/FUNEBRES/RECORDAR" element={<RecordarPreview />} />
+                <Route path="novedades-nomina/OTROS/POLIZAS VEHICULOS" element={<PolizasVehiculosPreview />} />
+                <Route path="novedades-nomina/OTROS/MEDICINA PREPAGADA" element={<MedicinaPrepagadaPreview />} />
+                <Route path="novedades-nomina/OTROS/OTROS GERENCIA" element={<OtrosGerenciaPreview />} />
+                <Route path="novedades-nomina/OTROS/GESTION EXCEPCIONES" element={<ExcepcionesPreview />} />
+                <Route path="novedades-nomina/NOVEDADES/PLANILLAS REGIONALES 1Q" element={<PlanillasRegionales1QPreview />} />
+                <Route path="novedades-nomina/NOVEDADES/PLANILLAS REGIONALES 2Q" element={<PlanillasRegionales2QPreview />} />
+                <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS" element={<ControlDescuentosTabla />} />
+                <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/preview" element={<ControlDescuentosPreview />} />
+                <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/tabla" element={<ControlDescuentosTabla />} />
+                <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/conceptos" element={<ControlDescuentosConceptos />} />
+                <Route path="novedades-nomina/DESCUENTOS/CONTROL DE DESCUENTOS/registro" element={<ControlDescuentosRegistro />} />
+                <Route path="novedades-nomina/DESCUENTOS/CELULARES" element={<CelularesPreview />} />
+                <Route path="novedades-nomina/DESCUENTOS/RETENCIONES" element={<RetencionesPreview />} />
+                <Route path="novedades-nomina/DESCUENTOS/EMBARGOS" element={<EmbargosPreview />} />
+                <Route path="novedades-nomina/:category/:subcategory" element={<NominaUploadView />} />
+                <Route path="novedades-nomina/preview/:archivoId" element={<NominaPreviewView />} />
+                <Route path="novedades-nomina/resumen" element={<NominaSummaryView />} />
+                <Route path="novedades-nomina/tabla-maestra" element={<TablaMaestraView />} />
+                <Route path="novedades-nomina/historial" element={<NominaHistorialView />} />
+                
+                <Route path="comisiones" element={
+                    <ProtectedRoute moduleCode="comisiones">
+                        <ComisionesView />
                     </ProtectedRoute>
                 } />
 

@@ -34,3 +34,4 @@ export { default as DeleteReportConfirmModal } from './DeleteReportConfirmModal'
 export { default as ReportLockedModal } from './ReportLockedModal';
 export { FilterDropdown } from './FilterDropdown';
 export { default as FilterSegment } from './FilterSegment';
+export { default as FilePicker } from './FilePicker';

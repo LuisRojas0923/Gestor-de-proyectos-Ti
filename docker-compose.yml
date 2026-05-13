@@ -5,7 +5,7 @@ services:
       context: ./backend_v2
       dockerfile: Dockerfile
     ports:
-      - "8000:8000" # Re-expuesto para acceso directo por IP:8000
+      - "8001:8000" # Re-expuesto para acceso directo por IP:8001 (Cambiado de 8000 por conflicto)
     env_file:
       - .env
     environment:
@@ -23,10 +23,13 @@ services:
       - WATCHFILES_FORCE_POLLING=true
     volumes:
       - ./backend_v2:/app
+      - ./backend_v2/uploads:/app/uploads
       - ./GestionTi_SoporteFiles:/app/storage/attachments
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload # Modo Desarrollo
     networks:
       - app-network
@@ -38,6 +41,7 @@ services:
       - app-network
 
   frontend:
+    # ... (rest of frontend config)
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
@@ -53,10 +57,22 @@ services:
       - ./frontend:/app
       - /app/node_modules
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     networks:
       - app-network
 
+  adminer:
+    image: adminer
+    container_name: gestor-de-proyectos-ti-adminer
+    restart: always
+    ports:
+      - "8085:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
 
   db:
     image: postgres:15-alpine
@@ -71,7 +87,12 @@ services:
       - TZ=America/Bogota
     command: postgres -c hba_file=/etc/postgresql/pg_hba.conf
     ports:
-      - "5432:5432" # Re-expuesto para mantenimiento
+      - "5433:5432" # Re-expuesto para mantenimiento (Cambiado de 5432 por conflicto)
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-user} -d ${DB_NAME:-project_manager}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
 
