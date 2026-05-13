@@ -296,7 +296,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'index',
             label: '#',
-            minWidth: '40px',
+            minWidth: '32px',
             centered: true,
             filterable: true,
             render: (row) => (
@@ -308,7 +308,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'completado',
             label: '',
-            minWidth: '40px',
+            minWidth: '36px',
             centered: true,
             render: (row) => row._isDraft ? null : (
                 <Button
@@ -332,7 +332,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'titulo',
             label: 'Tarea',
-            minWidth: '260px',
+            minWidth: '160px',
             flex: true,
             filterable: true,
             render: (row) => row._isDraft ? (
@@ -356,7 +356,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'estado',
             label: 'Estado',
-            minWidth: '110px',
+            minWidth: '90px',
             filterable: true,
             render: (row) => (
                 <Badge variant={getStatusVariant(row.estado)} size="sm">{row.estado}</Badge>
@@ -364,8 +364,8 @@ setTogglingIds(prev => new Set([...prev, id]));
         },
         {
             key: 'fecha_inicio_estimada',
-            label: 'Fecha inicio',
-            minWidth: '90px',
+            label: 'F.Inicio',
+            minWidth: '72px',
             filterable: false,
             render: (row) => (
                 <Text variant="caption" className="truncate">
@@ -375,8 +375,8 @@ setTogglingIds(prev => new Set([...prev, id]));
         },
         {
             key: 'fecha_fin_estimada',
-            label: 'Fecha Fin',
-            minWidth: '90px',
+            label: 'F.Fin',
+            minWidth: '72px',
             filterable: false,
             render: (row) => (
                 <Text variant="caption" className="truncate">
@@ -387,7 +387,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'seguimiento',
             label: 'Seguimiento',
-            minWidth: '192px',
+            minWidth: '100px',
             filterable: true,
             render: (row) => (
                 <Text variant="caption" className="truncate" title={row.seguimiento}>
@@ -397,8 +397,8 @@ setTogglingIds(prev => new Set([...prev, id]));
         },
         {
             key: 'lider',
-            label: 'Líder de actividad',
-            minWidth: '144px',
+            label: 'Líder',
+            minWidth: '100px',
             filterable: true,
             render: (row) => row._isDraft ? (
                 <AssignableUserSelect
@@ -414,14 +414,14 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'validacion',
             label: 'Validación',
-            minWidth: '112px',
+            minWidth: '90px',
             filterable: true,
             render: (row) => <ValidationStatusBadge status={row.estado_validacion} />,
         },
         {
             key: 'compromiso',
             label: 'Compromiso',
-            minWidth: '192px',
+            minWidth: '100px',
             render: (row) => (
                 <Text variant="caption" className="truncate" title={row.compromiso}>
                     {row.compromiso || '-'}
@@ -431,13 +431,12 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'gestion',
             label: 'Gestión',
-            minWidth: '120px',
+            minWidth: '90px',
             render: (row) => {
                 if (row._isDraft) return null;
                 const normalizedStatus = row.estado.toLowerCase();
                 const isCompleted = normalizedStatus.includes('complet');
                 const isInProgress = normalizedStatus.includes('progreso') || normalizedStatus.includes('curso');
-                const isPaused = normalizedStatus.includes('pausa');
 
                 return (
                     <div className="flex items-center gap-1">
@@ -447,8 +446,8 @@ setTogglingIds(prev => new Set([...prev, id]));
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'play', row); }}
                                 icon={Play}
-                                className="h-8 w-8 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:scale-110 transition-transform dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 shadow-sm"
-                                title="Iniciar tarea (Play)"
+                                className="h-7 w-7 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:scale-110 transition-transform dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 shadow-sm"
+                                title="Iniciar"
                             />
                         )}
                         {isInProgress && (
@@ -457,8 +456,8 @@ setTogglingIds(prev => new Set([...prev, id]));
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'pause', row); }}
                                 icon={CirclePause}
-                                className="h-8 w-8 !p-0 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:scale-110 transition-transform dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 shadow-sm"
-                                title="Pausar tarea"
+                                className="h-7 w-7 !p-0 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:scale-110 transition-transform dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 shadow-sm"
+                                title="Pausar"
                             />
                         )}
                         {!isCompleted && (
@@ -467,8 +466,8 @@ setTogglingIds(prev => new Set([...prev, id]));
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'finish', row); }}
                                 icon={CheckCircle2}
-                                className="h-8 w-8 !p-0 text-green-600 bg-green-50 hover:bg-green-100 hover:scale-110 transition-transform dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 shadow-sm"
-                                title="Terminar tarea (Check)"
+                                className="h-7 w-7 !p-0 text-green-600 bg-green-50 hover:bg-green-100 hover:scale-110 transition-transform dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 shadow-sm"
+                                title="Terminar"
                             />
                         )}
                     </div>
@@ -477,8 +476,8 @@ setTogglingIds(prev => new Set([...prev, id]));
         },
         {
             key: 'archivo',
-            label: 'Archivo',
-            minWidth: '64px',
+            label: '📎',
+            minWidth: '40px',
             centered: true,
             render: (row) => row.archivo_url ? (
                 <a href={row.archivo_url} target="_blank" rel="noreferrer" className="text-[var(--color-primary)] hover:underline">
@@ -491,7 +490,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'porcentaje_avance',
             label: 'Avance',
-            minWidth: '90px',
+            minWidth: '72px',
             filterable: true,
             render: (row) => (
                 <div className="w-full text-right">
@@ -585,7 +584,7 @@ setTogglingIds(prev => new Set([...prev, id]));
                         data={rowData}
                         keyExtractor={(row) => row._isDraft ? 'draft' : String(row.id)}
                         renderRowActions={renderRowActions}
-                        actionsMinWidth="160px"
+                        actionsMinWidth="90px"
                         columnFilters={filters}
                         columnOptions={uniqueValues}
                         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
