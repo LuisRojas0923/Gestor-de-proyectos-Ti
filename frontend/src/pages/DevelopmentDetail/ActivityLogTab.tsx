@@ -57,14 +57,14 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
             minWidth: '120px',
             filterable: true,
             render: (a) => (
-                <span className={`
-                    inline-flex px-2 py-0.5 text-[9px] font-bold rounded-full uppercase border
+                <Text as="span" weight="bold" className={`
+                    inline-flex px-2 py-0.5 text-[9px] rounded-full uppercase border
                     ${a.status === 'completada' 
                         ? 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400 border-green-200 dark:border-green-800' 
                         : 'text-blue-800 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800'}
                 `}>
                     {a.status}
-                </span>
+                </Text>
             )
         },
         {
@@ -93,12 +93,12 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
                 <div className="flex flex-col gap-0.5">
                     {a.start_date && (
                         <div className="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400">
-                            <span className="font-bold opacity-50 uppercase">Ini:</span> {a.start_date}
+                            <Text as="span" variant="caption" weight="bold" className="opacity-50 uppercase">Ini:</Text> {a.start_date}
                         </div>
                     )}
                     {a.end_date && (
                         <div className="flex items-center gap-1 text-[9px] text-gray-500 dark:text-gray-400">
-                            <span className="font-bold opacity-50 uppercase">Fin:</span> {a.end_date}
+                            <Text as="span" variant="caption" weight="bold" className="opacity-50 uppercase">Fin:</Text> {a.end_date}
                         </div>
                     )}
                     {!a.start_date && !a.end_date && <Text variant="caption" color="text-secondary">-</Text>}
@@ -110,28 +110,31 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
     const renderRowActions = (a: Activity) => (
         <div className="flex items-center gap-1">
             {a.status !== 'completada' && (
-                <button 
+                <Button
+                    variant="ghost"
+                    size="xs"
+                    icon={CheckCircle2}
                     onClick={(e) => { e.stopPropagation(); onComplete(a); }}
-                    className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all"
+                    className="!p-1.5 !text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 !rounded-lg"
                     title="Marcar como completada"
-                >
-                    <CheckCircle2 size={16} />
-                </button>
+                />
             )}
-            <button 
+            <Button
+                variant="ghost"
+                size="xs"
+                icon={Pencil}
                 onClick={(e) => { e.stopPropagation(); onEdit(a); }}
-                className="p-1.5 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all"
+                className="!p-1.5 !text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 !rounded-lg"
                 title="Editar"
-            >
-                <Pencil size={16} />
-            </button>
-            <button 
+            />
+            <Button
+                variant="ghost"
+                size="xs"
+                icon={Trash2}
                 onClick={(e) => { e.stopPropagation(); onDelete(a); }}
-                className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                className="!p-1.5 !text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 !rounded-lg"
                 title="Eliminar"
-            >
-                <Trash2 size={16} />
-            </button>
+            />
         </div>
     );
 
@@ -148,13 +151,15 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
                             {filteredData.length} Registros
                         </Text>
                         {activeFilterCount > 0 && (
-                            <button 
+                            <Button
+                                variant="ghost"
+                                size="xs"
+                                icon={RotateCcw}
                                 onClick={clearAllFilters}
-                                className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-red-500 hover:text-red-600 transition-colors bg-red-50 dark:bg-red-900/10 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/20"
+                                className="!text-[10px] !font-bold !uppercase !tracking-tight !text-red-500 hover:!text-red-600 !bg-red-50 dark:!bg-red-900/10 !px-3 !py-1 !rounded-full !border !border-red-100 dark:!border-red-900/20"
                             >
-                                <RotateCcw size={12} />
                                 Limpiar filtros
-                            </button>
+                            </Button>
                         )}
                     </div>
                 </div>
@@ -185,7 +190,5 @@ const ActivityLogTab: React.FC<ActivityLogTabProps> = ({
         </div>
     );
 };
-
-export default ActivityLogTab;
 
 export default ActivityLogTab;

@@ -50,7 +50,7 @@ const GestionActividadesView: React.FC<Props> = ({ user, onNavigate, onBack }) =
                         className="group flex items-center gap-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-4 py-2 rounded-xl transition-all"
                     >
                         <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                        <span className="font-semibold text-base hidden sm:inline">Volver</span>
+                        <Text as="span" variant="body1" weight="semibold" className="hidden sm:inline">Volver</Text>
                     </Button>
                 </div>
 

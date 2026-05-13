@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, X, Check } from 'lucide-react';
-import { Text } from '../atoms/Text';
+import { Button, Input, Checkbox, Text } from '../atoms';
 
 interface ColumnFilterPopoverProps {
   columnKey: string;
@@ -40,13 +40,11 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
       let left = rect.left + window.scrollX;
       let opensUpward = false;
 
-      // Detección de borde inferior
       if (rect.bottom + POPOVER_HEIGHT > window.innerHeight) {
         top = rect.top + window.scrollY - POPOVER_HEIGHT - 4;
         opensUpward = true;
       }
 
-      // Detección de borde derecho
       if (left + POPOVER_WIDTH > window.innerWidth) {
         left = rect.right + window.scrollX - POPOVER_WIDTH;
       }
@@ -54,6 +52,13 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
       setCoords({ top, left, opensUpward });
     }
   }, [anchorRef]);
+
+  useEffect(() => {
+    if (popoverRef.current) {
+      popoverRef.current.style.top = `${coords.top}px`;
+      popoverRef.current.style.left = `${coords.left}px`;
+    }
+  }, [coords]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -73,7 +78,6 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
   return createPortal(
     <div
       ref={popoverRef}
-      style={{ top: coords.top, left: coords.left }}
       className={`
         fixed z-[9999] w-[250px]
         bg-white/90 dark:bg-neutral-800/95
@@ -91,59 +95,57 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
           <Text variant="caption" weight="bold" className="uppercase tracking-wider opacity-60">
             Filtrar: {title}
           </Text>
-          <button onClick={onClose} className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors">
-            <X size={14} className="text-neutral-400" />
-          </button>
+          <Button
+            variant="ghost"
+            size="xs"
+            icon={X}
+            onClick={onClose}
+            className="!p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 !rounded-lg"
+          />
         </div>
       </div>
 
       {/* Search */}
       <div className="px-3 py-2">
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar..."
-            className="
-              w-full pl-9 pr-3 py-1.5 text-xs rounded-xl
-              bg-neutral-100 dark:bg-neutral-700
-              border border-transparent focus:border-primary-400
-              outline-none transition-colors
-              dark:text-white
-            "
-            autoFocus
-          />
-        </div>
+        <Input
+          size="xs"
+          icon={Search}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Buscar..."
+          autoFocus
+          className="!bg-neutral-100 dark:!bg-neutral-700 !border-transparent focus:!border-primary-400 !rounded-xl dark:!text-white"
+        />
       </div>
 
       {/* Quick Actions */}
       <div className="px-3 flex gap-3 text-[10px] font-bold uppercase tracking-tight mb-1">
-        <button 
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => onSelectAll(columnKey)}
-          className="text-primary-600 hover:text-primary-700 dark:text-primary-400 transition-colors"
+          className="!text-primary-600 hover:!text-primary-700 dark:!text-primary-400"
         >
           Todo
-        </button>
-        <button 
+        </Button>
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => onClear(columnKey)}
-          className="text-red-500 hover:text-red-600 transition-colors"
+          className="!text-red-500 hover:!text-red-600"
         >
           Limpiar
-        </button>
+        </Button>
       </div>
 
       {/* Options List */}
       <div className="px-2 py-1 max-h-[200px] overflow-y-auto custom-scrollbar">
         {filteredOptions.length > 0 ? (
           filteredOptions.map(option => (
-            <label
+            <div
               key={option}
-              className="
-                flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer
-                hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors
-              "
+              className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+              onClick={() => onToggleOption(columnKey, option)}
             >
               <div className={`
                 w-4 h-4 rounded border flex items-center justify-center transition-all
@@ -153,14 +155,15 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
               `}>
                 {selectedValues.has(option) && <Check size={10} strokeWidth={4} />}
               </div>
-              <input
-                type="checkbox"
-                className="hidden"
+              <Checkbox
                 checked={selectedValues.has(option)}
                 onChange={() => onToggleOption(columnKey, option)}
+                className="hidden"
               />
-              <span className="text-xs truncate dark:text-neutral-300">{option}</span>
-            </label>
+              <Text variant="caption" className="truncate dark:text-neutral-300">
+                {option}
+              </Text>
+            </div>
           ))
         ) : (
           <div className="px-2 py-4 text-center">
@@ -171,15 +174,17 @@ export const ColumnFilterPopover: React.FC<ColumnFilterPopoverProps> = ({
 
       {/* Footer */}
       <div className="px-4 py-2 bg-neutral-50/50 dark:bg-neutral-900/30 border-t border-neutral-100 dark:border-neutral-700/50 flex justify-between items-center">
-        <span className="text-[10px] text-neutral-400">
+        <Text variant="caption" color="text-secondary" className="text-[10px]">
           {selectedValues.size} seleccionados
-        </span>
-        <button 
+        </Text>
+        <Button
+          variant="primary"
+          size="xs"
           onClick={onClose}
-          className="px-3 py-1 bg-primary-500 hover:bg-primary-600 text-white text-[10px] font-bold rounded-lg transition-colors"
+          className="!text-[10px] !font-bold !rounded-lg"
         >
           Aplicar
-        </button>
+        </Button>
       </div>
     </div>,
     document.body
