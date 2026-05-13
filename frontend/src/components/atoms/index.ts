@@ -20,7 +20,6 @@ export { default as ThemeToggle } from './ThemeToggle';
 export { ProgressBar } from './ProgressBar';
 export { MultiSelect } from './MultiSelect';
 export { AdobePdfIcon } from './AdobePdfIcon';
-export { default as FilterChip } from './FilterChip';
 
 // Componentes de Material Design (Legacy - Preferir versiones estándar)
 // Componentes de Material Design (Legacy - Preferir versiones estándar)
