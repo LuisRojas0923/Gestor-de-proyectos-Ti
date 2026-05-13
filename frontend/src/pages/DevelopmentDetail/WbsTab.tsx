@@ -296,7 +296,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'index',
             label: '#',
-            minWidth: '24px',
+            minWidth: '40px',
             centered: true,
             filterable: true,
             render: (row) => (
@@ -308,7 +308,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'completado',
             label: '',
-            minWidth: '48px',
+            minWidth: '40px',
             centered: true,
             render: (row) => row._isDraft ? null : (
                 <Button
@@ -356,7 +356,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'estado',
             label: 'Estado',
-            minWidth: '96px',
+            minWidth: '110px',
             filterable: true,
             render: (row) => (
                 <Badge variant={getStatusVariant(row.estado)} size="sm">{row.estado}</Badge>
@@ -365,7 +365,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'fecha_inicio_estimada',
             label: 'Fecha inicio',
-            minWidth: '80px',
+            minWidth: '90px',
             filterable: false,
             render: (row) => (
                 <Text variant="caption" className="truncate">
@@ -376,7 +376,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'fecha_fin_estimada',
             label: 'Fecha Fin',
-            minWidth: '80px',
+            minWidth: '90px',
             filterable: false,
             render: (row) => (
                 <Text variant="caption" className="truncate">
@@ -478,7 +478,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'archivo',
             label: 'Archivo',
-            minWidth: '48px',
+            minWidth: '64px',
             centered: true,
             render: (row) => row.archivo_url ? (
                 <a href={row.archivo_url} target="_blank" rel="noreferrer" className="text-[var(--color-primary)] hover:underline">
@@ -491,7 +491,7 @@ setTogglingIds(prev => new Set([...prev, id]));
         {
             key: 'porcentaje_avance',
             label: 'Avance',
-            minWidth: '80px',
+            minWidth: '90px',
             filterable: true,
             render: (row) => (
                 <div className="w-full text-right">
