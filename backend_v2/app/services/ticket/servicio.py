@@ -229,9 +229,16 @@ class ServicioTicket:
             except Exception as e_analista:
                 print(f"WARNING: No se pudo notificar al analista: {e_analista}")
 
-            # Notificación de Confirmación al Creador (Desactivada por petición: evitar auto-notificación)
-            """
+            # Notificación de Confirmación al Creador (Reactivada para dar feedback inmediato)
             try:
+                # Asegurar que cat_nombre esté definido (si no se entró al bloque de analista)
+                if 'cat_nombre' not in locals():
+                    res_cat_c = await db.execute(
+                        select(CategoriaTicket).where(CategoriaTicket.id == ticket_data.categoria_id)
+                    )
+                    cat_obj_c = res_cat_c.scalars().first()
+                    cat_nombre = cat_obj_c.nombre if cat_obj_c else ticket_data.categoria_id
+
                 if background_tasks:
                     background_tasks.add_task(
                         EmailService.enviar_confirmacion_ticket,
@@ -240,7 +247,7 @@ class ServicioTicket:
                         ticket_id=ticket_id,
                         asunto_ticket=ticket_data.asunto,
                         descripcion=ticket_data.descripcion,
-                        categoria=cat_nombre if 'cat_nombre' in locals() else ticket_data.categoria_id,
+                        categoria=cat_nombre,
                     )
                 else:
                     await EmailService.enviar_confirmacion_ticket(
@@ -249,11 +256,10 @@ class ServicioTicket:
                         ticket_id=ticket_id,
                         asunto_ticket=ticket_data.asunto,
                         descripcion=ticket_data.descripcion,
-                        categoria=cat_nombre if 'cat_nombre' in locals() else ticket_data.categoria_id,
+                        categoria=cat_nombre,
                     )
             except Exception as mail_err:
                 print(f"WARNING: No se pudo enviar el correo de confirmación: {mail_err}")
-            """
 
             return await cls.obtener_ticket_por_id(db, ticket_id)
         except Exception as e:

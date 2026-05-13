@@ -8,6 +8,8 @@ import DevelopmentDetail from '../pages/DevelopmentDetail';
 import Reports from '../pages/Reports';
 import Settings from '../pages/Settings';
 import ServicePortal from '../pages/ServicePortal';
+import AssignmentValidations from '../pages/AssignmentValidations';
+import OrganizationalHierarchy from '../pages/OrganizationalHierarchy';
 import TicketDetail from '../pages/TicketDetail';
 import TicketManagement from '../pages/TicketManagement';
 import DesignSystemCatalog from '../pages/DesignSystemCatalog';
@@ -43,6 +45,8 @@ const AppRouter: React.FC = () => {
           <Route path="indicators" element={<ProtectedRoute moduleCode="indicators"><Indicators /></ProtectedRoute>} />
           <Route path="chat" element={<ProtectedRoute moduleCode="chat"><Chat /></ProtectedRoute>} />
           <Route path="reports" element={<ProtectedRoute moduleCode="reports"><Reports /></ProtectedRoute>} />
+          <Route path="validaciones-asignacion" element={<ProtectedRoute moduleCode="validaciones_asignacion"><AssignmentValidations /></ProtectedRoute>} />
+          <Route path="jerarquia-organizacional" element={<ProtectedRoute moduleCode="jerarquia_organizacional"><OrganizationalHierarchy /></ProtectedRoute>} />
           <Route path="settings" element={<ProtectedRoute moduleCode="settings"><Settings /></ProtectedRoute>} />
           <Route path="ticket-management" element={<ProtectedRoute moduleCode="ticket-management"><TicketManagement /></ProtectedRoute>} />
           <Route path="admin/users" element={<ProtectedRoute moduleCode="user-admin"><UserAdmin /></ProtectedRoute>} />

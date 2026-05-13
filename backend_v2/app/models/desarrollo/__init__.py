@@ -30,6 +30,8 @@ from .plantilla_actividad import (
     AplicarPlantillaRequest,
 )
 
+from .requerimiento import RequerimientoDesarrollo
+
 # Para evitar problemas circulares con SQLModel y Pydantic al usar strings en Relationship
 try:
     Desarrollo.model_rebuild()
@@ -37,6 +39,7 @@ try:
     ActividadArbol.model_rebuild()
     PlantillaActividad.model_rebuild()
     PlantillaActividadArbol.model_rebuild()
+    RequerimientoDesarrollo.model_rebuild()
 except AttributeError:
     # Fallback para versiones más antiguas de Pydantic
     Desarrollo.update_forward_refs(Actividad=Actividad)
@@ -69,4 +72,5 @@ __all__ = [
     "PlantillaActividadLeer",
     "PlantillaActividadArbol",
     "AplicarPlantillaRequest",
+    "RequerimientoDesarrollo",
 ]

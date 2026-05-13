@@ -1,315 +1,382 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Eye, Search, X, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Eye, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
-import { useFilters, UseFiltersReturn } from './MyDevelopments/hooks/useFilters';
 import { useNotifications } from '../components/notifications/NotificationsContext';
-import { MaterialCard, Input, Select, Button, Title, Text } from '../components/atoms';
+import { Button, Title, Text } from '../components/atoms';
+import { DataTable, DataTableColumn } from '../components/molecules/DataTable';
+import { useColumnFilters } from '../hooks/useColumnFilters';
 import { CreateDevelopmentModal } from './MyDevelopments/CreateDevelopmentModal';
+import { DevelopmentWithCurrentStatus } from '../types';
+import { useApi } from '../hooks/useApi';
 
-// Hook personalizado para persistir filtros
-const usePersistedFilters = (filters: UseFiltersReturn) => {
-  const STORAGE_KEY = 'myDevelopments_filters';
-  const [isInitialized, setIsInitialized] = React.useState(false);
+type DevelopmentRow = DevelopmentWithCurrentStatus & {
+  nombre?: string;
+  descripcion?: string;
+  modulo?: string;
+  tipo?: string;
+  fecha_inicio?: string;
+  fecha_estimada_fin?: string;
+  autoridad?: string;
+  responsable?: string;
+  estado_general?: string;
+  porcentaje_progreso?: string | number;
+};
 
-  // Cargar filtros guardados al inicializar (solo una vez)
-  useEffect(() => {
-    const savedFilters = localStorage.getItem(STORAGE_KEY);
-    if (savedFilters && !isInitialized) {
-      try {
-        const parsed = JSON.parse(savedFilters);
-        // Aplicar filtros guardados
-        if (parsed.searchTerm !== undefined) filters.setSearchTerm(parsed.searchTerm);
-        if (parsed.sortBy) filters.setSortBy(parsed.sortBy);
-        if (parsed.providerFilter) filters.setProviderFilter(parsed.providerFilter);
-        if (parsed.moduleFilter) filters.setModuleFilter(parsed.moduleFilter);
-        if (parsed.responsibleFilter) filters.setResponsibleFilter(parsed.responsibleFilter);
-        if (parsed.statusFilter) filters.setStatusFilter(parsed.statusFilter);
-        if (parsed.stageFilter) filters.setStageFilter(parsed.stageFilter);
-        if (parsed.groupBy) filters.setGroupBy(parsed.groupBy);
-        console.log('Filtros cargados:', parsed); // Debug
-        setIsInitialized(true);
-      } catch (error) {
-        console.warn('Error cargando filtros guardados:', error);
-        setIsInitialized(true);
-      }
-    } else {
-      setIsInitialized(true);
-    }
-  }, [isInitialized]);
+const valueOrFallback = (value?: string | number | null) => value ?? 'N/A';
 
-  // Guardar filtros cuando cambien (solo después de la inicialización)
-  useEffect(() => {
-    if (isInitialized) {
-      const filtersToSave = {
-        searchTerm: filters.searchTerm,
-        sortBy: filters.sortBy,
-        providerFilter: filters.providerFilter,
-        moduleFilter: filters.moduleFilter,
-        responsibleFilter: filters.responsibleFilter,
-        statusFilter: filters.statusFilter,
-        stageFilter: filters.stageFilter,
-        groupBy: filters.groupBy,
-      };
+const getDevelopmentName = (dev: DevelopmentRow) => dev.name ?? dev.nombre ?? '';
+const getDevelopmentDescription = (dev: DevelopmentRow) => dev.description ?? dev.descripcion;
+const getDevelopmentStartDate = (dev: DevelopmentRow) => dev.start_date ?? dev.fecha_inicio;
+const getDevelopmentEndDate = (dev: DevelopmentRow) => dev.estimated_end_date ?? dev.fecha_estimada_fin;
+const getDevelopmentAuthority = (dev: DevelopmentRow) => dev.authority ?? dev.autoridad;
+const getDevelopmentResponsible = (dev: DevelopmentRow) => dev.responsible ?? dev.responsable;
+const getDevelopmentStatus = (dev: DevelopmentRow) => {
+  const status = dev.general_status ?? dev.estado_general ?? '';
+  const progress = Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
+  if (status === 'Pendiente' && progress >= 100) return 'Completado';
+  if (status === 'Pendiente' && progress > 0) return 'En proceso';
+  return status;
+};
+const getDevelopmentProgress = (dev: DevelopmentRow) =>
+  Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtersToSave));
-      console.log('Filtros guardados:', filtersToSave); // Debug
-    }
-  }, [
-    isInitialized,
-    filters.searchTerm,
-    filters.sortBy,
-    filters.providerFilter,
-    filters.moduleFilter,
-    filters.responsibleFilter,
-    filters.statusFilter,
-    filters.stageFilter,
-    filters.groupBy
-  ]);
+const getStatusColor = (status: string) => {
+  const s = status.toLowerCase();
+  if (s.includes('pendiente')) return 'text-red-800 bg-red-100 dark:bg-red-900/20 dark:text-red-400';
+  if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 'text-yellow-800 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400';
+  if (s.includes('complet')) return 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400';
+  return 'text-gray-800 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
+};
+
+const getProgressWidthClass = (p: number) => {
+  if (p >= 100) return 'w-full';
+  if (p >= 75) return 'w-3/4';
+  if (p >= 50) return 'w-1/2';
+  if (p >= 25) return 'w-1/4';
+  if (p > 0) return 'w-1/12';
+  return 'w-0';
 };
 
 const MyDevelopments: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPortal = location.pathname.startsWith('/service-portal');
   const { developments, loadDevelopments } = useDevelopments();
-  const filters = useFilters(developments);
   const { addNotification } = useNotifications();
-  
+  const { delete: apiDelete, get: apiGet } = useApi();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DevelopmentRow | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
 
-  // Persistir filtros en localStorage
-  usePersistedFilters(filters);
+  useEffect(() => { loadDevelopments(); }, [loadDevelopments]);
 
-  // Función para limpiar todos los filtros
-  const clearAllFilters = () => {
-    filters.setSearchTerm('');
-    filters.setSortBy('id');
-    filters.setProviderFilter('all');
-    filters.setModuleFilter('all');
-    filters.setResponsibleFilter('all');
-    filters.setStatusFilter('all');
-    filters.setStageFilter('all');
-    filters.setGroupBy('none');
-    addNotification('success', 'Filtros limpiados');
+  useEffect(() => {
+    apiGet('/jerarquia/usuarios-disponibles').then((users: unknown) => {
+      if (Array.isArray(users)) {
+        setUserMap(new Map((users as { id: string; nombre: string }[]).map((u) => [u.id, u.nombre])));
+      }
+    }).catch(() => undefined);
+  }, [apiGet]);
+
+  const resolveUserName = (value?: string | null) => {
+    if (!value) return undefined;
+    if (value.startsWith('USR-')) return userMap.get(value) ?? value;
+    return value;
   };
 
-  // Cargar desarrollos al montar el componente
-  useEffect(() => {
-    loadDevelopments();
-  }, [loadDevelopments]);
-
-  // Notificación informativa (solo una vez)
-  const hasShownLoadNotif = useRef(false);
-  useEffect(() => {
-    if (!hasShownLoadNotif.current && developments?.length > 0) {
-      addNotification('info', `${developments.length} actividades cargadas`);
-      hasShownLoadNotif.current = true;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await apiDelete(`/desarrollos/${deleteTarget.id}`);
+      addNotification('success', `Actividad "${getDevelopmentName(deleteTarget)}" eliminada`);
+      setDeleteTarget(null);
+      loadDevelopments();
+    } catch {
+      addNotification('error', 'Error al eliminar la actividad');
+    } finally {
+      setDeleteLoading(false);
     }
-  }, [developments, addNotification]);
-
-
-  // Utilidades
-  const getStatusColor = (status: string) => {
-    const colors = {
-      'En curso': 'text-blue-600 bg-blue-100 dark:bg-blue-900/20',
-      'Pendiente': 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20',
-      'Completado': 'text-green-600 bg-green-100 dark:bg-green-900/20',
-    };
-    return colors[status as keyof typeof colors] || 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
   };
 
-  const handleColumnSort = (column: UseFiltersReturn['sortBy']) => {
-    filters.setSortBy(column);
-    filters.setSortOrder('asc');
-  };
+  const columnAccessors = useMemo(() => ({
+    id:                 (dev: DevelopmentRow) => String(dev.id),
+    name:               getDevelopmentName,
+    status:             getDevelopmentStatus,
+    start_date:         getDevelopmentStartDate,
+    estimated_end_date: getDevelopmentEndDate,
+    area_desarrollo:    (dev: DevelopmentRow) => dev.area_desarrollo || '(Vacío)',
+    analista:           (dev: DevelopmentRow) => resolveUserName(dev.analista) || dev.analista || '(Sin asignar)',
+    authority:          (dev: DevelopmentRow) => resolveUserName(getDevelopmentAuthority(dev)) || getDevelopmentAuthority(dev) || '(Sin asignar)',
+    responsible:        (dev: DevelopmentRow) => resolveUserName(getDevelopmentResponsible(dev)) || getDevelopmentResponsible(dev) || '(Sin asignar)',
+  }), [resolveUserName]);
 
-  // Opciones para los selects
-  const groupOptions = [
-    { value: 'none', label: 'Sin agrupar' },
-    { value: 'module', label: 'Agrupar por Módulo' },
-    { value: 'responsible', label: 'Agrupar por Responsable' },
-    { value: 'stage', label: 'Agrupar por Estado Real' }
+  const {
+    filteredData,
+    uniqueValues,
+    filters,
+    clearColumnFilter,
+    clearAllFilters,
+    setColumnFilter,
+    activeFilterCount,
+  } = useColumnFilters(developments || [], columnAccessors);
+
+  const columns: DataTableColumn<DevelopmentRow>[] = [
+    {
+      key: 'id',
+      label: 'ID',
+      filterable: true,
+      render: (dev) => (
+        <Text as="span" variant="caption" color="gray" className="font-mono whitespace-nowrap">
+          {dev.id}
+        </Text>
+      ),
+    },
+    {
+      key: 'name',
+      label: 'Proyecto',
+      flex: true,
+      minWidth: '260px',
+      filterable: true,
+      render: (dev) => {
+        const description = getDevelopmentDescription(dev);
+        return (
+          <div className="min-w-0">
+            <Text variant="body2" weight="bold" className="truncate group-hover:text-[var(--color-primary)] transition-colors">
+              {getDevelopmentName(dev)}
+            </Text>
+            {description && (
+              <Text as="span" variant="caption" color="text-secondary" className="mt-0.5 block truncate !text-[11px]" title={description}>
+                {description}
+              </Text>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'status',
+      label: 'Estado',
+      centered: true,
+      filterable: true,
+      render: (dev) => {
+        const status = getDevelopmentStatus(dev);
+        return (
+          <Text as="span" variant="caption" weight="medium" color="inherit"
+            className={`inline-flex items-center rounded-full !text-[10px] tracking-wider px-2 py-0.5 ${getStatusColor(status)} shadow-md`}>
+            {status}
+          </Text>
+        );
+      },
+    },
+    {
+      key: 'progress',
+      label: 'Progreso',
+      minWidth: '100px',
+      render: (dev) => {
+        const progress = getDevelopmentProgress(dev);
+        return (
+          <div className="flex items-center gap-1.5 w-full">
+            <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className={`h-full bg-green-500 transition-all duration-500 ${getProgressWidthClass(progress)}`} />
+            </div>
+            <Text as="span" variant="caption" weight="bold" color="text-secondary" className="w-8 text-right !text-[10px]">
+              {progress}%
+            </Text>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'start_date',
+      label: 'Inicio',
+      minWidth: '90px',
+      filterable: true,
+      render: (dev) => (
+        <Text as="span" variant="caption" color="text-secondary" className="!text-[11px]">
+          {valueOrFallback(getDevelopmentStartDate(dev))}
+        </Text>
+      ),
+    },
+    {
+      key: 'estimated_end_date',
+      label: 'Fin',
+      minWidth: '90px',
+      filterable: true,
+      render: (dev) => (
+        <Text as="span" variant="caption" color="text-secondary" className="!text-[11px]">
+          {valueOrFallback(getDevelopmentEndDate(dev))}
+        </Text>
+      ),
+    },
+    {
+      key: 'area_desarrollo',
+      label: 'Área de impacto',
+      minWidth: '120px',
+      filterable: true,
+      render: (dev) => (
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
+          {dev.area_desarrollo ?? 'N/A'}
+        </Text>
+      ),
+    },
+    {
+      key: 'analista',
+      label: 'Líder',
+      minWidth: '120px',
+      filterable: true,
+      render: (dev) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
+            {(dev.analista ?? 'A')[0].toUpperCase()}
+          </div>
+          <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
+            {resolveUserName(dev.analista) ?? 'N/A'}
+          </Text>
+        </div>
+      ),
+    },
+    {
+      key: 'authority',
+      label: 'Autoridad',
+      minWidth: '110px',
+      filterable: true,
+      render: (dev) => (
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
+          {valueOrFallback(resolveUserName(getDevelopmentAuthority(dev)))}
+        </Text>
+      ),
+    },
+    {
+      key: 'responsible',
+      label: 'Responsable',
+      minWidth: '110px',
+      filterable: true,
+      render: (dev) => (
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
+          {valueOrFallback(resolveUserName(getDevelopmentResponsible(dev)))}
+        </Text>
+      ),
+    },
   ];
+
+  const toggleOption = (key: string, option: string) => {
+    const selected = filters[key] || new Set<string>();
+    const next = new Set(selected);
+    if (next.has(option)) next.delete(option); else next.add(option);
+    setColumnFilter(key, next);
+  };
 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <Title variant="h1">
-          Gestión de Actividades
-        </Title>
-        <Button
-          variant="primary"
-          icon={Plus}
-          onClick={() => setIsCreateModalOpen(true)}
-        >
+      <div className="flex justify-between items-center bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm">
+        <div className="flex items-center gap-4">
+          {isPortal && (
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/service-portal/gestion-actividades')}
+              className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
+            >
+              ← Volver
+            </Button>
+          )}
+          <Title variant="h1" className="m-0">Gestión de Actividades</Title>
+          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
+          <div className="flex items-center gap-2">
+            <Text variant="caption" weight="bold" className="bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800/50">
+              {filteredData.length} Actividades
+            </Text>
+            {activeFilterCount > 0 && (
+              <Button variant="custom" size="xs" onClick={clearAllFilters}
+                className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-red-500 hover:text-red-600 transition-colors bg-red-50 dark:bg-red-900/10 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/20">
+                <RotateCcw size={12} />
+                Limpiar {activeFilterCount} filtros
+              </Button>
+            )}
+          </div>
+        </div>
+        <Button variant="primary" icon={Plus} onClick={() => setIsCreateModalOpen(true)}
+          className="shadow-lg shadow-primary-500/20">
           Nueva Actividad
         </Button>
       </div>
 
-      {/* Panel de Filtros */}
-      <MaterialCard elevation={1}>
-        <MaterialCard.Header>
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Title variant="h6">
-                Filtros y Ordenamiento
-              </Title>
-              <Text as="span" variant="caption" weight="medium" className="px-2 py-1 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
-                {filters.filteredDevelopments.length} actividad{filters.filteredDevelopments.length !== 1 ? 'es' : ''}
-              </Text>
-            </div>
+      {/* Tabla */}
+      <DataTable<DevelopmentRow>
+        columns={columns}
+        data={filteredData}
+        keyExtractor={(dev) => String(dev.id)}
+        onRowClick={(dev) => navigate(isPortal ? `/service-portal/desarrollos/${dev.id}?tab=bitacora` : `/developments/${dev.id}?tab=bitacora`)}
+        columnFilters={filters}
+        columnOptions={uniqueValues}
+        onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
+        renderRowActions={(dev) => (
+          <>
             <Button
-              onClick={clearAllFilters}
-              variant="ghost"
-              size="sm"
-              icon={X}
-              className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+              variant="custom"
+              onClick={(e) => { e.stopPropagation(); navigate(isPortal ? `/service-portal/desarrollos/${dev.id}?tab=bitacora` : `/developments/${dev.id}?tab=bitacora`); }}
+              className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20 inline-flex items-center justify-center"
+              title="Ver detalles"
             >
-              Limpiar
+              <Eye size={14} />
             </Button>
-          </div>
-        </MaterialCard.Header>
+            <Button
+              variant="custom"
+              onClick={(e) => { e.stopPropagation(); setDeleteTarget(dev); }}
+              className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 inline-flex items-center justify-center"
+              title="Eliminar"
+            >
+              <Trash2 size={14} />
+            </Button>
+          </>
+        )}
+        actionsMinWidth="100px"
+        emptyIcon={<Search size={40} className="opacity-40" />}
+        emptyMessage="No se encontraron actividades"
+        maxHeight="max-h-[calc(100vh-420px)]"
+      />
 
-        <MaterialCard.Content className="space-y-3">
-          {/* Todos los controles en una sola fila */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-7 gap-2">
-            <Input
-              type="search"
-              label="Búsqueda"
-              placeholder="Buscar..."
-              value={filters.searchTerm}
-              onChange={(e) => filters.setSearchTerm(e.target.value)}
-              icon={Search}
-            />
-            <Select
-              label="Agrupación"
-              value={filters.groupBy}
-              onChange={(e) => filters.setGroupBy(e.target.value as UseFiltersReturn['groupBy'])}
-              className="max-w-xs"
-              options={groupOptions}
-            />
-          </div>
-        </MaterialCard.Content>
-      </MaterialCard>
-
-
-      {/* Tabla de Desarrollos */}
-      <MaterialCard elevation={1} className="overflow-hidden">
-        {Object.entries(filters.groupedDevelopments).map(([groupName, groupDevelopments]) => (
-          <div key={groupName}>
-            {filters.groupBy !== 'none' && (
-              <MaterialCard.Header>
-                <Title variant="h5" as="h3">
-                  {groupName}
-                  <Text as="span" variant="caption" weight="medium" className="ml-2 px-2 py-1 rounded-full bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
-                    {groupDevelopments.length} actividad{groupDevelopments.length !== 1 ? 'es' : ''}
-                  </Text>
-                </Title>
-              </MaterialCard.Header>
-            )}
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-[var(--color-surface-variant)]">
-                  <tr>
-                    {[
-                      { key: 'id', label: 'ID' },
-                      { key: 'responsible', label: 'Responsable' },
-                      { key: 'module', label: 'Área' },
-                      { key: 'type', label: 'Tipo' },
-                      { key: 'name', label: 'Actividad' },
-                      { key: 'start_date', label: 'Inicio' },
-                      { key: 'estimated_end_date', label: 'Fin' },
-                      { key: 'description', label: 'Objetivo' },
-                      { key: 'stage_progress_percentage', label: '% Cumplimiento' },
-                      { key: 'status', label: 'Estado' },
-                      { key: 'area_desarrollo', label: 'Área Desarrollo' },
-                      { key: 'analista', label: 'Analista' }
-                    ].map(({ key, label }) => (
-                      <th
-                        key={key}
-                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-[var(--color-surface-variant)]/50 transition-colors text-[var(--color-text-secondary)]"
-                        onClick={() => handleColumnSort(key as UseFiltersReturn['sortBy'])}
-                      >
-                        {label}
-                      </th>
-                    ))}
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-border)]">
-                  {groupDevelopments.map((dev) => (
-                    <tr key={dev.id} className="hover:bg-[var(--color-surface-variant)]/50 transition-colors">
-                      <td className="px-4 py-3 text-sm font-bold text-[var(--color-primary)]">
-                        {dev.id}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.responsible ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.module ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.type ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-bold text-[var(--color-text-primary)]">
-                        {dev.name}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.start_date ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.estimated_end_date ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)] max-w-xs truncate" title={dev.description}>
-                        {dev.description ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.stage_progress_percentage ?? 0}%
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <Text as="span" className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(dev.general_status)
-                          }`}>
-                          {dev.general_status}
-                        </Text>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.area_desarrollo ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                        {dev.analista ?? 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <Button
-                          onClick={() => navigate(`/developments/${dev.id}?tab=bitacora`)}
-                          variant="ghost"
-                          size="sm"
-                          icon={Eye}
-                        >
-                          Ver
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))}
-      </MaterialCard>
-
-      {/* Modal de Importación u otros */}
       <CreateDevelopmentModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSaved={() => {
-          loadDevelopments();
-          addNotification('success', 'Actividad creada exitosamente');
-        }}
-        darkMode={document.documentElement.classList.contains('dark')} 
+        onSaved={() => { loadDevelopments(); addNotification('success', 'Actividad creada exitosamente'); }}
+        darkMode={document.documentElement.classList.contains('dark')}
       />
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)]">
+            <div className="p-6 border-b border-[var(--color-border)]">
+              <Title variant="h5" weight="bold">Eliminar actividad</Title>
+            </div>
+            <div className="p-6 space-y-2">
+              <Text variant="body2">
+                ¿Estás seguro de que deseas eliminar la actividad{' '}
+                <Text as="span" weight="bold">"{getDevelopmentName(deleteTarget)}"</Text>?
+              </Text>
+              <Text variant="caption" color="text-secondary">
+                Esta acción eliminará la actividad y todas sus tareas WBS. No se puede deshacer.
+              </Text>
+            </div>
+            <div className="p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-variant)] flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setDeleteTarget(null)} disabled={deleteLoading}>
+                Cancelar
+              </Button>
+              <Button
+                variant="custom"
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
+              >
+                {deleteLoading ? 'Eliminando...' : 'Eliminar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, LogIn, ArrowRight, User as UserIcon } from 'lucide-react';
+import { Lock, LogIn, ArrowRight, User as UserIcon, UserPlus } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
 import imgUserLogin from '../assets/images/categories/Usuario Inicio Sesion.png';
 import imgAdminLogin from '../assets/images/categories/icons8-usuario-administrador-96.png';
 import ForgotPasswordModal from './Login/ForgotPasswordModal';
+import RegisterSidebar from './Login/RegisterSidebar';
 
 const Login: React.FC = () => {
     const { state, dispatch } = useAppContext();
@@ -25,6 +26,7 @@ const Login: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
+    const [isRegisterSidebarOpen, setIsRegisterSidebarOpen] = useState(false);
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -260,6 +262,16 @@ const Login: React.FC = () => {
 
                 {/* Switch Mode Link */}
                 <div className="mt-8 text-center border-t border-gray-100 dark:border-neutral-800 pt-6">
+                    {loginMode === 'portal' && (
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsRegisterSidebarOpen(true)}
+                            className="text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 mb-3"
+                            icon={UserPlus}
+                        >
+                            ¿No tienes cuenta? Regístrate aquí
+                        </Button>
+                    )}
                     <Button
                         variant="ghost"
                         onClick={toggleMode}
@@ -273,9 +285,14 @@ const Login: React.FC = () => {
 
             </MaterialCard>
 
-            <ForgotPasswordModal 
-                isOpen={isRecoveryModalOpen} 
-                onClose={() => setIsRecoveryModalOpen(false)} 
+            <ForgotPasswordModal
+                isOpen={isRecoveryModalOpen}
+                onClose={() => setIsRecoveryModalOpen(false)}
+            />
+
+            <RegisterSidebar
+                isOpen={isRegisterSidebarOpen}
+                onClose={() => setIsRegisterSidebarOpen(false)}
             />
         </div>
     );

@@ -51,3 +51,5 @@ resources/data_maestra/
 testing/logs/
 *.log
 test_output.txt
+graphify-out/
+.agent/

@@ -34,6 +34,10 @@ class Actividad(SQLModel, table=True):
     responsable_id: Optional[str] = Field(
         default=None, max_length=100
     )  # ID del Analista asignado
+    asignado_a_id: Optional[str] = Field(default=None, max_length=50)
+    delegado_por_id: Optional[str] = Field(default=None, max_length=50)
+    estado_validacion: str = Field(default="aprobada", max_length=50)
+    validacion_id: Optional[int] = Field(default=None)
 
     # Fechas
     fecha_inicio_estimada: Optional[date] = Field(default=None)
@@ -80,6 +84,10 @@ class ActividadBase(SQLModel):
     descripcion: Optional[str] = None
     estado: str = "Pendiente"
     responsable_id: Optional[str] = None
+    asignado_a_id: Optional[str] = None
+    delegado_por_id: Optional[str] = None
+    estado_validacion: str = "aprobada"
+    validacion_id: Optional[int] = None
     fecha_inicio_estimada: Optional[date] = None
     fecha_fin_estimada: Optional[date] = None
     horas_estimadas: Decimal = Decimal("0.0")
@@ -99,6 +107,10 @@ class ActividadActualizar(SQLModel):
     descripcion: Optional[str] = None
     estado: Optional[str] = None
     responsable_id: Optional[str] = None
+    asignado_a_id: Optional[str] = None
+    delegado_por_id: Optional[str] = None
+    estado_validacion: Optional[str] = None
+    validacion_id: Optional[int] = None
     fecha_inicio_estimada: Optional[date] = None
     fecha_fin_estimada: Optional[date] = None
     fecha_inicio_real: Optional[date] = None

@@ -58,6 +58,81 @@ class Usuario(SQLModel, table=True):
     )
 
 
+class RelacionUsuario(SQLModel, table=True):
+    """Relación jerárquica directa entre usuario y superior."""
+
+    __tablename__ = "relaciones_usuarios"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    usuario_id: str = Field(foreign_key="usuarios.id", index=True, max_length=50)
+    superior_id: str = Field(foreign_key="usuarios.id", index=True, max_length=50)
+    tipo_relacion: str = Field(default="lineal", max_length=50)
+    esta_activa: bool = Field(default=True, index=True)
+    creado_en: Optional[datetime] = Field(
+        default=None, sa_column_kwargs={"server_default": text("now()")}
+    )
+    actualizado_en: Optional[datetime] = Field(default=None)
+
+
+class HistorialRelacionUsuario(SQLModel, table=True):
+    """Trazabilidad de cambios en la jerarquía organizacional."""
+
+    __tablename__ = "historial_relaciones_usuarios"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    usuario_id: str = Field(max_length=50, index=True)
+    superior_anterior_id: Optional[str] = Field(default=None, max_length=50)
+    superior_nuevo_id: Optional[str] = Field(default=None, max_length=50)
+    accion: str = Field(max_length=50)
+    realizado_por_id: Optional[str] = Field(default=None, max_length=50)
+    observacion: Optional[str] = Field(default=None)
+    creado_en: Optional[datetime] = Field(
+        default=None, sa_column_kwargs={"server_default": text("now()")}
+    )
+
+
+class UsuarioJerarquiaPublico(SQLModel):
+    id: str
+    cedula: str
+    nombre: str
+    rol: str
+    area: Optional[str] = None
+    cargo: Optional[str] = None
+
+
+class NodoJerarquia(SQLModel):
+    usuario_id: str
+    superior_id: Optional[str] = None
+    tipo_relacion: Optional[str] = None
+    usuario: UsuarioJerarquiaPublico
+    subordinados: List["NodoJerarquia"] = []
+
+
+class RelacionUsuarioCrear(SQLModel):
+    usuario_id: str
+    superior_id: str
+    tipo_relacion: str = "lineal"
+    observacion: Optional[str] = None
+
+
+class RelacionUsuarioActualizar(SQLModel):
+    superior_id: str
+    tipo_relacion: str = "lineal"
+    observacion: Optional[str] = None
+
+
+class RelacionUsuarioLeer(SQLModel):
+    id: int
+    usuario_id: str
+    superior_id: str
+    tipo_relacion: str
+    esta_activa: bool
+    creado_en: Optional[datetime] = None
+    actualizado_en: Optional[datetime] = None
+    usuario: Optional[UsuarioJerarquiaPublico] = None
+    superior: Optional[UsuarioJerarquiaPublico] = None
+
+
 class Token(SQLModel, table=True):
     """Modelo de tokens de autenticacion"""
 
@@ -184,7 +259,7 @@ class ModuloPublico(SQLModel):
 
 
 class UsuarioCrear(SQLModel):
-    """Schema para crear un usuario"""
+    """Schema para crear un usuario (admin)"""
 
     id: str = Field(max_length=50)
     cedula: str = Field(max_length=50)
@@ -195,6 +270,16 @@ class UsuarioCrear(SQLModel):
     url_avatar: Optional[str] = None
     zona_horaria: str = "America/Bogota"
     contrasena: str = Field(min_length=8)
+
+
+class UsuarioRegistro(SQLModel):
+    """Schema para registro público de usuarios en el portal"""
+
+    cedula: str = Field(max_length=50)
+    nombre: str = Field(max_length=255)
+    correo: Optional[str] = Field(default=None, max_length=255)
+    contrasena: str = Field(min_length=8, max_length=255)
+    contrasena_confirmar: str = Field(min_length=8, max_length=255)
 
 
 class UsuarioActualizar(SQLModel):

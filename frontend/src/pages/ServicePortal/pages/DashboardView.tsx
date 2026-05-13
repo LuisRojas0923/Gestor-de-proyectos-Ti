@@ -1,6 +1,6 @@
 import { ActionCard } from '../../../components/molecules';
 import { Title, Text } from '../../../components/atoms';
-import { Plus, FileText } from 'lucide-react';
+import { FileText, Briefcase, Plus } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -10,19 +10,17 @@ import imgInventario from '../../../assets/images/categories/Consultar Reportes.
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades') => void;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
     const userRole = (user?.rol || user?.role || '').toLowerCase();
-    const permissions = user?.permissions || [];
+    const permissions: string[] = user?.permissions || [];
 
-    // Lógica de visibilidad por tarjeta (RBAC + Estado Global)
     const canSeeSolicitudes = moduleStatus['mis_solicitudes'] !== false && (
         permissions.includes('mis_solicitudes') ||
         permissions.includes('sistemas') ||
         permissions.includes('mejoramiento') ||
-        permissions.includes('desarrollo') ||
         permissions.includes('desarrollo') ||
         ['admin', 'director'].includes(userRole)
     );
@@ -40,7 +38,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
     const canSeeViaticos = moduleStatus['viaticos_gestion'] !== false && (
         permissions.includes('viaticos_gestion') ||
         user?.viaticante === true ||
-        ['admin', 'director', 'manager'].includes(userRole)
+        ['admin', 'director'].includes(userRole)
     );
 
     const canSeeInventario = moduleStatus['inventario_2026'] !== false && (
@@ -48,7 +46,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         ['admin', 'director'].includes(userRole)
     );
 
-    const canSeeContabilidad = moduleStatus['contabilidad'] !== false; // Visible para todos si está activo
+    const canSeeContabilidad = moduleStatus['contabilidad'] !== false && (
+        permissions.includes('gestion_humana') ||
+        ['admin', 'director'].includes(userRole)
+    );
+
+    const canSeeGestionActividades =
+        permissions.includes('developments') ||
+        permissions.includes('validaciones_asignacion') ||
+        permissions.includes('jerarquia_organizacional') ||
+        ['admin', 'director'].includes(userRole);
 
     return (
         <div className="space-y-12 py-6">
@@ -104,6 +111,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                         onClick={() => onNavigate('nomina')}
                     />
                 )}
+                
                 {canSeeInventario && (
                     <ActionCard
                         title="Inventario 2026"
@@ -119,6 +127,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                         description="Certificados laborales, desprendibles de pago e información tributaria."
                         icon={<FileText className="w-10 h-10 text-primary-600" />}
                         onClick={() => onNavigate('contabilidad')}
+                    />
+                )}
+
+                {canSeeGestionActividades && (
+                    <ActionCard
+                        title="Gestión de Actividades"
+                        description="Accede a desarrollos, aprobaciones y jerarquía organizacional."
+                        icon={<Briefcase className="w-10 h-10 text-primary-600" />}
+                        onClick={() => onNavigate('gestion_actividades')}
                     />
                 )}
             </div>

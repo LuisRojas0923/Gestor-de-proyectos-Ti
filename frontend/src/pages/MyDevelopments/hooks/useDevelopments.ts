@@ -12,7 +12,7 @@ export const useDevelopments = () => {
 
   const loadDevelopments = useCallback(async () => {
     try {
-      const response = await get(API_ENDPOINTS.DEVELOPMENTS);
+      const response = await get(`${API_ENDPOINTS.DEVELOPMENTS}?solo_mios=true`);
       if (Array.isArray(response)) {
         setDevelopments(response);
       } else {

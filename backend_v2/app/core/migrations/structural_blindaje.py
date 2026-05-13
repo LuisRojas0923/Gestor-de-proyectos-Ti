@@ -72,14 +72,65 @@ async def ejecutar_blindaje_estructural(conn):
     await safe_execute(conn, 'ALTER TABLE "comentarios_ticket" ADD COLUMN IF NOT EXISTS "creado_en" TIMESTAMP WITH TIME ZONE DEFAULT NOW()')
 
     # 7. Desarrollos y Actividades
+    await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS autoridad VARCHAR(255)')
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS area_desarrollo VARCHAR(100)')
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS analista VARCHAR(100)')
+    await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS creado_por_id VARCHAR(50)')
+    await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS responsable_id VARCHAR(50)')
+    await safe_execute(conn, "ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS estado_validacion VARCHAR(50) DEFAULT 'aprobada'")
+    await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS validado_por_id VARCHAR(50)')
+    await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS validado_en TIMESTAMPTZ')
     
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS seguimiento TEXT')
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS compromiso TEXT')
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS archivo_url VARCHAR(500)')
+    await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS asignado_a_id VARCHAR(50)')
+    await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS delegado_por_id VARCHAR(50)')
+    await safe_execute(conn, "ALTER TABLE actividades ADD COLUMN IF NOT EXISTS estado_validacion VARCHAR(50) DEFAULT 'aprobada'")
+    await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS validacion_id INTEGER')
 
-    # 8. Otros (Formato 2276, etc.)
+    await safe_execute(
+        conn,
+        """
+        CREATE TABLE IF NOT EXISTS validaciones_asignacion (
+            id SERIAL PRIMARY KEY,
+            desarrollo_id VARCHAR(50) REFERENCES desarrollos(id),
+            actividad_id INTEGER REFERENCES actividades(id),
+            solicitado_por_id VARCHAR(50) NOT NULL,
+            validador_id VARCHAR(50) NOT NULL,
+            asignado_a_id VARCHAR(50) NOT NULL,
+            estado VARCHAR(50) NOT NULL DEFAULT 'pendiente',
+            motivo TEXT,
+            observacion TEXT,
+            creado_en TIMESTAMPTZ DEFAULT NOW(),
+            validado_en TIMESTAMPTZ
+        )
+        """
+    )
+
+    # 8. Jerarquia organizacional
+    await safe_execute(
+        conn,
+        'CREATE UNIQUE INDEX IF NOT EXISTS ux_relaciones_usuarios_usuario_activo '
+        'ON relaciones_usuarios(usuario_id) WHERE esta_activa'
+    )
+    await safe_execute(
+        conn,
+        """
+        CREATE TABLE IF NOT EXISTS historial_relaciones_usuarios (
+            id SERIAL PRIMARY KEY,
+            usuario_id VARCHAR(50) NOT NULL,
+            superior_anterior_id VARCHAR(50),
+            superior_nuevo_id VARCHAR(50),
+            accion VARCHAR(50) NOT NULL,
+            realizado_por_id VARCHAR(50),
+            observacion TEXT,
+            creado_en TIMESTAMPTZ DEFAULT NOW()
+        )
+        """
+    )
+
+    # 9. Otros (Formato 2276, etc.)
     await safe_execute(conn, 'ALTER TABLE formato_2276 ADD COLUMN IF NOT EXISTS entidad_informante VARCHAR(10)')
 
     logger.info("Blindaje estructural completado exitosamente.")

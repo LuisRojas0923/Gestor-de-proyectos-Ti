@@ -3,6 +3,10 @@ export interface WbsActivityBase {
     descripcion?: string;
     estado: 'Pendiente' | 'En Progreso' | 'Bloqueado' | 'Completada';
     responsable_id?: string;
+    asignado_a_id?: string;
+    delegado_por_id?: string;
+    estado_validacion?: string;
+    validacion_id?: number | null;
     fecha_inicio_estimada?: string;
     fecha_fin_estimada?: string;
     horas_estimadas: number;

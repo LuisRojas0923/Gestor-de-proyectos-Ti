@@ -9,34 +9,37 @@ logger = logging.getLogger(__name__)
 async def init_db_process(async_engine, AsyncSessionLocal):
     """
     Proceso completo de inicialización y mantenimiento de la base de datos.
+    Cada fase usa su propia transacción para que un fallo no contamine las siguientes.
     """
+    # 1. Crear tablas base si no existen
     async with async_engine.begin() as conn:
-        # 1. Crear tablas base si no existen
         try:
             await conn.run_sync(SQLModel.metadata.create_all)
         except Exception as e:
             logger.warning(f"Error concurrente en create_all: {e}")
 
-        # 2. Ejecutar Blindaje Estructural (ALTER TABLEs)
+    # 2. Ejecutar Blindaje Estructural (ALTER TABLEs)
+    async with async_engine.begin() as conn:
         try:
             await ejecutar_blindaje_estructural(conn)
         except Exception as e:
             logger.error(f"Error en blindaje estructural: {e}")
 
-        # 3. Saneamiento de Secuencias (AUTOSANACIÓN)
+    # 3. Saneamiento de Secuencias (AUTOSANACIÓN)
+    async with async_engine.begin() as conn:
         try:
             await reparar_todas_las_secuencias(conn)
         except Exception as e:
             logger.error(f"Error en saneamiento de secuencias: {e}")
 
-        # 4. Saneamiento de Datos (Inventario y otros)
-        saneamientos = [
-            "UPDATE conteoinventario SET estado = 'PENDIENTE' WHERE estado IS NULL;",
-            "UPDATE conteoinventario SET invporlegalizar = 0 WHERE invporlegalizar IS NULL;",
-            "UPDATE conteoinventario SET bodega = TRIM(bodega), bloque = TRIM(bloque), estante = TRIM(estante);"
-        ]
-        
-        for sql in saneamientos:
+    # 4. Saneamiento de Datos (Inventario y otros)
+    saneamientos = [
+        "UPDATE conteoinventario SET estado = 'PENDIENTE' WHERE estado IS NULL;",
+        "UPDATE conteoinventario SET invporlegalizar = 0 WHERE invporlegalizar IS NULL;",
+        "UPDATE conteoinventario SET bodega = TRIM(bodega), bloque = TRIM(bloque), estante = TRIM(estante);"
+    ]
+    for sql in saneamientos:
+        async with async_engine.begin() as conn:
             try:
                 await conn.execute(text(sql))
             except Exception as e:
@@ -49,6 +52,7 @@ async def ejecutar_seeds(AsyncSessionLocal):
     """Ejecuta los semilleros de datos necesarios"""
     try:
         from app.models.auth.usuario import Usuario
+        from app.models.desarrollo.desarrollo import TipoDesarrollo
         from app.services.auth.servicio import ServicioAuth
         from app.models.reserva_salas.models import Room
         import uuid
@@ -89,6 +93,27 @@ async def ejecutar_seeds(AsyncSessionLocal):
                     await session.commit()
             except Exception as e:
                 logger.warning(f"Error al verificar/crear sala seed: {e}")
+
+            # Seed tipos de desarrollo
+            try:
+                tipos_desarrollo = [
+                    ("Proyecto", "Proyecto", 1),
+                    ("Mejora", "Mejora", 2),
+                    ("Soporte", "Soporte", 3),
+                    ("Renovación", "Renovación", 4),
+                    ("Actividad frecuente", "Actividad frecuente", 5),
+                    ("Actividad", "Actividad", 6),
+                ]
+                for valor, etiqueta, orden in tipos_desarrollo:
+                    result_tipo = await session.execute(
+                        select(TipoDesarrollo).where(TipoDesarrollo.valor == valor)
+                    )
+                    if result_tipo.scalar_one_or_none() is None:
+                        session.add(TipoDesarrollo(valor=valor, etiqueta=etiqueta, orden=orden))
+                await session.commit()
+            except Exception as e:
+                await session.rollback()
+                logger.warning(f"Error al verificar/crear tipos de desarrollo seed: {e}")
                 
     except Exception as e:
         logger.error(f"Error fatal en ejecución de seeds: {e}")

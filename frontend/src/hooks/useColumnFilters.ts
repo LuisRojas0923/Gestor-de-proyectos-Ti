@@ -1,64 +1,94 @@
 import { useState, useMemo } from 'react';
 
-export function useColumnFilters<T>(data: T[], columnAccessors: Record<string, (row: T) => string>) {
+/**
+ * useColumnFilters
+ * Hook para manejar filtros por columna tipo Excel.
+ */
+export function useColumnFilters<T>(
+  data: T[],
+  columnAccessors: Record<string, (row: T) => string | number | null | undefined>
+) {
   const [filters, setFilters] = useState<Record<string, Set<string>>>({});
   const [activePopover, setActivePopover] = useState<string | null>(null);
 
-  // Extraer valores únicos por columna
+  // Extraer valores únicos por columna para las opciones del filtro
   const uniqueValues = useMemo(() => {
     const result: Record<string, string[]> = {};
     for (const [key, accessor] of Object.entries(columnAccessors)) {
-      const values = [...new Set(data.map(row => accessor(row) || '').filter(Boolean))].sort();
+      const values = Array.from(new Set(data.map(row => {
+        const val = accessor(row);
+        return val === null || val === undefined ? '(Vacío)' : String(val);
+      }))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
       result[key] = values;
     }
     return result;
   }, [data, columnAccessors]);
 
-  // Aplicar filtros sobre los datos
+  // Aplicar filtros sobre los datos original
   const filteredData = useMemo(() => {
     return data.filter(row => {
       for (const [key, selectedValues] of Object.entries(filters)) {
-        if (selectedValues.size === 0) continue; // Sin filtro = mostrar todo
+        if (!selectedValues || selectedValues.size === 0) continue;
         const accessor = columnAccessors[key];
         if (!accessor) continue;
-        const value = accessor(row) || '';
+        
+        const rawValue = accessor(row);
+        const value = rawValue === null || rawValue === undefined ? '(Vacío)' : String(rawValue);
+        
         if (!selectedValues.has(value)) return false;
       }
       return true;
     });
   }, [data, filters, columnAccessors]);
 
-  const toggleFilter = (key: string) => {
-    setActivePopover(prev => (prev === key ? null : key));
-  };
-
-  const closePopover = () => {
-    setActivePopover(null);
-  };
-
-  const handleSelectionChange = (key: string, newSelection: Set<string>) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: newSelection
-    }));
-  };
-
   const hasActiveFilter = (key: string) => (filters[key]?.size ?? 0) > 0;
   const activeFilterCount = Object.values(filters).filter(s => s.size > 0).length;
 
+  const toggleOption = (columnKey: string, option: string) => {
+    setFilters(prev => {
+      const current = new Set(prev[columnKey] || []);
+      if (current.has(option)) {
+        current.delete(option);
+      } else {
+        current.add(option);
+      }
+      return { ...prev, [columnKey]: current };
+    });
+  };
+
+  const selectAll = (columnKey: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [columnKey]: new Set(uniqueValues[columnKey])
+    }));
+  };
+
+  const clearColumnFilter = (columnKey: string) => {
+    setFilters(prev => {
+      const next = { ...prev };
+      delete next[columnKey];
+      return next;
+    });
+  };
+
   const clearAllFilters = () => setFilters({});
+
+  const setColumnFilter = (columnKey: string, newSet: Set<string>) => {
+    setFilters(prev => ({ ...prev, [columnKey]: newSet }));
+  };
 
   return {
     filters,
-    setFilters,
     filteredData,
     uniqueValues,
     activePopover,
-    toggleFilter,
-    closePopover,
-    handleSelectionChange,
+    setActivePopover,
     hasActiveFilter,
     activeFilterCount,
+    toggleOption,
+    selectAll,
+    clearColumnFilter,
     clearAllFilters,
+    setColumnFilter,
   };
 }

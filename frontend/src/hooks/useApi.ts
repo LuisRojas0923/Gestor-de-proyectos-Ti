@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { API_CONFIG, ERROR_MESSAGES, HTTP_STATUS } from '../config/api';
 import { useAppContext } from '../context/AppContext';
@@ -84,6 +84,10 @@ export function useApi<T>() {
         throw new Error(errorMessage);
       }
 
+      if (response.status === 204 || response.headers.get('content-length') === '0') {
+        setState({ data: null, loading: false, error: null });
+        return null;
+      }
       const data = await response.json(); // [CONTROLADO]
       setState({ data, loading: false, error: null });
       return data;
@@ -148,12 +152,12 @@ export function useApi<T>() {
     [request]
   );
 
-  return {
+  return useMemo(() => ({
     ...state,
     get,
     post,
     put,
     patch,
     delete: del,
-  };
+  }), [state, get, post, put, patch, del]);
 }

@@ -27,6 +27,13 @@ Ubicación: `testing/backend/`
 | **Core API** | `test_api_v2.py` | Salud general y Auth básico. | ✅ PASSED |
 | **ERP Sync** | `test_requisiciones.py` | Sincronización de catálogos con el ERP. | ✅ PASSED |
 | **Viáticos** | `test_viaticos.py` | Flujo de legalización y solicitudes. | ✅ PASSED |
+| **Desarrollos** | `test_desarrollos_update.py` | Actualización de proyectos/desarrollos existentes y manejo 404. | ✅ PASSED |
+| **Desarrollos Autoridad** | `test_desarrollos_autoridad.py` | Persistencia y respuesta del campo autoridad en proyectos/desarrollos. | ✅ PASSED |
+| **Catálogos Desarrollos** | `test_tipos_desarrollo.py` | Catálogo de tipos de proyectos/desarrollos activo, semillado y ordenado. | ✅ PASSED |
+| **Jerarquía Usuarios** | `test_jerarquia.py` | Árbol de subordinados, usuarios sin equipo y bloqueo de doble superior activo. | ✅ PASSED |
+| **Jerarquía Organizacional** | `test_jerarquia_admin.py` | Reasignación de superiores, desactivación de relaciones, prevención de ciclos e historial. | ✅ PASSED |
+| **Asignación Jerárquica** | `test_asignacion_desarrollos_actividades.py` | Persistencia de responsable, ejecutor, delegador y estado de validación. | ✅ PASSED |
+| **Validaciones Asignación** | `test_validaciones_asignacion.py` | Creación automática de validaciones indirectas y resolución aprobada/rechazada. | ✅ PASSED |
 
 ### 2. Rendimiento (Locust)
 Ubicación: `testing/backend/load_test.py`

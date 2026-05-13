@@ -23,6 +23,10 @@ IGNORE_DIRS = {
     "sql",
     "DOCS",
     "docs",
+    "CLAUD",
+    ".claude",
+    ".opencode",
+    "testing",
 }
 
 # Extensiones de archivos a analizar
@@ -46,7 +50,6 @@ TARGET_EXTENSIONS = {
     ".bat",
     ".sh",
     ".sql",
-    ".md",
 }
 
 # Archivos específicos a excluir (generados automáticamente)

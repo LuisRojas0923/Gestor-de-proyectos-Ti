@@ -139,6 +139,20 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "descripcion": "Generación de informes detallados y exportaciones.",
     },
     {
+        "id": "validaciones_asignacion",
+        "nombre": "Aprobaciones de Asignación",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Bandeja para aprobar o rechazar asignaciones jerárquicas indirectas.",
+    },
+    {
+        "id": "jerarquia_organizacional",
+        "nombre": "Jerarquía Organizacional",
+        "categoria": "analistas",
+        "es_critico": False,
+        "descripcion": "Administración del árbol gerente, director, jefe y empleado.",
+    },
+    {
         "id": "settings",
         "nombre": "Parámetros del Sistema",
         "categoria": "analistas",

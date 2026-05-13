@@ -81,7 +81,7 @@ const ExpenseLegalization: React.FC<ExpenseLegalizationProps> = ({
 
     return (
         <div className="space-y-1 max-w-[1300px] mx-auto">
-            <ExpenseHeader onBack={onBack} />
+            <ExpenseHeader />
             <UserSummaryCard 
                 user={user} 
                 reporteId={radicado || activeReporteId} 

@@ -46,7 +46,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                 <div className="h-full bg-black/10 transition-colors duration-300">
                     <div className="w-full px-4 sm:px-10 h-full flex items-center justify-between text-white relative py-0">
                         {/* 1. SECCIÓN IZQUIERDA (Navegación y Logo) */}
-                        <div className="flex items-center justify-start shrink-0 h-full py-2 gap-6">
+                        <div className="flex items-center justify-start shrink-0 h-full py-2 gap-3">
                             {fromAdmin && isAdmin && (
                                 <Button
                                     variant="ghost"

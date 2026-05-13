@@ -6,6 +6,7 @@ export { default as MetricCard } from './MetricCard';
 export { default as Modal } from './Modal';
 export { default as Callout } from './Callout';
 export { DeleteConfirmModal } from './DeleteConfirmModal';
+export { DataTable } from './DataTable';
 
 // Componentes de Material Design
 export { default as MaterialMetricCard } from './MaterialMetricCard';

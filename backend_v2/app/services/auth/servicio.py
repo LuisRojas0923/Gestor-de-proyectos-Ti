@@ -11,6 +11,17 @@ from sqlmodel import select
 from app.config import config
 from app.models.auth.usuario import Usuario, PermisoRol
 from app.services.erp import EmpleadosService
+from .sesion_service import (
+    registrar_sesion,
+    marcar_fin_sesion,
+    invalidar_sesiones_usuario,
+)
+from .provisioning_service import (
+    crear_analista_desde_erp,
+    crear_usuario_portal_desde_erp,
+    auto_provisionar_usuario_portal,
+    registrar_usuario_portal,
+)
 
 
 from fastapi.security import OAuth2PasswordBearer
@@ -170,64 +181,6 @@ class ServicioAuth:
         return False
 
     @staticmethod
-    async def crear_analista_desde_erp(
-        db: AsyncSession, db_erp, cedula: str
-    ) -> Usuario:
-        """
-        Consulta al ERP y crea un usuario analista si existe (Async).
-        """
-        # 1. Validar si ya existe
-        usuario_existente = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
-        if usuario_existente:
-            raise ValueError("El usuario ya existe en el sistema")
-
-        # 2. Consultar ERP (sincrono por ahora)
-        datos_erp = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula)
-        if not datos_erp:
-            raise ValueError("No se encontro el empleado en Solid ERP o esta inactivo")
-
-        # 3. Crear usuario
-        id_usuario = f"USR-{cedula}"
-        hash_pwd = ServicioAuth.obtener_hash_contrasena(cedula)
-        correo_erp = datos_erp.get("correocorporativo").strip() if datos_erp.get("correocorporativo") else None
-
-        nuevo_usuario = Usuario(
-            id=id_usuario,
-            cedula=cedula,
-            nombre=datos_erp["nombre"],
-            correo=correo_erp,
-            hash_contrasena=hash_pwd,
-            rol="analyst",
-            esta_activo=True,
-            area=datos_erp.get("area"),
-            cargo=datos_erp.get("cargo"),
-            sede=datos_erp.get("ciudadcontratacion"),
-            centrocosto=datos_erp.get("centrocosto"),
-            viaticante=datos_erp.get("viaticante"),
-            baseviaticos=datos_erp.get("baseviaticos"),
-            correo_actualizado=bool(correo_erp),
-            correo_verificado=False
-        )
-
-        db.add(nuevo_usuario)
-        await db.commit()
-        await db.refresh(nuevo_usuario)
-
-        # 4. Notificar bienvenida/seguridad
-        if correo_erp:
-            from app.services.notifications.email_service import EmailService
-            import asyncio
-            asyncio.create_task(
-                asyncio.to_thread(
-                    EmailService.enviar_notificacion_reseteo_clave, 
-                    correo_erp, 
-                    nuevo_usuario.nombre
-                )
-            )
-
-        return nuevo_usuario
-
-    @staticmethod
     async def cambiar_contrasena(
         db: AsyncSession, usuario_id: str, nueva_contrasena: str
     ) -> Usuario:
@@ -304,165 +257,11 @@ class ServicioAuth:
         )
         return list(result.scalars().all())
 
-    @staticmethod
-    async def crear_usuario_portal_desde_erp(
-        db: AsyncSession, db_erp, cedula: str, contrasena: str
-    ) -> Usuario:
-        """
-        Crea un usuario con rol 'usuario' validando contra Solid ERP (para segundo factor).
-        """
-        usuario_existente = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
-        if usuario_existente:
-            raise ValueError("El usuario ya tiene una contraseña configurada")
-
-        datos_erp = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula)
-        if not datos_erp:
-            raise ValueError("No se encontro el empleado en Solid ERP")
-
-        id_usuario = f"USR-P-{cedula}"
-        hash_pwd = ServicioAuth.obtener_hash_contrasena(contrasena)
-
-        viaticante_val = bool(datos_erp.get("viaticante"))
-        nuevo_usuario = Usuario(
-            id=id_usuario,
-            cedula=cedula,
-            nombre=datos_erp["nombre"],
-            hash_contrasena=hash_pwd,
-            rol="viaticante" if viaticante_val else "usuario",
-            esta_activo=True,
-            area=datos_erp.get("area"),
-            cargo=datos_erp.get("cargo"),
-            sede=datos_erp.get("ciudadcontratacion"),
-            centrocosto=datos_erp.get("centrocosto"),
-            viaticante=viaticante_val,
-            baseviaticos=datos_erp.get("baseviaticos"),
-            correo=datos_erp.get("correocorporativo").strip() if datos_erp.get("correocorporativo") else None,
-            correo_actualizado=bool(datos_erp.get("correocorporativo")),
-            correo_verificado=False
-        )
-
-        db.add(nuevo_usuario)
-        await db.commit()
-        await db.refresh(nuevo_usuario)
-        return nuevo_usuario
-
-    @staticmethod
-    async def auto_provisionar_usuario_portal(
-        db: AsyncSession, db_erp, cedula: str, datos_erp: dict
-    ) -> Usuario:
-        """
-        Crea un registro de usuario local automáticamente si no existe (Just-In-Time Provisioning).
-        """
-        id_usuario = f"USR-P-{cedula}"
-        # Marcamos la contraseña como pendiente de configuración inicial
-        hash_temporal = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
-        
-        is_viaticante = bool(datos_erp.get("viaticante"))
-        
-        nuevo_usuario = Usuario(
-            id=id_usuario,
-            cedula=cedula,
-            nombre=datos_erp["nombre"],
-            hash_contrasena=hash_temporal,
-            rol="viaticante" if is_viaticante else "usuario",
-            esta_activo=True,
-            area=datos_erp.get("area"),
-            cargo=datos_erp.get("cargo"),
-            sede=datos_erp.get("ciudadcontratacion"),
-            centrocosto=datos_erp.get("centrocosto"),
-            viaticante=is_viaticante,
-            baseviaticos=datos_erp.get("baseviaticos"),
-            correo=datos_erp.get("correocorporativo").strip() if datos_erp.get("correocorporativo") else None,
-            correo_actualizado=bool(datos_erp.get("correocorporativo")),
-            correo_verificado=False
-        )
-        
-        db.add(nuevo_usuario)
-        await db.commit()
-        await db.refresh(nuevo_usuario)
-        return nuevo_usuario
-
-    @staticmethod
-    async def registrar_sesion(
-        db: AsyncSession,
-        usuario_id: str,
-        token_jwt: str,
-        nombre_usuario: Optional[str] = None,
-        rol_usuario: Optional[str] = None,
-        direccion_ip: Optional[str] = None,
-        agente_usuario: Optional[str] = None,
-    ) -> None:
-        """Registra una nueva sesión en la base de datos."""
-        from app.models.auth.usuario import Sesion
-        from app.utils_date import get_bogota_now
-        from app.database import AsyncSessionLocal
-
-        try:
-            async with AsyncSessionLocal() as session:
-                ahora = get_bogota_now()
-                expira = ahora + timedelta(minutes=config.jwt_token_expire_minutes)
-
-                nueva_sesion = Sesion(
-                    usuario_id=usuario_id,
-                    token_sesion=token_jwt,
-                    nombre_usuario=nombre_usuario,
-                    rol_usuario=rol_usuario,
-                    direccion_ip=direccion_ip,
-                    agente_usuario=agente_usuario,
-                    expira_en=expira,
-                )
-                session.add(nueva_sesion)
-                await session.commit()
-        except Exception as e:
-            import logging
-
-            logging.warning(f"No se pudo registrar sesion para {usuario_id}: {e}")
-
-    @staticmethod
-    async def marcar_fin_sesion(db: AsyncSession, token_jwt: str) -> bool:
-        """Marca el fin de una sesión (logout)."""
-        from app.models.auth.usuario import Sesion
-        from app.utils_date import get_bogota_now
-
-        try:
-            stmt = select(Sesion).where(Sesion.token_sesion == token_jwt)
-            result = await db.execute(stmt)
-            sesion = result.scalars().first()
-            if sesion:
-                sesion.fin_sesion = get_bogota_now()
-                await db.commit()
-                return True
-            return False
-        except Exception as e:
-            import logging
-
-            logging.error(f"Error al cerrar sesion: {e}")
-            await db.rollback()
-            return False
-
-    @staticmethod
-    async def invalidar_sesiones_usuario(db: AsyncSession, usuario_id: str) -> int:
-        """
-        Invalida todas las sesiones activas de un usuario (para reseteos de seguridad).
-        Retorna el número de sesiones invalidadas.
-        """
-        from app.models.auth.usuario import Sesion
-        from app.utils_date import get_bogota_now
-        from sqlalchemy import update
-
-        try:
-            ahora = get_bogota_now()
-            # Marcamos fin_sesion para todas las sesiones que no lo tengan
-            stmt = (
-                update(Sesion)
-                .where(Sesion.usuario_id == usuario_id, Sesion.fin_sesion.is_(None))
-                .values(fin_sesion=ahora)
-            )
-            result = await db.execute(stmt)
-            await db.commit()
-            return result.rowcount
-        except Exception as e:
-            import logging
-            logging.error(f"Error al invalidar sesiones de {usuario_id}: {e}")
-            await db.rollback()
-            return 0
+    # ── Métodos delegados a módulos extraídos ──
+    crear_analista_desde_erp = staticmethod(crear_analista_desde_erp)
+    crear_usuario_portal_desde_erp = staticmethod(crear_usuario_portal_desde_erp)
+    auto_provisionar_usuario_portal = staticmethod(auto_provisionar_usuario_portal)
+    registrar_usuario_portal = staticmethod(registrar_usuario_portal)
+    registrar_sesion = staticmethod(registrar_sesion)
+    marcar_fin_sesion = staticmethod(marcar_fin_sesion)
+    invalidar_sesiones_usuario = staticmethod(invalidar_sesiones_usuario)

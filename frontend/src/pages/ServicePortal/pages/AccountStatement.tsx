@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-    ArrowLeft,
     Search,
     Calendar,
     Download
@@ -42,10 +41,9 @@ interface UserProps {
 
 interface AccountStatementProps {
     user: UserProps;
-    onBack: () => void;
 }
 
-const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => {
+const AccountStatement: React.FC<AccountStatementProps> = ({ user }) => {
     const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [fechaDesde, setFechaDesde] = useState(new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]);
@@ -94,16 +92,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user, onBack }) => 
             {/* BLOQUE SUPERIOR: FIJO */}
             <div className="flex-none space-y-3 px-1 pb-4">
                 <div className="flex items-center justify-between py-1 relative h-[50px] bg-[var(--color-background)]">
-                    <Button
-                        variant="ghost"
-                        onClick={onBack}
-                        className="text-neutral-700 hover:bg-white/10 dark:text-neutral-300 dark:hover:bg-neutral-800 px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
-                    >
-                        <ArrowLeft size={18} />
-                        <Text weight="medium" className="text-base font-medium text-left text-gray-900 dark:text-gray-100 hidden sm:inline">
-                            Volver
-                        </Text>
-                    </Button>
+                    <div className="w-20"></div>
                     <Title variant="h5" weight="bold" color="text-primary" className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] sm:text-sm md:text-lg uppercase tracking-tight top-10 md:top-1/2 md:-translate-y-1/2">
                         Estado de Cuenta de Viáticos
                     </Title>

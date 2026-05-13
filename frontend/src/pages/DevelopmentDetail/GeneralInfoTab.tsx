@@ -54,7 +54,7 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
                         </div>
                         <div>
                             <Text variant="subtitle2" color="text-secondary" className="mb-2">
-                                Módulo
+                                Proceso
                             </Text>
                             <Text variant="body1">
                                 {development?.module || 'No especificado'}
@@ -142,6 +142,15 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
                 </MaterialCard.Header>
                 <MaterialCard.Content>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                        <div>
+                            <Text variant="subtitle2" color="text-secondary" className="mb-2">
+                                Autoridad
+                            </Text>
+                            <Text variant="body1">
+                                {development?.authority || 'No especificada'}
+                            </Text>
+                        </div>
 
                         <div>
                             <Text variant="subtitle2" color="text-secondary" className="mb-2">
