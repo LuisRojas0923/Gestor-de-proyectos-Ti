@@ -44,6 +44,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const [draftTitulo, setDraftTitulo] = useState('');
     const [draftAsignadoAId, setDraftAsignadoAId] = useState('');
     const [draftSaving, setDraftSaving] = useState(false);
+    const [draftFechaInicio, setDraftFechaInicio] = useState('');
+    const [draftFechaFin, setDraftFechaFin] = useState('');
 
     const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -121,6 +123,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             setDraftActive(true);
             setDraftTitulo('');
             setDraftAsignadoAId('');
+            setDraftFechaInicio('');
+            setDraftFechaFin('');
         },
         handleImportTemplate: () => {
             setIsTemplateModalOpen(true);
@@ -203,7 +207,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         setDraftAsignadoAId('');
     };
 
-    const handleSaveDraft = async () => {
+const handleSaveDraft = async () => {
         if (!draftTitulo.trim()) return;
         setDraftSaving(true);
         try {
@@ -215,9 +219,15 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                 horas_estimadas: 0,
                 asignado_a_id: draftAsignadoAId || undefined,
                 delegado_por_id: state.user?.id || undefined,
+                fecha_inicio_estimada: draftFechaInicio || undefined,
+                fecha_fin_estimada: draftFechaFin || undefined,
             };
             await post('/actividades/', payload);
             setDraftActive(false);
+            setDraftTitulo('');
+            setDraftAsignadoAId('');
+            setDraftFechaInicio('');
+            setDraftFechaFin('');
             await fetchTree();
         } catch (error) {
             console.error('Error creating WBS task:', error);
@@ -367,7 +377,14 @@ setTogglingIds(prev => new Set([...prev, id]));
             label: 'F.Inicio',
             minWidth: '72px',
             filterable: false,
-            render: (row) => (
+            render: (row) => row._isDraft ? (
+                <Input
+                    type="date"
+                    value={draftFechaInicio}
+                    onChange={(e) => setDraftFechaInicio(e.target.value)}
+                    className="!text-xs h-7 w-full"
+                />
+            ) : (
                 <Text variant="caption" className="truncate">
                     {formatDate(row.fecha_inicio_estimada || row.fecha_inicio_real)}
                 </Text>
@@ -378,7 +395,14 @@ setTogglingIds(prev => new Set([...prev, id]));
             label: 'F.Fin',
             minWidth: '72px',
             filterable: false,
-            render: (row) => (
+            render: (row) => row._isDraft ? (
+                <Input
+                    type="date"
+                    value={draftFechaFin}
+                    onChange={(e) => setDraftFechaFin(e.target.value)}
+                    className="!text-xs h-7 w-full"
+                />
+            ) : (
                 <Text variant="caption" className="truncate">
                     {formatDate(row.fecha_fin_estimada || row.fecha_fin_real)}
                 </Text>
