@@ -1,16 +1,14 @@
 import React, { useEffect, useState, useCallback, useImperativeHandle, useMemo, forwardRef } from 'react';
 import { useApi } from '../../hooks/useApi';
-import { Title, Text, Button, Badge, ProgressBar, Input } from '../../components/atoms';
+import { Text, Button, Badge, ProgressBar } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
-import { Trash2, Plus, Download, RotateCcw, ClipboardList, Pencil, Play, CirclePause, CheckCircle2 } from 'lucide-react';
+import { Trash2, Download, ClipboardList, Pencil, Play, CirclePause, CheckCircle2, XCircle } from 'lucide-react';
 
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
 import { DeleteActivityModal } from './DeleteActivityModal';
 import { ValidationStatusBadge } from '../../components/assignments/ValidationStatusBadge';
-import { AssignableUserSelect } from '../../components/assignments/AssignableUserSelect';
 import { useColumnFilters } from '../../hooks/useColumnFilters';
-import { useAppContext } from '../../context/AppContext';
 import { DataTable, DataTableColumn } from '../../components/molecules/DataTable';
 
 export interface WbsTabRef {
@@ -23,7 +21,7 @@ interface WbsTabProps {
     darkMode: boolean;
 }
 
-type WbsRow = WbsActivityTree & { _rowIndex: number; _isDraft?: boolean };
+type WbsRow = WbsActivityTree & { _rowIndex: number };
 
 const getStatusVariant = (estado: string): 'default' | 'success' | 'warning' | 'error' => {
     const normalized = estado.toLowerCase();
@@ -36,18 +34,11 @@ const getStatusVariant = (estado: string): 'default' | 'success' | 'warning' | '
 
 const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, ref) => {
     const { get, post, patch, put, delete: del } = useApi();
-    const { state } = useAppContext();
     const [tree, setTree] = useState<WbsActivityTree[]>([]);
     const [loading, setLoading] = useState(true);
     const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
-    const [draftActive, setDraftActive] = useState(false);
-    const [draftTitulo, setDraftTitulo] = useState('');
-    const [draftAsignadoAId, setDraftAsignadoAId] = useState('');
-    const [draftSaving, setDraftSaving] = useState(false);
-    const [draftFechaInicio, setDraftFechaInicio] = useState('');
-    const [draftFechaFin, setDraftFechaFin] = useState('');
-
     const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
+    const [resolvingIds, setResolvingIds] = useState<Set<number>>(new Set());
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalEditNode, setModalEditNode] = useState<WbsActivityTree | null>(null);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
@@ -57,10 +48,25 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         hijos: { id: number; titulo: string; nivel: number; estado: string }[];
         total_eliminaciones: number;
     } | null>(null);
+    const [hoveredRow, setHoveredRow] = useState<WbsRow | null>(null);
+    const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+    const tooltipRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (tooltipRef.current) {
+            tooltipRef.current.style.setProperty('--pos-x', `${tooltipPos.x + 16}px`);
+            tooltipRef.current.style.setProperty('--pos-y', `${tooltipPos.y}px`);
+        }
+    }, [tooltipPos]);
 
     const getLider = useCallback((node: WbsActivityTree) => {
         const id = node.asignado_a_id || node.responsable_id;
         if (!id) return '(Sin asignar)';
+        return userMap.get(id) ?? id;
+    }, [userMap]);
+
+    const getUserName = useCallback((id?: string) => {
+        if (!id) return '-';
         return userMap.get(id) ?? id;
     }, [userMap]);
 
@@ -94,42 +100,21 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         filters,
         filteredData,
         uniqueValues,
-        activeFilterCount,
-        clearAllFilters,
         setColumnFilter,
     } = useColumnFilters(tree, columnAccessors);
 
     const flattenedFiltered = flattenTree(filteredData);
-    const baseRows: WbsRow[] = flattenedFiltered.map((n, i) => ({ ...n, _rowIndex: i + 1 }));
-    const draftRow: WbsRow | null = draftActive ? {
-        id: -1,
-        _rowIndex: baseRows.length + 1,
-        _isDraft: true,
-        titulo: draftTitulo,
-        estado: 'Pendiente',
-        porcentaje_avance: 0,
-        horas_estimadas: 0,
-        horas_reales: 0,
-        desarrollo_id: developmentId,
-        subactividades: [],
-        creado_en: '',
-        asignado_a_id: draftAsignadoAId || undefined,
-    } : null;
-    const rowData: WbsRow[] = draftRow ? [...baseRows, draftRow] : baseRows;
+    const rowData: WbsRow[] = flattenedFiltered.map((n, i) => ({ ...n, _rowIndex: i + 1 }));
 
     useImperativeHandle(ref, () => ({
         handleAddRootTask: () => {
-            if (draftActive) return;
-            setDraftActive(true);
-            setDraftTitulo('');
-            setDraftAsignadoAId('');
-            setDraftFechaInicio('');
-            setDraftFechaFin('');
+            setModalEditNode(null);
+            setIsModalOpen(true);
         },
         handleImportTemplate: () => {
             setIsTemplateModalOpen(true);
         }
-    }), [draftActive]);
+    }), []);
 
     const allFlat = flattenTree(tree);
     const completed = allFlat.filter(n => n.estado.toLowerCase().includes('complet')).length;
@@ -138,7 +123,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const avgProgress = allFlat.length ? Math.round((completed / allFlat.length) * 100) : 0;
 
     const handleQuickAction = async (id: number, action: 'play' | 'pause' | 'finish', currentNode: WbsActivityTree) => {
-        let payload: any = {};
+        let payload: Partial<WbsActivityTree> = {};
         const now = new Date().toISOString().split('T')[0];
 
         if (action === 'play') {
@@ -192,7 +177,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         void fetchUsers();
     }, [developmentId]);
 
-
     useEffect(() => {
         if (!developmentId || tree.length === 0) return;
         const flat = flattenTree(tree);
@@ -200,41 +184,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         const pct = flat.length ? Math.round((comp / flat.length) * 100) : 0;
         void put(`/desarrollos/${developmentId}`, { porcentaje_progreso: pct });
     }, [tree, developmentId]);
-
-    const handleAddRootTask = () => {
-        setDraftActive(true);
-        setDraftTitulo('');
-        setDraftAsignadoAId('');
-    };
-
-const handleSaveDraft = async () => {
-        if (!draftTitulo.trim()) return;
-        setDraftSaving(true);
-        try {
-            const payload: WbsActivityCreate = {
-                desarrollo_id: developmentId,
-                titulo: draftTitulo.trim(),
-                estado: 'Pendiente',
-                porcentaje_avance: 0,
-                horas_estimadas: 0,
-                asignado_a_id: draftAsignadoAId || undefined,
-                delegado_por_id: state.user?.id || undefined,
-                fecha_inicio_estimada: draftFechaInicio || undefined,
-                fecha_fin_estimada: draftFechaFin || undefined,
-            };
-            await post('/actividades/', payload);
-            setDraftActive(false);
-            setDraftTitulo('');
-            setDraftAsignadoAId('');
-            setDraftFechaInicio('');
-            setDraftFechaFin('');
-            await fetchTree();
-        } catch (error) {
-            console.error('Error creating WBS task:', error);
-        } finally {
-            setDraftSaving(false);
-        }
-    };
 
     const handleEditTask = (node: WbsActivityTree) => {
         setModalEditNode(node);
@@ -292,6 +241,22 @@ setTogglingIds(prev => new Set([...prev, id]));
         }
     };
 
+    const handleResolveValidation = async (id: number, estado: 'aprobada' | 'rechazada') => {
+        if (resolvingIds.has(id)) return;
+        setResolvingIds(prev => new Set([...prev, id]));
+        try {
+            await post(`/validaciones-asignacion/${id}/resolver`, {
+                estado,
+                observacion: estado === 'rechazada' ? 'Rechazado desde WBS' : 'Aprobado desde WBS',
+            });
+            await fetchTree();
+        } catch (error) {
+            console.error('Error resolving validation:', error);
+        } finally {
+            setResolvingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
+        }
+    };
+
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return '-';
         try {
@@ -301,6 +266,71 @@ setTogglingIds(prev => new Set([...prev, id]));
             return dateStr;
         }
     };
+
+    const renderRowTooltip = (row: WbsRow) => (
+        <div className="space-y-3 p-4 min-w-[280px] max-w-[360px]">
+            <div className="border-b border-[var(--color-border)] pb-2">
+                <Text weight="bold" className="text-sm">{row.titulo}</Text>
+                {row.descripcion && (
+                    <Text variant="caption" color="text-secondary" className="mt-1 block">{row.descripcion}</Text>
+                )}
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                <div>
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Estado</Text>
+                    <Text variant="caption">{row.estado}</Text>
+                </div>
+                <div>
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Validación</Text>
+                    <Text variant="caption">{row.estado_validacion || '-'}</Text>
+                </div>
+                <div>
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">F.Inicio Est.</Text>
+                    <Text variant="caption">{formatDate(row.fecha_inicio_estimada)}</Text>
+                </div>
+                <div>
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">F.Inicio Real</Text>
+                    <Text variant="caption">{formatDate(row.fecha_inicio_real)}</Text>
+                </div>
+                <div>
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">F.Fin Est.</Text>
+                    <Text variant="caption">{formatDate(row.fecha_fin_estimada)}</Text>
+                </div>
+                <div>
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">F.Fin Real</Text>
+                    <Text variant="caption">{formatDate(row.fecha_fin_real)}</Text>
+                </div>
+                <div>
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Responsable</Text>
+                    <Text variant="caption">{getUserName(row.responsable_id)}</Text>
+                </div>
+                <div>
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Líder/Ejecutor</Text>
+                    <Text variant="caption">{getUserName(row.asignado_a_id)}</Text>
+                </div>
+                <div>
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">% Avance</Text>
+                    <Text variant="caption">{row.porcentaje_avance}%</Text>
+                </div>
+                <div>
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">H.Estimadas</Text>
+                    <Text variant="caption">{row.horas_estimadas}</Text>
+                </div>
+            </div>
+            {row.seguimiento && (
+                <div className="border-t border-[var(--color-border)] pt-2">
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Seguimiento</Text>
+                    <Text variant="caption" className="mt-1 block">{row.seguimiento}</Text>
+                </div>
+            )}
+            {row.compromiso && (
+                <div className="border-t border-[var(--color-border)] pt-2">
+                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Compromiso</Text>
+                    <Text variant="caption" className="mt-1 block">{row.compromiso}</Text>
+                </div>
+            )}
+        </div>
+    );
 
     const columns: DataTableColumn<WbsRow>[] = [
         {
@@ -320,7 +350,7 @@ setTogglingIds(prev => new Set([...prev, id]));
             label: '',
             minWidth: '36px',
             centered: true,
-            render: (row) => row._isDraft ? null : (
+            render: (row) => (
                 <Button
                     variant="custom"
                     disabled={togglingIds.has(row.id)}
@@ -345,14 +375,7 @@ setTogglingIds(prev => new Set([...prev, id]));
             minWidth: '160px',
             flex: true,
             filterable: true,
-            render: (row) => row._isDraft ? (
-                <Input
-                    placeholder="Título de la tarea..."
-                    value={draftTitulo}
-                    onChange={(e) => setDraftTitulo(e.target.value)}
-                    autoFocus
-                />
-            ) : (
+            render: (row) => (
                 <div className="min-w-0">
                     <Text weight="bold" className="truncate">{row.titulo}</Text>
                     {row.descripcion && (
@@ -364,27 +387,11 @@ setTogglingIds(prev => new Set([...prev, id]));
             ),
         },
         {
-            key: 'estado',
-            label: 'Estado',
-            minWidth: '90px',
-            filterable: true,
-            render: (row) => (
-                <Badge variant={getStatusVariant(row.estado)} size="sm">{row.estado}</Badge>
-            ),
-        },
-        {
             key: 'fecha_inicio_estimada',
             label: 'F.Inicio',
             minWidth: '72px',
             filterable: false,
-            render: (row) => row._isDraft ? (
-                <Input
-                    type="date"
-                    value={draftFechaInicio}
-                    onChange={(e) => setDraftFechaInicio(e.target.value)}
-                    className="!text-xs h-7 w-full"
-                />
-            ) : (
+            render: (row) => (
                 <Text variant="caption" className="truncate">
                     {formatDate(row.fecha_inicio_estimada || row.fecha_inicio_real)}
                 </Text>
@@ -395,14 +402,7 @@ setTogglingIds(prev => new Set([...prev, id]));
             label: 'F.Fin',
             minWidth: '72px',
             filterable: false,
-            render: (row) => row._isDraft ? (
-                <Input
-                    type="date"
-                    value={draftFechaFin}
-                    onChange={(e) => setDraftFechaFin(e.target.value)}
-                    className="!text-xs h-7 w-full"
-                />
-            ) : (
+            render: (row) => (
                 <Text variant="caption" className="truncate">
                     {formatDate(row.fecha_fin_estimada || row.fecha_fin_real)}
                 </Text>
@@ -424,15 +424,24 @@ setTogglingIds(prev => new Set([...prev, id]));
             label: 'Líder',
             minWidth: '100px',
             filterable: true,
-            render: (row) => row._isDraft ? (
-                <AssignableUserSelect
-                    value={draftAsignadoAId}
-                    onChange={setDraftAsignadoAId}
-                />
-            ) : (
-                <Text variant="caption" className="truncate" title={getLider(row)}>
-                    {getLider(row)}
-                </Text>
+            render: (row) => (
+                <div className="min-w-0">
+                    <Text variant="caption" weight="bold" className="truncate block" title={getLider(row)}>
+                        {getLider(row)}
+                    </Text>
+                    <Text variant="caption" color="text-secondary" className="truncate text-[10px] leading-tight">
+                        responsable: {getUserName(row.responsable_id)} | autoridad: {getUserName(row.asignado_a_id)}
+                    </Text>
+                </div>
+            ),
+        },
+        {
+            key: 'estado',
+            label: 'Estado',
+            minWidth: '90px',
+            filterable: true,
+            render: (row) => (
+                <Badge variant={getStatusVariant(row.estado)} size="sm">{row.estado}</Badge>
             ),
         },
         {
@@ -440,7 +449,38 @@ setTogglingIds(prev => new Set([...prev, id]));
             label: 'Validación',
             minWidth: '90px',
             filterable: true,
-            render: (row) => <ValidationStatusBadge status={row.estado_validacion} />,
+            render: (row) => {
+                const status = row.estado_validacion;
+                const isPending = status?.toLowerCase() === 'pendiente';
+                const isResolving = resolvingIds.has(row.validacion_id ?? -1);
+                if (isPending && row.validacion_id) {
+                    return (
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); void handleResolveValidation(row.validacion_id!, 'aprobada'); }}
+                                disabled={isResolving}
+                                className="h-6 w-6 !p-0 text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 border border-green-200 dark:border-green-800"
+                                title="Aprobar"
+                            >
+                                <CheckCircle2 size={12} />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); void handleResolveValidation(row.validacion_id!, 'rechazada'); }}
+                                disabled={isResolving}
+                                className="h-6 w-6 !p-0 text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-800"
+                                title="Rechazar"
+                            >
+                                <XCircle size={12} />
+                            </Button>
+                        </div>
+                    );
+                }
+                return <ValidationStatusBadge status={status} />;
+            },
         },
         {
             key: 'compromiso',
@@ -457,7 +497,6 @@ setTogglingIds(prev => new Set([...prev, id]));
             label: 'Gestión',
             minWidth: '120px',
             render: (row) => {
-                if (row._isDraft) return null;
                 const normalizedStatus = row.estado.toLowerCase();
                 const isCompleted = normalizedStatus.includes('complet');
                 const isInProgress = normalizedStatus.includes('progreso') || normalizedStatus.includes('curso');
@@ -530,29 +569,6 @@ setTogglingIds(prev => new Set([...prev, id]));
     ];
 
     const renderRowActions = (row: WbsRow) => {
-        if (row._isDraft) {
-            return (
-                <>
-                    <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); void handleSaveDraft(); }}
-                        disabled={draftSaving || !draftTitulo.trim()}
-                        className="h-8 px-2 text-xs"
-                    >
-                        {draftSaving ? '...' : 'Guardar'}
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); setDraftActive(false); }}
-                        className="h-8 px-2 text-xs"
-                    >
-                        Cancelar
-                    </Button>
-                </>
-            );
-        }
         return (
             <>
                 <Button
@@ -603,20 +619,32 @@ setTogglingIds(prev => new Set([...prev, id]));
             ) : (
                 <>
                     {allFlat.length > 0 && statsCards}
-                    <DataTable<WbsRow>
-                        columns={columns}
-                        data={rowData}
-                        keyExtractor={(row) => row._isDraft ? 'draft' : String(row.id)}
-                        renderRowActions={renderRowActions}
-                        actionsMinWidth="90px"
-                        columnFilters={filters}
-                        columnOptions={uniqueValues}
-                        onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
-                        isLoading={false}
-                        emptyMessage="Sin tareas aún. Usa «Agregar tarea» para comenzar."
-                        emptyIcon={<ClipboardList size={40} className="opacity-40" />}
-                        maxHeight="max-h-[calc(100vh-300px)]"
-                    />
+                    <div className="relative">
+{hoveredRow && (
+                            <div
+                                ref={tooltipRef}
+                                className="absolute z-50 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-xl p-4 w-[320px] pointer-events-none translate-x-[var(--pos-x)] translate-y-[var(--pos-y)]"
+                            >
+                                {renderRowTooltip(hoveredRow)}
+                            </div>
+                        )}
+                        <DataTable<WbsRow>
+                            columns={columns}
+                            data={rowData}
+                            keyExtractor={(row) => String(row.id)}
+                            renderRowActions={renderRowActions}
+                            actionsMinWidth="90px"
+                            columnFilters={filters}
+                            columnOptions={uniqueValues}
+                            onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
+                            onMouseEnterRow={(row, e) => { setHoveredRow(row); setTooltipPos({ x: e.clientX, y: e.clientY }); }}
+                            onMouseLeaveRow={() => setHoveredRow(null)}
+                            isLoading={false}
+                            emptyMessage="Sin tareas aún. Usa «Agregar tarea» para comenzar."
+                            emptyIcon={<ClipboardList size={40} className="opacity-40" />}
+                            maxHeight="max-h-[calc(100vh-300px)]"
+                        />
+                    </div>
                 </>
             )}
 
