@@ -209,14 +209,16 @@ const NominaHistorialView: React.FC = () => {
                                     <tr key={a.id} className="border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)] transition-colors">
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">
-                                                <button 
-                                                    className="w-9 h-9 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0 hover:bg-[var(--color-primary)]/20 transition-all group"
+                                                <Button 
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="w-9 h-9 rounded-lg bg-[var(--color-primary)]/10 flex-shrink-0 hover:bg-[var(--color-primary)]/20 group"
                                                     onClick={() => handleDownload(a)}
                                                     title="Descargar archivo original"
                                                 >
                                                     <FileText className="w-4 h-4 text-[var(--color-primary)] group-hover:hidden" />
                                                     <Download className="w-4 h-4 text-[var(--color-primary)] hidden group-hover:block" />
-                                                </button>
+                                                </Button>
                                                 <div className="min-w-0">
                                                     <Text weight="medium" className="truncate max-w-[200px] block">{a.nombre_archivo}</Text>
                                                     <Text className="text-xs opacity-50">{a.tipo_archivo.toUpperCase()}</Text>
@@ -264,12 +266,14 @@ const NominaHistorialView: React.FC = () => {
                             <div key={a.id} className="p-4 space-y-3">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex items-center gap-2 min-w-0">
-                                        <button 
-                                            className="w-8 h-8 rounded bg-[var(--color-primary)]/10 flex items-center justify-center flex-shrink-0"
+                                        <Button 
+                                            variant="ghost"
+                                            size="icon"
+                                            className="w-8 h-8 rounded bg-[var(--color-primary)]/10 flex-shrink-0"
                                             onClick={() => handleDownload(a)}
                                         >
                                             <Download className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                                        </button>
+                                        </Button>
                                         <Text weight="medium" className="truncate">{a.nombre_archivo}</Text>
                                     </div>
                                     <Badge variant={ESTADO_BADGE[a.estado] || 'neutral'} className="flex-shrink-0">{a.estado}</Badge>

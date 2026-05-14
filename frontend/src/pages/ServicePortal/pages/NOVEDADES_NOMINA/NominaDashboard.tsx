@@ -4,7 +4,7 @@ import { ActionCard } from '../../../../components/molecules';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_CONFIG } from '../../../../config/api';
-import { ArrowLeft, FileText, ChevronRight } from 'lucide-react';
+import { ArrowLeft, FileText, ChevronRight, Table } from 'lucide-react';
 // Importación de iconos de subcategorías
 import GrancoopIcon from '../../../../assets/images/categories/Grancoop.png';
 import BeneficiarIcon from '../../../../assets/images/categories/Benefeiciar.png';
@@ -175,12 +175,12 @@ const NominaDashboard: React.FC = () => {
                 <Button
                     variant="custom"
                     onClick={() => navigate('/service-portal/novedades-nomina/tabla-maestra')}
-                    className="group flex items-center gap-2 hover:opacity-80 transition-all duration-300 p-0 h-auto bg-transparent border-none"
+                    className="px-5 py-2 bg-gradient-to-b from-white to-slate-100 dark:from-slate-800 dark:to-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm hover:shadow-md hover:to-slate-200 dark:hover:to-slate-800 text-slate-700 dark:text-slate-200 font-semibold uppercase tracking-wide transition-all hover:-translate-y-0.5"
                 >
-                    <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
-                        Tabla Descuentos Nómina
-                    </Title>
-                    <ChevronRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
+                    <div className="flex flex-row items-center justify-center gap-2 whitespace-nowrap">
+                        <Table className="w-5 h-5" />
+                        <Text as="span" color="inherit">Ver Tabla Consolidada</Text>
+                    </div>
                 </Button>
             </div>
 

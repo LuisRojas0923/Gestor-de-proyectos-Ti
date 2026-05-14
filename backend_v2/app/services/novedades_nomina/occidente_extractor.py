@@ -6,6 +6,7 @@ Extrae "CÉDULA" y "CUOTA MENSUAL", preparándolos para el cruce con el ERP.
 """
 
 import io
+import os
 import logging
 import pandas as pd
 import msoffcrypto
@@ -37,7 +38,8 @@ def extraer_occidente_libranza(
             file_stream = io.BytesIO(contenido)
             decrypted_stream = io.BytesIO()
             office_file = msoffcrypto.OfficeFile(file_stream)
-            office_file.load_key(password="805005717")
+            pwd = os.getenv("LIBRANZA_OCCIDENTE_PASSWORD", "805005717")
+            office_file.load_key(password=pwd)
             office_file.decrypt(decrypted_stream)
             decrypted_stream.seek(0)
             

@@ -54,7 +54,10 @@ async def obtener_datos_otros_gerencia(
         NominaFavorito.usuario_id == user.id,
         NominaFavorito.subcategoria == "OTROS GERENCIA"
     )
-    favs = (await session.execute(stmt)).scalars().all()
+    try:
+        favs = (await session.execute(stmt)).scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error consultando favoritos: {e}")
     fav_set = set(favs)
     
     for row in res.get("rows", []):
@@ -72,7 +75,10 @@ async def listar_favoritos_otros_gerencia(
         NominaFavorito.usuario_id == user.id,
         NominaFavorito.subcategoria == "OTROS GERENCIA"
     )
-    cedulas = (await session.execute(stmt)).scalars().all()
+    try:
+        cedulas = (await session.execute(stmt)).scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error consultando favoritos: {e}")
     if not cedulas: return []
     
     if not db_erp:
@@ -101,17 +107,21 @@ async def toggle_favorito_otros_gerencia(
         NominaFavorito.cedula == cedula,
         NominaFavorito.subcategoria == "OTROS GERENCIA"
     )
-    fav = (await session.execute(stmt)).scalar_one_or_none()
-    
-    if fav:
-        await session.delete(fav)
-        await session.commit()
-        return {"status": "removed", "cedula": cedula}
-    else:
-        nuevo_fav = NominaFavorito(usuario_id=user.id, cedula=cedula, subcategoria="OTROS GERENCIA")
-        session.add(nuevo_fav)
-        await session.commit()
-        return {"status": "added", "cedula": cedula}
+    try:
+        fav = (await session.execute(stmt)).scalar_one_or_none()
+        
+        if fav:
+            await session.delete(fav)
+            await session.commit()
+            return {"status": "removed", "cedula": cedula}
+        else:
+            nuevo_fav = NominaFavorito(usuario_id=user.id, cedula=cedula, subcategoria="OTROS GERENCIA")
+            session.add(nuevo_fav)
+            await session.commit()
+            return {"status": "added", "cedula": cedula}
+    except Exception as e:
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error toggleando favorito: {e}")
 
 @router.post("/procesar-manual")
 async def procesar_manual_otros_gerencia(payload: Dict = None, session: AsyncSession = Depends(obtener_db), db_erp = Depends(obtener_erp_db_opcional)):
@@ -138,6 +148,9 @@ async def buscar_empleado_otros_gerencia(
         NominaFavorito.cedula == cedula,
         NominaFavorito.subcategoria == "OTROS GERENCIA"
     )
-    fav = (await session.execute(stmt)).scalar_one_or_none()
+    try:
+        fav = (await session.execute(stmt)).scalar_one_or_none()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error consultando favorito: {e}")
     empleado["is_favorite"] = fav is not None
     return empleado

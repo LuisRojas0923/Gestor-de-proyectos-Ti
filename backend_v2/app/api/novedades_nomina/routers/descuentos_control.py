@@ -59,79 +59,84 @@ async def _sincronizar_descuento_nomina(session: AsyncSession, db_erp, registro:
     from ....models.novedades_nomina.nomina import NominaArchivo, NominaRegistroNormalizado
     from sqlalchemy import select, delete
     
-    # 1. Eliminar proyecciones anteriores de este descuento
-    await session.execute(
-        delete(NominaRegistroNormalizado).where(
-            NominaRegistroNormalizado.observaciones.like(f"%[SYNC_CD:{registro.id}]%")
+    try:
+        # 1. Eliminar proyecciones anteriores de este descuento
+        await session.execute(
+            delete(NominaRegistroNormalizado).where(
+                NominaRegistroNormalizado.observaciones.like(f"%[SYNC_CD:{registro.id}]%")
+            )
         )
-    )
-    
-    if eliminar_solamente:
-        return
         
-    # 2. Buscar o crear el archivo dummy
-    result = await session.execute(select(NominaArchivo).where(NominaArchivo.nombre_archivo == "SYNC_CONTROL_DESCUENTOS"))
-    archivo = result.scalars().first()
-    if not archivo:
-        archivo = NominaArchivo(
-            nombre_archivo="SYNC_CONTROL_DESCUENTOS", hash_archivo="SYNC_CD",
-            tamaño_bytes=0, tipo_archivo="sync", ruta_almacenamiento="internal",
-            mes_fact=1, año_fact=2000, categoria="DESCUENTOS",
-            subcategoria="CONTROL DE DESCUENTOS", estado="Procesado"
-        )
-        session.add(archivo)
-        await session.flush()
+        if eliminar_solamente:
+            return
+            
+        # 2. Buscar o crear el archivo dummy
+        result = await session.execute(select(NominaArchivo).where(NominaArchivo.nombre_archivo == "SYNC_CONTROL_DESCUENTOS"))
+        archivo = result.scalars().first()
+        if not archivo:
+            archivo = NominaArchivo(
+                nombre_archivo="SYNC_CONTROL_DESCUENTOS", hash_archivo="SYNC_CD",
+                tamaño_bytes=0, tipo_archivo="sync", ruta_almacenamiento="internal",
+                mes_fact=1, año_fact=2000, categoria="DESCUENTOS",
+                subcategoria="CONTROL DE DESCUENTOS", estado="Procesado"
+            )
+            session.add(archivo)
+            await session.flush()
 
-    # 3. Determinar estado ERP
-    estado_erp = "OK"
-    if db_erp:
-        info = EmpleadosService.consultar_empleados_bulk(db_erp, [registro.cedula]).get(registro.cedula)
-        if info and str(info.get("estado", "")).strip().upper() != "ACTIVO":
-            estado_erp = "RETIRADO"
-        elif not info:
-            estado_erp = "NO ENCONTRADO"
+        # 3. Determinar estado ERP
+        estado_erp = "OK"
+        if db_erp:
+            info = EmpleadosService.consultar_empleados_bulk(db_erp, [registro.cedula]).get(registro.cedula)
+            if info and str(info.get("estado", "")).strip().upper() != "ACTIVO":
+                estado_erp = "RETIRADO"
+            elif not info:
+                estado_erp = "NO ENCONTRADO"
 
-    # 4. Calcular el cronograma y crear los registros normalizados
-    fechas_pago = []
-    curr = registro.fecha_inicio
-    if hasattr(curr, "date"): curr = curr.date()
-    
-    for _ in range(registro.n_cuotas):
-        fechas_pago.append(curr)
-        if curr.day == 15:
-            try: curr = curr.replace(day=30)
-            except ValueError:
+        # 4. Calcular el cronograma y crear los registros normalizados
+        fechas_pago = []
+        curr = registro.fecha_inicio
+        if hasattr(curr, "date"): curr = curr.date()
+        
+        for _ in range(registro.n_cuotas):
+            fechas_pago.append(curr)
+            if curr.day == 15:
+                try: curr = curr.replace(day=30)
+                except ValueError:
+                    next_m = curr.month + 1 if curr.month < 12 else 1
+                    next_y = curr.year if curr.month < 12 else curr.year + 1
+                    curr = date(next_y, next_m, 1) - timedelta(days=1)
+            else:
                 next_m = curr.month + 1 if curr.month < 12 else 1
                 next_y = curr.year if curr.month < 12 else curr.year + 1
-                curr = date(next_y, next_m, 1) - timedelta(days=1)
-        else:
-            next_m = curr.month + 1 if curr.month < 12 else 1
-            next_y = curr.year if curr.month < 12 else curr.year + 1
-            curr = date(next_y, next_m, 15)
+                curr = date(next_y, next_m, 15)
+                
+        for fp in fechas_pago:
+            mes_fact, año_fact = fp.month, fp.year
+            # Q1 = días 1-15, Q2 = días 16-31
+            quincena = "Q1" if fp.day <= 15 else "Q2"
+            concepto = f"CONTROL DE DESCUENTO {quincena}"
             
-    for fp in fechas_pago:
-        mes_fact, año_fact = fp.month, fp.year
-        # Q1 = días 1-15, Q2 = días 16-31
-        quincena = "Q1" if fp.day <= 15 else "Q2"
-        concepto = f"CONTROL DE DESCUENTO {quincena}"
-        
-        reg = NominaRegistroNormalizado(
-            archivo_id=archivo.id,
-            fecha_creacion=datetime.now(),
-            mes_fact=mes_fact,
-            año_fact=año_fact,
-            cedula=registro.cedula,
-            nombre_asociado=registro.nombre,
-            valor=registro.valor_cuota,
-            empresa=registro.empresa,
-            concepto=concepto,
-            categoria_final="DESCUENTOS",
-            subcategoria_final="CONTROL DE DESCUENTOS",
-            estado_validacion=estado_erp,
-            observaciones=f"[SYNC_CD:{registro.id}] {registro.observaciones or ''}".strip(),
-            fila_origen=1
-        )
-        session.add(reg)
+            reg = NominaRegistroNormalizado(
+                archivo_id=archivo.id,
+                fecha_creacion=datetime.now(),
+                mes_fact=mes_fact,
+                año_fact=año_fact,
+                cedula=registro.cedula,
+                nombre_asociado=registro.nombre,
+                valor=registro.valor_cuota,
+                empresa=registro.empresa,
+                concepto=concepto,
+                categoria_final="DESCUENTOS",
+                subcategoria_final="CONTROL DE DESCUENTOS",
+                estado_validacion=estado_erp,
+                observaciones=f"[SYNC_CD:{registro.id}] {registro.observaciones or ''}".strip(),
+                fila_origen=1
+            )
+            session.add(reg)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error sincronizando control descuento: {e}")
+        raise e
 
 # ── MODELS ──────────────────────────────────────────────────────────────────
 

@@ -88,17 +88,18 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
     if (!effectiveIsOpen && isSimpleMode) {
         const hasFilters = (props.selectedOptions?.length || 0) > 0;
         return (
-            <button
+            <Button
                 ref={triggerRef}
                 onClick={toggleSimple}
-                className="absolute inset-0 w-full h-full bg-transparent border-none cursor-pointer focus:outline-none z-10"
+                variant="custom"
+                className="absolute inset-0 w-full h-full bg-transparent border-none cursor-pointer focus:outline-none z-10 p-0 m-0"
             >
                 {hasFilters && (
-                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] flex items-center justify-center rounded-full font-bold shadow-sm">
+                    <Text as="span" color="inherit" className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] flex items-center justify-center rounded-full font-bold shadow-sm">
                         {props.selectedOptions?.length}
-                    </span>
+                    </Text>
                 )}
-            </button>
+            </Button>
         );
     }
 

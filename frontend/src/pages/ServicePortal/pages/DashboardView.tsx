@@ -64,6 +64,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         permissions.includes('jerarquia_organizacional') ||
         ['admin', 'director'].includes(userRole);
 
+    const canSeeComisiones = moduleStatus['comisiones'] !== false && (
+        permissions.includes('comisiones') ||
+        ['admin', 'director'].includes(userRole)
+    );
+
     return (
         <div className="space-y-12 py-6">
             <div className="text-center space-y-2">
@@ -119,7 +124,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                     />
                 )}
 
-                {(userRole === 'admin' || userRole === 'director') && (
+                {canSeeComisiones && (
                     <ActionCard
                         title="Comisiones"
                         description="Cálculo y procesamiento de comisiones para el personal."

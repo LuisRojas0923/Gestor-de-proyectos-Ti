@@ -12,14 +12,20 @@ async def check_locks():
     engine = create_engine(sync_url)
     with engine.connect() as conn:
         print("--- Active Queries ---")
-        res = conn.execute(text("SELECT pid, now() - query_start AS duration, query, state FROM pg_stat_activity WHERE state != 'idle' AND query NOT LIKE '%pg_stat_activity%';"))
+        try:
+            res = conn.execute(text("SELECT pid, now() - query_start AS duration, query, state FROM pg_stat_activity WHERE state != 'idle' AND query NOT LIKE '%pg_stat_activity%';"))
+        except Exception:
+            pass
         for row in res:
             print(f"PID: {row.pid}, Duration: {row.duration}, State: {row.state}")
             print(f"Query: {row.query[:100]}...")
             print("-" * 20)
         
         print("\n--- Locks ---")
-        res = conn.execute(text("""
+        try:
+            res = conn.execute(text("""
+        except Exception:
+            pass
             SELECT blocked_locks.pid     AS blocked_pid,
                    blocked_activity.query  AS blocked_query,
                    blocking_locks.pid    AS blocking_pid,

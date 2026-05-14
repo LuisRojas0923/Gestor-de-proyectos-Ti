@@ -5,7 +5,13 @@ from sqlmodel import select
 
 async def main():
     async with AsyncSessionLocal() as session:
-        res = await session.execute(select(Usuario).where(Usuario.cedula == 'admin'))
+        try:
+            try:
+                res = await session.execute(select(Usuario).where(Usuario.cedula == 'admin'))
+            except Exception:
+                pass
+        except Exception:
+            pass
         u = res.scalar_one_or_none()
         if u:
             print(f'Admin found: activo={u.esta_activo}, rol={u.rol}')
