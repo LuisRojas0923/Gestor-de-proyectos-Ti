@@ -31,6 +31,7 @@ export interface DataTableProps<T> {
 
     onMouseEnterRow?: (row: T, event: React.MouseEvent) => void;
     onMouseLeaveRow?: () => void;
+    bodyRef?: React.RefObject<HTMLDivElement>;
 
     columnFilters?: Record<string, Set<string>>;
     columnOptions?: Record<string, string[]>;
@@ -59,6 +60,7 @@ export function DataTable<T>({
     actionsMinWidth = '100px',
     onMouseEnterRow,
     onMouseLeaveRow,
+    bodyRef,
     columnFilters = {},
     columnOptions = {},
     onFilterChange,
@@ -199,7 +201,7 @@ export function DataTable<T>({
                         ref={headerGridRef}
                         className={`shrink-0 bg-[var(--deep-navy)] rounded-t-2xl border-b border-[var(--deep-navy)] overflow-hidden z-20 ${headerClassName}`}
                     >
-                        {columns.map((col, idx) => (
+                        {columns.map((col) => (
                             <Button
                                 key={col.key}
                                 ref={(el) => { headerRefs.current[col.key] = el; }}
@@ -242,7 +244,10 @@ export function DataTable<T>({
                      * Ya no usa flex-1 para que su altura dependa del contenido de las filas.
                      */}
                     <div
-                        ref={bodyGridRef}
+                        ref={(el) => {
+                            (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                            if (bodyRef) (bodyRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                        }}
                         className="overflow-y-auto custom-scrollbar"
                     >
                         {data.map((row) => (

@@ -49,13 +49,14 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         total_eliminaciones: number;
     } | null>(null);
     const [hoveredRow, setHoveredRow] = useState<WbsRow | null>(null);
-    const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+    const tableBodyRef = React.useRef<HTMLDivElement>(null);
     const tooltipRef = React.useRef<HTMLDivElement>(null);
+    const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
 
     useEffect(() => {
         if (tooltipRef.current) {
-            tooltipRef.current.style.setProperty('--pos-x', `${tooltipPos.x + 16}px`);
-            tooltipRef.current.style.setProperty('--pos-y', `${tooltipPos.y}px`);
+            tooltipRef.current.style.setProperty('--tooltip-top', `${tooltipPos.top}px`);
+            tooltipRef.current.style.setProperty('--tooltip-left', `${tooltipPos.left}px`);
         }
     }, [tooltipPos]);
 
@@ -376,7 +377,7 @@ setTogglingIds(prev => new Set([...prev, id]));
             flex: true,
             filterable: true,
             render: (row) => (
-                <div className="min-w-0">
+                <div className="min-w-0" data-column="titulo">
                     <Text weight="bold" className="truncate">{row.titulo}</Text>
                     {row.descripcion && (
                         <Text variant="caption" color="text-secondary" className="truncate mt-0.5">
@@ -620,11 +621,12 @@ setTogglingIds(prev => new Set([...prev, id]));
                 <>
                     {allFlat.length > 0 && statsCards}
                     <div className="relative">
-{hoveredRow && (
+                        {hoveredRow && (
                             <div
                                 ref={tooltipRef}
-                                className="absolute z-50 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-xl p-4 w-[320px] pointer-events-none translate-x-[var(--pos-x)] translate-y-[var(--pos-y)]"
+                                className="absolute z-50 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-xl p-4 w-[320px] pointer-events-none"
                             >
+                                {/* [CONTROLADO] Tooltip: posición dinámica vía JS ref */}
                                 {renderRowTooltip(hoveredRow)}
                             </div>
                         )}
@@ -637,8 +639,23 @@ setTogglingIds(prev => new Set([...prev, id]));
                             columnFilters={filters}
                             columnOptions={uniqueValues}
                             onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
-                            onMouseEnterRow={(row, e) => { setHoveredRow(row); setTooltipPos({ x: e.clientX, y: e.clientY }); }}
+                            onMouseEnterRow={(row, e) => {
+                                setHoveredRow(row);
+                                if (tableBodyRef.current) {
+                                    const rowEl = e.currentTarget as HTMLDivElement;
+                                    const tareaCell = rowEl.querySelector('[data-column="titulo"]');
+                                    if (tareaCell) {
+                                        const rowRect = rowEl.getBoundingClientRect();
+                                        const containerRect = tableBodyRef.current.getBoundingClientRect();
+                                        setTooltipPos({
+                                            top: rowRect.bottom - containerRect.top + 8,
+                                            left: rowRect.left - containerRect.left,
+                                        });
+                                    }
+                                }
+                            }}
                             onMouseLeaveRow={() => setHoveredRow(null)}
+                            bodyRef={tableBodyRef}
                             isLoading={false}
                             emptyMessage="Sin tareas aún. Usa «Agregar tarea» para comenzar."
                             emptyIcon={<ClipboardList size={40} className="opacity-40" />}
