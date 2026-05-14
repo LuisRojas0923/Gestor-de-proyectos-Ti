@@ -8,6 +8,7 @@ Extrae "CÉDULA" y "CUOTA MENSUAL", preparándolos para el cruce con el ERP.
 import io
 import logging
 import pandas as pd
+import msoffcrypto
 from typing import List, Dict, Any, Tuple
 
 logger = logging.getLogger(__name__)
@@ -32,9 +33,17 @@ def extraer_occidente_libranza(
 
     for file_idx, contenido in enumerate(archivos_binarios):
         try:
-            # Leer excel ignorando las primeras 15 filas (la fila 16 es el header)
-            # Nota: pandas 0-indexed, fila 16 -> index 15
-            df = pd.read_excel(io.BytesIO(contenido), skiprows=15)
+            # Desencriptar el archivo Excel protegido por contraseña
+            file_stream = io.BytesIO(contenido)
+            decrypted_stream = io.BytesIO()
+            office_file = msoffcrypto.OfficeFile(file_stream)
+            office_file.load_key(password="805005717")
+            office_file.decrypt(decrypted_stream)
+            decrypted_stream.seek(0)
+            
+            # Leer excel desde la hoja GENERAL ignorando las primeras 16 filas (la fila 17 es el header)
+            # Nota: pandas 0-indexed, fila 17 -> index 16
+            df = pd.read_excel(decrypted_stream, sheet_name="GENERAL", skiprows=16)
             
             # Limpiar nombres de columnas
             df.columns = df.columns.str.strip()
