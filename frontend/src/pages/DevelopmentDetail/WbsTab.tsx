@@ -7,6 +7,7 @@ import { Trash2, Download, ClipboardList, Pencil, Play, CirclePause, CheckCircle
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
 import { DeleteActivityModal } from './DeleteActivityModal';
+import { WbsDetailModal } from './WbsDetailModal';
 import { ValidationStatusBadge } from '../../components/assignments/ValidationStatusBadge';
 import { useColumnFilters } from '../../hooks/useColumnFilters';
 import { DataTable, DataTableColumn } from '../../components/molecules/DataTable';
@@ -48,17 +49,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         hijos: { id: number; titulo: string; nivel: number; estado: string }[];
         total_eliminaciones: number;
     } | null>(null);
-    const [hoveredRow, setHoveredRow] = useState<WbsRow | null>(null);
-    const tableBodyRef = React.useRef<HTMLDivElement>(null);
-    const tooltipRef = React.useRef<HTMLDivElement>(null);
-    const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
-
-    useEffect(() => {
-        if (tooltipRef.current) {
-            tooltipRef.current.style.setProperty('--tooltip-top', `${tooltipPos.top}px`);
-            tooltipRef.current.style.setProperty('--tooltip-left', `${tooltipPos.left}px`);
-        }
-    }, [tooltipPos]);
+    const [detailModalOpen, setDetailModalOpen] = useState(false);
+    const [selectedActivity, setSelectedActivity] = useState<WbsActivityTree | null>(null);
 
     const getLider = useCallback((node: WbsActivityTree) => {
         const id = node.asignado_a_id || node.responsable_id;
@@ -267,71 +259,6 @@ setTogglingIds(prev => new Set([...prev, id]));
             return dateStr;
         }
     };
-
-    const renderRowTooltip = (row: WbsRow) => (
-        <div className="space-y-3 p-4 min-w-[280px] max-w-[360px]">
-            <div className="border-b border-[var(--color-border)] pb-2">
-                <Text weight="bold" className="text-sm">{row.titulo}</Text>
-                {row.descripcion && (
-                    <Text variant="caption" color="text-secondary" className="mt-1 block">{row.descripcion}</Text>
-                )}
-            </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                <div>
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Estado</Text>
-                    <Text variant="caption">{row.estado}</Text>
-                </div>
-                <div>
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Validación</Text>
-                    <Text variant="caption">{row.estado_validacion || '-'}</Text>
-                </div>
-                <div>
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">F.Inicio Est.</Text>
-                    <Text variant="caption">{formatDate(row.fecha_inicio_estimada)}</Text>
-                </div>
-                <div>
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">F.Inicio Real</Text>
-                    <Text variant="caption">{formatDate(row.fecha_inicio_real)}</Text>
-                </div>
-                <div>
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">F.Fin Est.</Text>
-                    <Text variant="caption">{formatDate(row.fecha_fin_estimada)}</Text>
-                </div>
-                <div>
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">F.Fin Real</Text>
-                    <Text variant="caption">{formatDate(row.fecha_fin_real)}</Text>
-                </div>
-                <div>
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Responsable</Text>
-                    <Text variant="caption">{getUserName(row.responsable_id)}</Text>
-                </div>
-                <div>
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Líder/Ejecutor</Text>
-                    <Text variant="caption">{getUserName(row.asignado_a_id)}</Text>
-                </div>
-                <div>
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">% Avance</Text>
-                    <Text variant="caption">{row.porcentaje_avance}%</Text>
-                </div>
-                <div>
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">H.Estimadas</Text>
-                    <Text variant="caption">{row.horas_estimadas}</Text>
-                </div>
-            </div>
-            {row.seguimiento && (
-                <div className="border-t border-[var(--color-border)] pt-2">
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Seguimiento</Text>
-                    <Text variant="caption" className="mt-1 block">{row.seguimiento}</Text>
-                </div>
-            )}
-            {row.compromiso && (
-                <div className="border-t border-[var(--color-border)] pt-2">
-                    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase text-[10px]">Compromiso</Text>
-                    <Text variant="caption" className="mt-1 block">{row.compromiso}</Text>
-                </div>
-            )}
-        </div>
-    );
 
     const columns: DataTableColumn<WbsRow>[] = [
         {
@@ -619,49 +546,22 @@ setTogglingIds(prev => new Set([...prev, id]));
                 </div>
             ) : (
                 <>
-                    {allFlat.length > 0 && statsCards}
-                    <div className="relative">
-                        {hoveredRow && (
-                            <div
-                                ref={tooltipRef}
-                                className="absolute z-50 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-xl p-4 w-[320px] pointer-events-none"
-                            >
-                                {/* [CONTROLADO] Tooltip: posición dinámica vía JS ref */}
-                                {renderRowTooltip(hoveredRow)}
-                            </div>
-                        )}
-                        <DataTable<WbsRow>
-                            columns={columns}
-                            data={rowData}
-                            keyExtractor={(row) => String(row.id)}
-                            renderRowActions={renderRowActions}
-                            actionsMinWidth="90px"
-                            columnFilters={filters}
-                            columnOptions={uniqueValues}
-                            onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
-                            onMouseEnterRow={(row, e) => {
-                                setHoveredRow(row);
-                                if (tableBodyRef.current) {
-                                    const rowEl = e.currentTarget as HTMLDivElement;
-                                    const tareaCell = rowEl.querySelector('[data-column="titulo"]');
-                                    if (tareaCell) {
-                                        const rowRect = rowEl.getBoundingClientRect();
-                                        const containerRect = tableBodyRef.current.getBoundingClientRect();
-                                        setTooltipPos({
-                                            top: rowRect.bottom - containerRect.top + 8,
-                                            left: rowRect.left - containerRect.left,
-                                        });
-                                    }
-                                }
-                            }}
-                            onMouseLeaveRow={() => setHoveredRow(null)}
-                            bodyRef={tableBodyRef}
-                            isLoading={false}
-                            emptyMessage="Sin tareas aún. Usa «Agregar tarea» para comenzar."
-                            emptyIcon={<ClipboardList size={40} className="opacity-40" />}
-                            maxHeight="max-h-[calc(100vh-300px)]"
-                        />
-                    </div>
+{allFlat.length > 0 && statsCards}
+                    <DataTable<WbsRow>
+                        columns={columns}
+                        data={rowData}
+                        keyExtractor={(row) => String(row.id)}
+                        renderRowActions={renderRowActions}
+                        actionsMinWidth="90px"
+                        columnFilters={filters}
+                        columnOptions={uniqueValues}
+                        onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
+                        onRowClick={(row) => { setSelectedActivity(row); setDetailModalOpen(true); }}
+                        isLoading={false}
+                        emptyMessage="Sin tareas aún. Usa «Agregar tarea» para comenzar."
+                        emptyIcon={<ClipboardList size={40} className="opacity-40" />}
+                        maxHeight="max-h-[calc(100vh-300px)]"
+                    />
                 </>
             )}
 
@@ -685,6 +585,15 @@ setTogglingIds(prev => new Set([...prev, id]));
                 preview={deletePreview}
                 onClose={() => { setDeleteModalOpen(false); setDeletePreview(null); }}
                 onConfirm={handleConfirmDelete}
+            />
+
+            <WbsDetailModal
+                isOpen={detailModalOpen}
+                onClose={() => setDetailModalOpen(false)}
+                activity={selectedActivity}
+                userMap={userMap}
+                onResolveValidation={handleResolveValidation}
+                resolvingIds={resolvingIds}
             />
         </div>
     );
