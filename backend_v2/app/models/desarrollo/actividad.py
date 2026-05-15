@@ -128,6 +128,7 @@ class ActividadLeer(ActividadBase):
     id: int
     desarrollo_id: str
     parent_id: Optional[int] = None
+    solicitado_por_id: Optional[str] = None
     fecha_inicio_real: Optional[date] = None
     fecha_fin_real: Optional[date] = None
     horas_reales: Decimal

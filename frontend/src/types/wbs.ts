@@ -5,6 +5,7 @@ export interface WbsActivityBase {
     responsable_id?: string;
     asignado_a_id?: string;
     delegado_por_id?: string;
+    solicitado_por_id?: string;
     estado_validacion?: string;
     validacion_id?: number | null;
     fecha_inicio_estimada?: string;

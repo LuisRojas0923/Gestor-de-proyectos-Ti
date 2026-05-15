@@ -36,6 +36,7 @@ def actividad_a_arbol(actividad: Actividad) -> ActividadArbol:
         responsable_id=actividad.responsable_id,
         asignado_a_id=actividad.asignado_a_id,
         delegado_por_id=actividad.delegado_por_id,
+        solicitado_por_id=actividad.delegado_por_id,
         estado_validacion=actividad.estado_validacion,
         validacion_id=actividad.validacion_id,
         fecha_inicio_estimada=actividad.fecha_inicio_estimada,
