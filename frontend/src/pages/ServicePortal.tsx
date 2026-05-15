@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button } from '../components/atoms';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import axios from 'axios';
@@ -24,7 +23,7 @@ import Formato2276DataTable from './ServicePortal/pages/GestionHumana/Formato227
 import GestionActividadesView from './ServicePortal/pages/GestionActividadesView';
 import MyDevelopments from './MyDevelopments';
 import DevelopmentDetail from './DevelopmentDetail';
-import AssignmentValidations from './AssignmentValidations';
+
 import OrganizationalHierarchy from './OrganizationalHierarchy';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import PortalLayout from './ServicePortal/PortalLayout';
@@ -363,7 +362,6 @@ const ServicePortal: React.FC = () => {
                         user={user}
                         onNavigate={(v) => {
                             if (v === 'desarrollos') navigate('/service-portal/desarrollos');
-                            else if (v === 'validaciones') navigate('/service-portal/validaciones-asignacion');
                             else if (v === 'jerarquia') navigate('/service-portal/jerarquia-organizacional');
                         }}
                         onBack={() => navigate('/service-portal/inicio')}
@@ -382,11 +380,7 @@ const ServicePortal: React.FC = () => {
                     </ProtectedRoute>
                 } />
 
-                <Route path="validaciones-asignacion" element={
-                    <ProtectedRoute moduleCode="validaciones_asignacion">
-                        <AssignmentValidations />
-                    </ProtectedRoute>
-                } />
+
 
                 <Route path="jerarquia-organizacional" element={
                     <ProtectedRoute moduleCode="jerarquia_organizacional">

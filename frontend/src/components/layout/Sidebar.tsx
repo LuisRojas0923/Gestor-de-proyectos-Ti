@@ -15,7 +15,7 @@ import {
   Users,
   Activity,
   GitBranch,
-  ShieldCheck,
+
   X,
   ListTodo,
   Warehouse,
@@ -66,7 +66,7 @@ const Sidebar: React.FC = () => {
     { id: 'indicators', name: 'Indicadores', href: '/indicators', icon: BarChart3 },
     { id: 'ticket-management', name: 'Gestión de Tickets', href: '/ticket-management', icon: Ticket },
     { id: 'reports', name: 'Reportes', href: '/reports', icon: ClipboardList },
-    { id: 'validaciones_asignacion', name: 'Aprobaciones', href: '/validaciones-asignacion', icon: ShieldCheck },
+
     { id: 'jerarquia_organizacional', name: 'Jerarquía Organizacional', href: '/jerarquia-organizacional', icon: GitBranch },
     { id: 'chat', name: 'Chat IA', href: '/chat', icon: MessageSquare },
     { id: 'service-portal', name: 'Portal de Servicios', href: '/service-portal', icon: Share2 },
