@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { CheckCircle2, XCircle, Play, CirclePause } from 'lucide-react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import Modal from '../../components/molecules/Modal';
 import { Text, Button, Badge } from '../../components/atoms';
 import { ValidationStatusBadge } from '../../components/assignments/ValidationStatusBadge';
@@ -10,8 +10,7 @@ interface WbsDetailModalProps {
     onClose: () => void;
     activity: WbsActivityTree | null;
     userMap: Map<string, string>;
-    onResolveValidation?: (id: number, estado: 'aprobada' | 'rechazada', onAfterResolve?: () => void) => void;
-    onQuickAction?: (id: number, action: 'play' | 'pause' | 'finish') => void;
+    onResolveValidation?: (id: number, estado: 'aprobada' | 'rechazada') => void;
     resolvingIds?: Set<number>;
 }
 
@@ -34,17 +33,19 @@ const getStatusVariant = (estado: string): 'default' | 'success' | 'warning' | '
     return 'default';
 };
 
-interface CardProps {
+interface SectionProps {
     label: string;
     children: React.ReactNode;
 }
 
-const Card: React.FC<CardProps> = ({ label, children }) => (
-    <div className="rounded-lg border border-[var(--color-border)]/50 bg-[var(--color-surface-variant)]/30 p-3 space-y-2">
-        <Text variant="caption" weight="bold" className="uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">
+const Section: React.FC<SectionProps> = ({ label, children }) => (
+    <div className="space-y-2">
+        <Text variant="caption" weight="bold" className="uppercase tracking-wider text-[var(--color-text-secondary)]">
             {label}
         </Text>
-        {children}
+        <div className="border-b border-[var(--color-border)] pb-2">
+            {children}
+        </div>
     </div>
 );
 
@@ -54,7 +55,6 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
     activity,
     userMap,
     onResolveValidation,
-    onQuickAction,
     resolvingIds,
 }) => {
     const getUserName = useCallback((id?: string) => {
@@ -68,10 +68,6 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
     const isPending = status?.toLowerCase() === 'pendiente';
     const isResolving = resolvingIds?.has(activity.validacion_id ?? -1);
 
-    const normalizedStatus = activity.estado.toLowerCase();
-    const isCompleted = normalizedStatus.includes('complet');
-    const isInProgress = normalizedStatus.includes('progreso') || normalizedStatus.includes('curso');
-
     return (
         <Modal
             isOpen={isOpen}
@@ -81,8 +77,9 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
             closeOnOverlayClick
             className="max-w-2xl"
         >
-            <div className="space-y-4">
-                <div className="-mx-6 -mt-6 px-6 py-4 bg-[var(--color-surface-variant)]/20 rounded-t-lg border-b border-[var(--color-border)]/50">
+            <div className="space-y-6">
+                {/* Header: título de la actividad */}
+                <div className="border-b border-[var(--color-border)] pb-4">
                     <Text weight="bold" className="text-base leading-tight">
                         {activity.titulo}
                     </Text>
@@ -93,49 +90,25 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
                     )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                        <Card label="Estado">
+                {/* Dos columnas */}
+                <div className="grid grid-cols-2 gap-6">
+
+                    {/* Columna izquierda */}
+                    <div className="space-y-5">
+                        {/* ESTADO */}
+                        <Section label="Estado">
                             <div className="flex items-center gap-2 flex-wrap">
                                 <Badge variant={getStatusVariant(activity.estado)} size="sm">
                                     {activity.estado}
                                 </Badge>
-                                <div className="flex items-center gap-1">
-                                    {!isCompleted && !isInProgress && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onQuickAction?.(activity.id, 'play')}
-                                            icon={Play}
-                                            className="h-7 w-7 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
-                                            title="Iniciar"
-                                        />
-                                    )}
-                                    {isInProgress && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onQuickAction?.(activity.id, 'pause')}
-                                            icon={CirclePause}
-                                            className="h-7 w-7 !p-0 text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
-                                            title="Pausar"
-                                        />
-                                    )}
-                                    {!isCompleted && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onQuickAction?.(activity.id, 'finish')}
-                                            icon={CheckCircle2}
-                                            className="h-7 w-7 !p-0 text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 border border-green-200 dark:border-green-800"
-                                            title="Terminar"
-                                        />
-                                    )}
-                                </div>
+                                <Text variant="caption" weight="bold">
+                                    {activity.porcentaje_avance}%
+                                </Text>
                             </div>
-                        </Card>
+                        </Section>
 
-                        <Card label="Fechas">
+                        {/* FECHAS */}
+                        <Section label="Fechas">
                             <div className="space-y-1">
                                 <div className="flex justify-between">
                                     <Text variant="caption" color="text-secondary">Inicio Est.</Text>
@@ -154,11 +127,13 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
                                     <Text variant="caption">{formatDate(activity.fecha_fin_real)}</Text>
                                 </div>
                             </div>
-                        </Card>
+                        </Section>
                     </div>
 
-                    <div className="space-y-3">
-                        <Card label="Líder / Responsable">
+                    {/* Columna derecha */}
+                    <div className="space-y-5">
+                        {/* LÍDER / RESPONSABLE */}
+                        <Section label="Líder / Responsable">
                             <div className="space-y-1">
                                 <div className="flex justify-between">
                                     <Text variant="caption" color="text-secondary">Líder</Text>
@@ -169,47 +144,47 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
                                     <Text variant="caption" className="text-right">{getUserName(activity.responsable_id)}</Text>
                                 </div>
                             </div>
-                        </Card>
+                        </Section>
 
-                        <Card label="Validación">
+                        {/* VALIDACIÓN */}
+                        <Section label="Validación">
                             <div className="space-y-2">
                                 <ValidationStatusBadge status={status} />
                                 {isPending && activity.validacion_id && (
-                                    <>
-                                        <Text variant="caption" color="text-secondary">
-                                            Solicitado por: {getUserName(activity.solicitado_por_id)}
-                                        </Text>
-                                        <div className="flex gap-2 pt-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => onResolveValidation?.(activity.validacion_id!, 'aprobada', onClose)}
-                                                disabled={isResolving}
-                                                icon={CheckCircle2}
-                                                className="h-7 px-2 text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 border border-green-200 dark:border-green-800"
-                                            >
-                                                Aprobar
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => onResolveValidation?.(activity.validacion_id!, 'rechazada', onClose)}
-                                                disabled={isResolving}
-                                                icon={XCircle}
-                                                className="h-7 px-2 text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-800"
-                                            >
-                                                Rechazar
-                                            </Button>
-                                        </div>
-                                    </>
+                                    <div className="flex gap-2 pt-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => onResolveValidation?.(activity.validacion_id!, 'aprobada')}
+                                            disabled={isResolving}
+                                            icon={CheckCircle2}
+                                            className="h-7 px-2 text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 border border-green-200 dark:border-green-800"
+                                        >
+                                            Aprobar
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => onResolveValidation?.(activity.validacion_id!, 'rechazada')}
+                                            disabled={isResolving}
+                                            icon={XCircle}
+                                            className="h-7 px-2 text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-800"
+                                        >
+                                            Rechazar
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
-                        </Card>
+                        </Section>
                     </div>
                 </div>
 
+                {/* SEGUIMIENTO / BITÁCORA — ocupa todo el ancho */}
                 {(activity.seguimiento || activity.compromiso || activity.archivo_url) && (
-                    <Card label="Seguimiento / Bitácora">
+                    <div className="border-t border-[var(--color-border)] pt-4 space-y-3">
+                        <Text variant="caption" weight="bold" className="uppercase tracking-wider text-[var(--color-text-secondary)]">
+                            Seguimiento / Bitácora
+                        </Text>
                         <div className="space-y-2">
                             {activity.seguimiento && (
                                 <div>
@@ -237,7 +212,7 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
                                 </div>
                             )}
                         </div>
-                    </Card>
+                    </div>
                 )}
             </div>
         </Modal>

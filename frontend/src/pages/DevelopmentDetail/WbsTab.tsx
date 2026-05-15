@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useCallback, useImperativeHandle, useMemo, forwardRef } from 'react';
 import { useApi } from '../../hooks/useApi';
-import { useAppContext } from '../../context/AppContext';
-import { Text, Button, ProgressBar } from '../../components/atoms';
+import { Text, Button, Badge, ProgressBar } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
-import { Trash2, ClipboardList, Pencil, Play, CirclePause, CheckCircle2, XCircle } from 'lucide-react';
+import { Trash2, Download, ClipboardList, Pencil, Play, CirclePause, CheckCircle2, XCircle } from 'lucide-react';
 
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
@@ -25,14 +24,21 @@ interface WbsTabProps {
 
 type WbsRow = WbsActivityTree & { _rowIndex: number };
 
-
+const getStatusVariant = (estado: string): 'default' | 'success' | 'warning' | 'error' => {
+    const normalized = estado.toLowerCase();
+    if (normalized.includes('pendiente')) return 'error';
+    if (normalized.includes('progreso') || normalized.includes('curso')) return 'warning';
+    if (normalized.includes('complet')) return 'success';
+    if (normalized.includes('pausa') || normalized.includes('bloqueado')) return 'warning';
+    return 'default';
+};
 
 const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, ref) => {
     const { get, post, patch, put, delete: del } = useApi();
-    const { state } = useAppContext();
     const [tree, setTree] = useState<WbsActivityTree[]>([]);
     const [loading, setLoading] = useState(true);
     const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
+    const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
     const [resolvingIds, setResolvingIds] = useState<Set<number>>(new Set());
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalEditNode, setModalEditNode] = useState<WbsActivityTree | null>(null);
@@ -90,16 +96,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         setColumnFilter,
     } = useColumnFilters(tree, columnAccessors);
 
-    const columnOptions = useMemo(() => {
-        const currentUserName = state.user?.name ?? '';
-        return {
-            ...uniqueValues,
-            lider: currentUserName
-                ? [currentUserName, ...(uniqueValues.lider ?? [])]
-                : uniqueValues.lider ?? [],
-        };
-    }, [uniqueValues, state.user?.name]);
-
     const flattenedFiltered = flattenTree(filteredData);
     const rowData: WbsRow[] = flattenedFiltered.map((n, i) => ({ ...n, _rowIndex: i + 1 }));
 
@@ -124,14 +120,14 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         const now = new Date().toISOString().split('T')[0];
 
         if (action === 'play') {
-            payload = {
+            payload = { 
                 estado: 'En Progreso',
                 fecha_inicio_real: currentNode.fecha_inicio_real || now
             };
         } else if (action === 'pause') {
             payload = { estado: 'Pausa' };
         } else if (action === 'finish') {
-            payload = {
+            payload = { 
                 estado: 'Completada',
                 porcentaje_avance: 100,
                 fecha_fin_real: now
@@ -202,7 +198,19 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         }
     };
 
-
+    const handleToggleComplete = async (id: number, completed: boolean) => {
+        if (togglingIds.has(id)) return;
+setTogglingIds(prev => new Set([...prev, id]));
+        try {
+            const newEstado = completed ? 'Completada' : 'En Progreso';
+            await patch(`/actividades/${id}`, { estado: newEstado });
+            await fetchTree();
+        } catch (error) {
+            console.error('Error toggling complete:', error);
+        } finally {
+            setTogglingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
+        }
+    };
 
     const handleDeleteClick = async (id: number) => {
         try {
@@ -226,7 +234,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         }
     };
 
-    const handleResolveValidation = async (id: number, estado: 'aprobada' | 'rechazada', onAfterResolve?: () => void) => {
+    const handleResolveValidation = async (id: number, estado: 'aprobada' | 'rechazada') => {
         if (resolvingIds.has(id)) return;
         setResolvingIds(prev => new Set([...prev, id]));
         try {
@@ -235,7 +243,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                 observacion: estado === 'rechazada' ? 'Rechazado desde WBS' : 'Aprobado desde WBS',
             });
             await fetchTree();
-            onAfterResolve?.();
         } catch (error) {
             console.error('Error resolving validation:', error);
         } finally {
@@ -254,6 +261,42 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     };
 
     const columns: DataTableColumn<WbsRow>[] = [
+        {
+            key: 'index',
+            label: '#',
+            minWidth: '32px',
+            centered: true,
+            filterable: true,
+            render: (row) => (
+                <Text variant="caption" className="w-6 text-center text-[var(--color-text-secondary)]">
+                    {row._rowIndex}
+                </Text>
+            ),
+        },
+        {
+            key: 'completado',
+            label: '',
+            minWidth: '36px',
+            centered: true,
+            render: (row) => (
+                <Button
+                    variant="custom"
+                    disabled={togglingIds.has(row.id)}
+                    onClick={(e) => { e.stopPropagation(); handleToggleComplete(row.id, row.estado !== 'Completada'); }}
+                    className={`w-5 h-5 border-2 rounded transition-all duration-200 flex items-center justify-center disabled:opacity-50 ${
+                        row.estado === 'Completada'
+                            ? 'bg-primary-500 border-primary-500'
+                            : 'bg-white border-neutral-300 hover:border-primary-400 dark:bg-neutral-800 dark:border-neutral-600'
+                    }`}
+                >
+                    {row.estado === 'Completada' && (
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    )}
+                </Button>
+            ),
+        },
         {
             key: 'titulo',
             label: 'Tarea',
@@ -294,19 +337,39 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             ),
         },
         {
+            key: 'seguimiento',
+            label: 'Seguimiento',
+            minWidth: '100px',
+            filterable: true,
+            render: (row) => (
+                <Text variant="caption" className="truncate" title={row.seguimiento}>
+                    {row.seguimiento || '-'}
+                </Text>
+            ),
+        },
+        {
             key: 'lider',
             label: 'Líder',
             minWidth: '100px',
             filterable: true,
             render: (row) => (
-                <div className="flex flex-col min-w-0">
-                    <Text variant="caption" color="text-secondary" className="truncate text-[10px] leading-tight">
-                        responsable: {getUserName(row.responsable_id)}
+                <div className="min-w-0">
+                    <Text variant="caption" weight="bold" className="truncate block" title={getLider(row)}>
+                        {getLider(row)}
                     </Text>
                     <Text variant="caption" color="text-secondary" className="truncate text-[10px] leading-tight">
-                        autoridad: {getUserName(row.asignado_a_id)}
+                        responsable: {getUserName(row.responsable_id)} | autoridad: {getUserName(row.asignado_a_id)}
                     </Text>
                 </div>
+            ),
+        },
+        {
+            key: 'estado',
+            label: 'Estado',
+            minWidth: '90px',
+            filterable: true,
+            render: (row) => (
+                <Badge variant={getStatusVariant(row.estado)} size="sm">{row.estado}</Badge>
             ),
         },
         {
@@ -346,63 +409,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                 }
                 return <ValidationStatusBadge status={status} />;
             },
-        },
-        {
-            key: 'estado',
-            label: 'Estado',
-            minWidth: '100px',
-            filterable: true,
-            render: (row) => {
-                const normalizedStatus = row.estado.toLowerCase();
-                const isCompleted = normalizedStatus.includes('complet');
-                const isInProgress = normalizedStatus.includes('progreso') || normalizedStatus.includes('curso');
-
-                return (
-                    <div className="flex items-center gap-1">
-                        {!isCompleted && !isInProgress && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'play', row); }}
-                                icon={Play}
-                                className="h-7 w-7 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800"
-                                title="Iniciar"
-                            />
-                        )}
-                        {isInProgress && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'pause', row); }}
-                                icon={CirclePause}
-                                className="h-7 w-7 !p-0 text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800"
-                                title="Pausar"
-                            />
-                        )}
-                        {!isCompleted && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'finish', row); }}
-                                icon={CheckCircle2}
-                                className="h-7 w-7 !p-0 text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800"
-                                title="Terminar"
-                            />
-                        )}
-                    </div>
-                );
-            },
-        },
-        {
-            key: 'seguimiento',
-            label: 'Seguimiento',
-            minWidth: '100px',
-            filterable: true,
-            render: (row) => (
-                <Text variant="caption" className="truncate" title={row.seguimiento}>
-                    {row.seguimiento || '-'}
-                </Text>
-            ),
         },
         {
             key: 'compromiso',
@@ -458,6 +464,19 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                     </div>
                 );
             }
+        },
+        {
+            key: 'archivo',
+            label: '📎',
+            minWidth: '40px',
+            centered: true,
+            render: (row) => row.archivo_url ? (
+                <a href={row.archivo_url} target="_blank" rel="noreferrer" className="text-[var(--color-primary)] hover:underline">
+                    <Download size={14} />
+                </a>
+            ) : (
+                <Text variant="caption" color="text-secondary">-</Text>
+            ),
         },
         {
             key: 'porcentaje_avance',
@@ -535,7 +554,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                         renderRowActions={renderRowActions}
                         actionsMinWidth="90px"
                         columnFilters={filters}
-                        columnOptions={columnOptions}
+                        columnOptions={uniqueValues}
                         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
                         onRowClick={(row) => { setSelectedActivity(row); setDetailModalOpen(true); }}
                         isLoading={false}
@@ -574,7 +593,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                 activity={selectedActivity}
                 userMap={userMap}
                 onResolveValidation={handleResolveValidation}
-                onQuickAction={handleQuickAction}
                 resolvingIds={resolvingIds}
             />
         </div>
