@@ -206,6 +206,13 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        if (stateMenuRef.current && popoverPos) {
+            stateMenuRef.current.style.top = `${popoverPos.top}px`;
+            stateMenuRef.current.style.left = `${popoverPos.left}px`;
+        }
+    }, [popoverPos]);
+
     const handleEditTask = (node: WbsActivityTree) => {
         setModalEditNode(node);
         setIsModalOpen(true);
@@ -393,13 +400,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                 const isBlocked = n.includes('bloqueado');
                 const isMenuOpen = stateMenuId === row.id;
 
-                let bgClass = '';
-                if (isCompleted) bgClass = 'bg-green-50/50 dark:bg-green-950/20';
-                else if (isInProgress || isPaused) bgClass = 'bg-amber-50/50 dark:bg-amber-950/20';
-                else bgClass = 'bg-red-50/50 dark:bg-red-950/20';
-
                 return (
-                    <div className={`-mx-4 -my-3 w-[calc(100%+2rem)] flex items-center gap-1 px-2 py-1.5 ${bgClass}`}>
+                    <div className="flex items-center gap-1">
                         {!isCompleted && !isInProgress && !isPaused && !isBlocked && (
                             <Button
                                 variant="ghost"
@@ -471,7 +473,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                             {isMenuOpen && popoverPos && (
                                 <div
                                     ref={stateMenuRef}
-                                    style={{ top: popoverPos.top, left: popoverPos.left }} {/* @audit-ok: posicion dinamica con fixed */}
                                     className="fixed z-[99999] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-lg flex items-center gap-1"
                                 >
                                     <Button
