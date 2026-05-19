@@ -147,7 +147,9 @@ export function DataTable<T>({
     }, [activeFilter, tempFilters, onFilterChange]);
 
     const getFilterOptions = (key: string) =>
-        (columnOptions[key] || []).map(opt => ({ value: opt, label: opt }));
+        (columnOptions[key] || [])
+            .filter(o => o.toLowerCase().includes(filterSearchTerm.toLowerCase()))
+            .map(opt => ({ value: opt, label: opt }));
 
     const hasFilterActive = (key: string) => {
         const f = columnFilters[key];
