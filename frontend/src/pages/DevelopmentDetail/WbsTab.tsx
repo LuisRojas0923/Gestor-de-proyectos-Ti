@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useImperativeHandle, useMemo, forwardRef } from 'react';
+import { useEffect, useState, useCallback, useImperativeHandle, useMemo, forwardRef, useRef } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { Text, Button, Badge, ProgressBar } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
@@ -11,6 +11,7 @@ import { WbsDetailModal } from './WbsDetailModal';
 import { ValidationStatusBadge } from '../../components/assignments/ValidationStatusBadge';
 import { useColumnFilters } from '../../hooks/useColumnFilters';
 import { DataTable, DataTableColumn } from '../../components/molecules/DataTable';
+import { WbsActivityTree } from '../../types/wbs';
 
 export interface WbsTabRef {
     handleAddRootTask: () => void;
@@ -38,7 +39,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const [tree, setTree] = useState<WbsActivityTree[]>([]);
     const [loading, setLoading] = useState(true);
     const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
-    const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
     const [resolvingIds, setResolvingIds] = useState<Set<number>>(new Set());
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalEditNode, setModalEditNode] = useState<WbsActivityTree | null>(null);
@@ -51,6 +51,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     } | null>(null);
     const [detailModalOpen, setDetailModalOpen] = useState(false);
     const [selectedActivity, setSelectedActivity] = useState<WbsActivityTree | null>(null);
+    const [stateMenuId, setStateMenuId] = useState<number | null>(null);
+    const stateMenuRef = useRef<HTMLDivElement>(null);
 
     const getLider = useCallback((node: WbsActivityTree) => {
         const id = node.asignado_a_id || node.responsable_id;
@@ -120,14 +122,14 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         const now = new Date().toISOString().split('T')[0];
 
         if (action === 'play') {
-            payload = { 
+            payload = {
                 estado: 'En Progreso',
                 fecha_inicio_real: currentNode.fecha_inicio_real || now
             };
         } else if (action === 'pause') {
             payload = { estado: 'Pausa' };
         } else if (action === 'finish') {
-            payload = { 
+            payload = {
                 estado: 'Completada',
                 porcentaje_avance: 100,
                 fecha_fin_real: now
@@ -139,6 +141,20 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             await fetchTree();
         } catch (error) {
             console.error(`Error applying quick action ${action}:`, error);
+        }
+    };
+
+    const handleEstadoChange = async (id: number, newEstado: string) => {
+        try {
+            const payload: Record<string, unknown> = { estado: newEstado };
+            if (newEstado === 'Completada') {
+                payload.porcentaje_avance = 100;
+                payload.fecha_fin_real = new Date().toISOString().split('T')[0];
+            }
+            await patch(`/actividades/${id}`, payload);
+            await fetchTree();
+        } catch (error) {
+            console.error('Error changing estado:', error);
         }
     };
 
@@ -178,6 +194,16 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         void put(`/desarrollos/${developmentId}`, { porcentaje_progreso: pct });
     }, [tree, developmentId]);
 
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (stateMenuRef.current && !stateMenuRef.current.contains(e.target as Node)) {
+                setStateMenuId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const handleEditTask = (node: WbsActivityTree) => {
         setModalEditNode(node);
         setIsModalOpen(true);
@@ -195,20 +221,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         } catch (error) {
             console.error('Error applying template:', error);
             throw error;
-        }
-    };
-
-    const handleToggleComplete = async (id: number, completed: boolean) => {
-        if (togglingIds.has(id)) return;
-setTogglingIds(prev => new Set([...prev, id]));
-        try {
-            const newEstado = completed ? 'Completada' : 'En Progreso';
-            await patch(`/actividades/${id}`, { estado: newEstado });
-            await fetchTree();
-        } catch (error) {
-            console.error('Error toggling complete:', error);
-        } finally {
-            setTogglingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
         }
     };
 
@@ -274,30 +286,6 @@ setTogglingIds(prev => new Set([...prev, id]));
             ),
         },
         {
-            key: 'completado',
-            label: '',
-            minWidth: '36px',
-            centered: true,
-            render: (row) => (
-                <Button
-                    variant="custom"
-                    disabled={togglingIds.has(row.id)}
-                    onClick={(e) => { e.stopPropagation(); handleToggleComplete(row.id, row.estado !== 'Completada'); }}
-                    className={`w-5 h-5 border-2 rounded transition-all duration-200 flex items-center justify-center disabled:opacity-50 ${
-                        row.estado === 'Completada'
-                            ? 'bg-primary-500 border-primary-500'
-                            : 'bg-white border-neutral-300 hover:border-primary-400 dark:bg-neutral-800 dark:border-neutral-600'
-                    }`}
-                >
-                    {row.estado === 'Completada' && (
-                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                    )}
-                </Button>
-            ),
-        },
-        {
             key: 'titulo',
             label: 'Tarea',
             minWidth: '160px',
@@ -337,39 +325,19 @@ setTogglingIds(prev => new Set([...prev, id]));
             ),
         },
         {
-            key: 'seguimiento',
-            label: 'Seguimiento',
-            minWidth: '100px',
-            filterable: true,
-            render: (row) => (
-                <Text variant="caption" className="truncate" title={row.seguimiento}>
-                    {row.seguimiento || '-'}
-                </Text>
-            ),
-        },
-        {
             key: 'lider',
             label: 'Líder',
             minWidth: '100px',
             filterable: true,
             render: (row) => (
-                <div className="min-w-0">
-                    <Text variant="caption" weight="bold" className="truncate block" title={getLider(row)}>
-                        {getLider(row)}
+                <div className="flex flex-col min-w-0">
+                    <Text variant="caption" color="text-secondary" className="truncate text-[10px] leading-tight">
+                        Responsable: {getUserName(row.responsable_id)}
                     </Text>
                     <Text variant="caption" color="text-secondary" className="truncate text-[10px] leading-tight">
-                        responsable: {getUserName(row.responsable_id)} | autoridad: {getUserName(row.asignado_a_id)}
+                        Autoridad: {getUserName(row.asignado_a_id)}
                     </Text>
                 </div>
-            ),
-        },
-        {
-            key: 'estado',
-            label: 'Estado',
-            minWidth: '90px',
-            filterable: true,
-            render: (row) => (
-                <Badge variant={getStatusVariant(row.estado)} size="sm">{row.estado}</Badge>
             ),
         },
         {
@@ -411,33 +379,32 @@ setTogglingIds(prev => new Set([...prev, id]));
             },
         },
         {
-            key: 'compromiso',
-            label: 'Compromiso',
-            minWidth: '100px',
-            render: (row) => (
-                <Text variant="caption" className="truncate" title={row.compromiso}>
-                    {row.compromiso || '-'}
-                </Text>
-            ),
-        },
-        {
-            key: 'gestion',
-            label: 'Gestión',
+            key: 'estado',
+            label: 'Estado',
             minWidth: '120px',
+            filterable: true,
             render: (row) => {
-                const normalizedStatus = row.estado.toLowerCase();
-                const isCompleted = normalizedStatus.includes('complet');
-                const isInProgress = normalizedStatus.includes('progreso') || normalizedStatus.includes('curso');
+                const n = row.estado.toLowerCase();
+                const isCompleted = n.includes('complet');
+                const isInProgress = n.includes('progreso') || n.includes('curso');
+                const isPaused = n.includes('pausa');
+                const isBlocked = n.includes('bloqueado');
+                const isMenuOpen = stateMenuId === row.id;
+
+                let bgClass = '';
+                if (isCompleted) bgClass = 'bg-green-50/50 dark:bg-green-950/20';
+                else if (isInProgress || isPaused) bgClass = 'bg-amber-50/50 dark:bg-amber-950/20';
+                else bgClass = 'bg-red-50/50 dark:bg-red-950/20';
 
                 return (
-                    <div className="flex items-center gap-1">
-                        {!isCompleted && !isInProgress && (
+                    <div className={`-mx-4 -my-3 w-[calc(100%+2rem)] flex items-center gap-1 px-2 py-1.5 ${bgClass}`}>
+                        {!isCompleted && !isInProgress && !isPaused && !isBlocked && (
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'play', row); }}
                                 icon={Play}
-                                className="h-7 w-7 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:scale-110 transition-transform dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 shadow-sm"
+                                className="h-7 w-7 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
                                 title="Iniciar"
                             />
                         )}
@@ -447,23 +414,116 @@ setTogglingIds(prev => new Set([...prev, id]));
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'pause', row); }}
                                 icon={CirclePause}
-                                className="h-7 w-7 !p-0 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:scale-110 transition-transform dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 shadow-sm"
+                                className="h-7 w-7 !p-0 text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
                                 title="Pausar"
                             />
                         )}
-                        {!isCompleted && (
+                        {isPaused && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'play', row); }}
+                                icon={Play}
+                                className="h-7 w-7 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                                title="Reanudar"
+                            />
+                        )}
+                        {isBlocked && (
+                            <Text className="text-base" title="Bloqueado" aria-label="Bloqueado">🔒</Text>
+                        )}
+                        {(isInProgress || isPaused) && (
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'finish', row); }}
                                 icon={CheckCircle2}
-                                className="h-7 w-7 !p-0 text-green-600 bg-green-50 hover:bg-green-100 hover:scale-110 transition-transform dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 shadow-sm"
+                                className="h-7 w-7 !p-0 text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
                                 title="Terminar"
                             />
                         )}
+                        {isCompleted && (
+                            <Text className="text-green-600 dark:text-green-400" aria-label="Completada">
+                                <CheckCircle2 size={18} />
+                            </Text>
+                        )}
+                        <div className="relative ml-auto">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); setStateMenuId(isMenuOpen ? null : row.id); }}
+                                className="h-6 w-6 !p-0 text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300"
+                                title="Cambiar estado"
+                            >
+                                ⋮
+                            </Button>
+                            {isMenuOpen && (
+                                <div
+                                    ref={stateMenuRef}
+                                    className="absolute right-0 bottom-full z-50 mb-1 w-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-lg flex items-center gap-1"
+                                >
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 !p-0 text-blue-600 dark:text-blue-400"
+                                        title="Pendiente"
+                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Pendiente'); setStateMenuId(null); }}
+                                    >
+                                        <Play size={14} />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 !p-0 text-amber-600 dark:text-amber-400"
+                                        title="En Progreso"
+                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'En Progreso'); setStateMenuId(null); }}
+                                    >
+                                        <CirclePause size={14} />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 !p-0 text-red-500 dark:text-red-400"
+                                        title="Bloqueado"
+                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Bloqueado'); setStateMenuId(null); }}
+                                    >
+                                        <XCircle size={14} />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 !p-0 text-green-600 dark:text-green-400"
+                                        title="Completada"
+                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Completada'); setStateMenuId(null); }}
+                                    >
+                                        <CheckCircle2 size={14} />
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 );
-            }
+            },
+        },
+        {
+            key: 'seguimiento',
+            label: 'Seguimiento',
+            minWidth: '100px',
+            filterable: true,
+            render: (row) => (
+                <Text variant="caption" className="truncate" title={row.seguimiento}>
+                    {row.seguimiento || '-'}
+                </Text>
+            ),
+        },
+        {
+            key: 'compromiso',
+            label: 'Compromiso',
+            minWidth: '100px',
+            render: (row) => (
+                <Text variant="caption" className="truncate" title={row.compromiso}>
+                    {row.compromiso || '-'}
+                </Text>
+            ),
         },
         {
             key: 'archivo',
@@ -494,28 +554,33 @@ setTogglingIds(prev => new Set([...prev, id]));
                 </div>
             ),
         },
+        {
+            key: 'acciones',
+            label: 'Acciones',
+            minWidth: '90px',
+            centered: true,
+            render: (row) => (
+                <div className="flex items-center justify-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); handleEditTask(row); }}
+                        icon={Pencil}
+                        className="h-7 w-7 !p-0 text-neutral-600 bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700 shadow-sm"
+                        title="Editar"
+                    />
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteClick(row.id); }}
+                        icon={Trash2}
+                        className="h-7 w-7 !p-0 text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800 shadow-sm"
+                        title="Eliminar"
+                    />
+                </div>
+            )
+        },
     ];
-
-    const renderRowActions = (row: WbsRow) => {
-        return (
-            <>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleEditTask(row); }}
-                    icon={Pencil}
-                    className="h-8 px-2"
-                />
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(row.id); }}
-                    icon={Trash2}
-                    className="h-8 px-2 !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-950"
-                />
-            </>
-        );
-    };
 
     const statsCards = (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -546,13 +611,11 @@ setTogglingIds(prev => new Set([...prev, id]));
                 </div>
             ) : (
                 <>
-{allFlat.length > 0 && statsCards}
+                    {allFlat.length > 0 && statsCards}
                     <DataTable<WbsRow>
                         columns={columns}
                         data={rowData}
                         keyExtractor={(row) => String(row.id)}
-                        renderRowActions={renderRowActions}
-                        actionsMinWidth="90px"
                         columnFilters={filters}
                         columnOptions={uniqueValues}
                         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
