@@ -459,43 +459,43 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                             {isMenuOpen && (
                                 <div
                                     ref={stateMenuRef}
-                                    className="absolute right-0 bottom-full z-50 mb-1 w-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-lg flex items-center gap-1"
+                                    className="absolute right-0 bottom-full z-[9999] mb-1 w-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-lg flex items-center gap-1"
                                 >
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="h-7 w-7 !p-0 text-blue-600 dark:text-blue-400"
+                                        className="h-7 w-7 !p-0"
                                         title="Pendiente"
                                         onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Pendiente'); setStateMenuId(null); }}
                                     >
-                                        <Play size={14} />
+                                        <Play size={14} className="text-blue-600 dark:text-blue-400" />
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="h-7 w-7 !p-0 text-amber-600 dark:text-amber-400"
+                                        className="h-7 w-7 !p-0"
                                         title="En Progreso"
                                         onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'En Progreso'); setStateMenuId(null); }}
                                     >
-                                        <CirclePause size={14} />
+                                        <CirclePause size={14} className="text-amber-600 dark:text-amber-400" />
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="h-7 w-7 !p-0 text-red-500 dark:text-red-400"
+                                        className="h-7 w-7 !p-0"
                                         title="Bloqueado"
                                         onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Bloqueado'); setStateMenuId(null); }}
                                     >
-                                        <XCircle size={14} />
+                                        <XCircle size={14} className="text-red-500 dark:text-red-400" />
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="h-7 w-7 !p-0 text-green-600 dark:text-green-400"
+                                        className="h-7 w-7 !p-0"
                                         title="Completada"
                                         onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Completada'); setStateMenuId(null); }}
                                     >
-                                        <CheckCircle2 size={14} />
+                                        <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />
                                     </Button>
                                 </div>
                             )}
