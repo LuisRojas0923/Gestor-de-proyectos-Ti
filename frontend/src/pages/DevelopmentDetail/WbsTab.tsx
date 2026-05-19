@@ -52,6 +52,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const [detailModalOpen, setDetailModalOpen] = useState(false);
     const [selectedActivity, setSelectedActivity] = useState<WbsActivityTree | null>(null);
     const [stateMenuId, setStateMenuId] = useState<number | null>(null);
+    const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null);
     const stateMenuRef = useRef<HTMLDivElement>(null);
 
     const getLider = useCallback((node: WbsActivityTree) => {
@@ -198,6 +199,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         const handleClickOutside = (e: MouseEvent) => {
             if (stateMenuRef.current && !stateMenuRef.current.contains(e.target as Node)) {
                 setStateMenuId(null);
+                setPopoverPos(null);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -450,23 +452,34 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={(e) => { e.stopPropagation(); setStateMenuId(isMenuOpen ? null : row.id); }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isMenuOpen) {
+                                        setStateMenuId(null);
+                                        setPopoverPos(null);
+                                    } else {
+                                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                        setPopoverPos({ top: rect.top - 6, left: rect.left - 126 });
+                                        setStateMenuId(row.id);
+                                    }
+                                }}
                                 className="h-6 w-6 !p-0 text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300"
                                 title="Cambiar estado"
                             >
                                 ⋮
                             </Button>
-                            {isMenuOpen && (
+                            {isMenuOpen && popoverPos && (
                                 <div
                                     ref={stateMenuRef}
-                                    className="absolute right-0 bottom-full z-[9999] mb-1 w-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-lg flex items-center gap-1"
+                                    style={{ top: popoverPos.top, left: popoverPos.left }} {/* @audit-ok: posicion dinamica con fixed */}
+                                    className="fixed z-[99999] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-lg flex items-center gap-1"
                                 >
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         className="h-7 w-7 !p-0"
                                         title="Pendiente"
-                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Pendiente'); setStateMenuId(null); }}
+                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Pendiente'); setStateMenuId(null); setPopoverPos(null); }}
                                     >
                                         <Play size={14} className="text-blue-600 dark:text-blue-400" />
                                     </Button>
@@ -475,7 +488,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                                         size="sm"
                                         className="h-7 w-7 !p-0"
                                         title="En Progreso"
-                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'En Progreso'); setStateMenuId(null); }}
+                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'En Progreso'); setStateMenuId(null); setPopoverPos(null); }}
                                     >
                                         <CirclePause size={14} className="text-amber-600 dark:text-amber-400" />
                                     </Button>
@@ -484,7 +497,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                                         size="sm"
                                         className="h-7 w-7 !p-0"
                                         title="Bloqueado"
-                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Bloqueado'); setStateMenuId(null); }}
+                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Bloqueado'); setStateMenuId(null); setPopoverPos(null); }}
                                     >
                                         <XCircle size={14} className="text-red-500 dark:text-red-400" />
                                     </Button>
@@ -493,7 +506,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                                         size="sm"
                                         className="h-7 w-7 !p-0"
                                         title="Completada"
-                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Completada'); setStateMenuId(null); }}
+                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Completada'); setStateMenuId(null); setPopoverPos(null); }}
                                     >
                                         <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />
                                     </Button>
