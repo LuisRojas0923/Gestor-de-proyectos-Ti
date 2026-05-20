@@ -120,7 +120,9 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     compromiso,
                     archivo_url: archivoUrl,
                     fecha_inicio_estimada: fechaInicioEstimada || undefined,
-                    fecha_fin_estimada: fechaFinEstimada || undefined
+                    fecha_fin_estimada: fechaFinEstimada || undefined,
+                    fecha_inicio_real: fechaInicioReal || undefined,
+                    fecha_fin_real: fechaFinReal || undefined
                 };
                 await post(`/actividades/`, payload);
             }
@@ -219,6 +221,20 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                     label="Fin Estimado"
                                     value={fechaFinEstimada}
                                     onChange={(e) => setFechaFinEstimada(e.target.value)}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[var(--color-border)]/50">
+                                <Input
+                                    type="date"
+                                    label="Inicio Real"
+                                    value={fechaInicioReal}
+                                    onChange={(e) => setFechaInicioReal(e.target.value)}
+                                />
+                                <Input
+                                    type="date"
+                                    label="Fin Real"
+                                    value={fechaFinReal}
+                                    onChange={(e) => setFechaFinReal(e.target.value)}
                                 />
                             </div>
                         </div>

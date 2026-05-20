@@ -17,6 +17,14 @@ const getStatusColor = (status: string) => {
   return 'text-neutral-600 bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
 };
 
+const getDerivedStatus = (dev: DevelopmentWithCurrentStatus & { porcentaje_progreso?: number }): string => {
+  const status = dev.general_status ?? '';
+  const progress = Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
+  if (status === 'Pendiente' && progress >= 100) return 'Completado';
+  if (status === 'Pendiente' && progress > 0) return 'En proceso';
+  return status;
+};
+
 const formatDate = (d?: string) => {
   if (!d) return null;
   const parts = d.split('T')[0].split('-');
@@ -144,9 +152,9 @@ const DevelopmentDetail: React.FC = () => {
         {development && (
           <div className="border-t border-neutral-100 dark:border-neutral-800 pt-3 flex flex-wrap gap-2">
             {/* Estado */}
-            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusColor(development.general_status)}`}>
+            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusColor(getDerivedStatus(development))}`}>
               <Activity size={11} />
-              {development.general_status}
+              {getDerivedStatus(development)}
             </span>
 
             {/* Tipo */}
@@ -178,27 +186,27 @@ const DevelopmentDetail: React.FC = () => {
 
             {/* Autoridad */}
             {development.authority && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-800/50 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
-                <Shield size={11} className="text-purple-400" />
-                <span className="text-purple-400">Autoridad:</span>
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <Shield size={11} className="text-neutral-400" />
+                <span className="text-neutral-400">Autoridad:</span>
                 <span className="font-medium">{development.authority}</span>
               </span>
             )}
 
             {/* Responsable */}
             {development.responsible && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
-                <User size={11} className="text-blue-400" />
-                <span className="text-blue-400">Responsable:</span>
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <User size={11} className="text-neutral-400" />
+                <span className="text-neutral-400">Responsable:</span>
                 <span className="font-medium">{development.responsible}</span>
               </span>
             )}
 
             {/* Analista / Líder */}
             {development.analista && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-800/50 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300">
-                <User size={11} className="text-teal-400" />
-                <span className="text-teal-400">Líder:</span>
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <User size={11} className="text-neutral-400" />
+                <span className="text-neutral-400">Líder:</span>
                 <span className="font-medium">{development.analista}</span>
               </span>
             )}
@@ -231,8 +239,8 @@ const DevelopmentDetail: React.FC = () => {
 
             {/* Proveedor */}
             {development.provider && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-orange-200 dark:border-orange-800/50 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300">
-                <span className="text-orange-400">Proveedor:</span>
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <span className="text-neutral-400">Proveedor:</span>
                 <span className="font-medium">{development.provider}</span>
               </span>
             )}

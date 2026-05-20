@@ -72,23 +72,18 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
         <Modal
             isOpen={isOpen}
             onClose={onClose}
+            title={activity.titulo}
             size="xl"
             showCloseButton
             closeOnOverlayClick
             className="max-w-2xl"
         >
             <div className="space-y-6">
-                {/* Header: título de la actividad */}
-                <div className="border-b border-[var(--color-border)] pb-4">
-                    <Text weight="bold" className="text-base leading-tight">
-                        {activity.titulo}
+                {activity.descripcion && (
+                    <Text variant="caption" color="text-secondary" className="block -mt-2">
+                        {activity.descripcion}
                     </Text>
-                    {activity.descripcion && (
-                        <Text variant="caption" color="text-secondary" className="mt-1 block">
-                            {activity.descripcion}
-                        </Text>
-                    )}
-                </div>
+                )}
 
                 {/* Dos columnas */}
                 <div className="grid grid-cols-2 gap-6">
@@ -115,12 +110,12 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
                                     <Text variant="caption">{formatDate(activity.fecha_inicio_estimada)}</Text>
                                 </div>
                                 <div className="flex justify-between">
-                                    <Text variant="caption" color="text-secondary">Inicio Real</Text>
-                                    <Text variant="caption">{formatDate(activity.fecha_inicio_real)}</Text>
-                                </div>
-                                <div className="flex justify-between">
                                     <Text variant="caption" color="text-secondary">Fin Est.</Text>
                                     <Text variant="caption">{formatDate(activity.fecha_fin_estimada)}</Text>
+                                </div>
+                                <div className="flex justify-between pt-1 border-t border-[var(--color-border)]/50">
+                                    <Text variant="caption" color="text-secondary">Inicio Real</Text>
+                                    <Text variant="caption">{formatDate(activity.fecha_inicio_real)}</Text>
                                 </div>
                                 <div className="flex justify-between">
                                     <Text variant="caption" color="text-secondary">Fin Real</Text>
