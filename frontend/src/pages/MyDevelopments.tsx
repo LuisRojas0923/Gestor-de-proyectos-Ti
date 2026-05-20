@@ -25,6 +25,7 @@ type DevelopmentRow = DevelopmentWithCurrentStatus & {
   estado_general?: string;
   porcentaje_progreso?: string | number;
   area_desarrollo?: string;
+  area_ejecutor?: string;
   analista?: string;
   supervisor?: string;
 };
@@ -62,6 +63,15 @@ const getStatusChipClass = (status: string) => {
   if (s.includes('cancel')) return 'text-neutral-600 bg-neutral-100 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
   return 'text-neutral-600 bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
 };
+
+const TIPO_LABELS: Record<string, string> = {
+  'Mejora': 'Mejora Punt.',
+  'Actividad frecuente': 'Actividad Fte.',
+  'Actividad Puntual': 'Actividad Punt.',
+  'Actividad': 'Actividad Punt.',
+};
+const getTipoLabel = (tipo?: string) =>
+  tipo ? (TIPO_LABELS[tipo] ?? tipo) : '';
 
 const getProgressWidthClass = (p: number) => {
   if (p >= 100) return 'w-full';
@@ -119,12 +129,14 @@ const MyDevelopments: React.FC = () => {
 
   const columnAccessors = useMemo(() => ({
     id:                 (dev: DevelopmentRow) => String(dev.id),
+    tipo:               (dev: DevelopmentRow) => getTipoLabel(dev.tipo) || '',
     name:               getDevelopmentName,
     status:             getDevelopmentStatus,
     start_date:         getDevelopmentStartDate,
     estimated_end_date: getDevelopmentEndDate,
     area_desarrollo:    (dev: DevelopmentRow) => dev.area_desarrollo || '(Vacío)',
     analista:           (dev: DevelopmentRow) => resolveUserName(dev.analista) || dev.analista || '(Sin asignar)',
+    area_ejecutor:      (dev: DevelopmentRow) => dev.area_ejecutor || '(Sin área)',
     supervisor:         (dev: DevelopmentRow) => resolveUserName(dev.supervisor) || dev.supervisor || '(Sin asignar)',
     authority:          (dev: DevelopmentRow) => resolveUserName(getDevelopmentAuthority(dev)) || getDevelopmentAuthority(dev) || '(Sin asignar)',
     responsible:        (dev: DevelopmentRow) => resolveUserName(getDevelopmentResponsible(dev)) || getDevelopmentResponsible(dev) || '(Sin asignar)',
@@ -146,9 +158,16 @@ const MyDevelopments: React.FC = () => {
       label: 'ID',
       filterable: true,
       render: (dev) => (
-        <Text as="span" variant="caption" color="gray" className="font-mono whitespace-nowrap">
-          {dev.id}
-        </Text>
+        <div className="flex flex-col items-start gap-1">
+          <Text as="span" variant="caption" color="gray" className="font-mono whitespace-nowrap">
+            {dev.id}
+          </Text>
+          {dev.tipo && (
+            <Text as="span" variant="caption" color="text-secondary" className="!text-[10px]">
+              {getTipoLabel(dev.tipo)}
+            </Text>
+          )}
+        </div>
       ),
     },
     {
@@ -161,7 +180,7 @@ const MyDevelopments: React.FC = () => {
         const description = getDevelopmentDescription(dev);
         return (
           <div className="min-w-0">
-            <Text variant="body2" weight="bold" className="truncate group-hover:text-[var(--color-primary)] transition-colors">
+            <Text variant="body2" weight="bold" className="truncate group-hover:text-[var(--color-primary)] transition-colors" title={getDevelopmentName(dev)}>
               {getDevelopmentName(dev)}
             </Text>
             {description && (
@@ -234,7 +253,7 @@ const MyDevelopments: React.FC = () => {
       minWidth: '100px',
       filterable: true,
       render: (dev) => (
-        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={dev.area_desarrollo ?? 'N/A'}>
           {dev.area_desarrollo ?? 'N/A'}
         </Text>
       ),
@@ -245,7 +264,7 @@ const MyDevelopments: React.FC = () => {
       minWidth: '90px',
       filterable: true,
       render: (dev) => (
-        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={valueOrFallback(resolveUserName(getDevelopmentAuthority(dev)))}>
           {valueOrFallback(resolveUserName(getDevelopmentAuthority(dev)))}
         </Text>
       ),
@@ -256,7 +275,7 @@ const MyDevelopments: React.FC = () => {
       minWidth: '90px',
       filterable: true,
       render: (dev) => (
-        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={valueOrFallback(resolveUserName(getDevelopmentResponsible(dev)))}>
           {valueOrFallback(resolveUserName(getDevelopmentResponsible(dev)))}
         </Text>
       ),
@@ -267,7 +286,7 @@ const MyDevelopments: React.FC = () => {
       minWidth: '90px',
       filterable: true,
       render: (dev) => (
-        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={valueOrFallback(resolveUserName(dev.supervisor))}>
           {valueOrFallback(resolveUserName(dev.supervisor))}
         </Text>
       ),
@@ -278,7 +297,7 @@ const MyDevelopments: React.FC = () => {
       minWidth: '90px',
       filterable: true,
       render: (dev) => (
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0" title={resolveUserName(dev.analista) ?? 'N/A'}>
           <div className="w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
             {(dev.analista ?? 'A')[0].toUpperCase()}
           </div>
@@ -286,6 +305,17 @@ const MyDevelopments: React.FC = () => {
             {resolveUserName(dev.analista) ?? 'N/A'}
           </Text>
         </div>
+      ),
+    },
+    {
+      key: 'area_ejecutor',
+      label: 'Área Ejec.',
+      minWidth: '90px',
+      filterable: true,
+      render: (dev) => (
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={dev.area_ejecutor ?? '—'}>
+          {dev.area_ejecutor ?? '—'}
+        </Text>
       ),
     },
   ];
@@ -439,6 +469,7 @@ const MyDevelopments: React.FC = () => {
             analista_id: editTarget.analista_id,
             supervisor: editTarget.supervisor,
             area_desarrollo: editTarget.area_desarrollo,
+            area_ejecutor: editTarget.area_ejecutor,
           }}
           onClose={() => setEditTarget(null)}
           onSaved={() => { loadDevelopments(); addNotification('success', 'Actividad actualizada exitosamente'); setEditTarget(null); }}

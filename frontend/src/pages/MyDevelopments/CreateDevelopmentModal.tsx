@@ -4,7 +4,8 @@ import { useApi } from '../../hooks/useApi';
 import { useAppContext } from '../../context/AppContext';
 import { HierarchyUser, HierarchyRelation } from '../../types/hierarchy';
 import { Title, Button, Input, Select, Textarea, Text } from '../../components/atoms';
-import { HierarchyAutocomplete } from '../../components/molecules';
+import { HierarchyAutocomplete, AreaAutocomplete } from '../../components/molecules';
+import { normalizeArea } from '../../utils';
 
 interface CreateDevelopmentModalProps {
     isOpen: boolean;
@@ -17,9 +18,8 @@ const DEFAULT_TIPO_OPTIONS = [
     { value: 'Proyecto', label: 'Proyecto' },
     { value: 'Mejora', label: 'Mejora' },
     { value: 'Soporte', label: 'Soporte' },
-    { value: 'Renovación', label: 'Renovación' },
     { value: 'Actividad frecuente', label: 'Actividad frecuente' },
-    { value: 'Actividad', label: 'Actividad' },
+    { value: 'Actividad Puntual', label: 'Actividad Puntual' },
 ];
 
 export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
@@ -47,6 +47,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     const [analistaId, setAnalistaId] = useState('');
     const [supervisor, setSupervisor] = useState('');
     const [supervisorId, setSupervisorId] = useState('');
+    const [areaEjecutor, setAreaEjecutor] = useState('');
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaEstimadaFin, setFechaEstimadaFin] = useState('');
 
@@ -61,6 +62,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         setAreaDesarrollo('');
         setAnalista(''); setAnalistaId('');
         setSupervisor(''); setSupervisorId('');
+        setAreaEjecutor('');
         setFechaInicio(''); setFechaEstimadaFin('');
         onClose();
     };
@@ -132,6 +134,16 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         return hierarchyUsers.filter(u => ids.has(u.id));
     }, [relations, hierarchyUsers, currentUserId, superiorId]);
 
+    const areaOptions = useMemo<string[]>(() =>
+        [...new Set(
+            hierarchyUsers
+                .map(u => u.area)
+                .filter((a): a is string => !!a)
+                .map(a => normalizeArea(a))
+                .filter(a => a.length > 0)
+        )].sort(),
+    [hierarchyUsers]);
+
     const analistaOptions = useMemo<HierarchyUser[]>(() => {
         if (currentUserId && responsableId === currentUserId) {
             return hierarchyUsers.filter(u => subordinateIds.includes(u.id));
@@ -179,6 +191,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                 supervisor: supervisor || undefined,
                 area_desarrollo: areaDesarrollo || undefined,
                 analista: analista || undefined,
+                area_ejecutor: areaEjecutor || undefined,
                 fecha_inicio: fechaInicio || undefined,
                 fecha_estimada_fin: fechaEstimadaFin || undefined,
                 estado_general: 'Pendiente',
@@ -247,6 +260,30 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                             />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <HierarchyAutocomplete
+                                    label="Ejecutor"
+                                    placeholder="Buscar empleado..."
+                                    value={analista}
+                                    options={analistaOptions}
+                                    onChange={(text) => {
+                                        setAnalista(text);
+                                        if (!text) setAnalistaId('');
+                                    }}
+                                    onSelect={(user) => {
+                                        setAnalista(user.nombre);
+                                        setAnalistaId(user.id);
+                                        if (user.area) setAreaEjecutor(normalizeArea(user.area));
+                                    }}
+                                />
+                                <AreaAutocomplete
+                                    label="Área del Ejecutor"
+                                    placeholder="Ej. DESARROLLO"
+                                    value={areaEjecutor}
+                                    options={areaOptions}
+                                    onChange={setAreaEjecutor}
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <HierarchyAutocomplete
                                     label="Líder"
                                     placeholder="Buscar empleado..."
                                     value={responsable}
@@ -267,22 +304,6 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                                     }}
                                 />
                                 <HierarchyAutocomplete
-                                    label="Ejecutor"
-                                    placeholder="Buscar empleado..."
-                                    value={analista}
-                                    options={analistaOptions}
-                                    onChange={(text) => {
-                                        setAnalista(text);
-                                        if (!text) setAnalistaId('');
-                                    }}
-                                    onSelect={(user) => {
-                                        setAnalista(user.nombre);
-                                        setAnalistaId(user.id);
-                                    }}
-                                />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <HierarchyAutocomplete
                                     label="Supervisor"
                                     placeholder="Buscar empleado..."
                                     value={supervisor}
@@ -296,21 +317,21 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                                         setSupervisorId(user.id);
                                     }}
                                 />
-                                <HierarchyAutocomplete
-                                    label="Autoridad"
-                                    placeholder="Buscar empleado..."
-                                    value={autoridad}
-                                    options={autoridadOptions}
-                                    onChange={(text) => {
-                                        setAutoridad(text);
-                                        if (!text) setAutoridadId('');
-                                    }}
-                                    onSelect={(user) => {
-                                        setAutoridad(user.nombre);
-                                        setAutoridadId(user.id);
-                                    }}
-                                />
                             </div>
+                            <HierarchyAutocomplete
+                                label="Autoridad"
+                                placeholder="Buscar empleado..."
+                                value={autoridad}
+                                options={autoridadOptions}
+                                onChange={(text) => {
+                                    setAutoridad(text);
+                                    if (!text) setAutoridadId('');
+                                }}
+                                onSelect={(user) => {
+                                    setAutoridad(user.nombre);
+                                    setAutoridadId(user.id);
+                                }}
+                            />
                         </div>
                     </div>
                 );

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useImperativeHandle, useMemo, forward
 import { useApi } from '../../hooks/useApi';
 import { Text, Button, Badge, ProgressBar } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
-import { Trash2, Download, ClipboardList, Pencil, Play, CirclePause, CheckCircle2, XCircle, Activity } from 'lucide-react';
+import { Trash2, Download, ClipboardList, Pencil, Play, CirclePause, CheckCircle2, XCircle, Activity, Copy } from 'lucide-react';
 
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
@@ -242,6 +242,29 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         setIsModalOpen(true);
     };
 
+    const handleCopyTask = async (node: WbsActivityTree) => {
+        try {
+            await post('/actividades/', {
+                desarrollo_id: node.desarrollo_id,
+                parent_id: node.parent_id,
+                titulo: `${node.titulo} (copia)`,
+                descripcion: node.descripcion,
+                estado: 'Pendiente',
+                responsable_id: node.responsable_id,
+                asignado_a_id: node.asignado_a_id,
+                fecha_inicio_estimada: node.fecha_inicio_estimada,
+                fecha_fin_estimada: node.fecha_fin_estimada,
+                horas_estimadas: node.horas_estimadas ?? 0,
+                porcentaje_avance: 0,
+                seguimiento: node.seguimiento,
+                compromiso: node.compromiso,
+            });
+            await fetchTree();
+        } catch (err) {
+            console.error('Error copying task:', err);
+        }
+    };
+
     const handleModalClose = () => {
         setIsModalOpen(false);
         setModalEditNode(null);
@@ -321,7 +344,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         {
             key: 'titulo',
             label: 'Tarea',
-            minWidth: '160px',
+            minWidth: '360px',
             flex: true,
             filterable: true,
             render: (row) => (
@@ -338,7 +361,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         {
             key: 'fecha_inicio_estimada',
             label: 'F.Inicio',
-            minWidth: '72px',
+            minWidth: '58px',
             filterable: false,
             render: (row) => (
                 <Text variant="caption" className="truncate">
@@ -349,7 +372,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         {
             key: 'fecha_fin_estimada',
             label: 'F.Fin',
-            minWidth: '72px',
+            minWidth: '58px',
             filterable: false,
             render: (row) => (
                 <Text variant="caption" className="truncate">
@@ -360,7 +383,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         {
             key: 'lider',
             label: 'Líder',
-            minWidth: '100px',
+            minWidth: '80px',
             filterable: true,
             render: (row) => (
                 <div className="flex flex-col min-w-0">
@@ -376,7 +399,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         {
             key: 'validacion',
             label: 'Validación',
-            minWidth: '90px',
+            minWidth: '72px',
             filterable: true,
             render: (row) => {
                 const status = row.estado_validacion;
@@ -558,7 +581,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         {
             key: 'seguimiento',
             label: 'Seguimiento',
-            minWidth: '100px',
+            minWidth: '40px',
             filterable: true,
             render: (row) => (
                 <Text variant="caption" className="truncate" title={row.seguimiento}>
@@ -569,7 +592,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         {
             key: 'compromiso',
             label: 'Compromiso',
-            minWidth: '100px',
+            minWidth: '65px',
             render: (row) => (
                 <Text variant="caption" className="truncate" title={row.compromiso}>
                     {row.compromiso || '-'}
@@ -592,7 +615,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         {
             key: 'porcentaje_avance',
             label: 'Avance',
-            minWidth: '72px',
+            minWidth: '58px',
             filterable: true,
             render: (row) => (
                 <div className="w-full text-right">
@@ -608,7 +631,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         {
             key: 'acciones',
             label: 'Acciones',
-            minWidth: '90px',
+            minWidth: '110px',
             centered: true,
             render: (row) => (
                 <div className="flex items-center justify-center gap-1">
@@ -619,6 +642,14 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                         icon={Pencil}
                         className="h-7 w-7 !p-0 text-neutral-600 bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700 shadow-sm"
                         title="Editar"
+                    />
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); void handleCopyTask(row); }}
+                        icon={Copy}
+                        className="h-7 w-7 !p-0 text-primary-500 bg-primary-50 hover:bg-primary-100 dark:bg-primary-900/20 dark:text-primary-400 dark:hover:bg-primary-900/40 border border-primary-200 dark:border-primary-800 shadow-sm"
+                        title="Copiar tarea"
                     />
                     <Button
                         variant="ghost"
