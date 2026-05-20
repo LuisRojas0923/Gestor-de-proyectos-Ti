@@ -264,21 +264,6 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[var(--color-border)]/50">
-                                <Input
-                                    type="date"
-                                    label="Inicio Real"
-                                    value={fechaInicioReal}
-                                    onChange={(e) => setFechaInicioReal(e.target.value)}
-                                />
-                                <Input
-                                    type="date"
-                                    label="Fin Real"
-                                    value={fechaFinReal}
-                                    onChange={(e) => setFechaFinReal(e.target.value)}
-                                />
-                            </div>
-
                             <div className="space-y-4 pt-2 border-t border-[var(--color-border)]/50">
                                 <AssignableUserSelect
                                     label="Responsable"

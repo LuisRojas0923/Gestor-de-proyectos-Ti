@@ -18,11 +18,10 @@ const getStatusColor = (status: string) => {
 };
 
 const getDerivedStatus = (dev: DevelopmentWithCurrentStatus & { porcentaje_progreso?: number }): string => {
-  const status = dev.general_status ?? '';
   const progress = Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
-  if (status === 'Pendiente' && progress >= 100) return 'Completado';
-  if (status === 'Pendiente' && progress > 0) return 'En proceso';
-  return status;
+  if (progress >= 100) return 'Completado';
+  if (progress > 0) return 'En proceso';
+  return 'Pendiente';
 };
 
 const formatDate = (d?: string) => {

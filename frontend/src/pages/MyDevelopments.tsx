@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Pencil, Plus, RotateCcw, Search, Trash2, Users, X } from 'lucide-react';
+import { Pencil, Plus, RotateCcw, Search, Trash2, Users, X, Activity, ClipboardList } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
 import { useNotifications } from '../components/notifications/NotificationsContext';
@@ -37,11 +37,10 @@ const getDevelopmentEndDate = (dev: DevelopmentRow) => dev.estimated_end_date ??
 const getDevelopmentAuthority = (dev: DevelopmentRow) => dev.authority ?? dev.autoridad;
 const getDevelopmentResponsible = (dev: DevelopmentRow) => dev.responsible ?? dev.responsable;
 const getDevelopmentStatus = (dev: DevelopmentRow) => {
-  const status = dev.general_status ?? dev.estado_general ?? '';
   const progress = Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
-  if (status === 'Pendiente' && progress >= 100) return 'Completado';
-  if (status === 'Pendiente' && progress > 0) return 'En proceso';
-  return status;
+  if (progress >= 100) return 'Completado';
+  if (progress > 0) return 'En proceso';
+  return 'Pendiente';
 };
 const getDevelopmentProgress = (dev: DevelopmentRow) =>
   Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
@@ -52,6 +51,15 @@ const getStatusColor = (status: string) => {
   if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 'text-yellow-800 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400';
   if (s.includes('complet')) return 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400';
   return 'text-gray-800 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
+};
+
+const getStatusChipClass = (status: string) => {
+  const s = status.toLowerCase();
+  if (s.includes('pendiente')) return 'text-red-700 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50';
+  if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50';
+  if (s.includes('complet')) return 'text-green-700 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50';
+  if (s.includes('cancel')) return 'text-neutral-600 bg-neutral-100 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+  return 'text-neutral-600 bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
 };
 
 const getProgressWidthClass = (p: number) => {
@@ -280,6 +288,14 @@ const MyDevelopments: React.FC = () => {
     });
   }, [filteredData, peopleSearch, resolveUserName]);
 
+  const statusGroups = useMemo(() =>
+    displayData.reduce<Record<string, number>>((acc, dev) => {
+      const s = getDevelopmentStatus(dev) || 'Sin estado';
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {}),
+  [displayData]);
+
   const toggleOption = (key: string, option: string) => {
     const selected = filters[key] || new Set<string>();
     const next = new Set(selected);
@@ -291,7 +307,7 @@ const MyDevelopments: React.FC = () => {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex justify-between items-center bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
           {isPortal && (
             <Button
               variant="ghost"
@@ -302,42 +318,52 @@ const MyDevelopments: React.FC = () => {
             </Button>
           )}
           <Title variant="h1" className="m-0">Gestión de Actividades</Title>
-          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
-          <div className="flex items-center gap-2">
-            <Text variant="caption" weight="bold" className="bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800/50">
-              {displayData.length} Actividades
-            </Text>
-            {activeFilterCount > 0 && (
-              <Button variant="custom" size="xs" onClick={clearAllFilters}
-                className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-red-500 hover:text-red-600 transition-colors bg-red-50 dark:bg-red-900/10 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/20">
-                <RotateCcw size={12} />
-                Limpiar {activeFilterCount} filtros
-              </Button>
-            )}
-          </div>
-        </div>
-        <div className="relative flex-1 max-w-xs">
-          <Users size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
-          <input
-            type="text"
-            value={peopleSearch}
-            onChange={e => setPeopleSearch(e.target.value)}
-            placeholder="Autoridad, responsable o ejecutor..."
-            className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-400/50 transition"
-          />
-          {peopleSearch && (
-            <button
-              onClick={() => setPeopleSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
-            >
-              <X size={12} />
-            </button>
+          <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
+          {/* Stats chips */}
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+            <ClipboardList size={11} className="text-neutral-400" />
+            <span className="font-bold text-[var(--color-text-primary)]">{displayData.length}</span>
+            total
+          </span>
+          {Object.entries(statusGroups).map(([status, count]) => (
+            <span key={status} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusChipClass(status)}`}>
+              <Activity size={11} />
+              {status}
+              <span className="font-bold">{count}</span>
+            </span>
+          ))}
+          {activeFilterCount > 0 && (
+            <Button variant="custom" size="xs" onClick={clearAllFilters}
+              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-red-500 hover:text-red-600 transition-colors bg-red-50 dark:bg-red-900/10 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/20">
+              <RotateCcw size={12} />
+              Limpiar {activeFilterCount} filtros
+            </Button>
           )}
         </div>
-        <Button variant="primary" icon={Plus} onClick={() => setIsCreateModalOpen(true)}
-          className="shadow-lg shadow-primary-500/20">
-          Nueva Actividad
-        </Button>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="relative">
+            <Users size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+            <input // @audit-ok
+              type="text"
+              value={peopleSearch}
+              onChange={e => setPeopleSearch(e.target.value)}
+              placeholder="Autoridad, responsable o ejecutor..."
+              className="w-56 pl-8 pr-7 py-1.5 text-xs rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-400/50 transition"
+            />
+            {peopleSearch && (
+              <button // @audit-ok
+                onClick={() => setPeopleSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          <Button variant="primary" icon={Plus} onClick={() => setIsCreateModalOpen(true)}
+            className="shadow-lg shadow-primary-500/20">
+            Nueva Actividad
+          </Button>
+        </div>
       </div>
 
       {/* Tabla */}
