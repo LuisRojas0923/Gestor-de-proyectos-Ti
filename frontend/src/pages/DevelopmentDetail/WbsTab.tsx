@@ -302,9 +302,9 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             filterable: true,
             render: (row) => (
                 <div className="min-w-0" data-column="titulo">
-                    <Text weight="bold" className="truncate">{row.titulo}</Text>
+                    <Text weight="bold" className="block truncate" title={row.titulo}>{row.titulo}</Text>
                     {row.descripcion && (
-                        <Text variant="caption" color="text-secondary" className="truncate mt-0.5">
+                        <Text variant="caption" color="text-secondary" className="block truncate mt-0.5" title={row.descripcion}>
                             {row.descripcion}
                         </Text>
                     )}

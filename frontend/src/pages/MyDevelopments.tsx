@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { Pencil, Plus, RotateCcw, Search, Trash2, Users, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
 import { useNotifications } from '../components/notifications/NotificationsContext';
@@ -71,6 +71,7 @@ const MyDevelopments: React.FC = () => {
   const { addNotification } = useNotifications();
   const { delete: apiDelete, get: apiGet, put: apiPut } = useApi();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [peopleSearch, setPeopleSearch] = useState('');
   const [editTarget, setEditTarget] = useState<DevelopmentRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DevelopmentRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -268,6 +269,17 @@ const MyDevelopments: React.FC = () => {
     },
   ];
 
+  const displayData = useMemo(() => {
+    if (!peopleSearch.trim()) return filteredData;
+    const q = peopleSearch.toLowerCase();
+    return filteredData.filter(dev => {
+      const authority   = (resolveUserName(getDevelopmentAuthority(dev)) || getDevelopmentAuthority(dev) || '').toLowerCase();
+      const responsible = (resolveUserName(getDevelopmentResponsible(dev)) || getDevelopmentResponsible(dev) || '').toLowerCase();
+      const analista    = (resolveUserName(dev.analista) || dev.analista || '').toLowerCase();
+      return authority.includes(q) || responsible.includes(q) || analista.includes(q);
+    });
+  }, [filteredData, peopleSearch, resolveUserName]);
+
   const toggleOption = (key: string, option: string) => {
     const selected = filters[key] || new Set<string>();
     const next = new Set(selected);
@@ -293,7 +305,7 @@ const MyDevelopments: React.FC = () => {
           <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
           <div className="flex items-center gap-2">
             <Text variant="caption" weight="bold" className="bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800/50">
-              {filteredData.length} Actividades
+              {displayData.length} Actividades
             </Text>
             {activeFilterCount > 0 && (
               <Button variant="custom" size="xs" onClick={clearAllFilters}
@@ -304,6 +316,24 @@ const MyDevelopments: React.FC = () => {
             )}
           </div>
         </div>
+        <div className="relative flex-1 max-w-xs">
+          <Users size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+          <input
+            type="text"
+            value={peopleSearch}
+            onChange={e => setPeopleSearch(e.target.value)}
+            placeholder="Autoridad, responsable o ejecutor..."
+            className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-400/50 transition"
+          />
+          {peopleSearch && (
+            <button
+              onClick={() => setPeopleSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
         <Button variant="primary" icon={Plus} onClick={() => setIsCreateModalOpen(true)}
           className="shadow-lg shadow-primary-500/20">
           Nueva Actividad
@@ -313,7 +343,7 @@ const MyDevelopments: React.FC = () => {
       {/* Tabla */}
       <DataTable<DevelopmentRow>
         columns={columns}
-        data={filteredData}
+        data={displayData}
         keyExtractor={(dev) => String(dev.id)}
         onRowClick={(dev) => navigate(isPortal ? `/service-portal/desarrollos/${dev.id}?tab=bitacora` : `/developments/${dev.id}?tab=bitacora`)}
         columnFilters={filters}

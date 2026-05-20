@@ -4,10 +4,25 @@ import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
 import { DevelopmentWithCurrentStatus } from '../types';
-import { Button, Title, Text, Badge } from '../components/atoms';
-import { DevelopmentEditModal } from '../components/molecules';
-import { Plus, Pencil, ExternalLink } from 'lucide-react';
+import { Button, Title, Text } from '../components/atoms';
+import { Plus, ExternalLink, User, Shield, Briefcase, MapPin, Calendar, CalendarCheck, Layers, Activity } from 'lucide-react';
 import WbsTab, { WbsTabRef } from './DevelopmentDetail/WbsTab';
+
+const getStatusColor = (status: string) => {
+  const s = (status || '').toLowerCase();
+  if (s.includes('pendiente')) return 'text-red-700 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50';
+  if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50';
+  if (s.includes('complet')) return 'text-green-700 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50';
+  if (s.includes('cancel')) return 'text-neutral-600 bg-neutral-100 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+  return 'text-neutral-600 bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+};
+
+const formatDate = (d?: string) => {
+  if (!d) return null;
+  const parts = d.split('T')[0].split('-');
+  if (parts.length !== 3) return d;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+};
 
 type ApiDevelopment = DevelopmentWithCurrentStatus & {
   nombre?: string;
@@ -40,35 +55,18 @@ const normalizeDevelopment = (development: ApiDevelopment): DevelopmentWithCurre
   responsible: development.responsible || development.responsable,
 });
 
-const toApiDevelopmentPayload = (data: Partial<ApiDevelopment>) => ({
-  nombre: data.name,
-  descripcion: data.description,
-  modulo: data.module,
-  tipo: data.type,
-  ambiente: data.environment,
-  enlace_portal: data.portal_link,
-  estado_general: data.general_status,
-  fecha_inicio: data.start_date,
-  fecha_estimada_fin: data.estimated_end_date,
-  proveedor: data.provider,
-  autoridad: data.authority,
-  responsable: data.responsible,
-  area_desarrollo: data.area_desarrollo,
-  analista: data.analista,
-});
 
 const DevelopmentDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isPortal = location.pathname.startsWith('/service-portal');
   const { darkMode } = useAppContext().state;
-  const { get, put } = useApi<DevelopmentWithCurrentStatus>();
+  const { get } = useApi<DevelopmentWithCurrentStatus>();
   const { developmentId } = useParams();
   const wbsRef = useRef<WbsTabRef>(null);
 
   const [development, setDevelopment] = useState<DevelopmentWithCurrentStatus | null>(null);
   const [loading, setLoading] = useState(false);
-  const [developmentEditOpen, setDevelopmentEditOpen] = useState(false);
 
   // Cargar desarrollo
   useEffect(() => {
@@ -87,84 +85,159 @@ const DevelopmentDetail: React.FC = () => {
     load();
   }, [developmentId, get]);
 
-  const updateDevelopment = async (updatedData: Partial<ApiDevelopment>): Promise<boolean> => {
-    if (!development) return false;
-    try {
-      const result = await put(API_ENDPOINTS.DEVELOPMENT_BY_ID(development.id), toApiDevelopmentPayload(updatedData));
-      if (result) {
-        setDevelopment(normalizeDevelopment(result as ApiDevelopment));
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error al actualizar el desarrollo:', error);
-      return false;
-    }
-  };
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex justify-between items-center bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => navigate(isPortal ? '/service-portal/desarrollos' : '/developments')}
-            className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
-          >
-            ← Volver
-          </Button>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-3">
-              <Title variant="h1" weight="bold" className="m-0 leading-tight">
-                {development?.name || (loading ? 'Cargando...' : 'Proyecto')}
-              </Title>
+      <div className="bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm space-y-3">
+        {/* Top row */}
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex items-start gap-4 min-w-0">
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <Button
+                variant="ghost"
+                onClick={() => navigate(isPortal ? '/service-portal/desarrollos' : '/developments')}
+                className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
+              >
+                ← Volver
+              </Button>
               {development?.id && (
-                <Text as="span" variant="caption" weight="bold" className="bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800/50">
+                <Text as="span" variant="caption" weight="bold" className="bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800/50 text-center">
                   {development.id}
                 </Text>
               )}
             </div>
-            {development?.description && (
-              <Text variant="caption" color="text-secondary" className="line-clamp-1 max-w-2xl" title={development.description}>
-                {development.description}
-              </Text>
+            <div className="flex flex-col min-w-0">
+              <Title variant="h1" weight="bold" className="m-0 leading-tight">
+                {development?.name || (loading ? 'Cargando...' : 'Proyecto')}
+              </Title>
+              {development?.description && (
+                <Text variant="caption" color="text-secondary" className="line-clamp-2 max-w-2xl mt-0.5" title={development.description}>
+                  {development.description}
+                </Text>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {development?.portal_link && (
+              <Button
+                variant="outline"
+                icon={ExternalLink}
+                onClick={() => window.open(development.portal_link, '_blank', 'noopener,noreferrer')}
+                className="h-10 text-xs border-green-500/30 text-green-600 hover:bg-green-500 hover:text-white"
+              >
+                Portal
+              </Button>
             )}
+            <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
+            <Button
+              variant="primary"
+              icon={Plus}
+              onClick={() => wbsRef.current?.handleAddRootTask()}
+              className="h-10 text-xs shadow-lg shadow-primary-500/20"
+            >
+              Tarea
+            </Button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {development?.portal_link && (
-            <Button
-              variant="outline"
-              icon={ExternalLink}
-              onClick={() => window.open(development.portal_link, '_blank', 'noopener,noreferrer')}
-              className="h-10 text-xs border-green-500/30 text-green-600 hover:bg-green-500 hover:text-white"
-            >
-              Portal
-            </Button>
-          )}
+        {/* Metadata chips */}
+        {development && (
+          <div className="border-t border-neutral-100 dark:border-neutral-800 pt-3 flex flex-wrap gap-2">
+            {/* Estado */}
+            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusColor(development.general_status)}`}>
+              <Activity size={11} />
+              {development.general_status}
+            </span>
 
-          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
+            {/* Tipo */}
+            {development.type && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <Briefcase size={11} className="text-neutral-400" />
+                <span className="text-neutral-400">Tipo:</span>
+                <span className="font-medium">{development.type}</span>
+              </span>
+            )}
 
-          <Button
-            variant="primary"
-            icon={Plus}
-            onClick={() => wbsRef.current?.handleAddRootTask()}
-            className="h-10 text-xs shadow-lg shadow-primary-500/20"
-          >
-            Tarea
-          </Button>
+            {/* Área */}
+            {development.area_desarrollo && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <MapPin size={11} className="text-neutral-400" />
+                <span className="text-neutral-400">Área:</span>
+                <span className="font-medium">{development.area_desarrollo}</span>
+              </span>
+            )}
 
-          <Button
-            variant="custom"
-            onClick={() => setDevelopmentEditOpen(true)}
-            disabled={loading || !development}
-            className="h-10 w-10 flex items-center justify-center rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-all border border-[var(--color-primary)]/20"
-            title="Editar Proyecto"
-          >
-            <Pencil size={18} />
-          </Button>
-        </div>
+            {/* Proceso/módulo */}
+            {development.module && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <Layers size={11} className="text-neutral-400" />
+                <span className="text-neutral-400">Proceso:</span>
+                <span className="font-medium">{development.module}</span>
+              </span>
+            )}
+
+            {/* Autoridad */}
+            {development.authority && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-800/50 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300">
+                <Shield size={11} className="text-purple-400" />
+                <span className="text-purple-400">Autoridad:</span>
+                <span className="font-medium">{development.authority}</span>
+              </span>
+            )}
+
+            {/* Responsable */}
+            {development.responsible && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
+                <User size={11} className="text-blue-400" />
+                <span className="text-blue-400">Responsable:</span>
+                <span className="font-medium">{development.responsible}</span>
+              </span>
+            )}
+
+            {/* Analista / Líder */}
+            {development.analista && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-800/50 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300">
+                <User size={11} className="text-teal-400" />
+                <span className="text-teal-400">Líder:</span>
+                <span className="font-medium">{development.analista}</span>
+              </span>
+            )}
+
+            {/* Fecha inicio */}
+            {development.start_date && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <Calendar size={11} className="text-neutral-400" />
+                <span className="text-neutral-400">Inicio:</span>
+                <span className="font-medium">{formatDate(development.start_date)}</span>
+              </span>
+            )}
+
+            {/* Fecha estimada fin */}
+            {development.estimated_end_date && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <CalendarCheck size={11} className="text-neutral-400" />
+                <span className="text-neutral-400">Fin est.:</span>
+                <span className="font-medium">{formatDate(development.estimated_end_date)}</span>
+              </span>
+            )}
+
+            {/* Ambiente */}
+            {development.environment && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <span className="text-neutral-400">Ambiente:</span>
+                <span className="font-medium">{development.environment}</span>
+              </span>
+            )}
+
+            {/* Proveedor */}
+            {development.provider && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-orange-200 dark:border-orange-800/50 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300">
+                <span className="text-orange-400">Proveedor:</span>
+                <span className="font-medium">{development.provider}</span>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
 
@@ -173,14 +246,6 @@ const DevelopmentDetail: React.FC = () => {
         <WbsTab ref={wbsRef} developmentId={development.id} darkMode={darkMode} />
       )}
 
-      {development && (
-        <DevelopmentEditModal
-          isOpen={developmentEditOpen}
-          development={development}
-          onClose={() => setDevelopmentEditOpen(false)}
-          onSave={updateDevelopment}
-        />
-      )}
     </div>
   );
 };
