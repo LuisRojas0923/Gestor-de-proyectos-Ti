@@ -72,6 +72,7 @@ export interface Development {
   provider?: string;
   authority?: string;
   responsible?: string;
+  supervisor?: string;
 
   // Timestamps
   created_at: string;

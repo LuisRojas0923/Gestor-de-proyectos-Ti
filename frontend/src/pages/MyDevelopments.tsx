@@ -26,6 +26,7 @@ type DevelopmentRow = DevelopmentWithCurrentStatus & {
   porcentaje_progreso?: string | number;
   area_desarrollo?: string;
   analista?: string;
+  supervisor?: string;
 };
 
 const valueOrFallback = (value?: string | number | null) => value ?? 'N/A';
@@ -124,6 +125,7 @@ const MyDevelopments: React.FC = () => {
     estimated_end_date: getDevelopmentEndDate,
     area_desarrollo:    (dev: DevelopmentRow) => dev.area_desarrollo || '(Vacío)',
     analista:           (dev: DevelopmentRow) => resolveUserName(dev.analista) || dev.analista || '(Sin asignar)',
+    supervisor:         (dev: DevelopmentRow) => resolveUserName(dev.supervisor) || dev.supervisor || '(Sin asignar)',
     authority:          (dev: DevelopmentRow) => resolveUserName(getDevelopmentAuthority(dev)) || getDevelopmentAuthority(dev) || '(Sin asignar)',
     responsible:        (dev: DevelopmentRow) => resolveUserName(getDevelopmentResponsible(dev)) || getDevelopmentResponsible(dev) || '(Sin asignar)',
   }), [resolveUserName]);
@@ -153,7 +155,7 @@ const MyDevelopments: React.FC = () => {
       key: 'name',
       label: 'Proyecto',
       flex: true,
-      minWidth: '260px',
+      minWidth: '360px',
       filterable: true,
       render: (dev) => {
         const description = getDevelopmentDescription(dev);
@@ -207,7 +209,7 @@ const MyDevelopments: React.FC = () => {
     {
       key: 'start_date',
       label: 'Inicio',
-      minWidth: '90px',
+      minWidth: '80px',
       filterable: true,
       render: (dev) => (
         <Text as="span" variant="caption" color="text-secondary" className="!text-[11px]">
@@ -218,7 +220,7 @@ const MyDevelopments: React.FC = () => {
     {
       key: 'estimated_end_date',
       label: 'Fin',
-      minWidth: '90px',
+      minWidth: '80px',
       filterable: true,
       render: (dev) => (
         <Text as="span" variant="caption" color="text-secondary" className="!text-[11px]">
@@ -229,7 +231,7 @@ const MyDevelopments: React.FC = () => {
     {
       key: 'area_desarrollo',
       label: 'Área de impacto',
-      minWidth: '120px',
+      minWidth: '100px',
       filterable: true,
       render: (dev) => (
         <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
@@ -240,7 +242,7 @@ const MyDevelopments: React.FC = () => {
     {
       key: 'authority',
       label: 'Autoridad',
-      minWidth: '110px',
+      minWidth: '90px',
       filterable: true,
       render: (dev) => (
         <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
@@ -250,8 +252,8 @@ const MyDevelopments: React.FC = () => {
     },
     {
       key: 'responsible',
-      label: 'Responsable',
-      minWidth: '110px',
+      label: 'Líder',
+      minWidth: '90px',
       filterable: true,
       render: (dev) => (
         <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
@@ -260,9 +262,20 @@ const MyDevelopments: React.FC = () => {
       ),
     },
     {
+      key: 'supervisor',
+      label: 'Supervisor',
+      minWidth: '90px',
+      filterable: true,
+      render: (dev) => (
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
+          {valueOrFallback(resolveUserName(dev.supervisor))}
+        </Text>
+      ),
+    },
+    {
       key: 'analista',
-      label: 'Líder o Ejecutor',
-      minWidth: '120px',
+      label: 'Ejecutor',
+      minWidth: '90px',
       filterable: true,
       render: (dev) => (
         <div className="flex items-center gap-2 min-w-0">
@@ -283,8 +296,9 @@ const MyDevelopments: React.FC = () => {
     return filteredData.filter(dev => {
       const authority   = (resolveUserName(getDevelopmentAuthority(dev)) || getDevelopmentAuthority(dev) || '').toLowerCase();
       const responsible = (resolveUserName(getDevelopmentResponsible(dev)) || getDevelopmentResponsible(dev) || '').toLowerCase();
+      const supervisor  = (resolveUserName(dev.supervisor) || dev.supervisor || '').toLowerCase();
       const analista    = (resolveUserName(dev.analista) || dev.analista || '').toLowerCase();
-      return authority.includes(q) || responsible.includes(q) || analista.includes(q);
+      return authority.includes(q) || responsible.includes(q) || supervisor.includes(q) || analista.includes(q);
     });
   }, [filteredData, peopleSearch, resolveUserName]);
 
@@ -347,7 +361,7 @@ const MyDevelopments: React.FC = () => {
               type="text"
               value={peopleSearch}
               onChange={e => setPeopleSearch(e.target.value)}
-              placeholder="Autoridad, responsable o ejecutor..."
+              placeholder="Autoridad, líder, supervisor o ejecutor..."
               className="w-56 pl-8 pr-7 py-1.5 text-xs rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-400/50 transition"
             />
             {peopleSearch && (
@@ -423,6 +437,7 @@ const MyDevelopments: React.FC = () => {
             responsible_id: editTarget.responsible_id,
             analista: editTarget.analista,
             analista_id: editTarget.analista_id,
+            supervisor: editTarget.supervisor,
             area_desarrollo: editTarget.area_desarrollo,
           }}
           onClose={() => setEditTarget(null)}

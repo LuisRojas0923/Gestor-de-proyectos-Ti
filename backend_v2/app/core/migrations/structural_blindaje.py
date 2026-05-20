@@ -75,6 +75,7 @@ async def ejecutar_blindaje_estructural(conn):
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS autoridad VARCHAR(255)')
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS area_desarrollo VARCHAR(100)')
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS analista VARCHAR(100)')
+    await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS supervisor VARCHAR(255)')
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS creado_por_id VARCHAR(50)')
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS responsable_id VARCHAR(50)')
     await safe_execute(conn, "ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS estado_validacion VARCHAR(50) DEFAULT 'aprobada'")

@@ -192,20 +192,29 @@ const DevelopmentDetail: React.FC = () => {
               </span>
             )}
 
-            {/* Responsable */}
+            {/* Líder (was Responsable) */}
             {development.responsible && (
               <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
                 <User size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Responsable:</span>
+                <span className="text-neutral-400">Líder:</span>
                 <span className="font-medium">{development.responsible}</span>
               </span>
             )}
 
-            {/* Analista / Líder */}
+            {/* Supervisor */}
+            {development.supervisor && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <User size={11} className="text-neutral-400" />
+                <span className="text-neutral-400">Supervisor:</span>
+                <span className="font-medium">{development.supervisor}</span>
+              </span>
+            )}
+
+            {/* Ejecutor (was Analista / Líder) */}
             {development.analista && (
               <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
                 <User size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Líder:</span>
+                <span className="text-neutral-400">Ejecutor:</span>
                 <span className="font-medium">{development.analista}</span>
               </span>
             )}

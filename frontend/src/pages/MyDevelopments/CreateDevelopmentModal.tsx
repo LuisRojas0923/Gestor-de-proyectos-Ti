@@ -45,6 +45,8 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     const [areaDesarrollo, setAreaDesarrollo] = useState('');
     const [analista, setAnalista] = useState('');
     const [analistaId, setAnalistaId] = useState('');
+    const [supervisor, setSupervisor] = useState('');
+    const [supervisorId, setSupervisorId] = useState('');
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaEstimadaFin, setFechaEstimadaFin] = useState('');
 
@@ -58,6 +60,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         setResponsable(''); setResponsableId('');
         setAreaDesarrollo('');
         setAnalista(''); setAnalistaId('');
+        setSupervisor(''); setSupervisorId('');
         setFechaInicio(''); setFechaEstimadaFin('');
         onClose();
     };
@@ -173,6 +176,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                 tipo,
                 autoridad: autoridad || undefined,
                 responsable: responsable || undefined,
+                supervisor: supervisor || undefined,
                 area_desarrollo: areaDesarrollo || undefined,
                 analista: analista || undefined,
                 fecha_inicio: fechaInicio || undefined,
@@ -243,7 +247,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                             />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <HierarchyAutocomplete
-                                    label="Responsable"
+                                    label="Líder"
                                     placeholder="Buscar empleado..."
                                     value={responsable}
                                     options={responsableOptions}
@@ -263,7 +267,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                                     }}
                                 />
                                 <HierarchyAutocomplete
-                                    label="Líder de actividad (Ejecutor)"
+                                    label="Ejecutor"
                                     placeholder="Buscar empleado..."
                                     value={analista}
                                     options={analistaOptions}
@@ -277,20 +281,36 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                                     }}
                                 />
                             </div>
-                            <HierarchyAutocomplete
-                                label="Autoridad"
-                                placeholder="Buscar empleado..."
-                                value={autoridad}
-                                options={autoridadOptions}
-                                onChange={(text) => {
-                                    setAutoridad(text);
-                                    if (!text) setAutoridadId('');
-                                }}
-                                onSelect={(user) => {
-                                    setAutoridad(user.nombre);
-                                    setAutoridadId(user.id);
-                                }}
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <HierarchyAutocomplete
+                                    label="Supervisor"
+                                    placeholder="Buscar empleado..."
+                                    value={supervisor}
+                                    options={reachableUsers}
+                                    onChange={(text) => {
+                                        setSupervisor(text);
+                                        if (!text) setSupervisorId('');
+                                    }}
+                                    onSelect={(user) => {
+                                        setSupervisor(user.nombre);
+                                        setSupervisorId(user.id);
+                                    }}
+                                />
+                                <HierarchyAutocomplete
+                                    label="Autoridad"
+                                    placeholder="Buscar empleado..."
+                                    value={autoridad}
+                                    options={autoridadOptions}
+                                    onChange={(text) => {
+                                        setAutoridad(text);
+                                        if (!text) setAutoridadId('');
+                                    }}
+                                    onSelect={(user) => {
+                                        setAutoridad(user.nombre);
+                                        setAutoridadId(user.id);
+                                    }}
+                                />
+                            </div>
                         </div>
                     </div>
                 );

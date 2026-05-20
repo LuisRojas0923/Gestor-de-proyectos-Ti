@@ -51,6 +51,7 @@ async def listar_desarrollos(
                     Desarrollo.creado_por_id.in_(todos_los_ids),
                     Desarrollo.responsable_id.in_(todos_los_ids),
                     Desarrollo.analista.in_(todos_los_nombres),
+                    Desarrollo.supervisor.in_(todos_los_nombres),
                     Desarrollo.autoridad.in_(todos_los_nombres),
                     Desarrollo.responsable.in_(todos_los_nombres),
                 )
