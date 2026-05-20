@@ -118,6 +118,29 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const pending = allFlat.filter(n => n.estado.toLowerCase().includes('pendiente')).length;
     const avgProgress = allFlat.length ? Math.round((completed / allFlat.length) * 100) : 0;
 
+    const statusGroups = allFlat.reduce<Record<string, number>>((acc, n) => {
+        const s = n.estado || 'Sin estado';
+        acc[s] = (acc[s] || 0) + 1;
+        return acc;
+    }, {});
+
+    const getStatusCardStyle = (status: string) => {
+        const s = status.toLowerCase();
+        if (s.includes('complet'))  return { card: 'border-green-200 bg-green-50 dark:border-green-800/50 dark:bg-green-900/20', value: 'text-green-700 dark:text-green-400', label: 'text-green-500 dark:text-green-500' };
+        if (s.includes('progreso') || s.includes('curso')) return { card: 'border-yellow-200 bg-yellow-50 dark:border-yellow-800/50 dark:bg-yellow-900/20', value: 'text-yellow-700 dark:text-yellow-400', label: 'text-yellow-500' };
+        if (s.includes('pendiente')) return { card: 'border-red-200 bg-red-50 dark:border-red-800/50 dark:bg-red-900/20', value: 'text-red-700 dark:text-red-400', label: 'text-red-400' };
+        if (s.includes('cancel'))   return { card: 'border-neutral-300 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800', value: 'text-neutral-500 dark:text-neutral-400', label: 'text-neutral-400' };
+        return { card: 'border-[var(--color-border)] bg-[var(--color-surface-variant)]', value: 'text-gray-900 dark:text-gray-100', label: 'text-gray-500 dark:text-gray-400' };
+    };
+
+    const getAvanceStyle = (pct: number) => {
+        if (pct >= 100) return { card: 'border-green-200 bg-green-50 dark:border-green-800/50 dark:bg-green-900/20', value: 'text-green-700 dark:text-green-400' };
+        if (pct >= 75)  return { card: 'border-blue-200 bg-blue-50 dark:border-blue-800/50 dark:bg-blue-900/20', value: 'text-blue-700 dark:text-blue-400' };
+        if (pct >= 50)  return { card: 'border-yellow-200 bg-yellow-50 dark:border-yellow-800/50 dark:bg-yellow-900/20', value: 'text-yellow-700 dark:text-yellow-400' };
+        if (pct >= 25)  return { card: 'border-orange-200 bg-orange-50 dark:border-orange-800/50 dark:bg-orange-900/20', value: 'text-orange-700 dark:text-orange-400' };
+        return { card: 'border-red-200 bg-red-50 dark:border-red-800/50 dark:bg-red-900/20', value: 'text-red-700 dark:text-red-400' };
+    };
+
     const handleQuickAction = async (id: number, action: 'play' | 'pause' | 'finish', currentNode: WbsActivityTree) => {
         let payload: Partial<WbsActivityTree> = {};
         const now = new Date().toISOString().split('T')[0];
@@ -596,24 +619,29 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         },
     ];
 
+    const avanceStyle = getAvanceStyle(avgProgress);
     const statsCards = (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-variant)] p-3">
-                <Text variant="caption" color="text-secondary">Tareas</Text>
+        <div className="flex flex-wrap gap-2">
+            {/* Total */}
+            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-variant)] p-3 min-w-[80px]">
+                <Text variant="caption" color="text-secondary">Total</Text>
                 <Text variant="body1" weight="bold">{allFlat.length}</Text>
             </div>
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-variant)] p-3">
-                <Text variant="caption" color="text-secondary">Avance</Text>
-                <Text variant="body1" weight="bold">{avgProgress}%</Text>
+            {/* Avance dinámico */}
+            <div className={`rounded-xl border p-3 min-w-[80px] ${avanceStyle.card}`}>
+                <Text variant="caption" className="text-current opacity-70">Avance</Text>
+                <Text variant="body1" weight="bold" className={avanceStyle.value}>{avgProgress}%</Text>
             </div>
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-variant)] p-3">
-                <Text variant="caption" color="text-secondary">Completadas</Text>
-                <Text variant="body1" weight="bold">{completed}</Text>
-            </div>
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-variant)] p-3">
-                <Text variant="caption" color="text-secondary">Pendientes</Text>
-                <Text variant="body1" weight="bold">{pending + inProgress}</Text>
-            </div>
+            {/* Una tarjeta por estado */}
+            {Object.entries(statusGroups).map(([status, count]) => {
+                const style = getStatusCardStyle(status);
+                return (
+                    <div key={status} className={`rounded-xl border p-3 min-w-[80px] ${style.card}`}>
+                        <Text variant="caption" className={`${style.label} opacity-90`}>{status}</Text>
+                        <Text variant="body1" weight="bold" className={style.value}>{count}</Text>
+                    </div>
+                );
+            })}
         </div>
     );
 
