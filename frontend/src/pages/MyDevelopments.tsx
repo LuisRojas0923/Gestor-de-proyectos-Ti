@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Eye, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDevelopments } from './MyDevelopments/hooks/useDevelopments';
 import { useNotifications } from '../components/notifications/NotificationsContext';
@@ -7,6 +7,7 @@ import { Button, Title, Text } from '../components/atoms';
 import { DataTable, DataTableColumn } from '../components/molecules/DataTable';
 import { useColumnFilters } from '../hooks/useColumnFilters';
 import { CreateDevelopmentModal } from './MyDevelopments/CreateDevelopmentModal';
+import EditDevelopmentModal from './MyDevelopments/EditDevelopmentModal';
 import { DevelopmentWithCurrentStatus } from '../types';
 import { useApi } from '../hooks/useApi';
 
@@ -18,9 +19,13 @@ type DevelopmentRow = DevelopmentWithCurrentStatus & {
   fecha_inicio?: string;
   fecha_estimada_fin?: string;
   autoridad?: string;
+  autoridad_id?: string;
   responsable?: string;
+  responsable_id?: string;
   estado_general?: string;
   porcentaje_progreso?: string | number;
+  area_desarrollo?: string;
+  analista?: string;
 };
 
 const valueOrFallback = (value?: string | number | null) => value ?? 'N/A';
@@ -64,8 +69,9 @@ const MyDevelopments: React.FC = () => {
   const isPortal = location.pathname.startsWith('/service-portal');
   const { developments, loadDevelopments } = useDevelopments();
   const { addNotification } = useNotifications();
-  const { delete: apiDelete, get: apiGet } = useApi();
+  const { delete: apiDelete, get: apiGet, put: apiPut } = useApi();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<DevelopmentRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DevelopmentRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
@@ -223,22 +229,6 @@ const MyDevelopments: React.FC = () => {
       ),
     },
     {
-      key: 'analista',
-      label: 'Líder',
-      minWidth: '120px',
-      filterable: true,
-      render: (dev) => (
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
-            {(dev.analista ?? 'A')[0].toUpperCase()}
-          </div>
-          <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
-            {resolveUserName(dev.analista) ?? 'N/A'}
-          </Text>
-        </div>
-      ),
-    },
-    {
       key: 'authority',
       label: 'Autoridad',
       minWidth: '110px',
@@ -258,6 +248,22 @@ const MyDevelopments: React.FC = () => {
         <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
           {valueOrFallback(resolveUserName(getDevelopmentResponsible(dev)))}
         </Text>
+      ),
+    },
+    {
+      key: 'analista',
+      label: 'Líder o Ejecutor',
+      minWidth: '120px',
+      filterable: true,
+      render: (dev) => (
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
+            {(dev.analista ?? 'A')[0].toUpperCase()}
+          </div>
+          <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
+            {resolveUserName(dev.analista) ?? 'N/A'}
+          </Text>
+        </div>
       ),
     },
   ];
@@ -317,11 +323,11 @@ const MyDevelopments: React.FC = () => {
           <>
             <Button
               variant="custom"
-              onClick={(e) => { e.stopPropagation(); navigate(isPortal ? `/service-portal/desarrollos/${dev.id}?tab=bitacora` : `/developments/${dev.id}?tab=bitacora`); }}
+              onClick={(e) => { e.stopPropagation(); setEditTarget(dev); }}
               className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20 inline-flex items-center justify-center"
-              title="Ver detalles"
+              title="Actualizar"
             >
-              <Eye size={14} />
+              <Pencil size={14} />
             </Button>
             <Button
               variant="custom"
@@ -333,18 +339,40 @@ const MyDevelopments: React.FC = () => {
             </Button>
           </>
         )}
-        actionsMinWidth="100px"
+        actionsMinWidth="120px"
         emptyIcon={<Search size={40} className="opacity-40" />}
         emptyMessage="No se encontraron actividades"
         maxHeight="max-h-[calc(100vh-420px)]"
       />
 
-      <CreateDevelopmentModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSaved={() => { loadDevelopments(); addNotification('success', 'Actividad creada exitosamente'); }}
-        darkMode={document.documentElement.classList.contains('dark')}
-      />
+        <CreateDevelopmentModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSaved={() => { loadDevelopments(); addNotification('success', 'Actividad creada exitosamente'); }}
+        />
+
+      {editTarget && (
+        <EditDevelopmentModal
+          development={{
+            id: editTarget.id,
+            name: editTarget.name ?? editTarget.nombre,
+            descripcion: editTarget.description ?? editTarget.descripcion,
+            modulo: editTarget.modulo,
+            tipo: editTarget.tipo,
+            fecha_inicio: editTarget.start_date ?? editTarget.fecha_inicio,
+            fecha_estimada_fin: editTarget.estimated_end_date ?? editTarget.fecha_estimada_fin,
+            autoridad: editTarget.authority ?? editTarget.autoridad,
+            autoridad_id: editTarget.authority_id,
+            responsible: editTarget.responsible ?? editTarget.responsable,
+            responsible_id: editTarget.responsible_id,
+            analista: editTarget.analista,
+            analista_id: editTarget.analista_id,
+            area_desarrollo: editTarget.area_desarrollo,
+          }}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => { loadDevelopments(); addNotification('success', 'Actividad actualizada exitosamente'); setEditTarget(null); }}
+        />
+      )}
 
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">

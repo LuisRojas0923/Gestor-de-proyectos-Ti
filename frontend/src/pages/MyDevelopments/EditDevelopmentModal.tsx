@@ -6,8 +6,23 @@ import { HierarchyUser, HierarchyRelation } from '../../types/hierarchy';
 import { Title, Button, Input, Select, Textarea, Text } from '../../components/atoms';
 import { HierarchyAutocomplete } from '../../components/molecules';
 
-interface CreateDevelopmentModalProps {
-    isOpen: boolean;
+interface EditDevelopmentModalProps {
+    development: {
+        id?: string;
+        name?: string;
+        descripcion?: string;
+        tipo?: string;
+        modulo?: string;
+        fecha_inicio?: string;
+        fecha_estimada_fin?: string;
+        autoridad?: string;
+        autoridad_id?: string;
+        responsible?: string;
+        responsible_id?: string;
+        analista?: string;
+        analista_id?: string;
+        area_desarrollo?: string;
+    };
     onClose: () => void;
     onSaved: () => void;
     darkMode: boolean;
@@ -22,10 +37,10 @@ const DEFAULT_TIPO_OPTIONS = [
     { value: 'Actividad', label: 'Actividad' },
 ];
 
-export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
-    isOpen, onClose, onSaved
+const EditDevelopmentModal: React.FC<EditDevelopmentModalProps> = ({
+    development, onClose, onSaved
 }) => {
-    const { get, post } = useApi<unknown>();
+    const { get, put } = useApi<unknown>();
     const { state: appState } = useAppContext();
     const currentUserId = appState.user?.id ?? '';
 
@@ -33,32 +48,24 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     const [step, setStep] = useState(1);
     const [tipoOptions] = useState(DEFAULT_TIPO_OPTIONS);
 
-    // Form state
-    const [nombre, setNombre] = useState('');
-    const [descripcion, setDescripcion] = useState('');
-    const [modulo, setModulo] = useState('');
-    const [tipo, setTipo] = useState('Proyecto');
-    const [autoridad, setAutoridad] = useState('');
-    const [autoridadId, setAutoridadId] = useState('');
-    const [responsable, setResponsable] = useState('');
-    const [responsableId, setResponsableId] = useState('');
-    const [areaDesarrollo, setAreaDesarrollo] = useState('');
-    const [analista, setAnalista] = useState('');
-    const [analistaId, setAnalistaId] = useState('');
-    const [fechaInicio, setFechaInicio] = useState('');
-    const [fechaEstimadaFin, setFechaEstimadaFin] = useState('');
+    const [nombre, setNombre] = useState(development.name ?? '');
+    const [descripcion, setDescripcion] = useState(development.descripcion ?? '');
+    const [modulo, setModulo] = useState(development.modulo ?? '');
+    const [tipo, setTipo] = useState(development.tipo ?? 'Proyecto');
+    const [autoridad, setAutoridad] = useState(development.autoridad ?? '');
+    const [autoridadId, setAutoridadId] = useState(development.autoridad_id ?? '');
+    const [responsable, setResponsable] = useState(development.responsible ?? '');
+    const [responsableId, setResponsableId] = useState(development.responsible_id ?? '');
+    const [areaDesarrollo, setAreaDesarrollo] = useState(development.area_desarrollo ?? '');
+    const [analista, setAnalista] = useState(development.analista ?? '');
+    const [analistaId, setAnalistaId] = useState(development.analista_id ?? '');
+    const [fechaInicio, setFechaInicio] = useState(development.fecha_inicio ?? '');
+    const [fechaEstimadaFin, setFechaEstimadaFin] = useState(development.fecha_estimada_fin ?? '');
 
     const totalSteps = 3;
 
-    // Reset when closing
     const handleClose = () => {
         setStep(1);
-        setNombre(''); setDescripcion(''); setModulo(''); setTipo('Proyecto');
-        setAutoridad(''); setAutoridadId('');
-        setResponsable(''); setResponsableId('');
-        setAreaDesarrollo('');
-        setAnalista(''); setAnalistaId('');
-        setFechaInicio(''); setFechaEstimadaFin('');
         onClose();
     };
 
@@ -82,10 +89,10 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                 console.error('Error fetching hierarchy:', err);
             }
         };
-        if (isOpen) fetchHierarchy();
-    }, [isOpen]);
+        fetchHierarchy();
+    }, []);
 
-    // ── Derivaciones jerárquicas ──────────────────────────────────────────
+    // ── Derivaciones jerárquicas ───────────────────────────────────────────
     const superiorId = useMemo(() =>
         relations.find(r => r.usuario_id === currentUserId)?.superior_id ?? '',
     [relations, currentUserId]);
@@ -163,7 +170,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     }, [analistaId, responsableId, currentUserId, hierarchyUsers, superiorId, superiorSuperiorId, reachableUsers]);
 
     const handleSave = async () => {
-        if (!nombre.trim()) return;
+        if (!nombre.trim() || !development.id) return;
         setLoading(true);
         try {
             const payload = {
@@ -177,21 +184,17 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                 analista: analista || undefined,
                 fecha_inicio: fechaInicio || undefined,
                 fecha_estimada_fin: fechaEstimadaFin || undefined,
-                estado_general: 'Pendiente',
-                porcentaje_progreso: 0.0,
             };
 
-            await post('/desarrollos/', payload);
+            await put(`/desarrollos/${development.id}`, payload);
             onSaved();
             handleClose();
         } catch (error) {
-            console.error('Error creating development:', error);
+            console.error('Error updating development:', error);
         } finally {
             setLoading(false);
         }
     };
-
-    if (!isOpen) return null;
 
     const renderStep = () => {
         switch (step) {
@@ -200,7 +203,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                     <div className="space-y-4 animate-in slide-in-from-right-2 duration-300">
                         <div className="mb-6">
                             <Text variant="body1" weight="bold" color="text-primary">Paso 1: Información Básica</Text>
-                            <Text variant="caption" color="text-secondary">Define de qué trata este nuevo desarrollo.</Text>
+                            <Text variant="caption" color="text-secondary">Define de qué trata este desarrollo.</Text>
                         </div>
                         <div className="grid grid-cols-1 gap-4">
                             <Select
@@ -336,7 +339,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                 {/* Header */}
                 <div className="p-6 border-b border-[var(--color-border)] bg-[var(--color-surface-variant)]/30">
                     <div className="flex justify-between items-center mb-4">
-                        <Title variant="h5" weight="bold">Nuevo Proyecto</Title>
+                        <Title variant="h5" weight="bold">Editar Proyecto</Title>
                         <Button variant="ghost" onClick={handleClose} icon={X} className="!p-1.5 text-neutral-400 hover:text-neutral-500" />
                     </div>
 
@@ -385,7 +388,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                                 onClick={handleSave}
                                 disabled={loading || !nombre.trim()}
                             >
-                                {loading ? 'Creando...' : 'Finalizar y Crear'}
+                                {loading ? 'Guardando...' : 'Guardar Cambios'}
                             </Button>
                         )}
                     </div>
@@ -394,3 +397,5 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         </div>
     );
 };
+
+export default EditDevelopmentModal;
