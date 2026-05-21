@@ -201,6 +201,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
         if (emp.includes('REFRIDCOL')) return 'info';
         if (emp.includes('REDES HUMANAS')) return 'success';
         if (emp.includes('CONTRATISTA')) return 'warning';
+        if (emp.includes('RETIRADO_AUTORIZADO')) return 'error';
         if (emp.includes('SERDAN') || emp.includes('TEMPO')) return 'primary';
         return 'default';
     };

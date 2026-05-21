@@ -8,74 +8,11 @@ Attribute VB_Name = "ModuloTablaMaestra"
 
 Option Explicit
 
-' --- AMBIENTE ACTIVO ---
-' Valores: "LOCAL", "DEV", "PROD"
-Private mAmbiente As String
-
-' --- UTILIDADES DE CIFRADO ---
-
-Private Function HexToString(ByVal hexVal As String) As String
-    Dim i As Long
-    Dim res As String
-    res = ""
-    For i = 1 To Len(hexVal) Step 2
-        res = res & Chr(Val("&H" & Mid(hexVal, i, 2)))
-    Next i
-    HexToString = res
-End Function
-
-' --- SWITCH AMBIENTE ---
+' --- SWITCH AMBIENTE (REDIRECCIONADO AL MÓDULO CENTRAL) ---
 
 Sub CambiarAmbiente()
-    ' Permite al usuario seleccionar el ambiente de conexión
-    Dim opcion As String
-    opcion = InputBox( _
-        "Seleccione el ambiente de conexión:" & vbCrLf & vbCrLf & _
-        "1 = LOCAL  (192.168.40.29:5433)" & vbCrLf & _
-        "2 = DEV    (192.168.0.21:5432)" & vbCrLf & _
-        "3 = PROD   (192.168.0.21:5433)" & vbCrLf & vbCrLf & _
-        "Ambiente actual: " & IIf(mAmbiente = "", "NO DEFINIDO", mAmbiente), _
-        "Seleccionar Ambiente", "1")
-    
-    Select Case Trim(opcion)
-        Case "1": mAmbiente = "LOCAL"
-        Case "2": mAmbiente = "DEV"
-        Case "3": mAmbiente = "PROD"
-        Case Else
-            MsgBox "Opción no válida. Se mantiene: " & IIf(mAmbiente = "", "LOCAL (default)", mAmbiente), vbExclamation
-            If mAmbiente = "" Then mAmbiente = "LOCAL"
-            Exit Sub
-    End Select
-    
-    MsgBox "Ambiente cambiado a: " & mAmbiente, vbInformation, "Ambiente Activo"
+    ModuloConexionNomina.CambiarAmbiente
 End Sub
-
-Private Function ObtenerCadenaConexion() As String
-    ' Retorna la cadena ODBC según el ambiente activo
-    Dim srv As String, prt As String
-    
-    If mAmbiente = "" Then mAmbiente = "LOCAL" ' Default
-    
-    Select Case mAmbiente
-        Case "LOCAL"
-            srv = "192.168.40.29"
-            prt = "5433"
-        Case "DEV"
-            srv = "192.168.0.21"
-            prt = "5432"
-        Case "PROD"
-            srv = "192.168.0.21"
-            prt = "5433"
-    End Select
-    
-    ' Contraseña cifrada en hex: "password_segura_refridcol"
-    ObtenerCadenaConexion = "Driver={PostgreSQL Unicode(x64)};" & _
-        "Server=" & srv & ";" & _
-        "Port=" & prt & ";" & _
-        "Database=project_manager;" & _
-        "Uid=user;" & _
-        "Pwd=" & HexToString("70617373776f72645f7365677572615f726566726964636f6c") & ";"
-End Function
 
 ' --- PROCESO PRINCIPAL ---
 
@@ -94,6 +31,9 @@ Sub ExtraerTablaMaestra()
     Dim anio As String
     Dim quincena As String
     
+    Dim activeEnv As String
+    activeEnv = IIf(ModuloConexionNomina.mAmbiente = "", "LOCAL", ModuloConexionNomina.mAmbiente)
+    
     nombreHoja = "BD_MAESTRA"
     nombreTabla = "T_MAESTRA"
     
@@ -101,7 +41,6 @@ Sub ExtraerTablaMaestra()
     
     ' 1. LEER PARÁMETROS
     ' Se asume que en la hoja actual el usuario digitó MES en B1, AÑO en B2 y QUINCENA en B3
-    ' (Puedes ajustar las celdas según el diseño real del Excel)
     Set wsParams = ActiveSheet
     mes = Trim(wsParams.Range("B1").Value)
     anio = Trim(wsParams.Range("B2").Value)
@@ -140,7 +79,7 @@ Sub ExtraerTablaMaestra()
     sql = sql & "    SUM(CASE WHEN concepto = 'CAMPOSANTO' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""CAMPOSANTO.1 QUINCENA""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'CAMPOSANTO' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""CAMPOSANTO.2 QUINCENA""," & vbCrLf
     
-    ' CONTROL DE DESCUENTOS (El valor pasa íntegro y depende del concepto que tenga el sufijo de la quincena actual)
+    ' CONTROL DE DESCUENTOS
     sql = sql & "    SUM(CASE WHEN concepto = 'CONTROL DE DESCUENTO " & quincena & "' THEN valor ELSE 0 END) AS ""CONTROL_DE_DESC.VALOR CUOTA""," & vbCrLf
     
     sql = sql & "    SUM(CASE WHEN concepto = 'DAVIVIENDA LIBRANZA' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""DAVIVIENDA_LIBZ.1 QUINCENA""," & vbCrLf
@@ -158,7 +97,7 @@ Sub ExtraerTablaMaestra()
     sql = sql & "    SUM(CASE WHEN concepto = 'OCCIDENTE LIBRANZA' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""OCCIDENTE_LIBZ.1 QUINCENA""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'OCCIDENTE LIBRANZA' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""OCCIDENTE_LIBZ.2 QUINCENA""," & vbCrLf
     
-    ' PLANOS (Sin dividir, aparecen siempre)
+    ' PLANOS
     sql = sql & "    SUM(CASE WHEN concepto = 'OTROS-GERENCIA FONDO COMUN' THEN valor ELSE 0 END) AS ""OTROS_GERENCIA.FONDO COMUN""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'OTROS-GERENCIA DESCUENTO EMPLEADAS' THEN valor ELSE 0 END) AS ""OTROS_GERENCIA.DESCUENTO EMPLEADAS""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'OTROS-GERENCIA PAGO EMPLEADAS' THEN valor ELSE 0 END) AS ""OTROS_GERENCIA.INGRESO A EMPLEADO""," & vbCrLf
@@ -178,7 +117,7 @@ Sub ExtraerTablaMaestra()
     ' PLANO VACÍO (0)
     sql = sql & "    0 AS ""Comisiones.VALOR""," & vbCrLf
     
-    ' RETENCIONES (Plano íntegro, pero con filtro Q1 vs Q2)
+    ' RETENCIONES
     sql = sql & "    SUM(CASE WHEN concepto = 'CON COMISION 1Q' AND " & q1Check & " THEN valor ELSE 0 END) AS ""RTFUENTE_Q1.RETEFUENTE A DESCONTAR""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'SIN COMISION 2Q' AND " & q2Check & " THEN valor ELSE 0 END) AS ""RTFUENTE_Q2.RETEFUENTE A DESCONTAR""" & vbCrLf
 
@@ -189,10 +128,10 @@ Sub ExtraerTablaMaestra()
           "GROUP BY cedula" & vbCrLf & _
           "ORDER BY MAX(COALESCE(nombre_asociado, ''));"
     
-    ' 3. CONEXIÓN A POSTGRESQL
-    Application.StatusBar = "Conectando a PostgreSQL (" & IIf(mAmbiente = "", "LOCAL", mAmbiente) & ")..."
+    ' 3. CONEXIÓN A POSTGRESQL (USANDO MÓDULO CENTRAL)
+    Application.StatusBar = "Conectando a PostgreSQL (" & activeEnv & ")..."
     Set conn = CreateObject("ADODB.Connection")
-    conn.Open ObtenerCadenaConexion()
+    conn.Open ModuloConexionNomina.ObtenerCadenaConexion()
     
     ' 4. EJECUTAR SQL
     Application.StatusBar = "Consultando Tabla Maestra..."
@@ -211,7 +150,7 @@ Sub ExtraerTablaMaestra()
     On Error Resume Next
     Set tbl = wsData.ListObjects(nombreTabla)
     If Not tbl Is Nothing Then
-        tbl.Unlist ' Romper la tabla para regenerarla
+        tbl.Unlist
     End If
     On Error GoTo ErrorHandler
     
@@ -245,7 +184,7 @@ Sub ExtraerTablaMaestra()
     
     Dim tblRange As Range
     Set tblRange = wsData.Range(wsData.Cells(5, 1), wsData.Cells(lastRow, lastCol))
-    Set tbl = wsData.ListObjects.Add(1, tblRange, , 1) ' xlSrcRange, xlYes
+    Set tbl = wsData.ListObjects.Add(1, tblRange, , 1)
     tbl.Name = nombreTabla
     tbl.TableStyle = "TableStyleMedium2"
     
@@ -257,26 +196,23 @@ Sub ExtraerTablaMaestra()
     totalRegs = lastRow - 5
     
 Finalizar:
-    
-    ' 10. LIMPIEZA
+    ' 9. LIMPIEZA
     rs.Close
     conn.Close
     Set rs = Nothing
     Set conn = Nothing
     
-    ' Volver a la hoja inicial
     wsParams.Activate
-    
     Application.StatusBar = False
     MsgBox "Tabla Maestra extraída con éxito." & vbCrLf & _
-           "Ambiente: " & IIf(mAmbiente = "", "LOCAL", mAmbiente) & vbCrLf & _
+           "Ambiente: " & activeEnv & vbCrLf & _
            "Registros importados: " & totalRegs, vbInformation, "Éxito"
     Exit Sub
 
 ErrorHandler:
     Application.StatusBar = False
     MsgBox "Error en extracción: " & Err.Description & vbCrLf & _
-           "Ambiente: " & IIf(mAmbiente = "", "LOCAL", mAmbiente), _
+           "Ambiente: " & activeEnv, _
            vbCritical, "Error en Macro"
     If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
     If Not conn Is Nothing Then If conn.State = 1 Then conn.Close

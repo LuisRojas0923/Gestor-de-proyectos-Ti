@@ -98,7 +98,7 @@ const ControlDescuentosTabla: React.FC = () => {
             accessorKey: 'empresa',
             align: 'center',
             cell: (row: TablaQuincenalRow) => (
-                <Badge variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'} size="sm">
+                <Badge variant={row.empresa === 'CONTRATISTA' ? 'warning' : (row.empresa === 'RETIRADO_AUTORIZADO' ? 'error' : 'info')} size="sm">
                     {row.empresa || 'REFRIDCOL'}
                 </Badge>
             ),

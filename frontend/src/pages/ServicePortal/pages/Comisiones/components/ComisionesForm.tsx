@@ -127,6 +127,13 @@ const ComisionesForm: React.FC<ComisionesFormProps> = ({ onProcess, isProcessing
                                             value={row.cedula}
                                             onChange={(e) => handleChange(idx, 'cedula', e.target.value)}
                                             onBlur={() => handleLookup(idx)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleLookup(idx);
+                                                    (e.target as HTMLInputElement).blur();
+                                                }
+                                            }}
                                             className="h-8 !mb-0 font-mono text-center"
                                             placeholder="Cédula..."
                                         />

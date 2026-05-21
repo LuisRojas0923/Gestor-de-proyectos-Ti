@@ -19,7 +19,7 @@ const DEFAULT_ROWS: ManualRow[] = [
     { id: '1', cedula: "31231202", nombre: "AGUDELO DE TORRES GLORIA", empresa: "REFRIDCOL", fondo_comun: 250000, descuento_empleadas: 0, pago_empleadas: 0 },
     { id: '2', cedula: "16794276", nombre: "TORRES AGUDELO ALEXANDER", empresa: "REFRIDCOL", fondo_comun: 250000, descuento_empleadas: 0, pago_empleadas: 0 },
     { id: '3', cedula: "94534454", nombre: "TORRES AGUDELO HECTOR FABIO", empresa: "REFRIDCOL", fondo_comun: 500000, descuento_empleadas: 429600, pago_empleadas: 0 },
-    { id: '4', cedula: "66903320", nombre: "TORRES AGUDELO MARIBELL", empresa: "REFRIDCOL", fondo_comun: 250000, descuento_empleadas: 212617, pago_empleadas: 0 },
+    { id: '4', cedula: "66903320", nombre: "TORRES AGUDELO MARIBELL", empresa: "REFRIDCOL", fondo_comun: 250000, descuento_empleadas: 214800, pago_empleadas: 0 },
     { id: '5', cedula: "14965953", nombre: "TORRES ALEGRIAS GUILLERMO", empresa: "REFRIDCOL", fondo_comun: 250000, descuento_empleadas: 0, pago_empleadas: 0 },
 ];
 

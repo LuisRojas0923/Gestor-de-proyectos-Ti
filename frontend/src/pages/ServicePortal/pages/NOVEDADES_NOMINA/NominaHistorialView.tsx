@@ -126,7 +126,17 @@ const NominaHistorialView: React.FC = () => {
         <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto pb-12">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate('/service-portal/novedades-nomina')}>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => {
+                        if (subcategoriaFiltro === 'COMISIONES') {
+                            navigate('/service-portal/comisiones');
+                        } else {
+                            navigate('/service-portal/novedades-nomina');
+                        }
+                    }}
+                >
                     <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div className="flex items-center gap-3">

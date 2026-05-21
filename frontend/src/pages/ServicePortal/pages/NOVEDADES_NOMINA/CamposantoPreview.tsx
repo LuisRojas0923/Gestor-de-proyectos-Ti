@@ -473,7 +473,7 @@ const CamposantoPreview: React.FC = () => {
                                             <td className="p-2 border-r border-slate-50 text-left pl-4">{row.nombre_asociado}</td>
                                             <td className="p-2 border-r border-slate-50 text-center">
                                                 <Badge
-                                                    variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'}
+                                                    variant={row.empresa === 'CONTRATISTA' ? 'warning' : (row.empresa === 'RETIRADO_AUTORIZADO' ? 'error' : 'info')}
                                                     size="xs"
                                                 >
                                                     {row.empresa || 'REFRIDCOL'}

@@ -65,7 +65,7 @@ class NominaService:
             
             # Fallback de nombre: ERP -> Excepción (Manual) -> Archivo
             nombre_final = info_original["nombre"] if info_original else (ex.nombre_asociado if ex and ex.nombre_asociado else row.get("nombre_asociado", ""))
-            empresa_final = info_original["empresa"] if info_original else "N/A"
+            empresa_final = "CONTRATISTA" if ex and ex.tipo == 'CONTRATISTAS' else ("RETIRADO_AUTORIZADO" if ex and ex.tipo == 'RETIRADO_AUTORIZADO' else (info_original["empresa"] if info_original else "N/A"))
             observacion_ex = ""
             
             estado_val = estado_default
@@ -208,7 +208,7 @@ class NominaService:
                         cedula=ex.cedula,
                         nombre_asociado=ex.nombre_asociado or (info["nombre"] if info else "COLABORADOR SIN NOMBRE"),
                         valor=descuento,
-                        empresa=info["empresa"] if info else "N/A",
+                        empresa="CONTRATISTA" if ex.tipo == 'CONTRATISTAS' else ("RETIRADO_AUTORIZADO" if ex.tipo == 'RETIRADO_AUTORIZADO' else (info["empresa"] if info else "N/A")),
                         concepto=f"{subcategoria} (EXCEPCION)",
                         categoria_final=categoria,
                         subcategoria_final=subcategoria.strip(),

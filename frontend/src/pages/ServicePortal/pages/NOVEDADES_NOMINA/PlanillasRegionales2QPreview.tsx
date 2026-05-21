@@ -199,6 +199,7 @@ const PlanillasRegionales2QPreview: React.FC = () => {
         if (emp.includes('REFRIDCOL')) return 'info';
         if (emp.includes('REDES HUMANAS')) return 'success';
         if (emp.includes('CONTRATISTA')) return 'warning';
+        if (emp.includes('RETIRADO_AUTORIZADO')) return 'error';
         if (emp.includes('SERDAN') || emp.includes('TEMPO')) return 'primary';
         return 'default';
     };
@@ -209,7 +210,7 @@ const PlanillasRegionales2QPreview: React.FC = () => {
         { 
             header: 'EMPRESA', 
             accessorKey: 'empresa', 
-            cell: (row: PlanillaRow) => <Badge variant={row.empresa === 'CONTRATISTA' ? 'warning' : 'info'} size="sm">{row.empresa || 'REFRIDCOL'}</Badge> 
+            cell: (row: PlanillaRow) => <Badge variant={row.empresa === 'CONTRATISTA' ? 'warning' : (row.empresa === 'RETIRADO_AUTORIZADO' ? 'error' : 'info')} size="sm">{row.empresa || 'REFRIDCOL'}</Badge> 
         },
         { 
             header: 'CIUDAD', 

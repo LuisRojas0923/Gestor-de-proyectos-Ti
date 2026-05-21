@@ -9,74 +9,11 @@ Attribute VB_Name = "ModuloExtraccionPlanillas1Q2Q"
 
 Option Explicit
 
-' --- AMBIENTE ACTIVO ---
-' Valores: "LOCAL", "DEV", "PROD"
-Private mAmbiente As String
-
-' --- UTILIDADES DE CIFRADO ---
-
-Private Function HexToString(ByVal hexVal As String) As String
-    Dim i As Long
-    Dim res As String
-    res = ""
-    For i = 1 To Len(hexVal) Step 2
-        res = res & Chr(Val("&H" & Mid(hexVal, i, 2)))
-    Next i
-    HexToString = res
-End Function
-
-' --- SWITCH AMBIENTE ---
+' --- SWITCH AMBIENTE (REDIRECCIONADO AL MÓDULO CENTRAL) ---
 
 Sub CambiarAmbientePlano()
-    ' Permite al usuario seleccionar el ambiente de conexión
-    Dim opcion As String
-    opcion = InputBox( _
-        "Seleccione el ambiente de conexión:" & vbCrLf & vbCrLf & _
-        "1 = LOCAL  (192.168.40.29:5433)" & vbCrLf & _
-        "2 = DEV    (192.168.0.21:5432)" & vbCrLf & _
-        "3 = PROD   (192.168.0.21:5433)" & vbCrLf & vbCrLf & _
-        "Ambiente actual: " & IIf(mAmbiente = "", "NO DEFINIDO", mAmbiente), _
-        "Seleccionar Ambiente Plano", "1")
-    
-    Select Case Trim(opcion)
-        Case "1": mAmbiente = "LOCAL"
-        Case "2": mAmbiente = "DEV"
-        Case "3": mAmbiente = "PROD"
-        Case Else
-            MsgBox "Opción no válida. Se mantiene: " & IIf(mAmbiente = "", "LOCAL (default)", mAmbiente), vbExclamation
-            If mAmbiente = "" Then mAmbiente = "LOCAL"
-            Exit Sub
-    End Select
-    
-    MsgBox "Ambiente cambiado a: " & mAmbiente, vbInformation, "Ambiente Activo"
+    ModuloConexionNomina.CambiarAmbiente
 End Sub
-
-Private Function ObtenerCadenaConexion() As String
-    ' Retorna la cadena ODBC según el ambiente activo
-    Dim srv As String, prt As String
-    
-    If mAmbiente = "" Then mAmbiente = "LOCAL" ' Default
-    
-    Select Case mAmbiente
-        Case "LOCAL"
-            srv = "192.168.40.29"
-            prt = "5433"
-         Case "DEV"
-            srv = "192.168.0.21"
-            prt = "5432"
-         Case "PROD"
-            srv = "192.168.0.21"
-            prt = "5433"
-    End Select
-    
-    ' Contraseña cifrada en hex: "password_segura_refridcol"
-    ObtenerCadenaConexion = "Driver={PostgreSQL Unicode(x64)};" & _
-        "Server=" & srv & ";" & _
-        "Port=" & prt & ";" & _
-        "Database=project_manager;" & _
-        "Uid=user;" & _
-        "Pwd=" & HexToString("70617373776f72645f7365677572615f726566726964636f6c") & ";"
-End Function
 
 ' --- PROCESO PRINCIPAL ---
 
@@ -93,6 +30,9 @@ Sub ExtraccionPlanilla1Q2Q()
     Dim mes As String
     Dim anio As String
     Dim quincena As String
+    
+    Dim activeEnv As String
+    activeEnv = IIf(ModuloConexionNomina.mAmbiente = "", "LOCAL", ModuloConexionNomina.mAmbiente)
     
     nombreHoja = "BD_MAESTRA_PLANA"
     nombreTabla = "T_MAESTRA_PLANA"
@@ -138,10 +78,10 @@ Sub ExtraccionPlanilla1Q2Q()
     
     sql = sql & "ORDER BY nombre_asociado, concepto;"
     
-    ' 3. CONEXIÓN A POSTGRESQL
-    Application.StatusBar = "Conectando a PostgreSQL (" & IIf(mAmbiente = "", "LOCAL", mAmbiente) & ")..."
+    ' 3. CONEXIÓN A POSTGRESQL (USANDO MÓDULO CENTRAL)
+    Application.StatusBar = "Conectando a PostgreSQL (" & activeEnv & ")..."
     Set conn = CreateObject("ADODB.Connection")
-    conn.Open ObtenerCadenaConexion()
+    conn.Open ModuloConexionNomina.ObtenerCadenaConexion()
     
     ' 4. EJECUTAR SQL
     Application.StatusBar = "Consultando Tabla Maestra Plana..."
@@ -215,14 +155,14 @@ Finalizar:
     wsParams.Activate
     Application.StatusBar = False
     MsgBox "Tabla Maestra Plana extraída con éxito." & vbCrLf & _
-           "Ambiente: " & IIf(mAmbiente = "", "LOCAL", mAmbiente) & vbCrLf & _
+           "Ambiente: " & activeEnv & vbCrLf & _
            "Registros importados: " & totalRegs, vbInformation, "Éxito"
     Exit Sub
 
 ErrorHandler:
     Application.StatusBar = False
     MsgBox "Error en extracción: " & Err.Description & vbCrLf & _
-           "Ambiente: " & IIf(mAmbiente = "", "LOCAL", mAmbiente), _
+           "Ambiente: " & activeEnv, _
            vbCritical, "Error en Macro"
     If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
     If Not conn Is Nothing Then If conn.State = 1 Then conn.Close

@@ -9,60 +9,11 @@ Attribute VB_Name = "ModuloExtraccionComisiones"
 
 Option Explicit
 
-' --- AMBIENTE ACTIVO ---
-Private mAmbiente As String
-
-' --- UTILIDADES DE CIFRADO ---
-
-Private Function HexToString(ByVal hexVal As String) As String
-    Dim i As Long
-    Dim res As String
-    res = ""
-    For i = 1 To Len(hexVal) Step 2
-        res = res & Chr(Val("&H" & Mid(hexVal, i, 2)))
-    Next i
-    HexToString = res
-End Function
-
-' --- SWITCH AMBIENTE ---
+' --- SWITCH AMBIENTE (REDIRECCIONADO AL MÓDULO CENTRAL) ---
 
 Sub CambiarAmbienteComisiones()
-    Dim opcion As String
-    opcion = InputBox( _
-        "Seleccione el ambiente de conexión:" & vbCrLf & vbCrLf & _
-        "1 = LOCAL  (192.168.40.29:5433)" & vbCrLf & _
-        "2 = DEV    (192.168.0.21:5432)" & vbCrLf & _
-        "3 = PROD   (192.168.0.21:5433)" & vbCrLf & vbCrLf & _
-        "Ambiente actual: " & IIf(mAmbiente = "", "NO DEFINIDO", mAmbiente), _
-        "Seleccionar Ambiente Comisiones", "1")
-    
-    Select Case Trim(opcion)
-        Case "1": mAmbiente = "LOCAL"
-        Case "2": mAmbiente = "DEV"
-        Case "3": mAmbiente = "PROD"
-        Case Else
-            MsgBox "Opción no válida. Se mantiene: " & IIf(mAmbiente = "", "LOCAL", mAmbiente), vbExclamation
-            If mAmbiente = "" Then mAmbiente = "LOCAL"
-            Exit Sub
-    End Select
-    MsgBox "Ambiente cambiado a: " & mAmbiente, vbInformation, "Ambiente Activo"
+    ModuloConexionNomina.CambiarAmbiente
 End Sub
-
-Private Function ObtenerCadenaConexion() As String
-    Dim srv As String, prt As String
-    If mAmbiente = "" Then mAmbiente = "LOCAL"
-    Select Case mAmbiente
-        Case "LOCAL": srv = "192.168.40.29": prt = "5433"
-        Case "DEV":   srv = "192.168.0.21": prt = "5432"
-        Case "PROD":  srv = "192.168.0.21": prt = "5433"
-    End Select
-    ObtenerCadenaConexion = "Driver={PostgreSQL Unicode(x64)};" & _
-        "Server=" & srv & ";" & _
-        "Port=" & prt & ";" & _
-        "Database=project_manager;" & _
-        "Uid=user;" & _
-        "Pwd=" & HexToString("70617373776f72645f7365677572615f726566726964636f6c") & ";"
-End Function
 
 ' --- PROCESO PRINCIPAL ---
 
@@ -82,6 +33,9 @@ Sub ExtraccionComisiones()
     
     Dim mesAnt As Long
     Dim anioAnt As Long
+    
+    Dim activeEnv As String
+    activeEnv = IIf(ModuloConexionNomina.mAmbiente = "", "LOCAL", ModuloConexionNomina.mAmbiente)
     
     nombreHoja = "BD_COMISIONES"
     nombreTabla = "T_COMISIONES"
@@ -128,10 +82,10 @@ Sub ExtraccionComisiones()
           "AND estado_validacion IN ('OK', 'Activo', 'REDIRECCIONADO', 'EXCEPCION', 'EXCEPCION_PAGO_TERCERO', 'EXCEPCION_VALOR_FIJO', 'EXCEPCION_PORCENTAJE_EMPRESA', 'EXCEPCION_AUTORIZADA', 'EXCEPCION_SALDO_FAVOR')" & vbCrLf & _
           "ORDER BY nombre_asociado;"
           
-    ' 3. CONEXIÓN A POSTGRESQL
-    Application.StatusBar = "Conectando a PostgreSQL para Comisiones (" & IIf(mAmbiente = "", "LOCAL", mAmbiente) & ")..."
+    ' 3. CONEXIÓN A POSTGRESQL (USANDO MÓDULO CENTRAL)
+    Application.StatusBar = "Conectando a PostgreSQL para Comisiones (" & activeEnv & ")..."
     Set conn = CreateObject("ADODB.Connection")
-    conn.Open ObtenerCadenaConexion()
+    conn.Open ModuloConexionNomina.ObtenerCadenaConexion()
     
     ' 4. EJECUTAR SQL
     Application.StatusBar = "Consultando Comisiones (Corte: Mes " & mesAnt & ")..."

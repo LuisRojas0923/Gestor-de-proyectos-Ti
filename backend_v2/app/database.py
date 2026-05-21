@@ -13,7 +13,7 @@ ASYNC_DATABASE_URL = config.database_url.replace(
 ).split("?")[0]
 
 # URL de conexion SINCRONA (psycopg2) - para migraciones y scripts
-SYNC_DATABASE_URL = config.database_url
+SYNC_DATABASE_URL = config.database_url.replace("postgresql+asyncpg://", "postgresql://")
 
 # Engine ASINCRONO principal
 async_engine = create_async_engine(

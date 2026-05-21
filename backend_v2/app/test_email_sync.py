@@ -1,9 +1,26 @@
-
 import pytest
 import httpx
-import os
+from app.database import SessionLocal
+from sqlalchemy import text
 
 BASE_URL = "http://127.0.0.1:8000/api/v2"
+
+@pytest.fixture(autouse=True)
+def setup_user_email_flag():
+    db = SessionLocal()
+    original_val = True
+    try:
+        row = db.execute(text("SELECT correo_actualizado FROM usuarios WHERE cedula = '94041597'")).fetchone()
+        if row is not None:
+            original_val = row[0]
+            db.execute(text("UPDATE usuarios SET correo_actualizado = False WHERE cedula = '94041597'"))
+            db.commit()
+        yield
+        if row is not None:
+            db.execute(text("UPDATE usuarios SET correo_actualizado = :val WHERE cedula = '94041597'"), {"val": original_val})
+            db.commit()
+    finally:
+        db.close()
 
 @pytest.mark.asyncio
 async def test_login_email_needs_update_flag():
