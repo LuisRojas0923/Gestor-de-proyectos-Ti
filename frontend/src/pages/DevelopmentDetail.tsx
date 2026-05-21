@@ -74,6 +74,22 @@ const DevelopmentDetail: React.FC = () => {
 
   const [development, setDevelopment] = useState<DevelopmentWithCurrentStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
+
+  // Cargar usuarios para resolver nombres
+  useEffect(() => {
+    get('/jerarquia/usuarios-disponibles').then((users: unknown) => {
+      if (Array.isArray(users)) {
+        setUserMap(new Map((users as { id: string; nombre: string }[]).map((u) => [u.id, u.nombre])));
+      }
+    }).catch(() => undefined);
+  }, [get]);
+
+  const resolveUserName = (value?: string | null) => {
+    if (!value) return undefined;
+    if (value.startsWith('USR-')) return userMap.get(value) ?? value;
+    return value;
+  };
 
   // Cargar desarrollo
   useEffect(() => {
@@ -250,6 +266,15 @@ const DevelopmentDetail: React.FC = () => {
               <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
                 <span className="text-neutral-400">Proveedor:</span>
                 <span className="font-medium">{development.provider}</span>
+              </span>
+            )}
+
+            {/* Creador */}
+            {development.creado_por_id && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                <User size={11} className="text-neutral-400" />
+                <span className="text-neutral-400">Creado por:</span>
+                <span className="font-medium">{resolveUserName(development.creado_por_id) || development.creado_por_id}</span>
               </span>
             )}
           </div>

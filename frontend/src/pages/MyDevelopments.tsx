@@ -188,6 +188,11 @@ const MyDevelopments: React.FC = () => {
                 {description}
               </Text>
             )}
+            {dev.creado_por_id && (
+              <Text as="span" variant="caption" color="text-secondary" className="mt-0.5 block truncate !text-[10px] font-medium opacity-80">
+                Creado por: {resolveUserName(dev.creado_por_id) || dev.creado_por_id}
+              </Text>
+            )}
           </div>
         );
       },

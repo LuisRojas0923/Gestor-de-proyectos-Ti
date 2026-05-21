@@ -249,79 +249,18 @@ const EditDevelopmentModal: React.FC<EditDevelopmentModalProps> = ({
                 );
             case 2:
                 return (
-                    <div className="space-y-4 animate-in slide-in-from-right-2 duration-300">
-                        <div className="mb-6">
-                            <Text variant="body1" weight="bold" color="text-primary">Paso 2: Responsables e Impacto</Text>
-                            <Text variant="caption" color="text-secondary">¿Quiénes intervienen y a qué área afecta?</Text>
+                    <div className="space-y-3 animate-in slide-in-from-right-2 duration-300">
+                        <div className="mb-4">
+                            <Text variant="body1" weight="bold" color="text-primary">Paso 2: Responsables y Áreas</Text>
+                            <Text variant="caption" color="text-secondary">¿Quiénes intervienen y en qué áreas?</Text>
                         </div>
-                        <div className="grid grid-cols-1 gap-4">
-                            <Input
-                                label="* Área de impacto"
-                                placeholder="Ej. Gestión Humana"
-                                value={areaDesarrollo}
-                                onChange={(e) => setAreaDesarrollo(e.target.value)}
-                                required
-                            />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <HierarchyAutocomplete
-                                    label="Ejecutor"
-                                    placeholder="Buscar empleado..."
-                                    value={analista}
-                                    options={analistaOptions}
-                                    onChange={(text) => {
-                                        setAnalista(text);
-                                        if (!text) setAnalistaId('');
-                                    }}
-                                    onSelect={(user) => {
-                                        setAnalista(user.nombre);
-                                        setAnalistaId(user.id);
-                                        if (user.area) setAreaEjecutor(normalizeArea(user.area));
-                                    }}
-                                />
-                                <AreaAutocomplete
-                                    label="Área del Ejecutor"
-                                    placeholder="Ej. DESARROLLO"
-                                    value={areaEjecutor}
-                                    options={areaOptions}
-                                    onChange={setAreaEjecutor}
-                                />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <HierarchyAutocomplete
-                                    label="Líder"
-                                    placeholder="Buscar empleado..."
-                                    value={responsable}
-                                    options={responsableOptions}
-                                    onChange={(text) => {
-                                        setResponsable(text);
-                                        if (!text) setResponsableId('');
-                                        if (!text && autoridadId === currentUserId) {
-                                            setAnalista(''); setAnalistaId('');
-                                        }
-                                    }}
-                                    onSelect={(user) => {
-                                        setResponsable(user.nombre);
-                                        setResponsableId(user.id);
-                                        if (autoridadId === currentUserId) {
-                                            setAnalista(''); setAnalistaId('');
-                                        }
-                                    }}
-                                />
-                                <HierarchyAutocomplete
-                                    label="Supervisor"
-                                    placeholder="Buscar empleado..."
-                                    value={supervisor}
-                                    options={reachableUsers}
-                                    onChange={(text) => {
-                                        setSupervisor(text);
-                                        if (!text) setSupervisorId('');
-                                    }}
-                                    onSelect={(user) => {
-                                        setSupervisor(user.nombre);
-                                        setSupervisorId(user.id);
-                                    }}
-                                />
-                            </div>
+
+                        {/* ── Personas ── */}
+                        <div className="flex items-center gap-2">
+                            <Text variant="caption" color="text-secondary">Personas</Text>
+                            <div className="h-px flex-1 bg-[var(--color-border)] opacity-60" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
                             <HierarchyAutocomplete
                                 label="Autoridad"
                                 placeholder="Buscar empleado..."
@@ -336,6 +275,77 @@ const EditDevelopmentModal: React.FC<EditDevelopmentModalProps> = ({
                                     setAutoridadId(user.id);
                                 }}
                             />
+                            <HierarchyAutocomplete
+                                label="Líder"
+                                placeholder="Buscar empleado..."
+                                value={responsable}
+                                options={responsableOptions}
+                                onChange={(text) => {
+                                    setResponsable(text);
+                                    if (!text) setResponsableId('');
+                                    if (!text && autoridadId === currentUserId) {
+                                        setAnalista(''); setAnalistaId('');
+                                    }
+                                }}
+                                onSelect={(user) => {
+                                    setResponsable(user.nombre);
+                                    setResponsableId(user.id);
+                                    if (autoridadId === currentUserId) {
+                                        setAnalista(''); setAnalistaId('');
+                                    }
+                                }}
+                            />
+                            <HierarchyAutocomplete
+                                label="Supervisor"
+                                placeholder="Buscar empleado..."
+                                value={supervisor}
+                                options={reachableUsers}
+                                onChange={(text) => {
+                                    setSupervisor(text);
+                                    if (!text) setSupervisorId('');
+                                }}
+                                onSelect={(user) => {
+                                    setSupervisor(user.nombre);
+                                    setSupervisorId(user.id);
+                                }}
+                            />
+                            <HierarchyAutocomplete
+                                label="Ejecutor"
+                                placeholder="Buscar empleado..."
+                                value={analista}
+                                options={analistaOptions}
+                                onChange={(text) => {
+                                    setAnalista(text);
+                                    if (!text) setAnalistaId('');
+                                }}
+                                onSelect={(user) => {
+                                    setAnalista(user.nombre);
+                                    setAnalistaId(user.id);
+                                    if (user.area) setAreaEjecutor(normalizeArea(user.area));
+                                }}
+                            />
+                        </div>
+
+                        {/* ── Áreas ── */}
+                        <div className="flex items-center gap-2 pt-1">
+                            <Text variant="caption" color="text-secondary">Áreas</Text>
+                            <div className="h-px flex-1 bg-[var(--color-border)] opacity-60" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 items-end">
+                            <AreaAutocomplete
+                                label="Área del Ejecutor"
+                                placeholder="Ej. DESARROLLO"
+                                value={areaEjecutor}
+                                options={areaOptions}
+                                onChange={setAreaEjecutor}
+                            />
+                            <Input
+                                label="Área Impactada"
+                                placeholder="Ej. Gestión Humana"
+                                value={areaDesarrollo}
+                                onChange={(e) => setAreaDesarrollo(e.target.value)}
+                                required
+                            />
                         </div>
                     </div>
                 );
@@ -343,7 +353,7 @@ const EditDevelopmentModal: React.FC<EditDevelopmentModalProps> = ({
                 return (
                     <div className="space-y-4 animate-in slide-in-from-right-2 duration-300">
                         <div className="mb-6">
-                            <Text variant="body1" weight="bold" color="text-primary">Paso 3: Tiempos y Procesos</Text>
+                            <Text variant="body1" weight="bold" color="text-primary">Paso 3: Procesos y Tiempos</Text>
                             <Text variant="caption" color="text-secondary">Establece las fechas clave y el proceso relacionado.</Text>
                         </div>
                         <div className="grid grid-cols-1 gap-4">
