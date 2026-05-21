@@ -63,3 +63,8 @@ detalleactividades.txt
 implementation_plan.md
 seed actividades.md
 seedactividadesproyectos.txt
+
+# docker locales
+docker-compose.override.yml
+docker-compose.dev.yml  
+docker-compose.yml
