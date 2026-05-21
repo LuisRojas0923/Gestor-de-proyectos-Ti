@@ -25,6 +25,16 @@ interface WbsTabProps {
 
 type WbsRow = WbsActivityTree & { _rowIndex: number };
 
+const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '-';
+    try {
+        const [y, m, d] = dateStr.split('T')[0].split('-');
+        return `${d}/${m}/${y}`;
+    } catch {
+        return dateStr;
+    }
+};
+
 const getStatusVariant = (estado: string): 'default' | 'success' | 'warning' | 'error' => {
     const normalized = estado.toLowerCase();
     if (normalized.includes('pendiente')) return 'error';
@@ -90,6 +100,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         seguimiento: (node: WbsActivityTree) => node.seguimiento || '(Sin seguimiento)',
         lider: (node: WbsActivityTree) => getLider(node),
         validacion: (node: WbsActivityTree) => node.estado_validacion || 'sin_validar',
+        fecha_inicio_estimada: (node: WbsActivityTree) => formatDate(node.fecha_inicio_estimada || node.fecha_inicio_real),
+        fecha_fin_estimada: (node: WbsActivityTree) => formatDate(node.fecha_fin_estimada || node.fecha_fin_real),
     }), [tree, flattenTree, getLider]);
 
     const {
@@ -97,7 +109,9 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         filteredData,
         uniqueValues,
         setColumnFilter,
-    } = useColumnFilters(tree, columnAccessors);
+        sortState,
+        setSort,
+    } = useColumnFilters(tree, columnAccessors, `wbs_${developmentId}`);
 
     const flattenedFiltered = flattenTree(filteredData);
     const rowData: WbsRow[] = flattenedFiltered.map((n, i) => ({ ...n, _rowIndex: i + 1 }));
@@ -318,15 +332,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         }
     };
 
-    const formatDate = (dateStr?: string) => {
-        if (!dateStr) return '-';
-        try {
-            const [y, m, d] = dateStr.split('T')[0].split('-');
-            return `${d}/${m}/${y}`;
-        } catch {
-            return dateStr;
-        }
-    };
 
     const columns: DataTableColumn<WbsRow>[] = [
         {
@@ -362,7 +367,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             key: 'fecha_inicio_estimada',
             label: 'F.Inicio',
             minWidth: '58px',
-            filterable: false,
+            filterable: true,
             render: (row) => (
                 <Text variant="caption" className="truncate">
                     {formatDate(row.fecha_inicio_estimada || row.fecha_inicio_real)}
@@ -373,7 +378,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             key: 'fecha_fin_estimada',
             label: 'F.Fin',
             minWidth: '58px',
-            filterable: false,
+            filterable: true,
             render: (row) => (
                 <Text variant="caption" className="truncate">
                     {formatDate(row.fecha_fin_estimada || row.fecha_fin_real)}
@@ -459,9 +464,9 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
 
                 return (
                     <div className="flex items-center gap-1">
-                        <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border whitespace-nowrap ${statusBadgeClass}`}>
+                        <Text as="span" className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border whitespace-nowrap ${statusBadgeClass}`}>
                             {row.estado}
-                        </span>
+                        </Text>
                         {!isCompleted && !isInProgress && !isPaused && !isBlocked && (
                             <Button
                                 variant="ghost"
@@ -581,7 +586,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         {
             key: 'seguimiento',
             label: 'Seguimiento',
-            minWidth: '40px',
+            minWidth: '120px',
+            maxWidth: '120px',
             filterable: true,
             render: (row) => (
                 <Text variant="caption" className="truncate" title={row.seguimiento}>
@@ -592,7 +598,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         {
             key: 'compromiso',
             label: 'Compromiso',
-            minWidth: '65px',
+            minWidth: '90px',
+            maxWidth: '90px',
             render: (row) => (
                 <Text variant="caption" className="truncate" title={row.compromiso}>
                     {row.compromiso || '-'}
@@ -667,22 +674,22 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const statsCards = (
         <div className="flex flex-wrap gap-2">
             {/* Total */}
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
+            <Text as="span" className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
                 <ClipboardList size={11} />
-                <span className="text-[var(--color-text-primary)] font-bold">{allFlat.length}</span>
+                <Text as="span" className="text-[var(--color-text-primary)] font-bold">{allFlat.length}</Text>
                 tareas
-            </span>
+            </Text>
             {/* Avance dinámico */}
-            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getAvanceChipClass(avgProgress)}`}>
+            <Text as="span" className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getAvanceChipClass(avgProgress)}`}>
                 <Activity size={11} />
                 Avance: {avgProgress}%
-            </span>
+            </Text>
             {/* Un chip por estado */}
             {Object.entries(statusGroups).map(([status, count]) => (
-                <span key={status} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusChipClass(status)}`}>
+                <Text as="span" key={status} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusChipClass(status)}`}>
                     {status}
-                    <span className="font-bold">{count}</span>
-                </span>
+                    <Text as="span" className="font-bold">{count}</Text>
+                </Text>
             ))}
         </div>
     );
@@ -703,6 +710,9 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                         columnFilters={filters}
                         columnOptions={uniqueValues}
                         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
+                        activeSortKey={sortState?.key ?? null}
+                        activeSortDir={sortState?.dir ?? null}
+                        onSort={setSort}
                         onRowClick={(row) => { setSelectedActivity(row); setDetailModalOpen(true); }}
                         isLoading={false}
                         emptyMessage="Sin tareas aún. Usa «Agregar tarea» para comenzar."

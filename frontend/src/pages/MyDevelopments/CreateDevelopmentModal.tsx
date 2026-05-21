@@ -226,12 +226,13 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                                 onChange={(e) => setTipo(e.target.value)}
                                 options={tipoOptions}
                             />
-                            <Input
+                            <Textarea
                                 label="Nombre del Proyecto"
                                 placeholder="Ej. Integración pasarela de pagos"
                                 value={nombre}
                                 onChange={(e) => setNombre(e.target.value)}
                                 required
+                                rows={2}
                             />
                             <Textarea
                                 label="Descripción"

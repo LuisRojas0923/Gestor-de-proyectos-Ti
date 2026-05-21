@@ -5,8 +5,10 @@ import { FilterDropdown } from './FilterDropdown';
 export interface DataTableColumn<T> {
     key: string;
     label: string;
-    /** Ancho mínimo de la columna, e.g. '100px'. El browser expande según el contenido. */
+    /** Ancho mínimo de la columna, e.g. '100px'. */
     minWidth?: string;
+    /** Ancho máximo de la columna. Si se iguala a minWidth la columna queda fija. */
+    maxWidth?: string;
     /** La columna absorbe el espacio sobrante (equivalente a flex-1 / 1fr). */
     flex?: boolean;
     centered?: boolean;
@@ -37,6 +39,10 @@ export interface DataTableProps<T> {
     columnOptions?: Record<string, string[]>;
     onFilterChange?: (columnKey: string, filter: Set<string>) => void;
 
+    activeSortKey?: string | null;
+    activeSortDir?: 'asc' | 'desc' | null;
+    onSort?: (key: string, dir: 'asc' | 'desc') => void;
+
     isLoading?: boolean;
     loadingMessage?: string;
 
@@ -64,6 +70,9 @@ export function DataTable<T>({
     columnFilters = {},
     columnOptions = {},
     onFilterChange,
+    activeSortKey,
+    activeSortDir,
+    onSort,
     isLoading,
     loadingMessage = 'Cargando...',
     emptyMessage = 'No hay datos',
@@ -84,7 +93,7 @@ export function DataTable<T>({
         ...columns.map(col =>
             col.flex
                 ? `minmax(${col.minWidth ?? 'min-content'}, 1fr)`
-                : `minmax(${col.minWidth ?? 'min-content'}, auto)`
+                : `minmax(${col.minWidth ?? 'min-content'}, ${col.maxWidth ?? 'auto'})`
         ),
         ...(renderRowActions ? [`minmax(${actionsMinWidth}, auto)`] : []),
     ].join(' ');
@@ -180,6 +189,8 @@ export function DataTable<T>({
                     onToggleOption={handleToggleOption}
                     onApply={handleApplyFilter}
                     triggerHeight={40}
+                    sortDir={activeFilter === activeSortKey ? activeSortDir : null}
+                    onSort={onSort ? (dir) => { onSort(activeFilter!, dir); } : undefined}
                 />
             )}
 

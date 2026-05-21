@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search } from 'lucide-react';
+import { Search, X, ArrowUpAZ, ArrowDownAZ } from 'lucide-react';
 import { Text, Button, Input } from '../atoms';
 
 interface FilterDropdownProps {
@@ -9,7 +9,7 @@ interface FilterDropdownProps {
     anchorRect: { top: number; left: number; width: number } | null;
     title?: string;
     type?: 'categorical' | 'numeric' | 'date';
-    
+
     // Props para Categorical
     searchTerm?: string;
     onSearchChange?: (value: string) => void;
@@ -18,20 +18,20 @@ interface FilterDropdownProps {
     options?: { value: string; label: string }[];
     tempValue?: string[];
     onToggleOption?: (value: string) => void;
-    
+
     // Props para Range (Numeric/Date)
     rangeValue?: { min: string | number; max: string | number };
     onRangeChange?: (range: { min: string | number; max: string | number }) => void;
-    
+
+    // Ordenación
+    sortDir?: 'asc' | 'desc' | null;
+    onSort?: (dir: 'asc' | 'desc') => void;
+
     onApply: () => void;
     placeholder?: string;
     triggerHeight?: number;
 }
 
-/**
- * FilterDropdown: Molécula que implementa el portal de selección múltiple 
- * y rangos basado en el estándar de diseño del catálogo.
- */
 export const FilterDropdown: React.FC<FilterDropdownProps> = ({
     isOpen,
     onClose,
@@ -47,6 +47,8 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
     onToggleOption,
     rangeValue = { min: '', max: '' },
     onRangeChange,
+    sortDir,
+    onSort,
     onApply,
     placeholder = 'Buscar...',
     triggerHeight = 40
@@ -75,11 +77,11 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
         if (isOpen && anchorRect) {
             const windowHeight = window.innerHeight;
             const spaceBelow = windowHeight - anchorRect.top - 20;
-            
+
             if (spaceBelow < 300 && anchorRect.top > 300) {
-                setPosition({ 
-                    top: anchorRect.top - (triggerHeight + 8) - Math.min(400, anchorRect.top - 40), 
-                    left: anchorRect.left 
+                setPosition({
+                    top: anchorRect.top - (triggerHeight + 8) - Math.min(400, anchorRect.top - 40),
+                    left: anchorRect.left
                 });
                 setMaxHeight(`${anchorRect.top - 60}px`);
             } else {
@@ -90,7 +92,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
     }, [isOpen, anchorRect, triggerHeight]);
 
     if (!isOpen || !anchorRect || !position) return null;
-    
+
     const dynamicStyle: React.CSSProperties = {
         top: position.top,
         left: position.left,
@@ -99,7 +101,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
     };
 
     return createPortal(
-        <div 
+        <div
             ref={dropdownRef}
             className="multiselect-dropdown-portal fixed z-[9999] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
             style={dynamicStyle}
@@ -109,12 +111,56 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 <Text variant="caption" weight="bold" className="text-[10px] uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
                     Filtrar: {title || 'Columna'}
                 </Text>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onClose}
+                    title="Cerrar"
+                    className="!w-5 !h-5 !p-0 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200 dark:hover:text-neutral-200 dark:hover:bg-slate-700"
+                >
+                    <X size={12} />
+                </Button>
             </div>
 
             {/* Contenido según tipo */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {type === 'categorical' ? (
                     <>
+                        {/* Ordenación */}
+                        {onSort && (
+                            <div className="flex items-center gap-1.5 px-3 py-2 border-b border-neutral-100 dark:border-slate-800">
+                                <Text variant="caption" className="text-[9px] uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mr-auto">
+                                    Ordenar
+                                </Text>
+                                <Button
+                                    variant="custom"
+                                    size="sm"
+                                    onClick={() => onSort('asc')}
+                                    title="Ascendente (A → Z)"
+                                    className={`!w-6 !h-6 !p-0 rounded-lg border transition-all ${
+                                        sortDir === 'asc'
+                                            ? 'bg-primary-500 border-primary-500 text-white shadow-sm'
+                                            : 'bg-neutral-100 dark:bg-slate-800 border-neutral-200 dark:border-slate-700 text-neutral-500 dark:text-neutral-400 hover:border-primary-400 hover:text-primary-500'
+                                    }`}
+                                >
+                                    <ArrowUpAZ size={13} />
+                                </Button>
+                                <Button
+                                    variant="custom"
+                                    size="sm"
+                                    onClick={() => onSort('desc')}
+                                    title="Descendente (Z → A)"
+                                    className={`!w-6 !h-6 !p-0 rounded-lg border transition-all ${
+                                        sortDir === 'desc'
+                                            ? 'bg-primary-500 border-primary-500 text-white shadow-sm'
+                                            : 'bg-neutral-100 dark:bg-slate-800 border-neutral-200 dark:border-slate-700 text-neutral-500 dark:text-neutral-400 hover:border-primary-400 hover:text-primary-500'
+                                    }`}
+                                >
+                                    <ArrowDownAZ size={13} />
+                                </Button>
+                            </div>
+                        )}
+
                         <div className="p-2 border-b border-neutral-100 dark:border-slate-800">
                             <Input
                                 placeholder={placeholder}
@@ -128,7 +174,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
                             />
                         </div>
 
-                        <div 
+                        <div
                             onClick={onSelectAll}
                             className="flex items-center gap-2 px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800/50 cursor-pointer border-b border-neutral-100 dark:border-slate-800 transition-colors"
                         >
