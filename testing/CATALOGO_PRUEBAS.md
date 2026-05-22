@@ -34,6 +34,7 @@ Ubicación: `testing/backend/`
 | **Jerarquía Organizacional** | `test_jerarquia_admin.py` | Reasignación de superiores, desactivación de relaciones, prevención de ciclos e historial. | ✅ PASSED |
 | **Asignación Jerárquica** | `test_asignacion_desarrollos_actividades.py` | Persistencia de responsable, ejecutor, delegador y estado de validación. | ✅ PASSED |
 | **Validaciones Asignación** | `test_validaciones_asignacion.py` | Creación automática de validaciones indirectas y resolución aprobada/rechazada. | ✅ PASSED |
+| **Eliminación Actividades** | `test_actividad_delete.py` | Eliminación en cascada de actividades y limpieza de validaciones asociadas. | ✅ PASSED |
 
 ### 2. Rendimiento (Locust)
 Ubicación: `testing/backend/load_test.py`

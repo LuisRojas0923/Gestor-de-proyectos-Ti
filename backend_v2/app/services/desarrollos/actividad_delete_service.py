@@ -61,8 +61,18 @@ async def eliminar_actividad_cascade(
     Retorna:
         Cantidad total de registros eliminados (incluyendo la raíz).
     """
+    from sqlalchemy import delete
+    from app.models.desarrollo.desarrollo import ValidacionAsignacion
+
     ids_a_eliminar = await _obtener_todos_los_ids(db, actividad_id)
     count = len(ids_a_eliminar)
+
+    # Eliminar primero las validaciones de asignación asociadas a estas actividades
+    await db.execute(
+        delete(ValidacionAsignacion).where(
+            ValidacionAsignacion.actividad_id.in_(ids_a_eliminar)
+        )
+    )
 
     for rid in ids_a_eliminar:
         stmt = select(Actividad).where(Actividad.id == rid)
