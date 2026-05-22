@@ -171,48 +171,48 @@ const DevelopmentDetail: React.FC = () => {
               <div className="flex flex-col gap-1">
                 {/* Tipo */}
                 {development.type && (
-                  <Text as="span" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                  <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <Briefcase size={10} className="text-neutral-400 shrink-0" />
-                    <Text as="span" className="text-neutral-400">Tipo:</Text>
-                    <Text as="span" className="font-medium">{development.type}</Text>
+                    <Text variant="caption" color="text-secondary">Tipo:</Text>
+                    <Text variant="caption" weight="medium">{ development.type}</Text>
                   </Text>
                 )}
                 {/* Área */}
                 {development.area_desarrollo && (
-                  <Text as="span" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit max-w-full" title={development.area_desarrollo}>
+                  <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit max-w-full" title={development.area_desarrollo}>
                     <MapPin size={10} className="text-neutral-400 shrink-0" />
-                    <Text as="span" className="text-neutral-400 shrink-0">Área:</Text>
-                    <Text as="span" className="font-medium truncate">{development.area_desarrollo}</Text>
+                    <Text variant="caption" color="text-secondary" className="shrink-0">Área:</Text>
+                    <Text variant="caption" weight="medium" className="truncate">{development.area_desarrollo}</Text>
                   </Text>
                 )}
                 {/* Proceso */}
                 {development.module && (
-                  <Text as="span" className="inline-flex items-start gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit max-w-full" title={development.module}>
+                  <Text as="span" className="inline-flex items-start gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit max-w-full" title={development.module}>
                     <Layers size={10} className="text-neutral-400 shrink-0 mt-0.5" />
-                    <Text as="span" className="text-neutral-400 shrink-0">Proceso:</Text>
-                    <Text as="span" className="font-medium line-clamp-2">{development.module}</Text>
+                    <Text variant="caption" color="text-secondary" className="shrink-0">Proceso:</Text>
+                    <Text variant="caption" weight="medium" className="line-clamp-2">{development.module}</Text>
                   </Text>
                 )}
                 {/* Ambiente */}
                 {development.environment && (
-                  <Text as="span" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
-                    <Text as="span" className="text-neutral-400">Ambiente:</Text>
-                    <Text as="span" className="font-medium">{development.environment}</Text>
+                  <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
+                    <Text variant="caption" color="text-secondary">Ambiente:</Text>
+                    <Text variant="caption" weight="medium">{development.environment}</Text>
                   </Text>
                 )}
                 {/* Proveedor */}
                 {development.provider && (
-                  <Text as="span" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
-                    <Text as="span" className="text-neutral-400">Proveedor:</Text>
-                    <Text as="span" className="font-medium">{development.provider}</Text>
+                  <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
+                    <Text variant="caption" color="text-secondary">Proveedor:</Text>
+                    <Text variant="caption" weight="medium">{development.provider}</Text>
                   </Text>
                 )}
                 {/* Creado por */}
                 {development.creado_por_id && (
-                  <Text as="span" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                  <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <User size={10} className="text-neutral-400 shrink-0" />
-                    <Text as="span" className="text-neutral-400">Creado por:</Text>
-                    <Text as="span" className="font-medium">{resolveUserName(development.creado_por_id) || development.creado_por_id}</Text>
+                    <Text variant="caption" color="text-secondary">Creado por:</Text>
+                    <Text variant="caption" weight="medium">{resolveUserName(development.creado_por_id) || development.creado_por_id}</Text>
                   </Text>
                 )}
               </div>
@@ -226,18 +226,18 @@ const DevelopmentDetail: React.FC = () => {
               <div className="flex flex-col gap-1">
                 {/* Inicio */}
                 {development.start_date && (
-                  <Text as="span" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                  <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <Calendar size={10} className="text-neutral-400 shrink-0" />
-                    <Text as="span" className="text-neutral-400">Inicio:</Text>
-                    <Text as="span" className="font-medium">{formatDate(development.start_date)}</Text>
+                    <Text variant="caption" color="text-secondary">Inicio:</Text>
+                    <Text variant="caption" weight="medium">{formatDate(development.start_date)}</Text>
                   </Text>
                 )}
                 {/* Fin est. */}
                 {development.estimated_end_date && (
-                  <Text as="span" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                  <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <CalendarCheck size={10} className="text-neutral-400 shrink-0" />
-                    <Text as="span" className="text-neutral-400">Fin est.:</Text>
-                    <Text as="span" className="font-medium">{formatDate(development.estimated_end_date)}</Text>
+                    <Text variant="caption" color="text-secondary">Fin est.:</Text>
+                    <Text variant="caption" weight="medium">{formatDate(development.estimated_end_date)}</Text>
                   </Text>
                 )}
               </div>
@@ -251,34 +251,34 @@ const DevelopmentDetail: React.FC = () => {
               <div className="flex flex-col gap-1">
                 {/* Autoridad */}
                 {development.authority && (
-                  <Text as="span" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                  <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <Shield size={10} className="text-neutral-400 shrink-0" />
-                    <Text as="span" className="text-neutral-400">Autoridad:</Text>
-                    <Text as="span" className="font-medium">{development.authority}</Text>
+                    <Text variant="caption" color="text-secondary">Autoridad:</Text>
+                    <Text variant="caption" weight="medium">{development.authority}</Text>
                   </Text>
                 )}
                 {/* Líder */}
                 {development.responsible && (
-                  <Text as="span" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                  <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <User size={10} className="text-neutral-400 shrink-0" />
-                    <Text as="span" className="text-neutral-400">Líder:</Text>
-                    <Text as="span" className="font-medium">{development.responsible}</Text>
+                    <Text variant="caption" color="text-secondary">Líder:</Text>
+                    <Text variant="caption" weight="medium">{development.responsible}</Text>
                   </Text>
                 )}
                 {/* Supervisor */}
                 {development.supervisor && (
-                  <Text as="span" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                  <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <User size={10} className="text-neutral-400 shrink-0" />
-                    <Text as="span" className="text-neutral-400">Supervisor:</Text>
-                    <Text as="span" className="font-medium">{development.supervisor}</Text>
+                    <Text variant="caption" color="text-secondary">Supervisor:</Text>
+                    <Text variant="caption" weight="medium">{development.supervisor}</Text>
                   </Text>
                 )}
                 {/* Ejecutor */}
                 {development.analista && (
-                  <Text as="span" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                  <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <User size={10} className="text-neutral-400 shrink-0" />
-                    <Text as="span" className="text-neutral-400">Ejecutor:</Text>
-                    <Text as="span" className="font-medium">{development.analista}</Text>
+                    <Text variant="caption" color="text-secondary">Ejecutor:</Text>
+                    <Text variant="caption" weight="medium">{development.analista}</Text>
                   </Text>
                 )}
               </div>
