@@ -88,7 +88,7 @@ const MyDevelopments: React.FC = () => {
   const isPortal = location.pathname.startsWith('/service-portal');
   const { developments, loadDevelopments } = useDevelopments();
   const { addNotification } = useNotifications();
-  const { delete: apiDelete, get: apiGet, put: apiPut } = useApi();
+  const { delete: apiDelete, get: apiGet } = useApi();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [peopleSearch, setPeopleSearch] = useState('');
   const [editTarget, setEditTarget] = useState<DevelopmentRow | null>(null);
@@ -146,7 +146,6 @@ const MyDevelopments: React.FC = () => {
     filteredData,
     uniqueValues,
     filters,
-    clearColumnFilter,
     clearAllFilters,
     setColumnFilter,
     activeFilterCount,
@@ -264,6 +263,17 @@ const MyDevelopments: React.FC = () => {
       ),
     },
     {
+      key: 'area_ejecutor',
+      label: 'Área Ejec.',
+      minWidth: '90px',
+      filterable: true,
+      render: (dev) => (
+        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={dev.area_ejecutor ?? '—'}>
+          {dev.area_ejecutor ?? '—'}
+        </Text>
+      ),
+    },
+    {
       key: 'authority',
       label: 'Autoridad',
       minWidth: '90px',
@@ -312,17 +322,6 @@ const MyDevelopments: React.FC = () => {
         </div>
       ),
     },
-    {
-      key: 'area_ejecutor',
-      label: 'Área Ejec.',
-      minWidth: '90px',
-      filterable: true,
-      render: (dev) => (
-        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={dev.area_ejecutor ?? '—'}>
-          {dev.area_ejecutor ?? '—'}
-        </Text>
-      ),
-    },
   ];
 
   const displayData = useMemo(() => {
@@ -345,12 +344,12 @@ const MyDevelopments: React.FC = () => {
     }, {}),
   [displayData]);
 
-  const toggleOption = (key: string, option: string) => {
-    const selected = filters[key] || new Set<string>();
-    const next = new Set(selected);
-    if (next.has(option)) next.delete(option); else next.add(option);
-    setColumnFilter(key, next);
-  };
+  // const toggleOption = (key: string, option: string) => {
+  //   const selected = filters[key] || new Set<string>();
+  //   const next = new Set(selected);
+  //   if (next.has(option)) next.delete(option); else next.add(option);
+  //   setColumnFilter(key, next);
+  // };
 
   return (
     <div className="space-y-4">
@@ -369,17 +368,17 @@ const MyDevelopments: React.FC = () => {
           <Title variant="h1" className="m-0">Gestión de Actividades</Title>
           <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
           {/* Stats chips */}
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+          <Text as="span" className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
             <ClipboardList size={11} className="text-neutral-400" />
-            <span className="font-bold text-[var(--color-text-primary)]">{displayData.length}</span>
+            <Text as="span" className="font-bold text-[var(--color-text-primary)]">{displayData.length}</Text>
             total
-          </span>
+          </Text>
           {Object.entries(statusGroups).map(([status, count]) => (
-            <span key={status} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusChipClass(status)}`}>
+            <Text as="span" key={status} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusChipClass(status)}`}>
               <Activity size={11} />
               {status}
-              <span className="font-bold">{count}</span>
-            </span>
+              <Text as="span" className="font-bold">{count}</Text>
+            </Text>
           ))}
           {activeFilterCount > 0 && (
             <Button variant="custom" size="xs" onClick={clearAllFilters}

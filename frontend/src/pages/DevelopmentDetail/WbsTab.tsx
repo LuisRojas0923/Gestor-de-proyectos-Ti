@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useImperativeHandle, useMemo, forward
 import { useApi } from '../../hooks/useApi';
 import { Text, Button, Badge, ProgressBar } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
-import { Trash2, Download, ClipboardList, Pencil, Play, CirclePause, CheckCircle2, XCircle, Activity, Copy } from 'lucide-react';
+import { Trash2, Download, ClipboardList, Pencil, Play, CirclePause, CheckCircle2, XCircle, Activity, Copy, Plus } from 'lucide-react';
 
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
@@ -35,14 +35,7 @@ const formatDate = (dateStr?: string) => {
     }
 };
 
-const getStatusVariant = (estado: string): 'default' | 'success' | 'warning' | 'error' => {
-    const normalized = estado.toLowerCase();
-    if (normalized.includes('pendiente')) return 'error';
-    if (normalized.includes('progreso') || normalized.includes('curso')) return 'warning';
-    if (normalized.includes('complet')) return 'success';
-    if (normalized.includes('pausa') || normalized.includes('bloqueado')) return 'warning';
-    return 'default';
-};
+
 
 const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, ref) => {
     const { get, post, patch, put, delete: del } = useApi();
@@ -128,8 +121,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
 
     const allFlat = flattenTree(tree);
     const completed = allFlat.filter(n => n.estado.toLowerCase().includes('complet')).length;
-    const inProgress = allFlat.filter(n => n.estado.toLowerCase().includes('progreso') || n.estado.toLowerCase().includes('curso')).length;
-    const pending = allFlat.filter(n => n.estado.toLowerCase().includes('pendiente')).length;
     const avgProgress = allFlat.length ? Math.round((completed / allFlat.length) * 100) : 0;
 
     const statusGroups = allFlat.reduce<Record<string, number>>((acc, n) => {
@@ -393,10 +384,10 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             render: (row) => (
                 <div className="flex flex-col min-w-0">
                     <Text variant="caption" color="text-secondary" className="truncate text-[10px] leading-tight">
-                        Responsable: {getUserName(row.responsable_id)}
+                        Supervisor: {getUserName(row.responsable_id)}
                     </Text>
                     <Text variant="caption" color="text-secondary" className="truncate text-[10px] leading-tight">
-                        Autoridad: {getUserName(row.asignado_a_id)}
+                        Ejecutor: {getUserName(row.asignado_a_id)}
                     </Text>
                 </div>
             ),
@@ -452,21 +443,31 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                 const isBlocked = n.includes('bloqueado');
                 const isMenuOpen = stateMenuId === row.id;
 
-                const statusBadgeClass = isCompleted
-                    ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50'
+                const badgeVariant = isCompleted
+                    ? 'success'
                     : isInProgress
-                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50'
-                    : isPaused
-                    ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50'
+                    ? 'warning'
                     : isBlocked
-                    ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50'
-                    : 'bg-neutral-50 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+                    ? 'error'
+                    : 'default';
+
+                const badgeClassName = `whitespace-nowrap ${
+                    isPaused
+                        ? '!bg-amber-100 !text-amber-800 dark:!bg-amber-900/20 dark:!text-amber-400'
+                        : (!isCompleted && !isInProgress && !isBlocked)
+                        ? 'dark:!bg-neutral-800 dark:!text-neutral-400'
+                        : ''
+                }`;
 
                 return (
-                    <div className="flex items-center gap-1">
-                        <Text as="span" className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border whitespace-nowrap ${statusBadgeClass}`}>
+                    <div className="flex items-center gap-1 w-full relative pr-5">
+                        <Badge
+                            variant={badgeVariant}
+                            size="sm"
+                            className={badgeClassName}
+                        >
                             {row.estado}
-                        </Text>
+                        </Badge>
                         {!isCompleted && !isInProgress && !isPaused && !isBlocked && (
                             <Button
                                 variant="ghost"
@@ -579,6 +580,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                                 </div>
                             )}
                         </div>
+                        <div className="absolute right-[-16px] top-1/2 -translate-y-1/2 h-5 w-[1px] bg-neutral-200 dark:bg-neutral-700/60" />
                     </div>
                 );
             },
@@ -672,25 +674,37 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     ];
 
     const statsCards = (
-        <div className="flex flex-wrap gap-2">
-            {/* Total */}
-            <Text as="span" className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
-                <ClipboardList size={11} />
-                <Text as="span" className="text-[var(--color-text-primary)] font-bold">{allFlat.length}</Text>
-                tareas
-            </Text>
-            {/* Avance dinámico */}
-            <Text as="span" className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getAvanceChipClass(avgProgress)}`}>
-                <Activity size={11} />
-                Avance: {avgProgress}%
-            </Text>
-            {/* Un chip por estado */}
-            {Object.entries(statusGroups).map(([status, count]) => (
-                <Text as="span" key={status} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusChipClass(status)}`}>
-                    {status}
-                    <Text as="span" className="font-bold">{count}</Text>
+        <div className="flex justify-between items-center w-full flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
+                {/* Total */}
+                <Text as="span" className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
+                    <ClipboardList size={11} />
+                    <Text as="span" className="text-[var(--color-text-primary)] font-bold">{allFlat.length}</Text>
+                    tareas
                 </Text>
-            ))}
+                {/* Avance dinámico */}
+                <Text as="span" className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getAvanceChipClass(avgProgress)}`}>
+                    <Activity size={11} />
+                    Avance: {avgProgress}%
+                </Text>
+                {/* Un chip por estado */}
+                {Object.entries(statusGroups).map(([status, count]) => (
+                    <Text as="span" key={status} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusChipClass(status)}`}>
+                        {status}
+                        <Text as="span" className="font-bold">{count}</Text>
+                    </Text>
+                ))}
+            </div>
+            <Button
+                variant="primary"
+                icon={Plus}
+                onClick={() => {
+                    setModalEditNode(null);
+                    setIsModalOpen(true);
+                }}
+            >
+                Tarea
+            </Button>
         </div>
     );
 

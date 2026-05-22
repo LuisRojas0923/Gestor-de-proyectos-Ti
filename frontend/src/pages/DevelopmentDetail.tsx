@@ -5,7 +5,7 @@ import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
 import { DevelopmentWithCurrentStatus } from '../types';
 import { Button, Title, Text } from '../components/atoms';
-import { Plus, ExternalLink, User, Shield, Briefcase, MapPin, Calendar, CalendarCheck, Layers, Activity } from 'lucide-react';
+import { ExternalLink, User, Shield, Briefcase, MapPin, Calendar, CalendarCheck, Layers, Activity } from 'lucide-react';
 import WbsTab, { WbsTabRef } from './DevelopmentDetail/WbsTab';
 
 const getStatusColor = (status: string) => {
@@ -127,13 +127,19 @@ const DevelopmentDetail: React.FC = () => {
                   {development.id}
                 </Text>
               )}
+              {development && (
+                <Text as="span" className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusColor(getDerivedStatus(development))}`}>
+                  <Activity size={11} />
+                  {getDerivedStatus(development)}
+                </Text>
+              )}
             </div>
             <div className="flex flex-col min-w-0">
               <Title variant="h1" weight="bold" className="m-0 leading-tight">
                 {development?.name || (loading ? 'Cargando...' : 'Proyecto')}
               </Title>
               {development?.description && (
-                <Text variant="caption" color="text-secondary" className="line-clamp-2 max-w-2xl mt-0.5" title={development.description}>
+                <Text variant="caption" color="text-secondary" className="mt-0.5" title={development.description}>
                   {development.description}
                 </Text>
               )}
@@ -151,132 +157,132 @@ const DevelopmentDetail: React.FC = () => {
                 Portal
               </Button>
             )}
-            <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
-            <Button
-              variant="primary"
-              icon={Plus}
-              onClick={() => wbsRef.current?.handleAddRootTask()}
-              className="h-10 text-xs shadow-lg shadow-primary-500/20"
-            >
-              Tarea
-            </Button>
           </div>
         </div>
 
-        {/* Metadata chips */}
+        {/* Metadata cards grid */}
         {development && (
-          <div className="border-t border-neutral-100 dark:border-neutral-800 pt-3 flex flex-wrap gap-2">
-            {/* Estado */}
-            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusColor(getDerivedStatus(development))}`}>
-              <Activity size={11} />
-              {getDerivedStatus(development)}
-            </span>
+          <div className="border-t border-neutral-100 dark:border-neutral-800 pt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Tarjeta 1: Información General */}
+            <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5">
+              <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider text-[10px]">
+                Información General
+              </Text>
+              <div className="flex flex-col gap-2">
+                {/* Tipo */}
+                {development.type && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <Briefcase size={11} className="text-neutral-400" />
+                    <Text as="span" className="text-neutral-400">Tipo:</Text>
+                    <Text as="span" className="font-medium">{development.type}</Text>
+                  </Text>
+                )}
+                {/* Área */}
+                {development.area_desarrollo && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <MapPin size={11} className="text-neutral-400" />
+                    <Text as="span" className="text-neutral-400">Área:</Text>
+                    <Text as="span" className="font-medium">{development.area_desarrollo}</Text>
+                  </Text>
+                )}
+                {/* Proceso */}
+                {development.module && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <Layers size={11} className="text-neutral-400" />
+                    <Text as="span" className="text-neutral-400">Proceso:</Text>
+                    <Text as="span" className="font-medium">{development.module}</Text>
+                  </Text>
+                )}
+                {/* Ambiente */}
+                {development.environment && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <Text as="span" className="text-neutral-400">Ambiente:</Text>
+                    <Text as="span" className="font-medium">{development.environment}</Text>
+                  </Text>
+                )}
+                {/* Proveedor */}
+                {development.provider && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <Text as="span" className="text-neutral-400">Proveedor:</Text>
+                    <Text as="span" className="font-medium">{development.provider}</Text>
+                  </Text>
+                )}
+                {/* Creado por */}
+                {development.creado_por_id && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <User size={11} className="text-neutral-400" />
+                    <Text as="span" className="text-neutral-400">Creado por:</Text>
+                    <Text as="span" className="font-medium">{resolveUserName(development.creado_por_id) || development.creado_por_id}</Text>
+                  </Text>
+                )}
+              </div>
+            </div>
 
-            {/* Tipo */}
-            {development.type && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <Briefcase size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Tipo:</span>
-                <span className="font-medium">{development.type}</span>
-              </span>
-            )}
+            {/* Tarjeta 2: Fechas del Proyecto */}
+            <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5">
+              <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider text-[10px]">
+                Fechas del Proyecto
+              </Text>
+              <div className="flex flex-col gap-2">
+                {/* Inicio */}
+                {development.start_date && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <Calendar size={11} className="text-neutral-400" />
+                    <Text as="span" className="text-neutral-400">Inicio:</Text>
+                    <Text as="span" className="font-medium">{formatDate(development.start_date)}</Text>
+                  </Text>
+                )}
+                {/* Fin est. */}
+                {development.estimated_end_date && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <CalendarCheck size={11} className="text-neutral-400" />
+                    <Text as="span" className="text-neutral-400">Fin est.:</Text>
+                    <Text as="span" className="font-medium">{formatDate(development.estimated_end_date)}</Text>
+                  </Text>
+                )}
+              </div>
+            </div>
 
-            {/* Área */}
-            {development.area_desarrollo && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <MapPin size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Área:</span>
-                <span className="font-medium">{development.area_desarrollo}</span>
-              </span>
-            )}
-
-            {/* Proceso/módulo */}
-            {development.module && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <Layers size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Proceso:</span>
-                <span className="font-medium">{development.module}</span>
-              </span>
-            )}
-
-            {/* Autoridad */}
-            {development.authority && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <Shield size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Autoridad:</span>
-                <span className="font-medium">{development.authority}</span>
-              </span>
-            )}
-
-            {/* Líder (was Responsable) */}
-            {development.responsible && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <User size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Líder:</span>
-                <span className="font-medium">{development.responsible}</span>
-              </span>
-            )}
-
-            {/* Supervisor */}
-            {development.supervisor && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <User size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Supervisor:</span>
-                <span className="font-medium">{development.supervisor}</span>
-              </span>
-            )}
-
-            {/* Ejecutor (was Analista / Líder) */}
-            {development.analista && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <User size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Ejecutor:</span>
-                <span className="font-medium">{development.analista}</span>
-              </span>
-            )}
-
-            {/* Fecha inicio */}
-            {development.start_date && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <Calendar size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Inicio:</span>
-                <span className="font-medium">{formatDate(development.start_date)}</span>
-              </span>
-            )}
-
-            {/* Fecha estimada fin */}
-            {development.estimated_end_date && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <CalendarCheck size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Fin est.:</span>
-                <span className="font-medium">{formatDate(development.estimated_end_date)}</span>
-              </span>
-            )}
-
-            {/* Ambiente */}
-            {development.environment && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <span className="text-neutral-400">Ambiente:</span>
-                <span className="font-medium">{development.environment}</span>
-              </span>
-            )}
-
-            {/* Proveedor */}
-            {development.provider && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <span className="text-neutral-400">Proveedor:</span>
-                <span className="font-medium">{development.provider}</span>
-              </span>
-            )}
-
-            {/* Creador */}
-            {development.creado_por_id && (
-              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
-                <User size={11} className="text-neutral-400" />
-                <span className="text-neutral-400">Creado por:</span>
-                <span className="font-medium">{resolveUserName(development.creado_por_id) || development.creado_por_id}</span>
-              </span>
-            )}
+            {/* Tarjeta 3: Personal Asignado */}
+            <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5">
+              <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider text-[10px]">
+                Personal Asignado
+              </Text>
+              <div className="flex flex-col gap-2">
+                {/* Autoridad */}
+                {development.authority && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <Shield size={11} className="text-neutral-400" />
+                    <Text as="span" className="text-neutral-400">Autoridad:</Text>
+                    <Text as="span" className="font-medium">{development.authority}</Text>
+                  </Text>
+                )}
+                {/* Líder */}
+                {development.responsible && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <User size={11} className="text-neutral-400" />
+                    <Text as="span" className="text-neutral-400">Líder:</Text>
+                    <Text as="span" className="font-medium">{development.responsible}</Text>
+                  </Text>
+                )}
+                {/* Supervisor */}
+                {development.supervisor && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <User size={11} className="text-neutral-400" />
+                    <Text as="span" className="text-neutral-400">Supervisor:</Text>
+                    <Text as="span" className="font-medium">{development.supervisor}</Text>
+                  </Text>
+                )}
+                {/* Ejecutor */}
+                {development.analista && (
+                  <Text as="span" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 w-fit">
+                    <User size={11} className="text-neutral-400" />
+                    <Text as="span" className="text-neutral-400">Ejecutor:</Text>
+                    <Text as="span" className="font-medium">{development.analista}</Text>
+                  </Text>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

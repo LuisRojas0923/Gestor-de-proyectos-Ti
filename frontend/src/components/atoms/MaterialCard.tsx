@@ -60,7 +60,7 @@ const MaterialCardHeader: React.FC<MaterialCardSubComponentProps> = ({
   className = '',
 }) => (
   <div className={`px-6 py-4 border-b border-[var(--color-border)]/50 transition-colors ${className}`}>
-    <Text as="span">{children}</Text>
+    {children}
   </div>
 );
 
@@ -69,7 +69,7 @@ const MaterialCardContent: React.FC<MaterialCardSubComponentProps> = ({
   className = '',
 }) => (
   <div className={`px-6 py-4 transition-colors text-[var(--color-text-primary)] ${className}`}>
-    <Text as="span">{children}</Text>
+    {children}
   </div>
 );
 
@@ -78,7 +78,7 @@ const MaterialCardActions: React.FC<MaterialCardSubComponentProps> = ({
   className = '',
 }) => (
   <div className={`px-6 py-4 flex items-center justify-end space-x-2 transition-colors ${className}`}>
-    <Text as="span">{children}</Text>
+    {children}
   </div>
 );
 
