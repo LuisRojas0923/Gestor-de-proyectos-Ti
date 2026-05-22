@@ -253,10 +253,6 @@ export function DataTable<T>({
                             <Text variant="body2" color="text-secondary" weight="medium">{emptyMessage}</Text>
                         </div>
                     ) : (
-                        /*
-                         * Body — scroll vertical dinámico, grid con el mismo template.
-                         * Ya no usa flex-1 para que su altura dependa del contenido de las filas.
-                         */
                         <div
                             ref={(el) => {
                                 (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
