@@ -716,7 +716,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                 </div>
             ) : (
                 <>
-                    {allFlat.length > 0 && statsCards}
+                    {statsCards}
                     <DataTable<WbsRow>
                         columns={columns}
                         data={rowData}
