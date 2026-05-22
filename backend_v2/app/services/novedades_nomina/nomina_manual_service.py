@@ -268,6 +268,33 @@ class NominaManualService:
             # Para comisiones, desactivamos la lógica de excepciones de descuento si no aplica
             mapa_erp = await NominaService.get_mapa_erp(db_erp, rows, [])
 
+            # Separar filas de activos e inactivos
+            rows_activos = []
+            rows_inactivos = []
+            warnings_detalle = []
+
+            for r in rows:
+                cedula = r["cedula"]
+                info = mapa_erp.get(cedula)
+                
+                # Si db_erp está disponible, validamos que esté activo
+                if db_erp is not None:
+                    es_activo = info and str(info.get("estado", "")).strip().upper() == "ACTIVO"
+                else:
+                    es_activo = True  # Fallback si no hay ERP disponible
+                
+                if es_activo:
+                    rows_activos.append(r)
+                else:
+                    rows_inactivos.append(r)
+                    motivo = info.get("estado", "SIN_ESTABLECIMIENTO") if info else "SIN_ESTABLECIMIENTO"
+                    nombre = info["nombre"] if info else r.get("nombre_asociado", "")
+                    warnings_detalle.append({
+                        "cedula": cedula,
+                        "nombre": nombre,
+                        "motivo": motivo
+                    })
+
             # 3. Borrar previos
             stmt_del = delete(NominaRegistroNormalizado).where(
                 NominaRegistroNormalizado.subcategoria_final == subcategoria,
@@ -282,14 +309,16 @@ class NominaManualService:
                 0, "json", mes, anio, categoria, subcategoria
             )
 
-            # 5. Persistir (Usando persistir_registros_normalizados pero sin warnings)
-            registros = await NominaService.persistir_registros_normalizados(
-                session, archivo.id, mes, anio, rows, categoria, subcategoria, mapa_erp, []
-            )
+            # 5. Persistir solo los activos
+            registros = []
+            if rows_activos:
+                registros = await NominaService.persistir_registros_normalizados(
+                    session, archivo.id, mes, anio, rows_activos, categoria, subcategoria, mapa_erp, []
+                )
 
             await session.commit()
 
-            # 6. Formatear respuesta (Sin filtrar ni generar warnings)
+            # 6. Formatear respuesta (Incluyendo activos guardados e inactivos no guardados)
             filas_frontend = []
             for r in registros:
                 base_item = {
@@ -308,6 +337,29 @@ class NominaManualService:
                 }
                 filas_frontend.append(base_item)
 
+            for item in rows_inactivos:
+                ced = item["cedula"]
+                info = mapa_erp.get(ced)
+                nombre = info["nombre"] if info else item.get("nombre_asociado", "")
+                empresa = info["empresa"] if info else item.get("empresa", "N/A")
+                motivo = info.get("estado", "SIN_ESTABLECIMIENTO") if info else "SIN_ESTABLECIMIENTO"
+                
+                base_item = {
+                    "cedula": ced,
+                    "nombre": nombre,
+                    "nombre_asociado": nombre,
+                    "valor": item["valor"],
+                    "empresa": empresa,
+                    "concepto": item["concepto"],
+                    "CEDULA": ced,
+                    "NOMBRE": nombre,
+                    "VALOR": item["valor"],
+                    "EMPRESA": empresa,
+                    "CONCEPTO": item["concepto"],
+                    "estado_erp": motivo
+                }
+                filas_frontend.append(base_item)
+
             return {
                 "filas": filas_frontend,
                 "rows": filas_frontend,
@@ -319,7 +371,7 @@ class NominaManualService:
                     "anio": anio
                 },
                 "warnings": [],
-                "warnings_detalle": [],
+                "warnings_detalle": warnings_detalle,
                 "archivo_id": archivo.id
             }
 

@@ -466,7 +466,8 @@ class NominaService:
                 
                 # REGLA: No mostrar en tabla principal si está retirado o sin establecimiento
                 if f.estado_validacion in ["RETIRADO", "SIN_ESTABLECIMIENTO", "EXCEPCION_EXONERADO"]:
-                    continue
+                    if subcat_clean != "COMISIONES":
+                        continue
                     
                 filas_frontend.append(base_item)
 
