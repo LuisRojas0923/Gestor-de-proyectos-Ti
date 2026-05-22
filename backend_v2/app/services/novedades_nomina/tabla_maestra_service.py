@@ -156,11 +156,11 @@ class TablaMaestraService:
                     concepto = (r.concepto or "").strip().upper()
                     # Si el concepto está vacío, le asignamos uno genérico según quincena para que pase el filtro
                     if not concepto:
-                        concepto = "CON COMISION 1Q" if quincena == "Q1" else "SIN COMISION 2Q"
+                        concepto = "CON COMISION 1Q PARA DESCUENTOS" if quincena == "Q1" else "SIN COMISION 2Q PARA DESCUENTOS"
                     
                     # Filtro flexible: buscar si contiene la quincena o si es el concepto exacto
-                    es_q1 = "1Q" in concepto or "Q1" in concepto or concepto == "CON COMISION 1Q"
-                    es_q2 = "2Q" in concepto or "Q2" in concepto or concepto == "SIN COMISION 2Q"
+                    es_q1 = "1Q" in concepto or "Q1" in concepto or concepto in ["CON COMISION 1Q", "CON COMISION 1Q PARA DESCUENTOS"]
+                    es_q2 = "2Q" in concepto or "Q2" in concepto or concepto in ["SIN COMISION 2Q", "SIN COMISION 2Q PARA DESCUENTOS"]
                     
                     if quincena == "Q1" and not es_q1:
                         continue

@@ -118,8 +118,8 @@ Sub ExtraerTablaMaestra()
     sql = sql & "    0 AS ""Comisiones.VALOR""," & vbCrLf
     
     ' RETENCIONES
-    sql = sql & "    SUM(CASE WHEN concepto = 'CON COMISION 1Q' AND " & q1Check & " THEN valor ELSE 0 END) AS ""RTFUENTE_Q1.RETEFUENTE A DESCONTAR""," & vbCrLf
-    sql = sql & "    SUM(CASE WHEN concepto = 'SIN COMISION 2Q' AND " & q2Check & " THEN valor ELSE 0 END) AS ""RTFUENTE_Q2.RETEFUENTE A DESCONTAR""" & vbCrLf
+    sql = sql & "    SUM(CASE WHEN concepto IN ('CON COMISION 1Q', 'CON COMISION 1Q PARA DESCUENTOS') AND " & q1Check & " THEN valor ELSE 0 END) AS ""RTFUENTE_Q1.RETEFUENTE A DESCONTAR""," & vbCrLf
+    sql = sql & "    SUM(CASE WHEN concepto IN ('SIN COMISION 2Q', 'SIN COMISION 2Q PARA DESCUENTOS') AND " & q2Check & " THEN valor ELSE 0 END) AS ""RTFUENTE_Q2.RETEFUENTE A DESCONTAR""" & vbCrLf
 
     sql = sql & "FROM nomina_registros_normalizados" & vbCrLf & _
           "WHERE mes_fact = " & mes & " AND año_fact = " & anio & vbCrLf & _

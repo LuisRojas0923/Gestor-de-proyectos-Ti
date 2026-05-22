@@ -59,11 +59,11 @@ def extraer_retenciones(
                 try:
                     bono_val = float(bono2) if pd.notna(bono2) else 0.0
                     if bono_val != 0:
-                        concepto = "CON COMISION 1Q"
+                        concepto = "CON COMISION 1Q PARA DESCUENTOS"
                     else:
-                        concepto = "SIN COMISION 2Q"
+                        concepto = "SIN COMISION 2Q PARA DESCUENTOS"
                 except:
-                    concepto = "SIN COMISION 2Q"
+                    concepto = "SIN COMISION 2Q PARA DESCUENTOS"
 
                 # Valor
                 raw_valor = row["Retención en la fuente a practicar"]

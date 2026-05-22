@@ -71,9 +71,9 @@ Sub ExtraccionPlanilla1Q2Q()
           "AND subcategoria_final NOT IN ('GESTION EXCEPCIONES', 'COMISIONES')" & vbCrLf
           
     If quincena = "Q1" Then
-        sql = sql & "AND (COALESCE(concepto, subcategoria_final) ILIKE '%1Q%' OR COALESCE(concepto, subcategoria_final) ILIKE '%Q1%' OR concepto = 'CON COMISION 1Q') AND valor = 0" & vbCrLf
+        sql = sql & "AND (COALESCE(concepto, subcategoria_final) ILIKE '%1Q%' OR COALESCE(concepto, subcategoria_final) ILIKE '%Q1%' OR concepto IN ('CON COMISION 1Q', 'CON COMISION 1Q PARA DESCUENTOS')) AND valor = 0" & vbCrLf
     Else
-        sql = sql & "AND (COALESCE(concepto, subcategoria_final) ILIKE '%1Q%' OR COALESCE(concepto, subcategoria_final) ILIKE '%Q1%' OR COALESCE(concepto, subcategoria_final) ILIKE '%2Q%' OR COALESCE(concepto, subcategoria_final) ILIKE '%Q2%' OR concepto IN ('CON COMISION 1Q', 'SIN COMISION 2Q')) AND valor = 0" & vbCrLf
+        sql = sql & "AND (COALESCE(concepto, subcategoria_final) ILIKE '%1Q%' OR COALESCE(concepto, subcategoria_final) ILIKE '%Q1%' OR COALESCE(concepto, subcategoria_final) ILIKE '%2Q%' OR COALESCE(concepto, subcategoria_final) ILIKE '%Q2%' OR concepto IN ('CON COMISION 1Q', 'CON COMISION 1Q PARA DESCUENTOS', 'SIN COMISION 2Q', 'SIN COMISION 2Q PARA DESCUENTOS')) AND valor = 0" & vbCrLf
     End If
     
     sql = sql & "ORDER BY nombre_asociado, concepto;"
