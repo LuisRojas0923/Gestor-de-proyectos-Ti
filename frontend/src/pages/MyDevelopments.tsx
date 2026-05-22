@@ -149,7 +149,9 @@ const MyDevelopments: React.FC = () => {
     clearAllFilters,
     setColumnFilter,
     activeFilterCount,
-  } = useColumnFilters(developments || [], columnAccessors);
+    sortState,
+    setSort,
+  } = useColumnFilters(developments || [], columnAccessors, 'my_developments');
 
   const columns: DataTableColumn<DevelopmentRow>[] = [
     {
@@ -382,9 +384,11 @@ const MyDevelopments: React.FC = () => {
           ))}
           {activeFilterCount > 0 && (
             <Button variant="custom" size="xs" onClick={clearAllFilters}
-              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-red-500 hover:text-red-600 transition-colors bg-red-50 dark:bg-red-900/10 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/20">
-              <RotateCcw size={12} />
-              Limpiar {activeFilterCount} filtros
+              className="flex items-center bg-red-50 dark:bg-red-900/10 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/20 text-red-500 hover:text-red-600 transition-colors shadow-sm">
+              <Text as="span" variant="caption" color="inherit" className="flex items-center gap-1.5 !text-[10px] !font-bold uppercase tracking-tight">
+                <RotateCcw size={11} />
+                Limpiar {activeFilterCount} {activeFilterCount === 1 ? 'filtro' : 'filtros'}
+              </Text>
             </Button>
           )}
         </div>
@@ -423,6 +427,9 @@ const MyDevelopments: React.FC = () => {
         columnFilters={filters}
         columnOptions={uniqueValues}
         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
+        activeSortKey={sortState?.key ?? null}
+        activeSortDir={sortState?.dir ?? null}
+        onSort={setSort}
         renderRowActions={(dev) => (
           <>
             <Button
