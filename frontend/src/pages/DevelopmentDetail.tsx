@@ -162,19 +162,19 @@ const DevelopmentDetail: React.FC = () => {
 
         {/* Metadata cards grid */}
         {development && (
-          <div className="border-t border-neutral-100 dark:border-neutral-800 pt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="border-t border-neutral-100 dark:border-neutral-800 pt-4 grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Tarjeta 1: Información General */}
-            <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5">
+            <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5 md:col-span-2">
               <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider text-[10px]">
                 Información General
               </Text>
-              <div className="flex flex-col gap-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {/* Tipo */}
                 {development.type && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <Briefcase size={10} className="text-neutral-400 shrink-0" />
                     <Text variant="caption" color="text-secondary">Tipo:</Text>
-                    <Text variant="caption" weight="medium">{ development.type}</Text>
+                    <Text variant="caption" weight="medium">{development.type}</Text>
                   </Text>
                 )}
                 {/* Área */}
@@ -219,7 +219,7 @@ const DevelopmentDetail: React.FC = () => {
             </div>
 
             {/* Tarjeta 2: Fechas del Proyecto */}
-            <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5">
+            <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5 md:col-span-1">
               <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider text-[10px]">
                 Fechas del Proyecto
               </Text>
@@ -244,11 +244,11 @@ const DevelopmentDetail: React.FC = () => {
             </div>
 
             {/* Tarjeta 3: Personal Asignado */}
-            <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5">
+            <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5 md:col-span-2">
               <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider text-[10px]">
                 Personal Asignado
               </Text>
-              <div className="flex flex-col gap-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {/* Autoridad */}
                 {development.authority && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
