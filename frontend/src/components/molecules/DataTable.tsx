@@ -199,11 +199,6 @@ export function DataTable<T>({
                     <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full" />
                     <Text variant="body2" color="text-secondary" weight="medium">{loadingMessage}</Text>
                 </div>
-            ) : data.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10">
-                    {emptyIcon}
-                    <Text variant="body2" color="text-secondary" weight="medium">{emptyMessage}</Text>
-                </div>
             ) : (
                 <>
                     {/*
@@ -252,48 +247,55 @@ export function DataTable<T>({
                         )}
                     </div>
 
-                    {/*
-                     * Body — scroll vertical dinámico, grid con el mismo template.
-                     * Ya no usa flex-1 para que su altura dependa del contenido de las filas.
-                     */}
-                    <div
-                        ref={(el) => {
-                            (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-                            if (bodyRef) (bodyRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-                        }}
-                        className="overflow-y-auto custom-scrollbar"
-                    >
-                        {data.map((row) => (
-                            <div
-                                key={keyExtractor(row)}
-                                onClick={() => onRowClick?.(row)}
-                                className="group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer"
-                                onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
-                                onMouseLeave={onMouseLeaveRow}
-                            >
-                                {showRowIndicator && (
-                                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
-                                )}
-                                {columns.map((col) => (
-                                    <div
-                                        key={col.key}
-                                        className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
-                                    >
-                                        {col.render ? col.render(row) : (
-                                            <Text variant="caption" className="truncate">
-                                                {String((row as Record<string, unknown>)[col.key] ?? '')}
-                                            </Text>
-                                        )}
-                                    </div>
-                                ))}
-                                {renderRowActions && (
-                                    <div className="flex items-center justify-center py-3 px-4 gap-2">
-                                        {renderRowActions(row)}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                    {data.length === 0 ? (
+                        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10">
+                            {emptyIcon}
+                            <Text variant="body2" color="text-secondary" weight="medium">{emptyMessage}</Text>
+                        </div>
+                    ) : (
+                        /*
+                         * Body — scroll vertical dinámico, grid con el mismo template.
+                         * Ya no usa flex-1 para que su altura dependa del contenido de las filas.
+                         */
+                        <div
+                            ref={(el) => {
+                                (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                                if (bodyRef) (bodyRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                            }}
+                            className="overflow-y-auto custom-scrollbar"
+                        >
+                            {data.map((row) => (
+                                <div
+                                    key={keyExtractor(row)}
+                                    onClick={() => onRowClick?.(row)}
+                                    className="group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer"
+                                    onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
+                                    onMouseLeave={onMouseLeaveRow}
+                                >
+                                    {showRowIndicator && (
+                                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
+                                    )}
+                                    {columns.map((col) => (
+                                        <div
+                                            key={col.key}
+                                            className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
+                                        >
+                                            {col.render ? col.render(row) : (
+                                                <Text variant="caption" className="truncate">
+                                                    {String((row as Record<string, unknown>)[col.key] ?? '')}
+                                                </Text>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {renderRowActions && (
+                                        <div className="flex items-center justify-center py-3 px-4 gap-2">
+                                            {renderRowActions(row)}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </>
             )}
         </div>
