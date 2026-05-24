@@ -1,0 +1,102 @@
+import React from 'react';
+import { Text } from './Text';
+
+interface TextareaProps {
+    placeholder?: string;
+    value?: string;
+    defaultValue?: string;
+    disabled?: boolean;
+    required?: boolean;
+    error?: boolean;
+    errorMessage?: string;
+    label?: string;
+    labelHint?: string;
+    helperText?: string;
+    rows?: number;
+    maxLength?: number;
+    className?: string;
+    name?: string;
+    onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    onFocus?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
+    onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
+    onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+}
+
+const Textarea: React.FC<TextareaProps> = ({
+    placeholder,
+    value,
+    defaultValue,
+    disabled = false,
+    required = false,
+    error = false,
+    errorMessage,
+    label,
+    labelHint,
+    helperText,
+    rows = 3,
+    maxLength,
+    className = '',
+    name,
+    onChange,
+    onFocus,
+    onBlur,
+    onKeyDown,
+}) => {
+    const baseClasses = 'w-full border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed resize-y';
+
+    const stateClasses = error
+        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+        : 'border-neutral-300 focus:border-primary-500 focus:ring-primary-500 dark:border-neutral-600 dark:focus:border-primary-500';
+
+    const backgroundClasses = 'bg-white text-neutral-900 placeholder-neutral-500 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-400';
+
+    return (
+        <div className={`w-full ${className}`}>
+            {label && (
+                <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                    <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
+                        {label}
+                        {required && <Text as="span" color="error" className="ml-1">*</Text>}
+                    </Text>
+                    {labelHint && (
+                        <Text variant="caption" color="text-secondary" className="text-[12px] opacity-70">
+                            {labelHint}
+                        </Text>
+                    )}
+                </div>
+            )}
+
+            <textarea // @audit-ok
+                placeholder={placeholder}
+                value={value}
+                defaultValue={defaultValue}
+                disabled={disabled}
+                required={required}
+                rows={rows}
+                maxLength={maxLength}
+                name={name}
+                onChange={onChange}
+                onFocus={onFocus}
+                onBlur={onBlur}
+                onKeyDown={onKeyDown}
+                className={`${baseClasses} ${stateClasses} ${backgroundClasses} px-4 py-2 text-[11px]`}
+            />
+
+            {error && errorMessage && (
+                <Text variant="caption" color="error" className="mt-1">{errorMessage}</Text>
+            )}
+
+            {!error && helperText && (
+                <Text variant="caption" color="text-secondary" className="mt-1">{helperText}</Text>
+            )}
+
+            {maxLength && value && (
+                <Text variant="caption" color="text-secondary" className="mt-1 text-right">
+                    {value.length} / {maxLength}
+                </Text>
+            )}
+        </div>
+    );
+};
+
+export default Textarea;
