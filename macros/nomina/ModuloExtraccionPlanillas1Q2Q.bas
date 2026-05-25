@@ -1,6 +1,6 @@
 Attribute VB_Name = "ModuloExtraccionPlanillas1Q2Q"
 ' ====================================================================
-' MACRO PARA EXTRACCI√ìN DE TABLA MAESTRA PLANA DE N√ìMINA (S√çN PIVOT)
+' MACRO PARA EXTRACCI”N DE TABLA MAESTRA PLANA DE N”MINA (SÕN PIVOT)
 ' Base de datos: project_manager (Portal)
 ' Tabla: nomina_registros_normalizados
 ' Columnas: CEDULA, NOMBRE, EMPRESA, HORAS, DIAS, CONCEPTO, VALOR
@@ -9,7 +9,7 @@ Attribute VB_Name = "ModuloExtraccionPlanillas1Q2Q"
 
 Option Explicit
 
-' --- SWITCH AMBIENTE (REDIRECCIONADO AL M√ìDULO CENTRAL) ---
+' --- SWITCH AMBIENTE (REDIRECCIONADO AL M”DULO CENTRAL) ---
 
 Sub CambiarAmbientePlano()
     ModuloConexionNomina.CambiarAmbiente
@@ -37,25 +37,32 @@ Sub ExtraccionPlanilla1Q2Q()
     nombreHoja = "BD_MAESTRA_PLANA"
     nombreTabla = "T_MAESTRA_PLANA"
     
+    ' Guardar configuraciÛn de la aplicaciÛn
+    Dim prevCalculation As Long
+    prevCalculation = Application.Calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+    
     On Error GoTo ErrorHandler
     
-    ' 1. LEER PAR√ÅMETROS
+    ' 1. LEER PAR¡METROS
     Set wsParams = ActiveSheet
     mes = Trim(wsParams.Range("B1").Value)
     anio = Trim(wsParams.Range("B2").Value)
     quincena = UCase(Trim(wsParams.Range("B3").Value))
     
     If Not IsNumeric(mes) Or Not IsNumeric(anio) Then
-        MsgBox "El Mes y el A√±o deben ser n√∫meros.", vbExclamation, "Validaci√≥n"
+        MsgBox "El Mes y el AÒo deben ser n˙meros.", vbExclamation, "ValidaciÛn"
         Exit Sub
     End If
     
     If quincena <> "Q1" And quincena <> "Q2" Then
-        MsgBox "La Quincena debe ser 'Q1' o 'Q2'.", vbExclamation, "Validaci√≥n"
+        MsgBox "La Quincena debe ser 'Q1' o 'Q2'.", vbExclamation, "ValidaciÛn"
         Exit Sub
     End If
     
-    ' 2. CONSTRUIR SQL PLANO (S√çN PIVOT)
+    ' 2. CONSTRUIR SQL PLANO (SÕN PIVOT)
     sql = "SELECT " & vbCrLf & _
           "    cedula AS ""CEDULA""," & vbCrLf & _
           "    COALESCE(nombre_asociado, '') AS ""NOMBRE""," & vbCrLf & _
@@ -66,7 +73,7 @@ Sub ExtraccionPlanilla1Q2Q()
           "    COALESCE(concepto, subcategoria_final) AS ""CONCEPTO""," & vbCrLf & _
           "    CASE WHEN subcategoria_final IN ('OTROS GERENCIA', 'RETENCIONES') THEN valor ELSE ROUND(CAST((valor / 2.0) AS numeric), 2) END AS ""VALOR""" & vbCrLf & _
           "FROM nomina_registros_normalizados" & vbCrLf & _
-          "WHERE mes_fact = " & mes & " AND a√±o_fact = " & anio & vbCrLf & _
+          "WHERE mes_fact = " & mes & " AND aÒo_fact = " & anio & vbCrLf & _
           "AND estado_validacion IN ('OK', 'Activo', 'REDIRECCIONADO', 'EXCEPCION', 'EXCEPCION_PAGO_TERCERO', 'EXCEPCION_VALOR_FIJO', 'EXCEPCION_PORCENTAJE_EMPRESA', 'EXCEPCION_AUTORIZADA', 'EXCEPCION_SALDO_FAVOR')" & vbCrLf & _
           "AND subcategoria_final NOT IN ('GESTION EXCEPCIONES', 'COMISIONES')" & vbCrLf
           
@@ -78,7 +85,7 @@ Sub ExtraccionPlanilla1Q2Q()
     
     sql = sql & "ORDER BY nombre_asociado, concepto;"
     
-    ' 3. CONEXI√ìN A POSTGRESQL (USANDO M√ìDULO CENTRAL)
+    ' 3. CONEXI”N A POSTGRESQL (USANDO M”DULO CENTRAL)
     Application.StatusBar = "Conectando a PostgreSQL (" & activeEnv & ")..."
     Set conn = CreateObject("ADODB.Connection")
     conn.Open ModuloConexionNomina.ObtenerCadenaConexion()
@@ -110,7 +117,7 @@ Sub ExtraccionPlanilla1Q2Q()
     Application.StatusBar = "Cargando datos en Excel..."
     
     If rs.EOF Then
-        MsgBox "La consulta no devolvi√≥ ning√∫n registro para el periodo indicado.", vbInformation
+        MsgBox "La consulta no devolviÛ ning˙n registro para el periodo indicado.", vbInformation
         GoTo Finalizar
     End If
     
@@ -147,23 +154,41 @@ Sub ExtraccionPlanilla1Q2Q()
     
 Finalizar:
     ' 9. LIMPIEZA
-    rs.Close
-    conn.Close
+    If Not rs Is Nothing Then
+        If rs.State = 1 Then rs.Close
+    End If
+    If Not conn Is Nothing Then
+        If conn.State = 1 Then conn.Close
+    End If
     Set rs = Nothing
     Set conn = Nothing
     
+    ' Restaurar configuraciÛn de la aplicaciÛn
+    Application.ScreenUpdating = True
+    Application.Calculation = prevCalculation
+    Application.EnableEvents = True
+    
     wsParams.Activate
     Application.StatusBar = False
-    MsgBox "Tabla Maestra Plana extra√≠da con √©xito." & vbCrLf & _
+    MsgBox "Tabla Maestra Plana extraÌda con Èxito." & vbCrLf & _
            "Ambiente: " & activeEnv & vbCrLf & _
-           "Registros importados: " & totalRegs, vbInformation, "√âxito"
+           "Registros importados: " & totalRegs, vbInformation, "…xito"
     Exit Sub
 
 ErrorHandler:
+    ' Restaurar configuraciÛn de la aplicaciÛn
+    Application.ScreenUpdating = True
+    Application.Calculation = prevCalculation
+    Application.EnableEvents = True
+    
     Application.StatusBar = False
-    MsgBox "Error en extracci√≥n: " & Err.Description & vbCrLf & _
+    MsgBox "Error en extracciÛn: " & Err.Description & vbCrLf & _
            "Ambiente: " & activeEnv, _
            vbCritical, "Error en Macro"
-    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
-    If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
+    If Not rs Is Nothing Then
+        If rs.State = 1 Then rs.Close
+    End If
+    If Not conn Is Nothing Then
+        If conn.State = 1 Then conn.Close
+    End If
 End Sub

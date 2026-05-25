@@ -1,6 +1,6 @@
 Attribute VB_Name = "ModuloTablaMaestra"
 ' ====================================================================
-' MACRO PARA EXTRACCI√ìN DE TABLA MAESTRA DE N√ìMINA
+' MACRO PARA EXTRACCI”N DE TABLA MAESTRA DE N”MINA
 ' Base de datos: project_manager (Portal)
 ' Tabla: nomina_registros_normalizados
 ' Driver: PostgreSQL Unicode(x64)
@@ -8,7 +8,7 @@ Attribute VB_Name = "ModuloTablaMaestra"
 
 Option Explicit
 
-' --- SWITCH AMBIENTE (REDIRECCIONADO AL M√ìDULO CENTRAL) ---
+' --- SWITCH AMBIENTE (REDIRECCIONADO AL M”DULO CENTRAL) ---
 
 Sub CambiarAmbiente()
     ModuloConexionNomina.CambiarAmbiente
@@ -31,38 +31,57 @@ Sub ExtraerTablaMaestra()
     Dim anio As String
     Dim quincena As String
     
+    Dim sqlComisionesCol As String
+    Dim sqlComisionesWhere As String
+    
     Dim activeEnv As String
     activeEnv = IIf(ModuloConexionNomina.mAmbiente = "", "LOCAL", ModuloConexionNomina.mAmbiente)
     
     nombreHoja = "BD_MAESTRA"
     nombreTabla = "T_MAESTRA"
     
+    ' Guardar configuraciÛn de la aplicaciÛn
+    Dim prevCalculation As Long
+    prevCalculation = Application.Calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+    
     On Error GoTo ErrorHandler
     
-    ' 1. LEER PAR√ÅMETROS
-    ' Se asume que en la hoja actual el usuario digit√≥ MES en B1, A√ëO en B2 y QUINCENA en B3
+    ' 1. LEER PAR¡METROS
+    ' Se asume que en la hoja actual el usuario digitÛ MES en B1, A—O en B2 y QUINCENA en B3
     Set wsParams = ActiveSheet
     mes = Trim(wsParams.Range("B1").Value)
     anio = Trim(wsParams.Range("B2").Value)
     quincena = UCase(Trim(wsParams.Range("B3").Value))
     
     If Not IsNumeric(mes) Or Not IsNumeric(anio) Then
-        MsgBox "El Mes y el A√±o deben ser n√∫meros.", vbExclamation, "Validaci√≥n"
+        MsgBox "El Mes y el AÒo deben ser n˙meros.", vbExclamation, "ValidaciÛn"
         Exit Sub
     End If
     
     If quincena <> "Q1" And quincena <> "Q2" Then
-        MsgBox "La Quincena debe ser 'Q1' o 'Q2'.", vbExclamation, "Validaci√≥n"
+        MsgBox "La Quincena debe ser 'Q1' o 'Q2'.", vbExclamation, "ValidaciÛn"
         Exit Sub
     End If
     
-    ' 2. CONSTRUIR SQL DIN√ÅMICO EST√ÅTICO (PIVOT)
+    ' Configurar din·micamente la columna y exclusiÛn de Comisiones seg˙n la quincena
+    If quincena = "Q1" Then
+        sqlComisionesCol = "    SUM(CASE WHEN subcategoria_final = 'COMISIONES' THEN valor ELSE 0 END) AS ""Comisiones.VALOR""," & vbCrLf
+        sqlComisionesWhere = "AND subcategoria_final NOT IN ('GESTION EXCEPCIONES')" & vbCrLf
+    Else
+        sqlComisionesCol = "    0 AS ""Comisiones.VALOR""," & vbCrLf
+        sqlComisionesWhere = "AND subcategoria_final NOT IN ('GESTION EXCEPCIONES', 'COMISIONES')" & vbCrLf
+    End If
+    
+    ' 2. CONSTRUIR SQL DIN¡MICO EST¡TICO (PIVOT)
     Dim q1Check As String, q2Check As String
     If quincena = "Q1" Then q1Check = "1=1" Else q1Check = "1=0"
     If quincena = "Q2" Then q2Check = "1=1" Else q2Check = "1=0"
 
     sql = "SELECT " & vbCrLf & _
-          "    cedula AS ""CEDULA""," & vbCrLf & _
+          "    nomina_registros_normalizados.cedula AS ""CEDULA""," & vbCrLf & _
           "    MAX(COALESCE(nombre_asociado, '')) AS ""NOMBRE REAL""," & vbCrLf & _
           "    MAX(COALESCE(empresa, '')) AS ""EMPRESA""," & vbCrLf & _
           "    SUM(COALESCE(horas, 0)) AS ""HORAS""," & vbCrLf & _
@@ -74,8 +93,8 @@ Sub ExtraerTablaMaestra()
     sql = sql & "    SUM(CASE WHEN concepto = 'BENEFICIAR CREDITO' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BENEFICIAR.2Q CREDITO""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'BENEFICIAR OTROS DESCUENTOS' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BENEFICIAR.1Q OTROS DESC""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'BENEFICIAR OTROS DESCUENTOS' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BENEFICIAR.2Q OTROS DESC""," & vbCrLf
-    sql = sql & "    SUM(CASE WHEN concepto = 'BOGOTA LIBRANZA' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BOGOT√Å_LIBZ.1 QUINCENA""," & vbCrLf
-    sql = sql & "    SUM(CASE WHEN concepto = 'BOGOTA LIBRANZA' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BOGOT√Å_LIBZ.2 QUINCENA""," & vbCrLf
+    sql = sql & "    SUM(CASE WHEN concepto = 'BOGOTA LIBRANZA' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BOGOT¡_LIBZ.1 QUINCENA""," & vbCrLf
+    sql = sql & "    SUM(CASE WHEN concepto = 'BOGOTA LIBRANZA' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BOGOT¡_LIBZ.2 QUINCENA""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'CAMPOSANTO' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""CAMPOSANTO.1 QUINCENA""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'CAMPOSANTO' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""CAMPOSANTO.2 QUINCENA""," & vbCrLf
     
@@ -108,27 +127,27 @@ Sub ExtraerTablaMaestra()
     sql = sql & "    SUM(CASE WHEN concepto = 'SEGURO DE VIDA' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""SURA.1 QUINCENA""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'SEGURO DE VIDA' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""SURA.2 QUINCENA""," & vbCrLf
     
-    ' PLANOS VAC√çOS (0)
+    ' PLANOS VACÕOS (0)
     sql = sql & "    0 AS ""PAY_FLOW.IMPORTE TOTAL A DEDUCIR $""," & vbCrLf
     
     sql = sql & "    SUM(CASE WHEN concepto = 'MEDICINA PREPAGADA' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""MEDICINA_PREPAGADA.1 QUINCENA""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'MEDICINA PREPAGADA' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""MEDICINA_PREPAGADA.2 QUINCENA""," & vbCrLf
     
-    ' PLANO VAC√çO (0)
-    sql = sql & "    0 AS ""Comisiones.VALOR""," & vbCrLf
+    ' PLANO VACÕO (0) O COMISIONES DEL PERIODO ACTUAL
+    sql = sql & sqlComisionesCol
     
     ' RETENCIONES
     sql = sql & "    SUM(CASE WHEN concepto IN ('CON COMISION 1Q', 'CON COMISION 1Q PARA DESCUENTOS') AND " & q1Check & " THEN valor ELSE 0 END) AS ""RTFUENTE_Q1.RETEFUENTE A DESCONTAR""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto IN ('SIN COMISION 2Q', 'SIN COMISION 2Q PARA DESCUENTOS') AND " & q2Check & " THEN valor ELSE 0 END) AS ""RTFUENTE_Q2.RETEFUENTE A DESCONTAR""" & vbCrLf
 
     sql = sql & "FROM nomina_registros_normalizados" & vbCrLf & _
-          "WHERE mes_fact = " & mes & " AND a√±o_fact = " & anio & vbCrLf & _
+          "WHERE mes_fact = " & mes & " AND aÒo_fact = " & anio & vbCrLf & _
           "AND estado_validacion IN ('OK', 'Activo', 'REDIRECCIONADO', 'EXCEPCION', 'EXCEPCION_PAGO_TERCERO', 'EXCEPCION_VALOR_FIJO', 'EXCEPCION_PORCENTAJE_EMPRESA', 'EXCEPCION_AUTORIZADA', 'EXCEPCION_SALDO_FAVOR')" & vbCrLf & _
-          "AND subcategoria_final NOT IN ('GESTION EXCEPCIONES', 'COMISIONES')" & vbCrLf & _
-          "GROUP BY cedula" & vbCrLf & _
+          sqlComisionesWhere & _
+          "GROUP BY nomina_registros_normalizados.cedula" & vbCrLf & _
           "ORDER BY MAX(COALESCE(nombre_asociado, ''));"
     
-    ' 3. CONEXI√ìN A POSTGRESQL (USANDO M√ìDULO CENTRAL)
+    ' 3. CONEXI”N A POSTGRESQL (USANDO M”DULO CENTRAL)
     Application.StatusBar = "Conectando a PostgreSQL (" & activeEnv & ")..."
     Set conn = CreateObject("ADODB.Connection")
     conn.Open ModuloConexionNomina.ObtenerCadenaConexion()
@@ -160,7 +179,7 @@ Sub ExtraerTablaMaestra()
     Application.StatusBar = "Cargando matriz en Excel..."
     
     If rs.EOF Then
-        MsgBox "La consulta no devolvi√≥ ning√∫n registro para el periodo indicado.", vbInformation
+        MsgBox "La consulta no devolviÛ ning˙n registro para el periodo indicado.", vbInformation
         GoTo Finalizar
     End If
     
@@ -197,23 +216,41 @@ Sub ExtraerTablaMaestra()
     
 Finalizar:
     ' 9. LIMPIEZA
-    rs.Close
-    conn.Close
+    If Not rs Is Nothing Then
+        If rs.State = 1 Then rs.Close
+    End If
+    If Not conn Is Nothing Then
+        If conn.State = 1 Then conn.Close
+    End If
     Set rs = Nothing
     Set conn = Nothing
     
+    ' Restaurar configuraciÛn de la aplicaciÛn
+    Application.ScreenUpdating = True
+    Application.Calculation = prevCalculation
+    Application.EnableEvents = True
+    
     wsParams.Activate
     Application.StatusBar = False
-    MsgBox "Tabla Maestra extra√≠da con √©xito." & vbCrLf & _
+    MsgBox "Tabla Maestra extraÌda con Èxito." & vbCrLf & _
            "Ambiente: " & activeEnv & vbCrLf & _
-           "Registros importados: " & totalRegs, vbInformation, "√âxito"
+           "Registros importados: " & totalRegs, vbInformation, "…xito"
     Exit Sub
 
 ErrorHandler:
+    ' Restaurar configuraciÛn de la aplicaciÛn
+    Application.ScreenUpdating = True
+    Application.Calculation = prevCalculation
+    Application.EnableEvents = True
+    
     Application.StatusBar = False
-    MsgBox "Error en extracci√≥n: " & Err.Description & vbCrLf & _
+    MsgBox "Error en extracciÛn: " & Err.Description & vbCrLf & _
            "Ambiente: " & activeEnv, _
            vbCritical, "Error en Macro"
-    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
-    If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
+    If Not rs Is Nothing Then
+        If rs.State = 1 Then rs.Close
+    End If
+    If Not conn Is Nothing Then
+        If conn.State = 1 Then conn.Close
+    End If
 End Sub

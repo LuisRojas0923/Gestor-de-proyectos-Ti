@@ -1,6 +1,6 @@
 Attribute VB_Name = "ModuloExtraccionComisiones"
 ' ====================================================================
-' MACRO PARA EXTRACCI脫N DEDICADA DE COMISIONES (MES ANTERIOR)
+' MACRO PARA EXTRACCI覰 DEDICADA DE COMISIONES (MES ANTERIOR)
 ' Base de datos: project_manager (Portal)
 ' Tabla: nomina_registros_normalizados
 ' Columnas: CEDULA, NOMBRE, EMPRESA, CIUDAD, VALOR, CONCEPTO
@@ -9,7 +9,7 @@ Attribute VB_Name = "ModuloExtraccionComisiones"
 
 Option Explicit
 
-' --- SWITCH AMBIENTE (REDIRECCIONADO AL M脫DULO CENTRAL) ---
+' --- SWITCH AMBIENTE (REDIRECCIONADO AL M覦ULO CENTRAL) ---
 
 Sub CambiarAmbienteComisiones()
     ModuloConexionNomina.CambiarAmbiente
@@ -40,23 +40,30 @@ Sub ExtraccionComisiones()
     nombreHoja = "BD_COMISIONES"
     nombreTabla = "T_COMISIONES"
     
+    ' Guardar configuraci髇 de la aplicaci髇
+    Dim prevCalculation As Long
+    prevCalculation = Application.Calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+    
     On Error GoTo ErrorHandler
     
-    ' 1. LEER PAR脕METROS
+    ' 1. LEER PAR罬ETROS
     Set wsParams = ActiveSheet
     mes = Trim(wsParams.Range("B1").Value)
     anio = Trim(wsParams.Range("B2").Value)
     quincena = UCase(Trim(wsParams.Range("B3").Value))
     
     If Not IsNumeric(mes) Or Not IsNumeric(anio) Then
-        MsgBox "El Mes y el A帽o deben ser n煤meros.", vbExclamation, "Validaci贸n"
+        MsgBox "El Mes y el A駉 deben ser n鷐eros.", vbExclamation, "Validaci髇"
         Exit Sub
     End If
     
-    ' Validaci贸n de Regla de Negocio: Comisiones reflejan en la 1Q del mes siguiente.
+    ' Validaci髇 de Regla de Negocio: Comisiones reflejan en la 1Q del mes siguiente.
     If quincena <> "Q1" Then
-        MsgBox "Atenci贸n: Seg煤n la regla de negocio, las comisiones acumuladas solo se pagan en la primera quincena (Q1)." & vbCrLf & _
-               "Por favor, ejecute esta extracci贸n para el ciclo Q1.", vbInformation, "Restricci贸n de Quincena"
+        MsgBox "Atenci髇: Seg鷑 la regla de negocio, las comisiones acumuladas solo se pagan en la primera quincena (Q1)." & vbCrLf & _
+               "Por favor, ejecute esta extracci髇 para el ciclo Q1.", vbInformation, "Restricci髇 de Quincena"
         Exit Sub
     End If
     
@@ -77,12 +84,12 @@ Sub ExtraccionComisiones()
           "    valor AS ""VALOR""," & vbCrLf & _
           "    'COMISIONES' AS ""CONCEPTO""" & vbCrLf & _
           "FROM nomina_registros_normalizados" & vbCrLf & _
-          "WHERE mes_fact = " & mesAnt & " AND a帽o_fact = " & anioAnt & vbCrLf & _
+          "WHERE mes_fact = " & mesAnt & " AND a駉_fact = " & anioAnt & vbCrLf & _
           "AND subcategoria_final = 'COMISIONES'" & vbCrLf & _
           "AND estado_validacion IN ('OK', 'Activo', 'REDIRECCIONADO', 'EXCEPCION', 'EXCEPCION_PAGO_TERCERO', 'EXCEPCION_VALOR_FIJO', 'EXCEPCION_PORCENTAJE_EMPRESA', 'EXCEPCION_AUTORIZADA', 'EXCEPCION_SALDO_FAVOR')" & vbCrLf & _
           "ORDER BY nombre_asociado;"
           
-    ' 3. CONEXI脫N A POSTGRESQL (USANDO M脫DULO CENTRAL)
+    ' 3. CONEXI覰 A POSTGRESQL (USANDO M覦ULO CENTRAL)
     Application.StatusBar = "Conectando a PostgreSQL para Comisiones (" & activeEnv & ")..."
     Set conn = CreateObject("ADODB.Connection")
     conn.Open ModuloConexionNomina.ObtenerCadenaConexion()
@@ -142,7 +149,7 @@ Sub ExtraccionComisiones()
     tbl.Name = nombreTabla
     tbl.TableStyle = "TableStyleMedium6"
     
-    ' Formato Num茅rico
+    ' Formato Num閞ico
     wsData.Columns.AutoFit
     ' La columna 5 es "VALOR"
     wsData.Range(wsData.Cells(6, 5), wsData.Cells(lastRow, 5)).NumberFormat = "$ #,##0.00"
@@ -150,22 +157,41 @@ Sub ExtraccionComisiones()
     totalRegs = lastRow - 5
     
 Finalizar:
-    rs.Close
-    conn.Close
+    If Not rs Is Nothing Then
+        If rs.State = 1 Then rs.Close
+    End If
+    If Not conn Is Nothing Then
+        If conn.State = 1 Then conn.Close
+    End If
     Set rs = Nothing
     Set conn = Nothing
+    
+    ' Restaurar configuraci髇 de la aplicaci髇
+    Application.ScreenUpdating = True
+    Application.Calculation = prevCalculation
+    Application.EnableEvents = True
+    
     wsParams.Activate
     Application.StatusBar = False
     If totalRegs > 0 Then
-        MsgBox "Extracci贸n de Comisiones completada." & vbCrLf & _
+        MsgBox "Extracci髇 de Comisiones completada." & vbCrLf & _
                "Periodo Cobro: " & mes & "/" & anio & " (Corte: " & mesAnt & ")" & vbCrLf & _
-               "Registros: " & totalRegs, vbInformation, "脡xito"
+               "Registros: " & totalRegs, vbInformation, "蓌ito"
     End If
     Exit Sub
 
 ErrorHandler:
+    ' Restaurar configuraci髇 de la aplicaci髇
+    Application.ScreenUpdating = True
+    Application.Calculation = prevCalculation
+    Application.EnableEvents = True
+    
     Application.StatusBar = False
-    MsgBox "Error en extracci贸n de comisiones: " & Err.Description, vbCritical, "Error"
-    If Not rs Is Nothing Then If rs.State = 1 Then rs.Close
-    If Not conn Is Nothing Then If conn.State = 1 Then conn.Close
+    MsgBox "Error en extracci髇 de comisiones: " & Err.Description, vbCritical, "Error"
+    If Not rs Is Nothing Then
+        If rs.State = 1 Then rs.Close
+    End If
+    If Not conn Is Nothing Then
+        If conn.State = 1 Then conn.Close
+    End If
 End Sub

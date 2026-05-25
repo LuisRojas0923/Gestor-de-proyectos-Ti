@@ -1,7 +1,7 @@
 Attribute VB_Name = "ModuloConexionNomina"
 ' ====================================================================
-' MÃ“DULO CENTRAL DE CONEXIÃ“N A BASE DE DATOS (NÃ“MINA)
-' Centraliza el ambiente activo y la cadena de conexiÃ³n SQL.
+' MÓDULO CENTRAL DE CONEXIÓN A BASE DE DATOS (NÓMINA)
+' Centraliza el ambiente activo y la cadena de conexión SQL.
 ' ====================================================================
 
 Option Explicit
@@ -26,7 +26,7 @@ End Function
 Public Sub CambiarAmbiente()
     Dim opcion As String
     opcion = InputBox( _
-        "Seleccione el ambiente de conexiÃ³n:" & vbCrLf & vbCrLf & _
+        "Seleccione el ambiente de conexión:" & vbCrLf & vbCrLf & _
         "1 = LOCAL  (127.0.0.1:5433)" & vbCrLf & _
         "2 = DEV    (192.168.0.21:5432)" & vbCrLf & _
         "3 = PROD   (192.168.0.21:5433)" & vbCrLf & vbCrLf & _
@@ -38,14 +38,14 @@ Public Sub CambiarAmbiente()
         Case "2": mAmbiente = "DEV"
         Case "3": mAmbiente = "PROD"
         Case Else
-            MsgBox "OpciÃ³n no vÃ¡lida. Se mantiene: " & IIf(mAmbiente = "", "LOCAL", mAmbiente), vbExclamation
+            MsgBox "Opción no válida. Se mantiene: " & IIf(mAmbiente = "", "LOCAL", mAmbiente), vbExclamation
             If mAmbiente = "" Then mAmbiente = "LOCAL"
             Exit Sub
     End Select
     MsgBox "Ambiente cambiado a: " & mAmbiente, vbInformation, "Ambiente Activo"
 End Sub
 
-' --- OBTENER CADENA DE CONEXIÃ“N ---
+' --- OBTENER CADENA DE CONEXIÓN ---
 
 Public Function ObtenerCadenaConexion() As String
     Dim srv As String, prt As String
@@ -64,7 +64,7 @@ Public Function ObtenerCadenaConexion() As String
             prt = "5433"
     End Select
     
-    ' ContraseÃ±a cifrada en hex: "password_segura_refridcol"
+    ' Contraseña cifrada en hex: "password_segura_refridcol"
     ObtenerCadenaConexion = "Driver={PostgreSQL Unicode(x64)};" & _
         "Server=" & srv & ";" & _
         "Port=" & prt & ";" & _
