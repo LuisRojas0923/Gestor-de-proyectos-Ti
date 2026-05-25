@@ -5,7 +5,8 @@ import { useApi } from '../hooks/useApi';
 import { API_ENDPOINTS } from '../config/api';
 import { DevelopmentWithCurrentStatus } from '../types';
 import { Button, Title, Text } from '../components/atoms';
-import { ExternalLink, User, Shield, Briefcase, MapPin, Calendar, CalendarCheck, Layers, Activity } from 'lucide-react';
+import EditDevelopmentModal from './MyDevelopments/EditDevelopmentModal';
+import { ExternalLink, User, Shield, Briefcase, MapPin, Calendar, CalendarCheck, Layers, Activity, Pencil } from 'lucide-react';
 import WbsTab, { WbsTabRef } from './DevelopmentDetail/WbsTab';
 
 const getStatusColor = (status: string) => {
@@ -75,8 +76,8 @@ const DevelopmentDetail: React.FC = () => {
   const [development, setDevelopment] = useState<DevelopmentWithCurrentStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
+  const [editTarget, setEditTarget] = useState<DevelopmentWithCurrentStatus | null>(null);
 
-  // Cargar usuarios para resolver nombres
   useEffect(() => {
     get('/jerarquia/usuarios-disponibles').then((users: unknown) => {
       if (Array.isArray(users)) {
@@ -91,27 +92,27 @@ const DevelopmentDetail: React.FC = () => {
     return value;
   };
 
-  // Cargar desarrollo
-  useEffect(() => {
-    const load = async () => {
-      if (!developmentId) return;
-      setLoading(true);
-      try {
-        const dev = await get(API_ENDPOINTS.DEVELOPMENT_BY_ID(developmentId));
-        if (dev) {
-          setDevelopment(normalizeDevelopment(dev as ApiDevelopment));
-        }
-      } finally {
-        setLoading(false);
+  const loadDevelopment = async () => {
+    if (!developmentId) return;
+    setLoading(true);
+    try {
+      const dev = await get(API_ENDPOINTS.DEVELOPMENT_BY_ID(developmentId));
+      if (dev) {
+        setDevelopment(normalizeDevelopment(dev as ApiDevelopment));
       }
-    };
-    load();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDevelopment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [developmentId, get]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm space-y-3">
-        {/* Top row */}
         <div className="flex justify-between items-start gap-4">
           <div className="flex items-start gap-4 min-w-0">
             <div className="flex flex-col items-center gap-1 shrink-0">
@@ -147,6 +148,14 @@ const DevelopmentDetail: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={Pencil}
+              onClick={() => setEditTarget(development)}
+              className="text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+              title="Editar proyecto"
+            />
             {development?.portal_link && (
               <Button
                 variant="outline"
@@ -160,16 +169,13 @@ const DevelopmentDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Metadata cards grid */}
         {development && (
           <div className="border-t border-neutral-100 dark:border-neutral-800 pt-4 grid grid-cols-1 md:grid-cols-5 gap-4">
-            {/* Tarjeta 1: Información General */}
             <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5 md:col-span-2">
               <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider text-[10px]">
                 Información General
               </Text>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {/* Tipo */}
                 {development.type && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <Briefcase size={10} className="text-neutral-400 shrink-0" />
@@ -177,7 +183,6 @@ const DevelopmentDetail: React.FC = () => {
                     <Text variant="caption" weight="medium">{development.type}</Text>
                   </Text>
                 )}
-                {/* Área */}
                 {development.area_desarrollo && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit max-w-full" title={development.area_desarrollo}>
                     <MapPin size={10} className="text-neutral-400 shrink-0" />
@@ -185,7 +190,6 @@ const DevelopmentDetail: React.FC = () => {
                     <Text variant="caption" weight="medium" className="truncate">{development.area_desarrollo}</Text>
                   </Text>
                 )}
-                {/* Proceso */}
                 {development.module && (
                   <Text as="span" className="inline-flex items-start gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit max-w-full" title={development.module}>
                     <Layers size={10} className="text-neutral-400 shrink-0 mt-0.5" />
@@ -193,21 +197,18 @@ const DevelopmentDetail: React.FC = () => {
                     <Text variant="caption" weight="medium" className="line-clamp-2">{development.module}</Text>
                   </Text>
                 )}
-                {/* Ambiente */}
                 {development.environment && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <Text variant="caption" color="text-secondary">Ambiente:</Text>
                     <Text variant="caption" weight="medium">{development.environment}</Text>
                   </Text>
                 )}
-                {/* Proveedor */}
                 {development.provider && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <Text variant="caption" color="text-secondary">Proveedor:</Text>
                     <Text variant="caption" weight="medium">{development.provider}</Text>
                   </Text>
                 )}
-                {/* Creado por */}
                 {development.creado_por_id && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <User size={10} className="text-neutral-400 shrink-0" />
@@ -218,13 +219,11 @@ const DevelopmentDetail: React.FC = () => {
               </div>
             </div>
 
-            {/* Tarjeta 2: Fechas del Proyecto */}
             <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5 md:col-span-1">
               <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider text-[10px]">
                 Fechas del Proyecto
               </Text>
               <div className="flex flex-col gap-1">
-                {/* Inicio */}
                 {development.start_date && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <Calendar size={10} className="text-neutral-400 shrink-0" />
@@ -232,7 +231,6 @@ const DevelopmentDetail: React.FC = () => {
                     <Text variant="caption" weight="medium">{formatDate(development.start_date)}</Text>
                   </Text>
                 )}
-                {/* Fin est. */}
                 {development.estimated_end_date && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <CalendarCheck size={10} className="text-neutral-400 shrink-0" />
@@ -243,13 +241,11 @@ const DevelopmentDetail: React.FC = () => {
               </div>
             </div>
 
-            {/* Tarjeta 3: Personal Asignado */}
             <div className="bg-neutral-50/50 dark:bg-neutral-800/20 p-4 rounded-xl border border-neutral-100 dark:border-neutral-800/50 space-y-2.5 md:col-span-2">
               <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider text-[10px]">
                 Personal Asignado
               </Text>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {/* Autoridad */}
                 {development.authority && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <Shield size={10} className="text-neutral-400 shrink-0" />
@@ -257,7 +253,6 @@ const DevelopmentDetail: React.FC = () => {
                     <Text variant="caption" weight="medium">{development.authority}</Text>
                   </Text>
                 )}
-                {/* Líder */}
                 {development.responsible && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <User size={10} className="text-neutral-400 shrink-0" />
@@ -265,7 +260,6 @@ const DevelopmentDetail: React.FC = () => {
                     <Text variant="caption" weight="medium">{development.responsible}</Text>
                   </Text>
                 )}
-                {/* Supervisor */}
                 {development.supervisor && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <User size={10} className="text-neutral-400 shrink-0" />
@@ -273,7 +267,6 @@ const DevelopmentDetail: React.FC = () => {
                     <Text variant="caption" weight="medium">{development.supervisor}</Text>
                   </Text>
                 )}
-                {/* Ejecutor */}
                 {development.analista && (
                   <Text as="span" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-neutral-200/60 dark:border-neutral-700/60 bg-white dark:bg-neutral-800 w-fit">
                     <User size={10} className="text-neutral-400 shrink-0" />
@@ -287,12 +280,34 @@ const DevelopmentDetail: React.FC = () => {
         )}
       </div>
 
-
-
       {development && (
         <WbsTab ref={wbsRef} developmentId={development.id} darkMode={darkMode} />
       )}
 
+      {editTarget && (
+        <EditDevelopmentModal
+          development={{
+            id: editTarget.id,
+            name: editTarget.name ?? editTarget.nombre,
+            descripcion: editTarget.description ?? editTarget.descripcion,
+            modulo: editTarget.modulo,
+            tipo: editTarget.tipo,
+            fecha_inicio: editTarget.start_date ?? editTarget.fecha_inicio,
+            fecha_estimada_fin: editTarget.estimated_end_date ?? editTarget.fecha_estimada_fin,
+            autoridad: editTarget.authority ?? editTarget.autoridad,
+            autoridad_id: editTarget.authority_id,
+            responsible: editTarget.responsible ?? editTarget.responsable,
+            responsible_id: editTarget.responsible_id,
+            analista: editTarget.analista,
+            analista_id: editTarget.analista_id,
+            supervisor: editTarget.supervisor,
+            area_desarrollo: editTarget.area_desarrollo,
+            area_ejecutor: editTarget.area_ejecutor,
+          }}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => { loadDevelopment(); setEditTarget(null); }}
+        />
+      )}
     </div>
   );
 };

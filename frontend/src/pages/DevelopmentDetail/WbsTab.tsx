@@ -765,6 +765,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                 userMap={userMap}
                 onResolveValidation={handleResolveValidation}
                 resolvingIds={resolvingIds}
+                onEdit={handleEditTask}
             />
         </div>
     );
