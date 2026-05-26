@@ -34,15 +34,17 @@ def main():
             # Preparar payload de desarrollo
             dev_payload = {**COMMON_DEV_CONFIG, **dev_data}
             
-            # Crear el desarrollo
+            # Crear el desarrollo (incluyendo area_desarrollo y area_ejecutor)
             cur.execute("""
                 INSERT INTO desarrollos (
                     id, nombre, descripcion, modulo, tipo, ambiente,
                     responsable, responsable_id, analista, autoridad, supervisor, creado_por_id,
+                    area_desarrollo, area_ejecutor,
                     estado_general, estado_validacion, porcentaje_progreso, creado_en
                 ) VALUES (
                     %(id)s, %(nombre)s, %(descripcion)s, %(modulo)s, %(tipo)s, %(ambiente)s,
                     %(responsable)s, %(responsable_id)s, %(analista)s, %(autoridad)s, %(supervisor)s, %(creado_por_id)s,
+                    %(area_desarrollo)s, %(area_ejecutor)s,
                     %(estado_general)s, %(estado_validacion)s, %(porcentaje_progreso)s, NOW()
                 )
             """, dev_payload)
