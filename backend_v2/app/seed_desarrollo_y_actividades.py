@@ -9,7 +9,7 @@ if not DB_URL:
 
 def main():
     print("=" * 60)
-    print(" CARGA DE DESARROLLO Y MATRIZ DE ACTIVIDADES")
+    print(" CARGA DE DESARROLLO Y MATRIZ DE ACTIVIDADES (CON RESPONSIBILIDADES)")
     print("=" * 60)
 
     try:
@@ -22,7 +22,7 @@ def main():
         return
 
     try:
-        # 1. Crear el desarrollo
+        # 1. Crear o actualizar el desarrollo
         cur.execute("SELECT id FROM desarrollos WHERE id = %s", (DESARROLLO["id"],))
         if cur.fetchone():
             print(f"ℹ️ El desarrollo '{DESARROLLO['id']}' ya existe. Limpiando actividades previas...")
@@ -33,14 +33,24 @@ def main():
             cur.execute("""
                 UPDATE desarrollos 
                 SET nombre = %(nombre)s, descripcion = %(descripcion)s, modulo = %(modulo)s, 
-                    tipo = %(tipo)s, estado_general = %(estado_general)s, estado_validacion = %(estado_validacion)s
+                    tipo = %(tipo)s, ambiente = %(ambiente)s, responsable = %(responsable)s,
+                    responsable_id = %(responsable_id)s, analista = %(analista)s, autoridad = %(autoridad)s,
+                    supervisor = %(supervisor)s, creado_por_id = %(creado_por_id)s,
+                    estado_general = %(estado_general)s, estado_validacion = %(estado_validacion)s
                 WHERE id = %(id)s
             """, DESARROLLO)
         else:
             print(f"🆕 Creando desarrollo '{DESARROLLO['id']}'...")
             cur.execute("""
-                INSERT INTO desarrollos (id, nombre, descripcion, modulo, tipo, estado_general, estado_validacion, porcentaje_progreso, creado_en)
-                VALUES (%(id)s, %(nombre)s, %(descripcion)s, %(modulo)s, %(tipo)s, %(estado_general)s, %(estado_validacion)s, %(porcentaje_progreso)s, NOW())
+                INSERT INTO desarrollos (
+                    id, nombre, descripcion, modulo, tipo, ambiente,
+                    responsable, responsable_id, analista, autoridad, supervisor, creado_por_id,
+                    estado_general, estado_validacion, porcentaje_progreso, creado_en
+                ) VALUES (
+                    %(id)s, %(nombre)s, %(descripcion)s, %(modulo)s, %(tipo)s, %(ambiente)s,
+                    %(responsable)s, %(responsable_id)s, %(analista)s, %(autoridad)s, %(supervisor)s, %(creado_por_id)s,
+                    %(estado_general)s, %(estado_validacion)s, %(porcentaje_progreso)s, NOW()
+                )
             """, DESARROLLO)
         
         # 2. Insertar las actividades jerárquicamente
@@ -56,9 +66,11 @@ def main():
             cur.execute("""
                 INSERT INTO actividades (
                     desarrollo_id, parent_id, titulo, descripcion, estado, 
+                    responsable_id, asignado_a_id, delegado_por_id,
                     estado_validacion, horas_estimadas, horas_reales, porcentaje_avance, creado_en
                 ) VALUES (
                     %s, %s, %s, %s, %s,
+                    'USR-1107068093', 'USR-1107068093', 'USR-14836440',
                     'aprobada', 0.0, 0.0, 0.0, NOW()
                 ) RETURNING id;
             """, (DESARROLLO["id"], parent_id, act["titulo"], act["descripcion"], act["estado"]))

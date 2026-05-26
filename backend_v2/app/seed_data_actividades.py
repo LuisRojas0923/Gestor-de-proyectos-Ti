@@ -1,13 +1,22 @@
 from decimal import Decimal
 
 DESARROLLO = {
-    "id": "ACT-00001",
-    "nombre": "GESTION DE ACTIVIDADES",
-    "descripcion": "Matriz de Actividades y Tareas para la Gestión de Actividades",
-    "modulo": "Actividades",
+    "id": "ACT-00049",
+    "nombre": "Portal de Servicios",
+    "descripcion": "Matriz de Actividades y Tareas para el Portal de Servicios",
+    "modulo": "Portal de Servicios",
     "tipo": "Proyecto",
+    "ambiente": "Portal",
+    "responsable": "OSORIO LENIS HARRY",
+    "responsable_id": "USR-14836440",
+    "analista": "ROJAS VILLOTA LUIS ENRIQUE",
+    "autoridad": "TORRES AGUDELO MARIBELL",
+    "supervisor": "ROJAS VILLOTA LUIS ENRIQUE",
+    "creado_por_id": "USR-1107068093",
     "estado_general": "En Progreso",
     "estado_validacion": "aprobada",
+    "area_desarrollo": "TODAS",
+    "area_ejecutor": "WELLDONE",
     "porcentaje_progreso": Decimal("0.0")
 }
 
