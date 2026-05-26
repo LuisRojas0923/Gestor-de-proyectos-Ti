@@ -1,11 +1,7 @@
 from decimal import Decimal
 
-DESARROLLO = {
-    "id": "ACT-00049",
-    "nombre": "Portal de Servicios",
-    "descripcion": "Matriz de Actividades y Tareas para el Portal de Servicios",
-    "modulo": "Portal de Servicios",
-    "tipo": "Proyecto",
+# Configuración común para todos los desarrollos basada en ACT-00001
+COMMON_DEV_CONFIG = {
     "ambiente": "Portal",
     "responsable": "OSORIO LENIS HARRY",
     "responsable_id": "USR-14836440",
@@ -13,397 +9,187 @@ DESARROLLO = {
     "autoridad": "TORRES AGUDELO MARIBELL",
     "supervisor": "ROJAS VILLOTA LUIS ENRIQUE",
     "creado_por_id": "USR-1107068093",
-    "estado_general": "En Progreso",
     "estado_validacion": "aprobada",
     "area_desarrollo": "TODAS",
     "area_ejecutor": "WELLDONE",
     "porcentaje_progreso": Decimal("0.0")
 }
 
-ACTIVIDADES = [
-    # --- 1. Consulta y Construcción de Proveedores ---
+DEVELOPMENTS_DATA = [
     {
-        "titulo": "1. Consulta y Construcción de Proveedores",
+        "id": "ACT-00049",
+        "nombre": "1. Consulta y Construcción de Proveedores",
         "descripcion": "Construcción de módulo para consulta de catálogo de productos y fuentes",
-        "estado": "En Progreso",
-        "parent_ref": None
+        "estado_general": "En Progreso",
+        "modulo": "Proveedores",
+        "tipo": "Proyecto",
+        "tareas": [
+            "Indentificacion de la fuente de datos en excel",
+            "Contruccion del scrip de carga de datos hacia posgresql ( RDX)",
+            "Validación de resultados",
+            "Despliegue en servidor"
+        ]
     },
     {
-        "titulo": "Indentificacion de la fuente de datos en excel",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 0
-    },
-    {
-        "titulo": "Contruccion del scrip de carga de datos hacia posgresql ( RDX)",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 0
-    },
-    {
-        "titulo": "Validación de resultados",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 0
-    },
-    {
-        "titulo": "Despliegue en servidor",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 0
-    },
-
-    # --- 2. Logística ---
-    {
-        "titulo": "2. Logística",
-        "descripcion": "Gestión de inventarios y formularios de solicitudes",
-        "estado": "En Progreso",
-        "parent_ref": None
-    },
-    {
-        "titulo": "2.1 Inventario Físico",
+        "id": "ACT-00050",
+        "nombre": "2.1 Inventario Físico",
         "descripcion": "Sistema de gestión de inventario físico implementado",
-        "estado": "Completado",
-        "parent_ref": 5
+        "estado_general": "Completado",
+        "tipo": "Proyecto",
+        "modulo": "Logística",
+        "tareas": []
     },
     {
-        "titulo": "2.2 Adaptación para Inventarios Cíclicos",
+        "id": "ACT-00051",
+        "nombre": "2.2 Adaptación para Inventarios Cíclicos",
         "descripcion": "Módulo para gestionar ciclos de inventario",
-        "estado": "En Progreso",
-        "parent_ref": 5
+        "estado_general": "En Progreso",
+        "tipo": "Proyecto",
+        "modulo": "Logística",
+        "tareas": [
+            "Recibinento de la solicitud",
+            "Levantamiento del proceso"
+        ]
     },
     {
-        "titulo": "Recibinento de la solicitud",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 7
-    },
-    {
-        "titulo": "Levantamiento del proceso",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 7
-    },
-    {
-        "titulo": "2.3 Formularios del Sistema de Solicitudes",
+        "id": "ACT-00052",
+        "nombre": "2.3 Formularios del Sistema de Solicitudes",
         "descripcion": "Desarrollo de formularios para solicitudes de logística",
-        "estado": "En Progreso",
-        "parent_ref": 5
+        "estado_general": "En Progreso",
+        "tipo": "Proyecto",
+        "modulo": "Logística",
+        "tareas": [
+            "Diseño de tarjetas",
+            "Diseño de interfaz de formularios",
+            "Validaciones de campos",
+            "Integración con flujo de aprobación RDX (Enterprice)",
+            "Pruebas funcionales"
+        ]
     },
     {
-        "titulo": "Diseño de tarjetas",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 10
-    },
-    {
-        "titulo": "Diseño de interfaz de formularios",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 10
-    },
-    {
-        "titulo": "Validaciones de campos",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 10
-    },
-    {
-        "titulo": "Integración con flujo de aprobación RDX (Enterprice)",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 10
-    },
-    {
-        "titulo": "Pruebas funcionales",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 10
-    },
-
-    # --- 3. Gestión Humana ---
-    {
-        "titulo": "3. Gestión Humana",
-        "descripcion": "Procesos y módulos de Gestión Humana y Viáticos",
-        "estado": "En Progreso",
-        "parent_ref": None
-    },
-    {
-        "titulo": "3.1 Certificado de Ingresos y Retenciones",
+        "id": "ACT-00053",
+        "nombre": "3.1 Certificado de Ingresos y Retenciones",
         "descripcion": "Generación de certificados laborales para empleados",
-        "estado": "Pendiente",
-        "parent_ref": 16
+        "estado_general": "Pendiente",
+        "tipo": "Proyecto",
+        "modulo": "Gestión Humana",
+        "tareas": [
+            "Diseño de estructura de certificado",
+            "Validación de datos laborales",
+            "Generación en PDF",
+            "Envío automatizado"
+        ]
     },
     {
-        "titulo": "Diseño de estructura de certificado",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 17
-    },
-    {
-        "titulo": "Validación de datos laborales",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 17
-    },
-    {
-        "titulo": "Generación en PDF",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 17
-    },
-    {
-        "titulo": "Envío automatizado",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 17
-    },
-    {
-        "titulo": "4.1 Ingreso de Legalizaciones Web",
+        "id": "ACT-00054",
+        "nombre": "4.1 Ingreso de Legalizaciones Web",
         "descripcion": "Plataforma para legalizaciones de viáticos en línea",
-        "estado": "Pendiente",
-        "parent_ref": 16
+        "estado_general": "Pendiente",
+        "tipo": "Proyecto",
+        "modulo": "Gestión Humana",
+        "tareas": [
+            "Interfaz de carga de documentos",
+            "Validación de recibos",
+            "Flujo de aprobación",
+            "Integración con contabilidad"
+        ]
     },
     {
-        "titulo": "Interfaz de carga de documentos",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 22
-    },
-    {
-        "titulo": "Validación de recibos",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 22
-    },
-    {
-        "titulo": "Flujo de aprobación",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 22
-    },
-    {
-        "titulo": "Integración con contabilidad",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 22
-    },
-    {
-        "titulo": "4.2 Generación de Estado de Cuenta en PDF y Portal",
+        "id": "ACT-00055",
+        "nombre": "4.2 Generación de Estado de Cuenta en PDF y Portal",
         "descripcion": "Reporte visual de viáticos por empleado",
-        "estado": "Pendiente",
-        "parent_ref": 16
+        "estado_general": "Pendiente",
+        "tipo": "Proyecto",
+        "modulo": "Gestión Humana",
+        "tareas": [
+            "Template de PDF",
+            "Widget en portal",
+            "Cálculo de saldos",
+            "Descargabilidad"
+        ]
     },
     {
-        "titulo": "Template de PDF",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 27
-    },
-    {
-        "titulo": "Widget en portal",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 27
-    },
-    {
-        "titulo": "Cálculo de saldos",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 27
-    },
-    {
-        "titulo": "Descargabilidad",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 27
-    },
-    {
-        "titulo": "4.3 Generación de Estado de Cuenta en XLS",
+        "id": "ACT-00056",
+        "nombre": "4.3 Generación de Estado de Cuenta en XLS",
         "descripcion": "Exportación de datos de viáticos a formato Excel",
-        "estado": "En Progreso",
-        "parent_ref": 16
+        "estado_general": "En Progreso",
+        "tipo": "Proyecto",
+        "modulo": "Gestión Humana",
+        "tareas": [
+            "Estructura de columnas",
+            "Estilos y formato",
+            "Validación de datos"
+        ]
     },
     {
-        "titulo": "Estructura de columnas",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 32
-    },
-    {
-        "titulo": "Estilos y formato",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 32
-    },
-    {
-        "titulo": "Validación de datos",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 32
-    },
-    {
-        "titulo": "5.1 Matriz de Celulares",
+        "id": "ACT-00057",
+        "nombre": "5.1 Matriz de Celulares",
         "descripcion": "Control y asignación de dispositivos móviles corporativos",
-        "estado": "En Progreso",
-        "parent_ref": 16
+        "estado_general": "En Progreso",
+        "tipo": "Proyecto",
+        "modulo": "Gestión Humana",
+        "tareas": [
+            "Registro de equipos",
+            "Asignación a empleados",
+            "Seguimiento de mantenimiento",
+            "Control de costos",
+            "Auditoría de uso"
+        ]
     },
     {
-        "titulo": "Registro de equipos",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 36
-    },
-    {
-        "titulo": "Asignación a empleados",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 36
-    },
-    {
-        "titulo": "Seguimiento de mantenimiento",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 36
-    },
-    {
-        "titulo": "Control de costos",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 36
-    },
-    {
-        "titulo": "Auditoría de uso",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 36
-    },
-
-    # --- 6. Funcionalidades Generales ---
-    {
-        "titulo": "6. Funcionalidades Generales",
-        "descripcion": "Módulos y funciones transversales del portal",
-        "estado": "En Progreso",
-        "parent_ref": None
-    },
-    {
-        "titulo": "6.1 Funcionalidades de Aprobación de Solicitud de Desarrollos",
+        "id": "ACT-00058",
+        "nombre": "6.1 Funcionalidades de Aprobación de Solicitud de Desarrollos",
         "descripcion": "Flujo de aprobación para solicitudes de desarrollo",
-        "estado": "Pendiente",
-        "parent_ref": 42
+        "estado_general": "Pendiente",
+        "tipo": "Proyecto",
+        "modulo": "Funcionalidades Generales",
+        "tareas": [
+            "Configuración de niveles de aprobación",
+            "Notificaciones a aprobadores",
+            "Registro de decisiones",
+            "Auditoría completa"
+        ]
     },
     {
-        "titulo": "Configuración de niveles de aprobación",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 43
-    },
-    {
-        "titulo": "Notificaciones a aprobadores",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 43
-    },
-    {
-        "titulo": "Registro de decisiones",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 43
-    },
-    {
-        "titulo": "Auditoría completa",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 43
-    },
-    {
-        "titulo": "6.2 Reserva de Salas",
+        "id": "ACT-00059",
+        "nombre": "6.2 Reserva de Salas",
         "descripcion": "Sistema de reservación de espacios y salas de reunión",
-        "estado": "Pendiente",
-        "parent_ref": 42
+        "estado_general": "Pendiente",
+        "tipo": "Proyecto",
+        "modulo": "Funcionalidades Generales",
+        "tareas": [
+            "Calendario de disponibilidad",
+            "Validación de conflictos",
+            "Notificaciones de reserva",
+            "Cancelación y reprogramación"
+        ]
     },
     {
-        "titulo": "Calendario de disponibilidad",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 48
-    },
-    {
-        "titulo": "Validación de conflictos",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 48
-    },
-    {
-        "titulo": "Notificaciones de reserva",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 48
-    },
-    {
-        "titulo": "Cancelación y reprogramación",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 48
-    },
-    {
-        "titulo": "6.3 Funcionalidades de Respuesta a Solicitud de Tickets",
+        "id": "ACT-00060",
+        "nombre": "6.3 Funcionalidades de Respuesta a Solicitud de Tickets",
         "descripcion": "Sistema de gestión de tickets y respuestas",
-        "estado": "En Progreso",
-        "parent_ref": 42
+        "estado_general": "En Progreso",
+        "tipo": "Proyecto",
+        "modulo": "Funcionalidades Generales",
+        "tareas": [
+            "Módulo de respuesta técnica",
+            "Seguimiento de estado",
+            "Escalamiento de tickets",
+            "Base de conocimiento de soluciones"
+        ]
     },
     {
-        "titulo": "Módulo de respuesta técnica",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 53
-    },
-    {
-        "titulo": "Seguimiento de estado",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 53
-    },
-    {
-        "titulo": "Escalamiento de tickets",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 53
-    },
-    {
-        "titulo": "Base de conocimiento de soluciones",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 53
-    },
-    {
-        "titulo": "6.4 Módulo de Gestión de Actividades",
+        "id": "ACT-00061",
+        "nombre": "6.4 Módulo de Gestión de Actividades",
         "descripcion": "Control y seguimiento de actividades por proyecto",
-        "estado": "En Progreso",
-        "parent_ref": 42
-    },
-    {
-        "titulo": "Creación de actividades",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 58
-    },
-    {
-        "titulo": "Asignación de responsables",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 58
-    },
-    {
-        "titulo": "Seguimiento de hitos",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 58
-    },
-    {
-        "titulo": "Reportes de avance",
-        "descripcion": None,
-        "estado": "Pendiente",
-        "parent_ref": 58
+        "estado_general": "En Progreso",
+        "tipo": "Proyecto",
+        "modulo": "Funcionalidades Generales",
+        "tareas": [
+            "Creación de actividades",
+            "Asignación de responsables",
+            "Seguimiento de hitos",
+            "Reportes de avance"
+        ]
     }
 ]
