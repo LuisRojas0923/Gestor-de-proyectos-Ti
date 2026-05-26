@@ -10,8 +10,7 @@ COMMON_DEV_CONFIG = {
     "supervisor": "ROJAS VILLOTA LUIS ENRIQUE",
     "creado_por_id": "USR-1107068093",
     "estado_validacion": "aprobada",
-    "area_desarrollo": "TODAS",
-    "area_ejecutor": "WELLDONE",
+    "area_ejecutor": "D&DT",       # Definido por el usuario
     "porcentaje_progreso": Decimal("0.0")
 }
 
@@ -23,6 +22,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "En Progreso",
         "modulo": "Proveedores",
         "tipo": "Proyecto",
+        "area_desarrollo": "Compras",  # Inferido de Proveedores/Catálogo
         "tareas": [
             {"titulo": "Identificación de la fuente de datos en Excel (Catalogo de Artículos)", "estado": "Completado"},
             {"titulo": "Construcción del script de carga hacia PostgreSQL", "estado": "Completado"},
@@ -37,6 +37,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Logística",
+        "area_desarrollo": "Logística",
         "tareas": [
             {"titulo": "Pantalla de captura para conteo físico de activos", "estado": "Completado"},
             {"titulo": "Generación de informes de inconsistencias y auditoría", "estado": "Completado"},
@@ -50,6 +51,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "En Progreso",
         "tipo": "Proyecto",
         "modulo": "Logística",
+        "area_desarrollo": "Logística",
         "tareas": [
             {"titulo": "Recibimiento de solicitud de parametrización", "estado": "Completado"},
             {"titulo": "Levantamiento del proceso y lógica de ciclos", "estado": "En Progreso"}
@@ -62,6 +64,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "En Progreso",
         "tipo": "Proyecto",
         "modulo": "Logística",
+        "area_desarrollo": "Logística",
         "tareas": [
             {"titulo": "Diseño de interfaz de formularios de almacén", "estado": "Completado"},
             {"titulo": "Validación de campos obligatorios en el frontend", "estado": "Completado"},
@@ -77,6 +80,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Pendiente",
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
+        "area_desarrollo": "Gestión Humana",
         "tareas": [
             {"titulo": "Diseño del layout del certificado laboral", "estado": "Pendiente"},
             {"titulo": "Validación de datos de nómina", "estado": "Pendiente"},
@@ -91,6 +95,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "En Progreso",
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
+        "area_desarrollo": "Contabilidad",  # Inferido de viáticos/legalización contable
         "tareas": [
             {"titulo": "Interfaz de carga de documentos y adjuntos (soporte)", "estado": "Completado"},
             {"titulo": "Validación y parseo de recibos y facturas", "estado": "Completado"},
@@ -105,6 +110,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
+        "area_desarrollo": "Contabilidad",
         "tareas": [
             {"titulo": "Template visual para exportación a PDF", "estado": "Completado"},
             {"titulo": "Widget interactivo de saldos en el portal", "estado": "Completado"},
@@ -118,6 +124,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "En Progreso",
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
+        "area_desarrollo": "Contabilidad",
         "tareas": [
             {"titulo": "Diseño de estructura de columnas para reporte de gastos", "estado": "Completado"},
             {"titulo": "Definición de estilos y formato de celdas", "estado": "En Progreso"},
@@ -131,6 +138,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "En Progreso",
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
+        "area_desarrollo": "Administrativa",  # Inferido de asignación de celulares
         "tareas": [
             {"titulo": "Registro e inventario de líneas corporativas", "estado": "Completado"},
             {"titulo": "Mapeo de asignaciones de equipos a empleados", "estado": "Completado"},
@@ -145,6 +153,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Pendiente",
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
+        "area_desarrollo": "Sistemas",  # Inferido de aprobación de desarrollos TI
         "tareas": [
             {"titulo": "Configuración de matrices de niveles de aprobación", "estado": "Pendiente"},
             {"titulo": "Notificaciones en tiempo real a aprobadores", "estado": "Pendiente"},
@@ -158,6 +167,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
+        "area_desarrollo": "Administrativa",  # Inferido de gestión de instalaciones
         "tareas": [
             {"titulo": "Calendario de disponibilidad de salas en tiempo real", "estado": "Completado"},
             {"titulo": "Control de conflictos de horarios y duplicaciones", "estado": "Completado"},
@@ -172,6 +182,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
+        "area_desarrollo": "Sistemas",  # Inferido de Soporte/Sistemas
         "tareas": [
             {"titulo": "Módulo de respuesta técnica y chat interno en ticket", "estado": "Completado"},
             {"titulo": "Gestión de estados del ticket (Abierto, En Proceso, Resuelto)", "estado": "Completado"},
@@ -186,6 +197,7 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
+        "area_desarrollo": "Sistemas",  # Inferido de Gestión de Actividades TI
         "tareas": [
             {"titulo": "Creación de actividades WBS desde el portal", "estado": "Completado"},
             {"titulo": "Asignación jerárquica de responsables y analistas", "estado": "Completado"},
