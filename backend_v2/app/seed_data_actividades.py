@@ -24,10 +24,10 @@ DEVELOPMENTS_DATA = [
         "modulo": "Proveedores",
         "tipo": "Proyecto",
         "tareas": [
-            "Indentificacion de la fuente de datos en excel",
-            "Contruccion del scrip de carga de datos hacia posgresql ( RDX)",
-            "Validación de resultados",
-            "Despliegue en servidor"
+            {"titulo": "Identificación de la fuente de datos en Excel (Catalogo de Artículos)", "estado": "Completado"},
+            {"titulo": "Construcción del script de carga hacia PostgreSQL", "estado": "Completado"},
+            {"titulo": "Validación de resultados e inconsistencias", "estado": "En Progreso"},
+            {"titulo": "Despliegue y automatización en servidor", "estado": "Pendiente"}
         ]
     },
     {
@@ -37,7 +37,11 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Logística",
-        "tareas": []
+        "tareas": [
+            {"titulo": "Pantalla de captura para conteo físico de activos", "estado": "Completado"},
+            {"titulo": "Generación de informes de inconsistencias y auditoría", "estado": "Completado"},
+            {"titulo": "Sincronización de datos con el módulo de Inventario Anual", "estado": "Completado"}
+        ]
     },
     {
         "id": "ACT-00051",
@@ -47,8 +51,8 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Logística",
         "tareas": [
-            "Recibinento de la solicitud",
-            "Levantamiento del proceso"
+            {"titulo": "Recibimiento de solicitud de parametrización", "estado": "Completado"},
+            {"titulo": "Levantamiento del proceso y lógica de ciclos", "estado": "En Progreso"}
         ]
     },
     {
@@ -59,11 +63,11 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Logística",
         "tareas": [
-            "Diseño de tarjetas",
-            "Diseño de interfaz de formularios",
-            "Validaciones de campos",
-            "Integración con flujo de aprobación RDX (Enterprice)",
-            "Pruebas funcionales"
+            {"titulo": "Diseño de interfaz de formularios de almacén", "estado": "Completado"},
+            {"titulo": "Validación de campos obligatorios en el frontend", "estado": "Completado"},
+            {"titulo": "Diseño de tarjetas de estado de pedidos", "estado": "Completado"},
+            {"titulo": "Integración con el flujo de aprobación RDX", "estado": "En Progreso"},
+            {"titulo": "Pruebas funcionales integradas", "estado": "Pendiente"}
         ]
     },
     {
@@ -74,38 +78,37 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
         "tareas": [
-            "Diseño de estructura de certificado",
-            "Validación de datos laborales",
-            "Generación en PDF",
-            "Envío automatizado"
+            {"titulo": "Diseño del layout del certificado laboral", "estado": "Pendiente"},
+            {"titulo": "Validación de datos de nómina", "estado": "Pendiente"},
+            {"titulo": "Generación del reporte en formato PDF", "estado": "Pendiente"},
+            {"titulo": "Envío automático por correo corporativo", "estado": "Pendiente"}
         ]
     },
     {
         "id": "ACT-00054",
         "nombre": "4.1 Ingreso de Legalizaciones Web",
         "descripcion": "Plataforma para legalizaciones de viáticos en línea",
-        "estado_general": "Pendiente",
+        "estado_general": "En Progreso",
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
         "tareas": [
-            "Interfaz de carga de documentos",
-            "Validación de recibos",
-            "Flujo de aprobación",
-            "Integración con contabilidad"
+            {"titulo": "Interfaz de carga de documentos y adjuntos (soporte)", "estado": "Completado"},
+            {"titulo": "Validación y parseo de recibos y facturas", "estado": "Completado"},
+            {"titulo": "Flujo de aprobación multinivel por jefatura", "estado": "Completado"},
+            {"titulo": "Integración con el módulo contable", "estado": "En Progreso"}
         ]
     },
     {
         "id": "ACT-00055",
         "nombre": "4.2 Generación de Estado de Cuenta en PDF y Portal",
         "descripcion": "Reporte visual de viáticos por empleado",
-        "estado_general": "Pendiente",
+        "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
         "tareas": [
-            "Template de PDF",
-            "Widget en portal",
-            "Cálculo de saldos",
-            "Descargabilidad"
+            {"titulo": "Template visual para exportación a PDF", "estado": "Completado"},
+            {"titulo": "Widget interactivo de saldos en el portal", "estado": "Completado"},
+            {"titulo": "Cálculo automático de saldos de viáticos", "estado": "Completado"}
         ]
     },
     {
@@ -116,9 +119,9 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
         "tareas": [
-            "Estructura de columnas",
-            "Estilos y formato",
-            "Validación de datos"
+            {"titulo": "Diseño de estructura de columnas para reporte de gastos", "estado": "Completado"},
+            {"titulo": "Definición de estilos y formato de celdas", "estado": "En Progreso"},
+            {"titulo": "Validación de datos exportados contra base de datos", "estado": "Pendiente"}
         ]
     },
     {
@@ -129,11 +132,10 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
         "tareas": [
-            "Registro de equipos",
-            "Asignación a empleados",
-            "Seguimiento de mantenimiento",
-            "Control de costos",
-            "Auditoría de uso"
+            {"titulo": "Registro e inventario de líneas corporativas", "estado": "Completado"},
+            {"titulo": "Mapeo de asignaciones de equipos a empleados", "estado": "Completado"},
+            {"titulo": "Seguimiento de mantenimientos y reparaciones", "estado": "En Progreso"},
+            {"titulo": "Control de costos y auditoría de uso mensual", "estado": "Pendiente"}
         ]
     },
     {
@@ -144,52 +146,51 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
         "tareas": [
-            "Configuración de niveles de aprobación",
-            "Notificaciones a aprobadores",
-            "Registro de decisiones",
-            "Auditoría completa"
+            {"titulo": "Configuración de matrices de niveles de aprobación", "estado": "Pendiente"},
+            {"titulo": "Notificaciones en tiempo real a aprobadores", "estado": "Pendiente"},
+            {"titulo": "Módulo de firmas digitales y registro de decisiones", "estado": "Pendiente"}
         ]
     },
     {
         "id": "ACT-00059",
         "nombre": "6.2 Reserva de Salas",
         "descripcion": "Sistema de reservación de espacios y salas de reunión",
-        "estado_general": "Pendiente",
+        "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
         "tareas": [
-            "Calendario de disponibilidad",
-            "Validación de conflictos",
-            "Notificaciones de reserva",
-            "Cancelación y reprogramación"
+            {"titulo": "Calendario de disponibilidad de salas en tiempo real", "estado": "Completado"},
+            {"titulo": "Control de conflictos de horarios y duplicaciones", "estado": "Completado"},
+            {"titulo": "Módulo de notificaciones de confirmación de reserva", "estado": "Completado"},
+            {"titulo": "Flujo de cancelación y reprogramación", "estado": "Completado"}
         ]
     },
     {
         "id": "ACT-00060",
         "nombre": "6.3 Funcionalidades de Respuesta a Solicitud de Tickets",
         "descripcion": "Sistema de gestión de tickets y respuestas",
-        "estado_general": "En Progreso",
+        "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
         "tareas": [
-            "Módulo de respuesta técnica",
-            "Seguimiento de estado",
-            "Escalamiento de tickets",
-            "Base de conocimiento de soluciones"
+            {"titulo": "Módulo de respuesta técnica y chat interno en ticket", "estado": "Completado"},
+            {"titulo": "Gestión de estados del ticket (Abierto, En Proceso, Resuelto)", "estado": "Completado"},
+            {"titulo": "Escalamiento automático por SLA", "estado": "Completado"},
+            {"titulo": "Historial y base de conocimiento de soluciones", "estado": "Completado"}
         ]
     },
     {
         "id": "ACT-00061",
         "nombre": "6.4 Módulo de Gestión de Actividades",
         "descripcion": "Control y seguimiento de actividades por proyecto",
-        "estado_general": "En Progreso",
+        "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
         "tareas": [
-            "Creación de actividades",
-            "Asignación de responsables",
-            "Seguimiento de hitos",
-            "Reportes de avance"
+            {"titulo": "Creación de actividades WBS desde el portal", "estado": "Completado"},
+            {"titulo": "Asignación jerárquica de responsables y analistas", "estado": "Completado"},
+            {"titulo": "Seguimiento visual en diagrama de Gantt híbrido", "estado": "Completado"},
+            {"titulo": "Cálculo automático y propagación de avances", "estado": "Completado"}
         ]
     }
 ]

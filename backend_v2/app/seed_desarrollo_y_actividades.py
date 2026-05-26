@@ -49,20 +49,20 @@ def main():
             print(f"  ✅ Desarrollo creado.")
 
             # Crear las subtareas
-            for tarea_titulo in dev_data["tareas"]:
+            for tarea in dev_data["tareas"]:
                 cur.execute("""
                     INSERT INTO actividades (
                         desarrollo_id, parent_id, titulo, descripcion, estado, 
                         responsable_id, asignado_a_id, delegado_por_id,
                         estado_validacion, horas_estimadas, horas_reales, porcentaje_avance, creado_en
                     ) VALUES (
-                        %s, NULL, %s, NULL, 'Pendiente',
+                        %s, NULL, %s, NULL, %s,
                         'USR-1107068093', 'USR-1107068093', 'USR-14836440',
                         'aprobada', 0.0, 0.0, 0.0, NOW()
                     ) RETURNING id;
-                """, (dev_id, tarea_titulo))
+                """, (dev_id, tarea["titulo"], tarea["estado"]))
                 new_act_id = cur.fetchone()[0]
-                print(f"    - Subtarea [{new_act_id}]: {tarea_titulo}")
+                print(f"    - Subtarea [{new_act_id}] ({tarea['estado']}): {tarea['titulo']}")
 
         # Guardar cambios
         conn.commit()
