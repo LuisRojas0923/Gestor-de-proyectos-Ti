@@ -24,6 +24,11 @@ async_engine = create_async_engine(
     max_overflow=80,
     pool_timeout=60,
     pool_recycle=1800,
+    connect_args={
+        "server_settings": {
+            "client_encoding": "utf8"
+        }
+    },
 )
 
 # SessionMaker ASINCRONO
@@ -55,7 +60,11 @@ engine = sync_engine
 # --- Configuracion ERP Externo (se mantiene sincrono) ---
 ERP_DATABASE_URL = config.erp_database_url
 erp_engine = create_engine(
-    ERP_DATABASE_URL, pool_pre_ping=True, pool_size=5, max_overflow=10
+    ERP_DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10,
+    connect_args={"options": "-c client_encoding=utf8"},
 )
 SessionErp = sessionmaker(autocommit=False, autoflush=False, bind=erp_engine)
 

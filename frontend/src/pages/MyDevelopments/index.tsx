@@ -1,0 +1,196 @@
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Search } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useDevelopments } from './hooks/useDevelopments';
+import { useNotifications } from '../../components/notifications/NotificationsContext';
+import { DataTable } from '../../components/molecules/DataTable';
+import { useColumnFilters } from '../../hooks/useColumnFilters';
+import { CreateDevelopmentModal } from './CreateDevelopmentModal';
+import EditDevelopmentModal from './EditDevelopmentModal';
+import { useApi } from '../../hooks/useApi';
+import { Button } from '../../components/atoms';
+
+import { MyDevelopmentsHeader } from './components/MyDevelopmentsHeader';
+import { MyDevelopmentsDeleteModal } from './components/MyDevelopmentsDeleteModal';
+import {
+  getColumns,
+  getColumnAccessors,
+  getDevelopmentName,
+  getDevelopmentStatus,
+  DevelopmentRow,
+} from './components/columns';
+
+const MyDevelopments: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isPortal = location.pathname.startsWith('/service-portal');
+  const { developments, loadDevelopments } = useDevelopments();
+  const { addNotification } = useNotifications();
+  const { delete: apiDelete, get: apiGet } = useApi();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [peopleSearch, setPeopleSearch] = useState('');
+  const [editTarget, setEditTarget] = useState<DevelopmentRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DevelopmentRow | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => { loadDevelopments(); }, [loadDevelopments]);
+
+  useEffect(() => {
+    apiGet('/jerarquia/usuarios-disponibles').then((users: unknown) => {
+      if (Array.isArray(users)) {
+        setUserMap(new Map((users as { id: string; nombre: string }[]).map((u) => [u.id, u.nombre])));
+      }
+    }).catch(() => undefined);
+  }, [apiGet]);
+
+  const resolveUserName = useCallback((value?: string | null) => {
+    if (!value) return undefined;
+    if (value.startsWith('USR-')) return userMap.get(value) ?? value;
+    return value;
+  }, [userMap]);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await apiDelete(`/desarrollos/${deleteTarget.id}`);
+      addNotification('success', `Actividad "${getDevelopmentName(deleteTarget)}" eliminada`);
+      setDeleteTarget(null);
+      loadDevelopments();
+    } catch {
+      addNotification('error', 'Error al eliminar la actividad');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const columnAccessors = useMemo(() => getColumnAccessors(resolveUserName), [resolveUserName]);
+
+  const {
+    filteredData,
+    uniqueValues,
+    filters,
+    clearAllFilters,
+    setColumnFilter,
+    activeFilterCount,
+    sortState,
+    setSort,
+  } = useColumnFilters(developments || [], columnAccessors, 'my_developments');
+
+  const columns = useMemo(() => getColumns(resolveUserName), [resolveUserName]);
+
+  const displayData = useMemo(() => {
+    if (!peopleSearch.trim()) return filteredData;
+    const q = peopleSearch.toLowerCase();
+    return filteredData.filter(dev => {
+      const authority   = (resolveUserName(dev.authority ?? dev.autoridad) || dev.authority || dev.autoridad || '').toLowerCase();
+      const responsible = (resolveUserName(dev.responsible ?? dev.responsable) || dev.responsible || dev.responsable || '').toLowerCase();
+      const supervisor  = (resolveUserName(dev.supervisor) || dev.supervisor || '').toLowerCase();
+      const analista    = (resolveUserName(dev.analista) || dev.analista || '').toLowerCase();
+      return authority.includes(q) || responsible.includes(q) || supervisor.includes(q) || analista.includes(q);
+    });
+  }, [filteredData, peopleSearch, resolveUserName]);
+
+  const statusGroups = useMemo(() =>
+    displayData.reduce<Record<string, number>>((acc, dev) => {
+      const s = getDevelopmentStatus(dev) || 'Sin estado';
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {}),
+  [displayData]);
+
+  return (
+    <div className="space-y-4">
+      <MyDevelopmentsHeader
+        isPortal={isPortal}
+        totalCount={displayData.length}
+        statusGroups={statusGroups}
+        activeFilterCount={activeFilterCount}
+        clearAllFilters={clearAllFilters}
+        peopleSearch={peopleSearch}
+        setPeopleSearch={setPeopleSearch}
+        onOpenCreateModal={() => setIsCreateModalOpen(true)}
+      />
+
+      <DataTable<DevelopmentRow>
+        columns={columns}
+        data={displayData}
+        keyExtractor={(dev) => String(dev.id)}
+        onRowClick={(dev) => navigate(isPortal ? `/service-portal/desarrollos/${dev.id}?tab=bitacora` : `/developments/${dev.id}?tab=bitacora`)}
+        columnFilters={filters}
+        columnOptions={uniqueValues}
+        onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
+        activeSortKey={sortState?.key ?? null}
+        activeSortDir={sortState?.dir ?? null}
+        onSort={setSort}
+        renderRowActions={(dev) => (
+          <>
+            <Button
+              variant="custom"
+              onClick={(e) => { e.stopPropagation(); setEditTarget(dev); }}
+              className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all border border-indigo-500/20 inline-flex items-center justify-center"
+              title="Actualizar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </Button>
+            <Button
+              variant="custom"
+              onClick={(e) => { e.stopPropagation(); setDeleteTarget(dev); }}
+              className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 inline-flex items-center justify-center"
+              title="Eliminar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+            </Button>
+          </>
+        )}
+        actionsMinWidth="120px"
+        emptyIcon={<Search size={40} className="opacity-40" />}
+        emptyMessage="No se encontraron actividades"
+        maxHeight="max-h-[calc(100vh-420px)]"
+      />
+
+      <CreateDevelopmentModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSaved={() => { loadDevelopments(); addNotification('success', 'Actividad creada exitosamente'); }}
+        darkMode={false}
+      />
+
+      {editTarget && (
+        <EditDevelopmentModal
+          development={{
+            id: editTarget.id,
+            name: editTarget.name ?? editTarget.nombre,
+            descripcion: editTarget.description ?? editTarget.descripcion,
+            modulo: editTarget.modulo,
+            tipo: editTarget.tipo,
+            fecha_inicio: editTarget.start_date ?? editTarget.fecha_inicio,
+            fecha_estimada_fin: editTarget.estimated_end_date ?? editTarget.fecha_estimada_fin,
+            autoridad: editTarget.authority ?? editTarget.autoridad,
+            autoridad_id: editTarget.authority_id,
+            responsible: editTarget.responsible ?? editTarget.responsable,
+            responsible_id: editTarget.responsible_id,
+            analista: editTarget.analista,
+            analista_id: editTarget.analista_id,
+            supervisor: editTarget.supervisor,
+            area_desarrollo: editTarget.area_desarrollo,
+            area_ejecutor: editTarget.area_ejecutor,
+          }}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => { loadDevelopments(); addNotification('success', 'Actividad actualizada exitosamente'); setEditTarget(null); }}
+        />
+      )}
+
+      <MyDevelopmentsDeleteModal
+        isOpen={!!deleteTarget}
+        name={deleteTarget ? getDevelopmentName(deleteTarget) : ''}
+        deleteLoading={deleteLoading}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+      />
+    </div>
+  );
+};
+
+export default MyDevelopments;

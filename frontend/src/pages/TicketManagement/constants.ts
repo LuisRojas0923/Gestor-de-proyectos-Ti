@@ -25,7 +25,7 @@ export const SUB_STATUS_OPTIONS: Record<string, { value: string, label: string }
         { value: "Asignado", label: "Asignado" }
     ],
     'Proceso': [
-        { value: "Proceso", label: "En Proceso" },
+        { value: "Proceso", label: "En proceso" },
         { value: "Pendiente Información", label: "Pendiente Info" }
     ],
     'Cerrado': [
@@ -74,6 +74,6 @@ export const getPriorityVariant = (priority: string): 'error' | 'warning' | 'suc
 export const STATS_CARDS = (counts: { total: number, pendiente: number, proceso: number, cerrado: number }) => [
     { label: 'Total Tickets', count: counts.total, color: 'blue', icon: Inbox },
     { label: 'Pendientes', count: counts.pendiente, color: 'blue', icon: AlertCircle },
-    { label: 'En Proceso', count: counts.proceso, color: 'yellow', icon: RefreshCw },
+    { label: 'En proceso', count: counts.proceso, color: 'yellow', icon: RefreshCw },
     { label: 'Cerrados', count: counts.cerrado, color: 'green', icon: CheckCircle },
 ];

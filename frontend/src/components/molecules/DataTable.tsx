@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { Text, Button } from '../atoms';
 import { FilterDropdown } from './FilterDropdown';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 
 export interface DataTableColumn<T> {
     key: string;
@@ -16,6 +17,7 @@ export interface DataTableColumn<T> {
     /** Clases extra aplicadas al wrapper de la celda en el body, e.g. 'px-6'. */
     cellClassName?: string;
     render?: (row: T) => React.ReactNode;
+    subFilters?: { key: string; label: string }[];
 }
 
 export interface DataTableProps<T> {
@@ -41,7 +43,7 @@ export interface DataTableProps<T> {
 
     activeSortKey?: string | null;
     activeSortDir?: 'asc' | 'desc' | null;
-    onSort?: (key: string, dir: 'asc' | 'desc') => void;
+    onSort?: (key: string, dir: 'asc' | 'desc' | null) => void;
 
     isLoading?: boolean;
     loadingMessage?: string;
@@ -84,7 +86,8 @@ export function DataTable<T>({
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
     const [filterSearchTerm, setFilterSearchTerm] = useState('');
-    const [tempFilters, setTempFilters] = useState<Set<string>>(new Set());
+    const [activeSubFilter, setActiveSubFilter] = useState<string | null>(null);
+    const [tempSubFilters, setTempSubFilters] = useState<Record<string, Set<string>>>({});
     const headerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     const bodyGridRef = useRef<HTMLDivElement>(null);
     const headerGridRef = useRef<HTMLDivElement>(null);
@@ -129,44 +132,75 @@ export function DataTable<T>({
             setActiveFilter(null);
             setAnchorRect(null);
             setFilterSearchTerm('');
+            setActiveSubFilter(null);
         } else {
             setActiveFilter(key);
             setAnchorRect(rect);
             setFilterSearchTerm('');
-            setTempFilters(columnFilters[key] || new Set());
+            const col = columns.find(c => c.key === key);
+            const firstSubKey = col?.subFilters && col.subFilters.length > 0 ? col.subFilters[0].key : key;
+            setActiveSubFilter(firstSubKey);
+            
+            const initialTemp: Record<string, Set<string>> = {};
+            if (col?.subFilters && col.subFilters.length > 0) {
+                col.subFilters.forEach(sub => {
+                    initialTemp[sub.key] = new Set(columnFilters[sub.key] || []);
+                });
+            } else {
+                initialTemp[key] = new Set(columnFilters[key] || []);
+            }
+            setTempSubFilters(initialTemp);
         }
-    }, [activeFilter, columnFilters]);
+    }, [activeFilter, columnFilters, columns]);
 
     const handleToggleOption = useCallback((value: string) => {
-        setTempFilters(prev => {
-            const next = new Set(prev);
-            if (next.has(value)) next.delete(value);
-            else next.add(value);
+        if (!activeSubFilter) return;
+        setTempSubFilters(prev => {
+            const next = { ...prev };
+            const currentSet = new Set(next[activeSubFilter] || []);
+            if (currentSet.has(value)) currentSet.delete(value);
+            else currentSet.add(value);
+            next[activeSubFilter] = currentSet;
             return next;
         });
-    }, []);
+    }, [activeSubFilter]);
 
     const handleApplyFilter = useCallback(() => {
         if (activeFilter && onFilterChange) {
-            onFilterChange(activeFilter, tempFilters);
+            const col = columns.find(c => c.key === activeFilter);
+            if (col?.subFilters && col.subFilters.length > 0) {
+                col.subFilters.forEach(sub => {
+                    onFilterChange(sub.key, tempSubFilters[sub.key] || new Set());
+                });
+            } else {
+                onFilterChange(activeFilter, tempSubFilters[activeFilter] || new Set());
+            }
         }
         setActiveFilter(null);
         setAnchorRect(null);
         setFilterSearchTerm('');
-    }, [activeFilter, tempFilters, onFilterChange]);
+        setActiveSubFilter(null);
+    }, [activeFilter, tempSubFilters, onFilterChange, columns]);
 
-    const getFilterOptions = (key: string) =>
+    const getFilterOptions = useCallback((key: string) =>
         (columnOptions[key] || [])
             .filter(o => o.toLowerCase().includes(filterSearchTerm.toLowerCase()))
-            .map(opt => ({ value: opt, label: opt }));
+            .map(opt => ({ value: opt, label: opt })), [columnOptions, filterSearchTerm]);
 
-    const hasFilterActive = (key: string) => {
+    const hasFilterActive = useCallback((key: string) => {
+        const col = columns.find(c => c.key === key);
+        if (col?.subFilters && col.subFilters.length > 0) {
+            return col.subFilters.some(sub => {
+                const f = columnFilters[sub.key];
+                return !!(f && f.size > 0);
+            });
+        }
         const f = columnFilters[key];
         return !!(f && f.size > 0);
-    };
+    }, [columnFilters, columns]);
 
-    const isAllSelected = activeFilter
-        ? tempFilters.size === getFilterOptions(activeFilter).length
+    const isAllSelected = activeFilter && activeSubFilter
+        ? (tempSubFilters[activeSubFilter]?.size ?? 0) === getFilterOptions(activeSubFilter).length
         : false;
 
     return (
@@ -176,21 +210,34 @@ export function DataTable<T>({
             {activeFilter && anchorRect && (
                 <FilterDropdown
                     isOpen
-                    onClose={() => { setActiveFilter(null); setAnchorRect(null); }}
+                    onClose={() => { setActiveFilter(null); setAnchorRect(null); setActiveSubFilter(null); }}
                     anchorRect={anchorRect}
                     title={columns.find(c => c.key === activeFilter)?.label}
                     type="categorical"
                     searchTerm={filterSearchTerm}
                     onSearchChange={setFilterSearchTerm}
-                    onSelectAll={() => setTempFilters(new Set(getFilterOptions(activeFilter).map(o => o.value)))}
+                    onSelectAll={() => {
+                        if (!activeSubFilter) return;
+                        setTempSubFilters(prev => {
+                            const next = { ...prev };
+                            next[activeSubFilter] = new Set(getFilterOptions(activeSubFilter).map(o => o.value));
+                            return next;
+                        });
+                    }}
                     isAllSelected={isAllSelected}
-                    options={getFilterOptions(activeFilter)}
-                    tempValue={Array.from(tempFilters)}
+                    options={getFilterOptions(activeSubFilter || activeFilter)}
+                    tempValue={Array.from(tempSubFilters[activeSubFilter || activeFilter] || [])}
                     onToggleOption={handleToggleOption}
                     onApply={handleApplyFilter}
                     triggerHeight={40}
                     sortDir={activeFilter === activeSortKey ? activeSortDir : null}
                     onSort={onSort ? (dir) => { onSort(activeFilter!, dir); } : undefined}
+                    subFilters={columns.find(c => c.key === activeFilter)?.subFilters}
+                    activeSubFilter={activeSubFilter || undefined}
+                    onSubFilterChange={(subKey) => {
+                        setActiveSubFilter(subKey);
+                        setFilterSearchTerm('');
+                    }}
                 />
             )}
 
@@ -223,7 +270,7 @@ export function DataTable<T>({
                                     transition-all duration-200
                                 `}
                             >
-                                <div className="flex items-center gap-2 overflow-hidden">
+                                <div className="flex items-center gap-1.5 overflow-hidden">
                                     <Text
                                         variant="caption"
                                         weight="bold"
@@ -235,6 +282,13 @@ export function DataTable<T>({
                                     >
                                         {col.label}
                                     </Text>
+                                    {activeSortKey === col.key && activeSortDir && (
+                                        activeSortDir === 'asc' ? (
+                                            <ArrowUp size={11} className="text-yellow-400 shrink-0 animate-in fade-in slide-in-from-bottom-1 duration-200" />
+                                        ) : (
+                                            <ArrowDown size={11} className="text-yellow-400 shrink-0 animate-in fade-in slide-in-from-top-1 duration-200" />
+                                        )
+                                    )}
                                 </div>
                             </Button>
                         ))}

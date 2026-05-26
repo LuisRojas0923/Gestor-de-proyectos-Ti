@@ -66,7 +66,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
                   activity.status === 'pendiente' ? 'error' : 'default'
             }
           >
-            {activity.status.toUpperCase().replace('_', ' ')}
+            {activity.status === 'en_curso' ? 'EN PROCESO' : activity.status.toUpperCase().replace('_', ' ')}
           </Badge>
           <Badge variant="default">
             {activity.stage_code || 'N/A'}. {activity.stage_name}

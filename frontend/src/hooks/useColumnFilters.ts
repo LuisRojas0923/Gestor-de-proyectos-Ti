@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 
-type SortState = { key: string; dir: 'asc' | 'desc' } | null;
+type SortState = { key: string; dir: 'asc' | 'desc' | null } | null;
 
 export function useColumnFilters<T>(
   data: T[],
@@ -61,13 +61,18 @@ export function useColumnFilters<T>(
       return true;
     });
 
-    if (!sortState) return filtered;
-    const accessor = columnAccessors[sortState.key];
+    let activeSort = sortState;
+    if ((!activeSort || !activeSort.dir) && 'id' in columnAccessors) {
+      activeSort = { key: 'id', dir: 'asc' };
+    }
+
+    if (!activeSort || !activeSort.dir) return filtered;
+    const accessor = columnAccessors[activeSort.key];
     if (!accessor) return filtered;
     return [...filtered].sort((a, b) => {
       const av = String(accessor(a) ?? '');
       const bv = String(accessor(b) ?? '');
-      return sortState.dir === 'asc'
+      return activeSort.dir === 'asc'
         ? av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' })
         : bv.localeCompare(av, undefined, { numeric: true, sensitivity: 'base' });
     });
@@ -99,8 +104,12 @@ export function useColumnFilters<T>(
     setFilters(prev => ({ ...prev, [columnKey]: newSet }));
   };
 
-  const setSort = (key: string, dir: 'asc' | 'desc') => {
-    setSortState({ key, dir });
+  const setSort = (key: string, dir: 'asc' | 'desc' | null) => {
+    if (dir === null) {
+      setSortState(null);
+    } else {
+      setSortState({ key, dir });
+    }
   };
 
   const clearSort = () => setSortState(null);

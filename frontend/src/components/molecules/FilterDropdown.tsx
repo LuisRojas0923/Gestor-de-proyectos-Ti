@@ -25,11 +25,14 @@ interface FilterDropdownProps {
 
     // Ordenación
     sortDir?: 'asc' | 'desc' | null;
-    onSort?: (dir: 'asc' | 'desc') => void;
+    onSort?: (dir: 'asc' | 'desc' | null) => void;
 
     onApply: () => void;
     placeholder?: string;
     triggerHeight?: number;
+    subFilters?: { key: string; label: string }[];
+    activeSubFilter?: string;
+    onSubFilterChange?: (key: string) => void;
 }
 
 export const FilterDropdown: React.FC<FilterDropdownProps> = ({
@@ -51,7 +54,10 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
     onSort,
     onApply,
     placeholder = 'Buscar...',
-    triggerHeight = 40
+    triggerHeight = 40,
+    subFilters,
+    activeSubFilter,
+    onSubFilterChange,
 }) => {
     const dropdownRef = useRef<HTMLDivElement>(null);
     const months = [
@@ -122,6 +128,30 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
                 </Button>
             </div>
 
+            {/* Sub-filtros */}
+            {subFilters && subFilters.length > 0 && (
+                <div className="flex border-b border-neutral-100 dark:border-slate-800 p-1 gap-1 bg-neutral-50 dark:bg-slate-900/50 shrink-0">
+                    {subFilters.map((sub) => {
+                        const isActive = sub.key === activeSubFilter;
+                        return (
+                            <Button
+                                key={sub.key}
+                                variant="custom"
+                                size="xs"
+                                onClick={() => onSubFilterChange?.(sub.key)}
+                                className={`flex-1 !py-1 !text-[9px] font-semibold rounded-lg transition-all ${
+                                    isActive
+                                        ? 'bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/40 shadow-sm'
+                                        : 'bg-transparent border border-transparent text-neutral-500 hover:bg-neutral-100/70 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-slate-800/70'
+                                }`}
+                            >
+                                {sub.label}
+                            </Button>
+                        );
+                    })}
+                </div>
+            )}
+
             {/* Contenido según tipo */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {type === 'categorical' ? (
@@ -135,7 +165,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
                                 <Button
                                     variant="custom"
                                     size="sm"
-                                    onClick={() => onSort('asc')}
+                                    onClick={() => onSort(sortDir === 'asc' ? null : 'asc')}
                                     title="Ascendente (A → Z)"
                                     className={`!w-6 !h-6 !p-0 rounded-lg border transition-all ${
                                         sortDir === 'asc'
@@ -148,7 +178,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
                                 <Button
                                     variant="custom"
                                     size="sm"
-                                    onClick={() => onSort('desc')}
+                                    onClick={() => onSort(sortDir === 'desc' ? null : 'desc')}
                                     title="Descendente (Z → A)"
                                     className={`!w-6 !h-6 !p-0 rounded-lg border transition-all ${
                                         sortDir === 'desc'

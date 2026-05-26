@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { HierarchyUser } from '../../types/hierarchy';
 import { Button, Input, Text } from '../atoms';
 
@@ -16,6 +17,8 @@ const HierarchyAutocomplete: React.FC<HierarchyAutocompleteProps> = ({
 }) => {
     const [query, setQuery] = useState(value);
     const [open, setOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
 
     useEffect(() => {
         setQuery(value);
@@ -31,8 +34,48 @@ const HierarchyAutocomplete: React.FC<HierarchyAutocompleteProps> = ({
             : options
     ).slice(0, 8);
 
+    const updateCoords = useCallback(() => {
+        if (containerRef.current) {
+            const inputElement = containerRef.current.querySelector('input');
+            if (inputElement) {
+                const rect = inputElement.getBoundingClientRect();
+                setCoords({
+                    top: rect.bottom,
+                    left: rect.left,
+                    width: rect.width
+                });
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        if (open) {
+            updateCoords();
+            window.addEventListener('resize', updateCoords);
+            window.addEventListener('scroll', updateCoords, true);
+        }
+        return () => {
+            window.removeEventListener('resize', updateCoords);
+            window.removeEventListener('scroll', updateCoords, true);
+        };
+    }, [open, updateCoords]);
+
+    const handleBlur = () => {
+        setTimeout(() => {
+            setOpen(false);
+        }, 150);
+    };
+
+    const dropdownStyle: React.CSSProperties = {
+        position: 'fixed',
+        top: coords ? `${coords.top + 4}px` : undefined,
+        left: coords ? `${coords.left}px` : undefined,
+        width: coords ? `${coords.width}px` : undefined,
+        zIndex: 99999,
+    };
+
     return (
-        <div className="w-full relative">
+        <div ref={containerRef} className="w-full relative">
             <Text as="label" variant="body2" weight="medium" color="text-primary" className="block mb-1">
                 {label}
             </Text>
@@ -47,10 +90,13 @@ const HierarchyAutocomplete: React.FC<HierarchyAutocompleteProps> = ({
                     if (!text) onSelect({ id: '', nombre: '', rol: '', cedula: '' });
                 }}
                 onFocus={() => setOpen(true)}
-                onBlur={() => setTimeout(() => setOpen(false), 150)}
+                onBlur={handleBlur}
             />
-            {open && filtered.length > 0 && (
-                <div className="absolute z-50 mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl max-h-52 overflow-y-auto custom-scrollbar">
+            {open && filtered.length > 0 && coords && createPortal(
+                <div 
+                    className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl max-h-52 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-150 flex flex-col"
+                    style={dropdownStyle}
+                >
                     {filtered.map((user) => (
                         <Button
                             key={user.id}
@@ -62,13 +108,14 @@ const HierarchyAutocomplete: React.FC<HierarchyAutocompleteProps> = ({
                                 setOpen(false);
                             }}
                         >
-                            <Text variant="body2" weight="semibold" color="text-primary">{user.nombre}</Text>
-                            <Text as="span" variant="caption" color="text-secondary">
+                            <Text variant="body2" weight="semibold" color="text-primary" className="block">{user.nombre}</Text>
+                            <Text as="span" variant="caption" color="text-secondary" className="block mt-0.5">
                                 {[user.cedula, user.cargo || user.rol, user.area].filter(Boolean).join(' · ')}
                             </Text>
                         </Button>
                     ))}
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

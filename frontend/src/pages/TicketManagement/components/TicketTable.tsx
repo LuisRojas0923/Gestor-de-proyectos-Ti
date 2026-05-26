@@ -141,7 +141,7 @@ export const TicketTable: React.FC<TicketTableProps> = ({
             filterable: true,
             render: (ticket) => (
                 <Badge variant={getStatusVariant(ticket.estado)} size="sm" className="uppercase tracking-wider">
-                    {ticket.estado || 'PENDIENTE'}
+                    {ticket.estado === 'Proceso' ? 'En proceso' : (ticket.estado || 'PENDIENTE')}
                 </Badge>
             ),
         },
