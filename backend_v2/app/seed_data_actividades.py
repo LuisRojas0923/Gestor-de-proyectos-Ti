@@ -1,10 +1,10 @@
 from decimal import Decimal
 
 DESARROLLO = {
-    "id": "ACT-00049",
-    "nombre": "Portal de Servicios",
-    "descripcion": "Matriz de Actividades y Tareas para el Portal de Servicios",
-    "modulo": "Portal de Servicios",
+    "id": "ACT-00001",
+    "nombre": "GESTION DE ACTIVIDADES",
+    "descripcion": "Matriz de Actividades y Tareas para la Gestión de Actividades",
+    "modulo": "Actividades",
     "tipo": "Proyecto",
     "estado_general": "En Progreso",
     "estado_validacion": "aprobada",

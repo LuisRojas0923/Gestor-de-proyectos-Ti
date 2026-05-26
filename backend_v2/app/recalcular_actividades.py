@@ -10,13 +10,13 @@ from app.services.desarrollos.porcentaje_service import (
 
 async def recalcular_todo():
     print("=" * 60)
-    print(" RECALCULANDO PORCENTAJES Y PROGRESO DE ACTIVIDADES WBS")
+    print(" RECALCULANDO PORCENTAJES Y PROGRESO DE ACTIVIDADES WBS (ACT-00001)")
     print("=" * 60)
     
     async with AsyncSessionLocal() as db:
         try:
-            # 1. Obtener todas las actividades del desarrollo ACT-00049
-            stmt = select(Actividad).where(Actividad.desarrollo_id == "ACT-00049")
+            # 1. Obtener todas las actividades del desarrollo ACT-00001
+            stmt = select(Actividad).where(Actividad.desarrollo_id == "ACT-00001")
             result = await db.execute(stmt)
             actividades = result.scalars().all()
             
@@ -33,8 +33,8 @@ async def recalcular_todo():
                 await recalcular_porcentaje_jerarquico(db, hoja)
             
             # 2. Recalcular el progreso general del desarrollo
-            print("\n -> Recalculando porcentaje general del desarrollo ACT-00049...")
-            await recalcular_progreso_desarrollo(db, "ACT-00049")
+            print("\n -> Recalculando porcentaje general del desarrollo ACT-00001...")
+            await recalcular_progreso_desarrollo(db, "ACT-00001")
             
             await db.commit()
             print("\n🎉 Recálculo de porcentajes y progreso finalizado con éxito!")
