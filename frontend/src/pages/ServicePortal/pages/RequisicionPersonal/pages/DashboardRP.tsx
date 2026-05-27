@@ -10,7 +10,6 @@ interface Props {
   onNueva: () => void;
   onMisRequisiciones: () => void;
   onAprobaciones: () => void;
-  onGestionHumana: () => void;
   onVolver: () => void;
 }
 
@@ -27,7 +26,7 @@ const ICONOS: Record<string, React.ElementType> = {
   CANCELADA: XCircle,
 };
 
-const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onAprobaciones, onGestionHumana, onVolver }) => {
+const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onAprobaciones, onVolver }) => {
   const [dashboard, setDashboard] = useState<DashboardRP | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -56,12 +55,11 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
       </div>
 
       {/* Acciones rápidas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: 'Nueva Requisición', icon: Plus, action: onNueva, color: 'bg-[var(--color-primary)] text-white hover:opacity-90' },
           { label: 'Mis Solicitudes', icon: List, action: onMisRequisiciones, color: 'bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]' },
           { label: 'Aprobaciones', icon: ThumbsUp, action: onAprobaciones, color: 'bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]' },
-          { label: 'Gestión Humana', icon: Settings, action: onGestionHumana, color: 'bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]' },
         ].map(({ label, icon: Icon, action, color }) => (
           <button key={label} onClick={action}
             className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl font-semibold text-sm transition-all ${color}`}>

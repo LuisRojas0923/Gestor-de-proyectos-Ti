@@ -62,6 +62,7 @@ import ComisionesView from './ServicePortal/pages/Comisiones';
 import PersonnelRequestView from './ServicePortal/pages/PersonnelRequestView';
 import { RequisicionPersonalRouter } from './ServicePortal/pages/RequisicionPersonal';
 import PerfilesCargo from './ServicePortal/pages/PerfilesCargo/PerfilesCargo';
+import BandejaGestionHumana from './ServicePortal/pages/RequisicionPersonal/pages/BandejaGestionHumana';
 
 import {
     CategoryWrapper,
@@ -238,6 +239,7 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'gestion_actividades') navigate('/service-portal/gestion-actividades');
                             else if (v === 'comisiones') navigate('/service-portal/comisiones');
                             else if (v === 'requisicion_personal') navigate('/service-portal/requisicion-personal');
+                            else if (v === 'seguimiento_rp_gh') navigate('/service-portal/seguimiento-rp-gh');
                             else if (v === 'perfiles_cargo') navigate('/service-portal/perfiles-cargo');
                         }}
                     />
@@ -448,6 +450,15 @@ const ServicePortal: React.FC = () => {
                 <Route path="requisicion-personal/*" element={
                     <ProtectedRoute moduleCode="requisicion_personal">
                         <RequisicionPersonalRouter user={user as any} />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="seguimiento-rp-gh" element={
+                    <ProtectedRoute moduleCode="gestion_humana">
+                        <BandejaGestionHumana
+                            onVer={(id) => navigate(`/service-portal/requisicion-personal/detalle/${id}`)}
+                            onVolver={() => navigate('/service-portal/inicio')}
+                        />
                     </ProtectedRoute>
                 } />
 

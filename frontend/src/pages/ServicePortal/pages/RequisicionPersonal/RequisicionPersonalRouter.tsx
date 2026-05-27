@@ -35,7 +35,6 @@ const RequisicionPersonalRouter: React.FC<RequisicionPersonalRouterProps> = ({ u
             onNueva={() => goTo('nueva')}
             onMisRequisiciones={() => goTo('mis-requisiciones')}
             onAprobaciones={() => goTo('aprobaciones')}
-            onGestionHumana={() => goTo('gestion-humana')}
             onVolver={() => navigate('/service-portal')}
           />
         } />
@@ -76,13 +75,7 @@ const RequisicionPersonalRouter: React.FC<RequisicionPersonalRouterProps> = ({ u
           />
         } />
 
-        {/* Bandeja Gestión Humana */}
-        <Route path="gestion-humana" element={
-          <BandejaGestionHumana
-            onVer={(id) => goTo(`detalle/${id}`)}
-            onVolver={() => goTo('')}
-          />
-        } />
+
 
         {/* Detalle */}
         <Route path="detalle/:id" element={

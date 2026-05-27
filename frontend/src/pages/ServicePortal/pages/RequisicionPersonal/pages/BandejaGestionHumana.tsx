@@ -1,9 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, RefreshCw, ArrowLeft } from 'lucide-react';
+import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users } from 'lucide-react';
 import { Title, Text, Select, Button } from '../../../../../components/atoms';
 import RPStatusBadge from '../components/RPStatusBadge';
-import type { RequisicionRP, EstadoRP } from '../types/requisicion.types';
-import { getBandejaGH, actualizarEstadoGH } from '../services/requisicionService';
+import type { RequisicionRP, EstadoRP, DashboardRP as DashboardRPType } from '../types/requisicion.types';
+import { getBandejaGH, actualizarEstadoGH, getDashboard } from '../services/requisicionService';
+import { ESTADO_COLORES, ESTADO_LABELS } from '../types/requisicion.types';
+
+const ICONOS: Record<string, React.ElementType> = {
+  BORRADOR: Archive,
+  PENDIENTE_APROBACION: Clock,
+  DEVUELTA_AJUSTE: XCircle,
+  APROBADA: CheckCircle,
+  RECHAZADA: XCircle,
+  EN_PROCESO_SELECCION: Users,
+  CANDIDATO_SELECCIONADO: CheckCircle,
+  EN_PROCESO_CONTRATACION: Briefcase,
+  CERRADA: Archive,
+  CANCELADA: XCircle,
+};
 
 const TRANSICIONES_GH: Record<string, { label: string; value: string }[]> = {
   APROBADA:               [{ value: 'EN_PROCESO_SELECCION', label: 'Iniciar proceso de selección' }, { value: 'CANCELADA', label: 'Cancelar' }],
@@ -19,12 +33,19 @@ interface Props {
 
 const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
   const [requisiciones, setRequisiciones] = useState<RequisicionRP[]>([]);
+  const [dashboard, setDashboard] = useState<DashboardRPType | null>(null);
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState<number | null>(null);
 
   const cargar = () => {
     setLoading(true);
-    getBandejaGH().then(setRequisiciones).catch(() => {}).finally(() => setLoading(false));
+    Promise.all([getBandejaGH(), getDashboard()])
+      .then(([reqs, dbData]) => {
+        setRequisiciones(reqs);
+        setDashboard(dbData);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { cargar(); }, []);
@@ -55,11 +76,47 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
         Volver
       </Button>
       <div className="flex items-center justify-between">
-        <Title variant="h5" weight="bold">Bandeja de Gestión Humana</Title>
+        <Title variant="h5" weight="bold">Seguimiento RP Gestión Humana</Title>
         <button onClick={cargar} className="p-2 rounded-xl hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] transition-colors">
           <RefreshCw className="w-5 h-5" />
         </button>
       </div>
+
+      {/* Tarjetas de Métricas del Dashboard */}
+      {dashboard && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {/* Total */}
+          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 flex items-center gap-4 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0">
+              <Briefcase className="w-5 h-5 text-[var(--color-primary)]" />
+            </div>
+            <div className="min-w-0">
+              <Text variant="caption" color="secondary" className="block truncate">Total</Text>
+              <div className="text-lg font-bold leading-none mt-0.5">{dashboard.total}</div>
+            </div>
+          </div>
+
+          {/* Estados principales */}
+          {['PENDIENTE_APROBACION', 'APROBADA', 'RECHAZADA', 'EN_PROCESO_SELECCION', 'CERRADA'].map(estado => {
+            const count = dashboard.por_estado[estado] || 0;
+            const colores = ESTADO_COLORES[estado as any] ?? { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' };
+            const Icon = ICONOS[estado] || Archive;
+            return (
+              <div key={estado} className={`rounded-2xl p-4 ${colores.bg} border border-transparent shadow-sm flex items-center gap-4`}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+                  <Icon className={`w-5 h-5 ${colores.text}`} />
+                </div>
+                <div className="min-w-0">
+                  <Text variant="caption" className={`block truncate font-medium ${colores.text}`}>
+                    {ESTADO_LABELS[estado as any] ?? estado}
+                  </Text>
+                  <div className={`text-lg font-bold leading-none mt-0.5 ${colores.text}`}>{count}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {requisiciones.length === 0 ? (
         <div className="text-center py-20 bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)]">

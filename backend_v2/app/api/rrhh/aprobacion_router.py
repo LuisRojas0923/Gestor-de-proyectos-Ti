@@ -12,6 +12,9 @@ from app.models.rrhh.solicitud_personal import RequisicionPersonal, EstadoRP
 from app.api.rrhh.schemas import RequisicionOut, AprobarPayload, RechazarPayload, DevolverPayload
 import app.services.rrhh.requisicion_service as svc
 import app.services.rrhh.email_rp_service as mail
+from app.api.auth.router import obtener_usuario_actual_db
+from app.models.auth.usuario import Usuario
+
 
 router = APIRouter(prefix="/requisiciones", tags=["RP — Aprobación"])
 
@@ -39,12 +42,12 @@ async def aprobar(
     requisicion_id: int,
     payload: AprobarPayload,
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Aprueba la requisición y notifica al solicitante y a GH."""
     try:
-        # TODO: extraer nombre/email del aprobador del token JWT
-        aprobador_nombre = "Gerente Aprobador"
-        aprobador_email = "aprobador@refridcol.com"
+        aprobador_nombre = usuario.nombre
+        aprobador_email = usuario.correo or ""
 
         req = await svc.aprobar_requisicion(
             db, requisicion_id, aprobador_nombre, aprobador_email, payload.observacion
@@ -69,11 +72,12 @@ async def rechazar(
     requisicion_id: int,
     payload: RechazarPayload,
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Rechaza la requisición con observación obligatoria y notifica al solicitante."""
     try:
-        aprobador_nombre = "Gerente Aprobador"
-        aprobador_email = "aprobador@refridcol.com"
+        aprobador_nombre = usuario.nombre
+        aprobador_email = usuario.correo or ""
 
         req = await svc.rechazar_requisicion(
             db, requisicion_id, aprobador_nombre, aprobador_email, payload.observacion
@@ -95,11 +99,12 @@ async def devolver(
     requisicion_id: int,
     payload: DevolverPayload,
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Devuelve la requisición para ajuste con observación obligatoria."""
     try:
-        aprobador_nombre = "Gerente Aprobador"
-        aprobador_email = "aprobador@refridcol.com"
+        aprobador_nombre = usuario.nombre
+        aprobador_email = usuario.correo or ""
 
         req = await svc.devolver_requisicion(
             db, requisicion_id, aprobador_nombre, aprobador_email, payload.observacion

@@ -1,5 +1,5 @@
 import { Title, Text, MaterialCard } from '../../../components/atoms';
-import { FileText, Briefcase, Plus, ChevronRight, Users, Settings } from 'lucide-react';
+import { FileText, Briefcase, Plus, ChevronRight, Users, Settings, UserCheck } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -11,7 +11,7 @@ import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'requisicion_personal' | 'perfiles_cargo') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'requisicion_personal' | 'seguimiento_rp_gh' | 'perfiles_cargo') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -103,8 +103,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         ['admin', 'director'].includes(userRole)
     );
 
-    const canSeeRequisicionPersonal = moduleStatus['requisicion_personal'] !== false && (
-        permissions.includes('requisicion_personal') ||
+    const canSeeRequisicionPersonal = moduleStatus['requisicion_personal'] !== false;
+
+    const canSeeSeguimientoRPGH = moduleStatus['requisicion_personal'] !== false && (
+        permissions.includes('gestion_humana') ||
         ['admin', 'director'].includes(userRole)
     );
 
@@ -192,6 +194,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                         description="Creación y seguimiento de solicitudes de contratación de personal."
                         icon={<Users className="w-8 h-8 text-[var(--color-primary)]" />}
                         onClick={() => onNavigate('requisicion_personal')}
+                    />
+                )}
+
+                {canSeeSeguimientoRPGH && (
+                    <ServicePortalCard
+                        title="Seguimiento RP Gestión Humana"
+                        description="Gestión y seguimiento del proceso de selección y contratación de requisiciones aprobadas."
+                        icon={<UserCheck className="w-8 h-8 text-[var(--color-primary)]" />}
+                        onClick={() => onNavigate('seguimiento_rp_gh')}
                     />
                 )}
 
