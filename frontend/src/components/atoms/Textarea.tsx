@@ -69,7 +69,7 @@ const Textarea: React.FC<TextareaProps> = ({
             <textarea // @audit-ok
                 placeholder={placeholder}
                 value={value}
-                defaultValue={defaultValue}
+                defaultValue={value !== undefined ? undefined : defaultValue}
                 disabled={disabled}
                 required={required}
                 rows={rows}

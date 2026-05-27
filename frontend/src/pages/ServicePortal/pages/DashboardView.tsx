@@ -1,5 +1,5 @@
 import { Title, Text, MaterialCard } from '../../../components/atoms';
-import { FileText, Briefcase, Plus, ChevronRight } from 'lucide-react';
+import { FileText, Briefcase, Plus, ChevronRight, Users, Settings } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -11,7 +11,7 @@ import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'requisicion_personal' | 'perfiles_cargo') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -103,6 +103,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         ['admin', 'director'].includes(userRole)
     );
 
+    const canSeeRequisicionPersonal = moduleStatus['requisicion_personal'] !== false && (
+        permissions.includes('requisicion_personal') ||
+        ['admin', 'director'].includes(userRole)
+    );
+
+    const canSeePerfilesCargo = moduleStatus['perfiles_cargo'] !== false && (
+        permissions.includes('perfiles_cargo') ||
+        ['admin', 'director'].includes(userRole)
+    );
+
     return (
         <div className="space-y-12 py-6">
             <div className="text-center space-y-2">
@@ -173,6 +183,24 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                         description="Toma física de inventario y carga masiva de conteos."
                         icon={<img src={imgInventario} alt="Inventario 2026" className="w-full h-full object-contain p-1" />}
                         onClick={() => onNavigate('inventario')}
+                    />
+                )}
+
+                {canSeeRequisicionPersonal && (
+                    <ServicePortalCard
+                        title="Requisición de Personal"
+                        description="Creación y seguimiento de solicitudes de contratación de personal."
+                        icon={<Users className="w-8 h-8 text-[var(--color-primary)]" />}
+                        onClick={() => onNavigate('requisicion_personal')}
+                    />
+                )}
+
+                {canSeePerfilesCargo && (
+                    <ServicePortalCard
+                        title="Perfiles de Cargo"
+                        description="Administración de áreas, cargos y sus relaciones de reporte jerárquico."
+                        icon={<Settings className="w-8 h-8 text-[var(--color-primary)]" />}
+                        onClick={() => onNavigate('perfiles_cargo')}
                     />
                 )}
 

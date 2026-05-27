@@ -23,8 +23,9 @@ export const StatusBadge: React.FC<{ status: TicketStatus | string }> = ({ statu
 
 export const FormField: React.FC<{
     label: string, name: string, type?: any, isRequired?: boolean,
-    placeholder?: string, defaultValue?: string | number, readOnly?: boolean, icon?: LucideIcon
-}> = ({ label, name, type = 'text', isRequired = true, placeholder, defaultValue, readOnly = false, icon }) => (
+    placeholder?: string, value?: string, defaultValue?: string | number, readOnly?: boolean, icon?: LucideIcon,
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void, min?: string | number, max?: string | number
+}> = ({ label, name, type = 'text', isRequired = true, placeholder, value, defaultValue, readOnly = false, icon, onChange, min, max }) => (
     <Input
         label={label}
         labelHint={placeholder}
@@ -32,16 +33,21 @@ export const FormField: React.FC<{
         type={type}
         required={isRequired && !readOnly}
         placeholder={undefined}
+        value={value}
         defaultValue={defaultValue?.toString()}
         disabled={readOnly}
         icon={icon}
+        onChange={onChange}
+        min={min}
+        max={max}
     />
 );
 
 export const TextAreaField: React.FC<{
     label: string, name: string, rows?: number, isRequired?: boolean,
-    placeholder?: string, defaultValue?: string, readOnly?: boolean
-}> = ({ label, name, rows = 3, isRequired = true, placeholder, defaultValue, readOnly = false }) => (
+    placeholder?: string, value?: string, defaultValue?: string, readOnly?: boolean,
+    onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+}> = ({ label, name, rows = 3, isRequired = true, placeholder, value, defaultValue, readOnly = false, onChange }) => (
     <Textarea
         label={label}
         labelHint={placeholder}
@@ -49,7 +55,9 @@ export const TextAreaField: React.FC<{
         rows={rows}
         required={isRequired && !readOnly}
         placeholder={undefined}
+        value={value}
         defaultValue={defaultValue}
         disabled={readOnly}
+        onChange={onChange}
     />
 );

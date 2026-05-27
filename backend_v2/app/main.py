@@ -40,6 +40,7 @@ from .api.inventario.router import router as inventario_router
 from .api.impuestos import router as impuestos_router
 from .api.lineas_corporativas.router import router as lineas_corporativas_router
 from .api.jerarquia import router as jerarquia_router
+from .api.rrhh.router import router as rrhh_router
 
 # Configurar logging centralizado
 logging.basicConfig(
@@ -202,6 +203,7 @@ app.include_router(
     prefix=f"{api_prefix}/validaciones-asignacion",
     tags=["Validaciones Asignacion"],
 )
+app.include_router(rrhh_router, prefix=f"{api_prefix}/rrhh", tags=["Recursos Humanos"])
 
 # Consolidated developments-activities endpoint and number-mapped endpoint
 app.include_router(desarrollos_actividades_router, prefix=api_prefix)

@@ -130,6 +130,20 @@ async def ejecutar_blindaje_estructural(conn):
         """
     )
 
+    # 8.5 Catálogos RP - Relaciones jerárquicas
+    await safe_execute(
+        conn,
+        'ALTER TABLE cargos_rp DROP CONSTRAINT IF EXISTS cargos_rp_cargo_superior_id_fkey'
+    )
+    await safe_execute(
+        conn,
+        'ALTER TABLE cargos_rp ADD COLUMN IF NOT EXISTS cargo_superior_id INTEGER'
+    )
+    await safe_execute(
+        conn,
+        'ALTER TABLE cargos_rp ADD CONSTRAINT cargos_rp_cargo_superior_id_fkey FOREIGN KEY (cargo_superior_id) REFERENCES aprobadores_area_rp(id)'
+    )
+
     # 9. Otros (Formato 2276, etc.)
     await safe_execute(conn, 'ALTER TABLE formato_2276 ADD COLUMN IF NOT EXISTS entidad_informante VARCHAR(10)')
 

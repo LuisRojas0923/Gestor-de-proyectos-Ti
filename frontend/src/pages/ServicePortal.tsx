@@ -59,6 +59,9 @@ import TablaMaestraView from './ServicePortal/pages/NOVEDADES_NOMINA/TablaMaestr
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
 import ComisionesView from './ServicePortal/pages/Comisiones';
+import PersonnelRequestView from './ServicePortal/pages/PersonnelRequestView';
+import { RequisicionPersonalRouter } from './ServicePortal/pages/RequisicionPersonal';
+import PerfilesCargo from './ServicePortal/pages/PerfilesCargo/PerfilesCargo';
 
 import {
     CategoryWrapper,
@@ -107,6 +110,40 @@ const ServicePortal: React.FC = () => {
     const onFeedbackSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         const success = await handleSendUserFeedback(e);
         if (success) navigate('/service-portal/mis-tickets');
+    };
+
+    const onPersonnelRequestSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setIsLoading(true);
+        const fd = new FormData(e.currentTarget);
+        
+        const payload = {
+            nombre_solicitante: fd.get('nombre'),
+            area_solicitante: fd.get('area'),
+            sede_solicitante: fd.get('sede'),
+            email_solicitante: fd.get('email'),
+            cargo_solicitado: fd.get('cargo_solicitado'),
+            cantidad: parseInt(fd.get('cantidad') as string) || 1,
+            justificacion: fd.get('descripcion_detallada'),
+            prioridad: fd.get('nivel_prioridad') || 'Media',
+            fecha_ideal_ingreso: fd.get('fecha_ideal') ? new Date(fd.get('fecha_ideal') as string).toISOString() : null,
+            ot: fd.get('ot') || 'N/A',
+            nombre_proyecto: fd.get('nombre_proyecto'),
+            direccion_laboral: fd.get('direccion_laboral')
+        };
+
+        try {
+            await axios.post(`${API_BASE_URL}/rrhh/solicitudes`, payload, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            addNotification('success', 'Solicitud de personal creada exitosamente');
+            navigate('/service-portal/inicio');
+        } catch (err: any) {
+            console.error("Error al crear solicitud de personal:", err);
+            addNotification('error', err.response?.data?.detail || 'Error al enviar la solicitud de personal');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const onSelectReport = async (reporte: any) => {
@@ -200,6 +237,8 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'contabilidad') navigate('/service-portal/gestion-humana');
                             else if (v === 'gestion_actividades') navigate('/service-portal/gestion-actividades');
                             else if (v === 'comisiones') navigate('/service-portal/comisiones');
+                            else if (v === 'requisicion_personal') navigate('/service-portal/requisicion-personal');
+                            else if (v === 'perfiles_cargo') navigate('/service-portal/perfiles-cargo');
                         }}
                     />
                 } />
@@ -403,6 +442,18 @@ const ServicePortal: React.FC = () => {
                 <Route path="comisiones" element={
                     <ProtectedRoute moduleCode="comisiones">
                         <ComisionesView />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="requisicion-personal/*" element={
+                    <ProtectedRoute moduleCode="requisicion_personal">
+                        <RequisicionPersonalRouter user={user as any} />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="perfiles-cargo" element={
+                    <ProtectedRoute moduleCode="perfiles_cargo">
+                        <PerfilesCargo onVolver={() => navigate('/service-portal/inicio')} />
                     </ProtectedRoute>
                 } />
 

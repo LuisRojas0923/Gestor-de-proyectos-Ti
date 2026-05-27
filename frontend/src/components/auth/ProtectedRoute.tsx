@@ -32,7 +32,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
     if (moduleCode && user.permissions) {
         // Módulos que son accesibles para todos los usuarios autenticados (manejan su propia lógica interna de permisos)
         const isGeneralAccessModule = ['contabilidad', 'viaticos_gestion', 'viaticos_reportes', 'viaticos_estado'].includes(moduleCode);
-        const hasBypass = isGeneralAccessModule || (user.viaticante === true && ['viaticos_gestion', 'viaticos_reportes', 'viaticos_estado'].includes(moduleCode));
+        const isAdminModule = moduleCode === 'perfiles_cargo' && isAdminRole;
+        const hasBypass = isGeneralAccessModule || isAdminModule || (user.viaticante === true && ['viaticos_gestion', 'viaticos_reportes', 'viaticos_estado'].includes(moduleCode));
 
         if (!user.permissions.includes(moduleCode) && !hasBypass) {
             // Si el usuario NO tiene permiso para este módulo y NO aplica la excepción de viaticante:

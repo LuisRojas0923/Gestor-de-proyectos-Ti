@@ -101,6 +101,20 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": False,
         "descripcion": "Gestión de certificados laborales, desprendibles de pago e información tributaria.",
     },
+    {
+        "id": "requisicion_personal",
+        "nombre": "Requisición de Personal",
+        "categoria": "portal",
+        "es_critico": False,
+        "descripcion": "Creación y seguimiento de solicitudes de contratación de personal.",
+    },
+    {
+        "id": "perfiles_cargo",
+        "nombre": "Perfiles de Cargo",
+        "categoria": "portal",
+        "es_critico": False,
+        "descripcion": "Administración de áreas, cargos y sus relaciones de reporte jerárquico.",
+    },
 
     # --- CATEGORÍA: ANALISTAS (Herramientas de Operación TI) ---
     {

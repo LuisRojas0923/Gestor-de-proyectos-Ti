@@ -4,6 +4,9 @@ from sqlmodel import SQLModel
 from app.core.migrations.structural_blindaje import ejecutar_blindaje_estructural
 from app.core.migrations.saneamiento_secuencias import reparar_todas_las_secuencias
 
+# Importar todos los modelos para que SQLModel.metadata los registre
+import app.models.rrhh  # noqa: F401 — Requisición de Personal
+
 logger = logging.getLogger(__name__)
 
 async def init_db_process(async_engine, AsyncSessionLocal):
@@ -117,3 +120,67 @@ async def ejecutar_seeds(AsyncSessionLocal):
                 
     except Exception as e:
         logger.error(f"Error fatal en ejecución de seeds: {e}")
+
+    # Seed catálogos del módulo Requisición de Personal
+    try:
+        async with AsyncSessionLocal() as session:
+            await seed_catalogos_rp(session)
+    except Exception as e:
+        logger.warning(f"Error en seed_catalogos_rp: {e}")
+
+async def seed_catalogos_rp(session):
+    """Inserta áreas, cargos y ciudades iniciales para el módulo RP si no existen."""
+    from app.models.rrhh.catalogos import AreaRP, CargoRP, CiudadRP
+    from sqlmodel import select
+
+    # Si ya existen áreas registradas en el sistema, omitimos todo el semillado por código
+    # para permitir que el módulo dinámico controle todo el ciclo de vida de los catálogos.
+    result_existente = await session.execute(select(AreaRP).limit(1))
+    if result_existente.scalars().first() is not None:
+        logger.info("[RP Seed] Ya existen registros de áreas. Omitiendo semillado estático.")
+        return
+
+    AREAS_CARGOS = {
+        "ADMINISTRACIÓN": [
+            "Coordinador administrativo DTI",
+            "Auxiliar servicios generales",
+            "Director administrativo",
+            "Jefe de gestión humana",
+        ]
+    }
+
+    CIUDADES = [
+        "BOGOTÁ", "MEDELLÍN", "CALI", "BARRANQUILLA", "BUCARAMANGA"
+    ]
+
+    try:
+        # Seed áreas y cargos iniciales (solo como bootstrap)
+        for area_nombre, cargos in AREAS_CARGOS.items():
+            res = await session.execute(select(AreaRP).where(AreaRP.nombre == area_nombre))
+            area = res.scalar_one_or_none()
+            if not area:
+                area = AreaRP(nombre=area_nombre)
+                session.add(area)
+                await session.flush()
+                logger.info(f"[RP Seed] Bootstrap: Área creada: {area_nombre}")
+
+            for cargo_nombre in cargos:
+                res_c = await session.execute(
+                    select(CargoRP).where(
+                        CargoRP.area_id == area.id, CargoRP.nombre == cargo_nombre
+                    )
+                )
+                if res_c.scalar_one_or_none() is None:
+                    session.add(CargoRP(area_id=area.id, nombre=cargo_nombre))
+
+        # Seed ciudades iniciales
+        for ciudad_nombre in CIUDADES:
+            res = await session.execute(select(CiudadRP).where(CiudadRP.nombre == ciudad_nombre))
+            if res.scalar_one_or_none() is None:
+                session.add(CiudadRP(nombre=ciudad_nombre))
+
+        await session.commit()
+        logger.info("[RP Seed] Bootstrap de catálogos RP completado.")
+    except Exception as e:
+        await session.rollback()
+        logger.warning(f"[RP Seed] Error en bootstrap de catálogos RP: {e}")
