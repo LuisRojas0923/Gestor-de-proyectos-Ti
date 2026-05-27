@@ -197,10 +197,10 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
                   </div>
 
                   <div>
-                    <Text className="font-bold text-slate-700 dark:text-neutral-300">Perfil / Habilidades Requeridas:</Text>
-                    <p className="mt-1 text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-line">
-                      {seleccionada.perfil_requerido || 'No especificado.'}
-                    </p>
+                    <Text className="font-bold text-slate-700 dark:text-neutral-300">Área y Cargo:</Text>
+                    <div className="mt-1 bg-slate-50 dark:bg-neutral-800 p-3 rounded-xl border border-slate-100 dark:border-neutral-700 text-[var(--color-text-secondary)]">
+                      <strong>Área:</strong> {seleccionada.area_nombre || '—'} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Cargo:</strong> {seleccionada.cargo_nombre || '—'}
+                    </div>
                   </div>
                 </div>
 
