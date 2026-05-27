@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users, Settings } from 'lucide-react';
 import { Title, Text, Select, Button } from '../../../../../components/atoms';
 import RPStatusBadge from '../components/RPStatusBadge';
-import type { RequisicionRP, EstadoRP, DashboardRP as DashboardRPType } from '../types/requisicion.types';
-import { getBandejaGH, actualizarEstadoGH, getDashboard } from '../services/requisicionService';
+import type { RequisicionRP, EstadoRP } from '../types/requisicion.types';
+import { getBandejaGH, actualizarEstadoGH } from '../services/requisicionService';
 import { ESTADO_COLORES, ESTADO_LABELS } from '../types/requisicion.types';
+import ConfigTemporalesModal from '../components/ConfigTemporalesModal';
+import DetalleSeguimientoRP from '../components/DetalleSeguimientoRP';
 
 const ICONOS: Record<string, React.ElementType> = {
   BORRADOR: Archive,
@@ -35,6 +38,22 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
   const [requisiciones, setRequisiciones] = useState<RequisicionRP[]>([]);
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState<number | null>(null);
+  const [selectedRequisicion, setSelectedRequisicion] = useState<RequisicionRP | null>(null);
+  const [showTemporalesConfig, setShowTemporalesConfig] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const selectedId = searchParams.get('id');
+
+  useEffect(() => {
+    if (selectedId) {
+      const found = requisiciones.find(r => r.id === Number(selectedId));
+      if (found) {
+        setSelectedRequisicion(found);
+      }
+    } else {
+      setSelectedRequisicion(null);
+    }
+  }, [selectedId, requisiciones]);
 
   const cargar = () => {
     setLoading(true);
@@ -62,6 +81,19 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
     }
   };
 
+  if (selectedRequisicion) {
+    return (
+      <DetalleSeguimientoRP
+        requisicion={selectedRequisicion}
+        onBack={() => {
+          setSearchParams({});
+          cargar();
+        }}
+        onStatusChanged={cargar}
+      />
+    );
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <div className="animate-spin w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full" />
@@ -75,9 +107,19 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       </Button>
       <div className="flex items-center justify-between">
         <Title variant="h5" weight="bold">Seguimiento RP Gestión Humana</Title>
-        <button onClick={cargar} className="p-2 rounded-xl hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] transition-colors">
-          <RefreshCw className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            icon={Settings}
+            onClick={() => setShowTemporalesConfig(true)}
+            className="text-xs font-bold"
+          >
+            Configurar Temporales
+          </Button>
+          <button onClick={cargar} className="p-2 rounded-xl hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] transition-colors">
+            <RefreshCw className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Tarjetas de Métricas del Dashboard */}
@@ -142,10 +184,16 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
                   <tr key={req.id} className="hover:bg-[var(--color-surface-secondary)] transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => onVer(req.id)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">
+                        <button onClick={() => onVer(req.id)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors" title="Ver Requisición">
                           <Eye className="w-4 h-4" />
                         </button>
-                        <span className="font-mono font-bold text-[var(--color-primary)]">{req.rp}</span>
+                        <button
+                          onClick={() => setSearchParams({ id: String(req.id) })}
+                          className="font-mono font-bold text-[var(--color-primary)] hover:underline transition-colors text-left"
+                          title="Gestionar Seguimiento y Candidatos"
+                        >
+                          {req.rp}
+                        </button>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -181,6 +229,13 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
             </tbody>
           </table>
         </div>
+      )}
+
+      {showTemporalesConfig && (
+        <ConfigTemporalesModal
+          onClose={() => setShowTemporalesConfig(false)}
+          onRefreshList={cargar}
+        />
       )}
     </div>
   );

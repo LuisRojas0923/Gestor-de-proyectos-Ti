@@ -2,7 +2,8 @@
 import axios from 'axios';
 import { API_CONFIG } from '../../../../../config/api';
 import type {
-  RequisicionRP, AreaRP, CargoRP, CiudadRP, AprobadorRP, DashboardRP, FormularioRP
+  RequisicionRP, AreaRP, CargoRP, CiudadRP, AprobadorRP, DashboardRP, FormularioRP,
+  EmpresaTemporal, RequisicionTemporal, CandidatoRequisicion, SeguimientoStats
 } from '../types/requisicion.types';
 
 const BASE = `${API_CONFIG.BASE_URL}/rrhh`;
@@ -159,3 +160,40 @@ export const agregarComentario = (
   const params = new URLSearchParams({ usuario_nombre, usuario_email });
   return axios.post(`${BASE}/requisiciones/${id}/comentarios?${params}`, { comentario }, authHeaders()).then(r => r.data);
 };
+
+// ── Catálogo de Temporales ─────────────────────
+export const getTemporales = (): Promise<EmpresaTemporal[]> =>
+  axios.get(`${BASE}/requisiciones/temporales`, authHeaders()).then(r => r.data);
+
+export const crearTemporal = (nombre: string): Promise<EmpresaTemporal> =>
+  axios.post(`${BASE}/requisiciones/temporales`, { nombre }, authHeaders()).then(r => r.data);
+
+export const actualizarTemporal = (id: number, nombre: string, activo: boolean): Promise<EmpresaTemporal> =>
+  axios.put(`${BASE}/requisiciones/temporales/${id}`, { nombre, activo }, authHeaders()).then(r => r.data);
+
+export const eliminarTemporal = (id: number): Promise<void> =>
+  axios.delete(`${BASE}/requisiciones/temporales/${id}`, authHeaders()).then(() => {});
+
+// ── Asignación a Temporales ────────────────────
+export const getRequisicionTemporales = (requisicionId: number): Promise<RequisicionTemporal[]> =>
+  axios.get(`${BASE}/requisiciones/${requisicionId}/temporales`, authHeaders()).then(r => r.data);
+
+export const asignarRequisicionTemporales = (requisicionId: number, temporalIds: number[]): Promise<RequisicionTemporal[]> =>
+  axios.post(`${BASE}/requisiciones/${requisicionId}/temporales`, { temporal_ids: temporalIds }, authHeaders()).then(r => r.data);
+
+export const actualizarFechaEnvioHV = (requisicionId: number, temporalId: number, fechaEnvioHV: string | null): Promise<RequisicionTemporal> =>
+  axios.put(`${BASE}/requisiciones/${requisicionId}/temporales/${temporalId}/envio-hv`, { fecha_envio_hv: fechaEnvioHV }, authHeaders()).then(r => r.data);
+
+// ── Pipeline de Candidatos ─────────────────────
+export const getCandidatos = (requisicionId: number): Promise<CandidatoRequisicion[]> =>
+  axios.get(`${BASE}/requisiciones/${requisicionId}/candidatos`, authHeaders()).then(r => r.data);
+
+export const agregarCandidato = (requisicionId: number, temporalId: number, nombreCandidato: string, observaciones?: string): Promise<CandidatoRequisicion> =>
+  axios.post(`${BASE}/requisiciones/${requisicionId}/candidatos`, { temporal_id: temporalId, nombre_candidato: nombreCandidato, observaciones }, authHeaders()).then(r => r.data);
+
+export const actualizarCandidato = (candidatoId: number, fields: Partial<CandidatoRequisicion>): Promise<CandidatoRequisicion> =>
+  axios.put(`${BASE}/requisiciones/candidatos/${candidatoId}`, fields, authHeaders()).then(r => r.data);
+
+// ── Métricas de Seguimiento ────────────────────
+export const getSeguimientoStats = (requisicionId: number): Promise<SeguimientoStats> =>
+  axios.get(`${BASE}/requisiciones/${requisicionId}/seguimiento-stats`, authHeaders()).then(r => r.data);

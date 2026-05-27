@@ -105,11 +105,12 @@ const EditarRequisicion: React.FC<{ user: UserData; goTo: (p: string) => void }>
 // Sub-componente para cargar detalle con ID de URL
 const DetalleRequisicionLoader: React.FC<{ goTo: (p: string) => void }> = ({ goTo }) => {
   const { id } = useParams();
+  const navigate = useNavigate();
   // Import lazy para no superar límite de líneas en este archivo
   const DetalleRequisicion = React.lazy(() => import('./pages/DetalleRequisicion'));
   return (
     <React.Suspense fallback={<div className="flex items-center justify-center py-20"><div className="animate-spin w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full" /></div>}>
-      <DetalleRequisicion requisicionId={Number(id)} onBack={() => goTo('mis-requisiciones')} />
+      <DetalleRequisicion requisicionId={Number(id)} onBack={() => navigate(-1)} />
     </React.Suspense>
   );
 };

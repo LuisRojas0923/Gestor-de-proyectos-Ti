@@ -7,6 +7,7 @@ from .historial import (
     RequisicionEquipoOficina,
     RequisicionEquipoTecnologico,
 )
+from .seguimiento import EmpresaTemporal, RequisicionTemporal, CandidatoRequisicion
 
 __all__ = [
     "RequisicionPersonal",
@@ -19,4 +20,7 @@ __all__ = [
     "ComentarioRequisicion",
     "RequisicionEquipoOficina",
     "RequisicionEquipoTecnologico",
+    "EmpresaTemporal",
+    "RequisicionTemporal",
+    "CandidatoRequisicion",
 ]

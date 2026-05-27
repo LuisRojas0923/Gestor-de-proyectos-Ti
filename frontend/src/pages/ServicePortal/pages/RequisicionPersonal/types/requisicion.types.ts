@@ -195,3 +195,39 @@ export interface DashboardRP {
   por_estado: Record<string, number>;
   labels: Record<string, string>;
 }
+
+export interface EmpresaTemporal {
+  id: number;
+  nombre: string;
+  activo: boolean;
+  creado_en?: string;
+}
+
+export interface RequisicionTemporal {
+  requisicion_id: number;
+  temporal_id: number;
+  nombre_temporal: string;
+  fecha_envio?: string;
+  fecha_envio_hv?: string;
+}
+
+export interface CandidatoRequisicion {
+  id: number;
+  requisicion_id: number;
+  temporal_id: number;
+  nombre_temporal?: string;
+  nombre_candidato: string;
+  estado: string; // 'POR_EVALUAR' | 'APLICA' | 'NO_APLICA' | 'CONTRATADO'
+  causal_descarte?: string;
+  observaciones?: string;
+  creado_en?: string;
+}
+
+export interface SeguimientoStats {
+  total_hv: number;
+  aplica: number;
+  no_aplica: number;
+  contratados: number;
+  por_evaluar: number;
+  causales_descarte: Record<string, number>;
+}

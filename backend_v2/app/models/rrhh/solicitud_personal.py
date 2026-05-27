@@ -7,7 +7,7 @@ Estados: BORRADOR, PENDIENTE_APROBACION, DEVUELTA_AJUSTE, APROBADA, RECHAZADA,
 """
 from typing import Optional
 from datetime import date, datetime
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, text
 
 
 # ──────────────────────────────────────────────
@@ -136,9 +136,9 @@ class RequisicionPersonal(SQLModel, table=True):
 
     # Auditoría
     created_at: Optional[datetime] = Field(
-        default=None, sa_column_kwargs={"server_default": "now()"}
+        default=None, sa_column_kwargs={"server_default": text("now()")}
     )
     updated_at: Optional[datetime] = Field(
         default=None,
-        sa_column_kwargs={"server_default": "now()", "onupdate": "now()"}
+        sa_column_kwargs={"server_default": text("now()"), "onupdate": text("now()")}
     )

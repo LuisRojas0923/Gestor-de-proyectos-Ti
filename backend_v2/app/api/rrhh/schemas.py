@@ -249,3 +249,80 @@ class ActualizarEstadoGHPayload(BaseModel):
 # ──────────────────────────────────────────────
 class ComentarioCreate(BaseModel):
     comentario: str
+
+
+# ──────────────────────────────────────────────
+# Seguimiento de Requisiciones (Gestión Humana)
+# ──────────────────────────────────────────────
+from typing import Dict
+
+class EmpresaTemporalOut(BaseModel):
+    id: int
+    nombre: str
+    activo: bool
+    creado_en: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class EmpresaTemporalCreate(BaseModel):
+    nombre: str
+
+
+class EmpresaTemporalUpdate(BaseModel):
+    nombre: str
+    activo: bool
+
+
+class RequisicionTemporalOut(BaseModel):
+    requisicion_id: int
+    temporal_id: int
+    nombre_temporal: str
+    fecha_envio: Optional[datetime] = None
+    fecha_envio_hv: Optional[datetime] = None
+
+
+class RequisicionTemporalAssignPayload(BaseModel):
+    temporal_ids: List[int]
+
+
+class RequisicionTemporalEnvioHVPayload(BaseModel):
+    fecha_envio_hv: Optional[datetime] = None
+
+
+class CandidatoRequisicionOut(BaseModel):
+    id: int
+    requisicion_id: int
+    temporal_id: int
+    nombre_temporal: Optional[str] = None
+    nombre_candidato: str
+    estado: str
+    causal_descarte: Optional[str] = None
+    observaciones: Optional[str] = None
+    creado_en: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CandidatoRequisicionCreate(BaseModel):
+    temporal_id: int
+    nombre_candidato: str
+    observaciones: Optional[str] = None
+
+
+class CandidatoRequisicionUpdate(BaseModel):
+    nombre_candidato: Optional[str] = None
+    estado: Optional[str] = None
+    causal_descarte: Optional[str] = None
+    observaciones: Optional[str] = None
+
+
+class SeguimientoStatsOut(BaseModel):
+    total_hv: int
+    aplica: int
+    no_aplica: int
+    contratados: int
+    por_evaluar: int
+    causales_descarte: Dict[str, int]
