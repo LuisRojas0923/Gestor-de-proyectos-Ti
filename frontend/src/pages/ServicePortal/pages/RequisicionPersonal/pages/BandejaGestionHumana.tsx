@@ -33,16 +33,14 @@ interface Props {
 
 const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
   const [requisiciones, setRequisiciones] = useState<RequisicionRP[]>([]);
-  const [dashboard, setDashboard] = useState<DashboardRPType | null>(null);
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState<number | null>(null);
 
   const cargar = () => {
     setLoading(true);
-    Promise.all([getBandejaGH(), getDashboard()])
-      .then(([reqs, dbData]) => {
-        setRequisiciones(reqs);
-        setDashboard(dbData);
+    getBandejaGH()
+      .then((data) => {
+        setRequisiciones(data);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -83,40 +81,45 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       </div>
 
       {/* Tarjetas de Métricas del Dashboard */}
-      {dashboard && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {/* Total */}
-          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 flex items-center gap-4 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0">
-              <Briefcase className="w-5 h-5 text-[var(--color-primary)]" />
-            </div>
-            <div className="min-w-0">
-              <Text variant="caption" color="secondary" className="block truncate">Total</Text>
-              <div className="text-lg font-bold leading-none mt-0.5">{dashboard.total}</div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Total */}
+        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 flex items-center gap-4 shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0">
+            <Briefcase className="w-5 h-5 text-[var(--color-primary)]" />
+          </div>
+          <div className="min-w-0">
+            <Text variant="caption" color="secondary" className="block truncate">Total</Text>
+            <div className="text-lg font-bold leading-none mt-0.5">
+              {requisiciones.length}
             </div>
           </div>
-
-          {/* Estados principales */}
-          {['PENDIENTE_APROBACION', 'APROBADA', 'RECHAZADA', 'EN_PROCESO_SELECCION', 'CERRADA'].map(estado => {
-            const count = dashboard.por_estado[estado] || 0;
-            const colores = ESTADO_COLORES[estado as any] ?? { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' };
-            const Icon = ICONOS[estado] || Archive;
-            return (
-              <div key={estado} className={`rounded-2xl p-4 ${colores.bg} border border-transparent shadow-sm flex items-center gap-4`}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
-                  <Icon className={`w-5 h-5 ${colores.text}`} />
-                </div>
-                <div className="min-w-0">
-                  <Text variant="caption" className={`block truncate font-medium ${colores.text}`}>
-                    {ESTADO_LABELS[estado as any] ?? estado}
-                  </Text>
-                  <div className={`text-lg font-bold leading-none mt-0.5 ${colores.text}`}>{count}</div>
-                </div>
-              </div>
-            );
-          })}
         </div>
-      )}
+
+        {/* Estados principales gestionados por GH */}
+        {(['APROBADA', 'EN_PROCESO_SELECCION', 'CANDIDATO_SELECCIONADO', 'EN_PROCESO_CONTRATACION', 'CERRADA'] as const).map(estado => {
+          const count = estado === 'CERRADA'
+            ? requisiciones.filter(r => r.estado === 'CERRADA' || r.estado === 'CANCELADA').length
+            : requisiciones.filter(r => r.estado === estado).length;
+            
+          const label = estado === 'CERRADA' ? 'Cerradas / Canceladas' : (ESTADO_LABELS[estado] ?? estado);
+          const colores = ESTADO_COLORES[estado] ?? { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' };
+          const Icon = ICONOS[estado] || Archive;
+          
+          return (
+            <div key={estado} className={`rounded-2xl p-4 ${colores.bg} border border-transparent shadow-sm flex items-center gap-4`}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+                <Icon className={`w-5 h-5 ${colores.text}`} />
+              </div>
+              <div className="min-w-0">
+                <Text variant="caption" className={`block truncate font-medium ${colores.text}`}>
+                  {label}
+                </Text>
+                <div className={`text-lg font-bold leading-none mt-0.5 ${colores.text}`}>{count}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {requisiciones.length === 0 ? (
         <div className="text-center py-20 bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)]">
