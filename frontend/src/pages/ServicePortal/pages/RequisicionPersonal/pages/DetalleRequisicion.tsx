@@ -197,6 +197,21 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
             </div>
           )}
 
+          {req.gerente_nombre && (
+            <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-5">
+              <Title variant="h6" weight="bold" className="mb-3 text-[var(--color-text-secondary)] uppercase tracking-wider text-xs">
+                Firma Gerencial
+              </Title>
+              <Text variant="body" className="font-semibold">{req.gerente_nombre}</Text>
+              <Text variant="caption" color="secondary">{req.gerente_email}</Text>
+              {req.observacion_gerente && (
+                <div className="mt-3 p-3 bg-indigo-50 rounded-xl border border-indigo-200">
+                  <Text variant="caption" className="text-indigo-800 italic font-medium">"{req.observacion_gerente}"</Text>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-5">
             <Title variant="h6" weight="bold" className="mb-4 text-[var(--color-text-secondary)] uppercase tracking-wider text-xs">
               Historial de Eventos

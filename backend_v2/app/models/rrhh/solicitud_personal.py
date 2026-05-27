@@ -16,6 +16,7 @@ from sqlmodel import SQLModel, Field
 class EstadoRP:
     BORRADOR = "BORRADOR"
     PENDIENTE_APROBACION = "PENDIENTE_APROBACION"
+    PENDIENTE_APROBACION_GERENCIA = "PENDIENTE_APROBACION_GERENCIA"
     DEVUELTA_AJUSTE = "DEVUELTA_AJUSTE"
     APROBADA = "APROBADA"
     RECHAZADA = "RECHAZADA"
@@ -28,6 +29,7 @@ class EstadoRP:
     LABELS = {
         BORRADOR: "Borrador",
         PENDIENTE_APROBACION: "Pendiente de Aprobación",
+        PENDIENTE_APROBACION_GERENCIA: "Pendiente Aprobación Gerencia",
         DEVUELTA_AJUSTE: "Devuelta para Ajuste",
         APROBADA: "Aprobada",
         RECHAZADA: "Rechazada",
@@ -40,7 +42,8 @@ class EstadoRP:
 
     # Transiciones permitidas por actor
     TRANSICIONES_GERENTE = {
-        PENDIENTE_APROBACION: [APROBADA, RECHAZADA, DEVUELTA_AJUSTE],
+        PENDIENTE_APROBACION: [PENDIENTE_APROBACION_GERENCIA, RECHAZADA, DEVUELTA_AJUSTE],
+        PENDIENTE_APROBACION_GERENCIA: [APROBADA, RECHAZADA, DEVUELTA_AJUSTE],
     }
     TRANSICIONES_GH = {
         APROBADA: [EN_PROCESO_SELECCION, CANCELADA],
@@ -118,6 +121,12 @@ class RequisicionPersonal(SQLModel, table=True):
     aprobador_email: Optional[str] = Field(default=None, max_length=255)
     fecha_decision_aprobador: Optional[datetime] = Field(default=None)
     observacion_aprobador: Optional[str] = Field(default=None)
+
+    # Aprobador Gerencia
+    gerente_nombre: Optional[str] = Field(default=None, max_length=255)
+    gerente_email: Optional[str] = Field(default=None, max_length=255)
+    fecha_decision_gerente: Optional[datetime] = Field(default=None)
+    observacion_gerente: Optional[str] = Field(default=None)
 
     # Gestión Humana
     responsable_gh_nombre: Optional[str] = Field(default=None, max_length=255)

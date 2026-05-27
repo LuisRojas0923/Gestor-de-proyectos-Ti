@@ -199,6 +199,10 @@ class RequisicionOut(BaseModel):
     aprobador_email: Optional[str]
     fecha_decision_aprobador: Optional[datetime]
     observacion_aprobador: Optional[str]
+    gerente_nombre: Optional[str] = None
+    gerente_email: Optional[str] = None
+    fecha_decision_gerente: Optional[datetime] = None
+    observacion_gerente: Optional[str] = None
     responsable_gh_nombre: Optional[str]
     responsable_gh_email: Optional[str]
     fecha_cierre: Optional[datetime]

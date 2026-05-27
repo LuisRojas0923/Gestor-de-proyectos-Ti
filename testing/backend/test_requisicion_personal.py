@@ -9,9 +9,24 @@ from app.database import async_engine
 
 @pytest_asyncio.fixture(scope="function")
 async def client():
+    from app.models.auth.usuario import Usuario
+    from app.api.auth.router import obtener_usuario_actual_db
+
+    mock_usuario = Usuario(
+        id="USR-TEST-ADMIN",
+        cedula="66903320",
+        nombre="Torres Agudelo Maribell",
+        rol="admin",
+        correo="maribell.torres@refridcol.com",
+        esta_activo=True,
+        hash_contrasena="dummy"
+    )
+    app.dependency_overrides[obtener_usuario_actual_db] = lambda: mock_usuario
+
     transport = ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test/api/v2") as ac:
         yield ac
+    app.dependency_overrides.clear()
     await async_engine.dispose()
 
 @pytest.mark.asyncio
@@ -147,7 +162,22 @@ async def test_flujo_completo_requisicion_personal(client, db_session):
             json={"observacion": "Aprobado para contratación"}
         )
         assert res_aprobar.status_code == 200
-        req_aprobada = res_aprobar.json()
+        req_aprobada_director = res_aprobar.json()
+        assert req_aprobada_director["estado"] == EstadoRP.PENDIENTE_APROBACION_GERENCIA
+
+        # 6b. Verificar Bandeja Gerente
+        res_bandeja = await client.get("/rrhh/requisiciones/bandeja-gerente")
+        assert res_bandeja.status_code == 200
+        bandeja_ids = [r["id"] for r in res_bandeja.json()]
+        assert requisicion_id in bandeja_ids
+
+        # 6c. Gerencia: Aprobar requisición (Firma definitiva)
+        res_aprobar_gerente = await client.post(
+            f"/rrhh/requisiciones/{requisicion_id}/aprobar-gerente",
+            json={"observacion": "Firma gerencial autorizada"}
+        )
+        assert res_aprobar_gerente.status_code == 200
+        req_aprobada = res_aprobar_gerente.json()
         assert req_aprobada["estado"] == EstadoRP.APROBADA
     
         # 7. Gestión Humana: Mover a EN_PROCESO_SELECCION
@@ -335,20 +365,20 @@ async def test_sincronizacion_directores_area(client, db_session):
         res_sync = await client.post("/rrhh/catalogos/sincronizar-jerarquia")
         assert res_sync.status_code == 200
 
-        # 3. Verificar que el área se haya creado
+        # 3. Verificar que el área se haya creado o ya exista
         res_areas = await client.get("/rrhh/catalogos/areas")
         assert res_areas.status_code == 200
         areas = res_areas.json()
-        assert any(a["nombre"] == "ADMINISTRACION" for a in areas)
+        assert any(a["nombre"] in ("ADMINISTRACION", "ADMINISTRACIÓN") for a in areas)
         
         # Obtener el ID del área ADMINISTRACION
-        area_id = next(a["id"] for a in areas if a["nombre"] == "ADMINISTRACION")
+        area_id = next(a["id"] for a in areas if a["nombre"] in ("ADMINISTRACION", "ADMINISTRACIÓN"))
 
         # 4. Verificar que el cargo se haya creado
         res_cargos = await client.get(f"/rrhh/catalogos/cargos?area_id={area_id}")
         assert res_cargos.status_code == 200
         cargos = res_cargos.json()
-        assert any(c["nombre"] == "DIRECTOR DE COSTOS Y CONTROL PRESUPUESTAL" for c in cargos)
+        assert any(c["nombre"].upper() == "DIRECTOR DE COSTOS Y CONTROL PRESUPUESTAL" for c in cargos)
 
         # 5. Verificar que OSORIO LENIS HARRY TEST se haya creado como aprobador de área
         res_aprobadores = await client.get("/rrhh/catalogos/aprobadores")

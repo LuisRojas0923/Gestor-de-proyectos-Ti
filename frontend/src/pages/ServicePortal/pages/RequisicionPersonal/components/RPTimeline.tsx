@@ -14,6 +14,7 @@ const iconoEstado = (estado: string) => {
     case 'RECHAZADA':              return <XCircle className="w-4 h-4 text-red-500" />;
     case 'DEVUELTA_AJUSTE':        return <RotateCcw className="w-4 h-4 text-orange-500" />;
     case 'PENDIENTE_APROBACION':   return <Clock className="w-4 h-4 text-amber-500" />;
+    case 'PENDIENTE_APROBACION_GERENCIA': return <Clock className="w-4 h-4 text-indigo-500" />;
     case 'BORRADOR':               return <Archive className="w-4 h-4 text-slate-400" />;
     case 'EN_PROCESO_SELECCION':   return <UserCheck className="w-4 h-4 text-blue-500" />;
     case 'CERRADA': case 'CANCELADA': return <XCircle className="w-4 h-4 text-gray-400" />;

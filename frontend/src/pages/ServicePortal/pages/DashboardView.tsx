@@ -1,5 +1,5 @@
 import { Title, Text, MaterialCard } from '../../../components/atoms';
-import { FileText, Briefcase, Plus, ChevronRight, Users, Settings, UserCheck } from 'lucide-react';
+import { FileText, Briefcase, Plus, ChevronRight, Users, Settings, UserCheck, PenTool } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -11,7 +11,7 @@ import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'requisicion_personal' | 'seguimiento_rp_gh' | 'perfiles_cargo') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'requisicion_personal' | 'seguimiento_rp_gh' | 'aprobacion_rp_gerencia' | 'perfiles_cargo') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -110,6 +110,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         ['admin', 'director'].includes(userRole)
     );
 
+    const canSeeAprobacionGerenciaRP = moduleStatus['requisicion_personal'] !== false && (
+        (user?.cedula || user?.id) === "66903320" ||
+        userRole === "admin"
+    );
+
     const canSeePerfilesCargo = moduleStatus['perfiles_cargo'] !== false && (
         permissions.includes('perfiles_cargo') ||
         ['admin', 'director'].includes(userRole)
@@ -203,6 +208,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                         description="Gestión y seguimiento del proceso de selección y contratación de requisiciones aprobadas."
                         icon={<UserCheck className="w-8 h-8 text-[var(--color-primary)]" />}
                         onClick={() => onNavigate('seguimiento_rp_gh')}
+                    />
+                )}
+
+                {canSeeAprobacionGerenciaRP && (
+                    <ServicePortalCard
+                        title="Aprobación Gerencial RP"
+                        description="Firma y autorización definitiva de requisiciones de personal aprobadas por directores."
+                        icon={<PenTool className="w-8 h-8 text-[var(--color-primary)]" />}
+                        onClick={() => onNavigate('aprobacion_rp_gerencia')}
                     />
                 )}
 

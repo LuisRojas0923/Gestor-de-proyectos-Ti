@@ -139,6 +139,19 @@ export const getBandejaGH = (): Promise<RequisicionRP[]> =>
 export const actualizarEstadoGH = (id: number, nuevo_estado: string, observacion?: string): Promise<RequisicionRP> =>
   axios.post(`${BASE}/requisiciones/${id}/gestion-humana/actualizar-estado`, { nuevo_estado, observacion }, authHeaders()).then(r => r.data);
 
+// ── Bandeja Gerente ───────────────────────────
+export const getBandejaGerente = (): Promise<RequisicionRP[]> =>
+  axios.get(`${BASE}/requisiciones/bandeja-gerente`, authHeaders()).then(r => r.data);
+
+export const aprobarGerente = (id: number, observacion?: string): Promise<RequisicionRP> =>
+  axios.post(`${BASE}/requisiciones/${id}/aprobar-gerente`, { observacion }, authHeaders()).then(r => r.data);
+
+export const rechazarGerente = (id: number, observacion: string): Promise<RequisicionRP> =>
+  axios.post(`${BASE}/requisiciones/${id}/rechazar-gerente`, { observacion }, authHeaders()).then(r => r.data);
+
+export const devolverGerente = (id: number, observacion: string): Promise<RequisicionRP> =>
+  axios.post(`${BASE}/requisiciones/${id}/devolver-gerente`, { observacion }, authHeaders()).then(r => r.data);
+
 // ── Comentarios ──────────────────────────────
 export const agregarComentario = (
   id: number, comentario: string, usuario_nombre: string, usuario_email: string

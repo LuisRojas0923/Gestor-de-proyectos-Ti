@@ -178,3 +178,25 @@ async def notificar_gestion_humana(req):
     html = EmailService._get_base_layout("Nueva Requisición Aprobada 🟢", cuerpo)
     await EmailService.enviar_correo(asunto, [GH_EMAIL], html,
                                      attachments=EmailService._get_attachments())
+
+
+# ──────────────────────────────────────────────
+# 7. Notificación a Gerencia Administrativa y Financiera
+# ──────────────────────────────────────────────
+async def notificar_gerencia(req, email_gerente: str, nombre_gerente: str):
+    if not email_gerente:
+        logger.warning(f"[RP Email] {req.rp}: Sin correo de Gerencia configurado, correo omitido.")
+        return
+    asunto = f"Solicitud de firma de Requisición de Personal [{req.rp}]"
+    cuerpo = f"""
+    <p style="color:#4a5568;font-size:16px;line-height:1.6;">
+      Estimada <strong>{nombre_gerente}</strong>,<br><br>
+      La requisición de personal <strong>{req.rp}</strong> ha sido aprobada por el Director de Área ({req.aprobador_nombre or '—'})
+      y se encuentra pendiente de su firma y autorización gerencial.
+    </p>
+    {_tabla_detalle(req)}
+    {_boton(_url_requisicion(req.id), "Revisar y firmar en el portal")}
+    """
+    html = EmailService._get_base_layout("Firma de Requisición Pendiente", cuerpo)
+    await EmailService.enviar_correo(asunto, [email_gerente], html,
+                                     attachments=EmailService._get_attachments())

@@ -3,6 +3,7 @@
 export type EstadoRP =
   | 'BORRADOR'
   | 'PENDIENTE_APROBACION'
+  | 'PENDIENTE_APROBACION_GERENCIA'
   | 'DEVUELTA_AJUSTE'
   | 'APROBADA'
   | 'RECHAZADA'
@@ -15,6 +16,7 @@ export type EstadoRP =
 export const ESTADO_LABELS: Record<EstadoRP, string> = {
   BORRADOR: 'Borrador',
   PENDIENTE_APROBACION: 'Pendiente de Aprobación',
+  PENDIENTE_APROBACION_GERENCIA: 'Pendiente Aprobación Gerencia',
   DEVUELTA_AJUSTE: 'Devuelta para Ajuste',
   APROBADA: 'Aprobada',
   RECHAZADA: 'Rechazada',
@@ -28,6 +30,7 @@ export const ESTADO_LABELS: Record<EstadoRP, string> = {
 export const ESTADO_COLORES: Record<EstadoRP, { bg: string; text: string; dot: string }> = {
   BORRADOR:               { bg: 'bg-slate-100',   text: 'text-slate-700',  dot: 'bg-slate-400'  },
   PENDIENTE_APROBACION:   { bg: 'bg-amber-50',    text: 'text-amber-800',  dot: 'bg-amber-400'  },
+  PENDIENTE_APROBACION_GERENCIA: { bg: 'bg-indigo-50', text: 'text-indigo-800', dot: 'bg-indigo-500' },
   DEVUELTA_AJUSTE:        { bg: 'bg-orange-50',   text: 'text-orange-800', dot: 'bg-orange-500' },
   APROBADA:               { bg: 'bg-emerald-50',  text: 'text-emerald-800',dot: 'bg-emerald-500'},
   RECHAZADA:              { bg: 'bg-red-50',      text: 'text-red-800',    dot: 'bg-red-500'    },
@@ -111,6 +114,10 @@ export interface RequisicionRP {
   aprobador_email: string | null;
   fecha_decision_aprobador: string | null;
   observacion_aprobador: string | null;
+  gerente_nombre: string | null;
+  gerente_email: string | null;
+  fecha_decision_gerente: string | null;
+  observacion_gerente: string | null;
   responsable_gh_nombre: string | null;
   responsable_gh_email: string | null;
   fecha_cierre: string | null;
