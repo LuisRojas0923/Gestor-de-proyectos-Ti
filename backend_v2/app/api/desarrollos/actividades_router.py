@@ -17,7 +17,7 @@ from app.models.desarrollo.actividad import (
 )
 from app.services.jerarquia import AsignacionJerarquicaService
 from app.services.desarrollos.porcentaje_service import recalcular_porcentaje_jerarquico, recalcular_progreso_desarrollo
-from app.services.desarrollos.estado_service import propagar_estado_en_progreso
+from app.services.desarrollos.estado_service import propagar_estado_en_progreso, actualizar_estado_general_desarrollo
 from app.services.desarrollos.actividad_delete_service import (
     obtener_hijos_preview,
     eliminar_actividad_cascade,
@@ -185,6 +185,8 @@ async def actualizar_actividad(
             await db.flush()
             if nuevo_estado == "En Progreso":
                 await propagar_estado_en_progreso(db, act_db.parent_id)
+                await db.flush()
+                await actualizar_estado_general_desarrollo(db, act_db.desarrollo_id)
                 await db.flush()
 
         await recalcular_progreso_desarrollo(db, act_db.desarrollo_id)
