@@ -212,6 +212,7 @@ async def actualizar_actividad(
     actividad_id: int,
     actividad_in: ActividadActualizar,
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Actualiza una actividad existente (avance, estado, responsable, etc)"""
     try:
@@ -221,6 +222,40 @@ async def actualizar_actividad(
 
         if not act_db:
             raise HTTPException(status_code=404, detail="Actividad no encontrada")
+
+        # Validar permisos de edición (PATCH)
+        tiene_acceso = usuario.rol in ("admin", "director")
+        if not tiene_acceso:
+            subordinados = await JerarquiaService.obtener_ids_y_nombres_subordinados(db, usuario.id)
+            todos_los_ids = [usuario.id] + subordinados["ids"]
+            todos_los_nombres = [usuario.nombre] + subordinados["nombres"]
+
+            if (act_db.responsable_id in todos_los_ids or 
+                act_db.asignado_a_id in todos_los_ids or 
+                act_db.delegado_por_id in todos_los_ids):
+                tiene_acceso = True
+            
+            if not tiene_acceso:
+                stmt_dev = select(Desarrollo).where(
+                    Desarrollo.id == act_db.desarrollo_id,
+                    or_(
+                        Desarrollo.creado_por_id.in_(todos_los_ids),
+                        Desarrollo.responsable_id.in_(todos_los_ids),
+                        Desarrollo.analista.in_(todos_los_nombres),
+                        Desarrollo.supervisor.in_(todos_los_nombres),
+                        Desarrollo.autoridad.in_(todos_los_nombres),
+                        Desarrollo.responsable.in_(todos_los_nombres),
+                    )
+                )
+                res_dev = await db.execute(stmt_dev)
+                if res_dev.scalar_one_or_none() is not None:
+                    tiene_acceso = True
+        
+        if not tiene_acceso:
+            raise HTTPException(
+                status_code=403,
+                detail="No tiene permisos para modificar esta actividad"
+            )
 
         act_data = actividad_in.model_dump(exclude_unset=True)
         
@@ -275,16 +310,56 @@ class EliminarPreviewResponse(BaseModel):
 
 @router.get("/{actividad_id}/preview", response_model=EliminarPreviewResponse)
 async def eliminar_actividad_preview(
-    actividad_id: int, db: AsyncSession = Depends(obtener_db)
+    actividad_id: int,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """
     Previsualiza qué actividades se eliminarán (actividad + hijos recursivos).
     """
     try:
-        actividad, hijos = await obtener_hijos_preview(db, actividad_id)
+        stmt = select(Actividad).where(Actividad.id == actividad_id)
+        result = await db.execute(stmt)
+        act_db = result.scalar_one_or_none()
 
-        if not actividad:
+        if not act_db:
             raise HTTPException(status_code=404, detail="Actividad no encontrada")
+
+        # Validar permisos
+        tiene_acceso = usuario.rol in ("admin", "director")
+        if not tiene_acceso:
+            subordinados = await JerarquiaService.obtener_ids_y_nombres_subordinados(db, usuario.id)
+            todos_los_ids = [usuario.id] + subordinados["ids"]
+            todos_los_nombres = [usuario.nombre] + subordinados["nombres"]
+
+            if (act_db.responsable_id in todos_los_ids or 
+                act_db.asignado_a_id in todos_los_ids or 
+                act_db.delegado_por_id in todos_los_ids):
+                tiene_acceso = True
+            
+            if not tiene_acceso:
+                stmt_dev = select(Desarrollo).where(
+                    Desarrollo.id == act_db.desarrollo_id,
+                    or_(
+                        Desarrollo.creado_por_id.in_(todos_los_ids),
+                        Desarrollo.responsable_id.in_(todos_los_ids),
+                        Desarrollo.analista.in_(todos_los_nombres),
+                        Desarrollo.supervisor.in_(todos_los_nombres),
+                        Desarrollo.autoridad.in_(todos_los_nombres),
+                        Desarrollo.responsable.in_(todos_los_nombres),
+                    )
+                )
+                res_dev = await db.execute(stmt_dev)
+                if res_dev.scalar_one_or_none() is not None:
+                    tiene_acceso = True
+
+        if not tiene_acceso:
+            raise HTTPException(
+                status_code=403,
+                detail="No tiene permisos para ver esta actividad"
+            )
+
+        actividad, hijos = await obtener_hijos_preview(db, actividad_id)
 
         return EliminarPreviewResponse(
             actividad={
@@ -308,7 +383,11 @@ class EliminarConfirmResponse(BaseModel):
 
 
 @router.delete("/{actividad_id}", response_model=EliminarConfirmResponse)
-async def eliminar_actividad(actividad_id: int, db: AsyncSession = Depends(obtener_db)):
+async def eliminar_actividad(
+    actividad_id: int,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
+):
     """Elimina una actividad y todos sus descendientes recursivamente."""
     try:
         stmt = select(Actividad).where(Actividad.id == actividad_id)
@@ -317,6 +396,12 @@ async def eliminar_actividad(actividad_id: int, db: AsyncSession = Depends(obten
 
         if not act_db:
             raise HTTPException(status_code=404, detail="Actividad no encontrada")
+
+        if act_db.delegado_por_id != usuario.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Solo el delegador original de la actividad puede eliminarla"
+            )
 
         parent_id_original = act_db.parent_id
         desarrollo_id = act_db.desarrollo_id

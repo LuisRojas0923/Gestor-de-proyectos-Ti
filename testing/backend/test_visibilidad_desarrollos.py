@@ -69,14 +69,14 @@ async def visibilidad_seed(db_session):
     # Crear actividades para probar Regla 2 de WBS
     # Estructura:
     # 1000 (Raiz)
-    #   ├── 1001 (Hijo A) -> Asignado a Jefe
-    #   └── 1002 (Hijo B) -> Asignado a Ajeno (externo)
-    #         └── 1003 (Nieto B) -> Asignado a Ajeno (externo)
+    #   ├── 1001 (Hijo A) -> Asignado a Jefe, Delegado por Jefe
+    #   └── 1002 (Hijo B) -> Asignado a Ajeno (externo), Delegado por Jefe
+    #         └── 1003 (Nieto B) -> Asignado a Ajeno (externo), Delegado por Ajeno
     actividades = [
-        Actividad(id=1000, desarrollo_id="DEV-VIS-1", titulo="Raiz Proyecto", parent_id=None, responsable_id="USR-VIS-JEFE", horas_estimadas=0, porcentaje_avance=0),
-        Actividad(id=1001, desarrollo_id="DEV-VIS-1", titulo="Hijo A", parent_id=1000, responsable_id="USR-VIS-JEFE", horas_estimadas=0, porcentaje_avance=0),
-        Actividad(id=1002, desarrollo_id="DEV-VIS-1", titulo="Hijo B", parent_id=1000, responsable_id="USR-VIS-AJENO", horas_estimadas=0, porcentaje_avance=0),
-        Actividad(id=1003, desarrollo_id="DEV-VIS-1", titulo="Nieto B", parent_id=1002, responsable_id="USR-VIS-AJENO", horas_estimadas=0, porcentaje_avance=0),
+        Actividad(id=1000, desarrollo_id="DEV-VIS-1", titulo="Raiz Proyecto", parent_id=None, responsable_id="USR-VIS-JEFE", delegado_por_id="USR-VIS-GERENTE", horas_estimadas=0, porcentaje_avance=0),
+        Actividad(id=1001, desarrollo_id="DEV-VIS-1", titulo="Hijo A", parent_id=1000, responsable_id="USR-VIS-JEFE", delegado_por_id="USR-VIS-JEFE", horas_estimadas=0, porcentaje_avance=0),
+        Actividad(id=1002, desarrollo_id="DEV-VIS-1", titulo="Hijo B", parent_id=1000, responsable_id="USR-VIS-AJENO", delegado_por_id="USR-VIS-JEFE", horas_estimadas=0, porcentaje_avance=0),
+        Actividad(id=1003, desarrollo_id="DEV-VIS-1", titulo="Nieto B", parent_id=1002, responsable_id="USR-VIS-AJENO", delegado_por_id="USR-VIS-AJENO", horas_estimadas=0, porcentaje_avance=0),
     ]
     db_session.add_all(actividades)
     await db_session.commit()
@@ -254,3 +254,59 @@ async def test_obtener_arbol_actividades_superior_completo(client, visibilidad_s
     titulos_raiz_subs = [s["titulo"] for s in raiz["subactividades"]]
     assert "Hijo A" in titulos_raiz_subs
     assert "Hijo B" in titulos_raiz_subs
+
+
+@pytest.mark.asyncio
+async def test_eliminar_actividad_anonimo_retorna_401(client, visibilidad_seed):
+    """Eliminar actividad sin token debe retornar 401"""
+    response = await client.delete("/actividades/1001")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_eliminar_actividad_ajeno_retorna_403(client, visibilidad_seed):
+    """Un usuario ajeno no debe poder eliminar una actividad ajena (retorna 403)"""
+    token = await obtener_token_usuario(client, "VIS-AJENO")
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # 1001 pertenece al Jefe (desarrollo DEV-VIS-1), no al ajeno
+    response = await client.delete("/actividades/1001", headers=headers)
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_eliminar_actividad_autorizado_retorna_200(client, visibilidad_seed):
+    """Un usuario responsable o su superior jerarquico puede eliminar la actividad"""
+    token = await obtener_token_usuario(client, "VIS-JEFE")
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # 1001 es del Jefe
+    response = await client.delete("/actividades/1001", headers=headers)
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_actualizar_actividad_anonimo_retorna_401(client, visibilidad_seed):
+    """Actualizar actividad sin token debe retornar 401"""
+    response = await client.patch("/actividades/1001", json={"titulo": "Hackeado"})
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_actualizar_actividad_ajeno_retorna_403(client, visibilidad_seed):
+    """Usuario ajeno no puede actualizar una actividad de otro (retorna 403)"""
+    token = await obtener_token_usuario(client, "VIS-AJENO")
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    response = await client.patch("/actividades/1001", json={"titulo": "Modificado por Ajeno"}, headers=headers)
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_actualizar_actividad_autorizado_retorna_200(client, visibilidad_seed):
+    """El asignado o superior jerarquico puede actualizar la actividad"""
+    token = await obtener_token_usuario(client, "VIS-JEFE")
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    response = await client.patch("/actividades/1001", json={"titulo": "Titulo Jefe"}, headers=headers)
+    assert response.status_code == 200
