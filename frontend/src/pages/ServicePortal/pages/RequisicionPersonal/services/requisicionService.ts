@@ -137,8 +137,10 @@ export const devolverRequisicion = (id: number, observacion: string): Promise<Re
 export const getBandejaGH = (): Promise<RequisicionRP[]> =>
   axios.get(`${BASE}/requisiciones/bandeja-gestion-humana`, authHeaders()).then(r => r.data);
 
-export const actualizarEstadoGH = (id: number, nuevo_estado: string, observacion?: string): Promise<RequisicionRP> =>
-  axios.post(`${BASE}/requisiciones/${id}/gestion-humana/actualizar-estado`, { nuevo_estado, observacion }, authHeaders()).then(r => r.data);
+/** Cancela una RP desde Gestión Humana con observación obligatoria. Solo válido desde APROBADA o EN_PROCESO_SELECCION. */
+export const cancelarRequisicionGH = (id: number, observacion: string): Promise<RequisicionRP> =>
+  axios.post(`${BASE}/requisiciones/${id}/cancelar-gh`, { observacion }, authHeaders()).then(r => r.data);
+
 
 // ── Bandeja Gerente ───────────────────────────
 export const getBandejaGerente = (): Promise<RequisicionRP[]> =>

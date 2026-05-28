@@ -237,11 +237,8 @@ class DevolverPayload(BaseModel):
 
 
 # ──────────────────────────────────────────────
-# Payload Gestión Humana
-# ──────────────────────────────────────────────
-class ActualizarEstadoGHPayload(BaseModel):
-    nuevo_estado: str
-    observacion: Optional[str] = None
+class CancelarGHPayload(BaseModel):
+    observacion: str
 
 
 # ──────────────────────────────────────────────

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users, Settings } from 'lucide-react';
-import { Title, Text, Select, Button } from '../../../../../components/atoms';
+import { Title, Text, Button } from '../../../../../components/atoms';
 import RPStatusBadge from '../components/RPStatusBadge';
 import type { RequisicionRP, EstadoRP } from '../types/requisicion.types';
-import { getBandejaGH, actualizarEstadoGH } from '../services/requisicionService';
+import { getBandejaGH } from '../services/requisicionService';
 import { ESTADO_COLORES, ESTADO_LABELS } from '../types/requisicion.types';
 import ConfigTemporalesModal from '../components/ConfigTemporalesModal';
 import DetalleSeguimientoRP from '../components/DetalleSeguimientoRP';
@@ -16,18 +16,10 @@ const ICONOS: Record<string, React.ElementType> = {
   APROBADA: CheckCircle,
   RECHAZADA: XCircle,
   EN_PROCESO_SELECCION: Users,
-  CANDIDATO_SELECCIONADO: CheckCircle,
-  EN_PROCESO_CONTRATACION: Briefcase,
   CERRADA: Archive,
   CANCELADA: XCircle,
 };
 
-const TRANSICIONES_GH: Record<string, { label: string; value: string }[]> = {
-  APROBADA:               [{ value: 'EN_PROCESO_SELECCION', label: 'Iniciar proceso de selección' }, { value: 'CANCELADA', label: 'Cancelar' }],
-  EN_PROCESO_SELECCION:   [{ value: 'CANDIDATO_SELECCIONADO', label: 'Candidato seleccionado' }, { value: 'CANCELADA', label: 'Cancelar' }],
-  CANDIDATO_SELECCIONADO: [{ value: 'EN_PROCESO_CONTRATACION', label: 'Iniciar contratación' }, { value: 'CANCELADA', label: 'Cancelar' }],
-  EN_PROCESO_CONTRATACION:[{ value: 'CERRADA', label: 'Cerrar requisición' }, { value: 'CANCELADA', label: 'Cancelar' }],
-};
 
 interface Props {
   onVer: (id: number) => void;
@@ -37,7 +29,6 @@ interface Props {
 const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
   const [requisiciones, setRequisiciones] = useState<RequisicionRP[]>([]);
   const [loading, setLoading] = useState(true);
-  const [procesando, setProcesando] = useState<number | null>(null);
   const [selectedRequisicion, setSelectedRequisicion] = useState<RequisicionRP | null>(null);
   const [showTemporalesConfig, setShowTemporalesConfig] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,6 +46,10 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
     }
   }, [selectedId, requisiciones]);
 
+  useEffect(() => {
+    cargar();
+  }, []);
+
   const cargar = () => {
     setLoading(true);
     getBandejaGH()
@@ -65,21 +60,6 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { cargar(); }, []);
-
-  const handleCambiarEstado = async (id: number, nuevoEstado: string) => {
-    if (!nuevoEstado) return;
-    const obs = nuevoEstado === 'CERRADA' || nuevoEstado === 'CANCELADA'
-      ? window.prompt('Observación de cierre/cancelación:') || ''
-      : undefined;
-    setProcesando(id);
-    try {
-      await actualizarEstadoGH(id, nuevoEstado, obs);
-      cargar();
-    } finally {
-      setProcesando(null);
-    }
-  };
 
   if (selectedRequisicion) {
     return (
@@ -123,7 +103,7 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       </div>
 
       {/* Tarjetas de Métricas del Dashboard */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Total */}
         <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 flex items-center gap-4 shadow-sm">
           <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0">
@@ -137,8 +117,8 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
           </div>
         </div>
 
-        {/* Estados principales gestionados por GH */}
-        {(['APROBADA', 'EN_PROCESO_SELECCION', 'CANDIDATO_SELECCIONADO', 'EN_PROCESO_CONTRATACION', 'CERRADA'] as const).map(estado => {
+        {/* Estados activos del flujo GH */}
+        {(['APROBADA', 'EN_PROCESO_SELECCION', 'CERRADA'] as const).map(estado => {
           const count = estado === 'CERRADA'
             ? requisiciones.filter(r => r.estado === 'CERRADA' || r.estado === 'CANCELADA').length
             : requisiciones.filter(r => r.estado === estado).length;
@@ -172,14 +152,13 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
           <table className="w-full text-sm">
             <thead className="bg-[var(--color-surface-secondary)] border-b border-[var(--color-border)]">
               <tr>
-                {['RP', 'Solicitante', 'Área / Cargo', 'Ciudad', 'Estado', 'Acción GH'].map(h => (
+                {['RP', 'Solicitante', 'Área / Cargo', 'Ciudad', 'Estado'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
               {requisiciones.map(req => {
-                const opciones = TRANSICIONES_GH[req.estado] || [];
                 return (
                   <tr key={req.id} className="hover:bg-[var(--color-surface-secondary)] transition-colors">
                     <td className="px-4 py-3">
@@ -206,23 +185,6 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
                     </td>
                     <td className="px-4 py-3">{req.ciudad_nombre || '—'}</td>
                     <td className="px-4 py-3"><RPStatusBadge estado={req.estado as EstadoRP} size="sm" /></td>
-                    <td className="px-4 py-3">
-                      {opciones.length > 0 ? (
-                        <select
-                          disabled={procesando === req.id}
-                          onChange={e => handleCambiarEstado(req.id, e.target.value)}
-                          defaultValue=""
-                          className="text-sm border border-[var(--color-border)] rounded-lg px-2 py-1.5 bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                        >
-                          <option value="" disabled>Cambiar estado...</option>
-                          {opciones.map(op => (
-                            <option key={op.value} value={op.value}>{op.label}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <Text variant="caption" color="secondary" className="italic">Sin acciones</Text>
-                      )}
-                    </td>
                   </tr>
                 );
               })}

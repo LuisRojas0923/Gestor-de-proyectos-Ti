@@ -215,12 +215,13 @@ async def get_candidatos(db: AsyncSession, requisicion_id: int) -> List[dict]:
 async def add_candidato(
     db: AsyncSession, requisicion_id: int, temporal_id: int, nombre_candidato: str, observaciones: Optional[str] = None
 ) -> CandidatoRequisicion:
-    """Registra un nuevo candidato en el pipeline."""
-    # Verificar que exista la requisición
+    """Registra un nuevo candidato en el pipeline.
+    Si la RP está en APROBADA, la transiciona automáticamente a EN_PROCESO_SELECCION.
+    """
     req = await db.get(RequisicionPersonal, requisicion_id)
     if not req:
         raise ValueError("Requisición no encontrada")
-        
+
     cand = CandidatoRequisicion(
         requisicion_id=requisicion_id,
         temporal_id=temporal_id,
@@ -230,9 +231,24 @@ async def add_candidato(
         creado_en=datetime.utcnow()
     )
     db.add(cand)
+
+    # Auto-transición: APROBADA → EN_PROCESO_SELECCION al agregar el primer candidato
+    if req.estado == EstadoRP.APROBADA:
+        from app.services.rrhh.requisicion_service import registrar_historial
+        req.estado = EstadoRP.EN_PROCESO_SELECCION
+        req.updated_at = datetime.utcnow()
+        db.add(req)
+        await registrar_historial(
+            db, requisicion_id, EstadoRP.APROBADA, EstadoRP.EN_PROCESO_SELECCION,
+            "Gestión Humana", "gestion.humana@refridcol.com",
+            "Proceso de selección iniciado al agregar primer candidato."
+        )
+        logger.info(f"[RP Auto] {req.rp} APROBADA → EN_PROCESO_SELECCION (primer candidato).")
+
     await db.commit()
     await db.refresh(cand)
     return cand
+
 
 
 async def update_candidato(db: AsyncSession, candidato_id: int, data: dict) -> CandidatoRequisicion:

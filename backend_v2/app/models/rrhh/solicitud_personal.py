@@ -1,9 +1,15 @@
 """
 Modelo principal de Requisición de Personal (RP) - Backend V2
 Tabla: requisiciones_personal
-Estados: BORRADOR, PENDIENTE_APROBACION, DEVUELTA_AJUSTE, APROBADA, RECHAZADA,
-         EN_PROCESO_SELECCION, CANDIDATO_SELECCIONADO, EN_PROCESO_CONTRATACION,
-         CERRADA, CANCELADA
+Estados: BORRADOR, PENDIENTE_APROBACION, PENDIENTE_APROBACION_GERENCIA,
+         DEVUELTA_AJUSTE, APROBADA, RECHAZADA,
+         EN_PROCESO_SELECCION, CERRADA, CANCELADA
+
+Flujo GH (automático via Kanban):
+  APROBADA → EN_PROCESO_SELECCION (al asignar temporal o agregar candidato)
+  EN_PROCESO_SELECCION → CERRADA (al contratar todas las vacantes requeridas)
+Flujo GH (manual):
+  APROBADA | EN_PROCESO_SELECCION → CANCELADA (con observación obligatoria)
 """
 from typing import Optional
 from datetime import date, datetime
@@ -21,8 +27,6 @@ class EstadoRP:
     APROBADA = "APROBADA"
     RECHAZADA = "RECHAZADA"
     EN_PROCESO_SELECCION = "EN_PROCESO_SELECCION"
-    CANDIDATO_SELECCIONADO = "CANDIDATO_SELECCIONADO"
-    EN_PROCESO_CONTRATACION = "EN_PROCESO_CONTRATACION"
     CERRADA = "CERRADA"
     CANCELADA = "CANCELADA"
 
@@ -34,22 +38,20 @@ class EstadoRP:
         APROBADA: "Aprobada",
         RECHAZADA: "Rechazada",
         EN_PROCESO_SELECCION: "En Proceso de Selección",
-        CANDIDATO_SELECCIONADO: "Candidato Seleccionado",
-        EN_PROCESO_CONTRATACION: "En Proceso de Contratación",
         CERRADA: "Cerrada",
         CANCELADA: "Cancelada",
     }
+
+    # Estados finales — no permiten más transiciones
+    ESTADOS_FINALES = {CERRADA, CANCELADA, RECHAZADA}
+
+    # Estados desde los cuales GH puede cancelar manualmente
+    CANCELABLES_GH = {APROBADA, EN_PROCESO_SELECCION}
 
     # Transiciones permitidas por actor
     TRANSICIONES_GERENTE = {
         PENDIENTE_APROBACION: [PENDIENTE_APROBACION_GERENCIA, RECHAZADA, DEVUELTA_AJUSTE],
         PENDIENTE_APROBACION_GERENCIA: [APROBADA, RECHAZADA, DEVUELTA_AJUSTE],
-    }
-    TRANSICIONES_GH = {
-        APROBADA: [EN_PROCESO_SELECCION, CANCELADA],
-        EN_PROCESO_SELECCION: [CANDIDATO_SELECCIONADO, CANCELADA],
-        CANDIDATO_SELECCIONADO: [EN_PROCESO_CONTRATACION, CANCELADA],
-        EN_PROCESO_CONTRATACION: [CERRADA, CANCELADA],
     }
 
 

@@ -6,7 +6,8 @@ import {
 import { Title, Text, Button, Badge } from '../../../../../components/atoms';
 import { 
   getRequisicionTemporales, asignarRequisicionTemporales, actualizarFechaEnvioHV,
-  getCandidatos, agregarCandidato, actualizarCandidato, getSeguimientoStats, getTemporales 
+  getCandidatos, agregarCandidato, actualizarCandidato, getSeguimientoStats, getTemporales,
+  cancelarRequisicionGH
 } from '../services/requisicionService';
 import type { 
   RequisicionRP, RequisicionTemporal, CandidatoRequisicion, SeguimientoStats, EmpresaTemporal 
@@ -51,6 +52,12 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
   const [candidatoDescartar, setCandidatoDescartar] = useState<CandidatoRequisicion | null>(null);
   const [causalSeleccionada, setCausalSeleccionada] = useState('');
   const [obsDescarte, setObsDescarte] = useState('');
+
+  // Cancelar RP
+  const [mostrarCancelar, setMostrarCancelar] = useState(false);
+  const [motivoCancelacion, setMotivoCancelacion] = useState('');
+  const [cancelando, setCancelando] = useState(false);
+
 
   const cargarDatos = async () => {
     setCargando(true);
@@ -184,6 +191,26 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
     }
   };
 
+  const handleCancelarRP = async () => {
+    if (!motivoCancelacion.trim()) {
+      alert('Debes ingresar el motivo de cancelación.');
+      return;
+    }
+    setCancelando(true);
+    try {
+      await cancelarRequisicionGH(requisicion.id, motivoCancelacion.trim());
+      setMostrarCancelar(false);
+      setMotivoCancelacion('');
+      await cargarDatos();
+      if (onStatusChanged) onStatusChanged();
+    } catch (e: any) {
+      alert(e.response?.data?.detail || 'Error al cancelar la requisición.');
+    } finally {
+      setCancelando(false);
+    }
+  };
+
+
   if (cargando) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -215,6 +242,16 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
           </div>
         </div>
         <div className="flex gap-2">
+          {/* Cancelar RP — solo si no está en estado final */}
+          {!['CERRADA', 'CANCELADA'].includes(requisicion.estado) && (
+            <Button
+              variant="ghost"
+              onClick={() => setMostrarCancelar(true)}
+              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200"
+            >
+              Cancelar RP
+            </Button>
+          )}
           <Button variant="ghost" onClick={() => setMostrarAsignar(true)}>Asignar Temporales</Button>
           <Button
             variant="primary"
@@ -485,6 +522,41 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
               <Button variant="ghost" onClick={() => setCandidatoDescartar(null)}>Cancelar</Button>
               <Button variant="primary" className="bg-red-600 hover:bg-red-700 text-white" disabled={!causalSeleccionada || cargandoCandidatos} onClick={handleDescartarConfirmado}>
                 Confirmar Descarte
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL: Cancelar RP */}
+      {mostrarCancelar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[var(--color-surface)] w-full max-w-md rounded-3xl border border-[var(--color-border)] shadow-2xl p-6 space-y-5">
+            <div>
+              <Title variant="h5" weight="bold" className="text-rose-600">Cancelar Requisición</Title>
+              <Text variant="caption" color="secondary" className="mt-1">
+                Esta acción es irreversible. La RP <strong>{requisicion.rp}</strong> quedará en estado <strong>Cancelada</strong>.
+              </Text>
+            </div>
+            <div className="space-y-1">
+              <Text variant="caption" className="font-semibold text-xs text-[var(--color-text-secondary)]">Motivo de cancelación (obligatorio)</Text>
+              <textarea
+                placeholder="Ej: Por orden de gerencia, la vacante ya no es necesaria..."
+                value={motivoCancelacion}
+                onChange={e => setMotivoCancelacion(e.target.value)}
+                className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+                rows={4}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => { setMostrarCancelar(false); setMotivoCancelacion(''); }}>Volver</Button>
+              <Button
+                variant="primary"
+                className="bg-rose-600 hover:bg-rose-700 text-white"
+                disabled={!motivoCancelacion.trim() || cancelando}
+                onClick={handleCancelarRP}
+              >
+                {cancelando ? 'Cancelando...' : 'Confirmar Cancelación'}
               </Button>
             </div>
           </div>

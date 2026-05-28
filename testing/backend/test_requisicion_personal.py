@@ -180,37 +180,45 @@ async def test_flujo_completo_requisicion_personal(client, db_session):
         req_aprobada = res_aprobar_gerente.json()
         assert req_aprobada["estado"] == EstadoRP.APROBADA
     
-        # 7. Gestión Humana: Mover a EN_PROCESO_SELECCION
-        res_gh1 = await client.post(
-            f"/rrhh/requisiciones/{requisicion_id}/gestion-humana/actualizar-estado",
-            json={"nuevo_estado": EstadoRP.EN_PROCESO_SELECCION, "observacion": "Iniciando publicación de vacante"}
+        # 7. Asignar la requisición a las temporales (mueve a EN_PROCESO_SELECCION)
+        from app.models.rrhh.seguimiento import EmpresaTemporal
+        from sqlmodel import select
+        res_temps = await db_session.execute(select(EmpresaTemporal))
+        temporales = res_temps.scalars().all()
+        summar = [t for t in temporales if t.nombre == "SUMMAR TEMPORALES"][0]
+
+        res_assign = await client.post(
+            f"/rrhh/requisiciones/{requisicion_id}/temporales",
+            json={"temporal_ids": [summar.id]}
         )
-        assert res_gh1.status_code == 200
-        assert res_gh1.json()["estado"] == EstadoRP.EN_PROCESO_SELECCION
-    
-        # 8. Gestión Humana: Mover a CANDIDATO_SELECCIONADO
-        res_gh2 = await client.post(
-            f"/rrhh/requisiciones/{requisicion_id}/gestion-humana/actualizar-estado",
-            json={"nuevo_estado": EstadoRP.CANDIDATO_SELECCIONADO, "observacion": "Candidato elegido"}
-        )
-        assert res_gh2.status_code == 200
-        assert res_gh2.json()["estado"] == EstadoRP.CANDIDATO_SELECCIONADO
-    
-        # 9. Gestión Humana: Mover a EN_PROCESO_CONTRATACION
-        res_gh3 = await client.post(
-            f"/rrhh/requisiciones/{requisicion_id}/gestion-humana/actualizar-estado",
-            json={"nuevo_estado": EstadoRP.EN_PROCESO_CONTRATACION, "observacion": "Firma de contrato pendiente"}
-        )
-        assert res_gh3.status_code == 200
-        assert res_gh3.json()["estado"] == EstadoRP.EN_PROCESO_CONTRATACION
-    
-        # 10. Gestión Humana: Mover a CERRADA
-        res_gh4 = await client.post(
-            f"/rrhh/requisiciones/{requisicion_id}/gestion-humana/actualizar-estado",
-            json={"nuevo_estado": EstadoRP.CERRADA, "observacion": "Proceso finalizado con éxito"}
-        )
-        assert res_gh4.status_code == 200
-        assert res_gh4.json()["estado"] == EstadoRP.CERRADA
+        assert res_assign.status_code == 200
+
+        # Verificar estado
+        res_detalle_gh = await client.get(f"/rrhh/requisiciones/{requisicion_id}")
+        assert res_detalle_gh.status_code == 200
+        assert res_detalle_gh.json()["estado"] == EstadoRP.EN_PROCESO_SELECCION
+
+        # 8. Agregar 3 candidatos (se requieren 3 personas)
+        candidatos_ids = []
+        for i in range(3):
+            res_cand = await client.post(
+                f"/rrhh/requisiciones/{requisicion_id}/candidatos",
+                json={"temporal_id": summar.id, "nombre_candidato": f"Candidato {i}"}
+            )
+            assert res_cand.status_code == 201
+            candidatos_ids.append(res_cand.json()["id"])
+
+        # 9. Contratar candidatos para cerrar automáticamente la RP
+        for cand_id in candidatos_ids:
+            res_contratar = await client.put(
+                f"/rrhh/requisiciones/candidatos/{cand_id}",
+                json={"estado": "CONTRATADO", "observaciones": f"Contratando candidato {cand_id}"}
+            )
+            assert res_contratar.status_code == 200
+
+        # 10. Verificar que la requisición se cerró automáticamente
+        res_detalle_cerrada = await client.get(f"/rrhh/requisiciones/{requisicion_id}")
+        assert res_detalle_cerrada.json()["estado"] == EstadoRP.CERRADA
     
         # 11. Verificar Detalle, Historial y Comentarios
         res_detalle = await client.get(f"/rrhh/requisiciones/{requisicion_id}")
@@ -232,6 +240,14 @@ async def test_flujo_completo_requisicion_personal(client, db_session):
         assert len(res_detalle2.json()["comentarios"]) == 1
     finally:
         from sqlalchemy import text
+        await db_session.execute(text("""
+            DELETE FROM candidatos_requisicion 
+            WHERE requisicion_id IN (SELECT id FROM requisiciones_personal WHERE correo_solicitante = 'test.solicitante@refridcol.com')
+        """))
+        await db_session.execute(text("""
+            DELETE FROM requisiciones_temporales 
+            WHERE requisicion_id IN (SELECT id FROM requisiciones_personal WHERE correo_solicitante = 'test.solicitante@refridcol.com')
+        """))
         await db_session.execute(text("""
             DELETE FROM requisicion_equipos_oficina 
             WHERE requisicion_id IN (SELECT id FROM requisiciones_personal WHERE correo_solicitante = 'test.solicitante@refridcol.com')
@@ -396,4 +412,56 @@ async def test_sincronizacion_directores_area(client, db_session):
         await db_session.execute(text("DELETE FROM cargos_rp WHERE nombre = 'DIRECTOR DE COSTOS Y CONTROL PRESUPUESTAL'"))
         await db_session.execute(text("DELETE FROM usuarios WHERE id = 'USR-TEST-DIRECTOR-123'"))
         await db_session.commit()
+
+
+@pytest.mark.asyncio
+async def test_cancelar_requisicion_gh(client, db_session):
+    from app.models.rrhh.solicitud_personal import RequisicionPersonal, EstadoRP
+    from sqlalchemy import text
+    try:
+        # 1. Crear una requisición de personal directamente en la BD en estado APROBADA
+        req = RequisicionPersonal(
+            correo_solicitante="solicitante@test.com",
+            nombre_solicitante="Solicitante Test",
+            rp="RP-CANCEL-GH-TEST",
+            consecutivo=98765,
+            numero_personas_requeridas=1,
+            estado=EstadoRP.APROBADA
+        )
+        db_session.add(req)
+        await db_session.commit()
+        await db_session.refresh(req)
+
+        # 2. Intentar cancelar sin observación (debería dar 400)
+        res_fail1 = await client.post(
+            f"/rrhh/requisiciones/{req.id}/cancelar-gh",
+            json={"observacion": ""}
+        )
+        assert res_fail1.status_code == 400
+
+        # 3. Cancelar con observación
+        res_cancel = await client.post(
+            f"/rrhh/requisiciones/{req.id}/cancelar-gh",
+            json={"observacion": "Cancelación por reestructuración del área"}
+        )
+        assert res_cancel.status_code == 200
+        data = res_cancel.json()
+        assert data["estado"] == EstadoRP.CANCELADA
+        assert data["observacion_cierre"] == "Cancelación por reestructuración del área"
+
+        # 4. Intentar cancelar una requisición ya cancelada (debería dar 403)
+        res_fail2 = await client.post(
+            f"/rrhh/requisiciones/{req.id}/cancelar-gh",
+            json={"observacion": "Intento duplicado"}
+        )
+        assert res_fail2.status_code == 403
+        
+    finally:
+        await db_session.execute(text("""
+            DELETE FROM historial_requisicion 
+            WHERE requisicion_id IN (SELECT id FROM requisiciones_personal WHERE rp = 'RP-CANCEL-GH-TEST')
+        """))
+        await db_session.execute(text("DELETE FROM requisiciones_personal WHERE rp = 'RP-CANCEL-GH-TEST'"))
+        await db_session.commit()
+
 

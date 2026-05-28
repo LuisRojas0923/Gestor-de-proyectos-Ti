@@ -9,7 +9,7 @@ from sqlmodel import select
 from app.database import obtener_db
 from app.models.rrhh.solicitud_personal import RequisicionPersonal, EstadoRP
 from app.api.rrhh.schemas import (
-    RequisicionOut, ActualizarEstadoGHPayload,
+    RequisicionOut, CancelarGHPayload,
     EmpresaTemporalOut, EmpresaTemporalCreate, EmpresaTemporalUpdate,
     RequisicionTemporalOut, RequisicionTemporalAssignPayload, RequisicionTemporalEnvioHVPayload,
     CandidatoRequisicionOut, CandidatoRequisicionCreate, CandidatoRequisicionUpdate,
@@ -24,8 +24,6 @@ router = APIRouter(prefix="/requisiciones", tags=["RP — Gestión Humana"])
 ESTADOS_GH = [
     EstadoRP.APROBADA,
     EstadoRP.EN_PROCESO_SELECCION,
-    EstadoRP.CANDIDATO_SELECCIONADO,
-    EstadoRP.EN_PROCESO_CONTRATACION,
     EstadoRP.CERRADA,
     EstadoRP.CANCELADA,
 ]
@@ -45,34 +43,29 @@ async def bandeja_gestion_humana(db: AsyncSession = Depends(obtener_db)):
     return result.scalars().all()
 
 
-@router.post("/{requisicion_id}/gestion-humana/actualizar-estado", response_model=RequisicionOut)
-async def actualizar_estado_gh(
+@router.post("/{requisicion_id}/cancelar-gh", response_model=RequisicionOut)
+async def cancelar_requisicion_gh(
     requisicion_id: int,
-    payload: ActualizarEstadoGHPayload,
+    payload: CancelarGHPayload,
     db: AsyncSession = Depends(obtener_db),
 ):
     """
-    Actualiza el estado de una requisición aprobada.
-    Solo Gestión Humana puede mover entre: APROBADA → EN_PROCESO_SELECCION → CANDIDATO →
-    EN_PROCESO_CONTRATACION → CERRADA / CANCELADA.
+    Cancela una requisición en gestión. Solo disponible para estados
+    APROBADA o EN_PROCESO_SELECCION. Requiere observación obligatoria.
     """
     try:
-        responsable_nombre = "Gestión Humana"
-        responsable_email = "gestion.humana@refridcol.com"
-
-        req = await svc.actualizar_estado_gh(
+        req = await svc.cancelar_requisicion_gh(
             db,
             requisicion_id,
-            payload.nuevo_estado,
-            responsable_nombre,
-            responsable_email,
-            payload.observacion,
+            "Gestión Humana",
+            "gestion.humana@refridcol.com",
+            payload.observacion or "",
         )
         return req
     except PermissionError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # ── Catálogo de Temporales ─────────────────────

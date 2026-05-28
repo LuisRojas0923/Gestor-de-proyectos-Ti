@@ -465,7 +465,7 @@ async def actualizar_estado_gh(
     if not req:
         raise ValueError(f"Requisición {requisicion_id} no encontrada")
 
-    transiciones_permitidas = EstadoRP.TRANSICIONES_GH.get(req.estado, [])
+    transiciones_permitidas = EstadoRP.TRANSICIONES_GH.get(req.estado, []) if hasattr(EstadoRP, 'TRANSICIONES_GH') else []
     if nuevo_estado not in transiciones_permitidas:
         raise PermissionError(
             f"Transición '{req.estado}' → '{nuevo_estado}' no permitida para Gestión Humana"
@@ -490,3 +490,54 @@ async def actualizar_estado_gh(
     await db.refresh(req)
     logger.info(f"[RP] {req.rp} → {nuevo_estado} por GH {responsable_email}")
     return req
+
+
+# ──────────────────────────────────────────────
+# Cancelar por Gestión Humana (acción manual explícita)
+# ──────────────────────────────────────────────
+async def cancelar_requisicion_gh(
+    db: AsyncSession,
+    requisicion_id: int,
+    responsable_nombre: str,
+    responsable_email: str,
+    observacion: str,
+) -> RequisicionPersonal:
+    """
+    Cancela una requisición desde Gestión Humana.
+    Solo válido desde APROBADA o EN_PROCESO_SELECCION.
+    Requiere observación obligatoria con el motivo de cancelación.
+    """
+    if not observacion or not observacion.strip():
+        raise ValueError("La observación es obligatoria para cancelar una requisición")
+
+    result = await db.execute(
+        sqlmodel_select(RequisicionPersonal).where(RequisicionPersonal.id == requisicion_id)
+    )
+    req = result.scalar_one_or_none()
+    if not req:
+        raise ValueError(f"Requisición {requisicion_id} no encontrada")
+
+    if req.estado not in EstadoRP.CANCELABLES_GH:
+        raise PermissionError(
+            f"No se puede cancelar una requisición en estado '{req.estado}'. "
+            f"Solo se puede cancelar desde: {', '.join(EstadoRP.CANCELABLES_GH)}"
+        )
+
+    estado_anterior = req.estado
+    req.estado = EstadoRP.CANCELADA
+    req.responsable_gh_nombre = responsable_nombre
+    req.responsable_gh_email = responsable_email
+    req.fecha_cierre = datetime.utcnow()
+    req.observacion_cierre = observacion.strip()
+    req.updated_at = datetime.utcnow()
+
+    await registrar_historial(
+        db, req.id, estado_anterior, EstadoRP.CANCELADA,
+        responsable_nombre, responsable_email, observacion.strip(),
+    )
+
+    await db.commit()
+    await db.refresh(req)
+    logger.info(f"[RP] {req.rp} CANCELADA por GH {responsable_email}: {observacion[:60]}")
+    return req
+

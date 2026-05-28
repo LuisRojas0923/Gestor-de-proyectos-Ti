@@ -8,8 +8,6 @@ export type EstadoRP =
   | 'APROBADA'
   | 'RECHAZADA'
   | 'EN_PROCESO_SELECCION'
-  | 'CANDIDATO_SELECCIONADO'
-  | 'EN_PROCESO_CONTRATACION'
   | 'CERRADA'
   | 'CANCELADA';
 
@@ -21,8 +19,6 @@ export const ESTADO_LABELS: Record<EstadoRP, string> = {
   APROBADA: 'Aprobada',
   RECHAZADA: 'Rechazada',
   EN_PROCESO_SELECCION: 'En Proceso de Selección',
-  CANDIDATO_SELECCIONADO: 'Candidato Seleccionado',
-  EN_PROCESO_CONTRATACION: 'En Proceso de Contratación',
   CERRADA: 'Cerrada',
   CANCELADA: 'Cancelada',
 };
@@ -35,8 +31,6 @@ export const ESTADO_COLORES: Record<EstadoRP, { bg: string; text: string; dot: s
   APROBADA:               { bg: 'bg-emerald-50',  text: 'text-emerald-800',dot: 'bg-emerald-500'},
   RECHAZADA:              { bg: 'bg-red-50',      text: 'text-red-800',    dot: 'bg-red-500'    },
   EN_PROCESO_SELECCION:   { bg: 'bg-blue-50',     text: 'text-blue-800',   dot: 'bg-blue-500'   },
-  CANDIDATO_SELECCIONADO: { bg: 'bg-indigo-50',   text: 'text-indigo-800', dot: 'bg-indigo-500' },
-  EN_PROCESO_CONTRATACION:{ bg: 'bg-violet-50',   text: 'text-violet-800', dot: 'bg-violet-500' },
   CERRADA:                { bg: 'bg-gray-100',    text: 'text-gray-600',   dot: 'bg-gray-400'   },
   CANCELADA:              { bg: 'bg-rose-50',     text: 'text-rose-800',   dot: 'bg-rose-500'   },
 };
