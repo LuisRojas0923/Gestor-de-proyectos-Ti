@@ -123,9 +123,16 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         }
     }), []);
 
+    const getAvanceDeTarea = (estado: string): number => {
+        const s = (estado || '').toLowerCase();
+        if (s.includes('complet')) return 100;
+        if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 50;
+        return 0;
+    };
+
     const allFlat = flattenTree(tree);
-    const completed = allFlat.filter(n => n.estado.toLowerCase().includes('complet')).length;
-    const avgProgress = allFlat.length ? Math.round((completed / allFlat.length) * 100) : 0;
+    const totalAvance = allFlat.reduce((sum, n) => sum + getAvanceDeTarea(n.estado), 0);
+    const avgProgress = allFlat.length ? Math.round(totalAvance / allFlat.length) : 0;
 
     const statusGroups = allFlat.reduce<Record<string, number>>((acc, n) => {
         const s = n.estado || 'Sin estado';
@@ -223,8 +230,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     useEffect(() => {
         if (!developmentId || tree.length === 0) return;
         const flat = flattenTree(tree);
-        const comp = flat.filter(n => n.estado.toLowerCase().includes('complet')).length;
-        const pct = flat.length ? Math.round((comp / flat.length) * 100) : 0;
+        const totalProg = flat.reduce((sum, n) => sum + getAvanceDeTarea(n.estado), 0);
+        const pct = flat.length ? Math.round(totalProg / flat.length) : 0;
         void put(`/desarrollos/${developmentId}`, { porcentaje_progreso: pct });
     }, [tree, developmentId]);
 
