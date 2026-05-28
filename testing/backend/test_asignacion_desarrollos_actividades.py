@@ -3,6 +3,7 @@ from sqlalchemy import delete, text
 
 from app.models.desarrollo.actividad import Actividad
 from app.models.desarrollo.desarrollo import Desarrollo
+from app.models.auth.usuario import Usuario
 
 
 TEST_DESARROLLO_ID = "TEST-JER-ASIGNACION"
@@ -32,8 +33,11 @@ async def desarrollo_asignacion_seed():
     from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
     from sqlalchemy import text
     from app.config import config
+    from app.services.auth.servicio import ServicioAuth
     engine = create_async_engine(config.database_url)
     Session = async_sessionmaker(engine, expire_on_commit=False)
+    
+    hash_pwd = ServicioAuth.obtener_hash_contrasena("pass123")
     
     async with Session() as session:
         # Asegurar columnas
@@ -52,6 +56,22 @@ async def desarrollo_asignacion_seed():
             
         await session.execute(text("DELETE FROM actividades WHERE desarrollo_id = :did"), {"did": TEST_DESARROLLO_ID})
         await session.execute(text("DELETE FROM desarrollos WHERE id = :did"), {"did": TEST_DESARROLLO_ID})
+        await session.execute(text("DELETE FROM usuarios WHERE id = 'USR-JER-ADMIN'"))
+        
+        # Crear usuario admin para pruebas de WBS protegidas
+        admin_user = Usuario(
+            id="USR-JER-ADMIN",
+            cedula="JER-ADMIN",
+            nombre="Admin Jerarquia",
+            hash_contrasena=hash_pwd,
+            rol="admin",
+            esta_activo=True,
+            correo_actualizado=True,
+            zona_horaria="America/Bogota"
+        )
+        session.add(admin_user)
+        await session.flush()
+        
         await session.execute(text("""
             INSERT INTO desarrollos (id, nombre, estado_general, estado_validacion, porcentaje_progreso, creado_en) 
             VALUES (:did, 'Proyecto jerarquico de prueba', 'Pendiente', 'aprobada', 0.0, NOW())
@@ -63,6 +83,7 @@ async def desarrollo_asignacion_seed():
     async with Session() as session:
         await session.execute(text("DELETE FROM actividades WHERE desarrollo_id = :did"), {"did": TEST_DESARROLLO_ID})
         await session.execute(text("DELETE FROM desarrollos WHERE id = :did"), {"did": TEST_DESARROLLO_ID})
+        await session.execute(text("DELETE FROM usuarios WHERE id = 'USR-JER-ADMIN'"))
         await session.commit()
     await engine.dispose()
 
@@ -135,7 +156,16 @@ async def test_arbol_actividades_no_dispara_lazy_loading(client, desarrollo_asig
     )
     assert hija.status_code == 200
 
-    response = await client.get(f"/actividades/desarrollo/{TEST_DESARROLLO_ID}/arbol")
+    # Inyectar token de autorizacion
+    token_response = await client.post("/auth/login", data={
+        "username": "JER-ADMIN",
+        "password": "pass123"
+    })
+    assert token_response.status_code == 200
+    token = token_response.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = await client.get(f"/actividades/desarrollo/{TEST_DESARROLLO_ID}/arbol", headers=headers)
 
     assert response.status_code == 200
     data = response.json()

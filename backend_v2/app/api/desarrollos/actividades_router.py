@@ -6,8 +6,12 @@ from decimal import Decimal
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from app.database import obtener_db
+from app.models.auth.usuario import Usuario
+from app.models.desarrollo.desarrollo import Desarrollo
+from app.api.auth.profile_router import obtener_usuario_actual_db
+from app.services.jerarquia.service import JerarquiaService
 from app.models.desarrollo.actividad import (
     Actividad,
     ActividadCrear,
@@ -96,33 +100,88 @@ async def crear_actividad(
 
 @router.get("/desarrollo/{desarrollo_id}/arbol", response_model=List[ActividadArbol])
 async def obtener_arbol_actividades(
-    desarrollo_id: str, db: AsyncSession = Depends(obtener_db)
+    desarrollo_id: str,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """
-    Obtiene el árbol completo de actividades para un desarrollo específico.
-    Carga todas las actividades relacionadas al desarrollo en memoria y arma la estructura.
+    Obtiene el árbol de actividades para un desarrollo específico, filtrando según
+    las políticas de jerarquía organizacional (Regla 1) y colaboración externa (Regla 2).
     """
     try:
+        # 1. Obtener todas las actividades del desarrollo
         stmt = select(Actividad).where(Actividad.desarrollo_id == desarrollo_id).order_by(Actividad.id)
         result = await db.execute(stmt)
         actividades = result.scalars().all()
 
-        # Construye DTOs explícitos para evitar lazy loading async de subactividades.
-        actividades_dict = {a.id: actividad_a_arbol(a) for a in actividades}
+        # 2. Obtener subordinados jerárquicos del usuario (IDs y nombres)
+        uid = usuario.id
+        subordinados = await JerarquiaService.obtener_ids_y_nombres_subordinados(db, uid)
+        todos_los_ids = [uid] + subordinados["ids"]
+        todos_los_nombres = [usuario.nombre] + subordinados["nombres"]
 
+        # 3. Determinar si el usuario tiene acceso completo al desarrollo (creador, responsable, supervisor, etc.)
+        stmt_dev = select(Desarrollo).where(
+            Desarrollo.id == desarrollo_id,
+            or_(
+                Desarrollo.creado_por_id.in_(todos_los_ids),
+                Desarrollo.responsable_id.in_(todos_los_ids),
+                Desarrollo.analista.in_(todos_los_nombres),
+                Desarrollo.supervisor.in_(todos_los_nombres),
+                Desarrollo.autoridad.in_(todos_los_nombres),
+                Desarrollo.responsable.in_(todos_los_nombres),
+            )
+        )
+        res_dev = await db.execute(stmt_dev)
+        desarrollo_acceso_total = res_dev.scalar_one_or_none() is not None
+
+        # Si es admin, director o tiene acceso total por jerarquía al desarrollo, ve todo
+        if desarrollo_acceso_total or usuario.rol in ("admin", "director"):
+            actividades_filtradas = actividades
+        else:
+            # Regla 2: Colaboración externa (acceso limitado)
+            # Encontrar actividades donde participa directamente o sus subordinados
+            permitidos_ids = set()
+            actividades_dict = {a.id: a for a in actividades}
+            
+            for act in actividades:
+                if (act.asignado_a_id in todos_los_ids or 
+                    act.responsable_id in todos_los_ids or 
+                    act.delegado_por_id in todos_los_ids):
+                    # Agregar el nodo y todos sus ancestros recursivamente hacia arriba
+                    curr = act
+                    while curr:
+                        permitidos_ids.add(curr.id)
+                        curr = actividades_dict.get(curr.parent_id) if curr.parent_id else None
+
+            # Si no participa en ninguna actividad, no tiene permitido ver el desarrollo
+            if not permitidos_ids:
+                raise HTTPException(
+                    status_code=403,
+                    detail="No tiene permisos para acceder a las actividades de este desarrollo"
+                )
+                
+            actividades_filtradas = [a for a in actividades if a.id in permitidos_ids]
+
+        # 4. Construir DTOs y armar el árbol
+        actividades_dict_arbol = {a.id: actividad_a_arbol(a) for a in actividades_filtradas}
         arbol = []
-        for a in actividades:
-            a_dto = actividades_dict[a.id]
-            if a.parent_id is None:
+        
+        for a in actividades_filtradas:
+            a_dto = actividades_dict_arbol[a.id]
+            # Si es raíz o su padre no fue incluido en los permitidos (pasa a ser raíz visual)
+            if a.parent_id is None or a.parent_id not in actividades_dict_arbol:
                 arbol.append(a_dto)
             else:
-                padre = actividades_dict.get(a.parent_id)
+                padre = actividades_dict_arbol.get(a.parent_id)
                 if padre:
                     padre.subactividades.append(a_dto)
 
         return arbol
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener árbol: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al obtener árbol de actividades: {str(e)}")
 
 
 @router.get("/{actividad_id}", response_model=ActividadLeer)

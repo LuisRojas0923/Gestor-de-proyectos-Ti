@@ -15,7 +15,7 @@ from app.models.desarrollo.desarrollo import (
 )
 from app.models.desarrollo.actividad import Actividad
 from app.models.auth.usuario import Usuario
-from app.api.auth.profile_router import obtener_usuario_actual_opcional
+from app.api.auth.profile_router import obtener_usuario_actual_opcional, obtener_usuario_actual_db
 from app.services.jerarquia.service import JerarquiaService
 
 router = APIRouter()
@@ -28,10 +28,14 @@ async def listar_desarrollos(
     estado: Optional[str] = None,
     solo_mios: bool = False,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Optional[Usuario] = Depends(obtener_usuario_actual_opcional),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
-    """Lista desarrollos. Con solo_mios=true filtra los del usuario y sus subordinados jerárquicos."""
+    """Lista desarrollos con autenticación obligatoria y filtrado jerárquico/rol."""
     try:
+        # Si no es admin y no es director, forzar obligatoriamente solo_mios=True
+        if usuario.rol not in ("admin", "director"):
+            solo_mios = True
+
         query = select(Desarrollo).offset(skip).limit(limit)
 
         if estado:
@@ -46,6 +50,15 @@ async def listar_desarrollos(
             todos_los_ids = [uid] + subordinados["ids"]
             todos_los_nombres = [nombre] + subordinados["nombres"]
 
+            # Subconsulta para desarrollos donde el usuario o subordinados tienen actividades asignadas
+            subquery_act = select(Actividad.desarrollo_id).where(
+                or_(
+                    Actividad.asignado_a_id.in_(todos_los_ids),
+                    Actividad.responsable_id.in_(todos_los_ids),
+                    Actividad.delegado_por_id.in_(todos_los_ids)
+                )
+            )
+
             query = query.where(
                 or_(
                     Desarrollo.creado_por_id.in_(todos_los_ids),
@@ -54,6 +67,7 @@ async def listar_desarrollos(
                     Desarrollo.supervisor.in_(todos_los_nombres),
                     Desarrollo.autoridad.in_(todos_los_nombres),
                     Desarrollo.responsable.in_(todos_los_nombres),
+                    Desarrollo.id.in_(subquery_act),
                 )
             )
 
