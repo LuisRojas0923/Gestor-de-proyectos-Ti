@@ -29,15 +29,11 @@ export const getDevelopmentDescription = (dev: DevelopmentRow) => dev.descriptio
 export const getDevelopmentStartDate = (dev: DevelopmentRow) => dev.start_date ?? dev.fecha_inicio;
 export const getDevelopmentEndDate = (dev: DevelopmentRow) => dev.estimated_end_date ?? dev.fecha_estimada_fin;
 
-export const getDevelopmentStatus = (dev: DevelopmentRow) => {
-  const progress = Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
-  if (progress >= 100) return 'Completado';
-  if (progress > 0) return 'En proceso';
-  return 'Pendiente';
-};
+export const getDevelopmentStatus = (dev: DevelopmentRow) =>
+  dev.estado_general ?? 'Pendiente';
 
 export const getDevelopmentProgress = (dev: DevelopmentRow) =>
-  Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
+  Number(dev.porcentaje_progreso ?? dev.stage_progress_percentage ?? 0);
 
 export const getStatusColor = (status: string) => {
   const s = status.toLowerCase();

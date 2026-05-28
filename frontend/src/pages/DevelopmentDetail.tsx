@@ -18,12 +18,8 @@ const getStatusColor = (status: string) => {
   return 'text-neutral-600 bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
 };
 
-const getDerivedStatus = (dev: DevelopmentWithCurrentStatus & { porcentaje_progreso?: number }): string => {
-  const progress = Number(dev.stage_progress_percentage ?? dev.porcentaje_progreso ?? 0);
-  if (progress >= 100) return 'Completado';
-  if (progress > 0) return 'En proceso';
-  return 'Pendiente';
-};
+const getDerivedStatus = (dev: DevelopmentWithCurrentStatus & { porcentaje_progreso?: number; estado_general?: string }): string =>
+  (dev as { estado_general?: string }).estado_general ?? 'Pendiente';
 
 const formatDate = (d?: string) => {
   if (!d) return null;

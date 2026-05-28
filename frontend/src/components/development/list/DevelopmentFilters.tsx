@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { UseFiltersReturn } from '../../../pages/MyDevelopments/hooks';
 import { Input, Select } from '../../atoms';
 
@@ -64,41 +64,89 @@ export const DevelopmentFilters: React.FC<DevelopmentFiltersProps> = ({
 
         {/* Fila 2: Filtros de Organización */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Select
-            value={providerFilter}
-            onChange={(e) => setProviderFilter(e.target.value)}
-            options={[
-              { value: "all", label: "Todos los Proveedores" },
-              ...uniqueProviders.map(p => ({ value: p, label: p }))
-            ]}
-          />
+          <div className="relative">
+            <Select
+              value={providerFilter}
+              onChange={(e) => setProviderFilter(e.target.value)}
+              options={[
+                { value: "all", label: "Todos los Proveedores" },
+                ...uniqueProviders.map(p => ({ value: p, label: p }))
+              ]}
+            />
+            {providerFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setProviderFilter('all')}
+                className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
+                title="Limpiar filtro"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
 
-          <Select
-            value={moduleFilter}
-            onChange={(e) => setModuleFilter(e.target.value)}
-            options={[
-              { value: "all", label: "Todos los Módulos" },
-              ...uniqueModules.map(m => ({ value: m, label: m }))
-            ]}
-          />
+          <div className="relative">
+            <Select
+              value={moduleFilter}
+              onChange={(e) => setModuleFilter(e.target.value)}
+              options={[
+                { value: "all", label: "Todos los Módulos" },
+                ...uniqueModules.map(m => ({ value: m, label: m }))
+              ]}
+            />
+            {moduleFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setModuleFilter('all')}
+                className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
+                title="Limpiar filtro"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
 
-          <Select
-            value={responsibleFilter}
-            onChange={(e) => setResponsibleFilter(e.target.value)}
-            options={[
-              { value: "all", label: "Todos los Responsables" },
-              ...uniqueResponsibles.map(r => ({ value: r, label: r }))
-            ]}
-          />
+          <div className="relative">
+            <Select
+              value={responsibleFilter}
+              onChange={(e) => setResponsibleFilter(e.target.value)}
+              options={[
+                { value: "all", label: "Todos los Responsables" },
+                ...uniqueResponsibles.map(r => ({ value: r, label: r }))
+              ]}
+            />
+            {responsibleFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setResponsibleFilter('all')}
+                className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
+                title="Limpiar filtro"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
 
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            options={[
-              { value: "all", label: "Todos los Estados" },
-              ...uniqueStatuses.map(s => ({ value: s, label: s }))
-            ]}
-          />
+          <div className="relative">
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              options={[
+                { value: "all", label: "Todos los Estados" },
+                ...uniqueStatuses.map(s => ({ value: s, label: s }))
+              ]}
+            />
+            {statusFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setStatusFilter('all')}
+                className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
+                title="Limpiar filtro"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

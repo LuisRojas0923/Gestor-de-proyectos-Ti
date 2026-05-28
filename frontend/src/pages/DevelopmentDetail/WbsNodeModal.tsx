@@ -266,13 +266,13 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
 
                             <div className="space-y-4 pt-2 border-t border-[var(--color-border)]/50">
                                 <AssignableUserSelect
-                                    label="Responsable"
+                                    label="Supervisor"
                                     value={responsableId}
                                     onChange={setResponsableId}
                                     helperText="Persona que responde por la entrega."
                                 />
                                 <AssignableUserSelect
-                                    label="Líder de actividad"
+                                    label="Ejecutor"
                                     value={asignadoAId}
                                     onChange={setAsignadoAId}
                                     helperText="Persona que ejecutará la tarea técnica."

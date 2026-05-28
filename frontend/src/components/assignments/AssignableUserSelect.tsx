@@ -23,7 +23,9 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
   const [options, setOptions] = useState<AssignableUserOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadTeam = async () => {
@@ -56,11 +58,29 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
+        setSearch('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Focus input when dropdown opens
+  useEffect(() => {
+    if (open && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+    if (!open) {
+      setSearch('');
+    }
+  }, [open]);
+
+  const filteredOptions = search.trim()
+    ? options.filter(o =>
+        o.label.toLowerCase().includes(search.toLowerCase()) ||
+        o.description?.toLowerCase().includes(search.toLowerCase())
+      )
+    : options;
 
   const selected = options.find(o => o.id === value);
 
@@ -125,6 +145,18 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
         <div className="absolute z-50 w-[--trigger-w] min-w-[240px] max-h-64 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl mt-1 custom-scrollbar"
           style={{ width: containerRef.current?.offsetWidth }}
         >
+          {/* Buscador */}
+          <div className="sticky top-0 px-2 py-2 bg-[var(--color-surface)] border-b border-[var(--color-border)]/30 z-10">
+            <input
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar o escribir..."
+              className="w-full px-3 py-2 text-xs border border-[var(--color-border)] rounded-lg bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
+            />
+          </div>
+
           {/* Sin asignar */}
           <button // @audit-ok
             type="button"
@@ -134,7 +166,7 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
             <span className="text-[var(--color-text-secondary)]">Sin asignar</span>
           </button>
 
-          {options.map(option => (
+          {filteredOptions.map(option => (
             <button // @audit-ok
               key={option.id}
               type="button"
@@ -154,6 +186,12 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
               )}
             </button>
           ))}
+
+          {filteredOptions.length === 0 && search.trim() && (
+            <div className="px-3 py-4 text-center text-xs text-[var(--color-text-secondary)]">
+              Sin resultados para "{search}"
+            </div>
+          )}
         </div>
       )}
 

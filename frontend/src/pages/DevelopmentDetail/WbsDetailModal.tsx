@@ -140,15 +140,15 @@ export const WbsDetailModal: React.FC<WbsDetailModalProps> = ({
 
                         {/* Columna derecha */}
                         <div className="space-y-5">
-                            {/* LÍDER / RESPONSABLE */}
-                            <Section label="Líder / Responsable">
+                            {/* EJECUTOR / SUPERVISOR */}
+                            <Section label="Ejecutor / Supervisor">
                                 <div className="space-y-1">
                                     <div className="flex justify-between">
-                                        <Text variant="caption" color="text-secondary">Líder</Text>
+                                        <Text variant="caption" color="text-secondary">Ejecutor</Text>
                                         <Text variant="caption" className="text-right">{getUserName(activity.asignado_a_id)}</Text>
                                     </div>
                                     <div className="flex justify-between">
-                                        <Text variant="caption" color="text-secondary">Responsable</Text>
+                                        <Text variant="caption" color="text-secondary">Supervisor</Text>
                                         <Text variant="caption" className="text-right">{getUserName(activity.responsable_id)}</Text>
                                     </div>
                                 </div>

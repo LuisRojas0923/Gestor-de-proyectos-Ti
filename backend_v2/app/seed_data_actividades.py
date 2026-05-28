@@ -13,7 +13,6 @@ COMMON_DEV_CONFIG = {
     "area_ejecutor": "D&DT",       # Definido por el usuario
     "porcentaje_progreso": Decimal("0.0")
 }
-
 DEVELOPMENTS_DATA = [
     {
         "id": "ACT-00049",
@@ -22,12 +21,43 @@ DEVELOPMENTS_DATA = [
         "estado_general": "En Progreso",
         "modulo": "Proveedores",
         "tipo": "Proyecto",
-        "area_desarrollo": "Compras",  # Inferido de Proveedores/Catálogo
+        "area_desarrollo": "Compras",
+        "fecha_inicio": "2025-09-28",
+        "fecha_estimada_fin": "2026-06-10",
+        "fecha_real_fin": None,
         "tareas": [
-            {"titulo": "Identificación de la fuente de datos en Excel (Catalogo de Artículos)", "estado": "Completado"},
-            {"titulo": "Construcción del script de carga hacia PostgreSQL", "estado": "Completado"},
-            {"titulo": "Validación de resultados e inconsistencias", "estado": "En Progreso"},
-            {"titulo": "Despliegue y automatización en servidor", "estado": "Pendiente"}
+            {
+                "titulo": "Identificación de la fuente de datos en Excel (Catalogo de Artículos)",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2025-09-28",
+                "fecha_fin_estimada": "2025-10-15",
+                "fecha_inicio_real": "2025-09-28",
+                "fecha_fin_real": "2025-10-15"
+            },
+            {
+                "titulo": "Construcción del script de carga hacia PostgreSQL",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2025-10-16",
+                "fecha_fin_estimada": "2025-11-10",
+                "fecha_inicio_real": "2025-10-16",
+                "fecha_fin_real": "2025-11-10"
+            },
+            {
+                "titulo": "Validación de resultados e inconsistencias",
+                "estado": "En Progreso",
+                "fecha_inicio_estimada": "2025-11-11",
+                "fecha_fin_estimada": "2026-05-30",
+                "fecha_inicio_real": "2025-11-11",
+                "fecha_fin_real": None
+            },
+            {
+                "titulo": "Despliegue y automatización en servidor",
+                "estado": "Pendiente",
+                "fecha_inicio_estimada": "2026-06-01",
+                "fecha_fin_estimada": "2026-06-10",
+                "fecha_inicio_real": None,
+                "fecha_fin_real": None
+            }
         ]
     },
     {
@@ -38,10 +68,34 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Logística",
         "area_desarrollo": "Logística",
+        "fecha_inicio": "2026-02-27",
+        "fecha_estimada_fin": "2026-03-31",
+        "fecha_real_fin": "2026-03-31",
         "tareas": [
-            {"titulo": "Pantalla de captura para conteo físico de activos", "estado": "Completado"},
-            {"titulo": "Generación de informes de inconsistencias y auditoría", "estado": "Completado"},
-            {"titulo": "Sincronización de datos con el módulo de Inventario Anual", "estado": "Completado"}
+            {
+                "titulo": "Pantalla de captura para conteo físico de activos",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-27",
+                "fecha_fin_estimada": "2026-03-10",
+                "fecha_inicio_real": "2026-02-27",
+                "fecha_fin_real": "2026-03-10"
+            },
+            {
+                "titulo": "Generación de informes de inconsistencias y auditoría",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-03-11",
+                "fecha_fin_estimada": "2026-03-20",
+                "fecha_inicio_real": "2026-03-11",
+                "fecha_fin_real": "2026-03-20"
+            },
+            {
+                "titulo": "Sincronización de datos con el módulo de Inventario Anual",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-03-21",
+                "fecha_fin_estimada": "2026-03-31",
+                "fecha_inicio_real": "2026-03-21",
+                "fecha_fin_real": "2026-03-31"
+            }
         ]
     },
     {
@@ -52,9 +106,26 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Logística",
         "area_desarrollo": "Logística",
+        "fecha_inicio": "2026-04-01",
+        "fecha_estimada_fin": "2026-06-05",
+        "fecha_real_fin": None,
         "tareas": [
-            {"titulo": "Recibimiento de solicitud de parametrización", "estado": "Completado"},
-            {"titulo": "Levantamiento del proceso y lógica de ciclos", "estado": "En Progreso"}
+            {
+                "titulo": "Recibimiento de solicitud de parametrización",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-04-01",
+                "fecha_fin_estimada": "2026-04-10",
+                "fecha_inicio_real": "2026-04-01",
+                "fecha_fin_real": "2026-04-10"
+            },
+            {
+                "titulo": "Levantamiento del proceso y lógica de ciclos",
+                "estado": "En Progreso",
+                "fecha_inicio_estimada": "2026-04-11",
+                "fecha_fin_estimada": "2026-06-05",
+                "fecha_inicio_real": "2026-04-11",
+                "fecha_fin_real": None
+            }
         ]
     },
     {
@@ -65,12 +136,50 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Logística",
         "area_desarrollo": "Logística",
+        "fecha_inicio": "2026-02-12",
+        "fecha_estimada_fin": "2026-06-15",
+        "fecha_real_fin": None,
         "tareas": [
-            {"titulo": "Diseño de interfaz de formularios de almacén", "estado": "Completado"},
-            {"titulo": "Validación de campos obligatorios en el frontend", "estado": "Completado"},
-            {"titulo": "Diseño de tarjetas de estado de pedidos", "estado": "Completado"},
-            {"titulo": "Integración con el flujo de aprobación RDX", "estado": "En Progreso"},
-            {"titulo": "Pruebas funcionales integradas", "estado": "Pendiente"}
+            {
+                "titulo": "Diseño de interfaz de formularios de almacén",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-12",
+                "fecha_fin_estimada": "2026-02-25",
+                "fecha_inicio_real": "2026-02-12",
+                "fecha_fin_real": "2026-02-25"
+            },
+            {
+                "titulo": "Validación de campos obligatorios en el frontend",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-26",
+                "fecha_fin_estimada": "2026-03-10",
+                "fecha_inicio_real": "2026-02-26",
+                "fecha_fin_real": "2026-03-10"
+            },
+            {
+                "titulo": "Diseño de tarjetas de estado de pedidos",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-03-11",
+                "fecha_fin_estimada": "2026-03-25",
+                "fecha_inicio_real": "2026-03-11",
+                "fecha_fin_real": "2026-03-25"
+            },
+            {
+                "titulo": "Integración con el flujo de aprobación RDX",
+                "estado": "En Progreso",
+                "fecha_inicio_estimada": "2026-03-26",
+                "fecha_fin_estimada": "2026-06-05",
+                "fecha_inicio_real": "2026-03-26",
+                "fecha_fin_real": None
+            },
+            {
+                "titulo": "Pruebas funcionales integradas",
+                "estado": "Pendiente",
+                "fecha_inicio_estimada": "2026-06-06",
+                "fecha_fin_estimada": "2026-06-15",
+                "fecha_inicio_real": None,
+                "fecha_fin_real": None
+            }
         ]
     },
     {
@@ -81,11 +190,42 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
         "area_desarrollo": "Gestión Humana",
+        "fecha_inicio": None,
+        "fecha_estimada_fin": "2026-07-10",
+        "fecha_real_fin": None,
         "tareas": [
-            {"titulo": "Diseño del layout del certificado laboral", "estado": "Pendiente"},
-            {"titulo": "Validación de datos de nómina", "estado": "Pendiente"},
-            {"titulo": "Generación del reporte en formato PDF", "estado": "Pendiente"},
-            {"titulo": "Envío automático por correo corporativo", "estado": "Pendiente"}
+            {
+                "titulo": "Diseño del layout del certificado laboral",
+                "estado": "Pendiente",
+                "fecha_inicio_estimada": "2026-06-10",
+                "fecha_fin_estimada": "2026-06-18",
+                "fecha_inicio_real": None,
+                "fecha_fin_real": None
+            },
+            {
+                "titulo": "Validación de datos de nómina",
+                "estado": "Pendiente",
+                "fecha_inicio_estimada": "2026-06-19",
+                "fecha_fin_estimada": "2026-06-25",
+                "fecha_inicio_real": None,
+                "fecha_fin_real": None
+            },
+            {
+                "titulo": "Generación del reporte en formato PDF",
+                "estado": "Pendiente",
+                "fecha_inicio_estimada": "2026-06-26",
+                "fecha_fin_estimada": "2026-07-02",
+                "fecha_inicio_real": None,
+                "fecha_fin_real": None
+            },
+            {
+                "titulo": "Envío automático por correo corporativo",
+                "estado": "Pendiente",
+                "fecha_inicio_estimada": "2026-07-03",
+                "fecha_fin_estimada": "2026-07-10",
+                "fecha_inicio_real": None,
+                "fecha_fin_real": None
+            }
         ]
     },
     {
@@ -95,12 +235,43 @@ DEVELOPMENTS_DATA = [
         "estado_general": "En Progreso",
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
-        "area_desarrollo": "Contabilidad",  # Inferido de viáticos/legalización contable
+        "area_desarrollo": "Contabilidad",
+        "fecha_inicio": "2026-02-02",
+        "fecha_estimada_fin": "2026-06-08",
+        "fecha_real_fin": None,
         "tareas": [
-            {"titulo": "Interfaz de carga de documentos y adjuntos (soporte)", "estado": "Completado"},
-            {"titulo": "Validación y parseo de recibos y facturas", "estado": "Completado"},
-            {"titulo": "Flujo de aprobación multinivel por jefatura", "estado": "Completado"},
-            {"titulo": "Integración con el módulo contable", "estado": "En Progreso"}
+            {
+                "titulo": "Interfaz de carga de documentos y adjuntos (soporte)",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-02",
+                "fecha_fin_estimada": "2026-02-20",
+                "fecha_inicio_real": "2026-02-02",
+                "fecha_fin_real": "2026-02-20"
+            },
+            {
+                "titulo": "Validación y parseo de recibos y facturas",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-21",
+                "fecha_fin_estimada": "2026-03-15",
+                "fecha_inicio_real": "2026-02-21",
+                "fecha_fin_real": "2026-03-15"
+            },
+            {
+                "titulo": "Flujo de aprobación multinivel por jefatura",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-03-16",
+                "fecha_fin_estimada": "2026-04-10",
+                "fecha_inicio_real": "2026-03-16",
+                "fecha_fin_real": "2026-04-10"
+            },
+            {
+                "titulo": "Integración con el módulo contable",
+                "estado": "En Progreso",
+                "fecha_inicio_estimada": "2026-04-11",
+                "fecha_fin_estimada": "2026-06-08",
+                "fecha_inicio_real": "2026-04-11",
+                "fecha_fin_real": None
+            }
         ]
     },
     {
@@ -111,10 +282,34 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
         "area_desarrollo": "Contabilidad",
+        "fecha_inicio": "2026-02-02",
+        "fecha_estimada_fin": "2026-04-15",
+        "fecha_real_fin": "2026-04-15",
         "tareas": [
-            {"titulo": "Template visual para exportación a PDF", "estado": "Completado"},
-            {"titulo": "Widget interactivo de saldos en el portal", "estado": "Completado"},
-            {"titulo": "Cálculo automático de saldos de viáticos", "estado": "Completado"}
+            {
+                "titulo": "Template visual para exportación a PDF",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-02",
+                "fecha_fin_estimada": "2026-02-25",
+                "fecha_inicio_real": "2026-02-02",
+                "fecha_fin_real": "2026-02-25"
+            },
+            {
+                "titulo": "Widget interactivo de saldos en el portal",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-26",
+                "fecha_fin_estimada": "2026-03-20",
+                "fecha_inicio_real": "2026-02-26",
+                "fecha_fin_real": "2026-03-20"
+            },
+            {
+                "titulo": "Cálculo automático de saldos de viáticos",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-03-21",
+                "fecha_fin_estimada": "2026-04-15",
+                "fecha_inicio_real": "2026-03-21",
+                "fecha_fin_real": "2026-04-15"
+            }
         ]
     },
     {
@@ -125,10 +320,34 @@ DEVELOPMENTS_DATA = [
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
         "area_desarrollo": "Contabilidad",
+        "fecha_inicio": "2026-04-16",
+        "fecha_estimada_fin": "2026-06-12",
+        "fecha_real_fin": None,
         "tareas": [
-            {"titulo": "Diseño de estructura de columnas para reporte de gastos", "estado": "Completado"},
-            {"titulo": "Definición de estilos y formato de celdas", "estado": "En Progreso"},
-            {"titulo": "Validación de datos exportados contra base de datos", "estado": "Pendiente"}
+            {
+                "titulo": "Diseño de estructura de columnas para reporte de gastos",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-04-16",
+                "fecha_fin_estimada": "2026-04-30",
+                "fecha_inicio_real": "2026-04-16",
+                "fecha_fin_real": "2026-04-30"
+            },
+            {
+                "titulo": "Definición de estilos y formato de celdas",
+                "estado": "En Progreso",
+                "fecha_inicio_estimada": "2026-05-01",
+                "fecha_fin_estimada": "2026-06-02",
+                "fecha_inicio_real": "2026-05-01",
+                "fecha_fin_real": None
+            },
+            {
+                "titulo": "Validación de datos exportados contra base de datos",
+                "estado": "Pendiente",
+                "fecha_inicio_estimada": "2026-06-03",
+                "fecha_fin_estimada": "2026-06-12",
+                "fecha_inicio_real": None,
+                "fecha_fin_real": None
+            }
         ]
     },
     {
@@ -138,12 +357,43 @@ DEVELOPMENTS_DATA = [
         "estado_general": "En Progreso",
         "tipo": "Proyecto",
         "modulo": "Gestión Humana",
-        "area_desarrollo": "Administrativa",  # Inferido de asignación de celulares
+        "area_desarrollo": "Administrativa",
+        "fecha_inicio": "2026-03-25",
+        "fecha_estimada_fin": "2026-06-10",
+        "fecha_real_fin": None,
         "tareas": [
-            {"titulo": "Registro e inventario de líneas corporativas", "estado": "Completado"},
-            {"titulo": "Mapeo de asignaciones de equipos a empleados", "estado": "Completado"},
-            {"titulo": "Seguimiento de mantenimientos y reparaciones", "estado": "En Progreso"},
-            {"titulo": "Control de costos y auditoría de uso mensual", "estado": "Pendiente"}
+            {
+                "titulo": "Registro e inventario de líneas corporativas",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-03-25",
+                "fecha_fin_estimada": "2026-04-10",
+                "fecha_inicio_real": "2026-03-25",
+                "fecha_fin_real": "2026-04-10"
+            },
+            {
+                "titulo": "Mapeo de asignaciones de equipos a empleados",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-04-11",
+                "fecha_fin_estimada": "2026-04-30",
+                "fecha_inicio_real": "2026-04-11",
+                "fecha_fin_real": "2026-04-30"
+            },
+            {
+                "titulo": "Seguimiento de mantenimientos y reparaciones",
+                "estado": "En Progreso",
+                "fecha_inicio_estimada": "2026-05-01",
+                "fecha_fin_estimada": "2026-06-01",
+                "fecha_inicio_real": "2026-05-01",
+                "fecha_fin_real": None
+            },
+            {
+                "titulo": "Control de costos y auditoría de uso mensual",
+                "estado": "Pendiente",
+                "fecha_inicio_estimada": "2026-06-02",
+                "fecha_fin_estimada": "2026-06-10",
+                "fecha_inicio_real": None,
+                "fecha_fin_real": None
+            }
         ]
     },
     {
@@ -153,11 +403,35 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Pendiente",
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
-        "area_desarrollo": "Sistemas",  # Inferido de aprobación de desarrollos TI
+        "area_desarrollo": "Sistemas",
+        "fecha_inicio": None,
+        "fecha_estimada_fin": "2026-07-05",
+        "fecha_real_fin": None,
         "tareas": [
-            {"titulo": "Configuración de matrices de niveles de aprobación", "estado": "Pendiente"},
-            {"titulo": "Notificaciones en tiempo real a aprobadores", "estado": "Pendiente"},
-            {"titulo": "Módulo de firmas digitales y registro de decisiones", "estado": "Pendiente"}
+            {
+                "titulo": "Configuración de matrices de niveles de aprobación",
+                "estado": "Pendiente",
+                "fecha_inicio_estimada": "2026-06-15",
+                "fecha_fin_estimada": "2026-06-22",
+                "fecha_inicio_real": None,
+                "fecha_fin_real": None
+            },
+            {
+                "titulo": "Notificaciones en tiempo real a aprobadores",
+                "estado": "Pendiente",
+                "fecha_inicio_estimada": "2026-06-23",
+                "fecha_fin_estimada": "2026-06-28",
+                "fecha_inicio_real": None,
+                "fecha_fin_real": None
+            },
+            {
+                "titulo": "Módulo de firmas digitales y registro de decisiones",
+                "estado": "Pendiente",
+                "fecha_inicio_estimada": "2026-06-29",
+                "fecha_fin_estimada": "2026-07-05",
+                "fecha_inicio_real": None,
+                "fecha_fin_real": None
+            }
         ]
     },
     {
@@ -167,12 +441,43 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
-        "area_desarrollo": "Administrativa",  # Inferido de gestión de instalaciones
+        "area_desarrollo": "Administrativa",
+        "fecha_inicio": "2026-02-06",
+        "fecha_estimada_fin": "2026-02-11",
+        "fecha_real_fin": "2026-02-11",
         "tareas": [
-            {"titulo": "Calendario de disponibilidad de salas en tiempo real", "estado": "Completado"},
-            {"titulo": "Control de conflictos de horarios y duplicaciones", "estado": "Completado"},
-            {"titulo": "Módulo de notificaciones de confirmación de reserva", "estado": "Completado"},
-            {"titulo": "Flujo de cancelación y reprogramación", "estado": "Completado"}
+            {
+                "titulo": "Calendario de disponibilidad de salas en tiempo real",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-06",
+                "fecha_fin_estimada": "2026-02-07",
+                "fecha_inicio_real": "2026-02-06",
+                "fecha_fin_real": "2026-02-07"
+            },
+            {
+                "titulo": "Control de conflictos de horarios y duplicaciones",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-08",
+                "fecha_fin_estimada": "2026-02-09",
+                "fecha_inicio_real": "2026-02-08",
+                "fecha_fin_real": "2026-02-09"
+            },
+            {
+                "titulo": "Módulo de notificaciones de confirmación de reserva",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-09",
+                "fecha_fin_estimada": "2026-02-10",
+                "fecha_inicio_real": "2026-02-09",
+                "fecha_fin_real": "2026-02-10"
+            },
+            {
+                "titulo": "Flujo de cancelación y reprogramación",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-10",
+                "fecha_fin_estimada": "2026-02-11",
+                "fecha_inicio_real": "2026-02-10",
+                "fecha_fin_real": "2026-02-11"
+            }
         ]
     },
     {
@@ -182,12 +487,43 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
-        "area_desarrollo": "Sistemas",  # Inferido de Soporte/Sistemas
+        "area_desarrollo": "Sistemas",
+        "fecha_inicio": "2026-01-18",
+        "fecha_estimada_fin": "2026-05-26",
+        "fecha_real_fin": "2026-05-26",
         "tareas": [
-            {"titulo": "Módulo de respuesta técnica y chat interno en ticket", "estado": "Completado"},
-            {"titulo": "Gestión de estados del ticket (Abierto, En Proceso, Resuelto)", "estado": "Completado"},
-            {"titulo": "Escalamiento automático por SLA", "estado": "Completado"},
-            {"titulo": "Historial y base de conocimiento de soluciones", "estado": "Completado"}
+            {
+                "titulo": "Módulo de respuesta técnica y chat interno en ticket",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-01-18",
+                "fecha_fin_estimada": "2026-02-15",
+                "fecha_inicio_real": "2026-01-18",
+                "fecha_fin_real": "2026-02-15"
+            },
+            {
+                "titulo": "Gestión de estados del ticket (Abierto, En Proceso, Resuelto)",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-16",
+                "fecha_fin_estimada": "2026-03-15",
+                "fecha_inicio_real": "2026-02-16",
+                "fecha_fin_real": "2026-03-15"
+            },
+            {
+                "titulo": "Escalamiento automático por SLA",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-03-16",
+                "fecha_fin_estimada": "2026-04-20",
+                "fecha_inicio_real": "2026-03-16",
+                "fecha_fin_real": "2026-04-20"
+            },
+            {
+                "titulo": "Historial y base de conocimiento de soluciones",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-04-21",
+                "fecha_fin_estimada": "2026-05-26",
+                "fecha_inicio_real": "2026-04-21",
+                "fecha_fin_real": "2026-05-26"
+            }
         ]
     },
     {
@@ -197,12 +533,44 @@ DEVELOPMENTS_DATA = [
         "estado_general": "Completado",
         "tipo": "Proyecto",
         "modulo": "Funcionalidades Generales",
-        "area_desarrollo": "Sistemas",  # Inferido de Gestión de Actividades TI
+        "area_desarrollo": "Sistemas",
+        "fecha_inicio": "2025-09-22",
+        "fecha_estimada_fin": "2026-05-26",
+        "fecha_real_fin": "2026-05-26",
         "tareas": [
-            {"titulo": "Creación de actividades WBS desde el portal", "estado": "Completado"},
-            {"titulo": "Asignación jerárquica de responsables y analistas", "estado": "Completado"},
-            {"titulo": "Seguimiento visual en diagrama de Gantt híbrido", "estado": "Completado"},
-            {"titulo": "Cálculo automático y propagación de avances", "estado": "Completado"}
+            {
+                "titulo": "Creación de actividades WBS desde el portal",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2025-09-22",
+                "fecha_fin_estimada": "2025-11-30",
+                "fecha_inicio_real": "2025-09-22",
+                "fecha_fin_real": "2025-11-30"
+            },
+            {
+                "titulo": "Asignación jerárquica de responsables y analistas",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2025-12-01",
+                "fecha_fin_estimada": "2026-02-15",
+                "fecha_inicio_real": "2025-12-01",
+                "fecha_fin_real": "2026-02-15"
+            },
+            {
+                "titulo": "Seguimiento visual en diagrama de Gantt híbrido",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-02-16",
+                "fecha_fin_estimada": "2026-04-15",
+                "fecha_inicio_real": "2026-02-16",
+                "fecha_fin_real": "2026-04-15"
+            },
+            {
+                "titulo": "Cálculo automático y propagación de avances",
+                "estado": "Completado",
+                "fecha_inicio_estimada": "2026-04-16",
+                "fecha_fin_estimada": "2026-05-26",
+                "fecha_inicio_real": "2026-04-16",
+                "fecha_fin_real": "2026-05-26"
+            }
         ]
     }
 ]
+

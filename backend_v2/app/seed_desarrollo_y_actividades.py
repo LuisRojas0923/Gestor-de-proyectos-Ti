@@ -40,12 +40,14 @@ def main():
                     id, nombre, descripcion, modulo, tipo, ambiente,
                     responsable, responsable_id, analista, autoridad, supervisor, creado_por_id,
                     area_desarrollo, area_ejecutor,
-                    estado_general, estado_validacion, porcentaje_progreso, creado_en
+                    estado_general, estado_validacion, porcentaje_progreso,
+                    fecha_inicio, fecha_estimada_fin, fecha_real_fin, creado_en
                 ) VALUES (
                     %(id)s, %(nombre)s, %(descripcion)s, %(modulo)s, %(tipo)s, %(ambiente)s,
                     %(responsable)s, %(responsable_id)s, %(analista)s, %(autoridad)s, %(supervisor)s, %(creado_por_id)s,
                     %(area_desarrollo)s, %(area_ejecutor)s,
-                    %(estado_general)s, %(estado_validacion)s, %(porcentaje_progreso)s, NOW()
+                    %(estado_general)s, %(estado_validacion)s, %(porcentaje_progreso)s,
+                    %(fecha_inicio)s, %(fecha_estimada_fin)s, %(fecha_real_fin)s, NOW()
                 )
             """, dev_payload)
             print(f"  ✅ Desarrollo creado.")
@@ -56,13 +58,24 @@ def main():
                     INSERT INTO actividades (
                         desarrollo_id, parent_id, titulo, descripcion, estado, 
                         responsable_id, asignado_a_id, delegado_por_id,
-                        estado_validacion, horas_estimadas, horas_reales, porcentaje_avance, creado_en
+                        estado_validacion, horas_estimadas, horas_reales, porcentaje_avance,
+                        fecha_inicio_estimada, fecha_fin_estimada, fecha_inicio_real, fecha_fin_real,
+                        creado_en
                     ) VALUES (
                         %s, NULL, %s, NULL, %s,
                         'USR-1107068093', 'USR-1107068093', 'USR-14836440',
-                        'aprobada', 0.0, 0.0, 0.0, NOW()
+                        'aprobada', 0.0, 0.0, 0.0,
+                        %s, %s, %s, %s, NOW()
                     ) RETURNING id;
-                """, (dev_id, tarea["titulo"], tarea["estado"]))
+                """, (
+                    dev_id, 
+                    tarea["titulo"], 
+                    tarea["estado"],
+                    tarea["fecha_inicio_estimada"],
+                    tarea["fecha_fin_estimada"],
+                    tarea["fecha_inicio_real"],
+                    tarea["fecha_fin_real"]
+                ))
                 new_act_id = cur.fetchone()[0]
                 print(f"    - Subtarea [{new_act_id}] ({tarea['estado']}): {tarea['titulo']}")
 

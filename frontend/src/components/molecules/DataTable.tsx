@@ -228,6 +228,11 @@ export function DataTable<T>({
                     options={getFilterOptions(activeSubFilter || activeFilter)}
                     tempValue={Array.from(tempSubFilters[activeSubFilter || activeFilter] || [])}
                     onToggleOption={handleToggleOption}
+                    onClearSelection={() => {
+                        const key = activeSubFilter || activeFilter;
+                        if (!key) return;
+                        setTempSubFilters(prev => ({ ...prev, [key]: new Set() }));
+                    }}
                     onApply={handleApplyFilter}
                     triggerHeight={40}
                     sortDir={activeFilter === activeSortKey ? activeSortDir : null}

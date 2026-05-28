@@ -18,6 +18,7 @@ interface FilterDropdownProps {
     options?: { value: string; label: string }[];
     tempValue?: string[];
     onToggleOption?: (value: string) => void;
+    onClearSelection?: () => void;
 
     // Props para Range (Numeric/Date)
     rangeValue?: { min: string | number; max: string | number };
@@ -58,6 +59,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
     subFilters,
     activeSubFilter,
     onSubFilterChange,
+    onClearSelection,
 }) => {
     const dropdownRef = useRef<HTMLDivElement>(null);
     const months = [
@@ -308,9 +310,20 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
 
             {/* Footer */}
             <div className="p-3 border-t border-neutral-100 dark:border-slate-800 bg-neutral-50/30 dark:bg-slate-800/30 flex items-center justify-between gap-2">
-                <Text variant="caption" className="text-[9px] font-normal text-neutral-500 dark:text-neutral-400 opacity-60 px-1">
-                    {type === 'categorical' ? `${tempValue.length} seleccionados` : 'Filtro por rango'}
-                </Text>
+                <div className="flex items-center gap-2">
+                    <Text variant="caption" className="text-[9px] font-normal text-neutral-500 dark:text-neutral-400 opacity-60 px-1">
+                        {type === 'categorical' ? `${tempValue.length} seleccionados` : 'Filtro por rango'}
+                    </Text>
+                    {type === 'categorical' && tempValue.length > 0 && onClearSelection && (
+                        <button
+                            type="button"
+                            onClick={onClearSelection}
+                            className="text-[9px] text-neutral-400 hover:text-red-500 transition-colors uppercase tracking-wider font-medium"
+                        >
+                            Limpiar
+                        </button>
+                    )}
+                </div>
                 <Button
                     onClick={onApply}
                     variant="primary"
