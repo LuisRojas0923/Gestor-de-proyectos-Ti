@@ -24,25 +24,47 @@ async def asegurar_columnas_asignacion(db_session):
     await db_session.commit()
 
 
-@pytest.fixture
-async def desarrollo_asignacion_seed(db_session):
-    await asegurar_columnas_asignacion(db_session)
-    await db_session.execute(delete(Actividad).where(Actividad.desarrollo_id == TEST_DESARROLLO_ID))
-    await db_session.execute(delete(Desarrollo).where(Desarrollo.id == TEST_DESARROLLO_ID))
-    db_session.add(
-        Desarrollo(
-            id=TEST_DESARROLLO_ID,
-            nombre="Proyecto jerarquico de prueba",
-            estado_general="Pendiente",
-        )
-    )
-    await db_session.commit()
+import pytest_asyncio
 
+
+@pytest_asyncio.fixture
+async def desarrollo_asignacion_seed():
+    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+    from sqlalchemy import text
+    from app.config import config
+    engine = create_async_engine(config.database_url)
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+    
+    async with Session() as session:
+        # Asegurar columnas
+        statements = [
+            "ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS creado_por_id VARCHAR(50)",
+            "ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS responsable_id VARCHAR(50)",
+            "ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS estado_validacion VARCHAR(50) DEFAULT 'aprobada'",
+            "ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS validado_por_id VARCHAR(50)",
+            "ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS validado_en TIMESTAMPTZ",
+            "ALTER TABLE actividades ADD COLUMN IF NOT EXISTS asignado_a_id VARCHAR(50)",
+            "ALTER TABLE actividades ADD COLUMN IF NOT EXISTS delegado_por_id VARCHAR(50)",
+            "ALTER TABLE actividades ADD COLUMN IF NOT EXISTS estado_validacion VARCHAR(50) DEFAULT 'aprobada'",
+        ]
+        for statement in statements:
+            await session.execute(text(statement))
+            
+        await session.execute(text("DELETE FROM actividades WHERE desarrollo_id = :did"), {"did": TEST_DESARROLLO_ID})
+        await session.execute(text("DELETE FROM desarrollos WHERE id = :did"), {"did": TEST_DESARROLLO_ID})
+        await session.execute(text("""
+            INSERT INTO desarrollos (id, nombre, estado_general, estado_validacion, porcentaje_progreso, creado_en) 
+            VALUES (:did, 'Proyecto jerarquico de prueba', 'Pendiente', 'aprobada', 0.0, NOW())
+        """), {"did": TEST_DESARROLLO_ID})
+        await session.commit()
+        
     yield
-
-    await db_session.execute(delete(Actividad).where(Actividad.desarrollo_id == TEST_DESARROLLO_ID))
-    await db_session.execute(delete(Desarrollo).where(Desarrollo.id == TEST_DESARROLLO_ID))
-    await db_session.commit()
+    
+    async with Session() as session:
+        await session.execute(text("DELETE FROM actividades WHERE desarrollo_id = :did"), {"did": TEST_DESARROLLO_ID})
+        await session.execute(text("DELETE FROM desarrollos WHERE id = :did"), {"did": TEST_DESARROLLO_ID})
+        await session.commit()
+    await engine.dispose()
 
 
 @pytest.mark.asyncio

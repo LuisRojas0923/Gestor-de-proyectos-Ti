@@ -63,8 +63,10 @@ async def crear_actividad(
     try:
         nueva_act_data = actividad_in.model_dump()
         
-        if nueva_act_data.get("estado") == "Completado":
+        if nueva_act_data.get("estado") in ("Completada", "Completado"):
             nueva_act_data["porcentaje_avance"] = Decimal("100")
+        elif nueva_act_data.get("estado") in ("En Progreso", "En Proceso"):
+            nueva_act_data["porcentaje_avance"] = Decimal("50")
         elif nueva_act_data.get("porcentaje_avance") is None:
             nueva_act_data["porcentaje_avance"] = Decimal("0")
             
@@ -78,9 +80,8 @@ async def crear_actividad(
             nueva_act.asignado_a_id,
         )
         
-        if nueva_act.parent_id is not None:
-            await recalcular_porcentaje_jerarquico(db, nueva_act)
-            await db.flush()
+        await recalcular_porcentaje_jerarquico(db, nueva_act)
+        await db.flush()
 
         await recalcular_progreso_desarrollo(db, nueva_act.desarrollo_id)
         await db.commit()

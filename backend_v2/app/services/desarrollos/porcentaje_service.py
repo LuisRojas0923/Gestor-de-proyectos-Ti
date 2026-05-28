@@ -81,6 +81,8 @@ async def _actualizar_porcentaje_actividad(db: AsyncSession, actividad: Activida
     if not hijos_raw:
         if actividad.estado in ("Completada", "Completado"):
             actividad.porcentaje_avance = Decimal("100")
+        elif actividad.estado in ("En Progreso", "En Proceso"):
+            actividad.porcentaje_avance = Decimal("50")
         else:
             actividad.porcentaje_avance = Decimal("0")
     else:
