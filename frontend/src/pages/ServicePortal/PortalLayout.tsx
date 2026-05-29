@@ -57,7 +57,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                                 />
                             )}
 
-                            <LogoSolidSolutions size="small" variant="icon" fixedColors />
+                            <LogoSolidSolutions size="normal" variant="icon" fixedColors />
                         </div>
 
                         {/* 2. SECCIÓN CENTRAL (PORTAL RDX + Logo Refridcol) */}

@@ -102,6 +102,84 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         permissions.includes('comisiones') ||
         ['admin', 'director'].includes(userRole)
     );
+    const cards = [
+        {
+            key: 'solicitudes',
+            canSee: canSeeSolicitudes,
+            title: "Gestión de Solicitudes TI",
+            description: "Crea nuevos requerimientos o consulta el estado de tus tickets actuales.",
+            icon: <img src={imgSolicitar} alt="Solicitar Servicio" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('categories')
+        },
+        {
+            key: 'reserva_salas',
+            canSee: canSeeReservaSalas,
+            title: "Reserva de salas",
+            description: "Reserva salas de reuniones y espacios para tu equipo.",
+            icon: <img src={imgReunion} alt="Reserva de salas" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('reserva_salas')
+        },
+        {
+            key: 'requisiciones',
+            canSee: canSeeRequisiciones,
+            title: "Sistema de Solicitudes",
+            description: "Gestión de Requisiciones (Almacén, Suministros, Presupuesto).",
+            icon: <img src={sistemasolicitudes} alt="Sistema de Solicitudes" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('requisiciones')
+        },
+        {
+            key: 'viaticos',
+            canSee: canSeeViaticos,
+            title: "Gestión de Viáticos",
+            description: "Reporte de gastos y consulta de estado de cuenta detallado.",
+            icon: <img src={imgGestionViaticos} alt="Gestión de Viáticos" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('viaticos_gestion')
+        },
+        {
+            key: 'nomina',
+            canSee: canSeeNomina,
+            title: "Novedades de Nómina",
+            description: "Carga y procesamiento de novedades para SOLID.",
+            icon: <img src={imgNovedadesNomina} alt="Novedades de Nómina" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('nomina')
+        },
+        {
+            key: 'comisiones',
+            canSee: canSeeComisiones,
+            title: "Comisiones",
+            description: "Cálculo y procesamiento de comisiones para el personal.",
+            icon: <img src={imgComisiones} alt="Gestión de Comisiones" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('comisiones')
+        },
+        {
+            key: 'inventario',
+            canSee: canSeeInventario,
+            title: "Inventario 2026",
+            description: "Toma física de inventario y carga masiva de conteos.",
+            icon: <img src={imgInventario} alt="Inventario 2026" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('inventario')
+        },
+        {
+            key: 'contabilidad',
+            canSee: canSeeContabilidad,
+            title: "Gestión Humana",
+            description: "Certificados laborales, desprendibles de pago e información tributaria.",
+            icon: <FileText className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('contabilidad')
+        },
+        {
+            key: 'gestion_actividades',
+            canSee: canSeeGestionActividades,
+            title: "Gestión de Actividades",
+            description: "Accede a desarrollos, aprobaciones y jerarquía organizacional.",
+            icon: <Briefcase className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('gestion_actividades')
+        }
+    ];
+
+    const activeCards = cards
+        .filter(card => card.canSee)
+        .sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
 
     return (
         <div className="space-y-12 py-6">
@@ -113,86 +191,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {canSeeSolicitudes && (
+                {activeCards.map(card => (
                     <ServicePortalCard
-                        title="Gestión de Solicitudes TI"
-                        description="Crea nuevos requerimientos o consulta el estado de tus tickets actuales."
-                        icon={<img src={imgSolicitar} alt="Solicitar Servicio" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('categories')}
+                        key={card.key}
+                        title={card.title}
+                        description={card.description}
+                        icon={card.icon}
+                        onClick={card.onClick}
                     />
-                )}
-
-                {canSeeReservaSalas && (
-                    <ServicePortalCard
-                        title="Reserva de salas"
-                        description="Reserva salas de reuniones y espacios para tu equipo."
-                        icon={<img src={imgReunion} alt="Reserva de salas" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('reserva_salas')}
-                    />
-                )}
-
-                {canSeeRequisiciones && (
-                    <ServicePortalCard
-                        title="Sistema de Solicitudes"
-                        description="Gestión de Requisiciones (Almacén, Suministros, Presupuesto)."
-                        icon={<img src={sistemasolicitudes} alt="Sistema de Solicitudes" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('requisiciones')}
-                    />
-                )}
-
-                {canSeeViaticos && (
-                    <ServicePortalCard
-                        title="Gestión de Viáticos"
-                        description="Reporte de gastos y consulta de estado de cuenta detallado."
-                        icon={<img src={imgGestionViaticos} alt="Gestión de Viáticos" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('viaticos_gestion')}
-                    />
-                )}
-
-                {canSeeNomina && (
-                    <ServicePortalCard
-                        title="Novedades de Nómina"
-                        description="Carga y procesamiento de novedades para SOLID."
-                        icon={<img src={imgNovedadesNomina} alt="Novedades de Nómina" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('nomina')}
-                    />
-                )}
-
-                {canSeeComisiones && (
-                    <ServicePortalCard
-                        title="Comisiones"
-                        description="Cálculo y procesamiento de comisiones para el personal."
-                        icon={<img src={imgComisiones} alt="Gestión de Comisiones" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('comisiones')}
-                    />
-                )}
-                
-                {canSeeInventario && (
-                    <ServicePortalCard
-                        title="Inventario 2026"
-                        description="Toma física de inventario y carga masiva de conteos."
-                        icon={<img src={imgInventario} alt="Inventario 2026" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('inventario')}
-                    />
-                )}
-
-                {canSeeContabilidad && (
-                    <ServicePortalCard
-                        title="Gestión Humana"
-                        description="Certificados laborales, desprendibles de pago e información tributaria."
-                        icon={<FileText className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('contabilidad')}
-                    />
-                )}
-
-                {canSeeGestionActividades && (
-                    <ServicePortalCard
-                        title="Gestión de Actividades"
-                        description="Accede a desarrollos, aprobaciones y jerarquía organizacional."
-                        icon={<Briefcase className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('gestion_actividades')}
-                    />
-                )}
+                ))}
             </div>
         </div>
     );
