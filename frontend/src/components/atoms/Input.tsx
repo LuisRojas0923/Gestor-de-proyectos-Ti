@@ -37,6 +37,7 @@ interface InputProps {
   inputMode?: 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search';
   autoFocus?: boolean;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  readOnly?: boolean;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(({
@@ -72,6 +73,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   inputMode,
   autoFocus,
   onPaste,
+  readOnly = false,
 }, ref) => {
   const [showPassword, setShowPassword] = useState(false); // [CONTROLADO]
   const isPasswordType = type === 'password'; // [CONTROLADO]
@@ -169,6 +171,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           inputMode={inputMode}
           autoFocus={autoFocus}
           onPaste={onPaste}
+          readOnly={readOnly}
           className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]} ${className}`}
           style={style}
         />

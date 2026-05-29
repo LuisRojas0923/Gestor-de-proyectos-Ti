@@ -13,7 +13,7 @@ ASYNC_DATABASE_URL = config.database_url.replace(
 ).split("?")[0]
 
 # URL de conexion SINCRONA (psycopg2) - para migraciones y scripts
-SYNC_DATABASE_URL = config.database_url
+SYNC_DATABASE_URL = config.database_url.replace("postgresql+asyncpg://", "postgresql://")
 
 # Engine ASINCRONO principal
 async_engine = create_async_engine(
@@ -62,9 +62,9 @@ ERP_DATABASE_URL = config.erp_database_url
 erp_engine = create_engine(
     ERP_DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
-    connect_args={"options": "-c client_encoding=utf8"},
+    pool_size=10,
+    max_overflow=20,
+    connect_args={"options": "-c client_encoding=utf8 -c statement_timeout=30000"},
 )
 SessionErp = sessionmaker(autocommit=False, autoflush=False, bind=erp_engine)
 

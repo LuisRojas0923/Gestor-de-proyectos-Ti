@@ -35,6 +35,7 @@ from .api.desarrollos_actividades import router as desarrollos_actividades_route
 from .api.auth.config_router import router as config_router
 from .api.validaciones_asignacion import router as validaciones_asignacion_router
 from .api.reserva_salas import router as reserva_salas_router
+from .api.novedades_nomina.nomina_router import router as nomina_router
 from .api.inventario.router import router as inventario_router
 from .api.impuestos import router as impuestos_router
 from .api.lineas_corporativas.router import router as lineas_corporativas_router
@@ -108,6 +109,12 @@ app = FastAPI(
 # Configurar CORS dinámico (Soporta Localhost e IPs de Red Privada)
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
@@ -146,6 +153,7 @@ async def verificar_salud():
     return {"estado": "saludable", "version": VERSION_SISTEMA}
 
 
+
 api_prefix = "/api/v2"
 
 app.include_router(auth_router, prefix=f"{api_prefix}/auth", tags=["Autenticacion"])
@@ -177,6 +185,7 @@ app.include_router(viaticos_router, prefix=api_prefix, tags=["Viaticos"])
 app.include_router(
     reserva_salas_router, prefix=f"{api_prefix}/reserva-salas", tags=["Reserva Salas"]
 )
+app.include_router(nomina_router, prefix=f"{api_prefix}/novedades-nomina", tags=["Novedades Nomina"])
 app.include_router(
     inventario_router, prefix=f"{api_prefix}/inventario", tags=["Inventario 2026"]
 )

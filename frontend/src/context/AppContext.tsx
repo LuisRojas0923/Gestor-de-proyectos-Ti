@@ -275,8 +275,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           });
 
           const normalizedUser = normalizeUser(response.data);
-          console.log("TRACE APP_CONTEXT | Raw data.email_needs_update:", response.data.email_needs_update);
-          console.log("TRACE APP_CONTEXT | User emailNeedsUpdate:", normalizedUser.emailNeedsUpdate);
 
           // Actualizar estado global con datos frescos y normalizados
           dispatch({ type: 'LOGIN', payload: normalizedUser });

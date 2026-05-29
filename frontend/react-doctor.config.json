@@ -1,0 +1,38 @@
+{
+  "ignore": {
+    "files": [
+      "node_modules/**",
+      "**/node_modules/**",
+      "dist/**",
+      "build/**",
+      "respaldo_codigo_muerto/**"
+    ],
+    "rules": [
+      "react-doctor/design-no-default-tailwind-palette",
+      "react-doctor/design-no-redundant-size-axes",
+      "react-doctor/require-reduced-motion",
+      "react-doctor/design-no-space-on-flex-children",
+      "react-doctor/design-no-three-period-ellipsis",
+      "react-doctor/prefer-useReducer",
+      "react-doctor/rendering-hydration-mismatch-time",
+      "react-doctor/no-giant-component",
+      "react-doctor/design-no-redundant-padding-axes",
+      "knip/types",
+      "knip/exports",
+      "knip/files",
+      "react-doctor/rerender-functional-setstate",
+      "react-doctor/no-fetch-in-effect",
+      "jsx-a11y/click-events-have-key-events",
+      "jsx-a11y/no-static-element-interactions",
+      "react-doctor/no-render-in-render",
+      "react-doctor/rendering-usetransition-loading",
+      "react-doctor/rerender-lazy-state-init",
+      "react-doctor/no-cascading-set-state",
+      "react-doctor/js-set-map-lookups",
+      "react-doctor/js-combine-iterations",
+      "react-doctor/js-hoist-intl",
+      "react-doctor/js-flatmap-filter",
+      "react-doctor/no-array-index-as-key"
+    ]
+  }
+}

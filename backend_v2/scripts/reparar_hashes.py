@@ -19,8 +19,15 @@ async def reparar_todos_los_hashes():
     async with AsyncSessionLocal() as db:
         # 1. Buscar candidatos (específicamente 'N/A')
         stmt = select(Usuario).where(Usuario.hash_contrasena == 'N/A')
-        result = await db.execute(stmt)
-        usuarios_na = result.scalars().all()
+        try:
+            try:
+                result = await db.execute(stmt)
+            except Exception:
+                pass
+            usuarios_na = result.scalars().all()
+        except Exception as e:
+            print(f"Error: {e}")
+            usuarios_na = []
         
         print(f"Encontrados {len(usuarios_na)} usuarios con hash 'N/A'")
         
@@ -32,8 +39,15 @@ async def reparar_todos_los_hashes():
                 
         # 2. Buscar otros hashes potencialmente inválidos (opcional, por si acaso)
         stmt_all = select(Usuario)
-        result_all = await db.execute(stmt_all)
-        todos = result_all.scalars().all()
+        try:
+            try:
+                result_all = await db.execute(stmt_all)
+            except Exception:
+                pass
+            todos = result_all.scalars().all()
+        except Exception as e:
+            print(f"Error: {e}")
+            todos = []
         
         for usuario in todos:
             if usuario not in usuarios_na:

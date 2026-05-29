@@ -143,6 +143,37 @@ const InventoryRow = React.memo(({ item, style }: { item: any, style?: React.CSS
     );
 });
 
+// Componente interno para las barras de progreso globales
+const GlobalProgressBar = ({ label, current, total, color, icon: Icon }: any) => {
+    const percentage = Math.min(100, Math.round((current / total) * 100) || 0);
+    const isComplete = percentage === 100;
+    const barColor = isComplete ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : color.replace('text-', 'bg-');
+    const textColor = isComplete ? 'text-green-500' : color;
+
+    return (
+        <div className="flex-1 min-w-[240px] p-3 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700 shadow-sm flex flex-col gap-2 transition-all">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className={`p-1.5 rounded-lg ${textColor.replace('text-', 'bg-').replace('-600', '-500/10').replace('-500', '-500/10')}`}>
+                        <Icon size={14} className={textColor} />
+                    </div>
+                    <Text variant="caption" weight="bold" className="uppercase text-[9px] tracking-widest opacity-60">{label}</Text>
+                </div>
+                <Text variant="caption" weight="bold" className="text-[11px] font-black">{current} / {total}</Text>
+            </div>
+            <div className="flex items-center gap-3">
+                <div className="flex-1 h-2 bg-neutral-100 dark:bg-neutral-700 rounded-full overflow-hidden shadow-inner">
+                    <div
+                        className={`h-full transition-all duration-1000 ${barColor}`}
+                        style={{ width: `${percentage}%` }} // @audit-ok
+                    />
+                </div>
+                <Text variant="caption" weight="bold" className={`text-[11px] min-w-[35px] text-right font-black ${textColor}`}>{percentage}%</Text>
+            </div>
+        </div>
+    );
+};
+
 const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
     stats,
     inventoryList,
@@ -159,37 +190,6 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
 
     const deferredFilters = useDeferredValue(columnFilters);
     const deferredSearch = useDeferredValue(filters.search);
-
-    // Componente interno para las barras de progreso globales
-    const GlobalProgressBar = ({ label, current, total, color, icon: Icon }: any) => {
-        const percentage = Math.min(100, Math.round((current / total) * 100) || 0);
-        const isComplete = percentage === 100;
-        const barColor = isComplete ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]' : color.replace('text-', 'bg-');
-        const textColor = isComplete ? 'text-green-500' : color;
-
-        return (
-            <div className="flex-1 min-w-[240px] p-3 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700 shadow-sm flex flex-col gap-2 transition-all">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className={`p-1.5 rounded-lg ${textColor.replace('text-', 'bg-').replace('-600', '-500/10').replace('-500', '-500/10')}`}>
-                            <Icon size={14} className={textColor} />
-                        </div>
-                        <Text variant="caption" weight="bold" className="uppercase text-[9px] tracking-widest opacity-60">{label}</Text>
-                    </div>
-                    <Text variant="caption" weight="bold" className="text-[11px] font-black">{current} / {total}</Text>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-neutral-100 dark:bg-neutral-700 rounded-full overflow-hidden shadow-inner">
-                        <div
-                            className={`h-full transition-all duration-1000 ${barColor}`}
-                            style={{ width: `${percentage}%` }} // @audit-ok
-                        />
-                    </div>
-                    <Text variant="caption" weight="bold" className={`text-[11px] min-w-[35px] text-right font-black ${textColor}`}>{percentage}%</Text>
-                </div>
-            </div>
-        );
-    };
 
     // Cálculo dinámico de altura para evitar doble scroll
     useEffect(() => {

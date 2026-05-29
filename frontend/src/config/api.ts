@@ -4,9 +4,9 @@
 // Usa http://localhost (puerto 80 con Nginx) o esta lógica redirige al backend :8000.
 
 function getBaseUrl(): string {
-  // Cuando la app se abre en el puerto de Vite (5173), usar backend directo :8000
+  // Cuando la app se abre en el puerto de Vite (5173), usar backend directo :8001
   if (typeof window !== 'undefined' && window.location.port === '5173') {
-    return `${window.location.protocol}//${window.location.hostname}:8000/api/v2`;
+    return `${window.location.protocol}//${window.location.hostname}:8001/api/v2`;
   }
   
   const env = import.meta.env.VITE_API_BASE_URL;

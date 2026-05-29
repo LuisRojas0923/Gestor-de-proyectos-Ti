@@ -34,5 +34,6 @@ export { default as ClearReportConfirmModal } from './ClearReportConfirmModal';
 export { default as DeleteReportConfirmModal } from './DeleteReportConfirmModal';
 export { default as ReportLockedModal } from './ReportLockedModal';
 export { FilterDropdown } from './FilterDropdown';
+export { default as FilePicker } from './FilePicker';
 export { default as HierarchyAutocomplete } from './HierarchyAutocomplete';
 export { default as AreaAutocomplete } from './AreaAutocomplete';

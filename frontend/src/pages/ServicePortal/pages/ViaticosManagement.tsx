@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, ShieldCheck } from 'lucide-react';
-import { Button, Text, Title } from '../../../components/atoms';
-import { ActionCard } from '../../../components/molecules';
+import { ClipboardList, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Button, Text, Title, MaterialCard } from '../../../components/atoms';
 import { useAppContext } from '../../../context/AppContext';
 import ViaticosAuthModal from '../components/ViaticosAuthModal';
 
@@ -12,6 +11,41 @@ interface ViaticosManagementProps {
     onNavigate: (view: 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_estado' | 'director_legalizaciones') => void;
     moduleStatus?: Record<string, boolean>;
 }
+
+const ServicePortalCard: React.FC<{
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+    onClick: () => void;
+}> = ({ title, description, icon, onClick }) => {
+    return (
+        <MaterialCard
+            onClick={onClick}
+            hoverable={true}
+            className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm hover:shadow-lg hover:border-[var(--color-primary)] transition-all duration-300 transform hover:-translate-y-0.5 text-left w-full min-h-24 h-auto cursor-pointer"
+        >
+            <div className="flex items-center gap-4 w-full h-full">
+                {/* Contenedor del Icono/Logo */}
+                <div className="w-16 h-16 bg-white dark:bg-neutral-800 rounded-xl flex items-center justify-center p-2 border border-slate-100 dark:border-neutral-700 shadow-sm shrink-0">
+                    <div className="w-full h-full flex items-center justify-center">
+                        {icon}
+                    </div>
+                </div>
+                {/* Textos */}
+                <div className="flex-grow min-w-0">
+                    <Title variant="h6" weight="bold" className="truncate leading-tight text-slate-800 dark:text-white group-hover:text-[var(--color-primary)] transition-colors">
+                        {title}
+                    </Title>
+                    <Text variant="caption" color="text-secondary" className="block mt-1 font-medium line-clamp-2">
+                        {description}
+                    </Text>
+                </div>
+                {/* Indicador de Acción */}
+                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-[var(--color-primary)] group-hover:translate-x-1 transition-all shrink-0" />
+            </div>
+        </MaterialCard>
+    );
+};
 
 const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, moduleStatus = {} }) => {
     const navigate = useNavigate();
@@ -78,38 +112,35 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, mod
                 </div>
             )}
 
-            <div className={`grid grid-cols-1 ${['director', 'admin'].includes(userRole) ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8 mt-8 max-w-[var(--portal-max-width)] mx-auto`}>
+            <div className={`grid grid-cols-1 ${['director', 'admin'].includes(userRole) ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-6 mt-8 max-w-[var(--portal-max-width)] mx-auto`}>
                 {hasGestionPermission && (
                     <>
                         {canSeeReportes && (
-                            <ActionCard
+                            <ServicePortalCard
                                 title="Legalizacion de Gastos"
                                 description="Registra y legaliza tus viáticos, adjuntando facturas y detalles por OT."
-                                icon={<img src={imgIngresar} alt="Legalizacion de Gastos" className="w-full h-full object-contain p-2" />}
+                                icon={<img src={imgIngresar} alt="Legalizacion de Gastos" className="w-full h-full object-contain p-1" />}
                                 onClick={() => onNavigate('viaticos_reportes')}
-                                className="md:h-64"
                             />
                         )}
 
                         {canSeeEstado && (
-                            <ActionCard
+                            <ServicePortalCard
                                 title="Estado de Cuenta"
                                 description="Consulta tus movimientos, saldos y el histórico oficial desde el ERP."
-                                icon={<img src={imgEstadoCuenta} alt="Estado de Cuenta" className="w-full h-full object-contain p-2" />}
+                                icon={<img src={imgEstadoCuenta} alt="Estado de Cuenta" className="w-full h-full object-contain p-1" />}
                                 onClick={() => onNavigate('viaticos_estado')}
-                                className="md:h-64"
                             />
                         )}
                     </>
                 )}
 
                 {canSeeDirectorPanel && (
-                    <ActionCard
+                    <ServicePortalCard
                         title="Panel de Legalizaciones"
                         description="Consulta todas las legalizaciones reportadas y el flujo de información."
-                        icon={<div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 bg-purple-500/10"><ClipboardList className="w-12 h-12 text-purple-500" /></div>}
+                        icon={<ClipboardList className="w-10 h-10 text-purple-500" />}
                         onClick={() => onNavigate('director_legalizaciones')}
-                        className="md:h-64"
                     />
                 )}
             </div>

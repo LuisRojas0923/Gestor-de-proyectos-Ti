@@ -12,6 +12,21 @@ interface ActivityCardProps {
   showCompleteButton?: boolean;
 }
 
+// Componente para mostrar un dato con ícono (del mockup)
+const DataField = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
+  <div className="flex flex-col space-y-0.5">
+    <div className="flex items-center">
+      {icon}
+      <Text variant="caption" weight="medium" color="secondary" className="ml-1">
+        {label}
+      </Text>
+    </div>
+    <Text weight="semibold">
+      {value}
+    </Text>
+  </div>
+);
+
 const ActivityCard: React.FC<ActivityCardProps> = ({
   activity,
   darkMode,
@@ -36,22 +51,6 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
       time: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
     };
   };
-
-
-  // Componente para mostrar un dato con ícono (del mockup)
-  const DataField = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
-    <div className="flex flex-col space-y-0.5">
-      <div className="flex items-center">
-        {icon}
-        <Text variant="caption" weight="medium" color="secondary" className="ml-1">
-          {label}
-        </Text>
-      </div>
-      <Text weight="semibold">
-        {value}
-      </Text>
-    </div>
-  );
 
   return (
     <MaterialCard className="w-full">

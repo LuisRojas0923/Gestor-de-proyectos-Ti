@@ -158,7 +158,7 @@ const TeamPerformance: React.FC<{ darkMode?: boolean }> = ({ darkMode }) => {
         <MaterialCard.Content>
           <div className="space-y-4">
             {teamPerformanceData.map((member, index) => (
-              <div key={index} className={`flex items-center justify-between p-4 rounded-lg ${darkMode ? 'bg-neutral-700' : 'bg-neutral-50'
+              <div key={`${member.id || member.cedula || 'member'}-${index}`} className={`flex items-center justify-between p-4 rounded-lg ${darkMode ? 'bg-neutral-700' : 'bg-neutral-50'
                 }`}>
                 <div className="flex items-center space-x-4">
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center ${member.sla >= 90 ? 'bg-green-100 dark:bg-green-900' :

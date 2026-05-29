@@ -1,12 +1,19 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, X, ArrowUpAZ, ArrowDownAZ } from 'lucide-react';
+import { Search, X, ArrowUpAZ, ArrowDownAZ, Check } from 'lucide-react';
 import { Text, Button, Input } from '../atoms';
 
 interface FilterDropdownProps {
-    isOpen: boolean;
-    onClose: () => void;
-    anchorRect: { top: number; left: number; width: number } | null;
+    // API Simple (Uncontrolled/Trigger mode)
+    options?: { value: string; label: string }[];
+    selectedOptions?: string[];
+    onFilterChange?: (values: string[]) => void;
+    dark?: boolean;
+
+    // API Compleja (Controlled mode)
+    isOpen?: boolean;
+    onClose?: () => void;
+    anchorRect?: { top: number; left: number; width: number } | DOMRect | null;
     title?: string;
     type?: 'categorical' | 'numeric' | 'date';
 
@@ -15,7 +22,6 @@ interface FilterDropdownProps {
     onSearchChange?: (value: string) => void;
     onSelectAll?: () => void;
     isAllSelected?: boolean;
-    options?: { value: string; label: string }[];
     tempValue?: string[];
     onToggleOption?: (value: string) => void;
     onClearSelection?: () => void;
@@ -28,7 +34,7 @@ interface FilterDropdownProps {
     sortDir?: 'asc' | 'desc' | null;
     onSort?: (dir: 'asc' | 'desc' | null) => void;
 
-    onApply: () => void;
+    onApply?: () => void;
     placeholder?: string;
     triggerHeight?: number;
     subFilters?: { key: string; label: string }[];
@@ -36,95 +42,189 @@ interface FilterDropdownProps {
     onSubFilterChange?: (key: string) => void;
 }
 
-export const FilterDropdown: React.FC<FilterDropdownProps> = ({
-    isOpen,
-    onClose,
-    anchorRect,
-    title,
-    type = 'categorical',
-    searchTerm = '',
-    onSearchChange,
-    onSelectAll,
-    isAllSelected,
-    options = [],
-    tempValue = [],
-    onToggleOption,
-    rangeValue = { min: '', max: '' },
-    onRangeChange,
-    sortDir,
-    onSort,
-    onApply,
-    placeholder = 'Buscar...',
-    triggerHeight = 40,
-    subFilters,
-    activeSubFilter,
-    onSubFilterChange,
-    onClearSelection,
-}) => {
+export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
+    const {
+        isOpen,
+        onClose,
+        anchorRect,
+        title,
+        type = 'categorical',
+        searchTerm = '',
+        onSearchChange,
+        onSelectAll,
+        isAllSelected: propIsAllSelected,
+        options = [],
+        tempValue = [],
+        onToggleOption,
+        rangeValue = { min: '', max: '' },
+        onRangeChange,
+        sortDir,
+        onSort,
+        onApply,
+        placeholder = 'Buscar...',
+        triggerHeight = 40,
+        subFilters,
+        activeSubFilter,
+        onSubFilterChange,
+        onClearSelection,
+    } = props;
+
+    const [internalIsOpen, setInternalIsOpen] = useState(false);
+    const [internalSearch, setInternalSearch] = useState('');
+    const [internalAnchor, setInternalAnchor] = useState<{ top: number; left: number; width: number } | null>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const months = [
-        'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-    ];
+
+    const isSimpleMode = props.onFilterChange !== undefined;
+    const effectiveIsOpen = isSimpleMode ? internalIsOpen : (isOpen || false);
+
+    // Unificar anchorRect
+    let effectiveAnchor: { top: number; left: number; width: number } | null = null;
+    if (isSimpleMode) {
+        effectiveAnchor = internalAnchor;
+    } else if (anchorRect) {
+        effectiveAnchor = {
+            top: anchorRect.top + window.scrollY,
+            left: anchorRect.left + window.scrollX,
+            width: anchorRect.width
+        };
+    }
+
+    const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+    const [maxHeight, setMaxHeight] = useState<string>('450px');
+
+    useEffect(() => {
+        if (effectiveIsOpen && effectiveAnchor) {
+            const windowHeight = window.innerHeight;
+            const spaceBelow = windowHeight - effectiveAnchor.top - 20;
+
+            if (spaceBelow < 300 && effectiveAnchor.top > 300) {
+                setPosition({
+                    top: effectiveAnchor.top - (triggerHeight + 8) - Math.min(400, effectiveAnchor.top - 40),
+                    left: effectiveAnchor.left
+                });
+                setMaxHeight(`${effectiveAnchor.top - 60}px`);
+            } else {
+                setPosition({ top: effectiveAnchor.top + 4, left: effectiveAnchor.left });
+                setMaxHeight(`${Math.min(450, spaceBelow)}px`);
+            }
+        }
+    }, [effectiveIsOpen, effectiveAnchor, triggerHeight]);
+
+    const toggleSimple = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setInternalAnchor({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX,
+                width: rect.width
+            });
+        }
+        setInternalIsOpen(prev => !prev);
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (isOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                const isTrigger = (event.target as Element).closest('[role="button"]');
-                if (!isTrigger) onClose();
+            if (effectiveIsOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                if (isSimpleMode && triggerRef.current && triggerRef.current.contains(event.target as Node)) return;
+                
+                if (isSimpleMode) setInternalIsOpen(false);
+                else onClose?.();
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen, onClose]);
+    }, [effectiveIsOpen, isSimpleMode, onClose]);
 
-    const [maxHeight, setMaxHeight] = React.useState('400px');
-    const [position, setPosition] = React.useState<{ top: number; left: number } | null>(null);
+    if (!effectiveIsOpen && isSimpleMode) {
+        const hasFilters = (props.selectedOptions?.length || 0) > 0;
+        return (
+            <Button
+                ref={triggerRef}
+                onClick={toggleSimple}
+                variant="custom"
+                className="absolute inset-0 w-full h-full bg-transparent border-none cursor-pointer focus:outline-none z-10 p-0 m-0"
+            >
+                {hasFilters && (
+                    <Text as="span" color="inherit" className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] flex items-center justify-center rounded-full font-bold shadow-sm">
+                        {props.selectedOptions?.length}
+                    </Text>
+                )}
+            </Button>
+        );
+    }
 
-    useEffect(() => {
-        if (isOpen && anchorRect) {
-            const windowHeight = window.innerHeight;
-            const spaceBelow = windowHeight - anchorRect.top - 20;
+    if (!effectiveIsOpen || !effectiveAnchor || !position) return null;
 
-            if (spaceBelow < 300 && anchorRect.top > 300) {
-                setPosition({
-                    top: anchorRect.top - (triggerHeight + 8) - Math.min(400, anchorRect.top - 40),
-                    left: anchorRect.left
-                });
-                setMaxHeight(`${anchorRect.top - 60}px`);
-            } else {
-                setPosition({ top: anchorRect.top + 4, left: anchorRect.left });
-                setMaxHeight(`${Math.min(450, spaceBelow)}px`);
-            }
+    // --- Handlers unificados ---
+    const currentType = type;
+    const currentSearch = isSimpleMode ? internalSearch : searchTerm;
+    const currentOptions = options;
+    const currentSelected = isSimpleMode ? (props.selectedOptions || []) : tempValue;
+
+    const handleSearch = (val: string) => {
+        if (isSimpleMode) setInternalSearch(val);
+        else onSearchChange?.(val);
+    };
+
+    const handleToggle = (val: string) => {
+        if (isSimpleMode) {
+            const next = currentSelected.includes(val) 
+                ? currentSelected.filter(v => v !== val)
+                : [...currentSelected, val];
+            props.onFilterChange?.(next);
+        } else {
+            onToggleOption?.(val);
         }
-    }, [isOpen, anchorRect, triggerHeight]);
+    };
 
-    if (!isOpen || !anchorRect || !position) return null;
+    const handleSelectAll = () => {
+        if (isSimpleMode) {
+            const next = currentSelected.length === currentOptions.length ? [] : currentOptions.map(o => o.value);
+            props.onFilterChange?.(next);
+        } else {
+            onSelectAll?.();
+        }
+    };
+
+    const handleApply = () => {
+        if (isSimpleMode) setInternalIsOpen(false);
+        else onApply?.();
+    };
+
+    const filteredOptions = currentOptions.filter(o => 
+        o.label.toLowerCase().includes(currentSearch.toLowerCase())
+    );
+
+    const isAllSelected = isSimpleMode 
+        ? (currentOptions.length > 0 && currentSelected.length === currentOptions.length)
+        : (propIsAllSelected ?? (currentOptions.length > 0 && currentSelected.length === currentOptions.length));
 
     const dynamicStyle: React.CSSProperties = {
         top: position.top,
-        left: position.left,
-        width: Math.max(anchorRect.width, 240),
+        left: Math.min(position.left, window.innerWidth - Math.max(effectiveAnchor.width, 240) - 20),
+        width: Math.max(effectiveAnchor.width, 240),
         maxHeight: maxHeight
     };
 
     return createPortal(
         <div
             ref={dropdownRef}
-            className="multiselect-dropdown-portal fixed z-[9999] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
+            className="fixed z-[9999] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col min-w-[240px]"
             style={dynamicStyle}
         >
             {/* Header */}
-            <div className="p-3 border-b border-neutral-100 dark:border-slate-800 bg-neutral-50/50 dark:bg-slate-800/50 flex items-center justify-between">
-                <Text variant="caption" weight="bold" className="text-[10px] uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
-                    Filtrar: {title || 'Columna'}
+            <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+                <Text variant="caption" weight="bold" className="text-[10px] uppercase tracking-widest text-slate-500">
+                    {title || 'Filtrar Columna'}
                 </Text>
                 <Button
                     variant="ghost"
                     size="sm"
-                    onClick={onClose}
+                    onClick={isSimpleMode ? handleApply : onClose}
                     title="Cerrar"
-                    className="!w-5 !h-5 !p-0 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200 dark:hover:text-neutral-200 dark:hover:bg-slate-700"
+                    className="!w-5 !h-5 !p-0 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200 dark:hover:text-slate-200 dark:hover:bg-slate-700"
                 >
                     <X size={12} />
                 </Button>
@@ -132,7 +232,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
 
             {/* Sub-filtros */}
             {subFilters && subFilters.length > 0 && (
-                <div className="flex border-b border-neutral-100 dark:border-slate-800 p-1 gap-1 bg-neutral-50 dark:bg-slate-900/50 shrink-0">
+                <div className="flex border-b border-slate-100 dark:border-slate-800 p-1 gap-1 bg-slate-50 dark:bg-slate-900/50 shrink-0">
                     {subFilters.map((sub) => {
                         const isActive = sub.key === activeSubFilter;
                         return (
@@ -144,7 +244,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
                                 className={`flex-1 !py-1 !text-[9px] font-semibold rounded-lg transition-all ${
                                     isActive
                                         ? 'bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/40 shadow-sm'
-                                        : 'bg-transparent border border-transparent text-neutral-500 hover:bg-neutral-100/70 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-slate-800/70'
+                                        : 'bg-transparent border border-transparent text-slate-500 hover:bg-slate-100/70 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/70'
                                 }`}
                             >
                                 {sub.label}
@@ -156,12 +256,12 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
 
             {/* Contenido según tipo */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {type === 'categorical' ? (
+                {currentType === 'categorical' ? (
                     <>
                         {/* Ordenación */}
-                        {onSort && (
-                            <div className="flex items-center gap-1.5 px-3 py-2 border-b border-neutral-100 dark:border-slate-800">
-                                <Text variant="caption" className="text-[9px] uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mr-auto">
+                        {!isSimpleMode && onSort && (
+                            <div className="flex items-center gap-1.5 px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                                <Text variant="caption" className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-auto">
                                     Ordenar
                                 </Text>
                                 <Button
@@ -172,7 +272,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
                                     className={`!w-6 !h-6 !p-0 rounded-lg border transition-all ${
                                         sortDir === 'asc'
                                             ? 'bg-primary-500 border-primary-500 text-white shadow-sm'
-                                            : 'bg-neutral-100 dark:bg-slate-800 border-neutral-200 dark:border-slate-700 text-neutral-500 dark:text-neutral-400 hover:border-primary-400 hover:text-primary-500'
+                                            : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-primary-400 hover:text-primary-500'
                                     }`}
                                 >
                                     <ArrowUpAZ size={13} />
@@ -185,7 +285,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
                                     className={`!w-6 !h-6 !p-0 rounded-lg border transition-all ${
                                         sortDir === 'desc'
                                             ? 'bg-primary-500 border-primary-500 text-white shadow-sm'
-                                            : 'bg-neutral-100 dark:bg-slate-800 border-neutral-200 dark:border-slate-700 text-neutral-500 dark:text-neutral-400 hover:border-primary-400 hover:text-primary-500'
+                                            : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-primary-400 hover:text-primary-500'
                                     }`}
                                 >
                                     <ArrowDownAZ size={13} />
@@ -193,139 +293,85 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
                             </div>
                         )}
 
-                        <div className="p-2 border-b border-neutral-100 dark:border-slate-800">
+                        <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                             <Input
                                 placeholder={placeholder}
                                 size="xs"
-                                value={searchTerm}
-                                onChange={(e) => onSearchChange?.(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && onApply()}
-                                fullWidth
-                                className="!border-none !bg-neutral-100 dark:!bg-slate-800/50"
                                 icon={Search}
+                                value={currentSearch}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                autoFocus
+                                className="[&_input]:h-8 [&_input]:text-[11px] [&_input]:bg-slate-100 dark:[&_input]:bg-slate-800 [&_input]:border-none"
                             />
                         </div>
 
                         <div
-                            onClick={onSelectAll}
-                            className="flex items-center gap-2 px-3 py-2 hover:bg-neutral-50 dark:hover:bg-slate-800/50 cursor-pointer border-b border-neutral-100 dark:border-slate-800 transition-colors"
+                            onClick={handleSelectAll}
+                            className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer border-b border-slate-100 dark:border-slate-800 transition-colors"
                         >
-                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-neutral-300 dark:border-neutral-600'}`}>
-                                {isAllSelected && <div className="w-1.5 h-1.5 bg-white rounded-sm" />}
+                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                {isAllSelected && <Check className="w-2.5 h-2.5 text-white" />}
                             </div>
-                            <Text variant="caption" weight="bold" className="text-[10px] uppercase text-neutral-900 dark:text-neutral-100">
-                                Seleccionar Todos
-                            </Text>
+                            <Text variant="caption" weight="bold" className="text-[11px]">Seleccionar Todos</Text>
                         </div>
 
                         <div className="py-1">
-                            {options.map((opt) => {
-                                const selected = tempValue.includes(opt.value);
-                                return (
-                                    <div
-                                        key={opt.value}
-                                        onClick={() => onToggleOption?.(opt.value)}
-                                        className={`flex items-center gap-2 px-3 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer transition-colors ${selected ? 'bg-primary-50/50 dark:bg-primary-900/5' : ''}`}
-                                    >
-                                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${selected ? 'bg-primary-500 border-primary-500' : 'border-neutral-300 dark:border-neutral-600'}`}>
-                                            {selected && <div className="w-1.5 h-1.5 bg-white rounded-sm" />}
-                                        </div>
-                                        <Text variant="caption" className="text-[11px] text-neutral-700 dark:text-neutral-300 truncate">
-                                            {opt.label || '(Vacío)'}
-                                        </Text>
+                            {filteredOptions.map(opt => (
+                                <div key={opt.value} onClick={() => handleToggle(opt.value)} className="flex items-center gap-2 px-3 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer">
+                                    <div className={`w-4 h-4 rounded border flex items-center justify-center ${currentSelected.includes(opt.value) ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                        {currentSelected.includes(opt.value) && <Check className="w-3 h-3 text-white" />}
                                     </div>
-                                );
-                            })}
-                            {options.length === 0 && (
-                                <div className="p-4 text-center">
-                                    <Text variant="caption" color="text-secondary" className="italic">Sin resultados</Text>
+                                    <Text variant="caption" className="text-[11px] truncate">{opt.label || '(Vacío)'}</Text>
                                 </div>
-                            )}
+                            ))}
                         </div>
                     </>
                 ) : (
                     <div className="p-4 space-y-4">
-                        {type === 'date' && (
-                            <div className="space-y-2">
-                                <Text variant="caption" weight="bold" className="text-[9px] uppercase text-neutral-400">Selección Rápida (Año actual)</Text>
-                                <div className="grid grid-cols-4 gap-1.5">
-                                    {months.map((month, idx) => {
-                                        const year = new Date().getFullYear();
-                                        const startStr = `${year}-${String(idx + 1).padStart(2, '0')}-01`;
-                                        const endStr = `${year}-${String(idx + 1).padStart(2, '0')}-31`;
-                                        const isActive = rangeValue.min === startStr;
-
-                                        return (
-                                            <Button
-                                                key={month}
-                                                variant="custom"
-                                                size="xs"
-                                                onClick={() => onRangeChange?.({ min: startStr, max: endStr })}
-                                                className={`!py-1 !text-[10px] rounded-lg transition-all ${isActive ? 'bg-primary-500 text-white shadow-lg' : 'bg-neutral-100 dark:bg-slate-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200'}`}
-                                            >
-                                                {month}
-                                            </Button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                                <Text variant="caption" className="text-[10px] text-neutral-400 uppercase font-bold">{type === 'date' ? 'Desde' : 'Mínimo'}</Text>
+                                <Text variant="caption" className="text-[10px] text-slate-500 uppercase font-bold">Mínimo</Text>
                                 <Input
-                                    type={type === 'date' ? 'date' : 'number'}
+                                    type="number"
                                     size="xs"
-                                    fullWidth
-                                    value={String(rangeValue.min ?? '')}
+                                    value={String(rangeValue?.min ?? '')}
                                     onChange={(e) => onRangeChange?.({ ...rangeValue, min: e.target.value })}
-                                    className="!bg-neutral-100 dark:!bg-slate-800 !border-none rounded-xl"
+                                    className="!bg-slate-100 dark:!bg-slate-800 !border-none"
                                 />
                             </div>
                             <div className="space-y-1">
-                                <Text variant="caption" className="text-[10px] text-neutral-400 uppercase font-bold">{type === 'date' ? 'Hasta' : 'Máximo'}</Text>
+                                <Text variant="caption" className="text-[10px] text-slate-500 uppercase font-bold">Máximo</Text>
                                 <Input
-                                    type={type === 'date' ? 'date' : 'number'}
+                                    type="number"
                                     size="xs"
-                                    fullWidth
-                                    value={String(rangeValue.max ?? '')}
+                                    value={String(rangeValue?.max ?? '')}
                                     onChange={(e) => onRangeChange?.({ ...rangeValue, max: e.target.value })}
-                                    className="!bg-neutral-100 dark:!bg-slate-800 !border-none rounded-xl"
+                                    className="!bg-slate-100 dark:!bg-slate-800 !border-none"
                                 />
                             </div>
                         </div>
-
-                        <Button
-                            variant="ghost"
-                            size="xs"
-                            onClick={() => onRangeChange?.({ min: '', max: '' })}
-                            className="w-full !py-1 text-[10px] font-bold text-neutral-400 hover:text-danger-500 uppercase tracking-widest transition-colors"
-                        >
-                            Limpiar Rango
-                        </Button>
                     </div>
                 )}
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-neutral-100 dark:border-slate-800 bg-neutral-50/30 dark:bg-slate-800/30 flex items-center justify-between gap-2">
+            <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                    <Text variant="caption" className="text-[9px] font-normal text-neutral-500 dark:text-neutral-400 opacity-60 px-1">
-                        {type === 'categorical' ? `${tempValue.length} seleccionados` : 'Filtro por rango'}
+                    <Text variant="caption" className="text-[9px] font-normal text-slate-500 dark:text-slate-400 opacity-60 px-1">
+                        {type === 'categorical' ? `${currentSelected.length} seleccionados` : 'Filtro por rango'}
                     </Text>
-                    {type === 'categorical' && tempValue.length > 0 && onClearSelection && (
+                    {type === 'categorical' && currentSelected.length > 0 && onClearSelection && (
                         <button
                             type="button"
                             onClick={onClearSelection}
-                            className="text-[9px] text-neutral-400 hover:text-red-500 transition-colors uppercase tracking-wider font-medium"
+                            className="text-[9px] text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider font-medium"
                         >
                             Limpiar
                         </button>
                     )}
                 </div>
                 <Button
-                    onClick={onApply}
+                    onClick={handleApply}
                     variant="primary"
                     size="xs"
                     className="!text-[10px] !px-4 !py-1.5 uppercase tracking-wider h-auto rounded-lg shadow-md hover:shadow-lg transition-all"

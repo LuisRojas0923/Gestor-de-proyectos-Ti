@@ -81,6 +81,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                             </Button>
                         </div>
 
+
                         {/* 3. SECCIÓN DERECHA (Controles y Sello Ecosistema al final) */}
                         <div className="flex items-center justify-end z-20 shrink-0">
                             {/* Controles Estándar */}

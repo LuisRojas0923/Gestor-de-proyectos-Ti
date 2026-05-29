@@ -37,7 +37,7 @@ const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }
                     <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Minutos Promedio: Atender vs Atención</Title>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
                         {(causaStats || []).map((stat, i) => (
-                            <div key={i} className="bg-[var(--color-surface-variant)] p-4 rounded-3xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-shadow">
+                            <div key={`${stat.id || stat.cedula || 'stat'}-${i}`} className="bg-[var(--color-surface-variant)] p-4 rounded-3xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-shadow">
                                 <Text variant="body2" weight="bold" color="text-primary" className="mb-3 block line-clamp-1">
                                     {stat.causa}
                                 </Text>

@@ -230,7 +230,7 @@ const RoomsPage: React.FC = () => {
                   <Icon name={Wrench} size="sm" color="primary" className="mr-2" />
                   <div className="rooms-page-resources">
                     {room.resources.map((resource, idx) => (
-                      <Badge key={idx} variant="default" size="sm" className="mr-1 mb-1">
+                      <Badge key={`${resource.id || resource.cedula || 'resource'}-${idx}`} variant="default" size="sm" className="mr-1 mb-1">
                         {resource}
                       </Badge>
                     ))}

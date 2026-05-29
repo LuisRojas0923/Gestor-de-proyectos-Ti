@@ -252,4 +252,18 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": True,
         "descripcion": "Vista de digitalización para operarios en el portal.",
     },
+    {
+        "id": "comisiones",
+        "nombre": "Gestión de Comisiones",
+        "categoria": "portal",
+        "es_critico": True,
+        "descripcion": "Cálculo y procesamiento de comisiones para el personal.",
+    },
+    {
+        "id": "nomina_novedades",
+        "nombre": "Novedades de Nómina",
+        "categoria": "portal",
+        "es_critico": True,
+        "descripcion": "Carga y procesamiento de novedades para SOLID.",
+    },
 ]
