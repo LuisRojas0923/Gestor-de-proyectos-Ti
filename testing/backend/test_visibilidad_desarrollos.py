@@ -350,3 +350,61 @@ async def test_eliminar_desarrollo_autorizado_superior_retorna_204(client, visib
     # DEV-VIS-1 fue creado por el Jefe (USR-VIS-JEFE) que es subordinado del Director (USR-VIS-DIRECTOR)
     response = await client.delete("/desarrollos/DEV-VIS-1", headers=headers)
     assert response.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_desarrollos_actividades_anonimo_retorna_401(client, visibilidad_seed):
+    """Acceder al listado consolidado sin token retorna 401"""
+    response = await client.get("/desarrollos_actividades")
+    assert response.status_code == 401
+
+    response = await client.get("/desarrollos_actividades/DEV-VIS-1")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_desarrollos_actividades_externo_filtrado_scoped(client, visibilidad_seed):
+    """Un usuario externo (colaborador) sólo ve los desarrollos donde participa y las actividades de su scope"""
+    token = await obtener_token_usuario(client, "VIS-AJENO")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Listar consolidado
+    response = await client.get("/desarrollos_actividades", headers=headers)
+    assert response.status_code == 200
+    res_data = response.json()
+    
+    # DEV-VIS-1 (donde participa) y DEV-VIS-4 (que él creó) deben aparecer
+    # Pero DEV-VIS-2 y DEV-VIS-3 no deben aparecer
+    devs_ids = [d["id"] for d in res_data]
+    assert "DEV-VIS-1" in devs_ids
+    assert "DEV-VIS-4" in devs_ids
+    assert "DEV-VIS-2" not in devs_ids
+    assert "DEV-VIS-3" not in devs_ids
+
+    # En DEV-VIS-1, sólo debe ver las actividades 1000 (Raiz), 1002 (Hijo B) y 1003 (Nieto B)
+    # No debe ver la 1001 (Hijo A)
+    dev_1 = next(d for d in res_data if d["id"] == "DEV-VIS-1")
+    acts_ids = [a["id"] for a in dev_1["actividades"]]
+    assert 1002 in acts_ids
+    assert 1003 in acts_ids
+    assert 1000 in acts_ids
+    assert 1001 not in acts_ids
+
+
+@pytest.mark.asyncio
+async def test_desarrollos_actividades_acceso_total_ve_todo(client, visibilidad_seed):
+    """El creador o responsable ve todas las actividades en el listado consolidado"""
+    token = await obtener_token_usuario(client, "VIS-JEFE")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = await client.get("/desarrollos_actividades/DEV-VIS-1", headers=headers)
+    assert response.status_code == 200
+    res_data = response.json()
+    
+    # Debe ver todas las actividades (1000, 1001, 1002, 1003)
+    acts_ids = [a["id"] for a in res_data["actividades"]]
+    assert len(acts_ids) == 4
+    assert 1000 in acts_ids
+    assert 1001 in acts_ids
+    assert 1002 in acts_ids
+    assert 1003 in acts_ids
