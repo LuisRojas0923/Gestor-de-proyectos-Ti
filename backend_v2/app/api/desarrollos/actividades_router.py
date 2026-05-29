@@ -277,7 +277,7 @@ async def actualizar_actividad(
             await db.flush()
             await recalcular_porcentaje_jerarquico(db, act_db)
             await db.flush()
-            if nuevo_estado == "En Progreso":
+            if nuevo_estado == "En Proceso":
                 await propagar_estado_en_progreso(db, act_db.parent_id)
                 await db.flush()
                 await actualizar_estado_general_desarrollo(db, act_db.desarrollo_id)

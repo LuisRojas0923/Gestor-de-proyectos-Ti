@@ -1,5 +1,6 @@
 import logging
 from sqlalchemy import text
+from app.core.migrations.actividades_migration import migrar_estados_actividades
 
 logger = logging.getLogger(__name__)
 
@@ -134,5 +135,8 @@ async def ejecutar_blindaje_estructural(conn):
 
     # 9. Otros (Formato 2276, etc.)
     await safe_execute(conn, 'ALTER TABLE formato_2276 ADD COLUMN IF NOT EXISTS entidad_informante VARCHAR(10)')
+
+    # 10. Migración de estados de actividades y desarrollos
+    await migrar_estados_actividades(conn)
 
     logger.info("Blindaje estructural completado exitosamente.")

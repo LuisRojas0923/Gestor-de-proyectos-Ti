@@ -11,7 +11,7 @@ _ESTADOS_NO_INICIADOS = {"Pendiente"}
 
 async def propagar_estado_en_progreso(db: AsyncSession, parent_id: int | None) -> None:
     """
-    Sube por la jerarquía marcando 'En Progreso' cada padre cuyo estado
+    Sube por la jerarquía marcando 'En Proceso' cada padre cuyo estado
     esté en el allow-list de no-iniciados. Se detiene en el primer padre
     que esté fuera del allow-list (activo, completado, bloqueado, etc.).
     El caller es responsable de hacer db.flush() después de esta función.
@@ -27,13 +27,13 @@ async def propagar_estado_en_progreso(db: AsyncSession, parent_id: int | None) -
         if padre.estado not in _ESTADOS_NO_INICIADOS:
             break
 
-        padre.estado = "En Progreso"
+        padre.estado = "En Proceso"
         parent_id = padre.parent_id
 
 
 async def actualizar_estado_general_desarrollo(db: AsyncSession, desarrollo_id: str) -> None:
     """
-    Promueve el estado_general del desarrollo a 'En Progreso' si al menos una
+    Promueve el estado_general del desarrollo a 'En Proceso' si al menos una
     de sus actividades está en ese estado y el desarrollo aún está en 'Pendiente'.
     Nunca degrada un estado más avanzado (Completado, Cancelado, etc.).
     """
@@ -50,5 +50,5 @@ async def actualizar_estado_general_desarrollo(db: AsyncSession, desarrollo_id: 
     if not desarrollo or desarrollo.estado_general != "Pendiente":
         return
 
-    if any(e == "En Progreso" for e in estados):
-        desarrollo.estado_general = "En Progreso"
+    if any(e == "En Proceso" for e in estados):
+        desarrollo.estado_general = "En Proceso"

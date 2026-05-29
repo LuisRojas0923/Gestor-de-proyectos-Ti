@@ -100,7 +100,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         titulo_titulo: (node: WbsActivityTree) => node.titulo,
         titulo_descripcion: (node: WbsActivityTree) => node.descripcion || '(Vacío)',
         porcentaje_avance: (node: WbsActivityTree) => `${node.porcentaje_avance}%`,
-        estado: (node: WbsActivityTree) => node.estado === 'En Progreso' ? 'En Proceso' : node.estado,
+        estado: (node: WbsActivityTree) => node.estado,
         seguimiento: (node: WbsActivityTree) => node.seguimiento || '(Sin seguimiento)',
         lider: (node: WbsActivityTree) => getLider(node),
         lider_supervisor: (node: WbsActivityTree) => getUserName(node.responsable_id) || '(Sin asignar)',
@@ -173,7 +173,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
 
         if (action === 'play') {
             payload = {
-                estado: 'En Progreso',
+                estado: 'En Proceso',
                 fecha_inicio_real: currentNode.fecha_inicio_real || now
             };
         } else if (action === 'pause') {

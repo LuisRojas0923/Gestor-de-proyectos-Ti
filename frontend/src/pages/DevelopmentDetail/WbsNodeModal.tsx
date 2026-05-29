@@ -26,7 +26,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     // Estado del formulario
     const [titulo, setTitulo] = useState('');
     const [descripcion, setDescripcion] = useState('');
-    const [estado, setEstado] = useState<'Pendiente' | 'En Progreso' | 'Pausa' | 'Completada'>('Pendiente');
+    const [estado, setEstado] = useState<'Pendiente' | 'En Proceso' | 'Pausa' | 'Completada'>('Pendiente');
     const [avance, setAvance] = useState(0);
     const [seguimiento, setSeguimiento] = useState('');
     const [compromiso, setCompromiso] = useState('');
@@ -42,7 +42,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
 
     useEffect(() => {
         if (estado === 'Completada') setAvance(100);
-        else if (estado !== 'En Progreso' && estado !== 'Pausa') setAvance(0);
+        else if (estado !== 'En Proceso' && estado !== 'Pausa') setAvance(0);
     }, [estado]);
 
     useEffect(() => {
@@ -246,10 +246,10 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                 <Select
                                     label="Estado Actual"
                                     value={estado}
-                                    onChange={(e) => setEstado(e.target.value as 'Pendiente' | 'En Progreso' | 'Pausa' | 'Completada')}
+                                    onChange={(e) => setEstado(e.target.value as 'Pendiente' | 'En Proceso' | 'Pausa' | 'Completada')}
                                     options={[
                                         { value: 'Pendiente', label: 'Pendiente' },
-                                        { value: 'En Progreso', label: 'En Proceso' },
+                                        { value: 'En Proceso', label: 'En Proceso' },
                                         { value: 'Pausa', label: 'Pausa' },
                                         { value: 'Completada', label: 'Completada' },
                                     ]}

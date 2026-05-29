@@ -115,7 +115,7 @@ async def recalcular_progreso_desarrollo(db: AsyncSession, desarrollo_id: str) -
         def _puntos(estado: str) -> int:
             if estado in ("Completada", "Completado"):
                 return 100
-            if estado == "En Progreso":
+            if estado in ("En Progreso", "En Proceso"):
                 return 50
             return 0  # Pendiente, Pausa, Bloqueado, etc.
 

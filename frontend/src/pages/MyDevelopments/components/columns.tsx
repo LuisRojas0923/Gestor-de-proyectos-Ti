@@ -33,7 +33,6 @@ export const getDevelopmentStatus = (dev: DevelopmentRow) =>
   dev.estado_general ?? 'Pendiente';
 
 export const getStatusLabel = (status: string) => {
-  if (status === 'En Progreso') return 'En Proceso';
   return status;
 };
 

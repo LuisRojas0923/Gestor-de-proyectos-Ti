@@ -1,7 +1,7 @@
 export interface WbsActivityBase {
     titulo: string;
     descripcion?: string;
-    estado: 'Pendiente' | 'En Progreso' | 'Bloqueado' | 'Completada';
+    estado: 'Pendiente' | 'En Proceso' | 'Bloqueado' | 'Completada';
     responsable_id?: string;
     asignado_a_id?: string;
     delegado_por_id?: string;
