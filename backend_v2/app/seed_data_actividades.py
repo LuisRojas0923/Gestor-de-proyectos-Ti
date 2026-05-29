@@ -573,4 +573,3 @@ DEVELOPMENTS_DATA = [
         ]
     }
 ]
-

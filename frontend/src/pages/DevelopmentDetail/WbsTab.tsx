@@ -131,7 +131,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     };
 
     const allFlat = flattenTree(tree);
-    const totalAvance = allFlat.reduce((sum, n) => sum + getAvanceDeTarea(n.estado), 0);
+    const totalAvance = allFlat.reduce((sum, n) => sum + Number(n.porcentaje_avance ?? 0), 0);
     const avgProgress = allFlat.length ? Math.round(totalAvance / allFlat.length) : 0;
 
     const statusGroups = allFlat.reduce<Record<string, number>>((acc, n) => {
