@@ -97,8 +97,7 @@ export function useRequisicionPersonal(
           form.tsa &&
           form.duracion_obra_contrato &&
           form.fecha_probable_ingreso &&
-          form.centro_costo?.trim() &&
-          form.perfil_requerido?.trim()
+          form.centro_costo?.trim()
         );
       case 2:
         return !!(form.area_id && form.cargo_id);

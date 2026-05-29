@@ -120,6 +120,20 @@ class RequisicionCreate(BaseModel):
             raise ValueError("El salario no puede ser negativo")
         return v
 
+    @validator("numero_personas_requeridas", pre=True)
+    def validar_personas_requeridas(cls, v):
+        if isinstance(v, bool):
+            raise ValueError("El número de personas requeridas debe ser un número entero")
+        if isinstance(v, float):
+            raise ValueError("El número de personas requeridas debe ser un número entero")
+        try:
+            val = int(v)
+        except (ValueError, TypeError):
+            raise ValueError("El número de personas requeridas debe ser un número entero")
+        if val < 1:
+            raise ValueError("El número de personas requeridas debe ser mayor o igual a 1")
+        return val
+
 
 # ──────────────────────────────────────────────
 # Requisición — Response

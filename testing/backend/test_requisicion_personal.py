@@ -465,3 +465,120 @@ async def test_cancelar_requisicion_gh(client, db_session):
         await db_session.commit()
 
 
+@pytest.mark.asyncio
+async def test_requisicion_validation_personas_requeridas(client, db_session):
+    try:
+        # Crear/Obtener Ciudad BOGOTA
+        res_ciudades = await client.get("/rrhh/catalogos/ciudades")
+        ciudad_id = None
+        for c in res_ciudades.json():
+            if c["nombre"] == "BOGOTA":
+                ciudad_id = c["id"]
+                break
+        if not ciudad_id:
+            res_ciudad = await client.post("/rrhh/catalogos/ciudades?nombre=BOGOTA")
+            assert res_ciudad.status_code == 201
+            ciudad_id = res_ciudad.json()["id"]
+
+        # Crear/Obtener Área VENTAS
+        res_areas = await client.get("/rrhh/catalogos/areas")
+        area_id = None
+        for a in res_areas.json():
+            if a["nombre"] == "VENTAS":
+                area_id = a["id"]
+                break
+        if not area_id:
+            res_area = await client.post("/rrhh/catalogos/areas?nombre=VENTAS")
+            assert res_area.status_code == 201
+            area_id = res_area.json()["id"]
+
+        # Crear/Obtener Cargo ASESOR
+        res_cargos = await client.get(f"/rrhh/catalogos/cargos?area_id={area_id}")
+        cargo_id = None
+        for cg in res_cargos.json():
+            if cg["nombre"] == "ASESOR":
+                cargo_id = cg["id"]
+                break
+        if not cargo_id:
+            res_cargo = await client.post(f"/rrhh/catalogos/cargos?area_id={area_id}&nombre=ASESOR")
+            assert res_cargo.status_code == 201
+            cargo_id = res_cargo.json()["id"]
+
+        # 1. Probar crear borrador sin perfil_requerido (es opcional)
+        # y sin numero_personas_requeridas (debe tomar default=1)
+        req_payload_base = {
+            "ciudad_id": ciudad_id,
+            "area_id": area_id,
+            "cargo_id": cargo_id,
+        }
+        res_borrador = await client.post(
+            "/rrhh/requisiciones/borrador?correo_solicitante=test.solicitante@refridcol.com&nombre_solicitante=Test Solicitante",
+            json=req_payload_base
+        )
+        assert res_borrador.status_code == 201
+        data = res_borrador.json()
+        assert data["perfil_requerido"] is None or data["perfil_requerido"] == ""
+        assert data["numero_personas_requeridas"] == 1
+        
+        # 2. Probar que numero_personas_requeridas = 0 falla
+        payload_0 = req_payload_base.copy()
+        payload_0["numero_personas_requeridas"] = 0
+        res_0 = await client.post(
+            "/rrhh/requisiciones/borrador?correo_solicitante=test.solicitante@refridcol.com&nombre_solicitante=Test Solicitante",
+            json=payload_0
+        )
+        assert res_0.status_code == 422
+
+        # 3. Probar que numero_personas_requeridas = -5 falla
+        payload_neg = req_payload_base.copy()
+        payload_neg["numero_personas_requeridas"] = -5
+        res_neg = await client.post(
+            "/rrhh/requisiciones/borrador?correo_solicitante=test.solicitante@refridcol.com&nombre_solicitante=Test Solicitante",
+            json=payload_neg
+        )
+        assert res_neg.status_code == 422
+
+        # 4. Probar que numero_personas_requeridas = 1.5 (float) falla
+        payload_float = req_payload_base.copy()
+        payload_float["numero_personas_requeridas"] = 1.5
+        res_float = await client.post(
+            "/rrhh/requisiciones/borrador?correo_solicitante=test.solicitante@refridcol.com&nombre_solicitante=Test Solicitante",
+            json=payload_float
+        )
+        assert res_float.status_code == 422
+
+        # 5. Probar que numero_personas_requeridas = True (bool) falla
+        payload_bool = req_payload_base.copy()
+        payload_bool["numero_personas_requeridas"] = True
+        res_bool = await client.post(
+            "/rrhh/requisiciones/borrador?correo_solicitante=test.solicitante@refridcol.com&nombre_solicitante=Test Solicitante",
+            json=payload_bool
+        )
+        assert res_bool.status_code == 422
+
+    finally:
+        from sqlalchemy import text
+        await db_session.execute(text("""
+            DELETE FROM requisicion_equipos_oficina 
+            WHERE requisicion_id IN (SELECT id FROM requisiciones_personal WHERE correo_solicitante = 'test.solicitante@refridcol.com')
+        """))
+        await db_session.execute(text("""
+            DELETE FROM requisicion_equipos_tecnologicos 
+            WHERE requisicion_id IN (SELECT id FROM requisiciones_personal WHERE correo_solicitante = 'test.solicitante@refridcol.com')
+        """))
+        await db_session.execute(text("""
+            DELETE FROM historial_requisicion 
+            WHERE requisicion_id IN (SELECT id FROM requisiciones_personal WHERE correo_solicitante = 'test.solicitante@refridcol.com')
+        """))
+        await db_session.execute(text("""
+            DELETE FROM comentarios_requisicion 
+            WHERE requisicion_id IN (SELECT id FROM requisiciones_personal WHERE correo_solicitante = 'test.solicitante@refridcol.com')
+        """))
+        await db_session.execute(text("DELETE FROM requisiciones_personal WHERE correo_solicitante = 'test.solicitante@refridcol.com'"))
+        await db_session.execute(text("DELETE FROM cargos_rp WHERE nombre = 'ASESOR'"))
+        await db_session.execute(text("DELETE FROM areas_rp WHERE nombre = 'VENTAS'"))
+        await db_session.execute(text("DELETE FROM ciudades_rp WHERE nombre = 'BOGOTA'"))
+        await db_session.commit()
+
+
+

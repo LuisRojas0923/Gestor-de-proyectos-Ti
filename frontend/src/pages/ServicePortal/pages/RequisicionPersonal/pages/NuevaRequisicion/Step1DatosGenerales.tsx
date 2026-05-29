@@ -92,8 +92,14 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
           label="N° personas requeridas"
           name="numero_personas_requeridas"
           type="number"
+          min={1}
           value={String(form.numero_personas_requeridas)}
-          onChange={e => update('numero_personas_requeridas', Number(e.target.value))}
+          onChange={e => {
+            const val = e.target.value;
+            const clean = val.replace(/\D/g, '');
+            const parsed = clean ? parseInt(clean, 10) : 0;
+            update('numero_personas_requeridas', parsed);
+          }}
           isRequired
         />
         <Select
@@ -146,7 +152,7 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
         onChange={e => update('perfil_requerido', e.target.value)}
         placeholder="Experiencia, formación, conocimientos técnicos, certificaciones, competencias y condiciones especiales requeridas..."
         rows={5}
-        isRequired
+        isRequired={false}
       />
     </div>
   );
