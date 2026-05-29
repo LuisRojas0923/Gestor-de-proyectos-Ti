@@ -197,7 +197,7 @@ export const getWbsColumns = ({
                         size="sm"
                         className={badgeClassName}
                     >
-                        {row.estado === 'En Progreso' ? 'En proceso' : row.estado}
+                        {row.estado === 'En Progreso' ? 'En Proceso' : row.estado}
                     </Badge>
                     {!isCompleted && !isInProgress && !isPaused && !isBlocked && (
                         <Button
@@ -285,7 +285,7 @@ export const getWbsColumns = ({
                                     variant="ghost"
                                     size="sm"
                                     className="h-7 w-7 !p-0"
-                                    title="En proceso"
+                                    title="En Proceso"
                                     onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'En Progreso'); setStateMenuId(null); setPopoverPos(null); }}
                                 >
                                     <CirclePause size={14} className="text-amber-600 dark:text-amber-400" />

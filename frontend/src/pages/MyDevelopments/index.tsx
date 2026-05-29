@@ -18,6 +18,7 @@ import {
   getColumnAccessors,
   getDevelopmentName,
   getDevelopmentStatus,
+  getStatusLabel,
   DevelopmentRow,
 } from './components/columns';
 
@@ -99,9 +100,27 @@ const MyDevelopments: React.FC = () => {
     });
   }, [filteredData, peopleSearch, resolveUserName]);
 
+  const selectedStatus = useMemo(() => {
+    const statusFilterSet = filters.status;
+    return statusFilterSet && statusFilterSet.size === 1 ? Array.from(statusFilterSet)[0] : null;
+  }, [filters.status]);
+
+  const handleStatusSelect = useCallback((status: string | null) => {
+    if (!status) {
+      setColumnFilter('status', new Set());
+    } else {
+      const current = filters.status;
+      if (current?.has(status) && current.size === 1) {
+        setColumnFilter('status', new Set());
+      } else {
+        setColumnFilter('status', new Set([status]));
+      }
+    }
+  }, [filters.status, setColumnFilter]);
+
   const statusGroups = useMemo(() =>
     displayData.reduce<Record<string, number>>((acc, dev) => {
-      const s = getDevelopmentStatus(dev) || 'Sin estado';
+      const s = getStatusLabel(getDevelopmentStatus(dev)) || 'Sin estado';
       acc[s] = (acc[s] || 0) + 1;
       return acc;
     }, {}),
@@ -118,6 +137,8 @@ const MyDevelopments: React.FC = () => {
         peopleSearch={peopleSearch}
         setPeopleSearch={setPeopleSearch}
         onOpenCreateModal={() => setIsCreateModalOpen(true)}
+        selectedStatus={selectedStatus}
+        onStatusSelect={handleStatusSelect}
       />
 
       <DataTable<DevelopmentRow>

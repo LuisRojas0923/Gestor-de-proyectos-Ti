@@ -32,6 +32,11 @@ export const getDevelopmentEndDate = (dev: DevelopmentRow) => dev.estimated_end_
 export const getDevelopmentStatus = (dev: DevelopmentRow) =>
   dev.estado_general ?? 'Pendiente';
 
+export const getStatusLabel = (status: string) => {
+  if (status === 'En Progreso') return 'En Proceso';
+  return status;
+};
+
 export const getDevelopmentProgress = (dev: DevelopmentRow) =>
   Number(dev.porcentaje_progreso ?? dev.stage_progress_percentage ?? 0);
 
@@ -69,7 +74,7 @@ export const getColumnAccessors = (resolveUserName: (val?: string | null) => str
   name_name:          getDevelopmentName,
   name_description:   (dev: DevelopmentRow) => getDevelopmentDescription(dev) ?? '(Vacío)',
   name_creator:       (dev: DevelopmentRow) => resolveUserName(dev.creado_por_id) || dev.creado_por_id || '(Vacío)',
-  status:             getDevelopmentStatus,
+  status:             (dev: DevelopmentRow) => getStatusLabel(getDevelopmentStatus(dev)),
   start_date:         getDevelopmentStartDate,
   estimated_end_date: getDevelopmentEndDate,
   area_desarrollo:    (dev: DevelopmentRow) => dev.area_desarrollo || '(Vacío)',
@@ -140,7 +145,7 @@ export const getColumns = (resolveUserName: (val?: string | null) => string | un
     centered: true,
     filterable: true,
     render: (dev) => {
-      const status = getDevelopmentStatus(dev);
+      const status = getStatusLabel(getDevelopmentStatus(dev));
       return (
         <Text as="span" variant="caption" weight="medium" color="inherit"
           className={`inline-flex items-center rounded-full !text-[10px] tracking-wider px-2 py-0.5 ${getStatusColor(status)} shadow-md`}>

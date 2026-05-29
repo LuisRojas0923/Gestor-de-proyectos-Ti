@@ -12,15 +12,26 @@ interface MyDevelopmentsHeaderProps {
   peopleSearch: string;
   setPeopleSearch: (val: string) => void;
   onOpenCreateModal: () => void;
+  selectedStatus: string | null;
+  onStatusSelect: (status: string | null) => void;
 }
 
-const getStatusChipClass = (status: string) => {
+const getStatusChipClass = (status: string, isSelected: boolean, hasActiveFilter: boolean) => {
   const s = status.toLowerCase();
-  if (s.includes('pendiente')) return 'text-red-700 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50';
-  if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50';
-  if (s.includes('complet')) return 'text-green-700 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50';
-  if (s.includes('cancel')) return 'text-neutral-600 bg-neutral-100 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
-  return 'text-neutral-600 bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+  let baseColorClass = '';
+  if (s.includes('pendiente')) baseColorClass = 'text-red-700 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50';
+  else if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) baseColorClass = 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50';
+  else if (s.includes('complet')) baseColorClass = 'text-green-700 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50';
+  else if (s.includes('cancel')) baseColorClass = 'text-neutral-600 bg-neutral-100 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+  else baseColorClass = 'text-neutral-600 bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+
+  const interactionClass = isSelected
+    ? 'ring-2 ring-[var(--color-primary)]/50 border-[var(--color-primary)] font-bold scale-[1.02]'
+    : hasActiveFilter
+      ? 'opacity-55 hover:opacity-100 scale-95'
+      : 'hover:scale-[1.02]';
+
+  return `inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border transition-all duration-200 active:scale-95 cursor-pointer focus:outline-none ${baseColorClass} ${interactionClass}`;
 };
 
 export const MyDevelopmentsHeader: React.FC<MyDevelopmentsHeaderProps> = ({
@@ -32,6 +43,8 @@ export const MyDevelopmentsHeader: React.FC<MyDevelopmentsHeaderProps> = ({
   peopleSearch,
   setPeopleSearch,
   onOpenCreateModal,
+  selectedStatus,
+  onStatusSelect,
 }) => {
   const navigate = useNavigate();
 
@@ -50,18 +63,34 @@ export const MyDevelopmentsHeader: React.FC<MyDevelopmentsHeaderProps> = ({
         <Title variant="h1" className="m-0">Gestión de Actividades</Title>
         <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
         {/* Stats chips */}
-        <Text as="span" className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+        <button // @audit-ok
+          type="button"
+          onClick={() => onStatusSelect(null)}
+          className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer focus:outline-none
+            ${!selectedStatus
+              ? 'ring-2 ring-[var(--color-primary)]/50 border-[var(--color-primary)] font-bold scale-[1.02]'
+              : 'opacity-55 hover:opacity-100 scale-95'}`}
+        >
           <ClipboardList size={11} className="text-neutral-400" />
           <Text as="span" className="font-bold text-[var(--color-text-primary)]">{totalCount}</Text>
           total
-        </Text>
-        {Object.entries(statusGroups).map(([status, count]) => (
-          <Text as="span" key={status} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusChipClass(status)}`}>
-            <Activity size={11} />
-            {status}
-            <Text as="span" className="font-bold">{count}</Text>
-          </Text>
-        ))}
+        </button>
+        {Object.entries(statusGroups).map(([status, count]) => {
+          const isSelected = selectedStatus === status;
+          const hasActiveFilter = !!selectedStatus;
+          return (
+            <button // @audit-ok
+              type="button"
+              key={status}
+              onClick={() => onStatusSelect(status)}
+              className={getStatusChipClass(status, isSelected, hasActiveFilter)}
+            >
+              <Activity size={11} />
+              {status}
+              <Text as="span" className="font-bold">{count}</Text>
+            </button>
+          );
+        })}
         {activeFilterCount > 0 && (
           <Button variant="custom" size="xs" onClick={clearAllFilters}
             className="flex items-center bg-red-50 dark:bg-red-900/10 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/20 text-red-500 hover:text-red-600 transition-colors shadow-sm">

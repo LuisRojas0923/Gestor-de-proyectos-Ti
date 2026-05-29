@@ -249,7 +249,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                     onChange={(e) => setEstado(e.target.value as any)}
                                     options={[
                                         { value: 'Pendiente', label: 'Pendiente' },
-                                        { value: 'En Progreso', label: 'En proceso' },
+                                        { value: 'En Progreso', label: 'En Proceso' },
                                         { value: 'Pausa', label: 'Pausa' },
                                         { value: 'Completada', label: 'Completada' },
                                     ]}
