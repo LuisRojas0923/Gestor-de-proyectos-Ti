@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Button, Text, Title } from '../../components/atoms';
 import ThemeToggle from '../../components/atoms/ThemeToggle';
+import LogoSolidSolutions from '../../components/molecules/LogoSolidSolutions';
 import imgLogoRefridcol from '../../assets/images/Logo Refridcol Solo.png';
 import imgSolidLogo from '../../assets/images/categories/Logo SOLID-ERP.png';
 import { UpdateEmailBanner } from '../../components/layout/UpdateEmailBanner';
@@ -45,7 +46,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
 
                 <div className="h-full bg-black/10 transition-colors duration-300">
                     <div className="w-full px-4 sm:px-10 h-full flex items-center justify-between text-white relative py-0">
-                        {/* 1. SECCIÓN IZQUIERDA (Navegación y Logo) */}
+                        {/* 1. SECCIÓN IZQUIERDA (Navegación y Barras) */}
                         <div className="flex items-center justify-start shrink-0 h-full py-2 gap-3">
                             {fromAdmin && isAdmin && (
                                 <Button
@@ -55,6 +56,17 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                                     icon={ArrowLeft}
                                 />
                             )}
+
+                            <LogoSolidSolutions size="small" variant="icon" fixedColors />
+                        </div>
+
+                        {/* 2. SECCIÓN CENTRAL (PORTAL RDX + Logo Refridcol) */}
+                        <div
+                            className="flex-1 md:absolute md:left-1/2 md:-translate-x-1/2 flex items-center justify-center gap-3 select-none z-10 px-2"
+                        >
+                            <Title variant="h2" color="white" className="tracking-tighter drop-shadow-2xl uppercase font-black leading-tight italic whitespace-nowrap text-base sm:text-2xl lg:text-3xl cursor-pointer" onClick={onHome}>
+                                PORTAL RDX
+                            </Title>
 
                             <Button
                                 variant="ghost"
@@ -69,23 +81,6 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                             </Button>
                         </div>
 
-                        {/* 2. SECCIÓN CENTRAL (Identidad del Portal - Centrado Relativo en Móvil, Absoluto en Desktop) */}
-                        <div
-                            role="button"
-                            tabIndex={0}
-                            className="flex-1 md:absolute md:left-1/2 md:-translate-x-1/2 flex flex-col items-center cursor-pointer select-none z-10 px-2"
-                            onClick={onHome}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    onHome();
-                                }
-                            }}
-                        >
-                            <Title variant="h2" color="white" className="tracking-tighter drop-shadow-2xl uppercase text-center font-black leading-tight italic whitespace-nowrap text-base sm:text-2xl lg:text-3xl">
-                                PORTAL SOLID
-                            </Title>
-                        </div>
 
                         {/* 3. SECCIÓN DERECHA (Controles y Sello Ecosistema al final) */}
                         <div className="flex items-center justify-end z-20 shrink-0">
@@ -141,12 +136,10 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                         Portal de Servicios
                     </Text>
                     <div className="flex items-center gap-2">
-                        <Text variant="caption" weight="bold" color="navy" className="text-[9px] uppercase">
+                        <Text variant="caption" weight="bold" color="text-secondary" className="text-[9px] uppercase">
                             Powered by
                         </Text>
-                        <Text variant="caption" weight="bold" color="text-primary" className="text-[11px] italic font-black">
-                            Solid-ERP
-                        </Text>
+                        <LogoSolidSolutions size="small" variant="full" />
                     </div>
                 </div>
             </footer>

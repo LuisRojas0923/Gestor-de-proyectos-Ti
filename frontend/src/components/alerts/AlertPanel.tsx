@@ -107,7 +107,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               options={[
-                { value: 'pendientes_en_curso', label: 'Pendientes y En Curso' },
+                { value: 'pendientes_en_curso', label: 'Pendientes y En proceso' },
                 { value: 'completada', label: 'Completadas' },
                 { value: 'cancelada', label: 'Canceladas' },
                 { value: 'todas', label: 'Todas' }

@@ -96,6 +96,7 @@ async def test_agregar_comentario_uses_background_tasks():
     # Mock ticket
     ticket = MagicMock()
     ticket.id = ticket_id
+    ticket.creador_id = "user_creator"
     ticket.correo_creador = "creator@test.com"
     ticket.nombre_creador = "Creator"
     ticket.asunto = "Problem"
@@ -111,7 +112,60 @@ async def test_agregar_comentario_uses_background_tasks():
             await ServicioTicket.agregar_comentario(db, ticket_id, com_data, background_tasks=bg_tasks)
 
             found = False
+            es_solicitante_val = None
             for call in bg_tasks.add_task.call_args_list:
-                if "enviar_notificacion_chat" in str(call):
+                func = call[0][0]
+                kwargs = call[1]
+                if func.__name__ == "enviar_notificacion_chat" or "enviar_notificacion_chat" in str(func):
                     found = True
+                    es_solicitante_val = kwargs.get("es_solicitante")
             assert found
+            assert es_solicitante_val is True  # El comentario es de "user1" (diferente de creador "user_creator") -> es_solicitante=True
+
+@pytest.mark.asyncio
+async def test_agregar_comentario_analista_routing():
+    db = AsyncMock()
+    bg_tasks = MagicMock(spec=BackgroundTasks)
+    ticket_id = "TKT-0001"
+    com_data = ComentarioCrear(
+        usuario_id="user_creator",
+        nombre_usuario="Creador",
+        comentario="Hola analista",
+        es_interno=False
+    )
+
+    # Mock ticket
+    ticket = MagicMock()
+    ticket.id = ticket_id
+    ticket.creador_id = "user_creator"
+    ticket.asignado_a = "Analista Asignado"
+    ticket.correo_creador = "creator@test.com"
+    ticket.nombre_creador = "Creator"
+    ticket.asunto = "Problem"
+    
+    mock_analista = MagicMock()
+    mock_analista.correo = "analista@test.com"
+    mock_analista.nombre = "Analista Asignado"
+
+    # Mock para obtener_ticket_por_id y obtener_usuario_por_nombre
+    with patch("app.services.ticket.servicio.ServicioTicket.obtener_ticket_por_id", new_callable=AsyncMock) as mock_obtener, \
+         patch("app.services.ticket.servicio.ServicioTicket._obtener_usuario_por_nombre", new_callable=AsyncMock) as mock_obtener_analista:
+        mock_obtener.return_value = ticket
+        mock_obtener_analista.return_value = mock_analista
+        
+        with patch("app.services.ticket.servicio.global_cache.get", return_value=None), \
+             patch("app.services.ticket.servicio.global_cache.set"), \
+             patch("app.services.notifications.email_service.EmailService.enviar_notificacion_chat", new_callable=AsyncMock):
+            
+            await ServicioTicket.agregar_comentario(db, ticket_id, com_data, background_tasks=bg_tasks)
+
+            found = False
+            es_solicitante_val = None
+            for call in bg_tasks.add_task.call_args_list:
+                func = call[0][0]
+                kwargs = call[1]
+                if func.__name__ == "enviar_notificacion_chat" or "enviar_notificacion_chat" in str(func):
+                    found = True
+                    es_solicitante_val = kwargs.get("es_solicitante")
+            assert found
+            assert es_solicitante_val is False  # Creador responde -> va al analista -> es_solicitante=False

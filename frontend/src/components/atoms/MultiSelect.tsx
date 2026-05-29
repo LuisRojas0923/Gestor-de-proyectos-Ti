@@ -167,6 +167,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                 options={filteredOptions}
                 tempValue={tempValue}
                 onToggleOption={toggleOption}
+                onClearSelection={() => setTempValue([])}
                 onApply={handleApply}
                 placeholder="Buscar opciones..."
             />

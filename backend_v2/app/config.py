@@ -69,6 +69,10 @@ class Configuracion(BaseSettings):
     smtp_from: Optional[str] = None
     smtp_use_ssl: bool = True
 
+    # Notion Integration
+    notion_api_key: Optional[str] = None
+    notion_database_id: Optional[str] = None
+
     class Config:
         # Buscamos el .env en la raíz del proyecto (un nivel arriba de backend_v2)
         # o en la carpeta actual de ejecución.

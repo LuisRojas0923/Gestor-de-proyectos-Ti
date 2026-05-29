@@ -451,7 +451,7 @@ const HierarchyTreeNode: React.FC<{
           elevation={isSelected ? 2 : 1}
         >
           <div className="flex flex-col items-center text-center gap-0.5">
-            <Text variant="body1" weight="bold" color="text-primary" className="w-full leading-tight uppercase truncate" title={node.usuario.nombre}>
+            <Text variant="body2" weight="bold" color="text-primary" className="w-full leading-tight uppercase truncate" title={node.usuario.nombre}>
               {node.usuario.nombre}
             </Text>
             <Text variant="body2" weight="medium" color="text-secondary" className="w-full leading-tight opacity-90 truncate" title={node.usuario.cargo || node.usuario.rol}>

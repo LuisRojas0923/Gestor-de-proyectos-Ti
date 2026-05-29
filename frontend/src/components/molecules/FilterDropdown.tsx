@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Filter, X, Check } from 'lucide-react';
+import { Search, X, ArrowUpAZ, ArrowDownAZ, Check } from 'lucide-react';
 import { Text, Button, Input } from '../atoms';
 
 interface FilterDropdownProps {
@@ -16,45 +16,100 @@ interface FilterDropdownProps {
     anchorRect?: { top: number; left: number; width: number } | DOMRect | null;
     title?: string;
     type?: 'categorical' | 'numeric' | 'date';
+
+    // Props para Categorical
     searchTerm?: string;
     onSearchChange?: (value: string) => void;
     onSelectAll?: () => void;
     isAllSelected?: boolean;
     tempValue?: string[];
     onToggleOption?: (value: string) => void;
+    onClearSelection?: () => void;
+
+    // Props para Range (Numeric/Date)
     rangeValue?: { min: string | number; max: string | number };
     onRangeChange?: (range: { min: string | number; max: string | number }) => void;
+
+    // Ordenación
+    sortDir?: 'asc' | 'desc' | null;
+    onSort?: (dir: 'asc' | 'desc' | null) => void;
+
     onApply?: () => void;
     placeholder?: string;
     triggerHeight?: number;
+    subFilters?: { key: string; label: string }[];
+    activeSubFilter?: string;
+    onSubFilterChange?: (key: string) => void;
 }
 
-/**
- * FilterDropdown: Molécula versátil que soporta tanto el modo simple (trigger incluido)
- * como el modo complejo (controlado externamente por portal).
- */
 export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
-    // --- Lógica para el Modo Simple (Trigger Interno) ---
+    const {
+        isOpen,
+        onClose,
+        anchorRect,
+        title,
+        type = 'categorical',
+        searchTerm = '',
+        onSearchChange,
+        onSelectAll,
+        isAllSelected: propIsAllSelected,
+        options = [],
+        tempValue = [],
+        onToggleOption,
+        rangeValue = { min: '', max: '' },
+        onRangeChange,
+        sortDir,
+        onSort,
+        onApply,
+        placeholder = 'Buscar...',
+        triggerHeight = 40,
+        subFilters,
+        activeSubFilter,
+        onSubFilterChange,
+        onClearSelection,
+    } = props;
+
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const [internalSearch, setInternalSearch] = useState('');
     const [internalAnchor, setInternalAnchor] = useState<{ top: number; left: number; width: number } | null>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const isSimpleMode = props.onFilterChange !== undefined;
-    const effectiveIsOpen = isSimpleMode ? internalIsOpen : (props.isOpen || false);
-    
+    const effectiveIsOpen = isSimpleMode ? internalIsOpen : (isOpen || false);
+
     // Unificar anchorRect
     let effectiveAnchor: { top: number; left: number; width: number } | null = null;
     if (isSimpleMode) {
         effectiveAnchor = internalAnchor;
-    } else if (props.anchorRect) {
-        // Convertir DOMRect a objeto plano si es necesario
+    } else if (anchorRect) {
         effectiveAnchor = {
-            top: props.anchorRect.top + window.scrollY,
-            left: props.anchorRect.left + window.scrollX,
-            width: props.anchorRect.width
+            top: anchorRect.top + window.scrollY,
+            left: anchorRect.left + window.scrollX,
+            width: anchorRect.width
         };
     }
+
+    const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+    const [maxHeight, setMaxHeight] = useState<string>('450px');
+
+    useEffect(() => {
+        if (effectiveIsOpen && effectiveAnchor) {
+            const windowHeight = window.innerHeight;
+            const spaceBelow = windowHeight - effectiveAnchor.top - 20;
+
+            if (spaceBelow < 300 && effectiveAnchor.top > 300) {
+                setPosition({
+                    top: effectiveAnchor.top - (triggerHeight + 8) - Math.min(400, effectiveAnchor.top - 40),
+                    left: effectiveAnchor.left
+                });
+                setMaxHeight(`${effectiveAnchor.top - 60}px`);
+            } else {
+                setPosition({ top: effectiveAnchor.top + 4, left: effectiveAnchor.left });
+                setMaxHeight(`${Math.min(450, spaceBelow)}px`);
+            }
+        }
+    }, [effectiveIsOpen, effectiveAnchor, triggerHeight]);
 
     const toggleSimple = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -69,21 +124,18 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         setInternalIsOpen(prev => !prev);
     };
 
-    // --- Contenido del Dropdown ---
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (effectiveIsOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 if (isSimpleMode && triggerRef.current && triggerRef.current.contains(event.target as Node)) return;
                 
                 if (isSimpleMode) setInternalIsOpen(false);
-                else props.onClose?.();
+                else onClose?.();
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [effectiveIsOpen, isSimpleMode, props]);
+    }, [effectiveIsOpen, isSimpleMode, onClose]);
 
     if (!effectiveIsOpen && isSimpleMode) {
         const hasFilters = (props.selectedOptions?.length || 0) > 0;
@@ -103,17 +155,17 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         );
     }
 
-    if (!effectiveIsOpen || !effectiveAnchor) return null;
+    if (!effectiveIsOpen || !effectiveAnchor || !position) return null;
 
     // --- Handlers unificados ---
-    const currentType = props.type || 'categorical';
-    const currentSearch = isSimpleMode ? internalSearch : (props.searchTerm || '');
-    const currentOptions = isSimpleMode ? (props.options || []) : (props.options || []);
-    const currentSelected = isSimpleMode ? (props.selectedOptions || []) : (props.tempValue || []);
+    const currentType = type;
+    const currentSearch = isSimpleMode ? internalSearch : searchTerm;
+    const currentOptions = options;
+    const currentSelected = isSimpleMode ? (props.selectedOptions || []) : tempValue;
 
     const handleSearch = (val: string) => {
         if (isSimpleMode) setInternalSearch(val);
-        else props.onSearchChange?.(val);
+        else onSearchChange?.(val);
     };
 
     const handleToggle = (val: string) => {
@@ -123,7 +175,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                 : [...currentSelected, val];
             props.onFilterChange?.(next);
         } else {
-            props.onToggleOption?.(val);
+            onToggleOption?.(val);
         }
     };
 
@@ -132,51 +184,120 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
             const next = currentSelected.length === currentOptions.length ? [] : currentOptions.map(o => o.value);
             props.onFilterChange?.(next);
         } else {
-            props.onSelectAll?.();
+            onSelectAll?.();
         }
     };
 
     const handleApply = () => {
         if (isSimpleMode) setInternalIsOpen(false);
-        else props.onApply?.();
+        else onApply?.();
     };
 
     const filteredOptions = currentOptions.filter(o => 
         o.label.toLowerCase().includes(currentSearch.toLowerCase())
     );
 
-    const isAllSelected = currentOptions.length > 0 && currentSelected.length === currentOptions.length;
+    const isAllSelected = isSimpleMode 
+        ? (currentOptions.length > 0 && currentSelected.length === currentOptions.length)
+        : (propIsAllSelected ?? (currentOptions.length > 0 && currentSelected.length === currentOptions.length));
 
-    const dropdownStyle: React.CSSProperties = {
-        top: effectiveAnchor.top + 5,
-        left: Math.min(effectiveAnchor.left, window.innerWidth - 260),
-        maxHeight: '450px'
+    const dynamicStyle: React.CSSProperties = {
+        top: position.top,
+        left: Math.min(position.left, window.innerWidth - Math.max(effectiveAnchor.width, 240) - 20),
+        width: Math.max(effectiveAnchor.width, 240),
+        maxHeight: maxHeight
     };
 
     return createPortal(
-        <div 
+        <div
             ref={dropdownRef}
             className="fixed z-[9999] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col min-w-[240px]"
-            style={dropdownStyle}
+            style={dynamicStyle}
         >
             {/* Header */}
             <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
                 <Text variant="caption" weight="bold" className="text-[10px] uppercase tracking-widest text-slate-500">
-                    {props.title || 'Filtrar Columna'}
+                    {title || 'Filtrar Columna'}
                 </Text>
-                <Button variant="ghost" size="icon" onClick={handleApply} className="h-6 w-6 text-slate-400 hover:text-slate-600">
-                    <X className="w-3.5 h-3.5" />
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={isSimpleMode ? handleApply : onClose}
+                    title="Cerrar"
+                    className="!w-5 !h-5 !p-0 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200 dark:hover:text-slate-200 dark:hover:bg-slate-700"
+                >
+                    <X size={12} />
                 </Button>
             </div>
 
+            {/* Sub-filtros */}
+            {subFilters && subFilters.length > 0 && (
+                <div className="flex border-b border-slate-100 dark:border-slate-800 p-1 gap-1 bg-slate-50 dark:bg-slate-900/50 shrink-0">
+                    {subFilters.map((sub) => {
+                        const isActive = sub.key === activeSubFilter;
+                        return (
+                            <Button
+                                key={sub.key}
+                                variant="custom"
+                                size="xs"
+                                onClick={() => onSubFilterChange?.(sub.key)}
+                                className={`flex-1 !py-1 !text-[9px] font-semibold rounded-lg transition-all ${
+                                    isActive
+                                        ? 'bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/40 shadow-sm'
+                                        : 'bg-transparent border border-transparent text-slate-500 hover:bg-slate-100/70 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/70'
+                                }`}
+                            >
+                                {sub.label}
+                            </Button>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Contenido según tipo */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {currentType === 'categorical' ? (
                     <>
+                        {/* Ordenación */}
+                        {!isSimpleMode && onSort && (
+                            <div className="flex items-center gap-1.5 px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                                <Text variant="caption" className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-auto">
+                                    Ordenar
+                                </Text>
+                                <Button
+                                    variant="custom"
+                                    size="sm"
+                                    onClick={() => onSort(sortDir === 'asc' ? null : 'asc')}
+                                    title="Ascendente (A → Z)"
+                                    className={`!w-6 !h-6 !p-0 rounded-lg border transition-all ${
+                                        sortDir === 'asc'
+                                            ? 'bg-primary-500 border-primary-500 text-white shadow-sm'
+                                            : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-primary-400 hover:text-primary-500'
+                                    }`}
+                                >
+                                    <ArrowUpAZ size={13} />
+                                </Button>
+                                <Button
+                                    variant="custom"
+                                    size="sm"
+                                    onClick={() => onSort(sortDir === 'desc' ? null : 'desc')}
+                                    title="Descendente (Z → A)"
+                                    className={`!w-6 !h-6 !p-0 rounded-lg border transition-all ${
+                                        sortDir === 'desc'
+                                            ? 'bg-primary-500 border-primary-500 text-white shadow-sm'
+                                            : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-primary-400 hover:text-primary-500'
+                                    }`}
+                                >
+                                    <ArrowDownAZ size={13} />
+                                </Button>
+                            </div>
+                        )}
+
                         <div className="p-2 border-b border-slate-100 dark:border-slate-800">
-                            <Input 
+                            <Input
+                                placeholder={placeholder}
                                 size="xs"
                                 icon={Search}
-                                placeholder={props.placeholder || "Buscar..."}
                                 value={currentSearch}
                                 onChange={(e) => handleSearch(e.target.value)}
                                 autoFocus
@@ -184,9 +305,12 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                             />
                         </div>
 
-                        <div onClick={handleSelectAll} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer border-b border-slate-50 dark:border-slate-800">
-                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                                {isAllSelected && <Check className="w-3 h-3 text-white" />}
+                        <div
+                            onClick={handleSelectAll}
+                            className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer border-b border-slate-100 dark:border-slate-800 transition-colors"
+                        >
+                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                {isAllSelected && <Check className="w-2.5 h-2.5 text-white" />}
                             </div>
                             <Text variant="caption" weight="bold" className="text-[11px]">Seleccionar Todos</Text>
                         </div>
@@ -206,23 +330,23 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                     <div className="p-4 space-y-4">
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                                <Text variant="caption" className="text-[10px] text-neutral-400 uppercase font-bold">Mínimo</Text>
+                                <Text variant="caption" className="text-[10px] text-slate-500 uppercase font-bold">Mínimo</Text>
                                 <Input
                                     type="number"
                                     size="xs"
-                                    value={String(props.rangeValue?.min ?? '')}
-                                    onChange={(e) => props.onRangeChange?.({ ...props.rangeValue!, min: e.target.value })}
-                                    className="!bg-neutral-100 dark:!bg-slate-800 !border-none"
+                                    value={String(rangeValue?.min ?? '')}
+                                    onChange={(e) => onRangeChange?.({ ...rangeValue, min: e.target.value })}
+                                    className="!bg-slate-100 dark:!bg-slate-800 !border-none"
                                 />
                             </div>
                             <div className="space-y-1">
-                                <Text variant="caption" className="text-[10px] text-neutral-400 uppercase font-bold">Máximo</Text>
+                                <Text variant="caption" className="text-[10px] text-slate-500 uppercase font-bold">Máximo</Text>
                                 <Input
                                     type="number"
                                     size="xs"
-                                    value={String(props.rangeValue?.max ?? '')}
-                                    onChange={(e) => props.onRangeChange?.({ ...props.rangeValue!, max: e.target.value })}
-                                    className="!bg-neutral-100 dark:!bg-slate-800 !border-none"
+                                    value={String(rangeValue?.max ?? '')}
+                                    onChange={(e) => onRangeChange?.({ ...rangeValue, max: e.target.value })}
+                                    className="!bg-slate-100 dark:!bg-slate-800 !border-none"
                                 />
                             </div>
                         </div>
@@ -230,11 +354,30 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                 )}
             </div>
 
-            <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30 flex justify-between items-center">
-                <Text variant="caption" className="text-[9px] text-slate-400">
-                    {currentType === 'categorical' ? `${currentSelected.length} seleccionados` : 'Filtro por rango'}
-                </Text>
-                <Button onClick={handleApply} variant="primary" size="xs" className="!h-7 !text-[10px] px-4">Listo</Button>
+            {/* Footer */}
+            <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <Text variant="caption" className="text-[9px] font-normal text-slate-500 dark:text-slate-400 opacity-60 px-1">
+                        {type === 'categorical' ? `${currentSelected.length} seleccionados` : 'Filtro por rango'}
+                    </Text>
+                    {type === 'categorical' && currentSelected.length > 0 && onClearSelection && (
+                        <button
+                            type="button"
+                            onClick={onClearSelection}
+                            className="text-[9px] text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider font-medium"
+                        >
+                            Limpiar
+                        </button>
+                    )}
+                </div>
+                <Button
+                    onClick={handleApply}
+                    variant="primary"
+                    size="xs"
+                    className="!text-[10px] !px-4 !py-1.5 uppercase tracking-wider h-auto rounded-lg shadow-md hover:shadow-lg transition-all"
+                >
+                    Aplicar
+                </Button>
             </div>
         </div>,
         document.body

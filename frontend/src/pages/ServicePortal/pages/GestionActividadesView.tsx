@@ -1,11 +1,11 @@
 import React from 'react';
-import { ArrowLeft, Layers, UserCheck, Network, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Layers, Network } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button, Title, Text, MaterialCard } from '../../../components/atoms';
 
 interface Props {
     user: any;
-    onNavigate: (view: 'desarrollos' | 'validaciones' | 'jerarquia') => void;
+    onNavigate: (view: 'desarrollos' | 'jerarquia') => void;
     onBack: () => void;
 }
 
@@ -48,7 +48,7 @@ const GestionActividadesView: React.FC<Props> = ({ user, onNavigate, onBack }) =
     const permissions: string[] = user?.permissions || [];
 
     const canSeeDesarrollos = permissions.includes('developments');
-    const canSeeValidaciones = permissions.includes('validaciones_asignacion');
+
     const canSeeJerarquia = permissions.includes('jerarquia_organizacional');
 
     const containerVariants = {
@@ -115,16 +115,7 @@ const GestionActividadesView: React.FC<Props> = ({ user, onNavigate, onBack }) =
                         />
                     </motion.div>
                 )}
-                {canSeeValidaciones && (
-                    <motion.div variants={itemVariants} className="w-full">
-                        <ServicePortalCard
-                            title="Aprobaciones"
-                            description="Revisa y valida las asignaciones y delegaciones de actividades pendientes."
-                            icon={<UserCheck className="w-8 h-8 text-[var(--color-primary)]" />}
-                            onClick={() => onNavigate('validaciones')}
-                        />
-                    </motion.div>
-                )}
+
                 {canSeeJerarquia && (
                     <motion.div variants={itemVariants} className="w-full">
                         <ServicePortalCard

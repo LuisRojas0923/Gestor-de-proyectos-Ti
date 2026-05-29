@@ -87,7 +87,7 @@ const ReportHeader: React.FC<ReportHeaderProps> = ({
             onChange={(e) => handleFilterChange('status', e.target.value)}
             options={[
               { value: '', label: 'Todos los estados' },
-              { value: 'en_progreso', label: 'En Progreso' },
+              { value: 'en_progreso', label: 'En proceso' },
               { value: 'completado', label: 'Completado' },
               { value: 'pendiente', label: 'Pendiente' },
               { value: 'cancelado', label: 'Cancelado' },

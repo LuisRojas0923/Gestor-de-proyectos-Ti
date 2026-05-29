@@ -12,6 +12,8 @@ TEST_DESARROLLO_ID = "TEST-DEL-CASCADE"
 
 
 async def setup_desarrollo(db_session):
+    from app.models.desarrollo.desarrollo import ValidacionAsignacion
+    await db_session.execute(delete(ValidacionAsignacion).where(ValidacionAsignacion.desarrollo_id == TEST_DESARROLLO_ID))
     await db_session.execute(delete(Actividad).where(Actividad.desarrollo_id == TEST_DESARROLLO_ID))
     await db_session.execute(delete(Desarrollo).where(Desarrollo.id == TEST_DESARROLLO_ID))
     db_session.add(Desarrollo(id=TEST_DESARROLLO_ID, nombre="Proyecto Test Delete"))
@@ -142,3 +144,40 @@ async def test_eliminar_hijo_no_afecta_hermanos(db_session):
     stmt_nieto = select(Actividad).where(Actividad.id == nieto.id)
     result = await db_session.execute(stmt_nieto)
     assert result.scalar_one_or_none() is None
+
+
+@pytest.mark.asyncio
+async def test_eliminar_actividad_con_validacion_asignacion(db_session):
+    """Eliminar una actividad que tiene una validación de asignación asociada."""
+    await setup_desarrollo(db_session)
+    tarea = await crear_actividad(db_session, "Tarea con validacion")
+
+    from app.models.desarrollo.desarrollo import ValidacionAsignacion
+    val = ValidacionAsignacion(
+        desarrollo_id=TEST_DESARROLLO_ID,
+        actividad_id=tarea.id,
+        solicitado_por_id="USR-1",
+        validador_id="USR-2",
+        asignado_a_id="USR-3",
+        estado="pendiente",
+        motivo="Test motivo"
+    )
+    db_session.add(val)
+    await db_session.commit()
+
+    from app.services.desarrollos.actividad_delete_service import eliminar_actividad_cascade
+    # Esto debería eliminar la validación y luego la actividad sin tirar error de FK
+    count = await eliminar_actividad_cascade(db_session, tarea.id)
+    await db_session.commit()
+
+    assert count == 1
+    
+    # Verificar que la actividad fue eliminada
+    stmt = select(Actividad).where(Actividad.id == tarea.id)
+    result = await db_session.execute(stmt)
+    assert result.scalar_one_or_none() is None
+
+    # Verificar que la validación asociada también fue eliminada
+    stmt_val = select(ValidacionAsignacion).where(ValidacionAsignacion.actividad_id == tarea.id)
+    result_val = await db_session.execute(stmt_val)
+    assert result_val.scalar_one_or_none() is None

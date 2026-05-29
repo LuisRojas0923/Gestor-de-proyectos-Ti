@@ -12,7 +12,7 @@ const resources = {
 
       // Dashboard
       pending: 'Pendientes',
-      inProgress: 'En Progreso',
+      inProgress: 'En proceso',
       completed_plural: 'Completadas',
       avgSLA: 'SLA Promedio',
       weeklyProgress: 'Progreso Semanal',

@@ -139,6 +139,8 @@ class Desarrollo(SQLModel, table=True):
     responsable: Optional[str] = Field(default=None, max_length=255)
     area_desarrollo: Optional[str] = Field(default=None, max_length=100)
     analista: Optional[str] = Field(default=None, max_length=100)
+    supervisor: Optional[str] = Field(default=None, max_length=255)
+    area_ejecutor: Optional[str] = Field(default=None, max_length=100)
     creado_por_id: Optional[str] = Field(default=None, max_length=50)
     responsable_id: Optional[str] = Field(default=None, max_length=50)
 
@@ -216,6 +218,8 @@ class DesarrolloCrear(SQLModel):
     responsable: Optional[str] = None
     area_desarrollo: str
     analista: Optional[str] = None
+    supervisor: Optional[str] = None
+    area_ejecutor: Optional[str] = None
     creado_por_id: Optional[str] = None
     responsable_id: Optional[str] = None
     estado_general: str = "Pendiente"
@@ -243,6 +247,8 @@ class DesarrolloActualizar(SQLModel):
     responsable: Optional[str] = None
     area_desarrollo: Optional[str] = None
     analista: Optional[str] = None
+    supervisor: Optional[str] = None
+    area_ejecutor: Optional[str] = None
     creado_por_id: Optional[str] = None
     responsable_id: Optional[str] = None
     estado_general: Optional[str] = None

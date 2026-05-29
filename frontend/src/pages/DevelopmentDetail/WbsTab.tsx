@@ -1,17 +1,18 @@
-import React, { useEffect, useState, useCallback, useImperativeHandle, useMemo, forwardRef } from 'react';
+import { useEffect, useState, useCallback, useImperativeHandle, useMemo, forwardRef, useRef } from 'react';
 import { useApi } from '../../hooks/useApi';
-import { Title, Text, Button, Badge, ProgressBar, Input } from '../../components/atoms';
+import { Text, Button } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
-import { Trash2, Plus, Download, RotateCcw, ClipboardList, Pencil, Play, CirclePause, CheckCircle2 } from 'lucide-react';
+import { ClipboardList, Activity, Plus, ShieldAlert } from 'lucide-react';
 
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
 import { DeleteActivityModal } from './DeleteActivityModal';
-import { ValidationStatusBadge } from '../../components/assignments/ValidationStatusBadge';
-import { AssignableUserSelect } from '../../components/assignments/AssignableUserSelect';
+import { WbsDetailModal } from './WbsDetailModal';
+import Modal from '../../components/molecules/Modal';
 import { useColumnFilters } from '../../hooks/useColumnFilters';
-import { useAppContext } from '../../context/AppContext';
-import { DataTable, DataTableColumn } from '../../components/molecules/DataTable';
+import { DataTable } from '../../components/molecules/DataTable';
+import { WbsActivityTree } from '../../types/wbs';
+import { getWbsColumns } from './components/WbsColumns';
 
 export interface WbsTabRef {
     handleAddRootTask: () => void;
@@ -23,29 +24,26 @@ interface WbsTabProps {
     darkMode: boolean;
 }
 
-type WbsRow = WbsActivityTree & { _rowIndex: number; _isDraft?: boolean };
+type WbsRow = WbsActivityTree & { _rowIndex: number };
 
-const getStatusVariant = (estado: string): 'default' | 'success' | 'warning' | 'error' => {
-    const normalized = estado.toLowerCase();
-    if (normalized.includes('pendiente')) return 'error';
-    if (normalized.includes('progreso') || normalized.includes('curso')) return 'warning';
-    if (normalized.includes('complet')) return 'success';
-    if (normalized.includes('pausa') || normalized.includes('bloqueado')) return 'warning';
-    return 'default';
+const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '-';
+    try {
+        const [y, m, d] = dateStr.split('T')[0].split('-');
+        return `${d}/${m}/${y}`;
+    } catch {
+        return dateStr;
+    }
 };
+
+
 
 const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, ref) => {
     const { get, post, patch, put, delete: del } = useApi();
-    const { state } = useAppContext();
     const [tree, setTree] = useState<WbsActivityTree[]>([]);
     const [loading, setLoading] = useState(true);
     const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
-    const [draftActive, setDraftActive] = useState(false);
-    const [draftTitulo, setDraftTitulo] = useState('');
-    const [draftAsignadoAId, setDraftAsignadoAId] = useState('');
-    const [draftSaving, setDraftSaving] = useState(false);
-
-    const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
+    const [resolvingIds, setResolvingIds] = useState<Set<number>>(new Set());
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalEditNode, setModalEditNode] = useState<WbsActivityTree | null>(null);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
@@ -55,10 +53,28 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         hijos: { id: number; titulo: string; nivel: number; estado: string }[];
         total_eliminaciones: number;
     } | null>(null);
+    const [detailModalOpen, setDetailModalOpen] = useState(false);
+    const [selectedActivity, setSelectedActivity] = useState<WbsActivityTree | null>(null);
+    const [stateMenuId, setStateMenuId] = useState<number | null>(null);
+    const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null);
+    const [errorModalOpen, setErrorModalOpen] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const stateMenuRef = useRef<HTMLDivElement>(null);
+
+    const showError = (err: unknown, defaultMsg: string) => {
+        const msg = err instanceof Error ? err.message : defaultMsg;
+        setErrorMessage(msg);
+        setErrorModalOpen(true);
+    };
 
     const getLider = useCallback((node: WbsActivityTree) => {
         const id = node.asignado_a_id || node.responsable_id;
         if (!id) return '(Sin asignar)';
+        return userMap.get(id) ?? id;
+    }, [userMap]);
+
+    const getUserName = useCallback((id?: string) => {
+        if (!id) return '-';
         return userMap.get(id) ?? id;
     }, [userMap]);
 
@@ -81,71 +97,89 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             return idx !== -1 ? String(idx + 1) : '(Draf)';
         },
         titulo: (node: WbsActivityTree) => node.titulo,
+        titulo_titulo: (node: WbsActivityTree) => node.titulo,
+        titulo_descripcion: (node: WbsActivityTree) => node.descripcion || '(Vacío)',
         porcentaje_avance: (node: WbsActivityTree) => `${node.porcentaje_avance}%`,
-        estado: (node: WbsActivityTree) => node.estado,
+        estado: (node: WbsActivityTree) => node.estado === 'En Progreso' ? 'En Proceso' : node.estado,
         seguimiento: (node: WbsActivityTree) => node.seguimiento || '(Sin seguimiento)',
         lider: (node: WbsActivityTree) => getLider(node),
+        lider_supervisor: (node: WbsActivityTree) => getUserName(node.responsable_id) || '(Sin asignar)',
+        lider_ejecutor: (node: WbsActivityTree) => getUserName(node.asignado_a_id) || '(Sin asignar)',
         validacion: (node: WbsActivityTree) => node.estado_validacion || 'sin_validar',
-    }), [tree, flattenTree, getLider]);
+        fecha_inicio_estimada: (node: WbsActivityTree) => formatDate(node.fecha_inicio_estimada || node.fecha_inicio_real),
+        fecha_fin_estimada: (node: WbsActivityTree) => formatDate(node.fecha_fin_estimada || node.fecha_fin_real),
+    }), [tree, flattenTree, getLider, getUserName]);
 
     const {
         filters,
         filteredData,
         uniqueValues,
-        activeFilterCount,
-        clearAllFilters,
         setColumnFilter,
-    } = useColumnFilters(tree, columnAccessors);
+        sortState,
+        setSort,
+    } = useColumnFilters(tree, columnAccessors, `wbs_${developmentId}`);
 
     const flattenedFiltered = flattenTree(filteredData);
-    const baseRows: WbsRow[] = flattenedFiltered.map((n, i) => ({ ...n, _rowIndex: i + 1 }));
-    const draftRow: WbsRow | null = draftActive ? {
-        id: -1,
-        _rowIndex: baseRows.length + 1,
-        _isDraft: true,
-        titulo: draftTitulo,
-        estado: 'Pendiente',
-        porcentaje_avance: 0,
-        horas_estimadas: 0,
-        horas_reales: 0,
-        desarrollo_id: developmentId,
-        subactividades: [],
-        creado_en: '',
-        asignado_a_id: draftAsignadoAId || undefined,
-    } : null;
-    const rowData: WbsRow[] = draftRow ? [...baseRows, draftRow] : baseRows;
+    const rowData: WbsRow[] = flattenedFiltered.map((n, i) => ({ ...n, _rowIndex: i + 1 }));
 
     useImperativeHandle(ref, () => ({
         handleAddRootTask: () => {
-            if (draftActive) return;
-            setDraftActive(true);
-            setDraftTitulo('');
-            setDraftAsignadoAId('');
+            setModalEditNode(null);
+            setIsModalOpen(true);
         },
         handleImportTemplate: () => {
             setIsTemplateModalOpen(true);
         }
-    }), [draftActive]);
+    }), []);
+
+    const getAvanceDeTarea = (estado: string): number => {
+        const s = (estado || '').toLowerCase();
+        if (s.includes('complet')) return 100;
+        if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 50;
+        return 0;
+    };
 
     const allFlat = flattenTree(tree);
-    const completed = allFlat.filter(n => n.estado.toLowerCase().includes('complet')).length;
-    const inProgress = allFlat.filter(n => n.estado.toLowerCase().includes('progreso') || n.estado.toLowerCase().includes('curso')).length;
-    const pending = allFlat.filter(n => n.estado.toLowerCase().includes('pendiente')).length;
-    const avgProgress = allFlat.length ? Math.round((completed / allFlat.length) * 100) : 0;
+    const totalAvance = allFlat.reduce((sum, n) => sum + Number(n.porcentaje_avance ?? 0), 0);
+    const avgProgress = allFlat.length ? Math.round(totalAvance / allFlat.length) : 0;
+
+    const statusGroups = allFlat.reduce<Record<string, number>>((acc, n) => {
+        const s = n.estado || 'Sin estado';
+        acc[s] = (acc[s] || 0) + 1;
+        return acc;
+    }, {});
+
+    const getStatusChipClass = (status: string) => {
+        const s = status.toLowerCase();
+        if (s.includes('complet'))  return 'text-green-700 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50';
+        if (s.includes('progreso') || s.includes('curso')) return 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50';
+        if (s.includes('pendiente')) return 'text-red-700 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50';
+        if (s.includes('pausa'))    return 'text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50';
+        if (s.includes('cancel'))   return 'text-neutral-600 bg-neutral-100 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+        return 'text-neutral-600 bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+    };
+
+    const getAvanceChipClass = (pct: number) => {
+        if (pct >= 100) return 'text-green-700 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50';
+        if (pct >= 75)  return 'text-blue-700 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50';
+        if (pct >= 50)  return 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50';
+        if (pct >= 25)  return 'text-orange-700 bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50';
+        return 'text-red-700 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50';
+    };
 
     const handleQuickAction = async (id: number, action: 'play' | 'pause' | 'finish', currentNode: WbsActivityTree) => {
-        let payload: any = {};
+        let payload: Partial<WbsActivityTree> = {};
         const now = new Date().toISOString().split('T')[0];
 
         if (action === 'play') {
-            payload = { 
+            payload = {
                 estado: 'En Progreso',
                 fecha_inicio_real: currentNode.fecha_inicio_real || now
             };
         } else if (action === 'pause') {
             payload = { estado: 'Pausa' };
         } else if (action === 'finish') {
-            payload = { 
+            payload = {
                 estado: 'Completada',
                 porcentaje_avance: 100,
                 fecha_fin_real: now
@@ -157,6 +191,22 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             await fetchTree();
         } catch (error) {
             console.error(`Error applying quick action ${action}:`, error);
+            showError(error, `Error al aplicar la acción rápida ${action} en la actividad.`);
+        }
+    };
+
+    const handleEstadoChange = async (id: number, newEstado: string) => {
+        try {
+            const payload: Record<string, unknown> = { estado: newEstado };
+            if (newEstado === 'Completada') {
+                payload.porcentaje_avance = 100;
+                payload.fecha_fin_real = new Date().toISOString().split('T')[0];
+            }
+            await patch(`/actividades/${id}`, payload);
+            await fetchTree();
+        } catch (error) {
+            console.error('Error changing estado:', error);
+            showError(error, 'Error al cambiar el estado de la actividad.');
         }
     };
 
@@ -188,47 +238,59 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         void fetchUsers();
     }, [developmentId]);
 
-
     useEffect(() => {
         if (!developmentId || tree.length === 0) return;
         const flat = flattenTree(tree);
-        const comp = flat.filter(n => n.estado.toLowerCase().includes('complet')).length;
-        const pct = flat.length ? Math.round((comp / flat.length) * 100) : 0;
+        const totalProg = flat.reduce((sum, n) => sum + getAvanceDeTarea(n.estado), 0);
+        const pct = flat.length ? Math.round(totalProg / flat.length) : 0;
         void put(`/desarrollos/${developmentId}`, { porcentaje_progreso: pct });
     }, [tree, developmentId]);
 
-    const handleAddRootTask = () => {
-        setDraftActive(true);
-        setDraftTitulo('');
-        setDraftAsignadoAId('');
-    };
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (stateMenuRef.current && !stateMenuRef.current.contains(e.target as Node)) {
+                setStateMenuId(null);
+                setPopoverPos(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
-    const handleSaveDraft = async () => {
-        if (!draftTitulo.trim()) return;
-        setDraftSaving(true);
-        try {
-            const payload: WbsActivityCreate = {
-                desarrollo_id: developmentId,
-                titulo: draftTitulo.trim(),
-                estado: 'Pendiente',
-                porcentaje_avance: 0,
-                horas_estimadas: 0,
-                asignado_a_id: draftAsignadoAId || undefined,
-                delegado_por_id: state.user?.id || undefined,
-            };
-            await post('/actividades/', payload);
-            setDraftActive(false);
-            await fetchTree();
-        } catch (error) {
-            console.error('Error creating WBS task:', error);
-        } finally {
-            setDraftSaving(false);
+    useEffect(() => {
+        if (stateMenuRef.current && popoverPos) {
+            stateMenuRef.current.style.top = `${popoverPos.top}px`;
+            stateMenuRef.current.style.left = `${popoverPos.left}px`;
         }
-    };
+    }, [popoverPos]);
 
     const handleEditTask = (node: WbsActivityTree) => {
         setModalEditNode(node);
         setIsModalOpen(true);
+    };
+
+    const handleCopyTask = async (node: WbsActivityTree) => {
+        try {
+            await post('/actividades/', {
+                desarrollo_id: node.desarrollo_id,
+                parent_id: node.parent_id,
+                titulo: `${node.titulo} (copia)`,
+                descripcion: node.descripcion,
+                estado: 'Pendiente',
+                responsable_id: node.responsable_id,
+                asignado_a_id: node.asignado_a_id,
+                fecha_inicio_estimada: node.fecha_inicio_estimada,
+                fecha_fin_estimada: node.fecha_fin_estimada,
+                horas_estimadas: node.horas_estimadas ?? 0,
+                porcentaje_avance: 0,
+                seguimiento: node.seguimiento,
+                compromiso: node.compromiso,
+            });
+            await fetchTree();
+        } catch (err) {
+            console.error('Error copying task:', err);
+            showError(err, 'Error al copiar la actividad.');
+        }
     };
 
     const handleModalClose = () => {
@@ -242,21 +304,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             await fetchTree();
         } catch (error) {
             console.error('Error applying template:', error);
+            showError(error, 'Error al aplicar la plantilla en el WBS.');
             throw error;
-        }
-    };
-
-    const handleToggleComplete = async (id: number, completed: boolean) => {
-        if (togglingIds.has(id)) return;
-setTogglingIds(prev => new Set([...prev, id]));
-        try {
-            const newEstado = completed ? 'Completada' : 'En Progreso';
-            await patch(`/actividades/${id}`, { estado: newEstado });
-            await fetchTree();
-        } catch (error) {
-            console.error('Error toggling complete:', error);
-        } finally {
-            setTogglingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
         }
     };
 
@@ -267,6 +316,7 @@ setTogglingIds(prev => new Set([...prev, id]));
             setDeleteModalOpen(true);
         } catch (error) {
             console.error('Error fetching delete preview:', error);
+            showError(error, 'Error al obtener la vista previa de eliminación.');
         }
     };
 
@@ -279,294 +329,86 @@ setTogglingIds(prev => new Set([...prev, id]));
             setDeletePreview(null);
         } catch (error) {
             console.error('Error deleting activity:', error);
+            showError(error, 'Error al eliminar la actividad.');
         }
     };
 
-    const formatDate = (dateStr?: string) => {
-        if (!dateStr) return '-';
+    const handleResolveValidation = async (id: number, estado: 'aprobada' | 'rechazada') => {
+        if (resolvingIds.has(id)) return;
+        setResolvingIds(prev => new Set([...prev, id]));
         try {
-            const [y, m, d] = dateStr.split('T')[0].split('-');
-            return `${d}/${m}/${y}`;
-        } catch {
-            return dateStr;
+            await post(`/validaciones-asignacion/${id}/resolver`, {
+                estado,
+                observacion: estado === 'rechazada' ? 'Rechazado desde WBS' : 'Aprobado desde WBS',
+            });
+            await fetchTree();
+        } catch (error) {
+            console.error('Error resolving validation:', error);
+            showError(error, 'Error al resolver la validación de asignación.');
+        } finally {
+            setResolvingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
         }
     };
 
-    const columns: DataTableColumn<WbsRow>[] = [
-        {
-            key: 'index',
-            label: '#',
-            minWidth: '32px',
-            centered: true,
-            filterable: true,
-            render: (row) => (
-                <Text variant="caption" className="w-6 text-center text-[var(--color-text-secondary)]">
-                    {row._rowIndex}
-                </Text>
-            ),
-        },
-        {
-            key: 'completado',
-            label: '',
-            minWidth: '36px',
-            centered: true,
-            render: (row) => row._isDraft ? null : (
-                <Button
-                    variant="custom"
-                    disabled={togglingIds.has(row.id)}
-                    onClick={(e) => { e.stopPropagation(); handleToggleComplete(row.id, row.estado !== 'Completada'); }}
-                    className={`w-5 h-5 border-2 rounded transition-all duration-200 flex items-center justify-center disabled:opacity-50 ${
-                        row.estado === 'Completada'
-                            ? 'bg-primary-500 border-primary-500'
-                            : 'bg-white border-neutral-300 hover:border-primary-400 dark:bg-neutral-800 dark:border-neutral-600'
-                    }`}
-                >
-                    {row.estado === 'Completada' && (
-                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                    )}
-                </Button>
-            ),
-        },
-        {
-            key: 'titulo',
-            label: 'Tarea',
-            minWidth: '160px',
-            flex: true,
-            filterable: true,
-            render: (row) => row._isDraft ? (
-                <Input
-                    placeholder="Título de la tarea..."
-                    value={draftTitulo}
-                    onChange={(e) => setDraftTitulo(e.target.value)}
-                    autoFocus
-                />
-            ) : (
-                <div className="min-w-0">
-                    <Text weight="bold" className="truncate">{row.titulo}</Text>
-                    {row.descripcion && (
-                        <Text variant="caption" color="text-secondary" className="truncate mt-0.5">
-                            {row.descripcion}
-                        </Text>
-                    )}
-                </div>
-            ),
-        },
-        {
-            key: 'estado',
-            label: 'Estado',
-            minWidth: '90px',
-            filterable: true,
-            render: (row) => (
-                <Badge variant={getStatusVariant(row.estado)} size="sm">{row.estado}</Badge>
-            ),
-        },
-        {
-            key: 'fecha_inicio_estimada',
-            label: 'F.Inicio',
-            minWidth: '72px',
-            filterable: false,
-            render: (row) => (
-                <Text variant="caption" className="truncate">
-                    {formatDate(row.fecha_inicio_estimada || row.fecha_inicio_real)}
-                </Text>
-            ),
-        },
-        {
-            key: 'fecha_fin_estimada',
-            label: 'F.Fin',
-            minWidth: '72px',
-            filterable: false,
-            render: (row) => (
-                <Text variant="caption" className="truncate">
-                    {formatDate(row.fecha_fin_estimada || row.fecha_fin_real)}
-                </Text>
-            ),
-        },
-        {
-            key: 'seguimiento',
-            label: 'Seguimiento',
-            minWidth: '100px',
-            filterable: true,
-            render: (row) => (
-                <Text variant="caption" className="truncate" title={row.seguimiento}>
-                    {row.seguimiento || '-'}
-                </Text>
-            ),
-        },
-        {
-            key: 'lider',
-            label: 'Líder',
-            minWidth: '100px',
-            filterable: true,
-            render: (row) => row._isDraft ? (
-                <AssignableUserSelect
-                    value={draftAsignadoAId}
-                    onChange={setDraftAsignadoAId}
-                />
-            ) : (
-                <Text variant="caption" className="truncate" title={getLider(row)}>
-                    {getLider(row)}
-                </Text>
-            ),
-        },
-        {
-            key: 'validacion',
-            label: 'Validación',
-            minWidth: '90px',
-            filterable: true,
-            render: (row) => <ValidationStatusBadge status={row.estado_validacion} />,
-        },
-        {
-            key: 'compromiso',
-            label: 'Compromiso',
-            minWidth: '100px',
-            render: (row) => (
-                <Text variant="caption" className="truncate" title={row.compromiso}>
-                    {row.compromiso || '-'}
-                </Text>
-            ),
-        },
-        {
-            key: 'gestion',
-            label: 'Gestión',
-            minWidth: '120px',
-            render: (row) => {
-                if (row._isDraft) return null;
-                const normalizedStatus = row.estado.toLowerCase();
-                const isCompleted = normalizedStatus.includes('complet');
-                const isInProgress = normalizedStatus.includes('progreso') || normalizedStatus.includes('curso');
-
-                return (
-                    <div className="flex items-center gap-1">
-                        {!isCompleted && !isInProgress && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'play', row); }}
-                                icon={Play}
-                                className="h-7 w-7 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:scale-110 transition-transform dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 shadow-sm"
-                                title="Iniciar"
-                            />
-                        )}
-                        {isInProgress && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'pause', row); }}
-                                icon={CirclePause}
-                                className="h-7 w-7 !p-0 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:scale-110 transition-transform dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 shadow-sm"
-                                title="Pausar"
-                            />
-                        )}
-                        {!isCompleted && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'finish', row); }}
-                                icon={CheckCircle2}
-                                className="h-7 w-7 !p-0 text-green-600 bg-green-50 hover:bg-green-100 hover:scale-110 transition-transform dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 shadow-sm"
-                                title="Terminar"
-                            />
-                        )}
-                    </div>
-                );
-            }
-        },
-        {
-            key: 'archivo',
-            label: '📎',
-            minWidth: '40px',
-            centered: true,
-            render: (row) => row.archivo_url ? (
-                <a href={row.archivo_url} target="_blank" rel="noreferrer" className="text-[var(--color-primary)] hover:underline">
-                    <Download size={14} />
-                </a>
-            ) : (
-                <Text variant="caption" color="text-secondary">-</Text>
-            ),
-        },
-        {
-            key: 'porcentaje_avance',
-            label: 'Avance',
-            minWidth: '72px',
-            filterable: true,
-            render: (row) => (
-                <div className="w-full text-right">
-                    <Text variant="caption">{row.porcentaje_avance}%</Text>
-                    <ProgressBar
-                        progress={row.porcentaje_avance}
-                        variant={row.porcentaje_avance === 100 ? 'success' : 'primary'}
-                        className="h-1 mt-1"
-                    />
-                </div>
-            ),
-        },
-    ];
-
-    const renderRowActions = (row: WbsRow) => {
-        if (row._isDraft) {
-            return (
-                <>
-                    <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); void handleSaveDraft(); }}
-                        disabled={draftSaving || !draftTitulo.trim()}
-                        className="h-8 px-2 text-xs"
-                    >
-                        {draftSaving ? '...' : 'Guardar'}
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); setDraftActive(false); }}
-                        className="h-8 px-2 text-xs"
-                    >
-                        Cancelar
-                    </Button>
-                </>
-            );
-        }
-        return (
-            <>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleEditTask(row); }}
-                    icon={Pencil}
-                    className="h-8 px-2"
-                />
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(row.id); }}
-                    icon={Trash2}
-                    className="h-8 px-2 !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-950"
-                />
-            </>
-        );
-    };
+    const columns = useMemo(() => getWbsColumns({
+        getUserName,
+        resolvingIds,
+        handleResolveValidation,
+        stateMenuId,
+        setStateMenuId,
+        popoverPos,
+        setPopoverPos,
+        handleQuickAction,
+        handleEstadoChange,
+        handleEditTask,
+        handleCopyTask,
+        handleDeleteClick,
+        stateMenuRef,
+    }), [
+        getUserName,
+        resolvingIds,
+        handleResolveValidation,
+        stateMenuId,
+        popoverPos,
+        handleQuickAction,
+        handleEstadoChange,
+        handleEditTask,
+        handleCopyTask,
+        handleDeleteClick,
+    ]);
 
     const statsCards = (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-variant)] p-3">
-                <Text variant="caption" color="text-secondary">Tareas</Text>
-                <Text variant="body1" weight="bold">{allFlat.length}</Text>
+        <div className="flex justify-between items-center w-full flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
+                {/* Total */}
+                <Text as="span" className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
+                    <ClipboardList size={11} />
+                    <Text as="span" className="text-[var(--color-text-primary)] font-bold">{allFlat.length}</Text>
+                    tareas
+                </Text>
+                {/* Avance dinámico */}
+                <Text as="span" className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getAvanceChipClass(avgProgress)}`}>
+                    <Activity size={11} />
+                    Avance: {avgProgress}%
+                </Text>
+                {/* Un chip por estado */}
+                {Object.entries(statusGroups).map(([status, count]) => (
+                    <Text as="span" key={status} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusChipClass(status)}`}>
+                        {status}
+                        <Text as="span" className="font-bold">{count}</Text>
+                    </Text>
+                ))}
             </div>
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-variant)] p-3">
-                <Text variant="caption" color="text-secondary">Avance</Text>
-                <Text variant="body1" weight="bold">{avgProgress}%</Text>
-            </div>
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-variant)] p-3">
-                <Text variant="caption" color="text-secondary">Completadas</Text>
-                <Text variant="body1" weight="bold">{completed}</Text>
-            </div>
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-variant)] p-3">
-                <Text variant="caption" color="text-secondary">Pendientes</Text>
-                <Text variant="body1" weight="bold">{pending + inProgress}</Text>
-            </div>
+            <Button
+                variant="primary"
+                icon={Plus}
+                onClick={() => {
+                    setModalEditNode(null);
+                    setIsModalOpen(true);
+                }}
+            >
+                Tarea
+            </Button>
         </div>
     );
 
@@ -578,16 +420,18 @@ setTogglingIds(prev => new Set([...prev, id]));
                 </div>
             ) : (
                 <>
-                    {allFlat.length > 0 && statsCards}
+                    {statsCards}
                     <DataTable<WbsRow>
                         columns={columns}
                         data={rowData}
-                        keyExtractor={(row) => row._isDraft ? 'draft' : String(row.id)}
-                        renderRowActions={renderRowActions}
-                        actionsMinWidth="90px"
+                        keyExtractor={(row) => String(row.id)}
                         columnFilters={filters}
                         columnOptions={uniqueValues}
                         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
+                        activeSortKey={sortState?.key ?? null}
+                        activeSortDir={sortState?.dir ?? null}
+                        onSort={setSort}
+                        onRowClick={(row) => { setSelectedActivity(row); setDetailModalOpen(true); }}
                         isLoading={false}
                         emptyMessage="Sin tareas aún. Usa «Agregar tarea» para comenzar."
                         emptyIcon={<ClipboardList size={40} className="opacity-40" />}
@@ -617,6 +461,45 @@ setTogglingIds(prev => new Set([...prev, id]));
                 onClose={() => { setDeleteModalOpen(false); setDeletePreview(null); }}
                 onConfirm={handleConfirmDelete}
             />
+
+            <WbsDetailModal
+                isOpen={detailModalOpen}
+                onClose={() => setDetailModalOpen(false)}
+                activity={selectedActivity}
+                userMap={userMap}
+                onResolveValidation={handleResolveValidation}
+                resolvingIds={resolvingIds}
+                onEdit={handleEditTask}
+            />
+
+            <Modal
+                isOpen={errorModalOpen}
+                onClose={() => setErrorModalOpen(false)}
+                title={
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                        <ShieldAlert className="w-5 h-5" />
+                        <Text as="span" variant="body1" weight="bold" color="inherit">
+                            Acceso Restringido
+                        </Text>
+                    </div>
+                }
+                size="sm"
+            >
+                <div className="space-y-4 py-2">
+                    <Text variant="body2" className="text-gray-700 dark:text-gray-300">
+                        {errorMessage}
+                    </Text>
+                    <div className="flex justify-end pt-2">
+                        <Button
+                            variant="secondary"
+                            onClick={() => setErrorModalOpen(false)}
+                            className="bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-800 dark:text-gray-200 px-4 py-1.5 text-xs rounded-lg font-medium"
+                        >
+                            Entendido
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 });

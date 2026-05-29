@@ -1,12 +1,15 @@
 import React, { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { Text, Button } from '../atoms';
 import { FilterDropdown } from './FilterDropdown';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 
 export interface DataTableColumn<T> {
     key: string;
     label: string;
-    /** Ancho mínimo de la columna, e.g. '100px'. El browser expande según el contenido. */
+    /** Ancho mínimo de la columna, e.g. '100px'. */
     minWidth?: string;
+    /** Ancho máximo de la columna. Si se iguala a minWidth la columna queda fija. */
+    maxWidth?: string;
     /** La columna absorbe el espacio sobrante (equivalente a flex-1 / 1fr). */
     flex?: boolean;
     centered?: boolean;
@@ -14,6 +17,7 @@ export interface DataTableColumn<T> {
     /** Clases extra aplicadas al wrapper de la celda en el body, e.g. 'px-6'. */
     cellClassName?: string;
     render?: (row: T) => React.ReactNode;
+    subFilters?: { key: string; label: string }[];
 }
 
 export interface DataTableProps<T> {
@@ -31,10 +35,15 @@ export interface DataTableProps<T> {
 
     onMouseEnterRow?: (row: T, event: React.MouseEvent) => void;
     onMouseLeaveRow?: () => void;
+    bodyRef?: React.RefObject<HTMLDivElement>;
 
     columnFilters?: Record<string, Set<string>>;
     columnOptions?: Record<string, string[]>;
     onFilterChange?: (columnKey: string, filter: Set<string>) => void;
+
+    activeSortKey?: string | null;
+    activeSortDir?: 'asc' | 'desc' | null;
+    onSort?: (key: string, dir: 'asc' | 'desc' | null) => void;
 
     isLoading?: boolean;
     loadingMessage?: string;
@@ -59,9 +68,13 @@ export function DataTable<T>({
     actionsMinWidth = '100px',
     onMouseEnterRow,
     onMouseLeaveRow,
+    bodyRef,
     columnFilters = {},
     columnOptions = {},
     onFilterChange,
+    activeSortKey,
+    activeSortDir,
+    onSort,
     isLoading,
     loadingMessage = 'Cargando...',
     emptyMessage = 'No hay datos',
@@ -73,7 +86,8 @@ export function DataTable<T>({
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
     const [filterSearchTerm, setFilterSearchTerm] = useState('');
-    const [tempFilters, setTempFilters] = useState<Set<string>>(new Set());
+    const [activeSubFilter, setActiveSubFilter] = useState<string | null>(null);
+    const [tempSubFilters, setTempSubFilters] = useState<Record<string, Set<string>>>({});
     const headerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     const bodyGridRef = useRef<HTMLDivElement>(null);
     const headerGridRef = useRef<HTMLDivElement>(null);
@@ -82,7 +96,7 @@ export function DataTable<T>({
         ...columns.map(col =>
             col.flex
                 ? `minmax(${col.minWidth ?? 'min-content'}, 1fr)`
-                : `minmax(${col.minWidth ?? 'min-content'}, auto)`
+                : `minmax(${col.minWidth ?? 'min-content'}, ${col.maxWidth ?? 'auto'})`
         ),
         ...(renderRowActions ? [`minmax(${actionsMinWidth}, auto)`] : []),
     ].join(' ');
@@ -118,42 +132,75 @@ export function DataTable<T>({
             setActiveFilter(null);
             setAnchorRect(null);
             setFilterSearchTerm('');
+            setActiveSubFilter(null);
         } else {
             setActiveFilter(key);
             setAnchorRect(rect);
             setFilterSearchTerm('');
-            setTempFilters(columnFilters[key] || new Set());
+            const col = columns.find(c => c.key === key);
+            const firstSubKey = col?.subFilters && col.subFilters.length > 0 ? col.subFilters[0].key : key;
+            setActiveSubFilter(firstSubKey);
+            
+            const initialTemp: Record<string, Set<string>> = {};
+            if (col?.subFilters && col.subFilters.length > 0) {
+                col.subFilters.forEach(sub => {
+                    initialTemp[sub.key] = new Set(columnFilters[sub.key] || []);
+                });
+            } else {
+                initialTemp[key] = new Set(columnFilters[key] || []);
+            }
+            setTempSubFilters(initialTemp);
         }
-    }, [activeFilter, columnFilters]);
+    }, [activeFilter, columnFilters, columns]);
 
     const handleToggleOption = useCallback((value: string) => {
-        setTempFilters(prev => {
-            const next = new Set(prev);
-            if (next.has(value)) next.delete(value);
-            else next.add(value);
+        if (!activeSubFilter) return;
+        setTempSubFilters(prev => {
+            const next = { ...prev };
+            const currentSet = new Set(next[activeSubFilter] || []);
+            if (currentSet.has(value)) currentSet.delete(value);
+            else currentSet.add(value);
+            next[activeSubFilter] = currentSet;
             return next;
         });
-    }, []);
+    }, [activeSubFilter]);
 
     const handleApplyFilter = useCallback(() => {
         if (activeFilter && onFilterChange) {
-            onFilterChange(activeFilter, tempFilters);
+            const col = columns.find(c => c.key === activeFilter);
+            if (col?.subFilters && col.subFilters.length > 0) {
+                col.subFilters.forEach(sub => {
+                    onFilterChange(sub.key, tempSubFilters[sub.key] || new Set());
+                });
+            } else {
+                onFilterChange(activeFilter, tempSubFilters[activeFilter] || new Set());
+            }
         }
         setActiveFilter(null);
         setAnchorRect(null);
         setFilterSearchTerm('');
-    }, [activeFilter, tempFilters, onFilterChange]);
+        setActiveSubFilter(null);
+    }, [activeFilter, tempSubFilters, onFilterChange, columns]);
 
-    const getFilterOptions = (key: string) =>
-        (columnOptions[key] || []).map(opt => ({ value: opt, label: opt }));
+    const getFilterOptions = useCallback((key: string) =>
+        (columnOptions[key] || [])
+            .filter(o => o.toLowerCase().includes(filterSearchTerm.toLowerCase()))
+            .map(opt => ({ value: opt, label: opt })), [columnOptions, filterSearchTerm]);
 
-    const hasFilterActive = (key: string) => {
+    const hasFilterActive = useCallback((key: string) => {
+        const col = columns.find(c => c.key === key);
+        if (col?.subFilters && col.subFilters.length > 0) {
+            return col.subFilters.some(sub => {
+                const f = columnFilters[sub.key];
+                return !!(f && f.size > 0);
+            });
+        }
         const f = columnFilters[key];
         return !!(f && f.size > 0);
-    };
+    }, [columnFilters, columns]);
 
-    const isAllSelected = activeFilter
-        ? tempFilters.size === getFilterOptions(activeFilter).length
+    const isAllSelected = activeFilter && activeSubFilter
+        ? (tempSubFilters[activeSubFilter]?.size ?? 0) === getFilterOptions(activeSubFilter).length
         : false;
 
     return (
@@ -163,19 +210,39 @@ export function DataTable<T>({
             {activeFilter && anchorRect && (
                 <FilterDropdown
                     isOpen
-                    onClose={() => { setActiveFilter(null); setAnchorRect(null); }}
+                    onClose={() => { setActiveFilter(null); setAnchorRect(null); setActiveSubFilter(null); }}
                     anchorRect={anchorRect}
                     title={columns.find(c => c.key === activeFilter)?.label}
                     type="categorical"
                     searchTerm={filterSearchTerm}
                     onSearchChange={setFilterSearchTerm}
-                    onSelectAll={() => setTempFilters(new Set(getFilterOptions(activeFilter).map(o => o.value)))}
+                    onSelectAll={() => {
+                        if (!activeSubFilter) return;
+                        setTempSubFilters(prev => {
+                            const next = { ...prev };
+                            next[activeSubFilter] = new Set(getFilterOptions(activeSubFilter).map(o => o.value));
+                            return next;
+                        });
+                    }}
                     isAllSelected={isAllSelected}
-                    options={getFilterOptions(activeFilter)}
-                    tempValue={Array.from(tempFilters)}
+                    options={getFilterOptions(activeSubFilter || activeFilter)}
+                    tempValue={Array.from(tempSubFilters[activeSubFilter || activeFilter] || [])}
                     onToggleOption={handleToggleOption}
+                    onClearSelection={() => {
+                        const key = activeSubFilter || activeFilter;
+                        if (!key) return;
+                        setTempSubFilters(prev => ({ ...prev, [key]: new Set() }));
+                    }}
                     onApply={handleApplyFilter}
                     triggerHeight={40}
+                    sortDir={activeFilter === activeSortKey ? activeSortDir : null}
+                    onSort={onSort ? (dir) => { onSort(activeFilter!, dir); } : undefined}
+                    subFilters={columns.find(c => c.key === activeFilter)?.subFilters}
+                    activeSubFilter={activeSubFilter || undefined}
+                    onSubFilterChange={(subKey) => {
+                        setActiveSubFilter(subKey);
+                        setFilterSearchTerm('');
+                    }}
                 />
             )}
 
@@ -183,11 +250,6 @@ export function DataTable<T>({
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10">
                     <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full" />
                     <Text variant="body2" color="text-secondary" weight="medium">{loadingMessage}</Text>
-                </div>
-            ) : data.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10">
-                    {emptyIcon}
-                    <Text variant="body2" color="text-secondary" weight="medium">{emptyMessage}</Text>
                 </div>
             ) : (
                 <>
@@ -199,7 +261,7 @@ export function DataTable<T>({
                         ref={headerGridRef}
                         className={`shrink-0 bg-[var(--deep-navy)] rounded-t-2xl border-b border-[var(--deep-navy)] overflow-hidden z-20 ${headerClassName}`}
                     >
-                        {columns.map((col, idx) => (
+                        {columns.map((col) => (
                             <Button
                                 key={col.key}
                                 ref={(el) => { headerRefs.current[col.key] = el; }}
@@ -213,7 +275,7 @@ export function DataTable<T>({
                                     transition-all duration-200
                                 `}
                             >
-                                <div className="flex items-center gap-2 overflow-hidden">
+                                <div className="flex items-center gap-1.5 overflow-hidden">
                                     <Text
                                         variant="caption"
                                         weight="bold"
@@ -225,6 +287,13 @@ export function DataTable<T>({
                                     >
                                         {col.label}
                                     </Text>
+                                    {activeSortKey === col.key && activeSortDir && (
+                                        activeSortDir === 'asc' ? (
+                                            <ArrowUp size={11} className="text-yellow-400 shrink-0 animate-in fade-in slide-in-from-bottom-1 duration-200" />
+                                        ) : (
+                                            <ArrowDown size={11} className="text-yellow-400 shrink-0 animate-in fade-in slide-in-from-top-1 duration-200" />
+                                        )
+                                    )}
                                 </div>
                             </Button>
                         ))}
@@ -237,45 +306,51 @@ export function DataTable<T>({
                         )}
                     </div>
 
-                    {/*
-                     * Body — scroll vertical dinámico, grid con el mismo template.
-                     * Ya no usa flex-1 para que su altura dependa del contenido de las filas.
-                     */}
-                    <div
-                        ref={bodyGridRef}
-                        className="overflow-y-auto custom-scrollbar"
-                    >
-                        {data.map((row) => (
-                            <div
-                                key={keyExtractor(row)}
-                                onClick={() => onRowClick?.(row)}
-                                className="group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer"
-                                onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
-                                onMouseLeave={onMouseLeaveRow}
-                            >
-                                {showRowIndicator && (
-                                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
-                                )}
-                                {columns.map((col) => (
-                                    <div
-                                        key={col.key}
-                                        className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
-                                    >
-                                        {col.render ? col.render(row) : (
-                                            <Text variant="caption" className="truncate">
-                                                {String((row as Record<string, unknown>)[col.key] ?? '')}
-                                            </Text>
-                                        )}
-                                    </div>
-                                ))}
-                                {renderRowActions && (
-                                    <div className="flex items-center justify-center py-3 px-4 gap-2">
-                                        {renderRowActions(row)}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                    {data.length === 0 ? (
+                        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10">
+                            {emptyIcon}
+                            <Text variant="body2" color="text-secondary" weight="medium">{emptyMessage}</Text>
+                        </div>
+                    ) : (
+                        <div
+                            ref={(el) => {
+                                (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                                if (bodyRef) (bodyRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                            }}
+                            className="overflow-y-auto custom-scrollbar"
+                        >
+                            {data.map((row) => (
+                                <div
+                                    key={keyExtractor(row)}
+                                    onClick={() => onRowClick?.(row)}
+                                    className="group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer"
+                                    onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
+                                    onMouseLeave={onMouseLeaveRow}
+                                >
+                                    {showRowIndicator && (
+                                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
+                                    )}
+                                    {columns.map((col) => (
+                                        <div
+                                            key={col.key}
+                                            className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
+                                        >
+                                            {col.render ? col.render(row) : (
+                                                <Text variant="caption" className="truncate">
+                                                    {String((row as Record<string, unknown>)[col.key] ?? '')}
+                                                </Text>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {renderRowActions && (
+                                        <div className="flex items-center justify-center py-3 px-4 gap-2">
+                                            {renderRowActions(row)}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </>
             )}
         </div>

@@ -72,10 +72,12 @@ export interface Development {
   provider?: string;
   authority?: string;
   responsible?: string;
+  supervisor?: string;
 
   // Timestamps
   created_at: string;
   updated_at?: string;
+  creado_por_id?: string;
 }
 
 export interface DevelopmentWithCurrentStatus extends Development {
