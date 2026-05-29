@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Info, Users, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { X, ChevronRight, Info, Users, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { Title, Button, Input, Select, Textarea, Text, ProgressBar } from '../../components/atoms';
 import { WbsActivityCreate, WbsActivityUpdate, WbsActivityTree } from '../../types/wbs';
@@ -16,7 +16,7 @@ interface WbsNodeModalProps {
 }
 
 export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
-    isOpen, onClose, onSaved, developmentId, editNode, darkMode
+    isOpen, onClose, onSaved, developmentId, editNode
 }) => {
     const { post, patch } = useApi();
     const { state } = useAppContext();
@@ -246,7 +246,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                 <Select
                                     label="Estado Actual"
                                     value={estado}
-                                    onChange={(e) => setEstado(e.target.value as any)}
+                                    onChange={(e) => setEstado(e.target.value as 'Pendiente' | 'En Progreso' | 'Pausa' | 'Completada')}
                                     options={[
                                         { value: 'Pendiente', label: 'Pendiente' },
                                         { value: 'En Progreso', label: 'En Proceso' },

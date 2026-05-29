@@ -118,19 +118,49 @@ const MyDevelopments: React.FC = () => {
     }
   }, [filters.status, setColumnFilter]);
 
-  const statusGroups = useMemo(() =>
-    displayData.reduce<Record<string, number>>((acc, dev) => {
+  const dataForCounters = useMemo(() => {
+    const filtered = (developments || []).filter(row => {
+      for (const [key, selectedValues] of Object.entries(filters)) {
+        if (key === 'status') continue;
+        if (!selectedValues || selectedValues.size === 0) continue;
+        const accessor = columnAccessors[key];
+        if (!accessor) continue;
+        const rawValue = accessor(row);
+        const value = rawValue === null || rawValue === undefined ? '(Vacío)' : String(rawValue);
+        if (!selectedValues.has(value)) return false;
+      }
+      return true;
+    });
+
+    if (!peopleSearch.trim()) return filtered;
+    const q = peopleSearch.toLowerCase();
+    return filtered.filter(dev => {
+      const authority   = (resolveUserName(dev.authority ?? dev.autoridad) || dev.authority || dev.autoridad || '').toLowerCase();
+      const responsible = (resolveUserName(dev.responsible ?? dev.responsable) || dev.responsible || dev.responsable || '').toLowerCase();
+      const supervisor  = (resolveUserName(dev.supervisor) || dev.supervisor || '').toLowerCase();
+      const analista    = (resolveUserName(dev.analista) || dev.analista || '').toLowerCase();
+      return authority.includes(q) || responsible.includes(q) || supervisor.includes(q) || analista.includes(q);
+    });
+  }, [developments, filters, columnAccessors, peopleSearch, resolveUserName]);
+
+  const statusGroups = useMemo(() => {
+    const counts: Record<string, number> = {
+      'En Proceso': 0,
+      'Pendiente': 0,
+      'Completado': 0,
+    };
+    return dataForCounters.reduce<Record<string, number>>((acc, dev) => {
       const s = getStatusLabel(getDevelopmentStatus(dev)) || 'Sin estado';
       acc[s] = (acc[s] || 0) + 1;
       return acc;
-    }, {}),
-  [displayData]);
+    }, counts);
+  }, [dataForCounters]);
 
   return (
     <div className="space-y-4">
       <MyDevelopmentsHeader
         isPortal={isPortal}
-        totalCount={displayData.length}
+        totalCount={dataForCounters.length}
         statusGroups={statusGroups}
         activeFilterCount={activeFilterCount}
         clearAllFilters={clearAllFilters}
