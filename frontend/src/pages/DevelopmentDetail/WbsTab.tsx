@@ -2,12 +2,13 @@ import { useEffect, useState, useCallback, useImperativeHandle, useMemo, forward
 import { useApi } from '../../hooks/useApi';
 import { Text, Button } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
-import { ClipboardList, Activity, Plus } from 'lucide-react';
+import { ClipboardList, Activity, Plus, ShieldAlert } from 'lucide-react';
 
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
 import { DeleteActivityModal } from './DeleteActivityModal';
 import { WbsDetailModal } from './WbsDetailModal';
+import Modal from '../../components/molecules/Modal';
 import { useColumnFilters } from '../../hooks/useColumnFilters';
 import { DataTable } from '../../components/molecules/DataTable';
 import { WbsActivityTree } from '../../types/wbs';
@@ -56,7 +57,15 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const [selectedActivity, setSelectedActivity] = useState<WbsActivityTree | null>(null);
     const [stateMenuId, setStateMenuId] = useState<number | null>(null);
     const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null);
+    const [errorModalOpen, setErrorModalOpen] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
     const stateMenuRef = useRef<HTMLDivElement>(null);
+
+    const showError = (err: unknown, defaultMsg: string) => {
+        const msg = err instanceof Error ? err.message : defaultMsg;
+        setErrorMessage(msg);
+        setErrorModalOpen(true);
+    };
 
     const getLider = useCallback((node: WbsActivityTree) => {
         const id = node.asignado_a_id || node.responsable_id;
@@ -182,6 +191,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             await fetchTree();
         } catch (error) {
             console.error(`Error applying quick action ${action}:`, error);
+            showError(error, `Error al aplicar la acción rápida ${action} en la actividad.`);
         }
     };
 
@@ -196,6 +206,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             await fetchTree();
         } catch (error) {
             console.error('Error changing estado:', error);
+            showError(error, 'Error al cambiar el estado de la actividad.');
         }
     };
 
@@ -278,6 +289,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             await fetchTree();
         } catch (err) {
             console.error('Error copying task:', err);
+            showError(err, 'Error al copiar la actividad.');
         }
     };
 
@@ -292,6 +304,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             await fetchTree();
         } catch (error) {
             console.error('Error applying template:', error);
+            showError(error, 'Error al aplicar la plantilla en el WBS.');
             throw error;
         }
     };
@@ -303,6 +316,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             setDeleteModalOpen(true);
         } catch (error) {
             console.error('Error fetching delete preview:', error);
+            showError(error, 'Error al obtener la vista previa de eliminación.');
         }
     };
 
@@ -315,6 +329,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             setDeletePreview(null);
         } catch (error) {
             console.error('Error deleting activity:', error);
+            showError(error, 'Error al eliminar la actividad.');
         }
     };
 
@@ -329,6 +344,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             await fetchTree();
         } catch (error) {
             console.error('Error resolving validation:', error);
+            showError(error, 'Error al resolver la validación de asignación.');
         } finally {
             setResolvingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
         }
@@ -455,6 +471,35 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                 resolvingIds={resolvingIds}
                 onEdit={handleEditTask}
             />
+
+            <Modal
+                isOpen={errorModalOpen}
+                onClose={() => setErrorModalOpen(false)}
+                title={
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                        <ShieldAlert className="w-5 h-5" />
+                        <Text as="span" variant="body1" weight="bold" color="inherit">
+                            Acceso Restringido
+                        </Text>
+                    </div>
+                }
+                size="sm"
+            >
+                <div className="space-y-4 py-2">
+                    <Text variant="body2" className="text-gray-700 dark:text-gray-300">
+                        {errorMessage}
+                    </Text>
+                    <div className="flex justify-end pt-2">
+                        <Button
+                            variant="secondary"
+                            onClick={() => setErrorModalOpen(false)}
+                            className="bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-800 dark:text-gray-200 px-4 py-1.5 text-xs rounded-lg font-medium"
+                        >
+                            Entendido
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 });
