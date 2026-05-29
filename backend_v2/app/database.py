@@ -119,3 +119,15 @@ async def init_db():
     """
     from app.core.migrations.manager import init_db_process
     await init_db_process(async_engine, AsyncSessionLocal)
+
+    try:
+        from app.services.erp.centro_costo_service import CentroCostoErpService
+        CentroCostoErpService.inicializar_tablas_erp(erp_engine)
+        db_erp = SessionErp()
+        try:
+            CentroCostoErpService.semillar_datos_iniciales(db_erp)
+        finally:
+            db_erp.close()
+    except Exception as e:
+        import logging
+        logging.warning(f"No se pudieron inicializar o semillar las tablas del Centro de Costos en el ERP: {e}")

@@ -10,10 +10,12 @@ from app.services.erp import EmpleadosService
 from typing import Optional
 from app.config import config
 from app.api.erp.requisiciones_router import router as requisiciones_router
+from app.api.erp.centro_costo_router import router as centro_costo_router
 
 router = APIRouter()
 
 router.include_router(requisiciones_router, prefix="/requisiciones")
+router.include_router(centro_costo_router, prefix="/centro-costo", tags=["ERP Centro de Costo"])
 
 
 @router.get("/solicitudes")

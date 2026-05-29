@@ -1,5 +1,5 @@
 import { Title, Text, MaterialCard } from '../../../components/atoms';
-import { FileText, Briefcase, Plus, ChevronRight, Users, Settings, UserCheck, PenTool } from 'lucide-react';
+import { FileText, Briefcase, Plus, ChevronRight, Users, Settings, UserCheck, PenTool, Database } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -11,7 +11,7 @@ import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'requisicion_personal' | 'seguimiento_rp_gh' | 'aprobacion_rp_gerencia' | 'perfiles_cargo') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'requisicion_personal' | 'seguimiento_rp_gh' | 'aprobacion_rp_gerencia' | 'perfiles_cargo' | 'centro_costos') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -120,6 +120,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         ['admin', 'director'].includes(userRole)
     );
 
+    const canSeeCentroCostos = moduleStatus['configuracion_centro_costo'] !== false && (
+        ['admin', 'admin_sistemas', 'admin_mejoramiento'].includes(userRole)
+    );
+
     return (
         <div className="space-y-12 py-6">
             <div className="text-center space-y-2">
@@ -226,6 +230,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                         description="Administración de áreas, cargos y sus relaciones de reporte jerárquico."
                         icon={<Settings className="w-8 h-8 text-[var(--color-primary)]" />}
                         onClick={() => onNavigate('perfiles_cargo')}
+                    />
+                )}
+
+                {canSeeCentroCostos && (
+                    <ServicePortalCard
+                        title="Configuración Centros de Costos"
+                        description="Configure los catálogos maestros de UENs, Subcentros de Costo y Especialidades del ERP."
+                        icon={<Database className="w-8 h-8 text-[var(--color-primary)]" />}
+                        onClick={() => onNavigate('centro_costos')}
                     />
                 )}
 

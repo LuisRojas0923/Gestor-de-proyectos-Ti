@@ -280,4 +280,11 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": True,
         "descripcion": "Carga y procesamiento de novedades para SOLID.",
     },
+    {
+        "id": "configuracion_centro_costo",
+        "nombre": "Configuración Centros de Costos",
+        "categoria": "panel",
+        "es_critico": False,
+        "descripcion": "Configuración de catálogos de UEN, Subcentro de Costos y Especialidad en el ERP.",
+    },
 ]

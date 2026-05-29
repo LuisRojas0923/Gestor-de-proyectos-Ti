@@ -64,6 +64,7 @@ import { RequisicionPersonalRouter } from './ServicePortal/pages/RequisicionPers
 import PerfilesCargo from './ServicePortal/pages/PerfilesCargo/PerfilesCargo';
 import BandejaGestionHumana from './ServicePortal/pages/RequisicionPersonal/pages/BandejaGestionHumana';
 import BandejaGerenciaExpress from './ServicePortal/pages/RequisicionPersonal/pages/BandejaGerenciaExpress';
+import CentroCostosConfig from './ServicePortal/pages/CentroCostos/CentroCostosConfig';
 
 import {
     CategoryWrapper,
@@ -243,6 +244,7 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'seguimiento_rp_gh') navigate('/service-portal/seguimiento-rp-gh');
                             else if (v === 'aprobacion_rp_gerencia') navigate('/service-portal/aprobacion-rp-gerencia');
                             else if (v === 'perfiles_cargo') navigate('/service-portal/perfiles-cargo');
+                            else if (v === 'centro_costos') navigate('/service-portal/centro-costos');
                         }}
                     />
                 } />
@@ -475,6 +477,12 @@ const ServicePortal: React.FC = () => {
                 <Route path="perfiles-cargo" element={
                     <ProtectedRoute moduleCode="perfiles_cargo">
                         <PerfilesCargo onVolver={() => navigate('/service-portal/inicio')} />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="centro-costos" element={
+                    <ProtectedRoute moduleCode="configuracion_centro_costo" allowedRoles={['admin', 'admin_sistemas', 'admin_mejoramiento']}>
+                        <CentroCostosConfig onVolver={() => navigate('/service-portal/inicio')} />
                     </ProtectedRoute>
                 } />
 
