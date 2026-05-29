@@ -206,9 +206,8 @@ async def eliminar_desarrollo(
         if not db_desarrollo:
             raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
 
-        # Validar permisos para eliminar el desarrollo
-        # Permitido si es admin, director o el creador del desarrollo
-        tiene_acceso = usuario.rol in ("admin", "director") or db_desarrollo.creado_por_id == usuario.id
+        # Validar permisos para eliminar el desarrollo — sin bypass de roles
+        tiene_acceso = db_desarrollo.creado_por_id == usuario.id
         
         if not tiene_acceso:
             # O si el creador o responsable del desarrollo es un subordinado jerárquico
