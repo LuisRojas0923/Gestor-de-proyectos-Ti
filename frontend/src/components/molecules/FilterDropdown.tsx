@@ -361,13 +361,14 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                         {type === 'categorical' ? `${currentSelected.length} seleccionados` : 'Filtro por rango'}
                     </Text>
                     {type === 'categorical' && currentSelected.length > 0 && onClearSelection && (
-                        <button
-                            type="button"
+                        <Button
+                            variant="ghost"
+                            size="xs"
                             onClick={onClearSelection}
-                            className="text-[9px] text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider font-medium"
+                            className="!text-[9px] !text-slate-400 hover:!text-red-500 transition-colors uppercase tracking-wider font-medium !px-2 !py-1"
                         >
                             Limpiar
-                        </button>
+                        </Button>
                     )}
                 </div>
                 <Button
