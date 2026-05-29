@@ -194,7 +194,8 @@ async def obtener_desarrollo(
 @router.delete("/{desarrollo_id}", status_code=204)
 async def eliminar_desarrollo(
     desarrollo_id: str,
-    db: AsyncSession = Depends(obtener_db)
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Elimina un desarrollo y todas sus actividades asociadas"""
     try:
@@ -204,6 +205,23 @@ async def eliminar_desarrollo(
 
         if not db_desarrollo:
             raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
+
+        # Validar permisos para eliminar el desarrollo
+        # Permitido si es admin, director o el creador del desarrollo
+        tiene_acceso = usuario.rol in ("admin", "director") or db_desarrollo.creado_por_id == usuario.id
+        
+        if not tiene_acceso:
+            # O si el creador o responsable del desarrollo es un subordinado jerárquico
+            subordinados = await JerarquiaService.obtener_ids_y_nombres_subordinados(db, usuario.id)
+            todos_los_ids = [usuario.id] + subordinados["ids"]
+            if db_desarrollo.creado_por_id in todos_los_ids or db_desarrollo.responsable_id in todos_los_ids:
+                tiene_acceso = True
+
+        if not tiene_acceso:
+            raise HTTPException(
+                status_code=403,
+                detail="No tiene permisos para eliminar este desarrollo"
+            )
 
         # 1. Eliminar validaciones de asignación relacionadas al desarrollo o sus actividades
         # Esto previene errores de llave foránea (IntegrityError)

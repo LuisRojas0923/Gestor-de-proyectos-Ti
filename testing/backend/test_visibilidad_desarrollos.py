@@ -310,3 +310,43 @@ async def test_actualizar_actividad_autorizado_retorna_200(client, visibilidad_s
     
     response = await client.patch("/actividades/1001", json={"titulo": "Titulo Jefe"}, headers=headers)
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_eliminar_desarrollo_anonimo_retorna_401(client, visibilidad_seed):
+    """Eliminar desarrollo sin token retorna 401"""
+    response = await client.delete("/desarrollos/DEV-VIS-1")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_eliminar_desarrollo_ajeno_retorna_403(client, visibilidad_seed):
+    """Eliminar un desarrollo ajeno que no le pertenece ni a sus subordinados retorna 403"""
+    token = await obtener_token_usuario(client, "VIS-AJENO")
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # DEV-VIS-1 le pertenece al Jefe (USR-VIS-JEFE)
+    response = await client.delete("/desarrollos/DEV-VIS-1", headers=headers)
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_eliminar_desarrollo_autorizado_creador_retorna_204(client, visibilidad_seed):
+    """El creador del desarrollo puede eliminarlo y retorna 204"""
+    token = await obtener_token_usuario(client, "VIS-JEFE")
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # DEV-VIS-1 fue creado por el Jefe (USR-VIS-JEFE)
+    response = await client.delete("/desarrollos/DEV-VIS-1", headers=headers)
+    assert response.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_eliminar_desarrollo_autorizado_superior_retorna_204(client, visibilidad_seed):
+    """Un superior jerarquico del creador puede eliminar el desarrollo y retorna 204"""
+    token = await obtener_token_usuario(client, "VIS-DIRECTOR")
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # DEV-VIS-1 fue creado por el Jefe (USR-VIS-JEFE) que es subordinado del Director (USR-VIS-DIRECTOR)
+    response = await client.delete("/desarrollos/DEV-VIS-1", headers=headers)
+    assert response.status_code == 204
