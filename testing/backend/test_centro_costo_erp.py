@@ -81,10 +81,15 @@ async def client_non_admin():
 
 @pytest.mark.asyncio
 async def test_centro_costo_rbac_protection(client_non_admin):
-    # Intentar acceder sin rol de administrador debe retornar 403
-    res = await client_non_admin.get("/erp/centro-costo/uen")
-    assert res.status_code == 403
-    assert "No tiene permisos" in res.json()["detail"]
+    # 1. Obtener listados debe ser permitido para cualquier usuario autenticado (retorna 200)
+    res_get = await client_non_admin.get("/erp/centro-costo/uen")
+    assert res_get.status_code == 200
+
+    # 2. Intentar crear una UEN sin rol de administrador debe retornar 403
+    payload = {"codigo": "95", "nombre": "INTENTO FALLIDO", "activo": True}
+    res_post = await client_non_admin.post("/erp/centro-costo/uen", json=payload)
+    assert res_post.status_code == 403
+    assert "No tiene permisos" in res_post.json()["detail"]
 
 
 @pytest.mark.asyncio

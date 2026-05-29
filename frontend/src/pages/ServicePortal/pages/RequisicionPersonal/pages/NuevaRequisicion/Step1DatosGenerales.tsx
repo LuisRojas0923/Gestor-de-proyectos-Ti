@@ -1,11 +1,12 @@
 // Paso 1: Datos Generales de la Requisición
 import React, { useEffect, useState } from 'react';
 import { MapPin, Briefcase, User, Hash, Calendar, Building2, HardHat } from 'lucide-react';
-import { Select, Title, Text } from '../../../../../../components/atoms';
+import { Select, Title, Text, Input } from '../../../../../../components/atoms';
 import { FormField, TextAreaField } from '../../../Common';
 import type { FormularioRP } from '../../types/requisicion.types';
 import type { CiudadRP } from '../../types/requisicion.types';
 import { getCiudades } from '../../services/requisicionService';
+import { CentroCostoService, CostCenterItem } from '../../../../../../services/CentroCostoService';
 
 interface Props {
   form: FormularioRP;
@@ -17,9 +18,83 @@ interface Props {
 const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante, nombreSolicitante }) => {
   const [ciudades, setCiudades] = useState<CiudadRP[]>([]);
 
+  // Autocomplete Centro de costo
+  const [combinations, setCombinations] = useState<{ code: string; label: string }[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedBreakdown, setSelectedBreakdown] = useState<string>('');
+
   useEffect(() => {
     getCiudades().then(setCiudades).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    // Cargar los tres catálogos del ERP
+    Promise.all([
+      CentroCostoService.getUens(),
+      CentroCostoService.getSubcentros(),
+      CentroCostoService.getEspecialidades()
+    ]).then(([u, s, e]) => {
+      // Filtrar solo los activos
+      const activeUens = u.filter(x => x.activo);
+      const activeSubcentros = s.filter(x => x.activo);
+      const activeEspecialidades = e.filter(x => x.activo);
+
+      // Generar el producto cartesiano de combinaciones
+      const list: { code: string; label: string }[] = [];
+      activeUens.forEach(uen => {
+        activeSubcentros.forEach(sub => {
+          activeEspecialidades.forEach(esp => {
+            const code = `${uen.codigo}${sub.codigo}-${esp.codigo}`;
+            const label = `${uen.nombre} - ${sub.nombre} - ${esp.nombre}`;
+            list.push({ code, label });
+          });
+        });
+      });
+      setCombinations(list);
+
+      // Si el formulario ya tiene un valor inicial, buscar su descripción
+      if (form.centro_costo) {
+        const found = list.find(x => x.code === form.centro_costo);
+        if (found) {
+          setSelectedBreakdown(found.label);
+          setSearchTerm(found.code);
+        } else {
+          setSearchTerm(form.centro_costo);
+        }
+      }
+    }).catch(err => {
+      console.error('Error cargando centros de costos para autocomplete:', err);
+    });
+  }, [form.centro_costo]);
+
+  const handleInputChange = (val: string) => {
+    setSearchTerm(val);
+    setShowDropdown(true);
+    
+    const match = combinations.find(c => c.code.toLowerCase() === val.trim().toLowerCase());
+    if (match) {
+      update('centro_costo', match.code);
+      setSelectedBreakdown(match.label);
+    } else {
+      update('centro_costo', ''); // Descalifica si no coincide exactamente
+      setSelectedBreakdown('');
+    }
+  };
+
+  const handleSelect = (code: string, label: string) => {
+    update('centro_costo', code);
+    setSearchTerm(code);
+    setSelectedBreakdown(label);
+    setShowDropdown(false);
+  };
+
+  const filtered = combinations
+    .filter(c => 
+      c.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      c.label.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .slice(0, 15);
 
   const ciudadOptions = ciudades.map(c => ({ value: String(c.id), label: c.nombre }));
   const today = new Date().toISOString().split('T')[0];
@@ -136,13 +211,67 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
           icon={Calendar}
           isRequired
         />
-        <FormField
-          label="Centro de costo"
-          name="centro_costo"
-          value={form.centro_costo}
-          onChange={e => update('centro_costo', e.target.value)}
-          isRequired
-        />
+        <div className="relative">
+          <Input
+            label="Centro de costo"
+            name="centro_costo"
+            value={searchTerm}
+            onChange={e => handleInputChange(e.target.value)}
+            onFocus={() => setShowDropdown(true)}
+            onBlur={() => {
+              // Pequeño retardo para dar tiempo a capturar el click en el listado
+              setTimeout(() => setShowDropdown(false), 200);
+            }}
+            placeholder="Escriba el código o nombre del centro de costo..."
+            required
+            autoComplete="off"
+          />
+
+          {showDropdown && searchTerm.trim().length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-[var(--color-border)] rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-[var(--color-border)] transition-all">
+              {filtered.length > 0 ? (
+                filtered.map(c => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => handleSelect(c.code, c.label)}
+                    className="w-full text-left px-4 py-3 hover:bg-[var(--color-primary-light)]/10 dark:hover:bg-neutral-700/50 flex flex-col transition-colors"
+                  >
+                    <span className="font-mono font-bold text-sm text-[var(--color-primary)]">{c.code}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.label}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-3 text-xs text-red-500 font-medium">
+                  Ninguna combinación válida encontrada
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Discriminación del Centro de Costo */}
+          {selectedBreakdown && (
+            <div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 rounded-xl flex items-start gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs select-none">✓</span>
+              <div>
+                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">Centro de Costo Válido</span>
+                <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">{selectedBreakdown}</span>
+              </div>
+            </div>
+          )}
+
+          {searchTerm && !selectedBreakdown && (
+            <div className="mt-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl flex items-start gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+              <span className="text-red-600 dark:text-red-400 font-bold text-xs select-none">⚠</span>
+              <div>
+                <span className="text-xs font-bold text-red-800 dark:text-red-300 block">Combinación Inválida</span>
+                <span className="text-xs text-red-700 dark:text-red-400 font-medium">
+                  El centro de costo ingresado no corresponde a ninguna combinación activa en el ERP.
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <TextAreaField

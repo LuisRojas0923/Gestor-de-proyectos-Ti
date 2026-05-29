@@ -30,7 +30,7 @@ def verificar_admin(usuario: Usuario = Depends(obtener_usuario_actual_db)) -> Us
 @router.get("/uen", response_model=List[UenOut])
 def listar_uen(
     db_erp: Session = Depends(obtener_erp_db),
-    _admin: Usuario = Depends(verificar_admin)
+    _usuario: Usuario = Depends(obtener_usuario_actual_db)
 ):
     """Obtiene el listado de UENs configurados en el ERP"""
     return CentroCostoErpService.obtener_todos_uen(db_erp)
@@ -79,7 +79,7 @@ def activar_uen(
 @router.get("/subcentro", response_model=List[SubcentroOut])
 def listar_subcentros(
     db_erp: Session = Depends(obtener_erp_db),
-    _admin: Usuario = Depends(verificar_admin)
+    _usuario: Usuario = Depends(obtener_usuario_actual_db)
 ):
     """Obtiene el listado de Subcentros de Costo configurados en el ERP"""
     return CentroCostoErpService.obtener_todos_subcentro(db_erp)
@@ -128,7 +128,7 @@ def activar_subcentro(
 @router.get("/especialidad", response_model=List[EspecialidadOut])
 def listar_especialidades(
     db_erp: Session = Depends(obtener_erp_db),
-    _admin: Usuario = Depends(verificar_admin)
+    _usuario: Usuario = Depends(obtener_usuario_actual_db)
 ):
     """Obtiene el listado de Especialidades configuradas en el ERP"""
     return CentroCostoErpService.obtener_todos_especialidad(db_erp)
