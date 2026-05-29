@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search } from 'lucide-react';
+import { Search, ShieldAlert } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDevelopments } from './hooks/useDevelopments';
 import { useNotifications } from '../../components/notifications/NotificationsContext';
@@ -8,7 +8,8 @@ import { useColumnFilters } from '../../hooks/useColumnFilters';
 import { CreateDevelopmentModal } from './CreateDevelopmentModal';
 import EditDevelopmentModal from './EditDevelopmentModal';
 import { useApi } from '../../hooks/useApi';
-import { Button } from '../../components/atoms';
+import { Button, Text } from '../../components/atoms';
+import Modal from '../../components/molecules/Modal';
 
 import { MyDevelopmentsHeader } from './components/MyDevelopmentsHeader';
 import { MyDevelopmentsDeleteModal } from './components/MyDevelopmentsDeleteModal';
@@ -33,6 +34,8 @@ const MyDevelopments: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<DevelopmentRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => { loadDevelopments(); }, [loadDevelopments]);
 
@@ -58,8 +61,12 @@ const MyDevelopments: React.FC = () => {
       addNotification('success', `Actividad "${getDevelopmentName(deleteTarget)}" eliminada`);
       setDeleteTarget(null);
       loadDevelopments();
-    } catch {
-      addNotification('error', 'Error al eliminar la actividad');
+    } catch (err) {
+      console.error('Error deleting development:', err);
+      const msg = err instanceof Error ? err.message : 'Error al eliminar la actividad';
+      setErrorMessage(msg);
+      setErrorModalOpen(true);
+      setDeleteTarget(null); // Cerrar el modal de confirmación
     } finally {
       setDeleteLoading(false);
     }
@@ -189,6 +196,35 @@ const MyDevelopments: React.FC = () => {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
       />
+
+      <Modal
+        isOpen={errorModalOpen}
+        onClose={() => setErrorModalOpen(false)}
+        title={
+          <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+            <ShieldAlert className="w-5 h-5" />
+            <Text as="span" variant="body1" weight="bold" color="inherit">
+              Acceso Restringido
+            </Text>
+          </div>
+        }
+        size="sm"
+      >
+        <div className="space-y-4 py-2">
+          <Text variant="body2" className="text-gray-700 dark:text-gray-300">
+            {errorMessage}
+          </Text>
+          <div className="flex justify-end pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => setErrorModalOpen(false)}
+              className="bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-800 dark:text-gray-200 px-4 py-1.5 text-xs rounded-lg font-medium"
+            >
+              Entendido
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
