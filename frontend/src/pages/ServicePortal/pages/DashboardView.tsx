@@ -40,13 +40,13 @@ const ServicePortalCard: React.FC<{
             <MaterialCard
                 onClick={hasSubItems ? onToggleExpand : onClick}
                 hoverable={true}
-                className={`p-4 bg-white dark:bg-neutral-800/80 border border-slate-200 dark:border-neutral-700/60 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 text-left w-full h-auto cursor-pointer flex flex-col justify-center ${
-                    expanded ? 'ring-2 ring-[var(--color-primary)]/20 !border-[var(--color-primary)] shadow-md bg-slate-50/30 dark:bg-neutral-800' : ''
+                className={`p-4 bg-white dark:bg-neutral-800/85 border border-slate-200 dark:border-neutral-700/60 rounded-2xl shadow-sm hover:shadow-md transition-all duration-350 text-left w-full h-auto cursor-pointer flex flex-col justify-center ${
+                    expanded ? 'ring-2 ring-[var(--color-primary)]/20 !border-[var(--color-primary)] shadow-md bg-slate-50/20 dark:bg-neutral-800' : ''
                 }`}
             >
                 <div className="flex items-center gap-4 w-full">
                     {/* Contenedor del Icono/Logo */}
-                    <div className="w-14 h-14 bg-slate-50 dark:bg-neutral-900 rounded-xl flex items-center justify-center p-2 border border-slate-100 dark:border-neutral-800 shadow-sm shrink-0">
+                    <div className="w-14 h-14 bg-slate-50 dark:bg-neutral-900 rounded-xl flex items-center justify-center p-2 border border-slate-100 dark:border-neutral-850 shadow-sm shrink-0">
                         <div className="w-full h-full flex items-center justify-center">
                             {icon}
                         </div>
@@ -72,7 +72,7 @@ const ServicePortalCard: React.FC<{
                     {!hasSubItems ? (
                         <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-[var(--color-primary)] group-hover:translate-x-1 transition-all shrink-0" />
                     ) : (
-                        <div className="shrink-0 p-1.5 rounded-full bg-slate-50 dark:bg-neutral-900 group-hover:bg-slate-100 dark:group-hover:bg-neutral-850 transition-colors">
+                        <div className="shrink-0 p-1.5 rounded-full bg-slate-50 dark:bg-neutral-900 group-hover:bg-slate-100 dark:group-hover:bg-neutral-800 transition-colors">
                             {expanded ? (
                                 <ChevronUp className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                             ) : (
@@ -248,6 +248,189 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         ['admin', 'admin_sistemas', 'admin_mejoramiento'].includes(userRole)
     );
 
+    // Construcción de la lista ordenada de tarjetas
+    const cards: React.ReactNode[] = [];
+
+    if (canSeeSolicitudes) {
+        cards.push(
+            <ServicePortalCard
+                key="solicitudes"
+                title="Gestión de Solicitudes TI"
+                description="Crea nuevos requerimientos o consulta el estado de tus tickets actuales."
+                icon={<img src={imgSolicitar} alt="Solicitar Servicio" className="w-full h-full object-contain p-1" />}
+                subItems={solicitudesSubItems}
+                expanded={expandedCard === 'Gestión de Solicitudes TI'}
+                onToggleExpand={() => toggleCard('Gestión de Solicitudes TI')}
+            />
+        );
+    }
+
+    if (canSeeReservaSalas) {
+        cards.push(
+            <ServicePortalCard
+                key="reserva_salas"
+                title="Reserva de salas"
+                description="Reserva salas de reuniones y espacios para tu equipo."
+                icon={<img src={imgReunion} alt="Reserva de salas" className="w-full h-full object-contain p-1" />}
+                onClick={() => onNavigate('reserva_salas')}
+            />
+        );
+    }
+
+    if (canSeeRequisiciones) {
+        cards.push(
+            <ServicePortalCard
+                key="requisiciones"
+                title="Sistema de Solicitudes"
+                description="Gestión de Requisiciones (Almacén, Suministros, Presupuesto)."
+                icon={<img src={sistemasolicitudes} alt="Sistema de Solicitudes" className="w-full h-full object-contain p-1" />}
+                subItems={requisicionesSubItems}
+                expanded={expandedCard === 'Sistema de Solicitudes'}
+                onToggleExpand={() => toggleCard('Sistema de Solicitudes')}
+            />
+        );
+    }
+
+    if (canSeeViaticos) {
+        cards.push(
+            <ServicePortalCard
+                key="viaticos"
+                title="Gestión de Viáticos"
+                description="Reporte de gastos y consulta de estado de cuenta detallado."
+                icon={<img src={imgGestionViaticos} alt="Gestión de Viáticos" className="w-full h-full object-contain p-1" />}
+                subItems={viaticosSubItems}
+                expanded={expandedCard === 'Gestión de Viáticos'}
+                onToggleExpand={() => toggleCard('Gestión de Viáticos')}
+            />
+        );
+    }
+
+    if (canSeeNomina) {
+        cards.push(
+            <ServicePortalCard
+                key="nomina"
+                title="Novedades de Nómina"
+                description="Carga y procesamiento de novedades para SOLID."
+                icon={<img src={imgNovedadesNomina} alt="Novedades de Nómina" className="w-full h-full object-contain p-1" />}
+                subItems={nominaSubItems}
+                expanded={expandedCard === 'Novedades de Nómina'}
+                onToggleExpand={() => toggleCard('Novedades de Nómina')}
+            />
+        );
+    }
+
+    if (canSeeComisiones) {
+        cards.push(
+            <ServicePortalCard
+                key="comisiones"
+                title="Comisiones"
+                description="Cálculo y procesamiento de comisiones para el personal."
+                icon={<img src={imgComisiones} alt="Gestión de Comisiones" className="w-full h-full object-contain p-1" />}
+                onClick={() => onNavigate('comisiones')}
+            />
+        );
+    }
+    
+    if (canSeeInventario) {
+        cards.push(
+            <ServicePortalCard
+                key="inventario"
+                title="Inventario 2026"
+                description="Toma física de inventario y carga masiva de conteos."
+                icon={<img src={imgInventario} alt="Inventario 2026" className="w-full h-full object-contain p-1" />}
+                onClick={() => onNavigate('inventario')}
+            />
+        );
+    }
+
+    if (canSeeRequisicionPersonal) {
+        cards.push(
+            <ServicePortalCard
+                key="requisicion_personal"
+                title="Requisición de Personal"
+                description="Creación y seguimiento de solicitudes de contratación de personal."
+                icon={<Users className="w-8 h-8 text-[var(--color-primary)]" />}
+                subItems={reqPersonalSubItems}
+                expanded={expandedCard === 'Requisición de Personal'}
+                onToggleExpand={() => toggleCard('Requisición de Personal')}
+            />
+        );
+    }
+
+    if (canSeeSeguimientoRPGH) {
+        cards.push(
+            <ServicePortalCard
+                key="seguimiento_rp_gh"
+                title="Seguimiento RP Gestión Humana"
+                description="Gestión y seguimiento del proceso de selección y contratación de requisiciones aprobadas."
+                icon={<UserCheck className="w-8 h-8 text-[var(--color-primary)]" />}
+                onClick={() => onNavigate('seguimiento_rp_gh')}
+            />
+        );
+    }
+
+    if (canSeeAprobacionGerenciaRP) {
+        cards.push(
+            <ServicePortalCard
+                key="aprobacion_rp_gerencia"
+                title="Aprobación Gerencial RP"
+                description="Firma y autorización definitiva de requisiciones de personal aprobadas por directores."
+                icon={<PenTool className="w-8 h-8 text-[var(--color-primary)]" />}
+                onClick={() => onNavigate('aprobacion_rp_gerencia')}
+            />
+        );
+    }
+
+    if (canSeePerfilesCargo) {
+        cards.push(
+            <ServicePortalCard
+                key="perfiles_cargo"
+                title="Perfiles de Cargo"
+                description="Administración de áreas, cargos y sus relaciones de reporte jerárquico."
+                icon={<Settings className="w-8 h-8 text-[var(--color-primary)]" />}
+                onClick={() => onNavigate('perfiles_cargo')}
+            />
+        );
+    }
+
+    if (canSeeContabilidad) {
+        cards.push(
+            <ServicePortalCard
+                key="contabilidad"
+                title="Gestión Humana"
+                description="Certificados laborales, desprendibles de pago e información tributaria."
+                icon={<FileText className="w-8 h-8 text-[var(--color-primary)]" />}
+                onClick={() => onNavigate('contabilidad')}
+            />
+        );
+    }
+
+    if (canSeeGestionActividades) {
+        cards.push(
+            <ServicePortalCard
+                key="gestion_actividades"
+                title="Gestión de Actividades"
+                description="Accede a desarrollos, aprobaciones y jerarquía organizacional."
+                icon={<Briefcase className="w-8 h-8 text-[var(--color-primary)]" />}
+                subItems={actividadesSubItems}
+                expanded={expandedCard === 'Gestión de Actividades'}
+                onToggleExpand={() => toggleCard('Gestión de Actividades')}
+            />
+        );
+    }
+
+    if (canSeeCentroCostos) {
+        cards.push(
+            <ServicePortalCard
+                key="centro_costos"
+                title="Configuración Centros de Costos"
+                description="Configure los catálogos maestros de UENs, Subcentros de Costo y Especialidades del ERP."
+                icon={<Database className="w-8 h-8 text-[var(--color-primary)]" />}
+                onClick={() => onNavigate('centro_costos')}
+            />
+        );
+    }
+
     return (
         <div className="space-y-12 py-6">
             <div className="text-center space-y-2">
@@ -257,144 +440,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
                 <Text variant="h6" color="text-secondary" weight="medium">Selecciona una de las opciones principales de gestión</Text>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {canSeeSolicitudes && (
-                    <ServicePortalCard
-                        title="Gestión de Solicitudes TI"
-                        description="Crea nuevos requerimientos o consulta el estado de tus tickets actuales."
-                        icon={<img src={imgSolicitar} alt="Solicitar Servicio" className="w-full h-full object-contain p-1" />}
-                        subItems={solicitudesSubItems}
-                        expanded={expandedCard === 'Gestión de Solicitudes TI'}
-                        onToggleExpand={() => toggleCard('Gestión de Solicitudes TI')}
-                    />
-                )}
-
-                {canSeeReservaSalas && (
-                    <ServicePortalCard
-                        title="Reserva de salas"
-                        description="Reserva salas de reuniones y espacios para tu equipo."
-                        icon={<img src={imgReunion} alt="Reserva de salas" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('reserva_salas')}
-                    />
-                )}
-
-                {canSeeRequisiciones && (
-                    <ServicePortalCard
-                        title="Sistema de Solicitudes"
-                        description="Gestión de Requisiciones (Almacén, Suministros, Presupuesto)."
-                        icon={<img src={sistemasolicitudes} alt="Sistema de Solicitudes" className="w-full h-full object-contain p-1" />}
-                        subItems={requisicionesSubItems}
-                        expanded={expandedCard === 'Sistema de Solicitudes'}
-                        onToggleExpand={() => toggleCard('Sistema de Solicitudes')}
-                    />
-                )}
-
-                {canSeeViaticos && (
-                    <ServicePortalCard
-                        title="Gestión de Viáticos"
-                        description="Reporte de gastos y consulta de estado de cuenta detallado."
-                        icon={<img src={imgGestionViaticos} alt="Gestión de Viáticos" className="w-full h-full object-contain p-1" />}
-                        subItems={viaticosSubItems}
-                        expanded={expandedCard === 'Gestión de Viáticos'}
-                        onToggleExpand={() => toggleCard('Gestión de Viáticos')}
-                    />
-                )}
-
-                {canSeeNomina && (
-                    <ServicePortalCard
-                        title="Novedades de Nómina"
-                        description="Carga y procesamiento de novedades para SOLID."
-                        icon={<img src={imgNovedadesNomina} alt="Novedades de Nómina" className="w-full h-full object-contain p-1" />}
-                        subItems={nominaSubItems}
-                        expanded={expandedCard === 'Novedades de Nómina'}
-                        onToggleExpand={() => toggleCard('Novedades de Nómina')}
-                    />
-                )}
-
-                {canSeeComisiones && (
-                    <ServicePortalCard
-                        title="Comisiones"
-                        description="Cálculo y procesamiento de comisiones para el personal."
-                        icon={<img src={imgComisiones} alt="Gestión de Comisiones" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('comisiones')}
-                    />
-                )}
-                
-                {canSeeInventario && (
-                    <ServicePortalCard
-                        title="Inventario 2026"
-                        description="Toma física de inventario y carga masiva de conteos."
-                        icon={<img src={imgInventario} alt="Inventario 2026" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('inventario')}
-                    />
-                )}
-
-                {canSeeRequisicionPersonal && (
-                    <ServicePortalCard
-                        title="Requisición de Personal"
-                        description="Creación y seguimiento de solicitudes de contratación de personal."
-                        icon={<Users className="w-8 h-8 text-[var(--color-primary)]" />}
-                        subItems={reqPersonalSubItems}
-                        expanded={expandedCard === 'Requisición de Personal'}
-                        onToggleExpand={() => toggleCard('Requisición de Personal')}
-                    />
-                )}
-
-                {canSeeSeguimientoRPGH && (
-                    <ServicePortalCard
-                        title="Seguimiento RP Gestión Humana"
-                        description="Gestión y seguimiento del proceso de selección y contratación de requisiciones aprobadas."
-                        icon={<UserCheck className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('seguimiento_rp_gh')}
-                    />
-                )}
-
-                {canSeeAprobacionGerenciaRP && (
-                    <ServicePortalCard
-                        title="Aprobación Gerencial RP"
-                        description="Firma y autorización definitiva de requisiciones de personal aprobadas por directores."
-                        icon={<PenTool className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('aprobacion_rp_gerencia')}
-                    />
-                )}
-
-                {canSeePerfilesCargo && (
-                    <ServicePortalCard
-                        title="Perfiles de Cargo"
-                        description="Administración de áreas, cargos y sus relaciones de reporte jerárquico."
-                        icon={<Settings className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('perfiles_cargo')}
-                    />
-                )}
-
-                {canSeeContabilidad && (
-                    <ServicePortalCard
-                        title="Gestión Humana"
-                        description="Certificados laborales, desprendibles de pago e información tributaria."
-                        icon={<FileText className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('contabilidad')}
-                    />
-                )}
-
-                {canSeeGestionActividades && (
-                    <ServicePortalCard
-                        title="Gestión de Actividades"
-                        description="Accede a desarrollos, aprobaciones y jerarquía organizacional."
-                        icon={<Briefcase className="w-8 h-8 text-[var(--color-primary)]" />}
-                        subItems={actividadesSubItems}
-                        expanded={expandedCard === 'Gestión de Actividades'}
-                        onToggleExpand={() => toggleCard('Gestión de Actividades')}
-                    />
-                )}
-
-                {canSeeCentroCostos && (
-                    <ServicePortalCard
-                        title="Configuración Centros de Costos"
-                        description="Configure los catálogos maestros de UENs, Subcentros de Costo y Especialidades del ERP."
-                        icon={<Database className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('centro_costos')}
-                    />
-                )}
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 w-full [column-fill:_balance]">
+                {cards.map((card, idx) => (
+                    <div key={idx} className="break-inside-avoid mb-6 w-full">
+                        {card}
+                    </div>
+                ))}
             </div>
         </div>
     );
