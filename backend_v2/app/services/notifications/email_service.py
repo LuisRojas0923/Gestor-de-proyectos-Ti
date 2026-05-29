@@ -1,9 +1,11 @@
 import os
+import re
 from typing import List, Optional, Union
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
+from email.header import Header
 from jinja2 import Environment, FileSystemLoader
 from app.config import config
 from .email_utils import EmailUtils
@@ -51,8 +53,20 @@ class EmailService:
             #   |-- inline images
             
             msg_root = MIMEMultipart("related")
-            msg_root["Subject"] = asunto
-            msg_root["From"] = config.smtp_from or config.smtp_user
+            msg_root["Subject"] = Header(asunto, "utf-8")
+            
+            # Codificar el remitente de forma segura si contiene nombre descriptivo
+            from_email = config.smtp_from or config.smtp_user
+            if " " in from_email:
+                match = re.match(r'(.*)\s+<(.*)>', from_email)
+                if match:
+                    name, addr = match.groups()
+                    msg_root["From"] = f"{Header(name, 'utf-8').encode()} <{addr}>"
+                else:
+                    msg_root["From"] = from_email
+            else:
+                msg_root["From"] = from_email
+
             msg_root["To"] = ", ".join(destinatarios)
 
             # Cabeceras para Hilos (Threading)
