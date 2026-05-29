@@ -143,7 +143,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
 
     const reqPersonalSubItems: SubItem[] = [
         { label: 'Bandeja Principal de Requisiciones', onClick: () => onNavigate('requisicion_personal') },
-        { label: 'Crear Nueva Requisición de Personal', onClick: () => navigate('/service-portal/requisicion-personal/crear') }
+        { label: 'Crear Nueva Requisición de Personal', onClick: () => navigate('/service-portal/requisicion-personal/nueva') }
     ];
 
     const actividadesSubItems: SubItem[] = [
