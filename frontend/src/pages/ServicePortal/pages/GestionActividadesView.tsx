@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Layers, Network } from 'lucide-react';
+import { ArrowLeft, Layers, Network, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button, Title, Text, MaterialCard } from '../../../components/atoms';
 
