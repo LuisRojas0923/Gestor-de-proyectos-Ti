@@ -1,7 +1,7 @@
 // Wizard de 6 pasos para Nueva Requisición de Personal
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Save, Send, CheckCircle2 } from 'lucide-react';
-import { Button, Title, Text } from '../../../../../../components/atoms';
+import { Button, Text, Title } from '../../../../../../components/atoms';
 import { useRequisicionPersonal, PASOS } from '../../hooks/useRequisicionPersonal';
 import Step1DatosGenerales from './Step1DatosGenerales';
 import Step2AreaCargo from './Step2AreaCargo';
@@ -135,7 +135,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
                     : 'border-[var(--color-border)]'}`}>
                     {completado ? '✓' : paso.id}
                   </div>
-                  <span className="text-xs font-semibold hidden sm:block">{paso.titulo}</span>
+                  <Text as="span" className="text-xs font-semibold hidden sm:block">{paso.titulo}</Text>
                 </div>
                 {idx < PASOS.length - 1 && (
                   <div className={`h-0.5 w-6 flex-shrink-0 ${completado ? 'bg-emerald-500' : 'bg-[var(--color-border)]'}`} />
@@ -207,7 +207,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
       <div className="h-1.5 bg-[var(--color-border)] rounded-full overflow-hidden">
         <div
           className="h-full bg-[var(--color-primary)] rounded-full transition-all duration-500"
-          style={{ width: `${(pasoActual / totalPasos) * 100}%` }}
+          style={{ width: `${(pasoActual / totalPasos) * 100}%` }} /* [CONTROLADO] */
         />
       </div>
     </div>

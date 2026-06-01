@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Edit2 } from 'lucide-react';
-import { Subtitle, Text, Input, Button } from '../../../../../components/atoms';
+import { Button, Input, Subtitle, Text } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import type { AreaRP } from '../../RequisicionPersonal/types/requisicion.types';
 
@@ -64,7 +64,7 @@ const AreasTab: React.FC<AreasTabProps> = ({
       header: 'ID',
       accessorKey: 'id',
       align: 'center',
-      cell: (row) => <span className="font-mono text-slate-400 dark:text-slate-500">#{row.id}</span>,
+      cell: (row) => <Text as="span" className="font-mono text-slate-400 dark:text-slate-500">#{row.id}</Text>,
     },
     {
       header: 'Área',
@@ -89,14 +89,14 @@ const AreasTab: React.FC<AreasTabProps> = ({
       accessorKey: 'activo',
       align: 'center',
       cell: (row) => (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        <Text as="span" className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
           row.activo
             ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
             : 'bg-red-50 text-red-800 dark:bg-red-950/30 dark:text-red-300'
         }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${row.activo ? 'bg-emerald-500' : 'bg-red-500'}`} />
+          <Text as="span" className={`w-1.5 h-1.5 rounded-full ${row.activo ? 'bg-emerald-500' : 'bg-red-500'}`} />
           {row.activo ? 'Activo' : 'Inactivo'}
-        </span>
+        </Text>
       ),
     },
     {

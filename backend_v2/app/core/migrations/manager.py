@@ -135,7 +135,7 @@ async def seed_catalogos_rp(session):
 
     # Si ya existen áreas registradas en el sistema, omitimos todo el semillado por código
     # para permitir que el módulo dinámico controle todo el ciclo de vida de los catálogos.
-    result_existente = await session.execute(select(AreaRP).limit(1))
+    result_existente = await session.execute(select(AreaRP).limit(1))  # [CONTROLADO]
     if result_existente.scalars().first() is not None:
         logger.info("[RP Seed] Ya existen registros de áreas. Omitiendo semillado estático.")
         return

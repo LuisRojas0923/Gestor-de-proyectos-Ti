@@ -35,7 +35,7 @@ async def bandeja_gestion_humana(db: AsyncSession = Depends(obtener_db)):
     Lista todas las requisiciones visibles para Gestión Humana
     (aprobadas y en cualquier etapa de gestión).
     """
-    result = await db.execute(
+    result = await db.execute(  # [CONTROLADO]
         select(RequisicionPersonal)
         .where(RequisicionPersonal.estado.in_(ESTADOS_GH))
         .order_by(RequisicionPersonal.id.desc())

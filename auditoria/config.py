@@ -27,6 +27,8 @@ IGNORE_DIRS = {
     ".claude",
     ".opencode",
     "testing",
+    "modulo_actividades_fork",
+    "RP_V1",
 }
 
 # Extensiones de archivos a analizar

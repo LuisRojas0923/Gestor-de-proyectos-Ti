@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Plus, Eye, Edit, XCircle, Send, ArrowLeft } from 'lucide-react';
-import { Button, Title, Text } from '../../../../../components/atoms';
+import { Button, Text, Title } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
 import type { RequisicionRP } from '../types/requisicion.types';
@@ -47,9 +47,9 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
       accessorKey: 'rp',
       align: 'center',
       cell: (row) => (
-        <span className="font-mono font-bold text-[var(--color-primary)]">
-          {row.rp || <span className="text-[var(--color-text-tertiary)] italic">Sin RP</span>}
-        </span>
+        <Text as="span" className="font-mono font-bold text-[var(--color-primary)]">
+          {row.rp || <Text as="span" className="text-[var(--color-text-tertiary)] italic">Sin RP</Text>}
+        </Text>
       ),
     },
     {
@@ -57,22 +57,22 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
       accessorKey: 'fecha_radicacion',
       align: 'center',
       cell: (row) => (
-        <span className="text-[var(--color-text-secondary)]">
+        <Text as="span" className="text-[var(--color-text-secondary)]">
           {row.fecha_radicacion ? new Date(row.fecha_radicacion).toLocaleDateString('es-CO') : '—'}
-        </span>
+        </Text>
       ),
     },
     {
       header: 'Área',
       accessorKey: 'area_nombre',
       align: 'left',
-      cell: (row) => <span>{row.area_nombre || '—'}</span>,
+      cell: (row) => <Text as="span">{row.area_nombre || '—'}</Text>,
     },
     {
       header: 'Cargo',
       accessorKey: 'cargo_nombre',
       align: 'left',
-      cell: (row) => <span>{row.cargo_nombre || '—'}</span>,
+      cell: (row) => <Text as="span">{row.cargo_nombre || '—'}</Text>,
     },
     {
       header: 'Estado',
@@ -84,7 +84,7 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
       header: 'Aprobador',
       accessorKey: 'aprobador_nombre',
       align: 'left',
-      cell: (row) => <span className="text-[var(--color-text-secondary)]">{row.aprobador_nombre || '—'}</span>,
+      cell: (row) => <Text as="span" className="text-[var(--color-text-secondary)]">{row.aprobador_nombre || '—'}</Text>,
     },
     {
       header: 'Acciones',
@@ -93,27 +93,27 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
       enableColumnFilter: false,
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
-          <button onClick={() => onVer(row.id)} title="Ver detalle"
-            className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">
+          <Button variant="ghost" onClick={() => onVer(row.id)} title="Ver detalle"
+            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-blue-600 transition-colors">
             <Eye className="w-4 h-4" />
-          </button>
+          </Button>
           {(row.estado === 'BORRADOR' || row.estado === 'DEVUELTA_AJUSTE') && (
-            <button onClick={() => onEditar(row.id)} title="Editar"
-              className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-amber-600 transition-colors">
+            <Button variant="ghost" onClick={() => onEditar(row.id)} title="Editar"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-amber-600 transition-colors">
               <Edit className="w-4 h-4" />
-            </button>
+            </Button>
           )}
           {row.estado === 'DEVUELTA_AJUSTE' && (
-            <button onClick={() => handleReenviar(row.id)} title="Reenviar a aprobación"
-              className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-emerald-600 transition-colors">
+            <Button variant="ghost" onClick={() => handleReenviar(row.id)} title="Reenviar a aprobación"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-emerald-600 transition-colors">
               <Send className="w-4 h-4" />
-            </button>
+            </Button>
           )}
           {row.estado === 'BORRADOR' && (
-            <button onClick={() => handleCancelar(row.id)} title="Cancelar"
-              className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-red-600 transition-colors">
+            <Button variant="ghost" onClick={() => handleCancelar(row.id)} title="Cancelar"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-red-600 transition-colors">
               <XCircle className="w-4 h-4" />
-            </button>
+            </Button>
           )}
         </div>
       ),

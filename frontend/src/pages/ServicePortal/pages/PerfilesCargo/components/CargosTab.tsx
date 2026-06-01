@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Edit2 } from 'lucide-react';
-import { Subtitle, Text, Input, Select, Button } from '../../../../../components/atoms';
+import { Button, Input, Select, Subtitle, Text } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import type { AreaRP, CargoRP, AprobadorRP } from '../../RequisicionPersonal/types/requisicion.types';
 
@@ -119,16 +119,16 @@ const CargosTab: React.FC<CargosTabProps> = ({
       header: 'Área',
       accessorKey: 'area_id',
       align: 'left',
-      cell: (row) => <span className="text-sm text-slate-600 dark:text-slate-400 uppercase">{getAreaNombre(row.area_id)}</span>,
+      cell: (row) => <Text as="span" className="text-sm text-slate-600 dark:text-slate-400 uppercase">{getAreaNombre(row.area_id)}</Text>,
     },
     {
       header: 'Reporta a Director',
       accessorKey: 'cargo_superior_id',
       align: 'left',
       cell: (row) => (
-        <span className="text-sm text-indigo-700 dark:text-indigo-400 font-medium uppercase">
+        <Text as="span" className="text-sm text-indigo-700 dark:text-indigo-400 font-medium uppercase">
           {getDirectorNombre(row.cargo_superior_id)}
-        </span>
+        </Text>
       ),
     },
     {
@@ -136,14 +136,14 @@ const CargosTab: React.FC<CargosTabProps> = ({
       accessorKey: 'activo',
       align: 'center',
       cell: (row) => (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        <Text as="span" className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
           row.activo
             ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
             : 'bg-red-50 text-red-800 dark:bg-red-950/30 dark:text-red-300'
         }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${row.activo ? 'bg-emerald-500' : 'bg-red-500'}`} />
+          <Text as="span" className={`w-1.5 h-1.5 rounded-full ${row.activo ? 'bg-emerald-500' : 'bg-red-500'}`} />
           {row.activo ? 'Activo' : 'Inactivo'}
-        </span>
+        </Text>
       ),
     },
     {
@@ -213,13 +213,13 @@ const CargosTab: React.FC<CargosTabProps> = ({
                 ]}
               />
               {editCargoAreaId && (
-                <button
+                <Button
                   type="button"
                   onClick={() => setMostrarTodosDirectoresEdit((v) => !v)}
                   className="mt-1.5 text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline transition-colors block"
                 >
                   {mostrarTodosDirectoresEdit ? '← Ver solo los del área' : '🔍 Ver directores de otras áreas'}
-                </button>
+                </Button>
               )}
             </div>
             <div className="flex gap-2 pt-2">
@@ -280,13 +280,13 @@ const CargosTab: React.FC<CargosTabProps> = ({
                 ]}
               />
               {nuevoCargoAreaId && (
-                <button
+                <Button
                   type="button"
                   onClick={() => setMostrarTodosDirectoresNuevo((v) => !v)}
                   className="mt-1.5 text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 hover:underline transition-colors block"
                 >
                   {mostrarTodosDirectoresNuevo ? '← Ver solo los del área' : '🔍 Ver directores de otras áreas'}
-                </button>
+                </Button>
               )}
             </div>
             <div className="pt-2">

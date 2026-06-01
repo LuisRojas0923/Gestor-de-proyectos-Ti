@@ -46,7 +46,7 @@ const RPTimeline: React.FC<RPTimelineProps> = ({ historial }) => {
           <li key={evento.id}>
             <div className="relative pb-8">
               {idx < historial.length - 1 && (
-                <span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-[var(--color-border)]" />
+                <Text as="span" className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-[var(--color-border)]" />
               )}
               <div className="relative flex items-start space-x-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-surface-secondary)] ring-2 ring-[var(--color-border)]">

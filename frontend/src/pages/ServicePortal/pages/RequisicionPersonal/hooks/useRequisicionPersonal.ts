@@ -68,6 +68,19 @@ export function useRequisicionPersonal(
     };
   };
 
+  const formatApiError = (e: any, defaultMsg: string): string => {
+    const detail = e?.response?.data?.detail;
+    if (!detail) return defaultMsg;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+      return detail.map((err: any) => {
+        const field = err.loc && err.loc.length > 1 ? err.loc[err.loc.length - 1] : 'Campo';
+        return `${field}: ${err.msg}`;
+      }).join(' | ');
+    }
+    return defaultMsg;
+  };
+
   const guardarBorrador = useCallback(async (): Promise<boolean> => {
     setLoading(true);
     setError(null);
@@ -80,7 +93,7 @@ export function useRequisicionPersonal(
       setRequisicionId(req.id);
       return true;
     } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Error al guardar borrador');
+      setError(formatApiError(e, 'Error al guardar borrador'));
       return false;
     } finally {
       setLoading(false);
@@ -166,7 +179,7 @@ export function useRequisicionPersonal(
       await api.enviarAAprobacion(activeId, correoSolicitante, nombreSolicitante);
       return true;
     } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Error al enviar a aprobación');
+      setError(formatApiError(e, 'Error al enviar a aprobación'));
       return false;
     } finally {
       setLoading(false);

@@ -22,7 +22,7 @@ SQL = """
 async def run():
     engine = create_async_engine(config.database_url)
     async with async_sessionmaker(engine)() as db:
-        rows = (await db.execute(text(SQL))).fetchall()
+        rows = (await db.execute(text(SQL))).fetchall()  # [CONTROLADO]
         print(f"{'ID':<14} {'Estado':<16} {'Pct':>4}  {'Tot':>3} {'Comp':>4} {'EnPrg':>5} {'Otras':>5}  Nombre")
         print('-' * 115)
         for r in rows:

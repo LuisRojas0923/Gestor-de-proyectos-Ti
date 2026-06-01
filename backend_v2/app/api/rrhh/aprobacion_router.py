@@ -28,13 +28,16 @@ async def bandeja_aprobador(
     Lista las requisiciones pendientes asignadas al aprobador autenticado.
     El email se extrae del token JWT en producción; aquí se recibe como param por simplicidad.
     """
-    result = await db.execute(
-        select(RequisicionPersonal).where(
-            RequisicionPersonal.estado == EstadoRP.PENDIENTE_APROBACION,
-            RequisicionPersonal.aprobador_email == aprobador_email,
-        ).order_by(RequisicionPersonal.fecha_radicacion)
-    )
-    return result.scalars().all()
+    try:
+        result = await db.execute(
+            select(RequisicionPersonal).where(
+                RequisicionPersonal.estado == EstadoRP.PENDIENTE_APROBACION,
+                RequisicionPersonal.aprobador_email == aprobador_email,
+            ).order_by(RequisicionPersonal.fecha_radicacion)
+        )
+        return result.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
 
 @router.post("/{requisicion_id}/aprobar", response_model=RequisicionOut)
@@ -145,12 +148,15 @@ async def bandeja_gerente(
             detail="Acceso restringido a la Gerente Administrativa y Financiera."
         )
 
-    result = await db.execute(
-        select(RequisicionPersonal).where(
-            RequisicionPersonal.estado == EstadoRP.PENDIENTE_APROBACION_GERENCIA,
-        ).order_by(RequisicionPersonal.fecha_decision_aprobador.desc())
-    )
-    return result.scalars().all()
+    try:
+        result = await db.execute(
+            select(RequisicionPersonal).where(
+                RequisicionPersonal.estado == EstadoRP.PENDIENTE_APROBACION_GERENCIA,
+            ).order_by(RequisicionPersonal.fecha_decision_aprobador.desc())
+        )
+        return result.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
 
 @router.post("/{requisicion_id}/aprobar-gerente", response_model=RequisicionOut)

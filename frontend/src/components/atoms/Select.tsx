@@ -7,7 +7,8 @@ interface SelectOption {
 }
 
 interface SelectProps {
-    options: SelectOption[];
+    options?: SelectOption[];
+    children?: React.ReactNode;
     value?: string;
     defaultValue?: string;
     disabled?: boolean;
@@ -25,7 +26,8 @@ interface SelectProps {
 }
 
 const Select: React.FC<SelectProps> = ({
-    options,
+    options = [],
+    children,
     value,
     defaultValue,
     disabled = false,
@@ -76,7 +78,8 @@ const Select: React.FC<SelectProps> = ({
                 onBlur={onBlur}
                 className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses}`}
             >
-                {options.map((option) => (
+                {children}
+                {options && options.map((option) => (
                     <option key={option.value} value={option.value}>
                         {option.label}
                     </option>

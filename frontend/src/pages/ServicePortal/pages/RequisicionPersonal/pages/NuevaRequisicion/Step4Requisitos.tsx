@@ -1,7 +1,7 @@
 // Paso 4: Requisitos del nuevo colaborador
 import React from 'react';
 import { Monitor, Smartphone, Package, Code } from 'lucide-react';
-import { Select, Title } from '../../../../../../components/atoms';
+import { Input, Select, Text, Title } from '../../../../../../components/atoms';
 import { TextAreaField } from '../../../Common';
 import type { FormularioRP } from '../../types/requisicion.types';
 
@@ -28,13 +28,13 @@ const CheckGroup: React.FC<{
     {options.map(opt => {
       const checked = selected.includes(opt);
       return (
-        <label key={opt}
+        <Text as="label" key={opt}
           className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all
             ${checked
               ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 text-[var(--color-primary)]'
               : 'border-[var(--color-border)] hover:border-[var(--color-primary)]/40'}`}
         >
-          <input
+          <Input
             type="checkbox"
             className="sr-only"
             checked={checked}
@@ -42,12 +42,12 @@ const CheckGroup: React.FC<{
               onChange(checked ? selected.filter(s => s !== opt) : [...selected, opt]);
             }}
           />
-          <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0
+          <Text as="span" className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0
             ${checked ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' : 'border-[var(--color-border)]'}`}>
             {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-          </span>
-          <span className="text-sm font-medium">{opt}</span>
-        </label>
+          </Text>
+          <Text as="span" className="text-sm font-medium">{opt}</Text>
+        </Text>
       );
     })}
   </div>

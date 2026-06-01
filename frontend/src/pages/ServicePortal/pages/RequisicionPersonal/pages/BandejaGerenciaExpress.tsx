@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Eye, CheckCircle, XCircle, Clock, Users, Briefcase, RefreshCw, ArrowLeft, Send, AlertTriangle, RotateCcw } from 'lucide-react';
-import { Button, Title, Text } from '../../../../../components/atoms';
+import { Button, Text, Textarea, Title } from '../../../../../components/atoms';
 import { getBandejaGerente, aprobarGerente, rechazarGerente, devolverGerente } from '../services/requisicionService';
 import type { RequisicionRP } from '../types/requisicion.types';
 import RPStatusBadge from '../components/RPStatusBadge';
@@ -122,7 +122,7 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
                   }`}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <span className="font-mono font-black text-xs text-[var(--color-primary)]">{req.rp}</span>
+                    <Text as="span" className="font-mono font-black text-xs text-[var(--color-primary)]">{req.rp}</Text>
                     <Text variant="caption" color="secondary" className="font-medium">
                       {req.fecha_decision_aprobador ? new Date(req.fecha_decision_aprobador).toLocaleDateString() : ''}
                     </Text>
@@ -132,12 +132,12 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
                   </Title>
                   <div className="flex items-center gap-1.5 mt-2 text-xs text-[var(--color-text-secondary)]">
                     <Users className="w-3.5 h-3.5" />
-                    <span>Área: {req.area_nombre}</span>
+                    <Text as="span">Área: {req.area_nombre}</Text>
                   </div>
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--color-border)]/50">
-                    <span className="text-xs font-bold text-slate-700 dark:text-neutral-300">
+                    <Text as="span" className="text-xs font-bold text-slate-700 dark:text-neutral-300">
                       Dir: {req.aprobador_nombre}
-                    </span>
+                    </Text>
                     <Text variant="caption" className="font-bold text-[var(--color-primary)]">
                       ${req.salario_asignado?.toLocaleString() || '0'}
                     </Text>
@@ -153,9 +153,9 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
               <>
                 <div className="flex justify-between items-start border-b border-[var(--color-border)] pb-4">
                   <div>
-                    <span className="font-mono font-bold text-xs bg-[var(--color-primary-light)]/20 text-[var(--color-primary)] px-2.5 py-1 rounded-full">
+                    <Text as="span" className="font-mono font-bold text-xs bg-[var(--color-primary-light)]/20 text-[var(--color-primary)] px-2.5 py-1 rounded-full">
                       {seleccionada.rp}
-                    </span>
+                    </Text>
                     <Title variant="h5" weight="bold" className="mt-2 text-slate-800 dark:text-white">
                       {seleccionada.cargo_nombre}
                     </Title>
@@ -169,27 +169,27 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
                 {/* Resumen de Condiciones */}
                 <div className="grid grid-cols-2 gap-4 bg-[var(--color-surface-secondary)] p-4 rounded-2xl text-sm">
                   <div>
-                    <span className="text-[var(--color-text-secondary)] text-xs block">Ciudad / Sede</span>
+                    <Text as="span" className="text-[var(--color-text-secondary)] text-xs block">Ciudad / Sede</Text>
                     <strong className="text-slate-800 dark:text-white">{seleccionada.ciudad_nombre || '—'}</strong>
                   </div>
                   <div>
-                    <span className="text-[var(--color-text-secondary)] text-xs block">Centro de Costo</span>
+                    <Text as="span" className="text-[var(--color-text-secondary)] text-xs block">Centro de Costo</Text>
                     <strong className="text-slate-800 dark:text-white">{seleccionada.centro_costo || '—'}</strong>
                   </div>
                   <div>
-                    <span className="text-[var(--color-text-secondary)] text-xs block">OT / Proyecto</span>
+                    <Text as="span" className="text-[var(--color-text-secondary)] text-xs block">OT / Proyecto</Text>
                     <strong className="text-slate-800 dark:text-white">{seleccionada.ot || 'N/A'}</strong>
                   </div>
                   <div>
-                    <span className="text-[var(--color-text-secondary)] text-xs block">Personas Requeridas</span>
+                    <Text as="span" className="text-[var(--color-text-secondary)] text-xs block">Personas Requeridas</Text>
                     <strong className="text-slate-800 dark:text-white">{seleccionada.numero_personas_requeridas} vacante(s)</strong>
                   </div>
                   <div>
-                    <span className="text-[var(--color-text-secondary)] text-xs block">Salario Asignado</span>
+                    <Text as="span" className="text-[var(--color-text-secondary)] text-xs block">Salario Asignado</Text>
                     <strong className="text-[var(--color-primary)] font-bold">${seleccionada.salario_asignado?.toLocaleString() || '—'}</strong>
                   </div>
                   <div>
-                    <span className="text-[var(--color-text-secondary)] text-xs block">Tipo de Contrato</span>
+                    <Text as="span" className="text-[var(--color-text-secondary)] text-xs block">Tipo de Contrato</Text>
                     <strong className="text-slate-800 dark:text-white">{seleccionada.tipo_contratacion || '—'}</strong>
                   </div>
                 </div>
@@ -215,7 +215,7 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
                 <div className="bg-blue-50/50 dark:bg-neutral-800/50 border border-blue-100 dark:border-neutral-700 p-4 rounded-2xl text-sm">
                   <div className="flex items-center gap-2 mb-1.5">
                     <Clock className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span className="font-bold text-blue-900 dark:text-blue-200">Aprobación del Director de Área</span>
+                    <Text as="span" className="font-bold text-blue-900 dark:text-blue-200">Aprobación del Director de Área</Text>
                   </div>
                   <Text className="text-[var(--color-text-secondary)] leading-tight">
                     Aprobado por: <strong>{seleccionada.aprobador_nombre}</strong> ({seleccionada.aprobador_email})
@@ -274,11 +274,11 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
               {modal.tipo === 'aprobar' && <CheckCircle className="w-5 h-5 text-emerald-600" />}
               {modal.tipo === 'devolver' && <AlertTriangle className="w-5 h-5 text-orange-600" />}
               {modal.tipo === 'rechazar' && <XCircle className="w-5 h-5 text-red-600" />}
-              <span>
+              <Text as="span">
                 {modal.tipo === 'aprobar' && 'Confirmar Firma y Aprobación'}
                 {modal.tipo === 'devolver' && 'Devolver para Ajustes'}
                 {modal.tipo === 'rechazar' && 'Rechazar Requisición'}
-              </span>
+              </Text>
             </div>
 
             <Text color="secondary" className="text-sm">
@@ -286,10 +286,10 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
             </Text>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 dark:text-neutral-300 block">
+              <Text as="label" className="text-xs font-bold text-slate-700 dark:text-neutral-300 block">
                 {modal.tipo === 'aprobar' ? 'Observaciones de firma (opcional):' : 'Observación obligatoria del motivo:'}
-              </label>
-              <textarea
+              </Text>
+              <Textarea
                 value={observacion}
                 onChange={e => setObservacion(e.target.value)}
                 placeholder={modal.tipo === 'aprobar' ? 'Ej: Todo correcto, autorizado.' : 'Ej: Falta definir rango salarial exacto.'}

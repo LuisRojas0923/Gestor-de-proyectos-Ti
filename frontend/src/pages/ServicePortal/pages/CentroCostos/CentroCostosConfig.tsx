@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Edit2, CheckCircle2, XCircle, Info } from 'lucide-react';
-import { Title, Subtitle, Text, Input, Button } from '../../../../components/atoms';
+import { Button, Input, Select, Subtitle, Text, Title } from '../../../../components/atoms';
 import { CentroCostoService, CostCenterItem } from '../../../../services/CentroCostoService';
 
 interface CentroCostosConfigProps {
@@ -151,7 +151,7 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
   const getSelectedEspecialidadLabel = () => especialidades.find(x => x.codigo === selEspecialidad)?.nombre || '---';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1800px] mx-auto w-full px-4">
       {/* Header Estilo Requisición de Personal */}
       <div className="flex items-center gap-4 border-b border-[var(--color-border)] pb-4 mb-6">
         <Button
@@ -189,28 +189,29 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-[var(--color-border)] flex-wrap">
+      <div className="flex flex-wrap gap-2 mb-6 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl w-fit border border-slate-200 dark:border-slate-700/50">
         {(['uen', 'subcentro', 'especialidad', 'combinador'] as const).map(tab => (
-          <button
+          <Button
             key={tab}
+            variant={activeTab === tab ? 'primary' : 'ghost'}
             onClick={() => { setActiveTab(tab); resetForm(); setErrorMsg(null); setSuccessMsg(null); }}
-            className={`py-3 px-6 font-semibold text-sm transition-all border-b-2 capitalize ${
-              activeTab === tab
-                ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
+            className={`py-2 px-5 font-bold text-sm transition-all rounded-xl capitalize ${
+              activeTab === tab 
+                ? 'shadow-md shadow-blue-900/20' 
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
             }`}
           >
             {tab === 'uen' && '1. UEN'}
             {tab === 'subcentro' && '2. Proceso'}
             {tab === 'especialidad' && '3. Especialidad / Subcentro'}
             {tab === 'combinador' && '🔍 Simulador Combinador'}
-          </button>
+          </Button>
         ))}
       </div>
 
       {loading ? (
         <div className="h-48 flex items-center justify-center">
-          <span className="text-gray-500 animate-pulse">Cargando catálogos del ERP...</span>
+          <Text as="span" className="text-gray-500 animate-pulse">Cargando catálogos del ERP...</Text>
         </div>
       ) : activeTab !== 'combinador' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
@@ -267,12 +268,12 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
                         <Text weight="semibold">{item.nombre}</Text>
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        <Text as="span" className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           item.activo ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${item.activo ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                          <Text as="span" className={`w-1.5 h-1.5 rounded-full ${item.activo ? 'bg-emerald-500' : 'bg-red-500'}`} />
                           {item.activo ? 'Activo' : 'Inactivo'}
-                        </span>
+                        </Text>
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex gap-2 justify-end">
@@ -301,62 +302,18 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
         </div>
       ) : (
         /* Combinador / Simulador */
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-300">
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 space-y-6 shadow-sm">
-            <Subtitle weight="bold">Selecciona Componentes del Centro de Costo</Subtitle>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">1. UEN — Unidad Estratégica de Negocio (Dígitos 1-2)</label>
-                <select
-                  value={selUen}
-                  onChange={(e) => setSelUen(e.target.value)}
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm focus:border-[var(--color-primary)] focus:outline-none"
-                >
-                  {uens.filter(x => x.activo).map(x => (
-                    <option key={x.codigo} value={x.codigo}>{x.codigo} - {x.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">2. Proceso (Dígitos 3-4)</label>
-                <select
-                  value={selSubcentro}
-                  onChange={(e) => setSelSubcentro(e.target.value)}
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm focus:border-[var(--color-primary)] focus:outline-none"
-                >
-                  {subcentros.filter(x => x.activo).map(x => (
-                    <option key={x.codigo} value={x.codigo}>{x.codigo} - {x.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">3. Especialidad / Subcentro (Dígitos 5-6 después del guion)</label>
-                <select
-                  value={selEspecialidad}
-                  onChange={(e) => setSelEspecialidad(e.target.value)}
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm focus:border-[var(--color-primary)] focus:outline-none"
-                >
-                  {especialidades.filter(x => x.activo).map(x => (
-                    <option key={x.codigo} value={x.codigo}>{x.codigo} - {x.nombre}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
+        <div className="flex flex-col xl:flex-row items-start gap-4 animate-in fade-in duration-300">
 
           {/* Visualización Premium */}
-          <div className="bg-gradient-to-br from-indigo-950 to-slate-900 rounded-3xl p-8 text-white flex flex-col justify-between shadow-xl min-h-[300px] border border-indigo-900/30">
+          <div className="order-4 bg-gradient-to-br from-indigo-950 to-slate-900 rounded-2xl p-6 text-white flex flex-col justify-between shadow-xl min-h-[300px] border border-indigo-900/30 w-full flex-[1.5] min-w-[300px]">
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-indigo-300">
                 <Info size={20} />
-                <Text variant="body1" className="font-bold tracking-wide uppercase">Previsualización de Estructura</Text>
+                <Text variant="body1" color="inherit" className="font-bold tracking-wide uppercase">Previsualización de Estructura</Text>
               </div>
               
               <div className="py-6 text-center">
-                <Text className="text-xs uppercase tracking-[0.25em] text-indigo-300 font-bold mb-1">Código Resultante (XXXX-XX)</Text>
+                <Text color="inherit" className="text-xs uppercase tracking-[0.25em] text-indigo-300 font-bold mb-1">Código Resultante (XXXX-XX)</Text>
                 <Title variant="h1" className="text-4xl sm:text-6xl tracking-tight font-black font-mono text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-200">
                   {selUen || 'XX'}{selSubcentro || 'XX'}-{selEspecialidad || 'XX'}
                 </Title>
@@ -365,33 +322,22 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
 
             <div className="border-t border-white/10 pt-6 space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="opacity-60">UEN (Unidad Estratégica de Negocio):</span>
-                <span className="font-bold">{getSelectedUenLabel()} ({selUen})</span>
+                <Text as="span" color="inherit" className="opacity-60">UEN (Unidad Estratégica de Negocio):</Text>
+                <Text as="span" color="inherit" className="font-bold">{getSelectedUenLabel()} ({selUen})</Text>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="opacity-60">Proceso:</span>
-                <span className="font-bold">{getSelectedSubcentroLabel()} ({selSubcentro})</span>
+                <Text as="span" color="inherit" className="opacity-60">Proceso:</Text>
+                <Text as="span" color="inherit" className="font-bold">{getSelectedSubcentroLabel()} ({selSubcentro})</Text>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="opacity-60">Especialidad / Subcentro:</span>
-                <span className="font-bold">{getSelectedEspecialidadLabel()} ({selEspecialidad})</span>
+                <Text as="span" color="inherit" className="opacity-60">Especialidad / Subcentro:</Text>
+                <Text as="span" color="inherit" className="font-bold">{getSelectedEspecialidadLabel()} ({selEspecialidad})</Text>
               </div>
             </div>
           </div>
 
-          {/* ── Tabla de Referencia de Catálogos ───────────────────────────────── */}
-          <div className="lg:col-span-2 space-y-2">
-            <div className="flex items-center gap-2 pb-1">
-              <Info size={15} className="text-[var(--color-primary)]" />
-              <Text variant="caption" weight="bold" className="uppercase tracking-widest text-[var(--color-text-secondary)]">
-                Tabla de referencia de catálogos activos
-              </Text>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
               {/* UEN */}
-              <div className="overflow-hidden rounded-xl border border-[var(--color-border)] shadow-sm">
+              <div className="order-1 overflow-hidden rounded-xl border border-[var(--color-border)] shadow-sm h-fit w-full flex-1 min-w-0">
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr>
@@ -429,7 +375,7 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
               </div>
 
               {/* PROCESO */}
-              <div className="overflow-hidden rounded-xl border border-[var(--color-border)] shadow-sm">
+              <div className="order-2 overflow-hidden rounded-xl border border-[var(--color-border)] shadow-sm h-fit w-full flex-1 min-w-0">
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr>
@@ -467,7 +413,7 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
               </div>
 
               {/* ESPECIALIDAD / SUBCENTRO */}
-              <div className="overflow-hidden rounded-xl border border-[var(--color-border)] shadow-sm">
+              <div className="order-3 overflow-hidden rounded-xl border border-[var(--color-border)] shadow-sm h-fit w-full flex-1 min-w-0">
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr>
@@ -503,9 +449,6 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
                   </tbody>
                 </table>
               </div>
-
-            </div>
-          </div>
         </div>
       )}
     </div>

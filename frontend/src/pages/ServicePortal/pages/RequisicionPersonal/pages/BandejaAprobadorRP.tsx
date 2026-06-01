@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Eye, CheckCircle, XCircle, RotateCcw, ArrowLeft } from 'lucide-react';
-import { Button, Title, Text } from '../../../../../components/atoms';
+import { Button, Text, Textarea, Title } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
 import type { RequisicionRP } from '../types/requisicion.types';
@@ -60,7 +60,7 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
       header: 'RP',
       accessorKey: 'rp',
       align: 'center',
-      cell: (row) => <span className="font-mono font-bold text-[var(--color-primary)]">{row.rp || '—'}</span>,
+      cell: (row) => <Text as="span" className="font-mono font-bold text-[var(--color-primary)]">{row.rp || '—'}</Text>,
     },
     {
       header: 'Solicitante',
@@ -77,25 +77,25 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
       header: 'Área',
       accessorKey: 'area_nombre',
       align: 'left',
-      cell: (row) => <span>{row.area_nombre || '—'}</span>,
+      cell: (row) => <Text as="span">{row.area_nombre || '—'}</Text>,
     },
     {
       header: 'Cargo',
       accessorKey: 'cargo_nombre',
       align: 'left',
-      cell: (row) => <span>{row.cargo_nombre || '—'}</span>,
+      cell: (row) => <Text as="span">{row.cargo_nombre || '—'}</Text>,
     },
     {
       header: 'N° Pers.',
       accessorKey: 'numero_personas_requeridas',
       align: 'center',
-      cell: (row) => <span>{row.numero_personas_requeridas}</span>,
+      cell: (row) => <Text as="span">{row.numero_personas_requeridas}</Text>,
     },
     {
       header: 'Ingreso',
       accessorKey: 'fecha_probable_ingreso',
       align: 'center',
-      cell: (row) => <span>{row.fecha_probable_ingreso || '—'}</span>,
+      cell: (row) => <Text as="span">{row.fecha_probable_ingreso || '—'}</Text>,
     },
     {
       header: 'Estado',
@@ -110,25 +110,25 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
       enableColumnFilter: false,
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
-          <button onClick={() => onVer(row.id)} title="Ver detalle"
+          <Button onClick={() => onVer(row.id)} title="Ver detalle"
             className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">
             <Eye className="w-4 h-4" />
-          </button>
-          <button onClick={() => { setModal({ tipo: 'aprobar', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
+          </Button>
+          <Button onClick={() => { setModal({ tipo: 'aprobar', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
             title="Aprobar"
             className="p-1.5 rounded-lg hover:bg-emerald-50 text-[var(--color-text-secondary)] hover:text-emerald-600 transition-colors">
             <CheckCircle className="w-4 h-4" />
-          </button>
-          <button onClick={() => { setModal({ tipo: 'devolver', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
+          </Button>
+          <Button onClick={() => { setModal({ tipo: 'devolver', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
             title="Devolver para ajuste"
             className="p-1.5 rounded-lg hover:bg-amber-50 text-[var(--color-text-secondary)] hover:text-amber-600 transition-colors">
             <RotateCcw className="w-4 h-4" />
-          </button>
-          <button onClick={() => { setModal({ tipo: 'rechazar', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
+          </Button>
+          <Button onClick={() => { setModal({ tipo: 'rechazar', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
             title="Rechazar"
             className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--color-text-secondary)] hover:text-red-600 transition-colors">
             <XCircle className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       ),
     },
@@ -202,7 +202,7 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
             </Title>
             <Text color="secondary" className="mb-4">Requisición: <strong>{modal.rp}</strong></Text>
 
-            <textarea
+            <Textarea
               className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] min-h-[100px]"
               placeholder={modal.tipo === 'aprobar' ? 'Observación (opcional)' : 'Observación obligatoria...'}
               value={observacion}

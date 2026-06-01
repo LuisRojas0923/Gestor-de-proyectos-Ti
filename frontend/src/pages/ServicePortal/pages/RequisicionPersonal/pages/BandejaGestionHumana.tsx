@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users, Settings, BarChart2 } from 'lucide-react';
-import { Title, Text, Button } from '../../../../../components/atoms';
+import { Button, Text, Title } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
 import type { RequisicionRP, EstadoRP } from '../types/requisicion.types';
@@ -46,16 +46,17 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       align: 'center',
       cell: (row) => (
         <div className="flex items-center justify-center gap-2">
-          <button onClick={() => onVer(row.id)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors" title="Ver Requisición">
+          <Button variant="ghost" onClick={() => onVer(row.id)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-blue-600 transition-colors" title="Ver Requisición">
             <Eye className="w-4 h-4" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => setSearchParams({ id: String(row.id) })}
-            className="font-mono font-bold text-[var(--color-primary)] hover:underline transition-colors text-left"
+            className="px-2 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 font-mono font-bold text-blue-700 dark:text-blue-400 hover:underline transition-colors text-left"
             title="Gestionar Seguimiento y Candidatos"
           >
             {row.rp || 'Sin RP'}
-          </button>
+          </Button>
         </div>
       ),
     },
@@ -85,19 +86,19 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       header: 'Ciudad',
       accessorKey: 'ciudad_nombre',
       align: 'center',
-      cell: (row) => <span>{row.ciudad_nombre || '—'}</span>,
+      cell: (row) => <Text as="span">{row.ciudad_nombre || '—'}</Text>,
     },
     {
       header: 'Recibida GH',
       accessorKey: 'fecha_decision_gerente',
       align: 'center',
       cell: (row) => {
-        if (!row.fecha_decision_gerente) return <span className="text-[var(--color-text-tertiary)]">—</span>;
+        if (!row.fecha_decision_gerente) return <Text as="span" className="text-[var(--color-text-tertiary)]">—</Text>;
         const d = new Date(row.fecha_decision_gerente);
         return (
-          <span className="font-mono text-xs text-[var(--color-text-secondary)]">
+          <Text as="span" className="font-mono text-xs text-[var(--color-text-secondary)]">
             {d.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-          </span>
+          </Text>
         );
       },
     },

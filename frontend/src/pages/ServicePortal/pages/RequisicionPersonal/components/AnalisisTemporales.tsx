@@ -1,6 +1,6 @@
 import React from 'react';
 import { BarChart3, TrendingUp, Users, ShieldAlert, Award } from 'lucide-react';
-import { Title, Text, Badge } from '../../../../../components/atoms';
+import { Badge, Text, Title } from '../../../../../components/atoms';
 import type { RequisicionTemporal, CandidatoRequisicion } from '../types/requisicion.types';
 
 interface Props {
@@ -72,9 +72,9 @@ const AnalisisTemporales: React.FC<Props> = ({ asignadas, candidatos, vacantesRe
                   </Text>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)] block">
+                  <Text as="span" className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)] block">
                     Tasa de Éxito
-                  </span>
+                  </Text>
                   <Badge variant={efectividad > 50 ? 'emerald' : efectividad > 0 ? 'warning' : 'neutral'} className="mt-1 font-extrabold">
                     {efectividad.toFixed(0)}%
                   </Badge>
@@ -84,20 +84,20 @@ const AnalisisTemporales: React.FC<Props> = ({ asignadas, candidatos, vacantesRe
               {/* Indicadores de Volumen */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3">
                 <div className="text-center border-r border-[var(--color-border)] last:border-0">
-                  <span className="text-[10px] text-[var(--color-text-secondary)] block font-semibold">HVs Recibidas</span>
-                  <span className="text-lg font-bold text-[var(--color-text-primary)]">{totalHv}</span>
+                  <Text as="span" className="text-[10px] text-[var(--color-text-secondary)] block font-semibold">HVs Recibidas</Text>
+                  <Text as="span" className="text-lg font-bold text-[var(--color-text-primary)]">{totalHv}</Text>
                 </div>
                 <div className="text-center sm:border-r border-[var(--color-border)] last:border-0">
-                  <span className="text-[10px] text-violet-600 block font-semibold">Contratados</span>
-                  <span className="text-lg font-bold text-violet-700">{contratados}</span>
+                  <Text as="span" className="text-[10px] text-violet-600 block font-semibold">Contratados</Text>
+                  <Text as="span" className="text-lg font-bold text-violet-700">{contratados}</Text>
                 </div>
                 <div className="text-center border-r border-[var(--color-border)] last:border-0">
-                  <span className="text-[10px] text-emerald-600 block font-semibold">En Proceso</span>
-                  <span className="text-lg font-bold text-emerald-700">{aplica + porEvaluar}</span>
+                  <Text as="span" className="text-[10px] text-emerald-600 block font-semibold">En Proceso</Text>
+                  <Text as="span" className="text-lg font-bold text-emerald-700">{aplica + porEvaluar}</Text>
                 </div>
                 <div className="text-center last:border-0">
-                  <span className="text-[10px] text-rose-600 block font-semibold">Descartados</span>
-                  <span className="text-lg font-bold text-rose-700">{noAplica}</span>
+                  <Text as="span" className="text-[10px] text-rose-600 block font-semibold">Descartados</Text>
+                  <Text as="span" className="text-lg font-bold text-rose-700">{noAplica}</Text>
                 </div>
               </div>
 
@@ -105,7 +105,7 @@ const AnalisisTemporales: React.FC<Props> = ({ asignadas, candidatos, vacantesRe
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-text-secondary)]">
                   <ShieldAlert className="w-4 h-4 text-rose-500" />
-                  <span>Motivos de Descarte</span>
+                  <Text as="span">Motivos de Descarte</Text>
                 </div>
                 {noAplica === 0 ? (
                   <div className="text-center py-4 bg-[var(--color-surface)] border border-dashed border-[var(--color-border)] rounded-xl">
@@ -123,11 +123,11 @@ const AnalisisTemporales: React.FC<Props> = ({ asignadas, candidatos, vacantesRe
                       return (
                         <div key={causal} className="space-y-1">
                           <div className="flex justify-between text-xs font-medium">
-                            <span className="truncate max-w-[80%] text-[var(--color-text-primary)]">{desc}</span>
-                            <span className="text-[var(--color-text-secondary)] font-bold">{count} ({percentage.toFixed(0)}%)</span>
+                            <Text as="span" className="truncate max-w-[80%] text-[var(--color-text-primary)]">{desc}</Text>
+                            <Text as="span" className="text-[var(--color-text-secondary)] font-bold">{count} ({percentage.toFixed(0)}%)</Text>
                           </div>
                           <div className="w-full bg-[var(--color-surface-secondary)] rounded-full h-1.5 overflow-hidden">
-                            <div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${percentage}%` }} />
+                            <div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${percentage}%` }} /> /* [CONTROLADO] */
                           </div>
                         </div>
                       );

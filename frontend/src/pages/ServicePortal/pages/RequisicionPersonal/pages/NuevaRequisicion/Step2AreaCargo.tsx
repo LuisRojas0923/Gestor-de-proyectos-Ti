@@ -1,7 +1,7 @@
 // Paso 2: Área y Cargo Solicitado (dinámico desde BD)
 import React, { useEffect, useState } from 'react';
 import { Layers, Briefcase } from 'lucide-react';
-import { Select, Title } from '../../../../../../components/atoms';
+import { Select, Text, Title } from '../../../../../../components/atoms';
 import type { FormularioRP } from '../../types/requisicion.types';
 import type { AreaRP, CargoRP } from '../../types/requisicion.types';
 import { getAreas, getCargos } from '../../services/requisicionService';
@@ -84,9 +84,9 @@ const Step2AreaCargo: React.FC<Props> = ({ form, update }) => {
       </div>
 
       {!form.area_id && (
-        <p className="text-sm text-[var(--color-text-secondary)] italic">
+        <Text as="p" className="text-sm text-[var(--color-text-secondary)] italic">
           Seleccione primero un área para cargar los cargos disponibles.
-        </p>
+        </Text>
       )}
     </div>
   );

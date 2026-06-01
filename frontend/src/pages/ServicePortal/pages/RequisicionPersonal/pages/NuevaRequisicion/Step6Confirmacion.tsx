@@ -1,7 +1,7 @@
 // Paso 6: Confirmación y declaración final
 import React from 'react';
 import { CheckSquare, AlertCircle } from 'lucide-react';
-import { Title, Text } from '../../../../../../components/atoms';
+import { Text, Title } from '../../../../../../components/atoms';
 import type { FormularioRP } from '../../types/requisicion.types';
 import RPStatusBadge from '../../components/RPStatusBadge';
 
@@ -83,7 +83,7 @@ const Step6Confirmacion: React.FC<Props> = ({
           : 'border-[var(--color-border)] hover:border-[var(--color-primary)]/40'}`}
         onClick={() => update('confirmacion', !form.confirmacion)}
       >
-        <label className="flex items-start gap-4 cursor-pointer">
+        <Text as="label" className="flex items-start gap-4 cursor-pointer">
           <div className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors
             ${form.confirmacion
               ? 'bg-emerald-500 border-emerald-500'
@@ -104,7 +104,7 @@ const Step6Confirmacion: React.FC<Props> = ({
               que sea devuelta para ajuste.
             </Text>
           </div>
-        </label>
+        </Text>
       </div>
 
       {!form.confirmacion && (

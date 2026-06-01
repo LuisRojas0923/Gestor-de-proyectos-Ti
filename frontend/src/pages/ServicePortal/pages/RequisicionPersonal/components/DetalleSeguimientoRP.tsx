@@ -3,7 +3,7 @@ import {
   ArrowLeft, Calendar, UserPlus, Check, X, 
   ChevronRight, ChevronLeft, ShieldAlert, Award, FileText, BarChart2 
 } from 'lucide-react';
-import { Title, Text, Button, Badge } from '../../../../../components/atoms';
+import { Badge, Button, Text, Title } from '../../../../../components/atoms';
 import { 
   getRequisicionTemporales, asignarRequisicionTemporales, actualizarFechaEnvioHV,
   getCandidatos, agregarCandidato, actualizarCandidato, getSeguimientoStats, getTemporales,
@@ -14,6 +14,10 @@ import type {
 } from '../types/requisicion.types';
 import KanbanCol from './KanbanCol';
 import AnalisisTemporales from './AnalisisTemporales';
+import AsignarTemporalesModal from './modals/AsignarTemporalesModal';
+import AgregarCandidatoModal from './modals/AgregarCandidatoModal';
+import DescartarCandidatoModal from './modals/DescartarCandidatoModal';
+import CancelarRPModal from './modals/CancelarRPModal';
 
 interface Props {
   requisicion: RequisicionRP;
@@ -237,27 +241,34 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
               <Badge variant="emerald">{requisicion.area_nombre}</Badge>
             </div>
             <Text color="secondary" className="mt-0.5 font-medium">
-              Cargo: {requisicion.cargo_nombre} — Vacantes solicitadas: <span className="font-bold text-[var(--color-primary)]">{requisicion.numero_personas_requeridas}</span>
+              Cargo: {requisicion.cargo_nombre} — Vacantes solicitadas: <Text as="span" className="font-bold text-[var(--color-primary)]">{requisicion.numero_personas_requeridas}</Text>
             </Text>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700/50 gap-1">
           {/* Cancelar RP — solo si no está en estado final */}
           {!['CERRADA', 'CANCELADA'].includes(requisicion.estado) && (
             <Button
               variant="ghost"
               onClick={() => setMostrarCancelar(true)}
-              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200"
+              className="text-rose-600 hover:text-rose-700 hover:bg-white dark:hover:bg-slate-700 rounded-xl px-4 py-2 font-semibold text-sm transition-all"
             >
               Cancelar RP
             </Button>
           )}
-          <Button variant="ghost" onClick={() => setMostrarAsignar(true)}>Asignar Temporales</Button>
+          <Button 
+             variant="ghost" 
+             onClick={() => setMostrarAsignar(true)}
+             className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 rounded-xl px-4 py-2 font-semibold text-sm transition-all"
+          >
+             Asignar Temporales
+          </Button>
           <Button
             variant="primary"
             icon={UserPlus}
             onClick={() => setMostrarAgregarCand(true)}
             disabled={asignadas.length === 0 || colContratado.length >= requisicion.numero_personas_requeridas}
+            className="rounded-xl px-4 py-2 font-bold text-sm shadow-md shadow-blue-900/20"
             title={
               colContratado.length >= requisicion.numero_personas_requeridas
                 ? "Todas las vacantes ya han sido contratadas."
@@ -274,26 +285,56 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
       {/* Tarjetas de Métricas de Seguimiento */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-4 shadow-sm">
-            <Text variant="caption" color="secondary" className="font-medium">Total HVs Enviadas</Text>
-            <div className="text-2xl font-bold mt-1 text-[var(--color-primary)]">{stats.total_hv}</div>
+          {/* Total HVs Enviadas */}
+          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 flex flex-col items-center justify-center text-center gap-2 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5 text-[var(--color-primary)]" />
+            </div>
+            <div className="min-w-0">
+              <Text variant="caption" color="secondary" className="block uppercase tracking-wider font-bold">Total HVs Enviadas</Text>
+              <div className="text-xl font-bold leading-none mt-1">{stats.total_hv}</div>
+            </div>
           </div>
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 shadow-sm">
-            <Text variant="caption" className="text-emerald-700 font-medium">Aplica (A)</Text>
-            <div className="text-2xl font-bold mt-1 text-emerald-700">{stats.aplica}</div>
+          {/* Aplica (A) */}
+          <div className="rounded-2xl p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-transparent shadow-sm flex flex-col items-center justify-center text-center gap-2">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+              <Check className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
+            </div>
+            <div className="min-w-0">
+              <Text variant="caption" className="block truncate font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Aplica (A)</Text>
+              <div className="text-xl font-bold leading-none mt-1 text-emerald-700 dark:text-emerald-400">{stats.aplica}</div>
+            </div>
           </div>
-          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 shadow-sm">
-            <Text variant="caption" className="text-rose-700 font-medium">No Aplica (N/A)</Text>
-            <div className="text-2xl font-bold mt-1 text-rose-700">{stats.no_aplica}</div>
+          {/* No Aplica (N/A) */}
+          <div className="rounded-2xl p-4 bg-rose-50 dark:bg-rose-950/20 border border-transparent shadow-sm flex flex-col items-center justify-center text-center gap-2">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+              <X className="w-5 h-5 text-rose-700 dark:text-rose-400" />
+            </div>
+            <div className="min-w-0">
+              <Text variant="caption" className="block truncate font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">No Aplica (N/A)</Text>
+              <div className="text-xl font-bold leading-none mt-1 text-rose-700 dark:text-rose-400">{stats.no_aplica}</div>
+            </div>
           </div>
-          <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4 shadow-sm">
-            <Text variant="caption" className="text-indigo-700 font-medium">Por Evaluar</Text>
-            <div className="text-2xl font-bold mt-1 text-indigo-700">{stats.por_evaluar}</div>
+          {/* Por Evaluar */}
+          <div className="rounded-2xl p-4 bg-indigo-50 dark:bg-indigo-950/20 border border-transparent shadow-sm flex flex-col items-center justify-center text-center gap-2">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+              <BarChart2 className="w-5 h-5 text-indigo-700 dark:text-indigo-400" />
+            </div>
+            <div className="min-w-0">
+              <Text variant="caption" className="block truncate font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">Por Evaluar</Text>
+              <div className="text-xl font-bold leading-none mt-1 text-indigo-700 dark:text-indigo-400">{stats.por_evaluar}</div>
+            </div>
           </div>
-          <div className="bg-violet-500/10 border border-violet-500/20 rounded-2xl p-4 shadow-sm">
-            <Text variant="caption" className="text-violet-700 font-medium">Contratados</Text>
-            <div className="text-2xl font-bold mt-1 text-violet-700">
-              {stats.contratados} / {requisicion.numero_personas_requeridas}
+          {/* Contratados */}
+          <div className="rounded-2xl p-4 bg-violet-50 dark:bg-violet-950/20 border border-transparent shadow-sm flex flex-col items-center justify-center text-center gap-2">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+              <Award className="w-5 h-5 text-violet-700 dark:text-violet-400" />
+            </div>
+            <div className="min-w-0">
+              <Text variant="caption" className="block truncate font-bold uppercase tracking-wider text-violet-700 dark:text-violet-400">Contratados</Text>
+              <div className="text-xl font-bold leading-none mt-1 text-violet-700 dark:text-violet-400">
+                {stats.contratados} <Text as="span" className="text-sm opacity-70">/ {requisicion.numero_personas_requeridas}</Text>
+              </div>
             </div>
           </div>
         </div>
@@ -316,22 +357,22 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
                   <Text className="font-bold text-sm block truncate text-[var(--color-text-primary)]">{a.nombre_temporal}</Text>
                   <div className="flex items-center gap-1.5 mt-2 text-xs text-[var(--color-text-secondary)]">
                     <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                    <span>Envío RP: {a.fecha_envio ? new Date(a.fecha_envio).toLocaleDateString('es-CO') : '—'}</span>
+                    <Text as="span">Envío RP: {a.fecha_envio ? new Date(a.fecha_envio).toLocaleDateString('es-CO') : '—'}</Text>
                   </div>
                 </div>
                 <div className="pt-2 border-t border-[var(--color-border)] mt-2">
                   {a.fecha_envio_hv ? (
                     <div className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
                       <Check className="w-4 h-4" />
-                      <span>Recibe HV desde: {new Date(a.fecha_envio_hv).toLocaleDateString('es-CO')}</span>
+                      <Text as="span">Recibe HV desde: {new Date(a.fecha_envio_hv).toLocaleDateString('es-CO')}</Text>
                     </div>
                   ) : (
-                    <button
+                    <Button
                       onClick={() => handleActivarFechaHV(a.temporal_id)}
                       className="w-full text-center py-1.5 px-3 rounded-lg text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-800 transition-colors"
                     >
                       Registrar Inicio Envío HV
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -346,7 +387,7 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
         <KanbanCol
           title="Por Evaluar (Recibidos)"
           count={colPorEvaluar.length}
-          colorClass="border-indigo-200 bg-indigo-50/10 text-indigo-800"
+          theme="indigo"
           candidatos={colPorEvaluar}
           onMover={handleMoverEstado}
           ops={[{ label: 'Aplica', target: 'APLICA' }, { label: 'Descartar', target: 'NO_APLICA' }]}
@@ -355,7 +396,7 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
         <KanbanCol
           title="Aplica (En Selección)"
           count={colAplica.length}
-          colorClass="border-emerald-200 bg-emerald-50/10 text-emerald-800"
+          theme="emerald"
           candidatos={colAplica}
           onMover={handleMoverEstado}
           ops={[{ label: 'Contratar', target: 'CONTRATADO' }, { label: 'Descartar', target: 'NO_APLICA' }]}
@@ -364,7 +405,7 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
         <KanbanCol
           title="Contratados"
           count={colContratado.length}
-          colorClass="border-violet-200 bg-violet-50/10 text-violet-800"
+          theme="violet"
           candidatos={colContratado}
           onMover={handleMoverEstado}
           ops={[{ label: 'Revertir a Selección', target: 'APLICA' }]}
@@ -373,7 +414,7 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
         <KanbanCol
           title="No Aplica (Descartados)"
           count={colNoAplica.length}
-          colorClass="border-red-200 bg-red-50/10 text-red-800"
+          theme="red"
           candidatos={colNoAplica}
           onMover={handleMoverEstado}
           ops={[{ label: 'Evaluar Nuevamente', target: 'POR_EVALUAR' }]}
@@ -389,178 +430,56 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
 
       {/* MODAL: Asignar Temporales */}
       {mostrarAsignar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[var(--color-surface)] w-full max-w-md rounded-3xl border border-[var(--color-border)] shadow-2xl p-6 space-y-6">
-            <div>
-              <Title variant="h5" weight="bold">Asignar Temporales</Title>
-              <Text variant="caption" color="secondary" className="mt-1">
-                Selecciona las empresas temporales o medios a las que se enviará esta requisición.
-              </Text>
-            </div>
-            <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
-              {todasTemporales.map(t => {
-                const checked = temporalesSeleccionadas.includes(t.id);
-                return (
-                  <label key={t.id} className="flex items-center gap-3 p-3 bg-[var(--color-surface-secondary)]/50 border border-[var(--color-border)] rounded-xl cursor-pointer hover:bg-[var(--color-surface-secondary)] transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => {
-                        if (checked) {
-                          setTemporalesSeleccionadas(temporalesSeleccionadas.filter(id => id !== t.id));
-                        } else {
-                          setTemporalesSeleccionadas([...temporalesSeleccionadas, t.id]);
-                        }
-                      }}
-                      className="w-4 h-4 rounded text-[var(--color-primary)] focus:ring-[var(--color-primary)] border-[var(--color-border)]"
-                    />
-                    <Text className="text-sm font-semibold">{t.nombre}</Text>
-                  </label>
-                );
-              })}
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setMostrarAsignar(false)}>Cancelar</Button>
-              <Button variant="primary" onClick={handleGuardarAsignacion}>Guardar Asignación</Button>
-            </div>
-          </div>
-        </div>
+        <AsignarTemporalesModal
+          todasTemporales={todasTemporales}
+          temporalesSeleccionadas={temporalesSeleccionadas}
+          setTemporalesSeleccionadas={setTemporalesSeleccionadas}
+          onClose={() => setMostrarAsignar(false)}
+          onGuardar={handleGuardarAsignacion}
+        />
       )}
 
       {/* MODAL: Agregar Candidato */}
       {mostrarAgregarCand && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <form onSubmit={handleAgregarCandidato} className="bg-[var(--color-surface)] w-full max-w-md rounded-3xl border border-[var(--color-border)] shadow-2xl p-6 space-y-5">
-            <div>
-              <Title variant="h5" weight="bold">Agregar Candidato</Title>
-              <Text variant="caption" color="secondary" className="mt-1">
-                Ingresa los datos del nuevo candidato remitido para la vacante.
-              </Text>
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <Text variant="caption" className="font-semibold text-xs text-[var(--color-text-secondary)]">Nombre del Candidato</Text>
-                <input
-                  required
-                  type="text"
-                  placeholder="Ej: Carlos Gómez"
-                  value={nuevoNombreCand}
-                  onChange={e => setNuevoNombreCand(e.target.value)}
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                />
-              </div>
-              <div className="space-y-1">
-                <Text variant="caption" className="font-semibold text-xs text-[var(--color-text-secondary)]">Temporal Remitente</Text>
-                <select
-                  required
-                  value={nuevaTemporalCand || ''}
-                  onChange={e => setNuevaTemporalCand(Number(e.target.value))}
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                >
-                  <option value="" disabled>Selecciona una temporal...</option>
-                  {asignadas.map(a => (
-                    <option key={a.temporal_id} value={a.temporal_id}>{a.nombre_temporal}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Text variant="caption" className="font-semibold text-xs text-[var(--color-text-secondary)]">Observaciones iniciales</Text>
-                <textarea
-                  placeholder="Ej: Experiencia de 3 años, vive en Cali."
-                  value={nuevasObsCand}
-                  onChange={e => setNuevasObsCand(e.target.value)}
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  rows={2}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setMostrarAgregarCand(false)}>Cancelar</Button>
-              <Button type="submit" variant="primary" disabled={cargandoCandidatos}>Registrar Candidato</Button>
-            </div>
-          </form>
-        </div>
+        <AgregarCandidatoModal
+          asignadas={asignadas}
+          nuevoNombreCand={nuevoNombreCand}
+          setNuevoNombreCand={setNuevoNombreCand}
+          nuevaTemporalCand={nuevaTemporalCand}
+          setNuevaTemporalCand={setNuevaTemporalCand}
+          nuevasObsCand={nuevasObsCand}
+          setNuevasObsCand={setNuevasObsCand}
+          cargandoCandidatos={cargandoCandidatos}
+          onClose={() => setMostrarAgregarCand(false)}
+          onSubmit={handleAgregarCandidato}
+        />
       )}
 
       {/* MODAL: Descartar Candidato (Selección de Causal) */}
       {candidatoDescartar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[var(--color-surface)] w-full max-w-md rounded-3xl border border-[var(--color-border)] shadow-2xl p-6 space-y-5">
-            <div>
-              <Title variant="h5" weight="bold" className="text-red-600">Descartar Candidato</Title>
-              <Text variant="caption" color="secondary" className="mt-1">
-                Especifica los motivos por los cuales se descarta a: <strong>{candidatoDescartar.nombre_candidato}</strong>
-              </Text>
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <Text variant="caption" className="font-semibold text-xs text-[var(--color-text-secondary)]">Causal de Descarte (Obligatorio)</Text>
-                <select
-                  required
-                  value={causalSeleccionada}
-                  onChange={e => setCausalSeleccionada(e.target.value)}
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                >
-                  <option value="" disabled>Selecciona la causal...</option>
-                  {CAUSALES_DISCARTE.map(c => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Text variant="caption" className="font-semibold text-xs text-[var(--color-text-secondary)]">Comentarios / Observaciones</Text>
-                <textarea
-                  placeholder="Detalles sobre el descarte..."
-                  value={obsDescarte}
-                  onChange={e => setObsDescarte(e.target.value)}
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  rows={3}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setCandidatoDescartar(null)}>Cancelar</Button>
-              <Button variant="primary" className="bg-red-600 hover:bg-red-700 text-white" disabled={!causalSeleccionada || cargandoCandidatos} onClick={handleDescartarConfirmado}>
-                Confirmar Descarte
-              </Button>
-            </div>
-          </div>
-        </div>
+        <DescartarCandidatoModal
+          candidatoDescartar={candidatoDescartar}
+          causales={CAUSALES_DISCARTE}
+          causalSeleccionada={causalSeleccionada}
+          setCausalSeleccionada={setCausalSeleccionada}
+          obsDescarte={obsDescarte}
+          setObsDescarte={setObsDescarte}
+          cargandoCandidatos={cargandoCandidatos}
+          onClose={() => setCandidatoDescartar(null)}
+          onConfirm={handleDescartarConfirmado}
+        />
       )}
+
       {/* MODAL: Cancelar RP */}
       {mostrarCancelar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[var(--color-surface)] w-full max-w-md rounded-3xl border border-[var(--color-border)] shadow-2xl p-6 space-y-5">
-            <div>
-              <Title variant="h5" weight="bold" className="text-rose-600">Cancelar Requisición</Title>
-              <Text variant="caption" color="secondary" className="mt-1">
-                Esta acción es irreversible. La RP <strong>{requisicion.rp}</strong> quedará en estado <strong>Cancelada</strong>.
-              </Text>
-            </div>
-            <div className="space-y-1">
-              <Text variant="caption" className="font-semibold text-xs text-[var(--color-text-secondary)]">Motivo de cancelación (obligatorio)</Text>
-              <textarea
-                placeholder="Ej: Por orden de gerencia, la vacante ya no es necesaria..."
-                value={motivoCancelacion}
-                onChange={e => setMotivoCancelacion(e.target.value)}
-                className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
-                rows={4}
-                autoFocus
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => { setMostrarCancelar(false); setMotivoCancelacion(''); }}>Volver</Button>
-              <Button
-                variant="primary"
-                className="bg-rose-600 hover:bg-rose-700 text-white"
-                disabled={!motivoCancelacion.trim() || cancelando}
-                onClick={handleCancelarRP}
-              >
-                {cancelando ? 'Cancelando...' : 'Confirmar Cancelación'}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <CancelarRPModal
+          requisicion={requisicion}
+          motivoCancelacion={motivoCancelacion}
+          setMotivoCancelacion={setMotivoCancelacion}
+          cancelando={cancelando}
+          onClose={() => { setMostrarCancelar(false); setMotivoCancelacion(''); }}
+          onConfirm={handleCancelarRP}
+        />
       )}
     </div>
   );

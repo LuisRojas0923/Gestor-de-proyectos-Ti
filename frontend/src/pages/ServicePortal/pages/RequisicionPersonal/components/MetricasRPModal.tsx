@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line,
 } from 'recharts';
-import { Button, Title, Text, Select } from '../../../../../components/atoms';
+import { Button, Select, Text, Title } from '../../../../../components/atoms';
 import type { RequisicionRP, CandidatoRequisicion } from '../types/requisicion.types';
 import { ESTADO_LABELS } from '../types/requisicion.types';
 import { getCandidatos } from '../services/requisicionService';
@@ -25,83 +25,7 @@ interface MetricasRPModalProps {
   requisiciones: RequisicionRP[];
 }
 
-// Mapa de códigos de causal → nombre completo (debe estar sincronizado con DetalleSeguimientoRP.tsx)
-const CAUSALES_LABEL_MAP: Record<string, string> = {
-  'N.C.EXP':           'No cumple experiencia / perfil técnico',
-  'N.C. E.M':          'No aprobó exámenes médicos',
-  'N.C. ENT':          'No aprobó entrevista con líder',
-  'DESISTE_SALARIO':   'Desistió por aspiración salarial',
-  'DESISTE_CONTRATO':  'Desistió por tipo de contrato/horario',
-  'DESISTE_DISTANCIA': 'Desistió por ubicación/transporte',
-  'DESISTE_PERSONAL':  'Desistió por motivos personales',
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const fmt = (d: string | null | undefined) => {
-  if (!d) return null;
-  const date = new Date(d);
-  return isNaN(date.getTime()) ? null : date;
-};
-
-const MESES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
-
-const COLORES_CHART = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'];
-
-// Colores fijos por estado para el PieChart
-const ESTADO_COLOR_MAP: Record<string, string> = {
-  APROBADA:              '#10b981', // emerald
-  EN_PROCESO_SELECCION:  '#3b82f6', // blue
-  CERRADA:               '#6366f1', // indigo
-  CANCELADA:             '#ef4444', // red — rojo para cancelación
-};
-
-// ── KPI Card interna ──────────────────────────────────────────────────────────
-
-interface KpiCardProps {
-  label: string;
-  value: string | number;
-  sub?: string;
-  icon: React.ElementType;
-  color: string;
-  iconBg: string;
-}
-
-const KpiCard: React.FC<KpiCardProps> = ({ label, value, sub, icon: Icon, color, iconBg }) => (
-  <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-4 flex items-center gap-4 shadow-sm">
-    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
-      <Icon className={`w-6 h-6 ${color}`} />
-    </div>
-    <div className="min-w-0">
-      <Text variant="caption" className="block uppercase tracking-wider font-bold text-[var(--color-text-secondary)] truncate">
-        {label}
-      </Text>
-      <div className="text-2xl font-bold text-[var(--color-text-primary)] leading-tight">{value}</div>
-      {sub && <Text variant="caption" className="text-[var(--color-text-tertiary)]">{sub}</Text>}
-    </div>
-  </div>
-);
-
-// ── Tooltip personalizado ─────────────────────────────────────────────────────
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3 shadow-xl text-sm">
-      <div className="font-bold text-[var(--color-text-primary)] mb-1">{label}</div>
-      {payload.map((p: any) => (
-        <div key={p.dataKey} className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-          <span className="text-[var(--color-text-secondary)]">{p.name}:</span>
-          <span className="font-bold text-[var(--color-text-primary)]">{p.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
+import { CAUSALES_LABEL_MAP, fmt, MESES, COLORES_CHART, ESTADO_COLOR_MAP, KpiCard, CustomTooltip } from './MetricasUtils';
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
@@ -426,13 +350,13 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
                   {dataEstados.map((entry) => (
                     <div key={entry.estado} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1.5">
-                        <span
+                        <Text as="span"
                           className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: ESTADO_COLOR_MAP[entry.estado] ?? '#94a3b8' }}
+                          style={{ backgroundColor: ESTADO_COLOR_MAP[entry.estado] ?? '#94a3b8' }} /* [CONTROLADO] */
                         />
-                        <span className="text-[var(--color-text-secondary)] truncate">{entry.name}</span>
+                        <Text as="span" className="text-[var(--color-text-secondary)] truncate">{entry.name}</Text>
                       </div>
-                      <span className="font-bold text-[var(--color-text-primary)] ml-2">{entry.value}</span>
+                      <Text as="span" className="font-bold text-[var(--color-text-primary)] ml-2">{entry.value}</Text>
                     </div>
                   ))}
                 </div>
@@ -491,13 +415,13 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
                   return (
                     <div key={row.causal}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-[var(--color-text-secondary)] truncate max-w-[70%]" title={row.label}>{row.label}</span>
-                        <span className="font-bold text-[var(--color-text-primary)]">{row.count}</span>
+                        <Text as="span" className="text-[var(--color-text-secondary)] truncate max-w-[70%]" title={row.label}>{row.label}</Text>
+                        <Text as="span" className="font-bold text-[var(--color-text-primary)]">{row.count}</Text>
                       </div>
                       <div className="w-full bg-[var(--color-border)] rounded-full h-1.5">
                         <div
                           className="h-1.5 rounded-full transition-all"
-                          style={{
+                          style={{ /* [CONTROLADO] */
                             width: `${pct}%`,
                             backgroundColor: COLORES_CHART[i % COLORES_CHART.length],
                           }}
@@ -527,7 +451,7 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
                   <div key={t.temporal} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--color-background)] border border-[var(--color-border)]">
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
-                      style={{ backgroundColor: COLORES_CHART[i % COLORES_CHART.length] }}
+                      style={{ backgroundColor: COLORES_CHART[i % COLORES_CHART.length] }} /* [CONTROLADO] */
                     >
                       {i + 1}
                     </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, Plus, Edit2, Check, RotateCcw, Trash2 } from 'lucide-react';
-import { Title, Text, Input, Button, Switch } from '../../../../../components/atoms';
+import { Button, Input, Switch, Text, Title } from '../../../../../components/atoms';
 import { getTemporales, crearTemporal, actualizarTemporal, eliminarTemporal } from '../services/requisicionService';
 import type { EmpresaTemporal } from '../types/requisicion.types';
 
@@ -97,12 +97,12 @@ const ConfigTemporalesModal: React.FC<Props> = ({ onClose, onRefreshList }) => {
               Administra las empresas temporales o medios de reclutamiento del portal.
             </Text>
           </div>
-          <button 
+          <Button 
             onClick={onClose}
             className="p-2 rounded-xl hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] transition-colors"
           >
             <X className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -151,14 +151,14 @@ const ConfigTemporalesModal: React.FC<Props> = ({ onClose, onRefreshList }) => {
                     <div key={temp.id} className="p-4 flex items-center justify-between gap-4 bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)]/50 transition-colors">
                       {esEditando ? (
                         <div className="flex flex-1 items-center gap-3">
-                          <input
+                          <Input
                             type="text"
                             value={editandoNombre}
                             onChange={(e) => setEditandoNombre(e.target.value)}
                             className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                           />
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-[var(--color-text-secondary)]">Activo:</span>
+                            <Text as="span" className="text-xs text-[var(--color-text-secondary)]">Activo:</Text>
                             <Switch
                               checked={editandoActivo}
                               onChange={setEditandoActivo}
@@ -172,9 +172,9 @@ const ConfigTemporalesModal: React.FC<Props> = ({ onClose, onRefreshList }) => {
                               {temp.nombre}
                             </Text>
                             {!temp.activo && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] bg-red-100 text-red-800 font-bold">
+                              <Text as="span" className="px-2 py-0.5 rounded-full text-[10px] bg-red-100 text-red-800 font-bold">
                                 Inactivo
-                              </span>
+                              </Text>
                             )}
                           </div>
                         </div>
@@ -184,41 +184,45 @@ const ConfigTemporalesModal: React.FC<Props> = ({ onClose, onRefreshList }) => {
                       <div className="flex items-center gap-1.5 shrink-0">
                         {esEditando ? (
                           <>
-                            <button
+                            <Button
+                              variant="custom"
                               onClick={() => handleGuardarEdicion(temp.id)}
                               disabled={guardando}
                               className="p-2 rounded-xl bg-emerald-100 text-emerald-800 hover:opacity-90 transition-opacity"
                               title="Guardar"
                             >
                               <Check className="w-4 h-4" />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="custom"
                               onClick={handleCancelarEdicion}
                               disabled={guardando}
                               className="p-2 rounded-xl bg-slate-100 text-slate-800 hover:opacity-90 transition-opacity"
                               title="Cancelar"
                             >
                               <RotateCcw className="w-4 h-4" />
-                            </button>
+                            </Button>
                           </>
                         ) : (
                           <div className="flex items-center gap-1">
-                            <button
+                            <Button
+                              variant="custom"
                               onClick={() => handleIniciarEdicion(temp)}
                               disabled={guardando}
-                              className="p-2 rounded-xl hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                              className="p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
                               title="Editar"
                             >
                               <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="custom"
                               onClick={() => handleEliminar(temp.id)}
                               disabled={guardando}
-                              className="p-2 rounded-xl hover:bg-[var(--color-surface-secondary)] text-red-500 hover:text-red-700 transition-colors"
+                              className="p-2 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400 transition-colors"
                               title="Eliminar"
                             >
                               <Trash2 className="w-4 h-4" />
-                            </button>
+                            </Button>
                           </div>
                         )}
                       </div>

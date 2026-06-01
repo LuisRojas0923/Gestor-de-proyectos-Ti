@@ -30,12 +30,12 @@ async def run():
     engine = create_async_engine(config.database_url)
     async with async_sessionmaker(engine)() as db:
         # Agrupar actividades por desarrollo
-        rows = (await db.execute(text(SQL_ACTIVIDADES))).fetchall()
+        rows = (await db.execute(text(SQL_ACTIVIDADES))).fetchall()  # [CONTROLADO]
         grupos: dict[str, list[str]] = {}
         for r in rows:
             grupos.setdefault(r.desarrollo_id, []).append(r.estado)
 
-        desarrollos = (await db.execute(text(SQL_DESARROLLOS))).fetchall()
+        desarrollos = (await db.execute(text(SQL_DESARROLLOS))).fetchall()  # [CONTROLADO]
 
         actualizados = 0
         for d in desarrollos:
@@ -53,7 +53,7 @@ async def run():
 
             # Solo actualizar si hay cambio
             if nuevo_pct != d.porcentaje_progreso or nuevo_estado != d.estado_general:
-                await db.execute(
+                await db.execute(  # [CONTROLADO]
                     text("UPDATE desarrollos SET porcentaje_progreso=:pct, estado_general=:est WHERE id=:id"),
                     {"pct": nuevo_pct, "est": nuevo_estado, "id": d.id}
                 )

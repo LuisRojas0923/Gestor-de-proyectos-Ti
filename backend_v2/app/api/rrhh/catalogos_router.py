@@ -33,7 +33,7 @@ async def listar_areas(solo_activas: bool = True, db: AsyncSession = Depends(obt
     stmt = select(AreaRP)
     if solo_activas:
         stmt = stmt.where(AreaRP.activo == True)
-    result = await db.execute(stmt.order_by(AreaRP.nombre))
+    result = await db.execute(stmt.order_by(AreaRP.nombre))  # [CONTROLADO]
     return result.scalars().all()
 
 
@@ -49,7 +49,7 @@ async def crear_area(nombre: str, db: AsyncSession = Depends(obtener_db)):
 @router.put("/areas/{area_id}", response_model=AreaOut)
 async def actualizar_area(area_id: int, nombre: str, activo: bool = True,
                           db: AsyncSession = Depends(obtener_db)):
-    result = await db.execute(select(AreaRP).where(AreaRP.id == area_id))
+    result = await db.execute(select(AreaRP).where(AreaRP.id == area_id))  # [CONTROLADO]
     area = result.scalar_one_or_none()
     if not area:
         raise HTTPException(status_code=404, detail="Área no encontrada")
@@ -70,7 +70,7 @@ async def listar_cargos(area_id: int = None, solo_activos: bool = True, db: Asyn
         stmt = stmt.where(CargoRP.area_id == area_id)
     if solo_activos:
         stmt = stmt.where(CargoRP.activo == True)
-    result = await db.execute(stmt.order_by(CargoRP.nombre))
+    result = await db.execute(stmt.order_by(CargoRP.nombre))  # [CONTROLADO]
     return result.scalars().all()
 
 
@@ -86,7 +86,7 @@ async def crear_cargo(area_id: int, nombre: str, cargo_superior_id: int = None, 
 @router.put("/cargos/{cargo_id}", response_model=CargoOut)
 async def actualizar_cargo(cargo_id: int, nombre: str = None, activo: bool = None,
                            cargo_superior_id: int = -1, db: AsyncSession = Depends(obtener_db)):
-    result = await db.execute(select(CargoRP).where(CargoRP.id == cargo_id))
+    result = await db.execute(select(CargoRP).where(CargoRP.id == cargo_id))  # [CONTROLADO]
     cargo = result.scalar_one_or_none()
     if not cargo:
         raise HTTPException(status_code=404, detail="Cargo no encontrado")
@@ -109,7 +109,7 @@ async def actualizar_cargo(cargo_id: int, nombre: str = None, activo: bool = Non
 # ──────────────────────────────────────────────
 @router.get("/ciudades", response_model=List[CiudadOut])
 async def listar_ciudades(db: AsyncSession = Depends(obtener_db)):
-    result = await db.execute(
+    result = await db.execute(  # [CONTROLADO]
         select(CiudadRP).where(CiudadRP.activo == True).order_by(CiudadRP.nombre)
     )
     return result.scalars().all()
@@ -127,7 +127,7 @@ async def crear_ciudad(nombre: str, db: AsyncSession = Depends(obtener_db)):
 @router.put("/ciudades/{ciudad_id}", response_model=CiudadOut)
 async def actualizar_ciudad(ciudad_id: int, nombre: str = None, activo: bool = None,
                             db: AsyncSession = Depends(obtener_db)):
-    result = await db.execute(select(CiudadRP).where(CiudadRP.id == ciudad_id))
+    result = await db.execute(select(CiudadRP).where(CiudadRP.id == ciudad_id))  # [CONTROLADO]
     ciudad = result.scalar_one_or_none()
     if not ciudad:
         raise HTTPException(status_code=404, detail="Ciudad no encontrada")
@@ -145,7 +145,7 @@ async def actualizar_ciudad(ciudad_id: int, nombre: str = None, activo: bool = N
 # ──────────────────────────────────────────────
 @router.get("/aprobadores", response_model=List[AprobadorOut])
 async def listar_aprobadores(db: AsyncSession = Depends(obtener_db)):
-    result = await db.execute(select(AprobadorAreaRP).order_by(AprobadorAreaRP.area_id))
+    result = await db.execute(select(AprobadorAreaRP).order_by(AprobadorAreaRP.area_id))  # [CONTROLADO]
     return result.scalars().all()
 
 
@@ -161,7 +161,7 @@ async def crear_aprobador(payload: AprobadorCreate, db: AsyncSession = Depends(o
 @router.put("/aprobadores/{aprobador_id}", response_model=AprobadorOut)
 async def actualizar_aprobador(aprobador_id: int, payload: AprobadorCreate,
                                db: AsyncSession = Depends(obtener_db)):
-    result = await db.execute(select(AprobadorAreaRP).where(AprobadorAreaRP.id == aprobador_id))
+    result = await db.execute(select(AprobadorAreaRP).where(AprobadorAreaRP.id == aprobador_id))  # [CONTROLADO]
     aprobador = result.scalar_one_or_none()
     if not aprobador:
         raise HTTPException(status_code=404, detail="Aprobador no encontrado")
@@ -182,7 +182,7 @@ async def sincronizar_catalogos_desde_jerarquia(db: AsyncSession):
     from sqlalchemy import func
 
     # 1. Obtener usuarios activos con área y cargo
-    result_usuarios = await db.execute(
+    result_usuarios = await db.execute(  # [CONTROLADO]
         select(Usuario).where(
             Usuario.esta_activo == True,
             Usuario.area.isnot(None),
@@ -193,7 +193,7 @@ async def sincronizar_catalogos_desde_jerarquia(db: AsyncSession):
 
     # 2. Sincronizar áreas
     # Cargar todas las áreas activas para hacer búsqueda insensible a tildes en Python
-    res_todas_areas = await db.execute(select(AreaRP).where(AreaRP.activo == True))
+    res_todas_areas = await db.execute(select(AreaRP).where(AreaRP.activo == True))  # [CONTROLADO]
     todas_areas = res_todas_areas.scalars().all()
     # Mapa: nombre_sin_tilde → objeto area (preferimos la versión acentuada si existe)
     areas_sin_tilde_map: dict = {quitar_tildes(a.nombre): a for a in todas_areas}
@@ -227,7 +227,7 @@ async def sincronizar_catalogos_desde_jerarquia(db: AsyncSession):
 
         clave_cargo = (area_id, cargo_norm.upper())
         if clave_cargo not in cargos_insertados:
-            res_cargo = await db.execute(
+            res_cargo = await db.execute(  # [CONTROLADO]
                 select(CargoRP).where(
                     CargoRP.area_id == area_id,
                     func.upper(CargoRP.nombre) == func.upper(cargo_norm)
@@ -241,7 +241,7 @@ async def sincronizar_catalogos_desde_jerarquia(db: AsyncSession):
             cargos_insertados[clave_cargo] = cargo_obj.id
 
     # 3.4 Obtener relaciones jerárquicas activas
-    result_relaciones = await db.execute(
+    result_relaciones = await db.execute(  # [CONTROLADO]
         select(RelacionUsuario).where(RelacionUsuario.esta_activa == True)
     )
     relaciones = result_relaciones.scalars().all()
@@ -300,7 +300,7 @@ async def sincronizar_catalogos_desde_jerarquia(db: AsyncSession):
                 (func.lower(AprobadorAreaRP.email_aprobador) == email_busqueda) |
                 (func.lower(AprobadorAreaRP.nombre_aprobador) == u.nombre.lower().strip())
             )
-            res_aprob = await db.execute(stmt_aprob)
+            res_aprob = await db.execute(stmt_aprob)  # [CONTROLADO]
             aprob_obj = res_aprob.scalars().first()
             
             if not aprob_obj:
@@ -326,7 +326,7 @@ async def sincronizar_catalogos_desde_jerarquia(db: AsyncSession):
                 user_to_cargo_id[u.id] = cargo_id
 
     # Obtener lista de aprobadores activos
-    aprobadores_res = await db.execute(select(AprobadorAreaRP).where(AprobadorAreaRP.activo == True))
+    aprobadores_res = await db.execute(select(AprobadorAreaRP).where(AprobadorAreaRP.activo == True))  # [CONTROLADO]
     aprobadores_list = aprobadores_res.scalars().all()
 
     def buscar_aprobador(user_obj) -> Optional[AprobadorAreaRP]:
@@ -383,7 +383,7 @@ async def sincronizar_jerarquia(db: AsyncSession = Depends(obtener_db)):
 
 @router.delete("/aprobadores/{aprobador_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def desactivar_aprobador(aprobador_id: int, db: AsyncSession = Depends(obtener_db)):
-    result = await db.execute(select(AprobadorAreaRP).where(AprobadorAreaRP.id == aprobador_id))
+    result = await db.execute(select(AprobadorAreaRP).where(AprobadorAreaRP.id == aprobador_id))  # [CONTROLADO]
     aprobador = result.scalar_one_or_none()
     if not aprobador:
         raise HTTPException(status_code=404, detail="Aprobador no encontrado")

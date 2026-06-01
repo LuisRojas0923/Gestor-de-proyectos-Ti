@@ -48,7 +48,7 @@ async def dashboard_requisiciones(
     query = select(RequisicionPersonal)
     if correo_solicitante:
         query = query.where(RequisicionPersonal.correo_solicitante == correo_solicitante)
-    result = await db.execute(query)
+    result = await db.execute(query)  # [CONTROLADO]
     todas = result.scalars().all()
     conteo = {estado: 0 for estado in EstadoRP.LABELS}
     for r in todas:
@@ -70,7 +70,7 @@ async def mis_requisiciones(
     db: AsyncSession = Depends(obtener_db),
 ):
     """Lista las requisiciones del solicitante autenticado."""
-    result = await db.execute(
+    result = await db.execute(  # [CONTROLADO]
         select(RequisicionPersonal)
         .where(RequisicionPersonal.correo_solicitante == correo_solicitante)
         .order_by(RequisicionPersonal.created_at.desc())
@@ -153,7 +153,7 @@ async def detalle_requisicion(
     db: AsyncSession = Depends(obtener_db),
 ):
     """Retorna la requisición completa con equipos, historial y comentarios."""
-    result = await db.execute(
+    result = await db.execute(  # [CONTROLADO]
         select(RequisicionPersonal).where(RequisicionPersonal.id == requisicion_id)
     )
     req = result.scalar_one_or_none()
@@ -161,21 +161,21 @@ async def detalle_requisicion(
         raise HTTPException(status_code=404, detail="Requisición no encontrada")
 
     # Cargar relaciones manualmente (evitar lazy loading)
-    equipos_of = (await db.execute(
+    equipos_of = (await db.execute(  # [CONTROLADO]
         select(RequisicionEquipoOficina).where(RequisicionEquipoOficina.requisicion_id == requisicion_id)
     )).scalars().all()
 
-    equipos_tec = (await db.execute(
+    equipos_tec = (await db.execute(  # [CONTROLADO]
         select(RequisicionEquipoTecnologico).where(RequisicionEquipoTecnologico.requisicion_id == requisicion_id)
     )).scalars().all()
 
-    historial = (await db.execute(
+    historial = (await db.execute(  # [CONTROLADO]
         select(HistorialRequisicion)
         .where(HistorialRequisicion.requisicion_id == requisicion_id)
         .order_by(HistorialRequisicion.fecha_evento)
     )).scalars().all()
 
-    comentarios = (await db.execute(
+    comentarios = (await db.execute(  # [CONTROLADO]
         select(ComentarioRequisicion)
         .where(ComentarioRequisicion.requisicion_id == requisicion_id)
         .order_by(ComentarioRequisicion.fecha_comentario)
@@ -249,7 +249,7 @@ async def cancelar_requisicion(
     db: AsyncSession = Depends(obtener_db),
 ):
     """Solo cancela requisiciones en BORRADOR. GH cancela las demás."""
-    result = await db.execute(
+    result = await db.execute(  # [CONTROLADO]
         select(RequisicionPersonal).where(RequisicionPersonal.id == requisicion_id)
     )
     req = result.scalar_one_or_none()

@@ -1,7 +1,7 @@
 // Paso 1: Datos Generales de la Requisición
 import React, { useEffect, useState } from 'react';
 import { MapPin, Briefcase, User, Hash, Calendar, Building2, HardHat } from 'lucide-react';
-import { Select, Title, Text, Input } from '../../../../../../components/atoms';
+import { Button, Input, Select, Text, Title } from '../../../../../../components/atoms';
 import { FormField, TextAreaField } from '../../../Common';
 import type { FormularioRP } from '../../types/requisicion.types';
 import type { CiudadRP } from '../../types/requisicion.types';
@@ -231,15 +231,16 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
             <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-[var(--color-border)] rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-[var(--color-border)] transition-all">
               {filtered.length > 0 ? (
                 filtered.map(c => (
-                  <button
+                  <Button
+                    variant="custom"
                     key={c.code}
                     type="button"
                     onClick={() => handleSelect(c.code, c.label)}
-                    className="w-full text-left px-4 py-3 hover:bg-[var(--color-primary-light)]/10 dark:hover:bg-neutral-700/50 flex flex-col transition-colors"
+                    className="w-full !justify-start px-4 py-3 bg-white dark:bg-neutral-800 hover:bg-slate-50 dark:hover:bg-neutral-700 flex flex-row items-center gap-2 transition-colors"
                   >
-                    <span className="font-mono font-bold text-sm text-[var(--color-primary)]">{c.code}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.label}</span>
-                  </button>
+                    <Text as="span" className="font-mono font-bold text-sm text-[var(--color-primary)] whitespace-nowrap">{c.code}</Text>
+                    <Text as="span" className="text-xs text-slate-500 dark:text-slate-400 truncate">- {c.label}</Text>
+                  </Button>
                 ))
               ) : (
                 <div className="px-4 py-3 text-xs text-red-500 font-medium">
@@ -252,22 +253,22 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
           {/* Discriminación del Centro de Costo */}
           {selectedBreakdown && (
             <div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 rounded-xl flex items-start gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs select-none">✓</span>
+              <Text as="span" className="text-emerald-600 dark:text-emerald-400 font-bold text-xs select-none">✓</Text>
               <div>
-                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">Centro de Costo Válido</span>
-                <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">{selectedBreakdown}</span>
+                <Text as="span" className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">Centro de Costo Válido</Text>
+                <Text as="span" className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">{selectedBreakdown}</Text>
               </div>
             </div>
           )}
 
           {searchTerm && !selectedBreakdown && (
             <div className="mt-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl flex items-start gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
-              <span className="text-red-600 dark:text-red-400 font-bold text-xs select-none">⚠</span>
+              <Text as="span" className="text-red-600 dark:text-red-400 font-bold text-xs select-none">⚠</Text>
               <div>
-                <span className="text-xs font-bold text-red-800 dark:text-red-300 block">Combinación Inválida</span>
-                <span className="text-xs text-red-700 dark:text-red-400 font-medium">
+                <Text as="span" className="text-xs font-bold text-red-800 dark:text-red-300 block">Combinación Inválida</Text>
+                <Text as="span" className="text-xs text-red-700 dark:text-red-400 font-medium">
                   El centro de costo ingresado no corresponde a ninguna combinación activa en el ERP.
-                </span>
+                </Text>
               </div>
             </div>
           )}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
-import { Title, Text, Button } from '../../../../components/atoms';
+import { Button, Text, Title } from '../../../../components/atoms';
 import {
   getAreas,
   crearArea,
@@ -211,35 +211,37 @@ const PerfilesCargo: React.FC<PerfilesCargoProps> = ({ onVolver }) => {
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-[var(--color-border)]">
-        <button
+      <div className="flex flex-wrap gap-2 mb-6 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl w-fit border border-slate-200 dark:border-slate-700/50">
+        <Button
+          variant={activeTab === 'areas' ? 'primary' : 'ghost'}
           onClick={() => {
             setActiveTab('areas');
             setErrorMsg(null);
             setSuccessMsg(null);
           }}
-          className={`py-3 px-6 font-semibold text-sm transition-all border-b-2 ${
-            activeTab === 'areas'
-              ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+          className={`py-2 px-5 font-bold text-sm transition-all rounded-xl ${
+            activeTab === 'areas' 
+              ? 'shadow-md shadow-blue-900/20' 
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
           }`}
         >
           Áreas de la Empresa
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={activeTab === 'cargos' ? 'primary' : 'ghost'}
           onClick={() => {
             setActiveTab('cargos');
             setErrorMsg(null);
             setSuccessMsg(null);
           }}
-          className={`py-3 px-6 font-semibold text-sm transition-all border-b-2 ${
-            activeTab === 'cargos'
-              ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+          className={`py-2 px-5 font-bold text-sm transition-all rounded-xl ${
+            activeTab === 'cargos' 
+              ? 'shadow-md shadow-blue-900/20' 
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
           }`}
         >
           Cargos y Jerarquía
-        </button>
+        </Button>
       </div>
 
       {/* Contenido de Tabs */}

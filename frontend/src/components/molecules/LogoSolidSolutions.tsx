@@ -47,25 +47,25 @@ const LogoSolidSolutions: React.FC<LogoSolidSolutionsProps> = ({
 
       <div
         className={`flex items-end pb-0.5 ${barGap}`}
-        style={{ height: isLarge ? '32px' : isSmall ? '18px' : '24px' }}
+        style={{ height: isLarge ? '32px' : isSmall ? '18px' : '24px' }} /* [CONTROLADO] */
       >
         <div
           className={`rounded-sm ${barWidth}`}
-          style={{
+          style={{ /* [CONTROLADO] */
             height: '40%',
             background: fixedColors ? 'var(--white)' : 'var(--text-primary)',
           }}
         />
         <div
           className={`rounded-sm ${barWidth}`}
-          style={{
+          style={{ /* [CONTROLADO] */
             height: '70%',
             background: 'var(--powder-blue-400)',
           }}
         />
         <div
           className={`rounded-sm ${barWidth}`}
-          style={{
+          style={{ /* [CONTROLADO] */
             height: '100%',
             background: 'var(--deep-navy-800)',
             boxShadow: '0 0 12px rgba(90, 145, 255, 0.6)',

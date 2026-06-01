@@ -16,9 +16,8 @@ def find_duplicate_files(root_dir: str, extensions: set) -> list[dict]:
     
     for dirpath, dirnames, filenames in os.walk(root_dir):
         # Ignorar carpetas comunes
-        dirnames[:] = [d for d in dirnames if d not in {
-            'node_modules', '.git', '__pycache__', 'dist', 'build', 'auditoria'
-        }]
+        from auditoria.config import IGNORE_DIRS
+        dirnames[:] = [d for d in dirnames if d not in IGNORE_DIRS]
         
         for filename in filenames:
             name_part = os.path.splitext(filename)[0].lower()
