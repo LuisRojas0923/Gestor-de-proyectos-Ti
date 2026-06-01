@@ -79,89 +79,59 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
 
       {/* Resumen de Gestión y Acciones Rápidas */}
       {loading ? (
-        <div className={gridColsClass}>
-          {Array.from({ length: esAprobador ? 4 : 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-40 rounded-2xl bg-[var(--color-surface-secondary)] animate-pulse border border-[var(--color-border)]"
-            />
-          ))}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          <div className="lg:col-span-8 flex flex-wrap gap-3 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
+          <div className="lg:col-span-4 h-16 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
         </div>
       ) : (
-        <div className={gridColsClass}>
-          {/* Card: Nueva Requisición */}
-          <button
-            onClick={onNueva}
-            className="group p-6 rounded-2xl border text-left flex flex-col justify-between h-40 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg bg-gradient-to-br from-[var(--color-primary-900)] to-[var(--color-primary-700)] text-white border-transparent"
-          >
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
-              <Plus className="w-5 h-5" />
-            </div>
-            <div>
-              <Title variant="subtitle1" weight="bold" color="white" className="leading-tight">
-                Nueva Requisición
-              </Title>
-              <Text variant="caption" className="block mt-1 font-medium text-white/70 leading-tight">
-                Crear una nueva solicitud de contratación de personal
-              </Text>
-            </div>
-          </button>
-
-          {/* Card: Mis Solicitudes */}
-          <button
-            onClick={onMisRequisiciones}
-            className="group p-6 rounded-2xl border text-left flex flex-col justify-between h-40 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg bg-[var(--color-surface)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:shadow-sm"
-          >
-            <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/30 text-[var(--color-primary)] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-              <List className="w-5 h-5" />
-            </div>
-            <div>
-              <Title variant="subtitle1" weight="bold" className="leading-tight text-slate-800 dark:text-slate-100 group-hover:text-[var(--color-primary)] transition-colors">
-                Mis Solicitudes
-              </Title>
-              <Text variant="caption" color="text-secondary" className="block mt-1 font-medium leading-tight">
-                Ver el historial y estado de tus requisiciones
-              </Text>
-            </div>
-          </button>
-
-          {/* Card: Aprobaciones (Solo Directores / Aprobadores) */}
-          {esAprobador && (
-            <button
-              onClick={onAprobaciones}
-              className="group p-6 rounded-2xl border text-left flex flex-col justify-between h-40 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg bg-[var(--color-surface)] border-[var(--color-border)] hover:border-[var(--color-primary)] hover:shadow-sm"
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          {/* Acciones Rápidas (Izquierda) */}
+          <div className="lg:col-span-8 flex flex-wrap items-center gap-3">
+            <Button
+              onClick={onNueva}
+              variant="primary"
+              icon={Plus}
+              className="px-6 py-3 rounded-xl shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all font-bold h-12"
             >
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <ThumbsUp className="w-5 h-5" />
-              </div>
-              <div>
-                <Title variant="subtitle1" weight="bold" className="leading-tight text-slate-800 dark:text-slate-100 group-hover:text-[var(--color-primary)] transition-colors">
-                  Aprobaciones
-                </Title>
-                <Text variant="caption" color="text-secondary" className="block mt-1 font-medium leading-tight">
-                  Firmar o devolver solicitudes de personal pendientes
-                </Text>
-              </div>
-            </button>
-          )}
+              Nueva Requisición
+            </Button>
+            <Button
+              onClick={onMisRequisiciones}
+              variant="outline"
+              icon={List}
+              className="px-6 py-3 rounded-xl bg-[var(--color-surface)] border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold h-12 text-slate-700 dark:text-slate-350"
+            >
+              Mis Solicitudes
+            </Button>
+            {esAprobador && (
+              <Button
+                onClick={onAprobaciones}
+                variant="outline"
+                icon={ThumbsUp}
+                className="px-6 py-3 rounded-xl bg-[var(--color-surface)] border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold h-12 text-slate-700 dark:text-slate-350"
+              >
+                Aprobaciones
+              </Button>
+            )}
+          </div>
 
-          {/* Card: Total de Requisiciones */}
-          <div className="group p-6 rounded-2xl border text-left flex flex-col justify-between h-40 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white border-transparent shadow-md">
-            <div className="flex justify-between items-start">
+          {/* Total de Requisiciones (Derecha) */}
+          <div className="lg:col-span-4 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-slate-850 dark:border-indigo-950/40">
+            <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-white/10 text-indigo-300 flex items-center justify-center shrink-0">
                 <Briefcase className="w-5 h-5" />
               </div>
-              <div className="text-3xl font-black text-white leading-none tracking-tight">
-                {dashboard ? dashboard.total : 0}
+              <div className="min-w-0 text-left">
+                <Text variant="caption" className="block font-bold uppercase tracking-wider text-white/50 leading-none">
+                  Total Requisiciones
+                </Text>
+                <Text variant="caption" className="block text-[11px] text-white/70 mt-1 leading-none truncate">
+                  Solicitudes registradas
+                </Text>
               </div>
             </div>
-            <div>
-              <Text variant="caption" className="block font-bold uppercase tracking-wider text-white/50 leading-none mb-1">
-                Total de Requisiciones
-              </Text>
-              <Text variant="caption" className="block font-medium text-white/70 leading-tight">
-                Historial acumulado de solicitudes registradas
-              </Text>
+            <div className="text-3xl font-black text-white pr-2 shrink-0">
+              {dashboard ? dashboard.total : 0}
             </div>
           </div>
         </div>
