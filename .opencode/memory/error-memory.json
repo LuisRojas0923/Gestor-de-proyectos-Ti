@@ -1,0 +1,29 @@
+{
+  "subagent": "error-memory",
+  "description": "Persistent memory for errors and architectural decisions. Read/write errors_memory.json and .opencode/memory/*.json.",
+  "capabilities": {
+    "lookup": "Search errors and decisions by ID, keyword, or module",
+    "record_error": "Register a new error in errors_memory.json",
+    "record_decision": "Register an architectural decision in errors_memory.json",
+    "record_routing": "Record routing decisions in harness-router.json",
+    "record_review": "Record reviews in per-subagent memory files",
+    "update": "Update existing entries in errors_memory.json",
+    "summary": "Return compact report of open errors, recent decisions, and subagent stats",
+    "stats": "Return stats for a specific subagent"
+  },
+  "command_patterns": {
+    "lookup <query>": "Search errors and decisions",
+    "record error": "Register a new error",
+    "record decision": "Register an architectural decision",
+    "record routing": "Record a routing decision",
+    "record review": "Record a reviewer outcome",
+    "update <id> <field>=<value>": "Update an existing entry",
+    "summary": "Compact report",
+    "stats <subagent>": "Stats for a subagent"
+  },
+  "operation_history": [],
+  "stats": {
+    "total_operations": 0,
+    "last_operation": null
+  }
+}

@@ -17,7 +17,14 @@
 # AI tools (local state, not project config)
 .antigravitycli/
 .mavis/
-.opencode/
+# Estado local del CLI opencode (auto-generado); el arnés de subagentes
+# bajo .opencode/agent/ y .opencode/memory/ sí se versiona
+.opencode/node_modules/
+.opencode/package.json
+.opencode/package-lock.json
+.opencode/bun.lock
+.opencode/.gitignore
+.opencode/tmp/
 .claude/settings.local.json
 .claude/agent-memory/
 

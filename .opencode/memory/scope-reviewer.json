@@ -1,0 +1,19 @@
+{
+  "subagent": "scope-reviewer",
+  "description": "Read-only scope validator. Identifies affected areas and required subagents.",
+  "capabilities": {
+    "analyze_scope": "Classify work as feature, fix, refactor, docs-only, infra, or harness change",
+    "detect_areas": "Identify affected areas (backend_v2, frontend, modulo_actividades_fork, testing, docs, .agents, .opencode, Docker)",
+    "list_reviewers": "List required subagents for the detected scope",
+    "flag_risks": "Detect scope creep, missing acceptance criteria, and broad edits"
+  },
+  "command_patterns": {
+    "analyze <scope>": "Return scope classification and required reviewers",
+    "risks <scope>": "Return scope-related risks"
+  },
+  "review_history": [],
+  "stats": {
+    "total_reviews": 0,
+    "last_review": null
+  }
+}
