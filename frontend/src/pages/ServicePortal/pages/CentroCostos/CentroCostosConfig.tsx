@@ -152,20 +152,24 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
 
   return (
     <div className="space-y-6">
-      {/* Botón Volver */}
-      <Button variant="ghost" onClick={onVolver} icon={ArrowLeft} className="font-bold p-0">
-        Volver al Portal
-      </Button>
-
-      {/* Header */}
-      <div className="bg-gradient-to-r from-slate-900 to-blue-950 rounded-3xl p-8 text-white flex justify-between items-center shadow-lg">
+      {/* Header Estilo Requisición de Personal */}
+      <div className="flex items-center gap-4 border-b border-[var(--color-border)] pb-4 mb-6">
+        <Button
+          variant="ghost"
+          onClick={onVolver}
+          icon={ArrowLeft}
+          className="font-bold hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl"
+        />
         <div>
-          <Text variant="caption" className="text-blue-300 uppercase tracking-widest font-bold mb-1">
-            Administración del ERP
-          </Text>
-          <Title variant="h3" weight="bold" color="white">Configurador de Centros de Costos</Title>
-          <Text className="text-blue-200 mt-2">
-            Configure los códigos maestros para UENs, Procesos y Especialidades / Subcentros del Ecosistema Solid.
+          <Title
+            variant="h4"
+            weight="bold"
+            className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400"
+          >
+            Configurador de Centros de Costos
+          </Title>
+          <Text variant="caption" className="text-[var(--color-text-secondary)] mt-1">
+            Administración del ERP — Configure los códigos maestros para UENs, Procesos y Especialidades / Subcentros del Ecosistema Solid.
           </Text>
         </div>
       </div>
