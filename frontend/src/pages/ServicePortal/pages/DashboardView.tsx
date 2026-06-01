@@ -246,6 +246,25 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         .filter(card => card.canSee)
         .sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
 
+    return (
+        <div className="space-y-12 py-6">
+            <div className="text-center space-y-2">
+                <Title variant="h3" weight="bold" className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-light)] bg-clip-text text-transparent">
+                    ¿En qué podemos ayudarte hoy?
+                </Title>
+                <Text variant="h6" color="text-secondary" weight="medium">Selecciona una de las opciones principales de gestión</Text>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {activeCards.map(card => (
+                    <ServicePortalCard
+                        key={card.key}
+                        title={card.title}
+                        description={card.description}
+                        icon={card.icon}
+                        onClick={card.onClick}
+                    />
+                ))}
             </div>
         </div>
     );
