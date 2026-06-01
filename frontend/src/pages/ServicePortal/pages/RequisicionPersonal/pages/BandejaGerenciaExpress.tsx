@@ -89,10 +89,18 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
       </div>
 
       {requisiciones.length === 0 ? (
-        <div className="text-center py-24 bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] shadow-sm">
-          <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-          <Title variant="h6" weight="bold">¡Todo al día!</Title>
-          <Text color="secondary" className="mt-1">No hay requisiciones pendientes de firma gerencial en este momento.</Text>
+        <div className="flex flex-col items-center justify-center text-center py-24 bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] shadow-sm space-y-4">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center shadow-inner">
+            <CheckCircle className="w-8 h-8 text-emerald-500" />
+          </div>
+          <div className="space-y-1">
+            <Title variant="h5" weight="bold" align="center" className="text-slate-800 dark:text-slate-100">
+              ¡Todo al día!
+            </Title>
+            <Text color="secondary" align="center" className="text-sm">
+              No hay requisiciones pendientes de firma gerencial en este momento.
+            </Text>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
