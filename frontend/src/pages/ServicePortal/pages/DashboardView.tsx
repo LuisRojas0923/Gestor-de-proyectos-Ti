@@ -144,9 +144,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
     ];
 
     const reqPersonalSubItems: SubItem[] = [
-        { label: 'Bandeja Principal de Requisiciones', onClick: () => onNavigate('requisicion_personal') },
-        { label: 'Crear Nueva Requisición de Personal', onClick: () => navigate('/service-portal/requisicion-personal/nueva') }
+        { label: 'Crear Nueva Requisición de Personal', onClick: () => navigate('/service-portal/requisicion-personal/nueva') },
+        { label: 'Mis solicitudes de requisición', onClick: () => navigate('/service-portal/requisicion-personal/mis-requisiciones') }
     ];
+
+    if (['admin', 'director'].includes(userRole) || permissions.includes('requisicion_aprobador')) {
+        reqPersonalSubItems.push({
+            label: 'Aprobaciones',
+            onClick: () => navigate('/service-portal/requisicion-personal/aprobaciones')
+        });
+    }
 
     const actividadesSubItems: SubItem[] = [
         { label: 'Panel de Mis Desarrollos', onClick: () => navigate('/service-portal/desarrollos') },
