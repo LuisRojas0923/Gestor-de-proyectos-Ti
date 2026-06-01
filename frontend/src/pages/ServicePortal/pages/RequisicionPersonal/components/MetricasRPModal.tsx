@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, BarChart2, TrendingUp, Users, CheckCircle, Target, Award, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { X, BarChart2, TrendingUp, Users, CheckCircle, Target, Award, AlertTriangle, ArrowLeft, Clock } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line,
@@ -50,6 +50,14 @@ const MESES = [
 ];
 
 const COLORES_CHART = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'];
+
+// Colores fijos por estado para el PieChart
+const ESTADO_COLOR_MAP: Record<string, string> = {
+  APROBADA:              '#10b981', // emerald
+  EN_PROCESO_SELECCION:  '#3b82f6', // blue
+  CERRADA:               '#6366f1', // indigo
+  CANCELADA:             '#ef4444', // red — rojo para cancelación
+};
 
 // ── KPI Card interna ──────────────────────────────────────────────────────────
 
@@ -159,6 +167,22 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
 
   const tasaExito = totalHV > 0 ? Math.round((totalContratados / totalHV) * 100) : 0;
   const rpCerradas = rpFiltradas.filter(r => r.estado === 'CERRADA').length;
+
+  // ── Tiempo promedio de gestión (días desde recepción GH → cierre o cancelación) ──
+  const promediodiasGestion = useMemo(() => {
+    const tiempos: number[] = [];
+    rpFiltradas.forEach(r => {
+      const inicio = fmt(r.fecha_decision_gerente);
+      if (!inicio) return;
+      // Fecha de cierre: usar fecha_cierre si existe, si no updated_at para CERRADA/CANCELADA
+      const fin = fmt(r.fecha_cierre) ?? ((['CERRADA', 'CANCELADA'].includes(r.estado)) ? fmt(r.updated_at) : null);
+      if (!fin) return;
+      const dias = Math.round((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
+      if (dias >= 0) tiempos.push(dias);
+    });
+    if (tiempos.length === 0) return null;
+    return Math.round(tiempos.reduce((a, b) => a + b, 0) / tiempos.length);
+  }, [rpFiltradas]);
 
   // ── Datos Gráfica 1: HV por empresa temporal ─────────────────────────────────
 
@@ -273,7 +297,7 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
         {/* ── KPI Cards ────────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <KpiCard
             label="RP en el período"
             value={rpFiltradas.length}
@@ -305,6 +329,14 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
             icon={CheckCircle}
             color="text-amber-600"
             iconBg="bg-amber-100 dark:bg-amber-900/30"
+          />
+          <KpiCard
+            label="Tiempo prom. gestión"
+            value={promediodiasGestion !== null ? `${promediodiasGestion} días` : '—'}
+            sub="Desde GH recibida → cierre"
+            icon={Clock}
+            color="text-violet-600"
+            iconBg="bg-violet-100 dark:bg-violet-900/30"
           />
         </div>
 
@@ -380,20 +412,23 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
                       outerRadius={70}
                       paddingAngle={3}
                     >
-                      {dataEstados.map((entry, index) => (
-                        <Cell key={entry.estado} fill={COLORES_CHART[index % COLORES_CHART.length]} />
+                      {dataEstados.map((entry) => (
+                        <Cell
+                          key={entry.estado}
+                          fill={ESTADO_COLOR_MAP[entry.estado] ?? '#94a3b8'}
+                        />
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="space-y-1 mt-2">
-                  {dataEstados.map((entry, index) => (
+                  {dataEstados.map((entry) => (
                     <div key={entry.estado} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1.5">
                         <span
                           className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: COLORES_CHART[index % COLORES_CHART.length] }}
+                          style={{ backgroundColor: ESTADO_COLOR_MAP[entry.estado] ?? '#94a3b8' }}
                         />
                         <span className="text-[var(--color-text-secondary)] truncate">{entry.name}</span>
                       </div>
