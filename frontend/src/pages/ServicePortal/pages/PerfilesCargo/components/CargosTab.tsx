@@ -334,7 +334,7 @@ const CargosTab: React.FC<CargosTabProps> = ({
             columns={columns}
             globalFilterText={searchText}
             onGlobalFilterChange={setSearchText}
-            exportFileName="cargos_empresa.csv"
+            hideExport
           />
         )}
       </div>

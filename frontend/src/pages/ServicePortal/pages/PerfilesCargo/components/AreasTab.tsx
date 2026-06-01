@@ -172,7 +172,7 @@ const AreasTab: React.FC<AreasTabProps> = ({
             columns={columns}
             globalFilterText={searchText}
             onGlobalFilterChange={setSearchText}
-            exportFileName="areas_empresa.csv"
+            hideExport
           />
         )}
       </div>

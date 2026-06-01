@@ -24,6 +24,7 @@ interface NominaTableProps<T> {
     fullHeight?: boolean;
     exportFileName?: string;
     hideSearch?: boolean;
+    hideExport?: boolean;
 }
 
 export function NominaTable<T extends Record<string, any>>({
@@ -36,7 +37,8 @@ export function NominaTable<T extends Record<string, any>>({
     filterValue,
     fullHeight = false,
     exportFileName = 'exporte_nomina.csv',
-    hideSearch = false
+    hideSearch = false,
+    hideExport = false
 }: NominaTableProps<T>) {
     const location = useLocation();
     const storageKey = `nomina_table_filters_${location.pathname}`;
@@ -162,22 +164,24 @@ export function NominaTable<T extends Record<string, any>>({
     return (
         <div className={`space-y-1 ${fullHeight ? 'h-full flex flex-col' : ''}`}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 flex-none items-center mb-0.5 py-0">
-                <div className="lg:col-span-2">
-                    {data.length > 0 && (
-                        <Button
-                            variant="erp"
-                            onClick={handleExport}
-                            className="h-[42px] w-full font-bold shadow-sm rounded-lg transition-all active:scale-95 mt-0.5"
-                        >
-                            <div className="flex items-center justify-center gap-3 w-full">
-                                <img src={ExcelIcon} alt="Excel" className="w-8 h-8 object-contain" />
-                                <Text as="span" className="leading-none text-slate-700 mt-0.5" size="sm" weight="bold">EXPORTAR</Text>
-                            </div>
-                        </Button>
-                    )}
-                </div>
+                {!hideExport && (
+                    <div className="lg:col-span-2">
+                        {data.length > 0 && (
+                            <Button
+                                variant="erp"
+                                onClick={handleExport}
+                                className="h-[42px] w-full font-bold shadow-sm rounded-lg transition-all active:scale-95 mt-0.5"
+                            >
+                                <div className="flex items-center justify-center gap-3 w-full">
+                                    <img src={ExcelIcon} alt="Excel" className="w-8 h-8 object-contain" />
+                                    <Text as="span" className="leading-none text-slate-700 mt-0.5" size="sm" weight="bold">EXPORTAR</Text>
+                                </div>
+                            </Button>
+                        )}
+                    </div>
+                )}
 
-                <div className="lg:col-span-10 flex justify-end items-center">
+                <div className={`${hideExport ? 'lg:col-span-12' : 'lg:col-span-10'} flex justify-end items-center`}>
                     {onGlobalFilterChange !== undefined && !hideSearch && (
                         <div className="relative w-full max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
