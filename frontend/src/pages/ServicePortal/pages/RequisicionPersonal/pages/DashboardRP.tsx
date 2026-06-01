@@ -39,19 +39,18 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
   ];
 
   return (
-    <div className="space-y-8">
-      <Button variant="ghost" onClick={onVolver} icon={ArrowLeft} className="font-bold p-0">
-        Volver al Portal
-      </Button>
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-3xl p-8 text-white">
-        <Text variant="caption" className="text-blue-200 uppercase tracking-widest font-bold mb-1">
-          Portal de Servicios — RRHH
-        </Text>
-        <Title variant="h3" weight="bold" color="white">Requisición de Personal</Title>
-        <Text className="text-blue-200 mt-2">
-          Gestione las solicitudes de contratación de personal de manera eficiente y trazable.
-        </Text>
+      <div className="flex items-center gap-4 border-b border-[var(--color-border)] pb-4">
+        <Button variant="ghost" onClick={onVolver} icon={ArrowLeft} className="font-bold hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl" />
+        <div>
+          <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+            Requisición de Personal
+          </Title>
+          <Text variant="caption" color="text-secondary" className="block text-[10px] leading-none uppercase tracking-widest opacity-70 mt-1">
+            PORTAL DE SERVICIOS / RECURSOS HUMANOS
+          </Text>
+        </div>
       </div>
 
       {/* Acciones rápidas */}
@@ -83,13 +82,13 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
       ) : dashboard ? (
         <>
           {/* Total */}
-          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 flex items-center gap-4">
+          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 flex flex-col items-center justify-center text-center gap-3 shadow-sm">
             <div className="w-12 h-12 rounded-2xl bg-[var(--color-primary)]/10 flex items-center justify-center">
               <Briefcase className="w-6 h-6 text-[var(--color-primary)]" />
             </div>
             <div>
-              <Text variant="caption" color="secondary">Total de requisiciones</Text>
-              <Title variant="h3" weight="bold">{dashboard.total}</Title>
+              <Text variant="caption" color="secondary" className="block uppercase tracking-wider font-bold">Total de requisiciones</Text>
+              <Title variant="h3" weight="bold" className="mt-1">{dashboard.total}</Title>
             </div>
           </div>
 
@@ -99,10 +98,10 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
               const colores = ESTADO_COLORES[estado as any] ?? { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' };
               const Icon = ICONOS[estado] || Archive;
               return (
-                <div key={estado} className={`rounded-2xl p-5 ${colores.bg} border border-transparent`}>
-                  <Icon className={`w-5 h-5 mb-3 ${colores.text}`} />
-                  <div className={`text-3xl font-black ${colores.text}`}>{count}</div>
-                  <Text variant="caption" className={`mt-1 font-medium ${colores.text}`}>
+                <div key={estado} className={`rounded-2xl p-5 ${colores.bg} border border-transparent flex flex-col items-center justify-center text-center gap-2 shadow-sm`}>
+                  <Icon className={`w-6 h-6 mb-2 ${colores.text}`} />
+                  <div className={`text-3xl font-black ${colores.text} leading-none`}>{count}</div>
+                  <Text variant="caption" className={`mt-2 font-bold uppercase tracking-wider ${colores.text}`}>
                     {ESTADO_LABELS[estado as any] ?? estado}
                   </Text>
                 </div>

@@ -62,23 +62,32 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
   const salarioFormateado = formatCOP(req.salario_asignado);
 
   return (
-    <div className="space-y-6">
-      <Button variant="ghost" onClick={onBack} icon={ArrowLeft} className="font-bold p-0">Volver</Button>
-
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <Title variant="h4" weight="bold" className="font-mono">{req.rp || 'Sin número RP'}</Title>
-            <RPStatusBadge estado={req.estado} />
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onBack} icon={ArrowLeft} className="font-bold hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl" />
+          <div>
+            <div className="flex items-center gap-3">
+              <Title variant="h4" weight="bold" className="font-mono bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                {req.rp || 'Sin número RP'}
+              </Title>
+              <RPStatusBadge estado={req.estado} />
+            </div>
+            <Text variant="caption" color="text-secondary" className="block text-[10px] leading-none uppercase tracking-widest opacity-70 mt-1">
+              RECURSOS HUMANOS / DETALLE DE SOLICITUD
+            </Text>
           </div>
-          <Text color="secondary">
-            Solicitado por <strong>{req.nombre_solicitante}</strong> — {req.correo_solicitante}
-          </Text>
-          <Text variant="caption" color="secondary">
-            Radicado: {req.fecha_radicacion ? new Date(req.fecha_radicacion).toLocaleDateString('es-CO') : '—'}
-          </Text>
         </div>
+      </div>
+
+      <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 text-sm space-y-1 shadow-sm">
+        <Text color="secondary">
+          Solicitado por: <strong>{req.nombre_solicitante}</strong> ({req.correo_solicitante})
+        </Text>
+        <Text variant="caption" color="secondary" className="block">
+          Radicado: {req.fecha_radicacion ? new Date(req.fecha_radicacion).toLocaleDateString('es-CO') : '—'}
+        </Text>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

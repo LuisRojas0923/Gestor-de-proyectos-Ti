@@ -140,11 +140,19 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" onClick={onVolver} icon={ArrowLeft} className="font-bold p-0">
-        Volver
-      </Button>
-      <div className="flex items-center justify-between">
-        <Title variant="h5" weight="bold">Seguimiento RP Gestión Humana</Title>
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onVolver} icon={ArrowLeft} className="font-bold hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl" />
+          <div>
+            <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+              Seguimiento RP Gestión Humana
+            </Title>
+            <Text variant="caption" color="text-secondary" className="block text-[10px] leading-none uppercase tracking-widest opacity-70 mt-1">
+              RECURSOS HUMANOS / CONTROL Y SEGUIMIENTO
+            </Text>
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -166,13 +174,13 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       {/* Tarjetas de Métricas del Dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Total */}
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 flex items-center gap-4 shadow-sm">
+        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 flex flex-col items-center justify-center text-center gap-2 shadow-sm">
           <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0">
             <Briefcase className="w-5 h-5 text-[var(--color-primary)]" />
           </div>
           <div className="min-w-0">
-            <Text variant="caption" color="secondary" className="block truncate">Total</Text>
-            <div className="text-lg font-bold leading-none mt-0.5">
+            <Text variant="caption" color="secondary" className="block uppercase tracking-wider font-bold">Total</Text>
+            <div className="text-xl font-bold leading-none mt-1">
               {requisiciones.length}
             </div>
           </div>
@@ -189,15 +197,15 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
           const Icon = ICONOS[estado] || Archive;
           
           return (
-            <div key={estado} className={`rounded-2xl p-4 ${colores.bg} border border-transparent shadow-sm flex items-center gap-4`}>
+            <div key={estado} className={`rounded-2xl p-4 ${colores.bg} border border-transparent shadow-sm flex flex-col items-center justify-center text-center gap-2`}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
                 <Icon className={`w-5 h-5 ${colores.text}`} />
               </div>
               <div className="min-w-0">
-                <Text variant="caption" className={`block truncate font-medium ${colores.text}`}>
+                <Text variant="caption" className={`block truncate font-bold uppercase tracking-wider ${colores.text}`}>
                   {label}
                 </Text>
-                <div className={`text-lg font-bold leading-none mt-0.5 ${colores.text}`}>{count}</div>
+                <div className={`text-xl font-bold leading-none mt-1 ${colores.text}`}>{count}</div>
               </div>
             </div>
           );

@@ -71,20 +71,21 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onVolver} icon={ArrowLeft} className="font-bold p-0">
-          Volver al Portal
-        </Button>
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onVolver} icon={ArrowLeft} className="font-bold hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl" />
+          <div>
+            <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+              Firma Express — Requisiciones de Personal
+            </Title>
+            <Text variant="caption" color="text-secondary" className="block text-[10px] leading-none uppercase tracking-widest opacity-70 mt-1">
+              APROBACIÓN GENERAL / GERENCIA ADMINISTRATIVA Y FINANCIERA
+            </Text>
+          </div>
+        </div>
         <Button variant="ghost" onClick={cargar} icon={RefreshCw} title="Actualizar" />
-      </div>
-
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-6 text-white shadow-md">
-        <Title variant="h4" weight="bold" color="white">Firma Express — Requisiciones de Personal</Title>
-        <Text className="text-slate-300 mt-1">
-          Buzón ágil de aprobación definitiva para la Gerencia Administrativa y Financiera.
-        </Text>
       </div>
 
       {requisiciones.length === 0 ? (

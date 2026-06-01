@@ -106,19 +106,18 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
   }
 
   return (
-    <div className="space-y-6">
-      <Button variant="ghost" onClick={onBack} icon={ArrowLeft} className="font-bold p-0">
-        Volver
-      </Button>
-
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-3xl p-6 text-white">
-        <Text variant="caption" className="text-blue-200 uppercase tracking-widest font-bold">
-          Recursos Humanos
-        </Text>
-        <Title variant="h4" weight="bold" color="white" className="mt-1">
-          {requisicionIdEditar ? 'Editar Requisición de Personal' : 'Nueva Requisición de Personal'}
-        </Title>
+      <div className="flex items-center gap-4 border-b border-[var(--color-border)] pb-4">
+        <Button variant="ghost" onClick={onBack} icon={ArrowLeft} className="font-bold hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl" />
+        <div>
+          <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+            {requisicionIdEditar ? 'Editar Requisición de Personal' : 'Nueva Requisición de Personal'}
+          </Title>
+          <Text variant="caption" color="text-secondary" className="block text-[10px] leading-none uppercase tracking-widest opacity-70 mt-1">
+            RECURSOS HUMANOS / SOLICITUD DE PERSONAL
+          </Text>
+        </div>
       </div>
 
       {/* Stepper */}
