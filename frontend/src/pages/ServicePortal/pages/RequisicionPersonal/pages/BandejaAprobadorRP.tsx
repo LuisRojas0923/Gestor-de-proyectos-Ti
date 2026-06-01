@@ -158,9 +158,18 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
       </div>
 
       {requisiciones.length === 0 ? (
-        <div className="text-center py-20 bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)]">
-          <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-          <Text color="secondary">No tiene requisiciones pendientes de aprobación.</Text>
+        <div className="flex flex-col items-center justify-center text-center py-20 bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm space-y-4">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center shadow-inner">
+            <CheckCircle className="w-8 h-8 text-emerald-500" />
+          </div>
+          <div className="space-y-1">
+            <Title variant="h5" weight="bold" align="center" className="text-slate-800 dark:text-slate-100">
+              ¡Todo al día!
+            </Title>
+            <Text color="secondary" align="center" className="text-sm">
+              No tiene requisiciones pendientes de aprobación.
+            </Text>
+          </div>
         </div>
       ) : (
         <div className="min-h-0 flex flex-col space-y-3 overflow-hidden">
