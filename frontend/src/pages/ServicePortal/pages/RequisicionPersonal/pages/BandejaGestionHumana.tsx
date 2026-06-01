@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users, Settings } from 'lucide-react';
+import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users, Settings, BarChart2 } from 'lucide-react';
 import { Title, Text, Button } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
@@ -9,6 +9,7 @@ import { getBandejaGH } from '../services/requisicionService';
 import { ESTADO_COLORES, ESTADO_LABELS } from '../types/requisicion.types';
 import ConfigTemporalesModal from '../components/ConfigTemporalesModal';
 import DetalleSeguimientoRP from '../components/DetalleSeguimientoRP';
+import MetricasRPModal from '../components/MetricasRPModal';
 
 const ICONOS: Record<string, React.ElementType> = {
   BORRADOR: Archive,
@@ -32,6 +33,7 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
   const [loading, setLoading] = useState(true);
   const [selectedRequisicion, setSelectedRequisicion] = useState<RequisicionRP | null>(null);
   const [showTemporalesConfig, setShowTemporalesConfig] = useState(false);
+  const [showMetricas, setShowMetricas] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchText, setSearchText] = useState('');
 
@@ -84,6 +86,20 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       accessorKey: 'ciudad_nombre',
       align: 'center',
       cell: (row) => <span>{row.ciudad_nombre || '—'}</span>,
+    },
+    {
+      header: 'Recibida GH',
+      accessorKey: 'fecha_decision_gerente',
+      align: 'center',
+      cell: (row) => {
+        if (!row.fecha_decision_gerente) return <span className="text-[var(--color-text-tertiary)]">—</span>;
+        const d = new Date(row.fecha_decision_gerente);
+        return (
+          <span className="font-mono text-xs text-[var(--color-text-secondary)]">
+            {d.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+          </span>
+        );
+      },
     },
     {
       header: 'Estado',
@@ -154,6 +170,14 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            icon={BarChart2}
+            onClick={() => setShowMetricas(true)}
+            className="text-xs font-bold"
+          >
+            Métricas RP
+          </Button>
           <Button
             variant="ghost"
             icon={Settings}
@@ -246,6 +270,12 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
           onRefreshList={cargar}
         />
       )}
+
+      <MetricasRPModal
+        isOpen={showMetricas}
+        onClose={() => setShowMetricas(false)}
+        requisiciones={requisiciones}
+      />
     </div>
   );
 };
