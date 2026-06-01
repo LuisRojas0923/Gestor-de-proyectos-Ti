@@ -1,7 +1,7 @@
 // Detalle completo de una Requisición de Personal
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, MessageCircle, Send } from 'lucide-react';
-import { Button, Title, Text } from '../../../../../components/atoms';
+import { Button, Title, Text, Input } from '../../../../../components/atoms';
 import RPStatusBadge from '../components/RPStatusBadge';
 import RPTimeline from '../components/RPTimeline';
 import type { RequisicionRP } from '../types/requisicion.types';
@@ -164,18 +164,23 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
                 <Text variant="body">{c.comentario}</Text>
               </div>
             ))}
-            <div className="flex gap-2 mt-3">
-              <input
-                className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                placeholder="Escribir comentario..."
-                value={comentario}
-                onChange={e => setComentario(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleComentario(); } }}
+            <div className="flex gap-2 mt-3 items-end">
+              <div className="flex-1">
+                <Input
+                  className="!mb-0"
+                  placeholder="Escribir comentario..."
+                  value={comentario}
+                  onChange={e => setComentario(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleComentario(); } }}
+                />
+              </div>
+              <Button
+                variant="primary"
+                onClick={handleComentario}
+                disabled={enviandoComentario || !comentario.trim()}
+                loading={enviandoComentario}
+                icon={Send}
               />
-              <button onClick={handleComentario} disabled={enviandoComentario || !comentario.trim()}
-                className="p-2.5 rounded-xl bg-[var(--color-primary)] text-white hover:opacity-90 transition-opacity disabled:opacity-40">
-                <Send className="w-4 h-4" />
-              </button>
             </div>
           </div>
         </div>

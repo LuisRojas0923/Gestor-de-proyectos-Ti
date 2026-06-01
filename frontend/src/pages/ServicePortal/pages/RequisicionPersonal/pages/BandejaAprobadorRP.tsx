@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Eye, CheckCircle, XCircle, RotateCcw, ArrowLeft } from 'lucide-react';
 import { Button, Title, Text } from '../../../../../components/atoms';
+import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
 import type { RequisicionRP } from '../types/requisicion.types';
 import { getBandejaAprobador, aprobarRequisicion, rechazarRequisicion, devolverRequisicion } from '../services/requisicionService';
@@ -23,6 +24,7 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
   const [modal, setModal] = useState<ModalAccion | null>(null);
   const [observacion, setObservacion] = useState('');
   const [procesando, setProcesando] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   const cargar = () => {
     setLoading(true);
@@ -53,6 +55,85 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
     }
   };
 
+  const columns = useMemo<ColumnDef<RequisicionRP>[]>(() => [
+    {
+      header: 'RP',
+      accessorKey: 'rp',
+      align: 'center',
+      cell: (row) => <span className="font-mono font-bold text-[var(--color-primary)]">{row.rp || '—'}</span>,
+    },
+    {
+      header: 'Solicitante',
+      accessorKey: 'nombre_solicitante',
+      align: 'left',
+      cell: (row) => (
+        <div>
+          <div className="font-medium text-slate-800 dark:text-slate-200">{row.nombre_solicitante}</div>
+          <div className="text-xs text-[var(--color-text-tertiary)]">{row.correo_solicitante}</div>
+        </div>
+      ),
+    },
+    {
+      header: 'Área',
+      accessorKey: 'area_nombre',
+      align: 'left',
+      cell: (row) => <span>{row.area_nombre || '—'}</span>,
+    },
+    {
+      header: 'Cargo',
+      accessorKey: 'cargo_nombre',
+      align: 'left',
+      cell: (row) => <span>{row.cargo_nombre || '—'}</span>,
+    },
+    {
+      header: 'N° Pers.',
+      accessorKey: 'numero_personas_requeridas',
+      align: 'center',
+      cell: (row) => <span>{row.numero_personas_requeridas}</span>,
+    },
+    {
+      header: 'Ingreso',
+      accessorKey: 'fecha_probable_ingreso',
+      align: 'center',
+      cell: (row) => <span>{row.fecha_probable_ingreso || '—'}</span>,
+    },
+    {
+      header: 'Estado',
+      accessorKey: 'estado',
+      align: 'center',
+      cell: (row) => <RPStatusBadge estado={row.estado} size="sm" />,
+    },
+    {
+      header: 'Acciones',
+      accessorKey: 'id',
+      align: 'center',
+      enableColumnFilter: false,
+      cell: (row) => (
+        <div className="flex items-center justify-center gap-1">
+          <button onClick={() => onVer(row.id)} title="Ver detalle"
+            className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">
+            <Eye className="w-4 h-4" />
+          </button>
+          <button onClick={() => { setModal({ tipo: 'aprobar', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
+            title="Aprobar"
+            className="p-1.5 rounded-lg hover:bg-emerald-50 text-[var(--color-text-secondary)] hover:text-emerald-600 transition-colors">
+            <CheckCircle className="w-4 h-4" />
+          </button>
+          <button onClick={() => { setModal({ tipo: 'devolver', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
+            title="Devolver para ajuste"
+            className="p-1.5 rounded-lg hover:bg-amber-50 text-[var(--color-text-secondary)] hover:text-amber-600 transition-colors">
+            <RotateCcw className="w-4 h-4" />
+          </button>
+          <button onClick={() => { setModal({ tipo: 'rechazar', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
+            title="Rechazar"
+            className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--color-text-secondary)] hover:text-red-600 transition-colors">
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+  ], [onVer]);
+
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <div className="animate-spin w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full" />
@@ -72,55 +153,16 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
           <Text color="secondary">No tiene requisiciones pendientes de aprobación.</Text>
         </div>
       ) : (
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-[var(--color-surface-secondary)] border-b border-[var(--color-border)]">
-              <tr>
-                {['RP', 'Solicitante', 'Área', 'Cargo', 'N° Pers.', 'Ingreso', 'Estado', 'Acciones'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
-              {requisiciones.map(req => (
-                <tr key={req.id} className="hover:bg-[var(--color-surface-secondary)] transition-colors">
-                  <td className="px-4 py-3 font-mono font-bold text-[var(--color-primary)]">{req.rp}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{req.nombre_solicitante}</div>
-                    <div className="text-xs text-[var(--color-text-tertiary)]">{req.correo_solicitante}</div>
-                  </td>
-                  <td className="px-4 py-3">{req.area_nombre || '—'}</td>
-                  <td className="px-4 py-3">{req.cargo_nombre || '—'}</td>
-                  <td className="px-4 py-3 text-center">{req.numero_personas_requeridas}</td>
-                  <td className="px-4 py-3">{req.fecha_probable_ingreso || '—'}</td>
-                  <td className="px-4 py-3"><RPStatusBadge estado={req.estado} size="sm" /></td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => onVer(req.id)} title="Ver detalle"
-                        className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => { setModal({ tipo: 'aprobar', requisicionId: req.id, rp: req.rp! }); setObservacion(''); }}
-                        title="Aprobar"
-                        className="p-1.5 rounded-lg hover:bg-emerald-50 text-[var(--color-text-secondary)] hover:text-emerald-600 transition-colors">
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => { setModal({ tipo: 'devolver', requisicionId: req.id, rp: req.rp! }); setObservacion(''); }}
-                        title="Devolver para ajuste"
-                        className="p-1.5 rounded-lg hover:bg-amber-50 text-[var(--color-text-secondary)] hover:text-amber-600 transition-colors">
-                        <RotateCcw className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => { setModal({ tipo: 'rechazar', requisicionId: req.id, rp: req.rp! }); setObservacion(''); }}
-                        title="Rechazar"
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--color-text-secondary)] hover:text-red-600 transition-colors">
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="min-h-0 flex flex-col space-y-3 overflow-hidden">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <NominaTable
+              data={requisiciones}
+              columns={columns}
+              globalFilterText={searchText}
+              onGlobalFilterChange={setSearchText}
+              exportFileName="aprobaciones_pendientes_rp.csv"
+            />
+          </div>
         </div>
       )}
 
@@ -149,18 +191,23 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
             />
 
             <div className="flex gap-3 mt-4">
-              <button onClick={() => setModal(null)}
-                className="flex-1 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-semibold hover:bg-[var(--color-surface-secondary)] transition-colors">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setModal(null)}
+              >
                 Cancelar
-              </button>
-              <button onClick={handleAccion} disabled={procesando}
-                className={`flex-1 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors
-                  ${modal.tipo === 'aprobar' ? 'bg-emerald-600 hover:bg-emerald-700'
-                    : modal.tipo === 'rechazar' ? 'bg-red-600 hover:bg-red-700'
-                    : 'bg-amber-600 hover:bg-amber-700'} disabled:opacity-50`}>
-                {procesando ? 'Procesando...' : modal.tipo === 'aprobar' ? 'Confirmar aprobación'
+              </Button>
+              <Button
+                variant={modal.tipo === 'aprobar' ? 'custom' : modal.tipo === 'rechazar' ? 'danger' : 'custom'}
+                className={`flex-1 ${modal.tipo === 'aprobar' ? 'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500' : modal.tipo === 'devolver' ? 'bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-500' : ''}`}
+                onClick={handleAccion}
+                disabled={procesando}
+                loading={procesando}
+              >
+                {modal.tipo === 'aprobar' ? 'Confirmar aprobación'
                   : modal.tipo === 'rechazar' ? 'Confirmar rechazo' : 'Confirmar devolución'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

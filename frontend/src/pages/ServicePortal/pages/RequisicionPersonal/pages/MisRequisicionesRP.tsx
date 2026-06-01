@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Plus, Eye, Edit, XCircle, Send, ArrowLeft } from 'lucide-react';
 import { Button, Title, Text } from '../../../../../components/atoms';
+import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
 import type { RequisicionRP } from '../types/requisicion.types';
 import { getMisRequisiciones, cancelarRequisicion, enviarAAprobacion } from '../services/requisicionService';
@@ -17,6 +18,7 @@ interface Props {
 const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicitante, onNueva, onVer, onEditar, onVolver }) => {
   const [requisiciones, setRequisiciones] = useState<RequisicionRP[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState('');
 
   const cargar = () => {
     setLoading(true);
@@ -38,6 +40,85 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
     await enviarAAprobacion(id, correoSolicitante, nombreSolicitante);
     cargar();
   };
+
+  const columns = useMemo<ColumnDef<RequisicionRP>[]>(() => [
+    {
+      header: 'RP',
+      accessorKey: 'rp',
+      align: 'center',
+      cell: (row) => (
+        <span className="font-mono font-bold text-[var(--color-primary)]">
+          {row.rp || <span className="text-[var(--color-text-tertiary)] italic">Sin RP</span>}
+        </span>
+      ),
+    },
+    {
+      header: 'Fecha',
+      accessorKey: 'fecha_radicacion',
+      align: 'center',
+      cell: (row) => (
+        <span className="text-[var(--color-text-secondary)]">
+          {row.fecha_radicacion ? new Date(row.fecha_radicacion).toLocaleDateString('es-CO') : '—'}
+        </span>
+      ),
+    },
+    {
+      header: 'Área',
+      accessorKey: 'area_nombre',
+      align: 'left',
+      cell: (row) => <span>{row.area_nombre || '—'}</span>,
+    },
+    {
+      header: 'Cargo',
+      accessorKey: 'cargo_nombre',
+      align: 'left',
+      cell: (row) => <span>{row.cargo_nombre || '—'}</span>,
+    },
+    {
+      header: 'Estado',
+      accessorKey: 'estado',
+      align: 'center',
+      cell: (row) => <RPStatusBadge estado={row.estado} size="sm" />,
+    },
+    {
+      header: 'Aprobador',
+      accessorKey: 'aprobador_nombre',
+      align: 'left',
+      cell: (row) => <span className="text-[var(--color-text-secondary)]">{row.aprobador_nombre || '—'}</span>,
+    },
+    {
+      header: 'Acciones',
+      accessorKey: 'id',
+      align: 'center',
+      enableColumnFilter: false,
+      cell: (row) => (
+        <div className="flex items-center justify-center gap-1">
+          <button onClick={() => onVer(row.id)} title="Ver detalle"
+            className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">
+            <Eye className="w-4 h-4" />
+          </button>
+          {(row.estado === 'BORRADOR' || row.estado === 'DEVUELTA_AJUSTE') && (
+            <button onClick={() => onEditar(row.id)} title="Editar"
+              className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-amber-600 transition-colors">
+              <Edit className="w-4 h-4" />
+            </button>
+          )}
+          {row.estado === 'DEVUELTA_AJUSTE' && (
+            <button onClick={() => handleReenviar(row.id)} title="Reenviar a aprobación"
+              className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-emerald-600 transition-colors">
+              <Send className="w-4 h-4" />
+            </button>
+          )}
+          {row.estado === 'BORRADOR' && (
+            <button onClick={() => handleCancelar(row.id)} title="Cancelar"
+              className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-red-600 transition-colors">
+              <XCircle className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ], [onVer, onEditar, handleCancelar, handleReenviar]);
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
@@ -61,58 +142,16 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
           <Button variant="primary" icon={Plus} onClick={onNueva}>Crear primera requisición</Button>
         </div>
       ) : (
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-[var(--color-surface-secondary)] border-b border-[var(--color-border)]">
-              <tr>
-                {['RP', 'Fecha', 'Área', 'Cargo', 'Estado', 'Aprobador', 'Acciones'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
-              {requisiciones.map(req => (
-                <tr key={req.id} className="hover:bg-[var(--color-surface-secondary)] transition-colors">
-                  <td className="px-4 py-3 font-mono font-bold text-[var(--color-primary)]">
-                    {req.rp || <span className="text-[var(--color-text-tertiary)] italic">Sin RP</span>}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-text-secondary)]">
-                    {req.fecha_radicacion ? new Date(req.fecha_radicacion).toLocaleDateString('es-CO') : '—'}
-                  </td>
-                  <td className="px-4 py-3">{req.area_nombre || '—'}</td>
-                  <td className="px-4 py-3">{req.cargo_nombre || '—'}</td>
-                  <td className="px-4 py-3"><RPStatusBadge estado={req.estado} size="sm" /></td>
-                  <td className="px-4 py-3 text-[var(--color-text-secondary)]">{req.aprobador_nombre || '—'}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => onVer(req.id)} title="Ver detalle"
-                        className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      {(req.estado === 'BORRADOR' || req.estado === 'DEVUELTA_AJUSTE') && (
-                        <button onClick={() => onEditar(req.id)} title="Editar"
-                          className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-amber-600 transition-colors">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                      )}
-                      {req.estado === 'DEVUELTA_AJUSTE' && (
-                        <button onClick={() => handleReenviar(req.id)} title="Reenviar a aprobación"
-                          className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-emerald-600 transition-colors">
-                          <Send className="w-4 h-4" />
-                        </button>
-                      )}
-                      {req.estado === 'BORRADOR' && (
-                        <button onClick={() => handleCancelar(req.id)} title="Cancelar"
-                          className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-red-600 transition-colors">
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="min-h-0 flex flex-col space-y-3 overflow-hidden">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <NominaTable
+              data={requisiciones}
+              columns={columns}
+              globalFilterText={searchText}
+              onGlobalFilterChange={setSearchText}
+              exportFileName="mis_requisiciones_rp.csv"
+            />
+          </div>
         </div>
       )}
     </div>

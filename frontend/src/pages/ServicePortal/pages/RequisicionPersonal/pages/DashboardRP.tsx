@@ -57,15 +57,19 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
       {/* Acciones rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Nueva Requisición', icon: Plus, action: onNueva, color: 'bg-[var(--color-primary)] text-white hover:opacity-90' },
-          { label: 'Mis Solicitudes', icon: List, action: onMisRequisiciones, color: 'bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]' },
-          { label: 'Aprobaciones', icon: ThumbsUp, action: onAprobaciones, color: 'bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]' },
-        ].map(({ label, icon: Icon, action, color }) => (
-          <button key={label} onClick={action}
-            className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl font-semibold text-sm transition-all ${color}`}>
-            <Icon className="w-6 h-6" />
-            {label}
-          </button>
+          { label: 'Nueva Requisición', icon: Plus, action: onNueva, variant: 'primary' as const, className: 'h-auto py-6 rounded-2xl shadow-sm' },
+          { label: 'Mis Solicitudes', icon: List, action: onMisRequisiciones, variant: 'outline' as const, className: 'h-auto py-6 rounded-2xl bg-[var(--color-surface)] border-[var(--color-border)] shadow-sm hover:bg-[var(--color-surface-secondary)]' },
+          { label: 'Aprobaciones', icon: ThumbsUp, action: onAprobaciones, variant: 'outline' as const, className: 'h-auto py-6 rounded-2xl bg-[var(--color-surface)] border-[var(--color-border)] shadow-sm hover:bg-[var(--color-surface-secondary)]' },
+        ].map(({ label, icon: Icon, action, variant, className }) => (
+          <Button
+            key={label}
+            onClick={action}
+            variant={variant}
+            className={`${className} flex flex-col items-center justify-center gap-3`}
+          >
+            <Icon className="w-6 h-6 shrink-0 text-current" />
+            <Text className="font-semibold text-sm text-current leading-none">{label}</Text>
+          </Button>
         ))}
       </div>
 

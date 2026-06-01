@@ -77,9 +77,7 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
         <Button variant="ghost" onClick={onVolver} icon={ArrowLeft} className="font-bold p-0">
           Volver al Portal
         </Button>
-        <button onClick={cargar} className="p-2 rounded-xl hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] transition-colors">
-          <RefreshCw className="w-5 h-5" />
-        </button>
+        <Button variant="ghost" onClick={cargar} icon={RefreshCw} title="Actualizar" />
       </div>
 
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-6 text-white shadow-md">
@@ -222,29 +220,32 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
 
                 {/* Botones de Acción Rápida */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-[var(--color-border)]">
-                  <button
+                  <Button
+                    variant="custom"
+                    className="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500 font-bold shadow-md active:scale-[0.98]"
                     onClick={() => setModal({ tipo: 'aprobar', requisicion: seleccionada })}
-                    className="flex-grow flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm shadow-md hover:bg-emerald-700 transition-all active:scale-[0.98]"
+                    icon={CheckCircle}
                   >
-                    <CheckCircle className="w-4.5 h-4.5" />
                     Firmar y Autorizar
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
+                    variant="custom"
+                    className="sm:w-32 bg-amber-600 hover:bg-amber-700 text-white focus:ring-amber-500 font-bold active:scale-[0.98]"
                     onClick={() => setModal({ tipo: 'devolver', requisicion: seleccionada })}
-                    className="sm:w-32 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-orange-50 border border-orange-200 text-orange-800 font-bold text-sm hover:bg-orange-100 transition-all active:scale-[0.98]"
+                    icon={RotateCcw}
                   >
-                    <RotateCcw className="w-4.5 h-4.5" />
                     Devolver
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
+                    variant="danger"
+                    className="sm:w-32 font-bold active:scale-[0.98]"
                     onClick={() => setModal({ tipo: 'rechazar', requisicion: seleccionada })}
-                    className="sm:w-32 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-800 font-bold text-sm hover:bg-red-100 transition-all active:scale-[0.98]"
+                    icon={XCircle}
                   >
-                    <XCircle className="w-4.5 h-4.5" />
                     Rechazar
-                  </button>
+                  </Button>
                 </div>
               </>
             ) : (
@@ -296,18 +297,17 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
               >
                 Cancelar
               </Button>
-              <button
+              <Button
+                variant={modal.tipo === 'aprobar' ? 'custom' : modal.tipo === 'rechazar' ? 'danger' : 'custom'}
+                className={modal.tipo === 'aprobar' ? 'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500' : modal.tipo === 'devolver' ? 'bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-500' : ''}
                 disabled={procesando || ((modal.tipo === 'devolver' || modal.tipo === 'rechazar') && !observacion.trim())}
                 onClick={handleEjecutarAccion}
-                className={`px-5 py-2.5 rounded-2xl text-white font-bold text-sm flex items-center gap-1.5 transition-all shadow-sm ${
-                  modal.tipo === 'aprobar' ? 'bg-emerald-600 hover:bg-emerald-700' :
-                  modal.tipo === 'devolver' ? 'bg-orange-600 hover:bg-orange-700' :
-                  'bg-red-600 hover:bg-red-700'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                loading={procesando}
+                icon={Send}
+                iconPosition="right"
               >
-                <Send className="w-4 h-4" />
-                {procesando ? 'Procesando...' : 'Confirmar'}
-              </button>
+                Confirmar
+              </Button>
             </div>
           </div>
         </div>

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users, Settings } from 'lucide-react';
 import { Title, Text, Button } from '../../../../../components/atoms';
+import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
 import type { RequisicionRP, EstadoRP } from '../types/requisicion.types';
 import { getBandejaGH } from '../services/requisicionService';
@@ -32,8 +33,65 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
   const [selectedRequisicion, setSelectedRequisicion] = useState<RequisicionRP | null>(null);
   const [showTemporalesConfig, setShowTemporalesConfig] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [searchText, setSearchText] = useState('');
 
   const selectedId = searchParams.get('id');
+
+  const columns = useMemo<ColumnDef<RequisicionRP>[]>(() => [
+    {
+      header: 'RP',
+      accessorKey: 'rp',
+      align: 'center',
+      cell: (row) => (
+        <div className="flex items-center justify-center gap-2">
+          <button onClick={() => onVer(row.id)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors" title="Ver Requisición">
+            <Eye className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setSearchParams({ id: String(row.id) })}
+            className="font-mono font-bold text-[var(--color-primary)] hover:underline transition-colors text-left"
+            title="Gestionar Seguimiento y Candidatos"
+          >
+            {row.rp || 'Sin RP'}
+          </button>
+        </div>
+      ),
+    },
+    {
+      header: 'Solicitante',
+      accessorKey: 'nombre_solicitante',
+      align: 'left',
+      cell: (row) => (
+        <div>
+          <div className="font-medium text-slate-800 dark:text-slate-200">{row.nombre_solicitante}</div>
+          <div className="text-xs text-[var(--color-text-tertiary)]">{row.correo_solicitante}</div>
+        </div>
+      ),
+    },
+    {
+      header: 'Área / Cargo',
+      accessorKey: 'area_nombre',
+      align: 'left',
+      cell: (row) => (
+        <div>
+          <div className="text-slate-800 dark:text-slate-200">{row.area_nombre}</div>
+          <div className="text-xs text-[var(--color-text-tertiary)]">{row.cargo_nombre}</div>
+        </div>
+      ),
+    },
+    {
+      header: 'Ciudad',
+      accessorKey: 'ciudad_nombre',
+      align: 'center',
+      cell: (row) => <span>{row.ciudad_nombre || '—'}</span>,
+    },
+    {
+      header: 'Estado',
+      accessorKey: 'estado',
+      align: 'center',
+      cell: (row) => <RPStatusBadge estado={row.estado as EstadoRP} size="sm" />,
+    },
+  ], [onVer, setSearchParams]);
 
   useEffect(() => {
     if (selectedId) {
@@ -96,9 +154,12 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
           >
             Configurar Temporales
           </Button>
-          <button onClick={cargar} className="p-2 rounded-xl hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] transition-colors">
-            <RefreshCw className="w-5 h-5" />
-          </button>
+          <Button
+            variant="ghost"
+            icon={RefreshCw}
+            onClick={cargar}
+            title="Actualizar"
+          />
         </div>
       </div>
 
@@ -148,48 +209,16 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
           <Text color="secondary">No hay requisiciones aprobadas pendientes de gestión.</Text>
         </div>
       ) : (
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-[var(--color-surface-secondary)] border-b border-[var(--color-border)]">
-              <tr>
-                {['RP', 'Solicitante', 'Área / Cargo', 'Ciudad', 'Estado'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
-              {requisiciones.map(req => {
-                return (
-                  <tr key={req.id} className="hover:bg-[var(--color-surface-secondary)] transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => onVer(req.id)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors" title="Ver Requisición">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setSearchParams({ id: String(req.id) })}
-                          className="font-mono font-bold text-[var(--color-primary)] hover:underline transition-colors text-left"
-                          title="Gestionar Seguimiento y Candidatos"
-                        >
-                          {req.rp}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{req.nombre_solicitante}</div>
-                      <div className="text-xs text-[var(--color-text-tertiary)]">{req.correo_solicitante}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div>{req.area_nombre}</div>
-                      <div className="text-xs text-[var(--color-text-tertiary)]">{req.cargo_nombre}</div>
-                    </td>
-                    <td className="px-4 py-3">{req.ciudad_nombre || '—'}</td>
-                    <td className="px-4 py-3"><RPStatusBadge estado={req.estado as EstadoRP} size="sm" /></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="min-h-0 flex flex-col space-y-3 overflow-hidden">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <NominaTable
+              data={requisiciones}
+              columns={columns}
+              globalFilterText={searchText}
+              onGlobalFilterChange={setSearchText}
+              exportFileName="seguimiento_rp_gestion_humana.csv"
+            />
+          </div>
         </div>
       )}
 
