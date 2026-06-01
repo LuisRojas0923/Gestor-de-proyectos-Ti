@@ -222,7 +222,7 @@ const DevelopmentTimeline: React.FC<DevelopmentTimelineProps> = ({
             </div>
             <div className="flex items-center space-x-2">
               <Clock size={14} className="text-blue-500" />
-              <Text variant="caption" color="text-secondary" as="span">En Progreso</Text>
+              <Text variant="caption" color="text-secondary" as="span">En proceso</Text>
             </div>
             <div className="flex items-center space-x-2">
               <Circle size={14} className="text-gray-400" />

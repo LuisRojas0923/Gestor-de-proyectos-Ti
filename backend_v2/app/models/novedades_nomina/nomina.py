@@ -99,7 +99,7 @@ class NominaFavorito(SQLModel, table=True):
     __tablename__ = "nomina_favoritos"
     
     id: Optional[int] = Field(default=None, primary_key=True)
-    usuario_id: int = Field(foreign_key="usuarios.id")
+    usuario_id: str = Field(foreign_key="usuarios.id", max_length=50)
     cedula: str = Field(max_length=50, index=True)
     subcategoria: str = Field(max_length=100)
     

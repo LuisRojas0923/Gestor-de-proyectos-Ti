@@ -1,9 +1,11 @@
 import os
+import re
 from typing import List, Optional, Union
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
+from email.header import Header
 from jinja2 import Environment, FileSystemLoader
 from app.config import config
 from .email_utils import EmailUtils
@@ -51,8 +53,20 @@ class EmailService:
             #   |-- inline images
             
             msg_root = MIMEMultipart("related")
-            msg_root["Subject"] = asunto
-            msg_root["From"] = config.smtp_from or config.smtp_user
+            msg_root["Subject"] = Header(asunto, "utf-8")
+            
+            # Codificar el remitente de forma segura si contiene nombre descriptivo
+            from_email = config.smtp_from or config.smtp_user
+            if " " in from_email:
+                match = re.match(r'(.*)\s+<(.*)>', from_email)
+                if match:
+                    name, addr = match.groups()
+                    msg_root["From"] = f"{Header(name, 'utf-8').encode()} <{addr}>"
+                else:
+                    msg_root["From"] = from_email
+            else:
+                msg_root["From"] = from_email
+
             msg_root["To"] = ", ".join(destinatarios)
 
             # Cabeceras para Hilos (Threading)
@@ -265,7 +279,7 @@ class EmailService:
         </table>
         
         <div style="text-align: center; margin-bottom: 10px;">
-            <a href="{config.frontend_url.rstrip("/")}/tickets/{ticket_id}" style="background-color: #002060; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; display: inline-block;">
+            <a href="{config.frontend_url.rstrip("/")}/service-portal/mis-tickets/{ticket_id}" style="background-color: #002060; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; display: inline-block;">
                 Ver Estado en el Portal
             </a>
         </div>
@@ -349,7 +363,8 @@ class EmailService:
         ticket_id: str,
         asunto_ticket: str,
         nombre_remitente: str,
-        mensaje: str
+        mensaje: str,
+        es_solicitante: bool = False
     ) -> bool:
         """Envía una notificación de nuevo mensaje en el chat"""
         # Mantener el asunto idéntico (o con Re:) para favorecer el threading
@@ -359,7 +374,10 @@ class EmailService:
             # Limitar mensaje si es muy largo
             mensaje_resumen = (mensaje[:500] + "...") if len(mensaje) > 500 else mensaje
             
-            portal_url = f"{EmailService.get_frontend_url()}/tickets/{ticket_id}"
+            if es_solicitante:
+                portal_url = f"{EmailService.get_frontend_url()}/service-portal/mis-tickets/{ticket_id}"
+            else:
+                portal_url = f"{EmailService.get_frontend_url()}/tickets/{ticket_id}"
             
             html_final = EmailService._render_template(
                 "emails/chat_notification.html",
@@ -406,7 +424,7 @@ class EmailService:
         conf_color = colores.get(nuevo_estado, {"fondo": "#ebf8ff", "texto": "#2b6cb0", "borde": "#bee3f8"})
         
         try:
-            portal_url = f"{EmailService.get_frontend_url()}/tickets/{ticket_id}"
+            portal_url = f"{EmailService.get_frontend_url()}/service-portal/mis-tickets/{ticket_id}"
             
             html_final = EmailService._render_template(
                 "emails/status_update.html",

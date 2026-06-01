@@ -5,7 +5,7 @@ services:
       context: ./backend_v2
       dockerfile: Dockerfile
     ports:
-      - "8001:8000" # Re-expuesto para acceso directo por IP:8001 (Cambiado de 8000 por conflicto)
+      - "8000:8000" # Re-expuesto para acceso directo por IP:8000
     env_file:
       - .env
     environment:
@@ -67,7 +67,7 @@ services:
     container_name: gestor-de-proyectos-ti-adminer
     restart: always
     ports:
-      - "8085:8080"
+      - "8087:8080"
     depends_on:
       db:
         condition: service_healthy
@@ -87,7 +87,7 @@ services:
       - TZ=America/Bogota
     command: postgres -c hba_file=/etc/postgresql/pg_hba.conf
     ports:
-      - "5433:5432" # Re-expuesto para mantenimiento (Cambiado de 5432 por conflicto)
+      - "5432:5432" # Re-expuesto para mantenimiento
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-user} -d ${DB_NAME:-project_manager}" ]
       interval: 5s

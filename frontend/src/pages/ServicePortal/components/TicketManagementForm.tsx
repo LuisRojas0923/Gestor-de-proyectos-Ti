@@ -34,7 +34,7 @@ const TicketManagementForm: React.FC<TicketManagementFormProps> = ({ ticket, isS
                     options={[
                         { value: "Nuevo", label: "Nuevo" },
                         { value: "Abierto", label: "Abierto" },
-                        { value: "En Proceso", label: "En Proceso" },
+                        { value: "En Proceso", label: "En proceso" },
                         { value: "Pendiente Info", label: "Pendiente Info" },
                         { value: "Escalado", label: "Escalado" },
                         { value: "Resuelto", label: "Resuelto" },

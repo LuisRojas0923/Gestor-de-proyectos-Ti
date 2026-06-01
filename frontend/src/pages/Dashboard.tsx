@@ -77,7 +77,7 @@ const CustomTooltip = ({ active, payload }: any) => {
             <Text variant="caption" weight="bold" className="text-[var(--color-primary)]">{data.total}</Text>
           </div>
           <div className="flex justify-between gap-6">
-            <Text variant="caption" color="text-secondary" weight="medium">En Proceso:</Text>
+            <Text variant="caption" color="text-secondary" weight="medium">En proceso:</Text>
             <Text variant="caption" weight="bold" className="text-blue-500">{data.en_proceso}</Text>
           </div>
           <div className="flex justify-between gap-6">

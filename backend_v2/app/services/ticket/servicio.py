@@ -421,9 +421,7 @@ class ServicioTicket:
             if not nuevo_comentario.es_interno:
                 ticket = await cls.obtener_ticket_por_id(db, ticket_id)
                 if ticket:
-                    destinatario_email = None
-                    nombre_destinatario = None
-                    
+                    es_solicitante = False
                     # Caso A: El creador del ticket responde -> Notificar al analista asignado
                     # Usamos str() para asegurar comparación robusta entre UUIDs y strings
                     if str(nuevo_comentario.usuario_id) == str(ticket.creador_id):
@@ -437,6 +435,7 @@ class ServicioTicket:
                     else:
                         destinatario_email = ticket.correo_creador
                         nombre_destinatario = ticket.nombre_creador or "Usuario"
+                        es_solicitante = True
 
                     if destinatario_email:
                         # THROTTLE: 30 min por ticket/destinatario para evitar spam
@@ -452,6 +451,7 @@ class ServicioTicket:
                                         asunto_ticket=ticket.asunto,
                                         nombre_remitente=nuevo_comentario.nombre_usuario or "Soporte",
                                         mensaje=nuevo_comentario.comentario,
+                                        es_solicitante=es_solicitante,
                                     )
                                 else:
                                     await EmailService.enviar_notificacion_chat(
@@ -461,6 +461,7 @@ class ServicioTicket:
                                         asunto_ticket=ticket.asunto,
                                         nombre_remitente=nuevo_comentario.nombre_usuario or "Soporte",
                                         mensaje=nuevo_comentario.comentario,
+                                        es_solicitante=es_solicitante,
                                     )
                                 global_cache.set(cache_key, True, ttl=1800)
                             except Exception as e:

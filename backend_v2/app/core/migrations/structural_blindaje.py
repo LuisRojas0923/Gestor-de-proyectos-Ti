@@ -1,5 +1,6 @@
 import logging
 from sqlalchemy import text
+from app.core.migrations.actividades_migration import migrar_estados_actividades
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,8 @@ async def ejecutar_blindaje_estructural(conn):
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS autoridad VARCHAR(255)')
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS area_desarrollo VARCHAR(100)')
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS analista VARCHAR(100)')
+    await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS supervisor VARCHAR(255)')
+    await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS area_ejecutor VARCHAR(100)')
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS creado_por_id VARCHAR(50)')
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS responsable_id VARCHAR(50)')
     await safe_execute(conn, "ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS estado_validacion VARCHAR(50) DEFAULT 'aprobada'")
@@ -194,5 +197,8 @@ async def ejecutar_blindaje_estructural(conn):
     await safe_execute(conn, "INSERT INTO empresas_temporales (nombre, activo) VALUES ('SUMMAR TEMPORALES', TRUE) ON CONFLICT (nombre) DO NOTHING")
     await safe_execute(conn, "INSERT INTO empresas_temporales (nombre, activo) VALUES ('MULTIEMPLEOS', TRUE) ON CONFLICT (nombre) DO NOTHING")
     await safe_execute(conn, "INSERT INTO empresas_temporales (nombre, activo) VALUES ('DIRECTO', TRUE) ON CONFLICT (nombre) DO NOTHING")
+
+    # 11. Migración de estados de actividades y desarrollos
+    await migrar_estados_actividades(conn)
 
     logger.info("Blindaje estructural completado exitosamente.")

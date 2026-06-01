@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { useAppContext } from '../../context/AppContext';
 import { HierarchyUser, HierarchyRelation } from '../../types/hierarchy';
 import { Title, Button, Input, Select, Textarea, Text } from '../../components/atoms';
+import { HierarchyAutocomplete, AreaAutocomplete } from '../../components/molecules';
+import { normalizeArea } from '../../utils';
 
 interface CreateDevelopmentModalProps {
     isOpen: boolean;
@@ -12,99 +14,16 @@ interface CreateDevelopmentModalProps {
     darkMode: boolean;
 }
 
-interface TipoDesarrollo {
-    valor: string;
-    etiqueta: string;
-}
-
 const DEFAULT_TIPO_OPTIONS = [
     { value: 'Proyecto', label: 'Proyecto' },
     { value: 'Mejora', label: 'Mejora' },
     { value: 'Soporte', label: 'Soporte' },
-    { value: 'Renovación', label: 'Renovación' },
     { value: 'Actividad frecuente', label: 'Actividad frecuente' },
-    { value: 'Actividad', label: 'Actividad' },
+    { value: 'Actividad Puntual', label: 'Actividad Puntual' },
 ];
 
-// ─── Autocomplete de jerarquía ───────────────────────────────────────────────
-interface HierarchyAutocompleteProps {
-    label: string;
-    placeholder?: string;
-    value: string;
-    options: HierarchyUser[];
-    onChange: (text: string) => void;
-    onSelect: (user: HierarchyUser) => void;
-}
-
-const HierarchyAutocomplete: React.FC<HierarchyAutocompleteProps> = ({
-    label, placeholder, value, options, onChange, onSelect,
-}) => {
-    const [query, setQuery] = useState('');
-    const [open, setOpen] = useState(false);
-
-    // Cuando se selecciona un usuario externamente (o se limpia), sincroniza el query
-    const prevValue = useRef(value);
-    if (prevValue.current !== value) {
-        prevValue.current = value;
-        if (query !== value) setQuery(value);
-    }
-
-    const term = query.trim().toLowerCase();
-    const filtered = (
-        term
-            ? options.filter(u =>
-                  u.nombre.toLowerCase().includes(term) ||
-                  (u.cedula || '').includes(term)
-              )
-            : options
-    ).slice(0, 8);
-
-    return (
-        <div className="w-full relative">
-            <Text as="label" variant="body2" weight="medium" color="text-primary" className="block mb-1">
-                {label}
-            </Text>
-            <Input
-                placeholder={placeholder}
-                value={query}
-                autoComplete="off"
-                onChange={(e) => {
-                    const text = e.target.value;
-                    setQuery(text);
-                    onChange(text);
-                    if (!text) onSelect({ id: '', nombre: '', rol: '', cedula: '' });
-                }}
-                onFocus={() => setOpen(true)}
-                onBlur={() => setTimeout(() => setOpen(false), 150)}
-            />
-            {open && filtered.length > 0 && (
-                <div className="absolute z-50 mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl max-h-52 overflow-y-auto custom-scrollbar">
-                    {filtered.map((user) => (
-                        <Button
-                            key={user.id}
-                            variant="custom"
-                            className="w-full px-4 py-2.5 text-left hover:bg-[var(--color-primary)]/10 transition-colors border-b border-[var(--color-border)] last:border-0"
-                            onMouseDown={() => {
-                                setQuery(user.nombre);
-                                onSelect(user);
-                                setOpen(false);
-                            }}
-                        >
-                            <Text variant="body2" weight="semibold" color="text-primary">{user.nombre}</Text>
-                            <Text as="span" variant="caption" color="text-secondary">
-                                {[user.cedula, user.cargo || user.rol, user.area].filter(Boolean).join(' · ')}
-                            </Text>
-                        </Button>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
-    isOpen, onClose, onSaved, darkMode
+    isOpen, onClose, onSaved
 }) => {
     const { get, post } = useApi<unknown>();
     const { state: appState } = useAppContext();
@@ -112,7 +31,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
 
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState(1);
-    const [tipoOptions, setTipoOptions] = useState(DEFAULT_TIPO_OPTIONS);
+    const [tipoOptions] = useState(DEFAULT_TIPO_OPTIONS);
 
     // Form state
     const [nombre, setNombre] = useState('');
@@ -126,6 +45,9 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     const [areaDesarrollo, setAreaDesarrollo] = useState('');
     const [analista, setAnalista] = useState('');
     const [analistaId, setAnalistaId] = useState('');
+    const [supervisor, setSupervisor] = useState('');
+    const [supervisorId, setSupervisorId] = useState('');
+    const [areaEjecutor, setAreaEjecutor] = useState('');
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaEstimadaFin, setFechaEstimadaFin] = useState('');
 
@@ -134,6 +56,14 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     // Reset when closing
     const handleClose = () => {
         setStep(1);
+        setNombre(''); setDescripcion(''); setModulo(''); setTipo('Proyecto');
+        setAutoridad(''); setAutoridadId('');
+        setResponsable(''); setResponsableId('');
+        setAreaDesarrollo('');
+        setAnalista(''); setAnalistaId('');
+        setSupervisor(''); setSupervisorId('');
+        setAreaEjecutor('');
+        setFechaInicio(''); setFechaEstimadaFin('');
         onClose();
     };
 
@@ -160,7 +90,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         if (isOpen) fetchHierarchy();
     }, [isOpen]);
 
-    // ── Derivaciones jerárquicas (Original Logic) ───────────────────────────
+    // ── Derivaciones jerárquicas ──────────────────────────────────────────
     const superiorId = useMemo(() =>
         relations.find(r => r.usuario_id === currentUserId)?.superior_id ?? '',
     [relations, currentUserId]);
@@ -173,33 +103,29 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         relations.filter(r => r.superior_id === currentUserId).map(r => r.usuario_id),
     [relations, currentUserId]);
 
-    // Usuarios alcanzables desde la posición del usuario logueado (superiores + subordinados)
     const reachableUsers = useMemo<HierarchyUser[]>(() => {
         const inHierarchy = relations.some(
             r => r.usuario_id === currentUserId || r.superior_id === currentUserId
         );
-        // Si no hay relaciones en el sistema, permitimos ver a todos (bootstrap)
         if (relations.length === 0) return hierarchyUsers;
         if (!currentUserId || !inHierarchy) return [];
 
         const ids = new Set<string>();
         ids.add(currentUserId);
 
-        // Cadena de superiores hacia arriba
         let supId = superiorId;
         while (supId) {
             ids.add(supId);
             supId = relations.find(r => r.usuario_id === supId)?.superior_id ?? '';
         }
 
-        // Subordinados de forma recursiva hacia abajo
         const addSubs = (uid: string) => {
             relations
                 .filter(r => r.superior_id === uid)
-                .forEach(r => { 
+                .forEach(r => {
                     if (!ids.has(r.usuario_id)) {
-                        ids.add(r.usuario_id); 
-                        addSubs(r.usuario_id); 
+                        ids.add(r.usuario_id);
+                        addSubs(r.usuario_id);
                     }
                 });
         };
@@ -208,7 +134,16 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         return hierarchyUsers.filter(u => ids.has(u.id));
     }, [relations, hierarchyUsers, currentUserId, superiorId]);
 
-    // Opciones de cada campo según el rol que se asignó el usuario logueado
+    const areaOptions = useMemo<string[]>(() =>
+        [...new Set(
+            hierarchyUsers
+                .map(u => u.area)
+                .filter((a): a is string => !!a)
+                .map(a => normalizeArea(a))
+                .filter(a => a.length > 0)
+        )].sort(),
+    [hierarchyUsers]);
+
     const analistaOptions = useMemo<HierarchyUser[]>(() => {
         if (currentUserId && responsableId === currentUserId) {
             return hierarchyUsers.filter(u => subordinateIds.includes(u.id));
@@ -241,35 +176,31 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         }
         return reachableUsers;
     }, [analistaId, responsableId, currentUserId, hierarchyUsers, superiorId, superiorSuperiorId, reachableUsers]);
-    // ─────────────────────────────────────────────────────────────────────────
 
     const handleSave = async () => {
         if (!nombre.trim()) return;
         setLoading(true);
         try {
-            await post(`/desarrollos/`, {
+            const payload = {
                 nombre,
                 descripcion: descripcion || undefined,
                 modulo: modulo || undefined,
                 tipo,
                 autoridad: autoridad || undefined,
                 responsable: responsable || undefined,
+                supervisor: supervisor || undefined,
                 area_desarrollo: areaDesarrollo || undefined,
                 analista: analista || undefined,
+                area_ejecutor: areaEjecutor || undefined,
                 fecha_inicio: fechaInicio || undefined,
                 fecha_estimada_fin: fechaEstimadaFin || undefined,
                 estado_general: 'Pendiente',
                 porcentaje_progreso: 0.0,
-            });
+            };
+
+            await post('/desarrollos/', payload);
             onSaved();
             handleClose();
-            // Clear form
-            setNombre(''); setDescripcion(''); setModulo(''); setTipo('Proyecto');
-            setAutoridad(''); setAutoridadId('');
-            setResponsable(''); setResponsableId('');
-            setAreaDesarrollo('');
-            setAnalista(''); setAnalistaId('');
-            setFechaInicio(''); setFechaEstimadaFin('');
         } catch (error) {
             console.error('Error creating development:', error);
         } finally {
@@ -295,12 +226,13 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                                 onChange={(e) => setTipo(e.target.value)}
                                 options={tipoOptions}
                             />
-                            <Input
+                            <Textarea
                                 label="Nombre del Proyecto"
                                 placeholder="Ej. Integración pasarela de pagos"
                                 value={nombre}
                                 onChange={(e) => setNombre(e.target.value)}
                                 required
+                                rows={2}
                             />
                             <Textarea
                                 label="Descripción"
@@ -314,55 +246,18 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                 );
             case 2:
                 return (
-                    <div className="space-y-4 animate-in slide-in-from-right-2 duration-300">
-                        <div className="mb-6">
-                            <Text variant="body1" weight="bold" color="text-primary">Paso 2: Responsables e Impacto</Text>
-                            <Text variant="caption" color="text-secondary">¿Quiénes intervienen y a qué área afecta?</Text>
+                    <div className="space-y-3 animate-in slide-in-from-right-2 duration-300">
+                        <div className="mb-4">
+                            <Text variant="body1" weight="bold" color="text-primary">Paso 2: Responsables y Áreas</Text>
+                            <Text variant="caption" color="text-secondary">¿Quiénes intervienen y en qué áreas?</Text>
                         </div>
-                        <div className="grid grid-cols-1 gap-4">
-                            <Input
-                                label="* Área de impacto"
-                                placeholder="Ej. Gestión Humana"
-                                value={areaDesarrollo}
-                                onChange={(e) => setAreaDesarrollo(e.target.value)}
-                                required
-                            />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <HierarchyAutocomplete
-                                    label="Responsable"
-                                    placeholder="Buscar empleado..."
-                                    value={responsable}
-                                    options={responsableOptions}
-                                    onChange={(text) => {
-                                        setResponsable(text);
-                                        if (!text) setResponsableId('');
-                                        if (!text && autoridadId === currentUserId) {
-                                            setAnalista(''); setAnalistaId('');
-                                        }
-                                    }}
-                                    onSelect={(user) => {
-                                        setResponsable(user.nombre);
-                                        setResponsableId(user.id);
-                                        if (autoridadId === currentUserId) {
-                                            setAnalista(''); setAnalistaId('');
-                                        }
-                                    }}
-                                />
-                                <HierarchyAutocomplete
-                                    label="Líder de actividad (Ejecutor)"
-                                    placeholder="Buscar empleado..."
-                                    value={analista}
-                                    options={analistaOptions}
-                                    onChange={(text) => {
-                                        setAnalista(text);
-                                        if (!text) setAnalistaId('');
-                                    }}
-                                    onSelect={(user) => {
-                                        setAnalista(user.nombre);
-                                        setAnalistaId(user.id);
-                                    }}
-                                />
-                            </div>
+
+                        {/* ── Personas ── */}
+                        <div className="flex items-center gap-2">
+                            <Text variant="caption" color="text-secondary">Personas</Text>
+                            <div className="h-px flex-1 bg-[var(--color-border)] opacity-60" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
                             <HierarchyAutocomplete
                                 label="Autoridad"
                                 placeholder="Buscar empleado..."
@@ -377,6 +272,77 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                                     setAutoridadId(user.id);
                                 }}
                             />
+                            <HierarchyAutocomplete
+                                label="Líder"
+                                placeholder="Buscar empleado..."
+                                value={responsable}
+                                options={responsableOptions}
+                                onChange={(text) => {
+                                    setResponsable(text);
+                                    if (!text) setResponsableId('');
+                                    if (!text && autoridadId === currentUserId) {
+                                        setAnalista(''); setAnalistaId('');
+                                    }
+                                }}
+                                onSelect={(user) => {
+                                    setResponsable(user.nombre);
+                                    setResponsableId(user.id);
+                                    if (autoridadId === currentUserId) {
+                                        setAnalista(''); setAnalistaId('');
+                                    }
+                                }}
+                            />
+                            <HierarchyAutocomplete
+                                label="Supervisor"
+                                placeholder="Buscar empleado..."
+                                value={supervisor}
+                                options={reachableUsers}
+                                onChange={(text) => {
+                                    setSupervisor(text);
+                                    if (!text) setSupervisorId('');
+                                }}
+                                onSelect={(user) => {
+                                    setSupervisor(user.nombre);
+                                    setSupervisorId(user.id);
+                                }}
+                            />
+                            <HierarchyAutocomplete
+                                label="Ejecutor"
+                                placeholder="Buscar empleado..."
+                                value={analista}
+                                options={analistaOptions}
+                                onChange={(text) => {
+                                    setAnalista(text);
+                                    if (!text) setAnalistaId('');
+                                }}
+                                onSelect={(user) => {
+                                    setAnalista(user.nombre);
+                                    setAnalistaId(user.id);
+                                    if (user.area) setAreaEjecutor(normalizeArea(user.area));
+                                }}
+                            />
+                        </div>
+
+                        {/* ── Áreas ── */}
+                        <div className="flex items-center gap-2 pt-1">
+                            <Text variant="caption" color="text-secondary">Áreas</Text>
+                            <div className="h-px flex-1 bg-[var(--color-border)] opacity-60" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 items-end">
+                            <AreaAutocomplete
+                                label="Área del Ejecutor"
+                                placeholder="Ej. DESARROLLO"
+                                value={areaEjecutor}
+                                options={areaOptions}
+                                onChange={setAreaEjecutor}
+                            />
+                            <Input
+                                label="Área Impactada"
+                                placeholder="Ej. Gestión Humana"
+                                value={areaDesarrollo}
+                                onChange={(e) => setAreaDesarrollo(e.target.value)}
+                                required
+                            />
                         </div>
                     </div>
                 );
@@ -384,7 +350,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                 return (
                     <div className="space-y-4 animate-in slide-in-from-right-2 duration-300">
                         <div className="mb-6">
-                            <Text variant="body1" weight="bold" color="text-primary">Paso 3: Tiempos y Procesos</Text>
+                            <Text variant="body1" weight="bold" color="text-primary">Paso 3: Procesos y Tiempos</Text>
                             <Text variant="caption" color="text-secondary">Establece las fechas clave y el proceso relacionado.</Text>
                         </div>
                         <div className="grid grid-cols-1 gap-4">
@@ -425,7 +391,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                         <Title variant="h5" weight="bold">Nuevo Proyecto</Title>
                         <Button variant="ghost" onClick={handleClose} icon={X} className="!p-1.5 text-neutral-400 hover:text-neutral-500" />
                     </div>
-                    
+
                     {/* Progress Bar */}
                     <div className="flex items-center gap-2">
                         {[1, 2, 3].map((s) => (
@@ -448,27 +414,27 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
 
                 {/* Footer */}
                 <div className="p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-variant)] flex justify-between items-center gap-3">
-                    <Button 
-                        variant="ghost" 
-                        onClick={() => step > 1 ? setStep(step - 1) : handleClose()} 
+                    <Button
+                        variant="ghost"
+                        onClick={() => step > 1 ? setStep(step - 1) : handleClose()}
                         disabled={loading}
                     >
                         {step === 1 ? 'Cancelar' : 'Anterior'}
                     </Button>
-                    
+
                     <div className="flex gap-2">
                         {step < totalSteps ? (
-                            <Button 
-                                variant="primary" 
+                            <Button
+                                variant="primary"
                                 onClick={() => setStep(step + 1)}
                                 disabled={step === 1 && !nombre.trim()}
                             >
                                 Siguiente
                             </Button>
                         ) : (
-                            <Button 
-                                variant="primary" 
-                                onClick={handleSave} 
+                            <Button
+                                variant="primary"
+                                onClick={handleSave}
                                 disabled={loading || !nombre.trim()}
                             >
                                 {loading ? 'Creando...' : 'Finalizar y Crear'}

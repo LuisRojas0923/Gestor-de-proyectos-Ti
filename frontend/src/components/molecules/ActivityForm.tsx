@@ -385,7 +385,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
               onChange={(e) => handleInputChange('status', e.target.value)}
               options={[
                 { value: 'pendiente', label: 'Pendiente' },
-                { value: 'en_curso', label: 'En Curso' },
+                { value: 'en_curso', label: 'En proceso' },
                 { value: 'completada', label: 'Completada' },
                 { value: 'cancelada', label: 'Cancelada' }
               ]}

@@ -30,7 +30,7 @@ const CONFIG: Record<ActionType, {
         title: '¿Asignarte este ticket?',
         description: (ticketId, userName) => (
             <>
-                El ticket <strong>{ticketId}</strong> será asignado a <strong>{userName || 'ti'}</strong> y su estado cambiará a <strong>En Proceso</strong>.
+                El ticket <strong>{ticketId}</strong> será asignado a <strong>{userName || 'ti'}</strong> y su estado cambiará a <strong>En proceso</strong>.
             </>
         ),
         confirmLabel: 'Asignarme',
@@ -43,10 +43,10 @@ const CONFIG: Record<ActionType, {
         title: '¿Poner en proceso?',
         description: (ticketId) => (
             <>
-                El ticket <strong>{ticketId}</strong> cambiará su estado a <strong>En Proceso</strong>.
+                El ticket <strong>{ticketId}</strong> cambiará su estado a <strong>En proceso</strong>.
             </>
         ),
-        confirmLabel: 'Poner En Proceso',
+        confirmLabel: 'Poner en proceso',
         confirmVariant: 'primary',
     },
 };

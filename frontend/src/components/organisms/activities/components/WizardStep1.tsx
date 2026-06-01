@@ -81,7 +81,7 @@ export const WizardStep1: React.FC<WizardStep1Props> = ({
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onStatusChange(e.target.value)}
             options={[
               { value: 'pendiente', label: 'Pendiente' },
-              { value: 'en_curso', label: 'En curso' },
+              { value: 'en_curso', label: 'En proceso' },
               { value: 'completada', label: 'Completada' },
               { value: 'cancelada', label: 'Cancelada' }
             ]}

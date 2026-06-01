@@ -127,142 +127,125 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
     const canSeeCentroCostos = moduleStatus['configuracion_centro_costo'] !== false && (
         ['admin', 'admin_sistemas', 'admin_mejoramiento'].includes(userRole)
     );
+    const cards = [
+        {
+            key: 'solicitudes',
+            canSee: canSeeSolicitudes,
+            title: "Gestión de Solicitudes TI",
+            description: "Crea nuevos requerimientos o consulta el estado de tus tickets actuales.",
+            icon: <img src={imgSolicitar} alt="Solicitar Servicio" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('categories')
+        },
+        {
+            key: 'reserva_salas',
+            canSee: canSeeReservaSalas,
+            title: "Reserva de salas",
+            description: "Reserva salas de reuniones y espacios para tu equipo.",
+            icon: <img src={imgReunion} alt="Reserva de salas" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('reserva_salas')
+        },
+        {
+            key: 'requisiciones',
+            canSee: canSeeRequisiciones,
+            title: "Sistema de Solicitudes",
+            description: "Gestión de Requisiciones (Almacén, Suministros, Presupuesto).",
+            icon: <img src={sistemasolicitudes} alt="Sistema de Solicitudes" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('requisiciones')
+        },
+        {
+            key: 'viaticos',
+            canSee: canSeeViaticos,
+            title: "Gestión de Viáticos",
+            description: "Reporte de gastos y consulta de estado de cuenta detallado.",
+            icon: <img src={imgGestionViaticos} alt="Gestión de Viáticos" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('viaticos_gestion')
+        },
+        {
+            key: 'nomina',
+            canSee: canSeeNomina,
+            title: "Novedades de Nómina",
+            description: "Carga y procesamiento de novedades para SOLID.",
+            icon: <img src={imgNovedadesNomina} alt="Novedades de Nómina" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('nomina')
+        },
+        {
+            key: 'comisiones',
+            canSee: canSeeComisiones,
+            title: "Comisiones",
+            description: "Cálculo y procesamiento de comisiones para el personal.",
+            icon: <img src={imgComisiones} alt="Gestión de Comisiones" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('comisiones')
+        },
+        {
+            key: 'inventario',
+            canSee: canSeeInventario,
+            title: "Inventario 2026",
+            description: "Toma física de inventario y carga masiva de conteos.",
+            icon: <img src={imgInventario} alt="Inventario 2026" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('inventario')
+        },
+        {
+            key: 'contabilidad',
+            canSee: canSeeContabilidad,
+            title: "Gestión Humana",
+            description: "Certificados laborales, desprendibles de pago e información tributaria.",
+            icon: <FileText className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('contabilidad')
+        },
+        {
+            key: 'gestion_actividades',
+            canSee: canSeeGestionActividades,
+            title: "Gestión de Actividades",
+            description: "Accede a desarrollos, aprobaciones y jerarquía organizacional.",
+            icon: <Briefcase className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('gestion_actividades')
+        },
+        {
+            key: 'requisicion_personal',
+            canSee: canSeeRequisicionPersonal,
+            title: "Requisición de Personal",
+            description: "Creación y seguimiento de solicitudes de contratación de personal.",
+            icon: <Users className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('requisicion_personal')
+        },
+        {
+            key: 'seguimiento_rp_gh',
+            canSee: canSeeSeguimientoRPGH,
+            title: "Seguimiento RP Gestión Humana",
+            description: "Gestión y seguimiento del proceso de selección y contratación de requisiciones aprobadas.",
+            icon: <UserCheck className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('seguimiento_rp_gh')
+        },
+        {
+            key: 'aprobacion_rp_gerencia',
+            canSee: canSeeAprobacionGerenciaRP,
+            title: "Aprobación Gerencial RP",
+            description: "Firma y autorización definitiva de requisiciones de personal aprobadas por directores.",
+            icon: <PenTool className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('aprobacion_rp_gerencia')
+        },
+        {
+            key: 'perfiles_cargo',
+            canSee: canSeePerfilesCargo,
+            title: "Perfiles de Cargo",
+            description: "Administración de áreas, cargos y sus relaciones de reporte jerárquico.",
+            icon: <Settings className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('perfiles_cargo')
+        },
+        {
+            key: 'centro_costos',
+            canSee: canSeeCentroCostos,
+            title: "Configuración Centros de Costos",
+            description: "Configure los catálogos maestros de UENs, Subcentros de Costo y Especialidades del ERP.",
+            icon: <Database className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('centro_costos')
+        }
+    ];
 
-    return (
-        <div className="space-y-12 py-6">
-            <div className="text-center space-y-2">
-                <Title variant="h3" weight="bold" className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-light)] bg-clip-text text-transparent">
-                    ¿En qué podemos ayudarte hoy?
-                </Title>
-                <Text variant="h6" color="text-secondary" weight="medium">Selecciona una de las opciones principales de gestión</Text>
-            </div>
+    const activeCards = cards
+        .filter(card => card.canSee)
+        .sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {canSeeSolicitudes && (
-                    <ServicePortalCard
-                        title="Gestión de Solicitudes TI"
-                        description="Crea nuevos requerimientos o consulta el estado de tus tickets actuales."
-                        icon={<img src={imgSolicitar} alt="Solicitar Servicio" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('categories')}
-                    />
-                )}
-
-                {canSeeReservaSalas && (
-                    <ServicePortalCard
-                        title="Reserva de salas"
-                        description="Reserva salas de reuniones y espacios para tu equipo."
-                        icon={<img src={imgReunion} alt="Reserva de salas" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('reserva_salas')}
-                    />
-                )}
-
-                {canSeeRequisiciones && (
-                    <ServicePortalCard
-                        title="Sistema de Solicitudes"
-                        description="Gestión de Requisiciones (Almacén, Suministros, Presupuesto)."
-                        icon={<img src={sistemasolicitudes} alt="Sistema de Solicitudes" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('requisiciones')}
-                    />
-                )}
-
-                {canSeeViaticos && (
-                    <ServicePortalCard
-                        title="Gestión de Viáticos"
-                        description="Reporte de gastos y consulta de estado de cuenta detallado."
-                        icon={<img src={imgGestionViaticos} alt="Gestión de Viáticos" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('viaticos_gestion')}
-                    />
-                )}
-
-                {canSeeNomina && (
-                    <ServicePortalCard
-                        title="Novedades de Nómina"
-                        description="Carga y procesamiento de novedades para SOLID."
-                        icon={<img src={imgNovedadesNomina} alt="Novedades de Nómina" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('nomina')}
-                    />
-                )}
-
-                {canSeeComisiones && (
-                    <ServicePortalCard
-                        title="Comisiones"
-                        description="Cálculo y procesamiento de comisiones para el personal."
-                        icon={<img src={imgComisiones} alt="Gestión de Comisiones" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('comisiones')}
-                    />
-                )}
-                
-                {canSeeInventario && (
-                    <ServicePortalCard
-                        title="Inventario 2026"
-                        description="Toma física de inventario y carga masiva de conteos."
-                        icon={<img src={imgInventario} alt="Inventario 2026" className="w-full h-full object-contain p-1" />}
-                        onClick={() => onNavigate('inventario')}
-                    />
-                )}
-
-                {canSeeRequisicionPersonal && (
-                    <ServicePortalCard
-                        title="Requisición de Personal"
-                        description="Creación y seguimiento de solicitudes de contratación de personal."
-                        icon={<Users className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('requisicion_personal')}
-                    />
-                )}
-
-                {canSeeSeguimientoRPGH && (
-                    <ServicePortalCard
-                        title="Seguimiento RP Gestión Humana"
-                        description="Gestión y seguimiento del proceso de selección y contratación de requisiciones aprobadas."
-                        icon={<UserCheck className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('seguimiento_rp_gh')}
-                    />
-                )}
-
-                {canSeeAprobacionGerenciaRP && (
-                    <ServicePortalCard
-                        title="Aprobación Gerencial RP"
-                        description="Firma y autorización definitiva de requisiciones de personal aprobadas por directores."
-                        icon={<PenTool className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('aprobacion_rp_gerencia')}
-                    />
-                )}
-
-                {canSeePerfilesCargo && (
-                    <ServicePortalCard
-                        title="Perfiles de Cargo"
-                        description="Administración de áreas, cargos y sus relaciones de reporte jerárquico."
-                        icon={<Settings className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('perfiles_cargo')}
-                    />
-                )}
-
-                {canSeeCentroCostos && (
-                    <ServicePortalCard
-                        title="Configuración Centros de Costos"
-                        description="Configure los catálogos maestros de UENs, Subcentros de Costo y Especialidades del ERP."
-                        icon={<Database className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('centro_costos')}
-                    />
-                )}
-
-                {canSeeContabilidad && (
-                    <ServicePortalCard
-                        title="Gestión Humana"
-                        description="Certificados laborales, desprendibles de pago e información tributaria."
-                        icon={<FileText className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('contabilidad')}
-                    />
-                )}
-
-                {canSeeGestionActividades && (
-                    <ServicePortalCard
-                        title="Gestión de Actividades"
-                        description="Accede a desarrollos, aprobaciones y jerarquía organizacional."
-                        icon={<Briefcase className="w-8 h-8 text-[var(--color-primary)]" />}
-                        onClick={() => onNavigate('gestion_actividades')}
-                    />
-                )}
             </div>
         </div>
     );

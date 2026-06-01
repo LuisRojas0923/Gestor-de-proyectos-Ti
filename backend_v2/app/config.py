@@ -52,7 +52,7 @@ class Configuracion(BaseSettings):
     frontend_host: Optional[str] = None
     frontend_port: Optional[str] = None
     frontend_url: str = "http://localhost:5173"
-    hostveremail: Optional[str] = None  # Si es None, se usará frontend_url
+    hostveremail: str = "http://portalservicios.refridcol.com"
 
     # Almacenamiento Local
     storage_path: str = "/app/storage/attachments"
@@ -68,6 +68,10 @@ class Configuracion(BaseSettings):
     smtp_pass: Optional[str] = None
     smtp_from: Optional[str] = None
     smtp_use_ssl: bool = True
+
+    # Notion Integration
+    notion_api_key: Optional[str] = None
+    notion_database_id: Optional[str] = None
 
     class Config:
         # Buscamos el .env en la raíz del proyecto (un nivel arriba de backend_v2)

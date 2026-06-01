@@ -14,8 +14,16 @@
 .idea/
 .vscode/
 
+# AI tools (local state, not project config)
+.antigravitycli/
+.mavis/
+.opencode/
+.claude/settings.local.json
+.claude/agent-memory/
+
 # Environment variables
 .env
+.env copy
 .env.pruebas3
 *.env.local
 .env.*.local
@@ -26,13 +34,11 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-/backend/app/__pycache__
-/backend_v2/app/__pycache__
-/backend_v2/app/models/__pycache__
-/backend_v2/app/schemas/__pycache__
-/backend_v2/app/api/__pycache__
-/backend_v2/app/services/__pycache__
+**/__pycache__/
 *.pyc
+.pytest_cache/
+tmp/
+.mavis
 
 # SQLite database
 project_manager.db
@@ -52,9 +58,19 @@ testing/logs/
 test_output.txt
 graphify-out/
 .agent/
-
 # Respaldo de codigo muerto de React Doctor (ignorado en builds)
 /frontend/respaldo_codigo_muerto/
 
 # Archivos cargados por el modulo de Nomina/Descuentos
 backend_v2/uploads/nomina/
+
+sesion.txt
+detalleactividades.txt
+implementation_plan.md
+seed actividades.md
+seedactividadesproyectos.txt
+
+# docker locales
+docker-compose.override.yml
+docker-compose.dev.yml  
+docker-compose.yml

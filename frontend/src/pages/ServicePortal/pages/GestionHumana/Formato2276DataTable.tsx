@@ -305,7 +305,11 @@ const Formato2276DataTable: React.FC<Formato2276DataTableProps> = ({ onBack }) =
                             setFilters(prev => ({ ...prev, [activeFilter.key]: { ...current, selected: new Set(getUniqueValues(activeFilter.key)) } }));
                         }}
                         isAllSelected={(filters[activeFilter.key] as any)?.selected?.size === getUniqueValues(activeFilter.key).length}
-                        
+                        onClearSelection={() => {
+                            const current = filters[activeFilter.key] || { type: activeFilter.type, selected: new Set(), range: { min: '', max: '' } };
+                            setFilters(prev => ({ ...prev, [activeFilter.key]: { ...current, selected: new Set() } }));
+                        }}
+
                         // Numeric
                         rangeValue={{ 
                             min: (filters[activeFilter.key] as any)?.range?.min ?? '', 

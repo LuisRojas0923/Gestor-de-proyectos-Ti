@@ -1,6 +1,6 @@
 import pytest
 from decimal import Decimal
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from app.models.desarrollo.actividad import Actividad
 from app.models.desarrollo.desarrollo import Desarrollo
@@ -18,24 +18,33 @@ async def asegurar_recursos_tabla(db_session):
     await db_session.commit()
 
 
-@pytest.fixture
-async def desarrollo_porcentaje_seed(db_session):
-    await db_session.execute(delete(Actividad).where(Actividad.desarrollo_id == TEST_DESARROLLO_ID))
-    await db_session.execute(delete(Desarrollo).where(Desarrollo.id == TEST_DESARROLLO_ID))
-    db_session.add(
-        Desarrollo(
-            id=TEST_DESARROLLO_ID,
-            nombre="Proyecto para prueba de porcentaje",
-            estado_general="Pendiente",
-        )
-    )
-    await db_session.commit()
+import pytest_asyncio
 
+
+@pytest_asyncio.fixture
+async def desarrollo_porcentaje_seed():
+    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+    from sqlalchemy import text
+    from app.config import config
+    engine = create_async_engine(config.database_url)
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+    
+    async with Session() as session:
+        await session.execute(text("DELETE FROM actividades WHERE desarrollo_id = :did"), {"did": TEST_DESARROLLO_ID})
+        await session.execute(text("DELETE FROM desarrollos WHERE id = :did"), {"did": TEST_DESARROLLO_ID})
+        await session.execute(text("""
+            INSERT INTO desarrollos (id, nombre, estado_general, estado_validacion, porcentaje_progreso, creado_en) 
+            VALUES (:did, 'Proyecto para prueba de porcentaje', 'Pendiente', 'aprobada', 0.0, NOW())
+        """), {"did": TEST_DESARROLLO_ID})
+        await session.commit()
+        
     yield
-
-    await db_session.execute(delete(Actividad).where(Actividad.desarrollo_id == TEST_DESARROLLO_ID))
-    await db_session.execute(delete(Desarrollo).where(Desarrollo.id == TEST_DESARROLLO_ID))
-    await db_session.commit()
+    
+    async with Session() as session:
+        await session.execute(text("DELETE FROM actividades WHERE desarrollo_id = :did"), {"did": TEST_DESARROLLO_ID})
+        await session.execute(text("DELETE FROM desarrollos WHERE id = :did"), {"did": TEST_DESARROLLO_ID})
+        await session.commit()
+    await engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -83,7 +92,7 @@ async def test_checkbox_leaf_100_a_0(client, desarrollo_porcentaje_seed):
         json={"estado": "En Progreso"},
     )
     assert response.status_code == 200
-    assert int(response.json()["porcentaje_avance"]) == 0
+    assert int(response.json()["porcentaje_avance"]) == 50
 
 
 @pytest.mark.asyncio
@@ -243,3 +252,19 @@ async def test_raiz_calculada_desde_subtareas(client, desarrollo_porcentaje_seed
 
     response = await client.get(f"/actividades/{raiz_id}")
     assert int(response.json()["porcentaje_avance"]) == 67
+
+
+@pytest.mark.asyncio
+async def test_en_progreso_leaf_vale_50(client, desarrollo_porcentaje_seed):
+    """Tarea sin hijos en En Progreso debe calcular 50% automáticamente"""
+    response = await client.post(
+        "/actividades/",
+        json={
+            "desarrollo_id": TEST_DESARROLLO_ID,
+            "titulo": "Tarea hoja en progreso",
+            "estado": "En Progreso",
+            "horas_estimadas": 0,
+        },
+    )
+    assert response.status_code == 200
+    assert int(response.json()["porcentaje_avance"]) == 50

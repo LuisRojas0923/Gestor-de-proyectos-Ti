@@ -50,7 +50,9 @@ async def obtener_metricas(db: AsyncSession = Depends(obtener_db)):
 
         res_activos = await db.execute(
             select(func.count(DesarrolloModel.id)).where(
-                DesarrolloModel.estado_general.in_(["En Progreso", "Activo", "activo"])
+                DesarrolloModel.estado_general.in_(
+                    ["En Progreso", "Activo", "activo", "En curso", "En proceso"]
+                )
             )
         )
         desarrollos_activos = res_activos.scalar() or 0

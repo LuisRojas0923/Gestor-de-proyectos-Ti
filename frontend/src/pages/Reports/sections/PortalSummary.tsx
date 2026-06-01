@@ -49,7 +49,7 @@ const PortalSummary: React.FC<PortalSummaryProps> = ({ summary }) => {
           <div className="flex items-center justify-between">
             <div>
               <MaterialTypography variant="body2" color="warning">
-                En Progreso
+                En proceso
               </MaterialTypography>
               <MaterialTypography variant="h4" color="warning">
                 {summary.status_distribution['en_progreso'] || 0}

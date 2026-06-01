@@ -253,7 +253,7 @@ const GeneralInfoTab: React.FC<GeneralInfoTabProps> = ({
                                             }`}
                                     >
                                         {lastActivity.status === 'completada' ? '✅ Completada' :
-                                            lastActivity.status === 'en_curso' ? '🔄 En curso' : '⏳ Pendiente'}
+                                            lastActivity.status === 'en_curso' ? '🔄 En proceso' : '⏳ Pendiente'}
                                     </Text>
                                 </div>
                                 {lastActivity.notes && (

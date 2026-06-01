@@ -30,7 +30,7 @@ class Actividad(SQLModel, table=True):
     descripcion: Optional[str] = Field(default=None)
     estado: str = Field(
         default="Pendiente", max_length=50
-    )  # Pendiente, En Progreso, Bloqueado, Completado
+    )  # Pendiente, En Proceso, Bloqueado, Completado
     responsable_id: Optional[str] = Field(
         default=None, max_length=100
     )  # ID del Analista asignado

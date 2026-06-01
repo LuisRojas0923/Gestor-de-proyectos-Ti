@@ -240,7 +240,7 @@ export const HybridGanttChart: React.FC<HybridGanttChartProps> = ({
           </div>
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded ${darkMode ? 'bg-blue-600' : 'bg-blue-500'}`}></div>
-            <Text variant="caption" color="secondary">En Progreso</Text>
+            <Text variant="caption" color="secondary">En proceso</Text>
           </div>
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded ${darkMode ? 'bg-yellow-600' : 'bg-yellow-500'}`}></div>
@@ -351,7 +351,7 @@ export const HybridGanttChart: React.FC<HybridGanttChartProps> = ({
           </div>
           <div className="flex items-center">
             <Text weight="medium">
-              En Progreso:
+              En proceso:
             </Text>
             <Text className="ml-2" color="secondary">
               {ganttData.filter((item: GanttItem) => item.status === 'in_progress').length}

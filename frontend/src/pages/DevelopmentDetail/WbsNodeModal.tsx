@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Info, Users, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { X, ChevronRight, Info, Users, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { Title, Button, Input, Select, Textarea, Text, ProgressBar } from '../../components/atoms';
 import { WbsActivityCreate, WbsActivityUpdate, WbsActivityTree } from '../../types/wbs';
@@ -16,7 +16,7 @@ interface WbsNodeModalProps {
 }
 
 export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
-    isOpen, onClose, onSaved, developmentId, editNode, darkMode
+    isOpen, onClose, onSaved, developmentId, editNode
 }) => {
     const { post, patch } = useApi();
     const { state } = useAppContext();
@@ -26,7 +26,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     // Estado del formulario
     const [titulo, setTitulo] = useState('');
     const [descripcion, setDescripcion] = useState('');
-    const [estado, setEstado] = useState<'Pendiente' | 'En Progreso' | 'Pausa' | 'Completada'>('Pendiente');
+    const [estado, setEstado] = useState<'Pendiente' | 'En Proceso' | 'Pausa' | 'Completada'>('Pendiente');
     const [avance, setAvance] = useState(0);
     const [seguimiento, setSeguimiento] = useState('');
     const [compromiso, setCompromiso] = useState('');
@@ -42,7 +42,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
 
     useEffect(() => {
         if (estado === 'Completada') setAvance(100);
-        else if (estado !== 'En Progreso' && estado !== 'Pausa') setAvance(0);
+        else if (estado !== 'En Proceso' && estado !== 'Pausa') setAvance(0);
     }, [estado]);
 
     useEffect(() => {
@@ -120,7 +120,9 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     compromiso,
                     archivo_url: archivoUrl,
                     fecha_inicio_estimada: fechaInicioEstimada || undefined,
-                    fecha_fin_estimada: fechaFinEstimada || undefined
+                    fecha_fin_estimada: fechaFinEstimada || undefined,
+                    fecha_inicio_real: fechaInicioReal || undefined,
+                    fecha_fin_real: fechaFinReal || undefined
                 };
                 await post(`/actividades/`, payload);
             }
@@ -221,33 +223,6 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                     onChange={(e) => setFechaFinEstimada(e.target.value)}
                                 />
                             </div>
-                        </div>
-                    )}
-
-                    {step === 2 && (
-                        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                            <div className="grid grid-cols-2 gap-5">
-                                <Select
-                                    label="Estado Actual"
-                                    value={estado}
-                                    onChange={(e) => setEstado(e.target.value as any)}
-                                    options={[
-                                        { value: 'Pendiente', label: 'Pendiente' },
-                                        { value: 'En Progreso', label: 'En Progreso' },
-                                        { value: 'Pausa', label: 'Pausa' },
-                                        { value: 'Completada', label: 'Completada' },
-                                    ]}
-                                />
-                                <div className="space-y-4">
-                                    <Text variant="caption" weight="medium" color="text-secondary">Progreso: {avance}%</Text>
-                                    <ProgressBar
-                                        progress={avance}
-                                        variant={avance === 100 ? 'success' : 'primary'}
-                                        className="h-2"
-                                    />
-                                </div>
-                            </div>
-
                             <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[var(--color-border)]/50">
                                 <Input
                                     type="date"
@@ -262,16 +237,42 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                     onChange={(e) => setFechaFinReal(e.target.value)}
                                 />
                             </div>
+                        </div>
+                    )}
+
+                    {step === 2 && (
+                        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                            <div className="grid grid-cols-2 gap-5">
+                                <Select
+                                    label="Estado Actual"
+                                    value={estado}
+                                    onChange={(e) => setEstado(e.target.value as 'Pendiente' | 'En Proceso' | 'Pausa' | 'Completada')}
+                                    options={[
+                                        { value: 'Pendiente', label: 'Pendiente' },
+                                        { value: 'En Proceso', label: 'En Proceso' },
+                                        { value: 'Pausa', label: 'Pausa' },
+                                        { value: 'Completada', label: 'Completada' },
+                                    ]}
+                                />
+                                <div className="space-y-4">
+                                    <Text variant="caption" weight="medium" color="text-secondary">Progreso: {avance}%</Text>
+                                    <ProgressBar
+                                        progress={avance}
+                                        variant={avance === 100 ? 'success' : 'primary'}
+                                        className="h-2"
+                                    />
+                                </div>
+                            </div>
 
                             <div className="space-y-4 pt-2 border-t border-[var(--color-border)]/50">
                                 <AssignableUserSelect
-                                    label="Responsable"
+                                    label="Supervisor"
                                     value={responsableId}
                                     onChange={setResponsableId}
                                     helperText="Persona que responde por la entrega."
                                 />
                                 <AssignableUserSelect
-                                    label="Líder de actividad"
+                                    label="Ejecutor"
                                     value={asignadoAId}
                                     onChange={setAsignadoAId}
                                     helperText="Persona que ejecutará la tarea técnica."
