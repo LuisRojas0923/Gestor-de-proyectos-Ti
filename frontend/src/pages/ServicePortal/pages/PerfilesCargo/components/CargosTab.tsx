@@ -301,7 +301,7 @@ const CargosTab: React.FC<CargosTabProps> = ({
       {/* Listado de Cargos */}
       <div className="lg:col-span-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 space-y-4">
         <div className="flex justify-between items-center flex-wrap gap-4 pb-2 border-b border-[var(--color-border)]/50">
-          <Subtitle weight="bold" className="text-slate-800 dark:text-slate-200">Cargos Existentes</Subtitle>
+          <Subtitle weight="bold" className="text-slate-800 dark:text-slate-200 uppercase">CARGOS EXISTENTES</Subtitle>
           {/* Filtro por Área */}
           <div className="flex items-center gap-2">
             <Text size="xs" color="secondary" className="font-semibold uppercase tracking-wider">
