@@ -37,17 +37,48 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
       .finally(() => setLoading(false));
   }, []);
 
-  const estadosPrincipales = [
-    'PENDIENTE_APROBACION', 'APROBADA', 'RECHAZADA', 'EN_PROCESO_SELECCION', 'CERRADA'
+  const summaryCards = [
+    {
+      label: 'Borrador / Ajustes',
+      count: (dashboard?.por_estado['BORRADOR'] || 0) + (dashboard?.por_estado['DEVUELTA_AJUSTE'] || 0),
+      colores: { bg: 'bg-slate-100 dark:bg-slate-900/10 border border-slate-200 dark:border-slate-800', text: 'text-slate-700 dark:text-slate-350', dot: 'bg-slate-400' },
+      icon: Archive
+    },
+    {
+      label: 'Pendiente Aprobación',
+      count: (dashboard?.por_estado['PENDIENTE_APROBACION'] || 0) + (dashboard?.por_estado['PENDIENTE_APROBACION_GERENCIA'] || 0),
+      colores: ESTADO_COLORES['PENDIENTE_APROBACION'],
+      icon: Clock
+    },
+    {
+      label: 'Aprobadas',
+      count: dashboard?.por_estado['APROBADA'] || 0,
+      colores: ESTADO_COLORES['APROBADA'],
+      icon: CheckCircle
+    },
+    {
+      label: 'Rechazadas',
+      count: dashboard?.por_estado['RECHAZADA'] || 0,
+      colores: ESTADO_COLORES['RECHAZADA'],
+      icon: XCircle
+    },
+    {
+      label: 'En Selección',
+      count: dashboard?.por_estado['EN_PROCESO_SELECCION'] || 0,
+      colores: ESTADO_COLORES['EN_PROCESO_SELECCION'],
+      icon: Users
+    },
+    {
+      label: 'Cerradas / Canceladas',
+      count: (dashboard?.por_estado['CERRADA'] || 0) + (dashboard?.por_estado['CANCELADA'] || 0),
+      colores: ESTADO_COLORES['CERRADA'],
+      icon: Archive
+    }
   ];
 
   const userRole = (user?.rol || user?.role || '').toLowerCase();
   const permissions: string[] = user?.permissions || [];
   const esAprobador = ['admin', 'director'].includes(userRole) || permissions.includes('requisicion_aprobador');
-
-  const gridColsClass = esAprobador
-    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6'
-    : 'grid grid-cols-1 sm:grid-cols-3 gap-6';
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -139,34 +170,25 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
 
       {/* Métricas por estado */}
       {!loading && dashboard && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {estadosPrincipales.map((estado) => {
-            const count = dashboard.por_estado[estado] || 0;
-            const colores = ESTADO_COLORES[estado as any] ?? {
-              bg: 'bg-gray-100',
-              text: 'text-gray-600',
-              dot: 'bg-gray-400',
-            };
-            const Icon = ICONOS[estado] || Archive;
-            return (
-              <div
-                key={estado}
-                className={`rounded-2xl p-5 ${colores.bg} border border-transparent flex flex-col items-center justify-center text-center gap-2 shadow-sm`}
-              >
-                <Icon className={`w-6 h-6 mb-2 ${colores.text}`} />
-                <div className={`text-3xl font-black ${colores.text} leading-none`}>
-                  {count}
-                </div>
-                <Text
-                  variant="caption"
-                  align="center"
-                  className={`mt-2 font-bold uppercase tracking-wider ${colores.text}`}
-                >
-                  {ESTADO_LABELS[estado as any] ?? estado}
-                </Text>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {summaryCards.map(({ label, count, colores, icon: Icon }) => (
+            <div
+              key={label}
+              className={`rounded-2xl p-5 ${colores.bg} border border-transparent flex flex-col items-center justify-center text-center gap-2 shadow-sm`}
+            >
+              <Icon className={`w-6 h-6 mb-2 ${colores.text}`} />
+              <div className={`text-3xl font-black ${colores.text} leading-none`}>
+                {count}
               </div>
-            );
-          })}
+              <Text
+                variant="caption"
+                align="center"
+                className={`mt-2 font-bold uppercase tracking-wider ${colores.text}`}
+              >
+                {label}
+              </Text>
+            </div>
+          ))}
         </div>
       )}
     </div>
