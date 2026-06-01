@@ -40,6 +40,21 @@ Full-stack project management system with Python backend (FastAPI, SQLAlchemy as
 - [docs/ESQUEMA_BASE_DATOS.md](docs/ESQUEMA_BASE_DATOS.md) - Database schema
 - [docs/GUIA_DESARROLLO.md](docs/GUIA_DESARROLLO.md) - Development guide
 
+## Subagentes disponibles (opencode harness)
+
+El arnés de opencode expone 8 subagentes especializados en `.opencode/agent/`. Cada uno es de solo lectura y debe invocarse segun el alcance del trabajo (consultar `harness-router` para recomendacion, pero invocacion directa obligatoria):
+
+- `harness-router` — recomienda la matriz de subagentes segun alcance. Read-only, no aprueba ni invoca.
+- `scope-reviewer` — valida alcance y subagentes requeridos.
+- `backend-reviewer` — revisa `backend_v2/` (FastAPI, SQLAlchemy async, PostgreSQL, RBAC, tests).
+- `frontend-reviewer` — revisa `frontend/` (design system, atomic design, mobile-first, performance).
+- `mobile-reviewer` — revisa `modulo_actividades_fork/` (React Native, offline, nativo).
+- `docs-tests-reviewer` — revisa `docs/`, `testing/`, bitacora, ADRs, MER, evidencia de tests.
+- `security-rbac-reviewer` — revisa auth, RBAC, secrets, schemas, PII, infra.
+- `error-memory` — memoria persistente de errores y decisiones (`errors_memory.json` + `.opencode/memory/`).
+
+Reportes no triviales se persisten en `docs/reviews/{plans,builds}/` usando las plantillas de `docs/reviews/templates/`.
+
 ## Skills
 
 Use relevant skills from `.agents/skills/` for specific tasks.
