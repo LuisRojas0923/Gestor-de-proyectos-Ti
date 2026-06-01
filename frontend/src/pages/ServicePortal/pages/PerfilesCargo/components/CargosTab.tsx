@@ -113,20 +113,20 @@ const CargosTab: React.FC<CargosTabProps> = ({
       header: 'Cargo',
       accessorKey: 'nombre',
       align: 'left',
-      cell: (row) => <Text weight="semibold" className="text-slate-800 dark:text-slate-200">{row.nombre}</Text>,
+      cell: (row) => <Text weight="semibold" className="text-slate-800 dark:text-slate-200 uppercase">{row.nombre}</Text>,
     },
     {
       header: 'Área',
       accessorKey: 'area_id',
       align: 'left',
-      cell: (row) => <span className="text-sm text-slate-600 dark:text-slate-400">{getAreaNombre(row.area_id)}</span>,
+      cell: (row) => <span className="text-sm text-slate-600 dark:text-slate-400 uppercase">{getAreaNombre(row.area_id)}</span>,
     },
     {
       header: 'Reporta a Director',
       accessorKey: 'cargo_superior_id',
       align: 'left',
       cell: (row) => (
-        <span className="text-sm text-indigo-700 dark:text-indigo-400 font-medium">
+        <span className="text-sm text-indigo-700 dark:text-indigo-400 font-medium uppercase">
           {getDirectorNombre(row.cargo_superior_id)}
         </span>
       ),
