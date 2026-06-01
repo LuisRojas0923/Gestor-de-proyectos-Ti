@@ -374,6 +374,134 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
               </div>
             </div>
           </div>
+
+          {/* ── Tabla de Referencia de Catálogos ───────────────────────────────── */}
+          <div className="lg:col-span-2 space-y-2">
+            <div className="flex items-center gap-2 pb-1">
+              <Info size={15} className="text-[var(--color-primary)]" />
+              <Text variant="caption" weight="bold" className="uppercase tracking-widest text-[var(--color-text-secondary)]">
+                Tabla de referencia de catálogos activos
+              </Text>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+              {/* UEN */}
+              <div className="overflow-hidden rounded-xl border border-[var(--color-border)] shadow-sm">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr>
+                      <th colSpan={2} className="bg-indigo-700 text-white text-center py-2 px-3 text-xs font-bold uppercase tracking-wider">
+                        UEN
+                      </th>
+                    </tr>
+                    <tr className="bg-indigo-600 text-white text-xs font-semibold uppercase">
+                      <th className="py-1.5 px-3 w-16 text-center">COD</th>
+                      <th className="py-1.5 px-3">UEN</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {uens.filter(x => x.activo).map((x, i) => (
+                      <tr
+                        key={x.codigo}
+                        className={`border-b border-[var(--color-border)] cursor-pointer transition-colors ${
+                          selUen === x.codigo
+                            ? 'bg-indigo-100 dark:bg-indigo-900/40 font-semibold'
+                            : i % 2 === 0
+                            ? 'bg-[var(--color-surface)] hover:bg-indigo-50 dark:hover:bg-indigo-900/20'
+                            : 'bg-slate-50 dark:bg-slate-800/30 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'
+                        }`}
+                        onClick={() => setSelUen(x.codigo)}
+                      >
+                        <td className="py-1.5 px-3 font-mono font-bold text-indigo-700 dark:text-indigo-300 text-center">{x.codigo}</td>
+                        <td className="py-1.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
+                      </tr>
+                    ))}
+                    {uens.filter(x => x.activo).length === 0 && (
+                      <tr><td colSpan={2} className="py-4 text-center text-[var(--color-text-secondary)] text-xs">Sin registros</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* PROCESO */}
+              <div className="overflow-hidden rounded-xl border border-[var(--color-border)] shadow-sm">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr>
+                      <th colSpan={2} className="bg-blue-700 text-white text-center py-2 px-3 text-xs font-bold uppercase tracking-wider">
+                        PROCESO
+                      </th>
+                    </tr>
+                    <tr className="bg-blue-600 text-white text-xs font-semibold uppercase">
+                      <th className="py-1.5 px-3 w-16 text-center">COD</th>
+                      <th className="py-1.5 px-3">PROCESOS / GASTOS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subcentros.filter(x => x.activo).map((x, i) => (
+                      <tr
+                        key={x.codigo}
+                        className={`border-b border-[var(--color-border)] cursor-pointer transition-colors ${
+                          selSubcentro === x.codigo
+                            ? 'bg-blue-100 dark:bg-blue-900/40 font-semibold'
+                            : i % 2 === 0
+                            ? 'bg-[var(--color-surface)] hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                            : 'bg-slate-50 dark:bg-slate-800/30 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                        }`}
+                        onClick={() => setSelSubcentro(x.codigo)}
+                      >
+                        <td className="py-1.5 px-3 font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{x.codigo}</td>
+                        <td className="py-1.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
+                      </tr>
+                    ))}
+                    {subcentros.filter(x => x.activo).length === 0 && (
+                      <tr><td colSpan={2} className="py-4 text-center text-[var(--color-text-secondary)] text-xs">Sin registros</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* ESPECIALIDAD / SUBCENTRO */}
+              <div className="overflow-hidden rounded-xl border border-[var(--color-border)] shadow-sm">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr>
+                      <th colSpan={2} className="bg-cyan-700 text-white text-center py-2 px-3 text-xs font-bold uppercase tracking-wider">
+                        SUBCENTRO
+                      </th>
+                    </tr>
+                    <tr className="bg-cyan-600 text-white text-xs font-semibold uppercase">
+                      <th className="py-1.5 px-3 w-16 text-center">COD</th>
+                      <th className="py-1.5 px-3">ESPECIALIDAD</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {especialidades.filter(x => x.activo).map((x, i) => (
+                      <tr
+                        key={x.codigo}
+                        className={`border-b border-[var(--color-border)] cursor-pointer transition-colors ${
+                          selEspecialidad === x.codigo
+                            ? 'bg-cyan-100 dark:bg-cyan-900/40 font-semibold'
+                            : i % 2 === 0
+                            ? 'bg-[var(--color-surface)] hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
+                            : 'bg-slate-50 dark:bg-slate-800/30 hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
+                        }`}
+                        onClick={() => setSelEspecialidad(x.codigo)}
+                      >
+                        <td className="py-1.5 px-3 font-mono font-bold text-cyan-700 dark:text-cyan-300 text-center">{x.codigo}</td>
+                        <td className="py-1.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
+                      </tr>
+                    ))}
+                    {especialidades.filter(x => x.activo).length === 0 && (
+                      <tr><td colSpan={2} className="py-4 text-center text-[var(--color-text-secondary)] text-xs">Sin registros</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          </div>
         </div>
       )}
     </div>
