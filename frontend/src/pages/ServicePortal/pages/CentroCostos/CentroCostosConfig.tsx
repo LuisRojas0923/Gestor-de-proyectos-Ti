@@ -391,11 +391,11 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr>
-                      <th colSpan={2} className="bg-indigo-700 text-white text-center py-2 px-3 text-xs font-bold uppercase tracking-wider">
+                      <th colSpan={2} className="bg-green-800 text-white text-center py-2 px-3 text-xs font-bold uppercase tracking-wider">
                         UEN
                       </th>
                     </tr>
-                    <tr className="bg-indigo-600 text-white text-xs font-semibold uppercase">
+                    <tr className="bg-green-700 text-white text-xs font-semibold uppercase">
                       <th className="py-1.5 px-3 w-16 text-center">COD</th>
                       <th className="py-1.5 px-3">UEN</th>
                     </tr>
@@ -406,14 +406,14 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
                         key={x.codigo}
                         className={`border-b border-[var(--color-border)] cursor-pointer transition-colors ${
                           selUen === x.codigo
-                            ? 'bg-indigo-100 dark:bg-indigo-900/40 font-semibold'
+                            ? 'bg-green-100 dark:bg-green-900/40 font-semibold'
                             : i % 2 === 0
-                            ? 'bg-[var(--color-surface)] hover:bg-indigo-50 dark:hover:bg-indigo-900/20'
-                            : 'bg-slate-50 dark:bg-slate-800/30 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'
+                            ? 'bg-[var(--color-surface)] hover:bg-green-50 dark:hover:bg-green-900/20'
+                            : 'bg-slate-50 dark:bg-slate-800/30 hover:bg-green-50 dark:hover:bg-green-900/20'
                         }`}
                         onClick={() => setSelUen(x.codigo)}
                       >
-                        <td className="py-1.5 px-3 font-mono font-bold text-indigo-700 dark:text-indigo-300 text-center">{x.codigo}</td>
+                        <td className="py-1.5 px-3 font-mono font-bold text-green-800 dark:text-green-300 text-center">{x.codigo}</td>
                         <td className="py-1.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
                       </tr>
                     ))}
@@ -429,11 +429,11 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr>
-                      <th colSpan={2} className="bg-blue-700 text-white text-center py-2 px-3 text-xs font-bold uppercase tracking-wider">
+                      <th colSpan={2} className="bg-amber-700 text-white text-center py-2 px-3 text-xs font-bold uppercase tracking-wider">
                         PROCESO
                       </th>
                     </tr>
-                    <tr className="bg-blue-600 text-white text-xs font-semibold uppercase">
+                    <tr className="bg-amber-600 text-white text-xs font-semibold uppercase">
                       <th className="py-1.5 px-3 w-16 text-center">COD</th>
                       <th className="py-1.5 px-3">PROCESOS / GASTOS</th>
                     </tr>
@@ -444,14 +444,14 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
                         key={x.codigo}
                         className={`border-b border-[var(--color-border)] cursor-pointer transition-colors ${
                           selSubcentro === x.codigo
-                            ? 'bg-blue-100 dark:bg-blue-900/40 font-semibold'
+                            ? 'bg-amber-100 dark:bg-amber-900/40 font-semibold'
                             : i % 2 === 0
-                            ? 'bg-[var(--color-surface)] hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                            : 'bg-slate-50 dark:bg-slate-800/30 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                            ? 'bg-[var(--color-surface)] hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                            : 'bg-slate-50 dark:bg-slate-800/30 hover:bg-amber-50 dark:hover:bg-amber-900/20'
                         }`}
                         onClick={() => setSelSubcentro(x.codigo)}
                       >
-                        <td className="py-1.5 px-3 font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{x.codigo}</td>
+                        <td className="py-1.5 px-3 font-mono font-bold text-amber-700 dark:text-amber-300 text-center">{x.codigo}</td>
                         <td className="py-1.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
                       </tr>
                     ))}
@@ -467,11 +467,11 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr>
-                      <th colSpan={2} className="bg-cyan-700 text-white text-center py-2 px-3 text-xs font-bold uppercase tracking-wider">
+                      <th colSpan={2} className="bg-slate-700 text-white text-center py-2 px-3 text-xs font-bold uppercase tracking-wider">
                         SUBCENTRO
                       </th>
                     </tr>
-                    <tr className="bg-cyan-600 text-white text-xs font-semibold uppercase">
+                    <tr className="bg-slate-600 text-white text-xs font-semibold uppercase">
                       <th className="py-1.5 px-3 w-16 text-center">COD</th>
                       <th className="py-1.5 px-3">ESPECIALIDAD</th>
                     </tr>
@@ -482,14 +482,14 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
                         key={x.codigo}
                         className={`border-b border-[var(--color-border)] cursor-pointer transition-colors ${
                           selEspecialidad === x.codigo
-                            ? 'bg-cyan-100 dark:bg-cyan-900/40 font-semibold'
+                            ? 'bg-slate-200 dark:bg-slate-700/60 font-semibold'
                             : i % 2 === 0
-                            ? 'bg-[var(--color-surface)] hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
-                            : 'bg-slate-50 dark:bg-slate-800/30 hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
+                            ? 'bg-[var(--color-surface)] hover:bg-slate-100 dark:hover:bg-slate-700/30'
+                            : 'bg-slate-50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-700/30'
                         }`}
                         onClick={() => setSelEspecialidad(x.codigo)}
                       >
-                        <td className="py-1.5 px-3 font-mono font-bold text-cyan-700 dark:text-cyan-300 text-center">{x.codigo}</td>
+                        <td className="py-1.5 px-3 font-mono font-bold text-slate-700 dark:text-slate-300 text-center">{x.codigo}</td>
                         <td className="py-1.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
                       </tr>
                     ))}
