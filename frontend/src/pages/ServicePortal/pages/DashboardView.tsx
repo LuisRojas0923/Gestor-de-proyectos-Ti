@@ -56,9 +56,11 @@ const ServicePortalCard: React.FC<{
                         <Title variant="h6" weight="bold" className="truncate leading-tight text-slate-800 dark:text-white group-hover:text-[var(--color-primary)] transition-colors">
                             {title}
                         </Title>
-                        <Text variant="caption" className="block mt-1 font-medium text-slate-500 dark:text-slate-400 line-clamp-2">
-                            {description}
-                        </Text>
+                        <div className="max-h-0 opacity-0 group-hover:max-h-16 group-hover:opacity-100 overflow-hidden transition-all duration-300 ease-in-out">
+                            <Text variant="caption" className="block mt-1 font-medium text-slate-500 dark:text-slate-400">
+                                {description}
+                            </Text>
+                        </div>
                         
                         {/* Selector de sub-rutas */}
                         {hasSubItems && (
