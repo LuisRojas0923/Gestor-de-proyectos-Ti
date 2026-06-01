@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, BarChart2, TrendingUp, Users, CheckCircle, Target, Award, AlertTriangle } from 'lucide-react';
+import { X, BarChart2, TrendingUp, Users, CheckCircle, Target, Award, AlertTriangle, ArrowLeft } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line,
 } from 'recharts';
 import { Button, Title, Text, Select } from '../../../../../components/atoms';
 import type { RequisicionRP, CandidatoRequisicion } from '../types/requisicion.types';
-import { ESTADO_LABELS, ESTADO_COLORES } from '../types/requisicion.types';
+import { ESTADO_LABELS } from '../types/requisicion.types';
 import { getCandidatos } from '../services/requisicionService';
 
 // ── Tipos internos ────────────────────────────────────────────────────────────
@@ -24,6 +24,17 @@ interface MetricasRPModalProps {
   onClose: () => void;
   requisiciones: RequisicionRP[];
 }
+
+// Mapa de códigos de causal → nombre completo (debe estar sincronizado con DetalleSeguimientoRP.tsx)
+const CAUSALES_LABEL_MAP: Record<string, string> = {
+  'N.C.EXP':           'No cumple experiencia / perfil técnico',
+  'N.C. E.M':          'No aprobó exámenes médicos',
+  'N.C. ENT':          'No aprobó entrevista con líder',
+  'DESISTE_SALARIO':   'Desistió por aspiración salarial',
+  'DESISTE_CONTRATO':  'Desistió por tipo de contrato/horario',
+  'DESISTE_DISTANCIA': 'Desistió por ubicación/transporte',
+  'DESISTE_PERSONAL':  'Desistió por motivos personales',
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -209,7 +220,11 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
     return Object.entries(map)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([causal, count]) => ({ causal, count }));
+      .map(([causal, count]) => ({
+        causal,
+        label: CAUSALES_LABEL_MAP[causal] ?? causal, // nombre completo o el código si no está mapeado
+        count,
+      }));
   }, [rpFiltradas, candidatosPorRP]);
 
   if (!isOpen) return null;
@@ -219,6 +234,10 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4 bg-[var(--color-surface)] shrink-0">
         <div className="flex items-center gap-3">
+          <Button variant="ghost" icon={ArrowLeft} onClick={onClose} className="font-bold hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl">
+            Volver
+          </Button>
+          <div className="w-px h-6 bg-[var(--color-border)]" />
           <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
             <BarChart2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
@@ -229,7 +248,7 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
             </Text>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* Filtro Mes/Año */}
           <div className="flex items-center gap-2">
             <Select
@@ -247,7 +266,6 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
               className="w-24"
             />
           </div>
-          <Button variant="ghost" icon={X} onClick={onClose} title="Cerrar" />
         </div>
       </div>
 
@@ -438,7 +456,7 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
                   return (
                     <div key={row.causal}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-[var(--color-text-secondary)] truncate max-w-[70%]">{row.causal}</span>
+                        <span className="text-[var(--color-text-secondary)] truncate max-w-[70%]" title={row.label}>{row.label}</span>
                         <span className="font-bold text-[var(--color-text-primary)]">{row.count}</span>
                       </div>
                       <div className="w-full bg-[var(--color-border)] rounded-full h-1.5">
