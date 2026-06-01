@@ -84,13 +84,13 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
 
       if (activeTab === 'uen') {
         await CentroCostoService.saveUen(cleanCodigo, nombreInput.trim(), true);
-        setSuccessMsg(`Centro Costo UEN '${cleanCodigo}' guardado con éxito.`);
+        setSuccessMsg(`UEN '${cleanCodigo}' guardada con éxito.`);
       } else if (activeTab === 'subcentro') {
         await CentroCostoService.saveSubcentro(cleanCodigo, nombreInput.trim(), true);
-        setSuccessMsg(`Subcentro de Costo '${cleanCodigo}' guardado con éxito.`);
+        setSuccessMsg(`Proceso '${cleanCodigo}' guardado con éxito.`);
       } else if (activeTab === 'especialidad') {
         await CentroCostoService.saveEspecialidad(cleanCodigo, nombreInput.trim(), true);
-        setSuccessMsg(`Especialidad '${cleanCodigo}' guardada con éxito.`);
+        setSuccessMsg(`Especialidad / Subcentro '${cleanCodigo}' guardada con éxito.`);
       }
 
       resetForm();
@@ -139,9 +139,9 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
   };
 
   const getTabTitle = () => {
-    if (activeTab === 'uen') return 'Centro Costo UEN';
-    if (activeTab === 'subcentro') return 'Subcentro Costo (Proceso/Gasto)';
-    if (activeTab === 'especialidad') return 'Especialidad';
+    if (activeTab === 'uen') return 'UEN (Unidad Estratégica de Negocio)';
+    if (activeTab === 'subcentro') return 'Proceso';
+    if (activeTab === 'especialidad') return 'Especialidad / Subcentro';
     return '';
   };
 
@@ -165,7 +165,7 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
           </Text>
           <Title variant="h3" weight="bold" color="white">Configurador de Centros de Costos</Title>
           <Text className="text-blue-200 mt-2">
-            Configure los códigos maestros para UENs, Subcentros de Costo y Especialidades del Ecosistema Solid.
+            Configure los códigos maestros para UENs, Procesos y Especialidades / Subcentros del Ecosistema Solid.
           </Text>
         </div>
       </div>
@@ -196,9 +196,9 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
                 : 'border-transparent text-gray-500 hover:text-gray-800'
             }`}
           >
-            {tab === 'uen' && '1. Centro Costo UEN'}
-            {tab === 'subcentro' && '2. Subcentro Costo'}
-            {tab === 'especialidad' && '3. Especialidad'}
+            {tab === 'uen' && '1. UEN'}
+            {tab === 'subcentro' && '2. Proceso'}
+            {tab === 'especialidad' && '3. Especialidad / Subcentro'}
             {tab === 'combinador' && '🔍 Simulador Combinador'}
           </button>
         ))}
@@ -303,7 +303,7 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
             
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">1. Centro Costo UEN (Dígitos 1-2)</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">1. UEN — Unidad Estratégica de Negocio (Dígitos 1-2)</label>
                 <select
                   value={selUen}
                   onChange={(e) => setSelUen(e.target.value)}
@@ -316,7 +316,7 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">2. Subcentro Costo (Dígitos 3-4)</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">2. Proceso (Dígitos 3-4)</label>
                 <select
                   value={selSubcentro}
                   onChange={(e) => setSelSubcentro(e.target.value)}
@@ -329,7 +329,7 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">3. Especialidad (Dígitos 5-6 después del guion)</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">3. Especialidad / Subcentro (Dígitos 5-6 después del guion)</label>
                 <select
                   value={selEspecialidad}
                   onChange={(e) => setSelEspecialidad(e.target.value)}
@@ -361,15 +361,15 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
 
             <div className="border-t border-white/10 pt-6 space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="opacity-60">Centro de Costo UEN:</span>
+                <span className="opacity-60">UEN (Unidad Estratégica de Negocio):</span>
                 <span className="font-bold">{getSelectedUenLabel()} ({selUen})</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="opacity-60">Subcentro (Proceso/Gasto):</span>
+                <span className="opacity-60">Proceso:</span>
                 <span className="font-bold">{getSelectedSubcentroLabel()} ({selSubcentro})</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="opacity-60">Especialidad:</span>
+                <span className="opacity-60">Especialidad / Subcentro:</span>
                 <span className="font-bold">{getSelectedEspecialidadLabel()} ({selEspecialidad})</span>
               </div>
             </div>
