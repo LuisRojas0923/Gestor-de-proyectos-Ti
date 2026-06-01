@@ -38,6 +38,25 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
     'PENDIENTE_APROBACION', 'APROBADA', 'RECHAZADA', 'EN_PROCESO_SELECCION', 'CERRADA'
   ];
 
+  const userRole = (user?.rol || user?.role || '').toLowerCase();
+  const permissions: string[] = user?.permissions || [];
+  const esAprobador = ['admin', 'director'].includes(userRole) || permissions.includes('requisicion_aprobador');
+
+  const acciones = [
+    { label: 'Nueva Requisición', icon: Plus, action: onNueva, variant: 'primary' as const, className: 'h-auto py-6 rounded-2xl shadow-sm' },
+    { label: 'Mis Solicitudes', icon: List, action: onMisRequisiciones, variant: 'outline' as const, className: 'h-auto py-6 rounded-2xl bg-[var(--color-surface)] border-[var(--color-border)] shadow-sm hover:bg-[var(--color-surface-secondary)]' },
+  ];
+
+  if (esAprobador) {
+    acciones.push({
+      label: 'Aprobaciones',
+      icon: ThumbsUp,
+      action: onAprobaciones,
+      variant: 'outline' as const,
+      className: 'h-auto py-6 rounded-2xl bg-[var(--color-surface)] border-[var(--color-border)] shadow-sm hover:bg-[var(--color-surface-secondary)]'
+    });
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
@@ -54,12 +73,8 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
       </div>
 
       {/* Acciones rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { label: 'Nueva Requisición', icon: Plus, action: onNueva, variant: 'primary' as const, className: 'h-auto py-6 rounded-2xl shadow-sm' },
-          { label: 'Mis Solicitudes', icon: List, action: onMisRequisiciones, variant: 'outline' as const, className: 'h-auto py-6 rounded-2xl bg-[var(--color-surface)] border-[var(--color-border)] shadow-sm hover:bg-[var(--color-surface-secondary)]' },
-          { label: 'Aprobaciones', icon: ThumbsUp, action: onAprobaciones, variant: 'outline' as const, className: 'h-auto py-6 rounded-2xl bg-[var(--color-surface)] border-[var(--color-border)] shadow-sm hover:bg-[var(--color-surface-secondary)]' },
-        ].map(({ label, icon: Icon, action, variant, className }) => (
+      <div className={`grid grid-cols-1 md:grid-cols-${acciones.length} gap-4`}>
+        {acciones.map(({ label, icon: Icon, action, variant, className }) => (
           <Button
             key={label}
             onClick={action}
