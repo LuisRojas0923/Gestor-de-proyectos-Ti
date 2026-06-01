@@ -72,8 +72,10 @@ export const desactivarAprobador = (id: number): Promise<void> =>
   axios.delete(`${BASE}/catalogos/aprobadores/${id}`, authHeaders()).then(r => r.data);
 
 // ── Dashboard ──────────────────────────────────
-export const getDashboard = (): Promise<DashboardRP> =>
-  axios.get(`${BASE}/requisiciones/dashboard`, authHeaders()).then(r => r.data);
+export const getDashboard = (correo?: string): Promise<DashboardRP> => {
+  const query = correo ? `?correo_solicitante=${encodeURIComponent(correo)}` : '';
+  return axios.get(`${BASE}/requisiciones/dashboard${query}`, authHeaders()).then(r => r.data);
+};
 
 // ── Mis Requisiciones ─────────────────────────
 export const getMisRequisiciones = (correo: string): Promise<RequisicionRP[]> =>

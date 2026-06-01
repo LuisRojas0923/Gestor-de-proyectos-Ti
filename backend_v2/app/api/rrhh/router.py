@@ -40,9 +40,15 @@ router.include_router(gh_router)
 # Dashboard — métricas resumidas
 # ──────────────────────────────────────────────
 @router.get("/requisiciones/dashboard")
-async def dashboard_requisiciones(db: AsyncSession = Depends(obtener_db)):
+async def dashboard_requisiciones(
+    correo_solicitante: Optional[str] = None,
+    db: AsyncSession = Depends(obtener_db)
+):
     """Retorna contadores por estado para el dashboard del módulo."""
-    result = await db.execute(select(RequisicionPersonal))
+    query = select(RequisicionPersonal)
+    if correo_solicitante:
+        query = query.where(RequisicionPersonal.correo_solicitante == correo_solicitante)
+    result = await db.execute(query)
     todas = result.scalars().all()
     conteo = {estado: 0 for estado in EstadoRP.LABELS}
     for r in todas:

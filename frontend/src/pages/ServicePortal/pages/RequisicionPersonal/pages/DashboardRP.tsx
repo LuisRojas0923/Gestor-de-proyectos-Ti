@@ -31,11 +31,11 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getDashboard()
+    getDashboard(user?.email)
       .then(setDashboard)
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   const summaryCards = [
     {
