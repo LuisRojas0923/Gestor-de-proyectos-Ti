@@ -98,7 +98,7 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
             <Title variant="h6" weight="bold" className="mb-4 text-[var(--color-text-secondary)] uppercase tracking-wider text-xs">
               Datos Generales
             </Title>
-            <Fila label="Ciudad" valor={req.ciudad_nombre} />
+            <Fila label="Ubicación" valor={req.departamento && req.municipio ? `${req.departamento} — ${req.municipio}` : '—'} />
             <Fila label="OT" valor={req.ot} />
             <Fila label="Obra / Proyecto" valor={req.nombre_obra_proyecto} />
             <Fila label="Dirección" valor={req.direccion_obra_proyecto} />

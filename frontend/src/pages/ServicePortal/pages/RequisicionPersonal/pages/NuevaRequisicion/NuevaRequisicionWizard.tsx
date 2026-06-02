@@ -9,7 +9,7 @@ import Step3Causal from './Step3Causal';
 import Step4Requisitos from './Step4Requisitos';
 import Step5Contratacion from './Step5Contratacion';
 import Step6Confirmacion from './Step6Confirmacion';
-import { getAreas, getCargos, getCiudades, getAprobadores } from '../../services/requisicionService';
+import { getAreas, getCargos, getAprobadores } from '../../services/requisicionService';
 import type { AprobadorRP } from '../../types/requisicion.types';
 
 interface NuevaRequisicionWizardProps {
@@ -30,7 +30,6 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
 
   const [areaNombre, setAreaNombre] = useState('');
   const [cargoNombre, setCargoNombre] = useState('');
-  const [ciudadNombre, setCiudadNombre] = useState('');
   const [enviado, setEnviado] = useState(false);
   const [aprobadores, setAprobadores] = useState<AprobadorRP[]>([]);
 
@@ -57,19 +56,12 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
     if (form.cargo_id && form.area_id) {
       getCargos(form.area_id).then(cargos => {
         const c = cargos.find(x => x.id === form.cargo_id);
-        if (c) setCargoNombre(c.nombre);
+        if (c) setCargoNombre(c.nombre.toUpperCase());
       });
     }
   }, [form.cargo_id, form.area_id]);
 
-  useEffect(() => {
-    if (form.ciudad_id) {
-      getCiudades().then(ciudades => {
-        const c = ciudades.find(x => x.id === form.ciudad_id);
-        if (c) setCiudadNombre(c.nombre);
-      });
-    }
-  }, [form.ciudad_id]);
+
 
   const handleGuardarBorrador = async () => {
     const ok = await guardarBorrador();
@@ -90,7 +82,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
       case 3: return <Step3Causal {...props} aprobadores={aprobadores} />;
       case 4: return <Step4Requisitos {...props} />;
       case 5: return <Step5Contratacion {...props} />;
-      case 6: return <Step6Confirmacion {...props} nombreSolicitante={nombreSolicitante} correoSolicitante={correoSolicitante} areaNombre={areaNombre} cargoNombre={cargoNombre} ciudadNombre={ciudadNombre} />;
+      case 6: return <Step6Confirmacion {...props} nombreSolicitante={nombreSolicitante} correoSolicitante={correoSolicitante} areaNombre={areaNombre} cargoNombre={cargoNombre} />;
       default: return null;
     }
   };

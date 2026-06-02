@@ -12,7 +12,6 @@ interface Props {
   correoSolicitante: string;
   areaNombre?: string;
   cargoNombre?: string;
-  ciudadNombre?: string;
 }
 
 const Fila: React.FC<{ label: string; valor?: string | number | null }> = ({ label, valor }) => (
@@ -23,7 +22,7 @@ const Fila: React.FC<{ label: string; valor?: string | number | null }> = ({ lab
 );
 
 const Step6Confirmacion: React.FC<Props> = ({
-  form, update, nombreSolicitante, correoSolicitante, areaNombre, cargoNombre, ciudadNombre
+  form, update, nombreSolicitante, correoSolicitante, areaNombre, cargoNombre
 }) => {
   const formatCOP = (valStr: string | null | undefined) => {
     if (!valStr) return '—';
@@ -48,7 +47,7 @@ const Step6Confirmacion: React.FC<Props> = ({
       <div className="rounded-2xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)] p-5 space-y-1">
         <Fila label="Solicitante" valor={nombreSolicitante} />
         <Fila label="Correo" valor={correoSolicitante} />
-        <Fila label="Ciudad" valor={ciudadNombre} />
+        <Fila label="Ubicación" valor={form.departamento && form.municipio ? `${form.departamento} — ${form.municipio}` : '—'} />
         <Fila label="Área" valor={areaNombre} />
         <Fila label="Cargo solicitado" valor={cargoNombre} />
         <Fila label="N° personas" valor={form.numero_personas_requeridas} />

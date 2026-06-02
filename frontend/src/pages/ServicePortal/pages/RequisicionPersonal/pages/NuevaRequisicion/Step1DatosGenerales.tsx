@@ -4,8 +4,7 @@ import { MapPin, Briefcase, User, Hash, Calendar, Building2, HardHat } from 'luc
 import { Button, Input, Select, Text, Title } from '../../../../../../components/atoms';
 import { FormField, TextAreaField } from '../../../Common';
 import type { FormularioRP } from '../../types/requisicion.types';
-import type { CiudadRP } from '../../types/requisicion.types';
-import { getCiudades } from '../../services/requisicionService';
+import { DIVIPOLA } from '../../constants/divipola';
 import { CentroCostoService, CostCenterItem } from '../../../../../../services/CentroCostoService';
 
 interface Props {
@@ -16,7 +15,6 @@ interface Props {
 }
 
 const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante, nombreSolicitante }) => {
-  const [ciudades, setCiudades] = useState<CiudadRP[]>([]);
 
   // Autocomplete Centro de costo
   const [combinations, setCombinations] = useState<{ code: string; label: string }[]>([]);
@@ -24,9 +22,7 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedBreakdown, setSelectedBreakdown] = useState<string>('');
 
-  useEffect(() => {
-    getCiudades().then(setCiudades).catch(() => {});
-  }, []);
+
 
   useEffect(() => {
     // Cargar los tres catálogos del ERP
@@ -96,7 +92,16 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
     )
     .slice(0, 15);
 
-  const ciudadOptions = ciudades.map(c => ({ value: String(c.id), label: c.nombre }));
+  const departamentoOptions = [
+    { value: '', label: 'SELECCIONAR DEPARTAMENTO...' },
+    ...Object.keys(DIVIPOLA).map(d => ({ value: d, label: d })),
+  ];
+
+  const municipiosDisponibles = form.departamento ? DIVIPOLA[form.departamento] || [] : [];
+  const municipioOptions = [
+    { value: '', label: 'SELECCIONAR MUNICIPIO...' },
+    ...municipiosDisponibles.map(m => ({ value: m, label: m })),
+  ];
   const today = new Date().toISOString().split('T')[0];
 
   return (
@@ -121,15 +126,31 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <Select
-          label="Ciudad"
-          name="ciudad_id"
-          value={form.ciudad_id ? String(form.ciudad_id) : ''}
-          onChange={e => update('ciudad_id', e.target.value ? Number(e.target.value) : null)}
-          icon={MapPin}
-          options={[{ value: '', label: 'Seleccionar ciudad...' }, ...ciudadOptions]}
-          required
-        />
+        <div className="flex gap-2">
+          <Select
+            label="Departamento"
+            name="departamento"
+            value={form.departamento}
+            onChange={e => {
+              update('departamento', e.target.value);
+              update('municipio', ''); // Reset municipio if dept changes
+            }}
+            icon={MapPin}
+            options={departamentoOptions}
+            required
+            className="flex-1"
+          />
+          <Select
+            label="Municipio"
+            name="municipio"
+            value={form.municipio}
+            onChange={e => update('municipio', e.target.value)}
+            options={municipioOptions}
+            disabled={!form.departamento}
+            required
+            className="flex-1"
+          />
+        </div>
         <FormField
           label="OT (Orden de Trabajo)"
           name="ot"
@@ -183,7 +204,7 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
           value={form.tsa}
           onChange={e => update('tsa', e.target.value)}
           options={[
-            { value: '', label: 'Seleccionar...' },
+            { value: '', label: 'SELECCIONAR...' },
             { value: 'APLICA', label: 'APLICA' },
             { value: 'NO APLICA', label: 'NO APLICA' },
           ]}
@@ -195,7 +216,7 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
           value={form.duracion_obra_contrato}
           onChange={e => update('duracion_obra_contrato', e.target.value)}
           options={[
-            { value: '', label: 'Seleccionar...' },
+            { value: '', label: 'SELECCIONAR...' },
             { value: '2 MESES', label: '2 MESES' },
             { value: 'MÁS DE 2 MESES', label: 'MÁS DE 2 MESES' },
           ]}

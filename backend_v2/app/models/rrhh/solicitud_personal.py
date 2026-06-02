@@ -74,8 +74,8 @@ class RequisicionPersonal(SQLModel, table=True):
     fecha_radicacion: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": "now()"}
     )
-    ciudad_id: Optional[int] = Field(default=None, foreign_key="ciudades_rp.id")
-    ciudad_nombre: Optional[str] = Field(default=None, max_length=100)  # desnorm. para historial
+    departamento: Optional[str] = Field(default=None, max_length=100)
+    municipio: Optional[str] = Field(default=None, max_length=100)
     ot: Optional[str] = Field(default=None, max_length=100)
     nombre_obra_proyecto: Optional[str] = Field(default=None, max_length=500)
     direccion_obra_proyecto: Optional[str] = Field(default=None, max_length=500)

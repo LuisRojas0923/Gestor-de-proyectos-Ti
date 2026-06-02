@@ -6,17 +6,17 @@ import { FormField } from '../../../Common';
 import type { FormularioRP } from '../../types/requisicion.types';
 
 const MODALIDADES = [
-  { value: '', label: 'Seleccionar modalidad...' },
-  { value: 'DIRECTO POR REFRIDCOL', label: 'Directo por Refridcol' },
-  { value: 'AGENCIA TEMPORAL', label: 'Agencia temporal' },
-  { value: 'APRENDIZ CONVENIO SENA', label: 'Aprendiz convenio SENA' },
+  { value: '', label: 'SELECCIONAR MODALIDAD...' },
+  { value: 'DIRECTO POR REFRIDCOL', label: 'DIRECTO POR REFRIDCOL' },
+  { value: 'AGENCIA TEMPORAL', label: 'AGENCIA TEMPORAL' },
+  { value: 'APRENDIZ CONVENIO SENA', label: 'APRENDIZ CONVENIO SENA' },
 ];
 
 const TIPOS_CONTRATO = [
-  { value: '', label: 'Seleccionar tipo...' },
-  { value: 'CONTRATO FIJO INFERIOR A 1 AÑO', label: 'Contrato fijo inferior a 1 año' },
-  { value: 'CONTRATO OBRA LABOR', label: 'Contrato obra labor' },
-  { value: 'CONTRATO INDEFINIDO', label: 'Contrato indefinido' },
+  { value: '', label: 'SELECCIONAR TIPO...' },
+  { value: 'CONTRATO FIJO INFERIOR A 1 AÑO', label: 'CONTRATO FIJO INFERIOR A 1 AÑO' },
+  { value: 'CONTRATO OBRA LABOR', label: 'CONTRATO OBRA LABOR' },
+  { value: 'CONTRATO INDEFINIDO', label: 'CONTRATO INDEFINIDO' },
 ];
 
 interface Props {

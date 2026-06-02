@@ -62,7 +62,8 @@ class AprobadorCreate(BaseModel):
 # ──────────────────────────────────────────────
 class RequisicionCreate(BaseModel):
     # Sección 1
-    ciudad_id: Optional[int] = None
+    departamento: Optional[str] = None
+    municipio: Optional[str] = None
     ot: Optional[str] = None
     nombre_obra_proyecto: Optional[str] = None
     direccion_obra_proyecto: Optional[str] = None
@@ -177,8 +178,8 @@ class RequisicionOut(BaseModel):
     correo_solicitante: str
     nombre_solicitante: str
     fecha_radicacion: Optional[datetime]
-    ciudad_id: Optional[int]
-    ciudad_nombre: Optional[str]
+    departamento: Optional[str]
+    municipio: Optional[str]
     ot: Optional[str]
     nombre_obra_proyecto: Optional[str]
     direccion_obra_proyecto: Optional[str]

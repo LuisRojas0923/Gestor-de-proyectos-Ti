@@ -8,10 +8,10 @@ import type { FormularioRP } from '../../types/requisicion.types';
 const EQUIPOS_OFICINA = ['ESCRITORIO', 'LOCKER', 'SILLA', 'ARCHIVADOR', 'MÓDULO / OFICINA'];
 const EQUIPOS_TEC = ['EQUIPO DE CÓMPUTO DESKTOP', 'EQUIPO DE CÓMPUTO PORTÁTIL', 'CORREO CORPORATIVO', 'USUARIO DE RED', 'EXT: PANTALLA, MOUSE, TECLADO'];
 const PLANES_SIMCARD = [
-  { value: '', label: 'Seleccionar plan...' },
-  { value: 'PLAN BÁSICO', label: 'Plan Básico' },
-  { value: 'PLAN MEDIO', label: 'Plan Medio' },
-  { value: 'PLAN ALTO', label: 'Plan Alto' },
+  { value: '', label: 'SELECCIONAR PLAN...' },
+  { value: 'PLAN BÁSICO', label: 'PLAN BÁSICO' },
+  { value: 'PLAN MEDIO', label: 'PLAN MEDIO' },
+  { value: 'PLAN ALTO', label: 'PLAN ALTO' },
 ];
 
 interface Props {

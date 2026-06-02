@@ -40,7 +40,13 @@ export function useRequisicionPersonal(
   const updateField = useCallback(<K extends keyof FormularioRP>(
     campo: K, valor: FormularioRP[K]
   ) => {
-    setForm(prev => ({ ...prev, [campo]: valor }));
+    let finalValue = valor;
+    if (typeof finalValue === 'string') {
+      finalValue = finalValue.toUpperCase() as unknown as FormularioRP[K];
+    } else if (Array.isArray(finalValue)) {
+      finalValue = finalValue.map(item => typeof item === 'string' ? item.toUpperCase() : item) as unknown as FormularioRP[K];
+    }
+    setForm(prev => ({ ...prev, [campo]: finalValue }));
   }, []);
 
   const irAPaso = useCallback((paso: number) => {
@@ -104,7 +110,8 @@ export function useRequisicionPersonal(
     switch (paso) {
       case 1:
         return !!(
-          form.ciudad_id &&
+          form.departamento &&
+          form.municipio &&
           form.nombre_obra_proyecto?.trim() &&
           form.numero_personas_requeridas >= 1 &&
           form.tsa &&
@@ -193,7 +200,8 @@ export function useRequisicionPersonal(
       requisicionIdRef.current = id;
       setRequisicionId(id);
       setForm({
-        ciudad_id: req.ciudad_id,
+        departamento: req.departamento || '',
+        municipio: req.municipio || '',
         ot: req.ot || '',
         nombre_obra_proyecto: req.nombre_obra_proyecto || '',
         direccion_obra_proyecto: req.direccion_obra_proyecto || '',

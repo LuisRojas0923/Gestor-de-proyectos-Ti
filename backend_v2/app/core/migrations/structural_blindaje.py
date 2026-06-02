@@ -147,6 +147,12 @@ async def ejecutar_blindaje_estructural(conn):
         'ALTER TABLE cargos_rp ADD CONSTRAINT cargos_rp_cargo_superior_id_fkey FOREIGN KEY (cargo_superior_id) REFERENCES aprobadores_area_rp(id)'
     )
 
+    # 8.6 Requisiciones RP - Divipola
+    await safe_execute(conn, "ALTER TABLE requisiciones_personal DROP COLUMN IF EXISTS ciudad_id CASCADE")
+    await safe_execute(conn, "ALTER TABLE requisiciones_personal DROP COLUMN IF EXISTS ciudad_nombre CASCADE")
+    await safe_execute(conn, "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS departamento VARCHAR(100)")
+    await safe_execute(conn, "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS municipio VARCHAR(100)")
+
     # 9. Otros (Formato 2276, etc.)
     await safe_execute(conn, 'ALTER TABLE formato_2276 ADD COLUMN IF NOT EXISTS entidad_informante VARCHAR(10)')
 

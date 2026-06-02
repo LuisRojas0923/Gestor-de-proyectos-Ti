@@ -103,11 +103,7 @@ async def guardar_borrador(
             cargo = await db.get(CargoRP, payload.cargo_id)
             if cargo:
                 data["cargo_nombre"] = cargo.nombre
-        if payload.ciudad_id:
-            from app.models.rrhh.catalogos import CiudadRP
-            ciudad = await db.get(CiudadRP, payload.ciudad_id)
-            if ciudad:
-                data["ciudad_nombre"] = ciudad.nombre
+
 
         req = await svc.crear_o_actualizar_borrador(
             db, data, nombre_solicitante, correo_solicitante, requisicion_id

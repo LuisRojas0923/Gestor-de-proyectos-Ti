@@ -72,8 +72,8 @@ export interface RequisicionRP {
   correo_solicitante: string;
   nombre_solicitante: string;
   fecha_radicacion: string | null;
-  ciudad_id: number | null;
-  ciudad_nombre: string | null;
+  departamento: string | null;
+  municipio: string | null;
   ot: string | null;
   nombre_obra_proyecto: string | null;
   direccion_obra_proyecto: string | null;
@@ -127,8 +127,8 @@ export interface RequisicionRP {
 
 // ── Wizard — estado local del formulario ───────
 export interface FormularioRP {
-  // Sección 1
-  ciudad_id: number | null;
+  departamento: string;
+  municipio: string;
   ot: string;
   nombre_obra_proyecto: string;
   direccion_obra_proyecto: string;
@@ -168,7 +168,7 @@ export interface FormularioRP {
 }
 
 export const FORMULARIO_INICIAL: FormularioRP = {
-  ciudad_id: null, ot: '', nombre_obra_proyecto: '', direccion_obra_proyecto: '',
+  departamento: '', municipio: '', ot: '', nombre_obra_proyecto: '', direccion_obra_proyecto: '',
   encargado_sitio: '', numero_personas_requeridas: 1, tsa: '', duracion_obra_contrato: '',
   fecha_probable_ingreso: '', centro_costo: '', perfil_requerido: '',
   area_id: null, cargo_id: null,

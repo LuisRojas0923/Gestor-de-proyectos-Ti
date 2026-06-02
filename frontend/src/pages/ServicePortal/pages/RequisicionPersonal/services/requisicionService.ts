@@ -56,8 +56,7 @@ export const actualizarCargo = (
 export const sincronizarJerarquia = (): Promise<{ detail: string }> =>
   axios.post(`${BASE}/catalogos/sincronizar-jerarquia`, {}, authHeaders()).then(r => r.data);
 
-export const getCiudades = (): Promise<CiudadRP[]> =>
-  axios.get(`${BASE}/catalogos/ciudades`, authHeaders()).then(r => r.data);
+
 
 export const getAprobadores = (): Promise<AprobadorRP[]> =>
   axios.get(`${BASE}/catalogos/aprobadores`, authHeaders()).then(r => r.data);

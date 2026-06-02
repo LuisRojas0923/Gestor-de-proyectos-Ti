@@ -6,16 +6,16 @@ import { TextAreaField } from '../../../Common';
 import type { FormularioRP, AprobadorRP } from '../../types/requisicion.types';
 
 const CAUSALES = [
-  { value: '', label: 'Seleccionar causal...' },
-  { value: 'CREACIÓN DE UN NUEVO CARGO', label: 'Creación de un nuevo cargo' },
-  { value: 'INCREMENTO OBRA / LABOR', label: 'Incremento obra / labor' },
-  { value: 'REEMPLAZO POR INCAPACIDAD ARL', label: 'Reemplazo por incapacidad ARL' },
-  { value: 'REEMPLAZO POR RETIRO VOLUNTARIO', label: 'Reemplazo por retiro voluntario' },
-  { value: 'REEMPLAZO POR MATERNIDAD', label: 'Reemplazo por maternidad' },
-  { value: 'REEMPLAZO POR INCAPACIDAD EPS', label: 'Reemplazo por incapacidad EPS' },
-  { value: 'TERMINACIÓN DEL CONTRATO', label: 'Terminación del contrato' },
-  { value: 'REEMPLAZO POR VACACIONES', label: 'Reemplazo por vacaciones' },
-  { value: 'OTRO', label: 'Otro (especificar)' },
+  { value: '', label: 'SELECCIONAR CAUSAL...' },
+  { value: 'CREACIÓN DE UN NUEVO CARGO', label: 'CREACIÓN DE UN NUEVO CARGO' },
+  { value: 'INCREMENTO OBRA / LABOR', label: 'INCREMENTO OBRA / LABOR' },
+  { value: 'REEMPLAZO POR INCAPACIDAD ARL', label: 'REEMPLAZO POR INCAPACIDAD ARL' },
+  { value: 'REEMPLAZO POR RETIRO VOLUNTARIO', label: 'REEMPLAZO POR RETIRO VOLUNTARIO' },
+  { value: 'REEMPLAZO POR MATERNIDAD', label: 'REEMPLAZO POR MATERNIDAD' },
+  { value: 'REEMPLAZO POR INCAPACIDAD EPS', label: 'REEMPLAZO POR INCAPACIDAD EPS' },
+  { value: 'TERMINACIÓN DEL CONTRATO', label: 'TERMINACIÓN DEL CONTRATO' },
+  { value: 'REEMPLAZO POR VACACIONES', label: 'REEMPLAZO POR VACACIONES' },
+  { value: 'OTRO', label: 'OTRO (ESPECIFICAR)' },
 ];
 
 interface Props {
@@ -31,10 +31,10 @@ const Step3Causal: React.FC<Props> = ({ form, update, aprobadores }) => {
   );
 
   const opcionesDirector = [
-    { value: '', label: 'Seleccionar director...' },
+    { value: '', label: 'SELECCIONAR DIRECTOR...' },
     ...directoresDelArea.map(a => ({
       value: String(a.id),
-      label: `${a.nombre_aprobador} — ${a.email_aprobador}`,
+      label: `${a.nombre_aprobador.toUpperCase()} — ${a.email_aprobador.toUpperCase()}`,
     })),
   ];
 

@@ -43,13 +43,13 @@ const Step2AreaCargo: React.FC<Props> = ({ form, update }) => {
   }, [form.area_id]);
 
   const areaOptions = [
-    { value: '', label: 'Seleccionar área...' },
+    { value: '', label: 'SELECCIONAR ÁREA...' },
     ...areas.map(a => ({ value: String(a.id), label: a.nombre })),
   ];
 
   const cargoOptions = [
-    { value: '', label: loadingCargos ? 'Cargando cargos...' : 'Seleccionar cargo...' },
-    ...cargos.map(c => ({ value: String(c.id), label: c.nombre })),
+    { value: '', label: loadingCargos ? 'CARGANDO CARGOS...' : 'SELECCIONAR CARGO...' },
+    ...cargos.map(c => ({ value: String(c.id), label: c.nombre.toUpperCase() })),
   ];
 
   return (

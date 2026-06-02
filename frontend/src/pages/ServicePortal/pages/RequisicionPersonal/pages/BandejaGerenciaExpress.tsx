@@ -170,7 +170,7 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
                 <div className="grid grid-cols-2 gap-4 bg-[var(--color-surface-secondary)] p-4 rounded-2xl text-sm">
                   <div>
                     <Text as="span" className="text-[var(--color-text-secondary)] text-xs block">Ciudad / Sede</Text>
-                    <strong className="text-slate-800 dark:text-white">{seleccionada.ciudad_nombre || '—'}</strong>
+                    <strong className="text-slate-800 dark:text-white">{seleccionada.departamento && seleccionada.municipio ? `${seleccionada.departamento} - ${seleccionada.municipio}` : '—'}</strong>
                   </div>
                   <div>
                     <Text as="span" className="text-[var(--color-text-secondary)] text-xs block">Centro de Costo</Text>

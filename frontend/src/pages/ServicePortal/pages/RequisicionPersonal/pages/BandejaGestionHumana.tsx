@@ -83,10 +83,12 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       ),
     },
     {
-      header: 'Ciudad',
-      accessorKey: 'ciudad_nombre',
-      align: 'center',
-      cell: (row) => <Text as="span">{row.ciudad_nombre || '—'}</Text>,
+      id: 'ubicacion',
+      header: 'Ubicación',
+      accessorFn: (row: RequisicionRP) => `${row.departamento || ''} - ${row.municipio || ''}`,
+      cell: (row) => <Text as="span">{row.departamento && row.municipio ? `${row.departamento} - ${row.municipio}` : '—'}</Text>,
+      sortable: true,
+      align: 'left'
     },
     {
       header: 'Recibida GH',
