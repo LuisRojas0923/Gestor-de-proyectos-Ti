@@ -22,7 +22,7 @@ const LogoSolidSolutions: React.FC<LogoSolidSolutionsProps> = ({
   const isIconOnly = variant === 'icon';
 
   const barWidth = isLarge ? 'w-[8px]' : isSmall ? 'w-1' : 'w-[5px]';
-  const barGap = isLarge ? 'gap-1' : isSmall ? 'gap-0.5' : 'gap-0.5';
+  const barGap = isLarge ? 'gap-[3px]' : isSmall ? 'gap-0.5' : 'gap-0.5';
   const barHeight = isLarge ? 'h-10' : isSmall ? 'h-[18px]' : 'h-6';
 
   return (
