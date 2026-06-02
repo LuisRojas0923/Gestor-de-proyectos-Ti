@@ -1,7 +1,7 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 
-import { Button, Title, Text, Icon } from '../atoms';
+import { Title, Text, Icon, MaterialCard } from '../atoms';
 
 interface ActionCardProps {
     title: string;
@@ -39,10 +39,10 @@ export const ActionCard: React.FC<ActionCardProps> = ({
     const iconContainerStyles = getColorClasses();
 
     return (
-        <Button
-            variant="custom"
+        <MaterialCard
             onClick={onClick}
-            className={`group p-8 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2.5rem] shadow-sm hover:shadow-xl hover:border-[var(--color-primary)] transition-all duration-300 transform hover:-translate-y-1 text-center space-y-4 h-auto flex-col block w-full ${className}`}
+            hoverable={true}
+            className={`group p-8 text-center space-y-4 h-auto flex-col block w-full ${className}`}
         >
             <div className={`w-32 h-32 rounded-[2rem] flex items-center justify-center mx-auto transition-transform group-hover:scale-110 mb-4 ${iconContainerStyles}`}>
                 {/* Render icon directly if it's a node, or wrap it if it's a function/component pattern */}
@@ -54,7 +54,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
             </div>
             <Title variant="h5" weight="bold" color="text-primary">{title}</Title>
             <Text variant="body1" color="text-secondary" weight="medium">{description}</Text>
-        </Button>
+        </MaterialCard>
     );
 };
 

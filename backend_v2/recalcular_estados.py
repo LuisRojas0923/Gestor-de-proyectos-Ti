@@ -22,46 +22,72 @@ SQL_DESARROLLOS = """
 def _puntos(estado: str) -> int:
     if estado in ("Completada", "Completado"):
         return 100
-    if estado == "En Progreso":
+    if estado in ("En Progreso", "En Proceso"):
         return 50
     return 0
 
 async def run():
     engine = create_async_engine(config.database_url)
-    async with async_sessionmaker(engine)() as db:
-        # Agrupar actividades por desarrollo
-        rows = (await db.execute(text(SQL_ACTIVIDADES))).fetchall()
-        grupos: dict[str, list[str]] = {}
-        for r in rows:
-            grupos.setdefault(r.desarrollo_id, []).append(r.estado)
+    try:
+        async with async_sessionmaker(engine)() as db:
+            # Agrupar actividades por desarrollo
+            try:
+                rows = (await db.execute(text(SQL_ACTIVIDADES))).fetchall()
+            except Exception as e:
+                print(f"Error al consultar actividades: {e}")
+                raise
 
-        desarrollos = (await db.execute(text(SQL_DESARROLLOS))).fetchall()
+            grupos: dict[str, list[str]] = {}
+            for r in rows:
+                grupos.setdefault(r.desarrollo_id, []).append(r.estado)
 
-        actualizados = 0
-        for d in desarrollos:
-            estados = grupos.get(d.id, [])
-            if not estados:
-                continue
+            try:
+                desarrollos = (await db.execute(text(SQL_DESARROLLOS))).fetchall()
+            except Exception as e:
+                print(f"Error al consultar desarrollos: {e}")
+                raise
 
-            total = len(estados)
-            suma  = sum(_puntos(e) for e in estados)
-            nuevo_pct = Decimal(str(round(suma / total)))
+            actualizados = 0
+            for d in desarrollos:
+                estados = grupos.get(d.id, [])
+                if not estados:
+                    continue
 
-            nuevo_estado = d.estado_general
-            if d.estado_general == "Pendiente" and any(e == "En Progreso" for e in estados):
-                nuevo_estado = "En Progreso"
+                total = len(estados)
+                suma  = sum(_puntos(e) for e in estados)
+                nuevo_pct = Decimal(str(round(suma / total)))
 
-            # Solo actualizar si hay cambio
-            if nuevo_pct != d.porcentaje_progreso or nuevo_estado != d.estado_general:
-                await db.execute(
-                    text("UPDATE desarrollos SET porcentaje_progreso=:pct, estado_general=:est WHERE id=:id"),
-                    {"pct": nuevo_pct, "est": nuevo_estado, "id": d.id}
-                )
-                print(f"  {d.id}: pct {int(d.porcentaje_progreso or 0)}% → {int(nuevo_pct)}%  |  estado {d.estado_general} → {nuevo_estado}")
-                actualizados += 1
+                # Sincronizar el estado según el porcentaje de avance
+                if nuevo_pct == 0:
+                    nuevo_estado = "Pendiente"
+                elif nuevo_pct == 100:
+                    nuevo_estado = "Completado"
+                else:
+                    nuevo_estado = "En Proceso"
 
-        await db.commit()
-        print(f"\n✓ {actualizados} desarrollos actualizados de {len(desarrollos)} totales.")
-    await engine.dispose()
+                # Solo actualizar si hay cambio
+                if nuevo_pct != d.porcentaje_progreso or nuevo_estado != d.estado_general:
+                    try:
+                        await db.execute(
+                            text("UPDATE desarrollos SET porcentaje_progreso=:pct, estado_general=:est WHERE id=:id"),
+                            {"pct": nuevo_pct, "est": nuevo_estado, "id": d.id}
+                        )
+                    except Exception as e:
+                        print(f"Error al actualizar desarrollo {d.id}: {e}")
+                        raise
+                    print(f"  {d.id}: pct {int(d.porcentaje_progreso or 0)}% → {int(nuevo_pct)}%  |  estado {d.estado_general} → {nuevo_estado}")
+                    actualizados += 1
+
+            try:
+                await db.commit()
+            except Exception as e:
+                print(f"Error al confirmar cambios: {e}")
+                raise
+            print(f"\n✓ {actualizados} desarrollos actualizados de {len(desarrollos)} totales.")
+    except Exception as e:
+        print(f"Error en recalcular_estados: {e}")
+        raise
+    finally:
+        await engine.dispose()
 
 asyncio.run(run())

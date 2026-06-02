@@ -18,13 +18,13 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
   ...props
 }) => {
 
-  const baseClasses = `rounded-[1.5rem] transition-all bg-[var(--color-surface)] border border-[var(--color-border)]`;
+  const baseClasses = `rounded-[1.5rem] transition-all bg-[var(--color-surface)] border border-[var(--color-border)] duration-300 ease-in-out`;
 
   const elevationClasses = {
     0: 'shadow-none',
     1: 'shadow-sm hover:shadow-md',
-    2: 'shadow-md hover:shadow-lg',
-    3: 'shadow-lg hover:shadow-xl',
+    2: 'shadow-md hover:shadow-xl',
+    3: 'shadow-lg hover:shadow-2xl',
     4: 'shadow-xl hover:shadow-2xl',
     5: 'shadow-2xl hover:shadow-2xl',
     6: 'shadow-2xl hover:shadow-2xl',
@@ -35,12 +35,12 @@ const MaterialCard: React.FC<MaterialCardProps> = ({
     24: 'shadow-2xl hover:shadow-2xl'
   };
 
-  const hoverClasses = hoverable ? 'hover:shadow-xl cursor-pointer hover:-translate-y-1' : '';
-  const clickableClasses = onClick ? 'cursor-pointer active:scale-95' : '';
+  const hoverClasses = hoverable ? 'hover:shadow-md hover:shadow-xl hover:border-[var(--color-primary)] transform hover:-translate-y-1' : '';
+  const clickableClasses = (onClick || hoverable) ? 'cursor-pointer active:scale-95' : '';
 
   return (
     <div
-      className={`${baseClasses} ${elevationClasses[elevation]} ${hoverClasses} ${clickableClasses} ${className} font-sans duration-300 ease-in-out`}
+      className={`${baseClasses} ${elevationClasses[elevation]} ${hoverClasses} ${clickableClasses} ${className} font-sans`}
       onClick={onClick}
       {...props}
     >
