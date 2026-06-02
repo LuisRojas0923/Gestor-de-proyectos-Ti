@@ -50,6 +50,23 @@ const PrintRequisicionRP: React.FC = () => {
               print-color-adjust: exact;
               background-color: white !important;
             }
+            /* Ocultar todos los elementos de la página */
+            body * {
+              visibility: hidden;
+            }
+            /* Hacer visible solo el área de impresión y sus hijos */
+            #print-area, #print-area * {
+              visibility: visible;
+            }
+            /* Posicionar el área de impresión arriba a la izquierda para evitar espacios en blanco del layout original */
+            #print-area {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              margin: 0;
+              padding: 0;
+            }
             .no-print {
               display: none !important;
             }
@@ -68,7 +85,7 @@ const PrintRequisicionRP: React.FC = () => {
         </button>
       </div>
 
-      <div className="max-w-[215.9mm] mx-auto p-4 sm:p-8 font-sans">
+      <div id="print-area" className="max-w-[215.9mm] mx-auto p-4 sm:p-8 font-sans bg-white">
         {/* Cabecera / Logo */}
         <div className="flex justify-between items-start border-b-2 border-slate-800 pb-4 mb-6">
           <div className="flex flex-col">
@@ -76,12 +93,12 @@ const PrintRequisicionRP: React.FC = () => {
               Requisición de Personal
             </h1>
             <span className="text-sm font-medium text-slate-600">
-              RECURSOS HUMANOS — SOLID SOLUTIONS
+              RECURSOS HUMANOS — RDX SOLUTIONS
             </span>
           </div>
           <div className="text-right flex flex-col items-end">
              {/* Fallback en caso de que logo no cargue bien en print */}
-             <div className="font-bold text-xl text-blue-900 tracking-wider">SOLID</div>
+             <div className="font-bold text-xl text-blue-900 tracking-wider">RDX</div>
              <span className="font-mono text-lg font-bold bg-slate-100 px-3 py-1 rounded-md mt-1 border border-slate-300">
                {req.rp || 'SIN NÚMERO'}
              </span>
