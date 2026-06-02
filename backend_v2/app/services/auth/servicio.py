@@ -33,19 +33,33 @@ class ServicioAuth:
     oauth2_scheme_opcional = OAuth2PasswordBearer(tokenUrl="api/v2/auth/login", auto_error=False)
 
     @staticmethod
+    def _es_hash_bcrypt_valido(hash_contrasena: str) -> bool:
+        """Verifica si el string tiene formato de hash bcrypt válido ($2b$, $2a$ o $2y$)."""
+        try:
+            if not hash_contrasena or len(hash_contrasena) < 20:
+                return False
+            return hash_contrasena.startswith(("$2b$", "$2a$", "$2y$"))
+        except (ValueError, TypeError, AttributeError):
+            return False
+
+    @staticmethod
     def es_password_configurado(hash_contrasena: str, cedula: Optional[str] = None) -> bool:
         """
         Verifica si el usuario ya cambió su contraseña inicial.
-        No se considera configurada si coincide con la clave genérica O con su cédula.
+        No se considera configurada si:
+          - El hash no es bcrypt válido (texto plano)
+          - Coincide con la clave genérica del portal
+          - Coincide con su cédula
         """
-        # 1. Validar contra clave genérica del portal
+        if not ServicioAuth._es_hash_bcrypt_valido(hash_contrasena):
+            return False
+
         if ServicioAuth.verificar_contrasena(config.portal_pending_pwd, hash_contrasena):
             return False
-        
-        # 2. Validar contra cédula si se proporciona
+
         if cedula and ServicioAuth.verificar_contrasena(cedula, hash_contrasena):
             return False
-            
+
         return True
 
     @staticmethod
