@@ -124,9 +124,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         ['admin', 'director'].includes(userRole)
     );
 
-    const canSeeCentroCostos = moduleStatus['configuracion_centro_costo'] !== false && (
-        ['admin', 'admin_sistemas', 'admin_mejoramiento'].includes(userRole)
-    );
+    const canSeeCentroCostos = moduleStatus['configuracion_centro_costo'] !== false;
     const cards = [
         {
             key: 'solicitudes',

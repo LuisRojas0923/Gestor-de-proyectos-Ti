@@ -392,8 +392,8 @@ const ServicePortal: React.FC = () => {
                 } />
 
                 <Route path="centro-costos" element={
-                    <ProtectedRoute moduleCode="configuracion_centro_costo" allowedRoles={['admin', 'admin_sistemas', 'admin_mejoramiento']}>
-                        <CentroCostosConfig onVolver={() => navigate('/service-portal/inicio')} />
+                    <ProtectedRoute moduleCode="configuracion_centro_costo">
+                        <CentroCostosConfig user={user} onVolver={() => navigate('/service-portal/inicio')} />
                     </ProtectedRoute>
                 } />
 

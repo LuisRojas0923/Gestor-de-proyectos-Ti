@@ -4,11 +4,13 @@ import { Button, Input, Select, Subtitle, Text, Title } from '../../../../compon
 import { CentroCostoService, CostCenterItem } from '../../../../services/CentroCostoService';
 
 interface CentroCostosConfigProps {
+  user: any;
   onVolver: () => void;
 }
 
-const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => {
-  const [activeTab, setActiveTab] = useState<'uen' | 'subcentro' | 'especialidad' | 'combinador'>('uen');
+const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ user, onVolver }) => {
+  const isAdmin = ['admin', 'admin_sistemas', 'admin_mejoramiento'].includes(user?.rol?.toLowerCase() || user?.role?.toLowerCase() || '');
+  const [activeTab, setActiveTab] = useState<'uen' | 'subcentro' | 'especialidad' | 'combinador'>(isAdmin ? 'uen' : 'combinador');
 
   // --- Estados de Datos ---
   const [uens, setUens] = useState<CostCenterItem[]>([]);
@@ -190,7 +192,7 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ onVolver }) => 
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 mb-6 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl w-fit border border-slate-200 dark:border-slate-700/50">
-        {(['uen', 'subcentro', 'especialidad', 'combinador'] as const).map(tab => (
+        {(isAdmin ? ['uen', 'subcentro', 'especialidad', 'combinador'] : ['combinador'] as const).map(tab => (
           <Button
             key={tab}
             variant={activeTab === tab ? 'primary' : 'ghost'}
