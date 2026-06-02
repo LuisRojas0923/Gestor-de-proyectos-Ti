@@ -100,16 +100,6 @@ async def usuario_escalado(db_session):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_password_set_false_para_usuario_portal_pending(db_session):
-    """
-    Verifica que es_password_configurado() devuelva False cuando el hash
-    corresponde a la clave genérica de portal (portal_pending_pwd).
-    """
-    hash_pendiente = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
-    assert ServicioAuth.es_password_configurado(hash_pendiente) is False
-
-
-@pytest.mark.asyncio
 async def test_password_set_false_cuando_hash_es_cedula():
     """
     Verifica que es_password_configurado() devuelva False cuando el hash
@@ -299,7 +289,8 @@ async def test_cambio_forzado_password_exitoso(client, db_session):
     """
     cedula = "888000222"
     usuario_id = f"USR-{cedula}"
-    clave_actual = cedula
+    clave_temporal = "ClaveTemporal2026!"
+    clave_nueva = "NuevaClaveSegura99!"
 
     # Setup: usuario con hash = cédula (post-escalado)
     await db_session.execute(
@@ -311,17 +302,24 @@ async def test_cambio_forzado_password_exitoso(client, db_session):
         id=usuario_id,
         cedula=cedula,
         nombre="Test Cambio Password",
-        hash_contrasena=ServicioAuth.obtener_hash_contrasena(clave_actual),
+        hash_contrasena=ServicioAuth.obtener_hash_contrasena(cedula),
         rol="admin",
         esta_activo=True,
     )
     db_session.add(usuario)
     await db_session.commit()
 
+    # Setup password primero (post-escalado: login bloqueado hasta configurar)
+    setup_res = await client.post("/auth/setup-password", json={
+        "cedula": cedula,
+        "contrasena": clave_temporal
+    })
+    assert setup_res.status_code == 200
+
     # Login para obtener token
     login_res = await client.post("/auth/login", data={
         "username": cedula,
-        "password": clave_actual
+        "password": clave_temporal
     })
     assert login_res.status_code == 200, f"Login falló: {login_res.text}"
     token = login_res.json()["access_token"]
@@ -330,17 +328,17 @@ async def test_cambio_forzado_password_exitoso(client, db_session):
     response = await client.patch(
         "/auth/password",
         json={
-            "contrasena_actual": clave_actual,
-            "nueva_contrasena": "NuevaClaveSegura99!"
+            "contrasena_actual": clave_temporal,
+            "nueva_contrasena": clave_nueva
         },
         headers={"Authorization": f"Bearer {token}"}
     )
     assert response.status_code == 200, f"Cambio de password falló: {response.text}"
 
-    # Verificar que el nuevo hash ya no es la cédula
+    # Verificar que el nuevo hash ya no es la cédula ni temporal
     await db_session.refresh(usuario)
     assert ServicioAuth.es_password_configurado(usuario.hash_contrasena, cedula) is True
-    assert ServicioAuth.verificar_contrasena("NuevaClaveSegura99!", usuario.hash_contrasena)
+    assert ServicioAuth.verificar_contrasena(clave_nueva, usuario.hash_contrasena)
 
     # Teardown
     await db_session.execute(
@@ -356,6 +354,7 @@ async def test_cambio_password_rechaza_clave_actual_incorrecta(client, db_sessio
     """
     cedula = "888000333"
     usuario_id = f"USR-{cedula}"
+    clave_temporal = "ClaveTemporal2026!"
 
     await db_session.execute(
         text("DELETE FROM usuarios WHERE id = :id"), {"id": usuario_id}
@@ -373,9 +372,15 @@ async def test_cambio_password_rechaza_clave_actual_incorrecta(client, db_sessio
     db_session.add(usuario)
     await db_session.commit()
 
+    # Setup password primero
+    await client.post("/auth/setup-password", json={
+        "cedula": cedula,
+        "contrasena": clave_temporal
+    })
+
     login_res = await client.post("/auth/login", data={
         "username": cedula,
-        "password": cedula
+        "password": clave_temporal
     })
     assert login_res.status_code == 200
     token = login_res.json()["access_token"]
@@ -405,6 +410,7 @@ async def test_cambio_password_rechaza_nueva_clave_corta(client, db_session):
     """
     cedula = "888000444"
     usuario_id = f"USR-{cedula}"
+    clave_temporal = "ClaveTemporal2026!"
 
     await db_session.execute(
         text("DELETE FROM usuarios WHERE id = :id"), {"id": usuario_id}
@@ -422,16 +428,23 @@ async def test_cambio_password_rechaza_nueva_clave_corta(client, db_session):
     db_session.add(usuario)
     await db_session.commit()
 
+    # Setup password primero
+    await client.post("/auth/setup-password", json={
+        "cedula": cedula,
+        "contrasena": clave_temporal
+    })
+
     login_res = await client.post("/auth/login", data={
         "username": cedula,
-        "password": cedula
+        "password": clave_temporal
     })
+    assert login_res.status_code == 200
     token = login_res.json()["access_token"]
 
     response = await client.patch(
         "/auth/password",
         json={
-            "contrasena_actual": cedula,
+            "contrasena_actual": clave_temporal,
             "nueva_contrasena": "corta"  # < 8 chars
         },
         headers={"Authorization": f"Bearer {token}"}
@@ -453,8 +466,9 @@ async def test_cambio_password_rechaza_nueva_clave_corta(client, db_session):
 async def test_yo_refleja_password_set_true_tras_cambio(client, db_session):
     """
     Verifica el ciclo completo:
-      1. Usuario tiene hash = cédula → password_set=False en /auth/yo
-      2. Cambia contraseña → password_set=True en /auth/yo
+      1. Usuario tiene hash = cédula → password_status retorna configurado=False
+      2. Configura contraseña via setup-password → login funciona
+      3. /auth/yo retorna password_set=True
     """
     cedula = "888000555"
     usuario_id = f"USR-{cedula}"
@@ -475,26 +489,32 @@ async def test_yo_refleja_password_set_true_tras_cambio(client, db_session):
     db_session.add(usuario)
     await db_session.commit()
 
-    login_res = await client.post("/auth/login", data={"username": cedula, "password": cedula})
+    # Verificar que password_status retorna configurado=False
+    status_res = await client.get(f"/auth/password-status/{cedula}")
+    assert status_res.status_code == 200
+    assert status_res.json()["configurado"] is False
+    assert status_res.json()["existe"] is True
+
+    # Configurar contraseña via setup-password
+    setup_res = await client.post("/auth/setup-password", json={
+        "cedula": cedula,
+        "contrasena": "ClaveNueva2026!"
+    })
+    assert setup_res.status_code == 200
+
+    # Login con la nueva contraseña
+    login_res = await client.post("/auth/login", data={
+        "username": cedula,
+        "password": "ClaveNueva2026!"
+    })
+    assert login_res.status_code == 200
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    # Antes del cambio: password_set debe ser False
-    yo_antes = await client.get("/auth/yo", headers=headers)
-    assert yo_antes.status_code == 200
-    assert yo_antes.json()["password_set"] is False
-
-    # Cambiar contraseña
-    await client.patch(
-        "/auth/password",
-        json={"contrasena_actual": cedula, "nueva_contrasena": "ClaveNueva2026!"},
-        headers=headers
-    )
-
-    # Después del cambio: password_set debe ser True
-    yo_despues = await client.get("/auth/yo", headers=headers)
-    assert yo_despues.status_code == 200
-    assert yo_despues.json()["password_set"] is True
+    # /auth/yo debe retornar password_set=True
+    yo_res = await client.get("/auth/yo", headers=headers)
+    assert yo_res.status_code == 200
+    assert yo_res.json()["password_set"] is True
 
     # Teardown
     await db_session.execute(

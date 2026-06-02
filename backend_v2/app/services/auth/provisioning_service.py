@@ -6,7 +6,6 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import config
 from app.models.auth.usuario import Usuario
 from app.services.erp import EmpleadosService
 
@@ -104,43 +103,6 @@ async def crear_usuario_portal_desde_erp(
         sede=datos_erp.get("ciudadcontratacion"),
         centrocosto=datos_erp.get("centrocosto"),
         viaticante=viaticante_val,
-        baseviaticos=datos_erp.get("baseviaticos"),
-        correo=datos_erp.get("correocorporativo").strip()
-        if datos_erp.get("correocorporativo")
-        else None,
-        correo_actualizado=bool(datos_erp.get("correocorporativo")),
-        correo_verificado=False,
-    )
-
-    db.add(nuevo_usuario)
-    await db.commit()
-    await db.refresh(nuevo_usuario)
-    return nuevo_usuario
-
-
-async def auto_provisionar_usuario_portal(
-    db: AsyncSession, db_erp, cedula: str, datos_erp: dict
-) -> Usuario:
-    """Crea un registro de usuario local automáticamente si no existe (Just-In-Time Provisioning)."""
-    from .servicio import ServicioAuth
-
-    id_usuario = f"USR-P-{cedula}"
-    hash_temporal = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
-
-    is_viaticante = bool(datos_erp.get("viaticante"))
-
-    nuevo_usuario = Usuario(
-        id=id_usuario,
-        cedula=cedula,
-        nombre=datos_erp["nombre"],
-        hash_contrasena=hash_temporal,
-        rol="viaticante" if is_viaticante else "usuario",
-        esta_activo=True,
-        area=datos_erp.get("area"),
-        cargo=datos_erp.get("cargo"),
-        sede=datos_erp.get("ciudadcontratacion"),
-        centrocosto=datos_erp.get("centrocosto"),
-        viaticante=is_viaticante,
         baseviaticos=datos_erp.get("baseviaticos"),
         correo=datos_erp.get("correocorporativo").strip()
         if datos_erp.get("correocorporativo")

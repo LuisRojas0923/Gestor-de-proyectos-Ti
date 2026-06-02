@@ -5,6 +5,7 @@ Unifica modelos y schemas en una sola definicion
 
 from typing import Optional, List
 from datetime import datetime
+from pydantic import field_validator
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import text
 
@@ -337,6 +338,13 @@ class LoginRequest(SQLModel):
 
     cedula: str
     contrasena: str
+
+    @field_validator("contrasena")
+    @classmethod
+    def contrasena_min_length(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("La contraseña debe tener al menos 8 caracteres")
+        return v
 
 
 class AnalistaCrear(SQLModel):

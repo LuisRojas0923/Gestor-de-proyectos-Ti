@@ -25,7 +25,7 @@ Review checklist:
 
 ### Autenticacion
 - [ ] Todos los endpoints nuevos/modificados tienen `Depends(obtener_usuario_actual_db)` o `Depends(requerir_modulo(...))`
-- [ ] No hay rutas API v2 sin auth (excepto `GET /health`, `POST /auth/login`, `POST /auth/portal-login`)
+- [ ] No hay rutas API v2 sin auth (excepto `GET /health`, `POST /auth/login`, `POST /auth/setup-password`, `GET /auth/password-status/{cedula}`)
 - [ ] Proxys a APIs externas (Google Maps, Gemini, etc.) tienen auth + rate limiting
 
 ### Schemas y validacion

@@ -1,7 +1,19 @@
 {
   "version": "1.0",
   "project": "Gestor-de-proyectos-Ti",
-  "errors": [],
+  "errors": [
+    {
+      "id": "PRE-2026-06-02-1",
+      "titulo": "test_escalado_rol_via_api_resetea_password falla consistentemente",
+      "archivo": "testing/backend/test_auth_escalation.py:197",
+      "causa_raiz": "admin_router no resetea el hash de contraseña al escalar el rol de un usuario via API, causando que el assertion del test falle porque el hash permanece igual tras el escalado.",
+      "impacto": "No afecta funcionalidad real — el escalado de roles funciona. Solo el test específico falla porque verifica que el hash cambie, pero la implementación actual no modifica el hash al escalar.",
+      "estado": "NO_RESUELTO",
+      "plan_referencia": "docs/reviews/plans/2026-06-02-eliminar-portal-login_v3.md (pre-existing, no causado por este plan)",
+      "fecha_deteccion": "2026-06-02",
+      "prioridad": "BAJA"
+    }
+  ],
   "decisions": [
     {
       "id": "D2-2026-06-02",

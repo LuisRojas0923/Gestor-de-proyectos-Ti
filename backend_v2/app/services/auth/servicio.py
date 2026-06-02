@@ -19,7 +19,6 @@ from .sesion_service import (
 from .provisioning_service import (
     crear_analista_desde_erp,
     crear_usuario_portal_desde_erp,
-    auto_provisionar_usuario_portal,
     registrar_usuario_portal,
 )
 
@@ -345,7 +344,6 @@ class ServicioAuth:
     # ── Métodos delegados a módulos extraídos ──
     crear_analista_desde_erp = staticmethod(crear_analista_desde_erp)
     crear_usuario_portal_desde_erp = staticmethod(crear_usuario_portal_desde_erp)
-    auto_provisionar_usuario_portal = staticmethod(auto_provisionar_usuario_portal)
     registrar_usuario_portal = staticmethod(registrar_usuario_portal)
     registrar_sesion = staticmethod(registrar_sesion)
     marcar_fin_sesion = staticmethod(marcar_fin_sesion)
