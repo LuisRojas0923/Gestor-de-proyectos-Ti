@@ -31,8 +31,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
     // Validación estricta de permisos si se requiere un moduleCode
     if (moduleCode && user.permissions) {
         // Módulos que son accesibles para todos los usuarios autenticados (manejan su propia lógica interna de permisos)
-        const isGeneralAccessModule = ['contabilidad', 'viaticos_gestion', 'viaticos_reportes', 'viaticos_estado', 'requisicion_personal'].includes(moduleCode);
-        const isAdminModule = ['perfiles_cargo', 'configuracion_centro_costo'].includes(moduleCode) && isAdminRole;
+        const isGeneralAccessModule = ['contabilidad', 'viaticos_gestion', 'viaticos_reportes', 'viaticos_estado', 'requisicion_personal', 'configuracion_centro_costo'].includes(moduleCode);
+        const isAdminModule = ['perfiles_cargo'].includes(moduleCode) && isAdminRole;
         const hasBypass = isGeneralAccessModule || isAdminModule || (user.viaticante === true && ['viaticos_gestion', 'viaticos_reportes', 'viaticos_estado'].includes(moduleCode));
 
         if (!user.permissions.includes(moduleCode) && !hasBypass) {
