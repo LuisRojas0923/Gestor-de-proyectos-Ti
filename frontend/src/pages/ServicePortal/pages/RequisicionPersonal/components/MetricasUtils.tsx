@@ -68,7 +68,7 @@ export const CustomTooltip = ({ active, payload, label }: any) => {
       <div className="font-bold text-[var(--color-text-primary)] mb-1">{label}</div>
       {payload.map((p: any) => (
         <div key={p.dataKey} className="flex items-center gap-2">
-          <Text as="span" className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} /> /* [CONTROLADO] */
+          <Text as="span" className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} /> {/* [CONTROLADO] */}
           <Text as="span" className="text-[var(--color-text-secondary)]">{p.name}:</Text>
           <Text as="span" className="font-bold text-[var(--color-text-primary)]">{p.value}</Text>
         </div>

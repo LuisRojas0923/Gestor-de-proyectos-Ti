@@ -39,6 +39,12 @@ EXCEPTIONS = {
     'atoms/textarea.tsx': ['Nativo: <textarea>'],
     'atoms/checkbox.tsx': ['Nativo: <input>'],
     'atoms/switch.tsx': ['Nativo: <input>'],
+    'printrequisicionrp.tsx': [
+        'Nativo: <span>',
+        'Nativo: <button>',
+        'Nativo: <h1>-<h6>',
+        'Nativo: <p>',
+    ],
 }
 
 def get_all_design_patterns():

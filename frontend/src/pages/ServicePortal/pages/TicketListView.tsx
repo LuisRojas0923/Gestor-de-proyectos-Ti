@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Search, Clock, User, ChevronRight, Info, AlertTriangle } from 'lucide-react';
 import { StatusBadge, TicketStatus } from './Common';
-import { Button, Input, Title, Text, Icon } from '../../../components/atoms';
+import { Button, Input, Title, Text, Icon, Badge } from '../../../components/atoms';
 
 interface Ticket {
     id: string;
@@ -44,23 +44,35 @@ const TicketListView: React.FC<TicketListViewProps> = ({ tickets, onBack, onView
                     icon={ArrowLeft}
                     className="font-bold p-0"
                 >
-                    Volver
+                    Volver a las áreas
                 </Button>
                 <div className="w-full sm:w-64">
                     <Input
                         type="text"
-                        placeholder="Buscar..."
+                        placeholder="Buscar solicitud..."
                         icon={Search}
                         size="sm"
                     />
                 </div>
             </div>
 
+            <div className="text-center space-y-4">
+                <Badge
+                    variant="primary"
+                    size="lg"
+                    className="mb-4 uppercase tracking-[0.2em] font-extrabold shadow-sm"
+                >
+                    Seguimiento
+                </Badge>
+                <Title variant="h2" weight="bold" className="text-[var(--deep-navy)] dark:text-white">
+                    Mis Solicitudes
+                </Title>
+                <Text variant="body1" color="text-secondary" className="max-w-2xl mx-auto font-medium">
+                    Consulta el estado, historial y progreso de tus {tickets.length} tickets registrados.
+                </Text>
+            </div>
+
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <Title variant="h3" weight="bold" color="text-primary">Mis Solicitudes</Title>
-                    <Text as="span" variant="caption" weight="bold" className="bg-[var(--color-primary)]/10 text-[var(--color-primary)] px-4 py-1.5 rounded-xl border border-[var(--color-primary)]/20 transition-all">Total: {tickets.length}</Text>
-                </div>
 
                 {tickets.length > 0 ? (
                     <div className="space-y-3">

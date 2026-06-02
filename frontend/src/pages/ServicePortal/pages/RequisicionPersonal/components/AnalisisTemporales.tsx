@@ -127,7 +127,7 @@ const AnalisisTemporales: React.FC<Props> = ({ asignadas, candidatos, vacantesRe
                             <Text as="span" className="text-[var(--color-text-secondary)] font-bold">{count} ({percentage.toFixed(0)}%)</Text>
                           </div>
                           <div className="w-full bg-[var(--color-surface-secondary)] rounded-full h-1.5 overflow-hidden">
-                            <div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${percentage}%` }} /> /* [CONTROLADO] */
+                            <div className="bg-red-500 h-1.5 rounded-full" style={{ width: `${percentage}%` }} /> {/* [CONTROLADO] */}
                           </div>
                         </div>
                       );

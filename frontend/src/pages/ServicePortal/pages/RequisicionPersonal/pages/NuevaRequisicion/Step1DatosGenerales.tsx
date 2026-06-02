@@ -158,8 +158,8 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
 
   const filtered = combinations
     .filter(c => 
-      c.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      c.label.toLowerCase().includes(searchTerm.toLowerCase())
+      c.code.toLowerCase().startsWith(searchTerm.toLowerCase()) || 
+      c.label.toLowerCase().startsWith(searchTerm.toLowerCase())
     )
     .slice(0, 15);
 

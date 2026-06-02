@@ -17,6 +17,7 @@ const TIPOS_CONTRATO = [
   { value: 'CONTRATO FIJO INFERIOR A 1 AÑO', label: 'CONTRATO FIJO INFERIOR A 1 AÑO' },
   { value: 'CONTRATO OBRA LABOR', label: 'CONTRATO OBRA LABOR' },
   { value: 'CONTRATO INDEFINIDO', label: 'CONTRATO INDEFINIDO' },
+  { value: 'CONTRATO DE APRENDIZAJE', label: 'CONTRATO DE APRENDIZAJE' },
 ];
 
 interface Props {
@@ -37,6 +38,19 @@ const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
     const formatted = Number(cleanValue).toLocaleString('de-DE');
     update(campo, formatted);
   };
+
+  const handleModalidadChange = (val: string) => {
+    update('modalidad_contratacion', val);
+    if (val === 'AGENCIA TEMPORAL') {
+      update('tipo_contratacion', 'CONTRATO OBRA LABOR');
+    } else if (val === 'APRENDIZ CONVENIO SENA') {
+      update('tipo_contratacion', 'CONTRATO DE APRENDIZAJE');
+    } else {
+      update('tipo_contratacion', '');
+    }
+  };
+
+  const isTipoContratoBloqueado = form.modalidad_contratacion === 'AGENCIA TEMPORAL' || form.modalidad_contratacion === 'APRENDIZ CONVENIO SENA';
 
   return (
     <div className="space-y-8">
@@ -80,7 +94,7 @@ const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
             label="Modalidad de contratación"
             name="modalidad_contratacion"
             value={form.modalidad_contratacion}
-            onChange={e => update('modalidad_contratacion', e.target.value)}
+            onChange={e => handleModalidadChange(e.target.value)}
             options={MODALIDADES}
             required
           />
@@ -90,6 +104,7 @@ const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
             value={form.tipo_contratacion}
             onChange={e => update('tipo_contratacion', e.target.value)}
             options={TIPOS_CONTRATO}
+            disabled={isTipoContratoBloqueado}
             required
           />
         </div>

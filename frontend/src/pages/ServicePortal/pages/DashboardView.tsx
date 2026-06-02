@@ -25,31 +25,36 @@ const ServicePortalCard: React.FC<{
     onClick: () => void;
 }> = ({ title, description, icon, onClick }) => {
     return (
-        <MaterialCard
-            onClick={onClick}
-            hoverable={true}
-            className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm hover:shadow-lg hover:border-[var(--color-primary)] transition-all duration-300 transform hover:-translate-y-0.5 text-left w-full min-h-24 h-auto cursor-pointer"
-        >
-            <div className="flex items-center gap-4 w-full h-full">
-                {/* Contenedor del Icono/Logo */}
-                <div className="w-16 h-16 bg-white dark:bg-neutral-800 rounded-xl flex items-center justify-center p-2 border border-slate-100 dark:border-neutral-700 shadow-sm shrink-0">
-                    <div className="w-full h-full flex items-center justify-center">
-                        {icon}
+        <div className="relative group">
+            <MaterialCard
+                onClick={onClick}
+                hoverable={true}
+                className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm hover:shadow-lg hover:border-[var(--color-primary)] transition-all duration-300 transform hover:-translate-y-0.5 text-left w-full min-h-20 h-auto cursor-pointer"
+            >
+                <div className="flex items-center gap-4 w-full h-full">
+                    {/* Contenedor del Icono/Logo */}
+                    <div className="w-16 h-16 bg-white dark:bg-neutral-800 rounded-xl flex items-center justify-center p-2 border border-slate-100 dark:border-neutral-700 shadow-sm shrink-0">
+                        <div className="w-full h-full flex items-center justify-center">
+                            {icon}
+                        </div>
                     </div>
+                    {/* Textos */}
+                    <div className="flex-grow min-w-0">
+                        <Title variant="h6" weight="bold" className="truncate leading-tight text-slate-800 dark:text-white group-hover:text-[var(--color-primary)] transition-colors">
+                            {title}
+                        </Title>
+                    </div>
+                    {/* Indicador de Acción */}
+                    <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-[var(--color-primary)] group-hover:translate-x-1 transition-all shrink-0" />
                 </div>
-                {/* Textos */}
-                <div className="flex-grow min-w-0">
-                    <Title variant="h6" weight="bold" className="truncate leading-tight text-slate-800 dark:text-white transition-colors">
-                        {title}
-                    </Title>
-                    <Text variant="caption" color="text-secondary" className="block mt-1 font-medium line-clamp-2">
-                        {description}
-                    </Text>
-                </div>
-                {/* Indicador de Acción */}
-                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-[var(--color-primary)] group-hover:translate-x-1 transition-all shrink-0" />
+            </MaterialCard>
+
+            {/* Custom CSS Tooltip */}
+            <div className="absolute z-50 left-1/2 bottom-full mb-2 -translate-x-1/2 w-max max-w-[250px] whitespace-normal bg-slate-800 text-white text-xs text-center font-medium px-3 py-2 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none scale-95 group-hover:scale-100 origin-bottom">
+                {description}
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
             </div>
-        </MaterialCard>
+        </div>
     );
 };
 
