@@ -35,7 +35,7 @@ const AppRouter: React.FC = () => {
 
         {/* Rutas Administrativas (Analistas y Managers) */}
         <Route path="/" element={
-          <ProtectedRoute allowedRoles={['analyst', 'admin', 'director', 'manager', 'admin_sistemas', 'admin_mejoramiento']}>
+          <ProtectedRoute allowedRoles={['analyst', 'admin', 'director', 'admin_sistemas', 'admin_mejoramiento']}>
             <Layout />
           </ProtectedRoute>
         }>
@@ -50,9 +50,9 @@ const AppRouter: React.FC = () => {
           <Route path="settings" element={<ProtectedRoute moduleCode="settings"><Settings /></ProtectedRoute>} />
           <Route path="ticket-management" element={<ProtectedRoute moduleCode="ticket-management"><TicketManagement /></ProtectedRoute>} />
           <Route path="admin/users" element={<ProtectedRoute moduleCode="user-admin"><UserAdmin /></ProtectedRoute>} />
-          <Route path="admin/rooms" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><RoomsPage /></ProtectedRoute>} />
+          <Route path="admin/rooms" element={<ProtectedRoute allowedRoles={['admin']}><RoomsPage /></ProtectedRoute>} />
           <Route path="admin/control-tower" element={<ProtectedRoute moduleCode="control-tower"><ControlTower /></ProtectedRoute>} />
-          <Route path="admin/wbs-templates" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><WbsTemplatesAdmin /></ProtectedRoute>} />
+          <Route path="admin/wbs-templates" element={<ProtectedRoute allowedRoles={['admin']}><WbsTemplatesAdmin /></ProtectedRoute>} />
           <Route path="admin/inventario" element={<ProtectedRoute moduleCode="inventario_anual"><InventarioAdmin /></ProtectedRoute>} />
           <Route path="design-catalog" element={<ProtectedRoute moduleCode="design-catalog"><DesignSystemCatalog /></ProtectedRoute>} />
           <Route path="lineas-corporativas" element={<ProtectedRoute moduleCode="lineas_corporativas"><CorporateLinesManager /></ProtectedRoute>} />

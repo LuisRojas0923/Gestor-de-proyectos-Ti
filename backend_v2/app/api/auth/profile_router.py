@@ -1,5 +1,5 @@
 from typing import Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.models.auth.usuario import Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
@@ -11,6 +11,7 @@ router = APIRouter()
 
 
 async def obtener_usuario_actual_db(
+    request: Request,
     token: str = Depends(ServicioAuth.oauth2_scheme),
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db_opcional),
@@ -59,6 +60,7 @@ async def obtener_usuario_actual_db(
                 viaticante=bool(empleado.get("viaticante")),
                 baseviaticos=empleado.get("baseviaticos"),
             )
+            request.state.usuario_id = usuario.id
             return usuario
 
         # Si el usuario es local y no tiene area/sede pero hay ERP disponible, sincronizar:
@@ -69,7 +71,8 @@ async def obtener_usuario_actual_db(
                 )
             except Exception as e:
                 print(f"DEBUG: ERP no disponible o fallo en sincronizacion local: {e}")
-        
+
+        request.state.usuario_id = usuario.id
         return usuario
     except HTTPException:
         raise
@@ -80,6 +83,7 @@ async def obtener_usuario_actual_db(
 
 
 async def obtener_usuario_actual_opcional(
+    request: Request,
     token: Optional[str] = Depends(ServicioAuth.oauth2_scheme_opcional),
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db_opcional),
@@ -91,7 +95,7 @@ async def obtener_usuario_actual_opcional(
     if not token:
         return None
     try:
-        return await obtener_usuario_actual_db(token, db, db_erp)
+        return await obtener_usuario_actual_db(request, token, db, db_erp)
     except Exception:
         return None
 

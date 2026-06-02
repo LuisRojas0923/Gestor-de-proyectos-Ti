@@ -102,6 +102,18 @@ locust -f testing/backend/load_test.py --host=http://localhost:8000
 - **Historial**: Scroll limitado a 250px en ampliaciones.
 - **Formulario**: Validación de campos obligatorios en el nuevo átomo de diseño.
 
+### [Backend] Verificación Admin RBAC Dinámico (Junio 2026)
+- **Archivo**: `testing/backend/test_verify_admin_whitelist.py`
+- **Casos (17 totales — 5 unitarios + 12 E2E marcados con skip condicional)**:
+    - Unitarios (5): SSOT `roles.py` contiene los 5 roles admin esperados, manager NO está en `ROLES_ADMIN_PANEL`, `ServicioAuth.tiene_acceso_panel_admin` y `registrar_verificacion_panel` existen, modelo `AuditoriaEvento` está definido.
+    - E2E (12): manager rechazado, sin token → 401, payload sin password → 422, password corta → 422, password larga → 422, password incorrecta → 401, happy path 200, no leak de password, usuario estándar rechazado, rol inexistente rechazado, permiso revocado rechazado, RBAC dinámico sin cache.
+
+### [Backend] Seguridad Verify-Admin (Junio 2026)
+- **Archivo**: `testing/backend/test_verify_admin_security.py`
+- **Casos (8 totales — 3 unitarios + 5 E2E)**:
+    - Unitarios (3): audit log resiliente a caída de DB, `tiene_acceso_panel_admin` es async, registro de verificación exitoso.
+    - E2E (5): audit éxito, audit fallo, password nunca en DB, 5 fallos → 429, rate limit por usuario+IP.
+
 ---
 
 ## 🧹 Mantenimiento

@@ -1,13 +1,16 @@
 """
 Router de Configuración Global del Sistema - Backend V2
 """
+import asyncio
+import logging
+from datetime import datetime, timezone
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select
-from datetime import datetime
-from typing import List
 
 from app.database import obtener_db
 from app.models.auth.usuario import (
@@ -18,8 +21,34 @@ from app.models.auth.usuario import (
 )
 from app.api.auth.profile_router import obtener_usuario_actual_db
 from app.services.auth.servicio import ServicioAuth
+from app.core.config import obtener_configuracion
+from app.core.rate_limiter import limiter
+
+_settings = obtener_configuracion()
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/config", tags=["configuracion"])
+
+
+class VerificarAccesoRequest(BaseModel):
+    password: str = Field(min_length=8, max_length=128)
+
+
+class CrearModuloRequest(BaseModel):
+    id: str = Field(min_length=1, max_length=100)
+    nombre: Optional[str] = Field(default=None, max_length=100)
+    categoria: Optional[str] = Field(default="otros", max_length=50)
+    descripcion: Optional[str] = Field(default=None, max_length=255)
+    esta_activo: bool = True
+    es_critico: bool = False
+
+
+class ActualizarMetadatosModuloRequest(BaseModel):
+    nombre: Optional[str] = Field(default=None, max_length=100)
+    categoria: Optional[str] = Field(default=None, max_length=50)
+    descripcion: Optional[str] = Field(default=None, max_length=255)
+    es_critico: Optional[bool] = None
 
 
 @router.get("/modulos", response_model=List[ModuloPublico])
@@ -37,30 +66,104 @@ async def listar_modulos_sistema(
         result = await db.execute(select(ModuloSistema).order_by(ModuloSistema.categoria))
         return result.scalars().all()
     except SQLAlchemyError as e:
-        print(f"Error DB en listar_modulos_sistema: {e}")
+        logger.error("Error DB en listar_modulos_sistema: %s", e)
         raise HTTPException(status_code=503, detail="Error al consultar lista de módulos")
 
 
 @router.post("/verify-admin")
+@limiter.limit(_settings.verify_admin_rate_limit)
 async def verificar_password_admin(
-    payload: dict, usuario_actual: Usuario = Depends(obtener_usuario_actual_db)
+    request: Request,
+    payload: VerificarAccesoRequest,
+    db: AsyncSession = Depends(obtener_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
 ):
-    """Verifica la contraseña del admin antes de entrar al panel maestro."""
-    if usuario_actual.rol != "admin":
+    """
+    Verifica la contraseña del usuario antes de entrar al panel maestro.
+
+    Reglas:
+    - Acceso por RBAC dinámico (PermisoRol JOIN ModuloSistema WHERE categoria = 'panel').
+      NO se usa whitelist hardcodeada de roles.
+    - bcrypt se ejecuta en threadpool para no bloquear el event loop.
+    - Toda intento (éxito/fallo) se registra en auditoria_eventos.
+    - Rate limit: 5 intentos/5min por (usuario_id:ip) — ver middleware slowapi.
+    """
+    if not usuario_actual.esta_activo:
+        await ServicioAuth.registrar_verificacion_panel(
+            db,
+            usuario_id=usuario_actual.id,
+            rol=usuario_actual.rol,
+            exitosa=False,
+            motivo="usuario_inactivo",
+            direccion_ip=request.client.host if request.client else None,
+            agente_usuario=request.headers.get("user-agent"),
+        )
+        raise HTTPException(status_code=403, detail="Usuario inactivo")
+
+    if not await ServicioAuth.tiene_acceso_panel_admin(db, usuario_actual):
+        logger.info(
+            "verify-admin DENEGADO por rol: usuario=%s rol=%s",
+            usuario_actual.id,
+            usuario_actual.rol,
+        )
+        await ServicioAuth.registrar_verificacion_panel(
+            db,
+            usuario_id=usuario_actual.id,
+            rol=usuario_actual.rol,
+            exitosa=False,
+            motivo="fallo_sin_permiso",
+            direccion_ip=request.client.host if request.client else None,
+            agente_usuario=request.headers.get("user-agent"),
+        )
         raise HTTPException(
-            status_code=403, detail="Solo administradores pueden acceder"
+            status_code=403,
+            detail="No tiene permisos para acceder al panel maestro",
         )
 
-    password = payload.get("password")
-    if not password:
-        raise HTTPException(status_code=400, detail="Contraseña requerida")
+    try:
+        es_valida = await asyncio.to_thread(
+            ServicioAuth.verificar_contrasena,
+            payload.password,
+            usuario_actual.hash_contrasena,
+        )
+    except Exception as e:
+        logger.exception("Error en verificación bcrypt: %s", e)
+        raise HTTPException(status_code=500, detail="Error interno de verificación")
 
-    es_valida = ServicioAuth.verificar_contrasena(
-        password, usuario_actual.hash_contrasena
-    )
+    direccion_ip = request.client.host if request.client else None
+    agente_usuario = request.headers.get("user-agent")
+
     if not es_valida:
+        logger.warning(
+            "verify-admin FAIL: usuario=%s ip=%s",
+            usuario_actual.id,
+            direccion_ip,
+        )
+        await ServicioAuth.registrar_verificacion_panel(
+            db,
+            usuario_id=usuario_actual.id,
+            rol=usuario_actual.rol,
+            exitosa=False,
+            motivo="fallo_contrasena",
+            direccion_ip=direccion_ip,
+            agente_usuario=agente_usuario,
+        )
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
+    logger.info(
+        "verify-admin OK: usuario=%s ip=%s",
+        usuario_actual.id,
+        direccion_ip,
+    )
+    await ServicioAuth.registrar_verificacion_panel(
+        db,
+        usuario_id=usuario_actual.id,
+        rol=usuario_actual.rol,
+        exitosa=True,
+        motivo="exito",
+        direccion_ip=direccion_ip,
+        agente_usuario=agente_usuario,
+    )
     return {"success": True, "message": "Acceso concedido"}
 
 
@@ -75,15 +178,20 @@ async def toggle_modulo_global(
     if usuario_actual.rol != "admin":
         raise HTTPException(status_code=403, detail="Permisos insuficientes")
 
-    # 1. Verificar contraseña nuevamente para la acción crítica
-    es_valida = ServicioAuth.verificar_contrasena(
-        payload.password_verificacion, usuario_actual.hash_contrasena
-    )
+    try:
+        es_valida = await asyncio.to_thread(
+            ServicioAuth.verificar_contrasena,
+            payload.password_verificacion,
+            usuario_actual.hash_contrasena,
+        )
+    except Exception as e:
+        logger.exception("Error bcrypt en toggle_modulo_global: %s", e)
+        raise HTTPException(status_code=503, detail="Error al verificar identidad")
+
     if not es_valida:
         raise HTTPException(status_code=401, detail="Verificación de identidad fallida")
 
     try:
-        # 2. Buscar módulo
         result = await db.execute(
             select(ModuloSistema).where(ModuloSistema.id == modulo_id)
         )
@@ -91,27 +199,27 @@ async def toggle_modulo_global(
         if not modulo:
             raise HTTPException(status_code=404, detail="Módulo no encontrado")
 
-        # 3. Validar si es crítico y se intenta desactivar
         if modulo.es_critico and not payload.esta_activo:
-            # Podríamos permitirlo pero con una advertencia extra o simplemente prohibirlo si es vital
-            pass
+            raise HTTPException(
+                status_code=400,
+                detail=f"El módulo '{modulo.nombre}' es crítico y no puede desactivarse"
+            )
 
-        # 4. Actualizar
         modulo.esta_activo = payload.esta_activo
-        modulo.actualizado_en = datetime.now()
+        modulo.actualizado_en = datetime.now(timezone.utc)
 
         await db.commit()
         await db.refresh(modulo)
         return modulo
     except SQLAlchemyError as e:
         await db.rollback()
-        print(f"Error DB en toggle_modulo_global: {e}")
+        logger.error("Error DB en toggle_modulo_global: %s", e)
         raise HTTPException(status_code=503, detail="Error de base de datos al actualizar módulo")
 
 
 @router.post("/modulos", response_model=ModuloPublico)
 async def crear_modulo_sistema(
-    payload: dict,
+    payload: CrearModuloRequest,
     db: AsyncSession = Depends(obtener_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
 ):
@@ -119,18 +227,14 @@ async def crear_modulo_sistema(
     if usuario_actual.rol != "admin":
         raise HTTPException(status_code=403, detail="Permisos insuficientes")
 
-    modulo_id = payload.get("id")
-    if not modulo_id:
-        raise HTTPException(status_code=400, detail="ID de módulo requerido")
-
     try:
         nuevo_modulo = ModuloSistema(
-            id=modulo_id,
-            nombre=payload.get("nombre", modulo_id.title()),
-            categoria=payload.get("categoria", "otros"),
-            descripcion=payload.get("descripcion"),
-            esta_activo=payload.get("esta_activo", True),
-            es_critico=payload.get("es_critico", False),
+            id=payload.id,
+            nombre=payload.nombre or payload.id.title(),
+            categoria=payload.categoria or "otros",
+            descripcion=payload.descripcion,
+            esta_activo=payload.esta_activo,
+            es_critico=payload.es_critico,
         )
 
         db.add(nuevo_modulo)
@@ -139,7 +243,7 @@ async def crear_modulo_sistema(
         return nuevo_modulo
     except SQLAlchemyError as e:
         await db.rollback()
-        print(f"Error DB en crear_modulo_sistema: {e}")
+        logger.error("Error DB en crear_modulo_sistema: %s", e)
         raise HTTPException(status_code=503, detail="Error al registrar módulo")
 
 
@@ -154,7 +258,6 @@ async def inicializar_modulos_sistema(
 
     from app.models.auth.usuario import PermisoRol
     try:
-        # Discovery Dinámico (Limpio para Producción)
         result_modulos = await db.execute(select(PermisoRol.modulo).distinct())
         modulos_descubiertos = result_modulos.scalars().all()
 
@@ -162,7 +265,6 @@ async def inicializar_modulos_sistema(
         for mod_id in modulos_descubiertos:
             if not mod_id:
                 continue
-            # Si el módulo no existe en el maestro, registrarlo
             exists = await db.get(ModuloSistema, mod_id)
             if not exists:
                 nuevo_m = ModuloSistema(
@@ -179,7 +281,7 @@ async def inicializar_modulos_sistema(
         return {"message": f"Se sincronizaron {count} módulos nuevos descubiertos."}
     except SQLAlchemyError as e:
         await db.rollback()
-        print(f"Error DB en inicializar_modulos_sistema: {e}")
+        logger.error("Error DB en inicializar_modulos_sistema: %s", e)
         raise HTTPException(status_code=503, detail="Error de base de datos al inicializar módulos")
 
 
@@ -191,17 +293,16 @@ async def consultar_estado_modulos_publico(
     try:
         result = await db.execute(select(ModuloSistema))
         modulos = result.scalars().all()
-        # Retornamos un diccionario simple para fácil consumo en el frontend
         return {m.id: m.esta_activo for m in modulos}
     except SQLAlchemyError as e:
-        print(f"Error DB en consultar_estado_modulos_publico: {e}")
+        logger.error("Error DB en consultar_estado_modulos_publico: %s", e)
         raise HTTPException(status_code=503, detail="Servicio de módulos no disponible")
 
 
 @router.patch("/modulos/{modulo_id}/metadata", response_model=ModuloPublico)
 async def actualizar_metadatos_modulo(
     modulo_id: str,
-    payload: dict,
+    payload: ActualizarMetadatosModuloRequest,
     db: AsyncSession = Depends(obtener_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
 ):
@@ -213,17 +314,16 @@ async def actualizar_metadatos_modulo(
     if not modulo:
         raise HTTPException(status_code=404, detail="Módulo no encontrado")
 
-    # Actualización selectiva de metadatos
-    if "nombre" in payload:
-        modulo.nombre = payload["nombre"]
-    if "categoria" in payload:
-        modulo.categoria = payload["categoria"]
-    if "descripcion" in payload:
-        modulo.descripcion = payload["descripcion"]
-    if "es_critico" in payload:
-        modulo.es_critico = payload["es_critico"]
+    if payload.nombre is not None:
+        modulo.nombre = payload.nombre
+    if payload.categoria is not None:
+        modulo.categoria = payload.categoria
+    if payload.descripcion is not None:
+        modulo.descripcion = payload.descripcion
+    if payload.es_critico is not None:
+        modulo.es_critico = payload.es_critico
 
-    modulo.actualizado_en = datetime.now()
+    modulo.actualizado_en = datetime.now(timezone.utc)
 
     await db.commit()
     await db.refresh(modulo)

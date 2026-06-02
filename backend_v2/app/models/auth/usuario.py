@@ -243,7 +243,7 @@ class ModuloToggleRequest(SQLModel):
     """Schema para alternar el estado de un módulo"""
 
     esta_activo: bool
-    password_verificacion: str
+    password_verificacion: str = Field(..., min_length=1, max_length=128)
 
 
 class ModuloPublico(SQLModel):

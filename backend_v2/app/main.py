@@ -121,6 +121,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Rate limiting para /config/verify-admin (5 intentos / 5 minutos por usuario+IP)
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.core.rate_limiter import limiter
+
+# Registrar el handler de rate limit excedido en la app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 @app.on_event("startup")
 async def startup_event():

@@ -15,6 +15,8 @@ interface ButtonProps {
   type?: 'button' | 'submit' | 'reset';
   className?: string;
   title?: string;
+  'aria-label'?: string;
+  'aria-hidden'?: boolean;
   fullWidth?: boolean;
   rounded?: 'lg' | 'full';
   tabIndex?: number;
@@ -49,6 +51,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   fullWidth = false,
   rounded = 'lg',
   tabIndex,
+  'aria-label': ariaLabel,
+  'aria-hidden': ariaHidden,
 }, ref) => {
   const baseClasses = 'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
@@ -89,6 +93,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       onMouseDown={onMouseDown}
       disabled={disabled || loading}
       title={title}
+      aria-label={ariaLabel}
+      aria-hidden={ariaHidden}
       className={`
         ${baseClasses} 
         ${variantClasses[variant]} 
