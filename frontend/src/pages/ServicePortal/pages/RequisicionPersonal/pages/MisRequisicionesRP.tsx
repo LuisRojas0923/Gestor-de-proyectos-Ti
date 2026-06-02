@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Plus, Eye, Edit, XCircle, Send, ArrowLeft } from 'lucide-react';
+import { Eye, Edit, Plus, ArrowLeft, Send, XCircle, Printer } from 'lucide-react';
 import { Button, Text, Title } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
@@ -96,6 +96,10 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
           <Button variant="ghost" onClick={() => onVer(row.id)} title="Ver detalle"
             className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-blue-600 transition-colors">
             <Eye className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" onClick={() => window.open(`/service-portal/requisicion-personal/print/${row.id}`, '_blank')} title="Imprimir"
+            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-emerald-600 transition-colors">
+            <Printer className="w-4 h-4" />
           </Button>
           {(row.estado === 'BORRADOR' || row.estado === 'DEVUELTA_AJUSTE') && (
             <Button variant="ghost" onClick={() => onEditar(row.id)} title="Editar"

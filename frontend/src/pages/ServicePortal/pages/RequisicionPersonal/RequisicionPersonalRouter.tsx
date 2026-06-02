@@ -82,6 +82,11 @@ const RequisicionPersonalRouter: React.FC<RequisicionPersonalRouterProps> = ({ u
           <DetalleRequisicionLoader goTo={goTo} />
         } />
 
+        {/* Impresión */}
+        <Route path="print/:id" element={
+          <PrintRequisicionLoader />
+        } />
+
         <Route path="*" element={<Navigate to="" replace />} />
       </Routes>
     </div>
@@ -111,6 +116,16 @@ const DetalleRequisicionLoader: React.FC<{ goTo: (p: string) => void }> = ({ goT
   return (
     <React.Suspense fallback={<div className="flex items-center justify-center py-20"><div className="animate-spin w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full" /></div>}>
       <DetalleRequisicion requisicionId={Number(id)} onBack={() => navigate(-1)} />
+    </React.Suspense>
+  );
+};
+
+// Sub-componente para cargar la vista de impresión
+const PrintRequisicionLoader: React.FC = () => {
+  const PrintRequisicion = React.lazy(() => import('./pages/PrintRequisicionRP'));
+  return (
+    <React.Suspense fallback={<div className="flex items-center justify-center py-20 font-mono">Cargando documento...</div>}>
+      <PrintRequisicion />
     </React.Suspense>
   );
 };

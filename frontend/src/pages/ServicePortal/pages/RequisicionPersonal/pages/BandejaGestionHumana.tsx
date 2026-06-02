@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users, Settings, BarChart2 } from 'lucide-react';
+import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users, Settings, BarChart2, Printer } from 'lucide-react';
 import { Button, Text, Title } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
@@ -48,6 +48,9 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
         <div className="flex items-center justify-center gap-2">
           <Button variant="ghost" onClick={() => onVer(row.id)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-blue-600 transition-colors" title="Ver Requisición">
             <Eye className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" onClick={() => window.open(`/service-portal/requisicion-personal/print/${row.id}`, '_blank')} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-emerald-600 transition-colors" title="Imprimir Requisición">
+            <Printer className="w-4 h-4" />
           </Button>
           <Button
             variant="ghost"
