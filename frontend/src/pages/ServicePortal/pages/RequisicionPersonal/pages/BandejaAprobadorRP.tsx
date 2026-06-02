@@ -110,21 +110,21 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
       enableColumnFilter: false,
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
-          <Button onClick={() => onVer(row.id)} title="Ver detalle"
+          <Button variant="ghost" onClick={() => onVer(row.id)} title="Ver detalle"
             className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">
             <Eye className="w-4 h-4" />
           </Button>
-          <Button onClick={() => { setModal({ tipo: 'aprobar', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
+          <Button variant="ghost" onClick={() => { setModal({ tipo: 'aprobar', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
             title="Aprobar"
             className="p-1.5 rounded-lg hover:bg-emerald-50 text-[var(--color-text-secondary)] hover:text-emerald-600 transition-colors">
             <CheckCircle className="w-4 h-4" />
           </Button>
-          <Button onClick={() => { setModal({ tipo: 'devolver', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
+          <Button variant="ghost" onClick={() => { setModal({ tipo: 'devolver', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
             title="Devolver para ajuste"
             className="p-1.5 rounded-lg hover:bg-amber-50 text-[var(--color-text-secondary)] hover:text-amber-600 transition-colors">
             <RotateCcw className="w-4 h-4" />
           </Button>
-          <Button onClick={() => { setModal({ tipo: 'rechazar', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
+          <Button variant="ghost" onClick={() => { setModal({ tipo: 'rechazar', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
             title="Rechazar"
             className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--color-text-secondary)] hover:text-red-600 transition-colors">
             <XCircle className="w-4 h-4" />
