@@ -114,10 +114,7 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
             className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">
             <Eye className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" onClick={() => window.open(`/service-portal/requisicion-personal/print/${row.id}`, '_blank')} title="Imprimir"
-            className="p-1.5 rounded-lg hover:bg-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-emerald-600 transition-colors">
-            <Printer className="w-4 h-4" />
-          </Button>
+
           <Button variant="ghost" onClick={() => { setModal({ tipo: 'aprobar', requisicionId: row.id, rp: row.rp! }); setObservacion(''); }}
             title="Aprobar"
             className="p-1.5 rounded-lg hover:bg-emerald-50 text-[var(--color-text-secondary)] hover:text-emerald-600 transition-colors">

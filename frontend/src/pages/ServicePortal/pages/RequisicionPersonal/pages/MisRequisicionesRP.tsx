@@ -97,10 +97,12 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
             className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-blue-600 transition-colors">
             <Eye className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" onClick={() => window.open(`/service-portal/requisicion-personal/print/${row.id}`, '_blank')} title="Imprimir"
-            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-emerald-600 transition-colors">
-            <Printer className="w-4 h-4" />
-          </Button>
+          {['APROBADA', 'EN_PROCESO_SELECCION', 'CERRADA'].includes(row.estado) && (
+            <Button variant="ghost" onClick={() => window.open(`/service-portal/requisicion-personal/print/${row.id}`, '_blank')} title="Imprimir"
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-emerald-600 transition-colors">
+              <Printer className="w-4 h-4" />
+            </Button>
+          )}
           {(row.estado === 'BORRADOR' || row.estado === 'DEVUELTA_AJUSTE') && (
             <Button variant="ghost" onClick={() => onEditar(row.id)} title="Editar"
               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-amber-600 transition-colors">
