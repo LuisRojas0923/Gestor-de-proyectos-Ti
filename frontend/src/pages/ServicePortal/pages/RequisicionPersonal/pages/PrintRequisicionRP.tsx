@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import { getDetalleRequisicion } from '../services/requisicionService';
 import type { RequisicionRP } from '../types/requisicion.types';
@@ -8,6 +9,7 @@ const PrintRequisicionRP: React.FC = () => {
   const { id } = useParams();
   const [req, setReq] = useState<RequisicionRP | null>(null);
   const [loading, setLoading] = useState(true);
+  const printTriggered = useRef(false);
 
   useEffect(() => {
     if (!id) return;
@@ -15,9 +17,12 @@ const PrintRequisicionRP: React.FC = () => {
     getDetalleRequisicion(Number(id))
       .then(data => {
         setReq(data);
-        setTimeout(() => {
-          window.print();
-        }, 500); // Dar un poco de tiempo para renderizar
+        if (!printTriggered.current) {
+          printTriggered.current = true;
+          setTimeout(() => {
+            window.print();
+          }, 500); // Dar un poco de tiempo para renderizar
+        }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -36,36 +41,28 @@ const PrintRequisicionRP: React.FC = () => {
     return `$${val.toLocaleString('de-DE')}`;
   };
 
-  return (
-    <div className="bg-white min-h-screen text-black">
+  const printContent = (
+    <div className="bg-white min-h-screen text-black print-wrapper">
       <style>
         {`
           @media print {
             @page {
               size: letter;
-              margin: 15mm;
+              margin-top: 1mm;
+              margin-bottom: 1mm;
+              margin-left: 5mm;
+              margin-right: 5mm;
             }
             body {
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
               background-color: white !important;
+              margin: 0 !important;
+              padding: 0 !important;
             }
-            /* Ocultar todos los elementos de la página */
-            body * {
-              visibility: hidden;
-            }
-            /* Hacer visible solo el área de impresión y sus hijos */
-            #print-area, #print-area * {
-              visibility: visible;
-            }
-            /* Posicionar el área de impresión arriba a la izquierda para evitar espacios en blanco del layout original */
-            #print-area {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-              margin: 0;
-              padding: 0;
+            /* Ocultar el root principal para quitar la navbar y todo el layout */
+            body > *:not(.print-wrapper) {
+              display: none !important;
             }
             .no-print {
               display: none !important;
@@ -85,9 +82,9 @@ const PrintRequisicionRP: React.FC = () => {
         </button>
       </div>
 
-      <div id="print-area" className="max-w-[215.9mm] mx-auto p-4 sm:p-8 font-sans bg-white">
+      <div className="max-w-[215.9mm] mx-auto px-2 sm:px-4 pt-6 pb-4 font-sans bg-white">
         {/* Cabecera / Logo */}
-        <div className="flex justify-between items-start border-b-2 border-slate-800 pb-4 mb-6">
+        <div className="flex justify-between items-start border-b-2 border-slate-800 pb-3 mb-4">
           <div className="flex flex-col">
             <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">
               Requisición de Personal
@@ -106,24 +103,24 @@ const PrintRequisicionRP: React.FC = () => {
         </div>
 
         {/* Resumen Principal */}
-        <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-          <div className="border border-slate-300 rounded-lg p-3">
+        <div className="grid grid-cols-2 gap-3 mb-2 text-xs">
+          <div className="border border-slate-300 rounded-lg p-2.5">
             <div className="text-[10px] uppercase font-bold text-slate-500 mb-0.5">Solicitante</div>
             <div className="font-bold">{req.nombre_solicitante}</div>
-            <div className="text-xs">{req.correo_solicitante}</div>
+            <div className="text-[10px]">{req.correo_solicitante}</div>
           </div>
-          <div className="border border-slate-300 rounded-lg p-3 flex flex-col justify-center">
+          <div className="border border-slate-300 rounded-lg p-2.5 flex flex-col justify-center">
             <div className="text-[10px] uppercase font-bold text-slate-500 mb-0.5">Estado / Radicación</div>
             <div className="font-bold">{req.estado.replace(/_/g, ' ')}</div>
-            <div className="text-xs">
+            <div className="text-[10px]">
               {req.fecha_radicacion ? new Date(req.fecha_radicacion).toLocaleDateString('es-CO') : 'N/A'}
             </div>
           </div>
         </div>
 
         {/* Detalles en Tabla/Grid */}
-        <div className="border-t border-l border-slate-300 mb-6 text-sm flex flex-col">
-          <div className="bg-slate-100 p-2 font-bold uppercase tracking-wider text-[11px] border-b border-r border-slate-300">
+        <div className="border-t border-l border-slate-300 mb-2 text-xs flex flex-col">
+          <div className="bg-slate-100 p-1.5 font-bold uppercase tracking-wider text-[10px] border-b border-r border-slate-300">
             Datos Generales y Ubicación
           </div>
           <div className="grid grid-cols-2">
@@ -166,8 +163,8 @@ const PrintRequisicionRP: React.FC = () => {
           </div>
         </div>
 
-        <div className="border-t border-l border-slate-300 mb-6 text-sm flex flex-col">
-          <div className="bg-slate-100 p-2 font-bold uppercase tracking-wider text-[11px] border-b border-r border-slate-300">
+        <div className="border-t border-l border-slate-300 mb-2 text-xs flex flex-col">
+          <div className="bg-slate-100 p-1.5 font-bold uppercase tracking-wider text-[10px] border-b border-r border-slate-300">
             Área, Cargo y Perfil
           </div>
           <div className="grid grid-cols-1">
@@ -192,8 +189,8 @@ const PrintRequisicionRP: React.FC = () => {
           </div>
         </div>
 
-        <div className="border-t border-l border-slate-300 mb-6 text-sm flex flex-col">
-          <div className="bg-slate-100 p-2 font-bold uppercase tracking-wider text-[11px] border-b border-r border-slate-300">
+        <div className="border-t border-l border-slate-300 mb-2 text-xs flex flex-col">
+          <div className="bg-slate-100 p-1.5 font-bold uppercase tracking-wider text-[10px] border-b border-r border-slate-300">
             Condiciones de Contratación
           </div>
           <div className="grid grid-cols-2">
@@ -232,8 +229,8 @@ const PrintRequisicionRP: React.FC = () => {
           </div>
         </div>
 
-        <div className="border-t border-l border-slate-300 mb-8 text-sm flex flex-col">
-          <div className="bg-slate-100 p-2 font-bold uppercase tracking-wider text-[11px] border-b border-r border-slate-300">
+        <div className="border-t border-l border-slate-300 mb-3 text-xs flex flex-col">
+          <div className="bg-slate-100 p-1.5 font-bold uppercase tracking-wider text-[10px] border-b border-r border-slate-300">
             Equipos y Dotación
           </div>
           <div className="grid grid-cols-1">
@@ -257,7 +254,7 @@ const PrintRequisicionRP: React.FC = () => {
         </div>
 
         {/* Firmas / Aprobaciones */}
-        <div className="flex justify-between items-start pt-6 gap-6">
+        <div className="flex justify-between items-start pt-4 gap-6">
           <div className="flex-1 text-center">
              <div className="border-b border-black w-48 mx-auto mb-2"></div>
              <div className="font-bold text-xs">SOLICITADO POR</div>
@@ -294,13 +291,15 @@ const PrintRequisicionRP: React.FC = () => {
         </div>
         
         {/* Footer Documento */}
-        <div className="mt-12 text-center text-[9px] text-slate-400 border-t border-slate-200 pt-4">
+        <div className="mt-4 text-center text-[9px] text-slate-400 border-t border-slate-200 pt-2 pb-2">
            Documento generado automáticamente por el Sistema de Requisiciones de Personal | Gestor de Proyectos TI
         </div>
 
       </div>
     </div>
   );
+
+  return createPortal(printContent, document.body);
 };
 
 export default PrintRequisicionRP;
