@@ -105,8 +105,10 @@ class CertificadoService:
         draw_value(351.63, data.aprais)  # 56: Voluntarios RAIS (126-4)
         draw_value(340.03, data.apafc)  # 57: AFC
         draw_value(328.03, data.apavc)  # 58: AVC
-        draw_value(316.03, data.vare)  # 59: Retenciones fuente
-        draw_value(304.04, data.vilap)  # 60: Ingreso laboral promedio
+        #draw_value(316.03, data.vare)  # 59: Retenciones fuente
+        draw_value(304.03, data.vare)  # 59: Retenciones fuente
+        #draw_value(304.04, data.vilap)  # 60: Ingreso laboral promedio
+        draw_value(316.04, data.vilap)  # 60: Ingreso laboral promedio
 
         c.save()
         data_layer_buffer.seek(0)

@@ -127,4 +127,13 @@ async def recalcular_progreso_desarrollo(db: AsyncSession, desarrollo_id: str) -
     desarrollo = result_dev.scalar_one_or_none()
     if desarrollo:
         desarrollo.porcentaje_progreso = progreso
+        
+        # Sincronizar el estado según el porcentaje de avance
+        if progreso == 0:
+            desarrollo.estado_general = "Pendiente"
+        elif progreso == 100:
+            desarrollo.estado_general = "Completado"
+        else:
+            desarrollo.estado_general = "En Proceso"
+            
         await db.flush()

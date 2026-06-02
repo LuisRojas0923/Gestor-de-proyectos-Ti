@@ -1,0 +1,20 @@
+{
+  "subagent": "general",
+  "description": "Generic helper for exploratory tasks and task orchestration in Gestor-de-proyectos-Ti.",
+  "capabilities": {
+    "explore": "Search codebase, find files, analyze structure",
+    "read": "Read files and provide summaries",
+    "grep": "Search for patterns in code",
+    "glob": "Find files by pattern"
+  },
+  "command_patterns": {
+    "explore <topic>": "Search codebase for related files",
+    "find <pattern>": "Find files matching glob pattern",
+    "analyze <module>": "Analyze module structure"
+  },
+  "exploration_history": [],
+  "stats": {
+    "total_explorations": 0,
+    "last_exploration": null
+  }
+}

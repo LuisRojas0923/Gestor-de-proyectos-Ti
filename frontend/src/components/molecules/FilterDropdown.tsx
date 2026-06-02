@@ -203,15 +203,15 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
 
     const dynamicStyle: React.CSSProperties = {
         top: position.top,
-        left: Math.min(position.left, window.innerWidth - Math.max(effectiveAnchor.width, 240) - 20),
-        width: Math.max(effectiveAnchor.width, 240),
+        left: Math.min(position.left, window.innerWidth - Math.max(effectiveAnchor.width, 280) - 20),
+        width: Math.max(effectiveAnchor.width, 280),
         maxHeight: maxHeight
     };
 
     return createPortal(
         <div
             ref={dropdownRef}
-            className="fixed z-[9999] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col min-w-[240px]"
+            className="fixed z-[9999] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col min-w-[280px]"
             style={dynamicStyle}
         >
             {/* Header */}
@@ -355,30 +355,37 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                    <Text variant="caption" className="text-[9px] font-normal text-slate-500 dark:text-slate-400 opacity-60 px-1">
+            <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30 flex flex-col gap-2.5">
+                {/* Fila superior: Texto */}
+                <div className="flex items-center justify-between">
+                    <Text variant="caption" color="text-secondary" className="opacity-60 px-1">
                         {type === 'categorical' ? `${currentSelected.length} seleccionados` : 'Filtro por rango'}
                     </Text>
-                    {type === 'categorical' && currentSelected.length > 0 && onClearSelection && (
+                </div>
+                
+                {/* Fila inferior: Botones en los extremos */}
+                <div className="flex items-center justify-between gap-2 w-full">
+                    {type === 'categorical' && currentSelected.length > 0 && onClearSelection ? (
                         <Button
                             variant="ghost"
                             size="xs"
                             onClick={onClearSelection}
-                            className="!text-[9px] !text-slate-400 hover:!text-red-500 transition-colors uppercase tracking-wider font-medium !px-2 !py-1"
+                            className="text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider font-medium"
                         >
                             Limpiar
                         </Button>
+                    ) : (
+                        <div />
                     )}
+                    <Button
+                        onClick={handleApply}
+                        variant="primary"
+                        size="xs"
+                        className="uppercase tracking-wider font-bold shadow-md hover:shadow-lg transition-all"
+                    >
+                        Aplicar
+                    </Button>
                 </div>
-                <Button
-                    onClick={handleApply}
-                    variant="primary"
-                    size="xs"
-                    className="!text-[10px] !px-4 !py-1.5 uppercase tracking-wider h-auto rounded-lg shadow-md hover:shadow-lg transition-all"
-                >
-                    Aplicar
-                </Button>
             </div>
         </div>,
         document.body

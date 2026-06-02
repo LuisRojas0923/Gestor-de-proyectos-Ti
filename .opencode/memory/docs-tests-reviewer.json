@@ -1,0 +1,20 @@
+{
+  "subagent": "docs-tests-reviewer",
+  "description": "Read-only docs and tests reviewer. Ensures traceability, MER updates, ADR coverage, and test evidence.",
+  "capabilities": {
+    "review_tests": "Verify new logic has automated tests",
+    "review_evidence": "Verify test commands and outputs are recorded",
+    "review_mer": "Verify model/schema changes update docs/ESQUEMA_BASE_DATOS.md",
+    "review_adrs": "Verify architectural decisions are captured in docs/decisions/",
+    "review_bitacora": "Verify work sessions update docs/bitacora/ or a review report"
+  },
+  "command_patterns": {
+    "review <files>": "Review docs/tests files or diffs",
+    "checklist <scope>": "Return the relevant subset of the docs/tests checklist"
+  },
+  "review_history": [],
+  "stats": {
+    "total_reviews": 0,
+    "last_review": null
+  }
+}

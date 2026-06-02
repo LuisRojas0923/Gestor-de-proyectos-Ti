@@ -1,0 +1,19 @@
+{
+  "subagent": "mobile-reviewer",
+  "description": "Read-only mobile reviewer for modulo_actividades_fork (React Native/Expo) and offline-first UX.",
+  "capabilities": {
+    "review_offline": "Verify low-connectivity robustness",
+    "review_performance": "Detect performance regressions in lists and media",
+    "review_native": "Verify native permissions, camera/media, storage, sync flows",
+    "review_node_version": "Verify Node version constraint from AGENTS.md"
+  },
+  "command_patterns": {
+    "review <files>": "Review mobile files or diffs",
+    "checklist <scope>": "Return the relevant subset of the mobile review checklist"
+  },
+  "review_history": [],
+  "stats": {
+    "total_reviews": 0,
+    "last_review": null
+  }
+}

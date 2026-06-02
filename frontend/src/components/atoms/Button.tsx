@@ -20,6 +20,13 @@ interface ButtonProps {
   tabIndex?: number;
 }
 
+const textVariantMap: Record<'xs' | 'sm' | 'md' | 'lg', 'body1' | 'body2' | 'caption'> = {
+  xs: 'caption',    // maps to text-xs
+  sm: 'body2',      // maps to text-sm
+  md: 'body2',      // maps to text-sm
+  lg: 'body1',      // maps to text-base
+};
+
 /*
  ## User Review Required
 
@@ -111,7 +118,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       )}
 
       {children && (
-        <Text as="span" color="inherit">
+        <Text as="span" variant={textVariantMap[size]} color="inherit">
           {children}
         </Text>
       )}

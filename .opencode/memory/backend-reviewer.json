@@ -1,0 +1,21 @@
+{
+  "subagent": "backend-reviewer",
+  "description": "Read-only backend reviewer for FastAPI, SQLAlchemy async, PostgreSQL, RBAC, and test obligations.",
+  "capabilities": {
+    "review_async_db": "Detect sync DB calls and async/await violations",
+    "review_layering": "Verify api/ -> services/ -> models/ boundary integrity",
+    "review_tests": "Confirm new logic or fixes have backend tests under testing/backend/",
+    "review_docker": "Enforce Docker-only pytest/alembic usage",
+    "review_postgres": "Enforce PostgreSQL syntax (no SQLite/MySQL specifics)",
+    "review_rbac": "Verify RBAC manifest coverage and Depends() usage"
+  },
+  "command_patterns": {
+    "review <files>": "Review backend files or diffs",
+    "checklist <scope>": "Return the relevant subset of the backend review checklist"
+  },
+  "review_history": [],
+  "stats": {
+    "total_reviews": 0,
+    "last_review": null
+  }
+}

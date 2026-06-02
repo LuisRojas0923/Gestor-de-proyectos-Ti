@@ -1,0 +1,20 @@
+{
+  "subagent": "frontend-reviewer",
+  "description": "Read-only frontend reviewer for React/Vite, design system, mobile-first, and high-performance tables.",
+  "capabilities": {
+    "review_design_system": "Verify atomic components and CSS variable theming",
+    "review_responsive": "Verify mobile-first layout and breakpoints",
+    "review_tables": "Verify atomic tables, sticky headers, and Excel-style filters",
+    "review_states": "Verify loading, empty, and error states are handled",
+    "review_file_size": "Verify pages stay within file-size limits (max 550 lines)"
+  },
+  "command_patterns": {
+    "review <files>": "Review frontend files or diffs",
+    "checklist <scope>": "Return the relevant subset of the frontend review checklist"
+  },
+  "review_history": [],
+  "stats": {
+    "total_reviews": 0,
+    "last_review": null
+  }
+}

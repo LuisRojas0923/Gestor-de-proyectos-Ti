@@ -146,3 +146,73 @@ Para evitar **dependencias circulares** que rompan el renderizado de React:
 1. **NO** importes átomos desde `./index` dentro de la propia carpeta `atoms`.
 2. Importa directamente desde el archivo base: `import { Text } from './Text';` en lugar de `import { Text } from './index';`.
 3. El archivo `index.ts` solo debe usarse para exportar, no para consumo interno de la misma carpeta.
+
+---
+
+## 6. Grafo del codebase (graphify)
+
+El arnés OpenCode y los agentes pueden usar `graphify-out/` para explorar impacto cruzado entre módulos. El directorio está en `.gitignore` (cada desarrollador lo genera localmente).
+
+### 6.1 Generación local (AST-only, sin API key)
+
+Modo por defecto del repo: extracción estructural de código (imports, llamadas, símbolos) sin LLM semántico.
+
+**Requisito:** Python 3.12+ con `pip install graphifyy`
+
+```powershell
+cd C:\Users\amejoramiento6\Gestor-de-proyectos-Ti
+py -3.12 scripts/graphify_build_ast.py
+```
+
+**Corpus escaneado:** `backend_v2/app`, `frontend/src`, `docs` (~630 archivos de código/docs).
+
+**Salidas:**
+
+| Archivo | Uso |
+|---------|-----|
+| `graphify-out/GRAPH_REPORT.md` | Resumen humano, comunidades, hubs |
+| `graphify-out/graph.json` | Grafo para CLI y subagentes |
+| `graphify-out/.graphify_detect.json` | Metadatos del corpus |
+
+### 6.2 Consultas desde CLI
+
+```powershell
+# Tras generar graphify-out/ (AST o extract semántico):
+py -3.12 scripts/graphify_from_env.py query "autenticacion RBAC" --budget 1500
+py -3.12 scripts/graphify_from_env.py path "ServicioAuth" "PermisoRol"
+```
+
+### 6.3 Clave Gemini en `.env`
+
+En la raíz del repo, `.env` incluye (vacío hasta que pegues tu clave):
+
+```env
+GEMINI_API_KEY=
+GOOGLE_API_KEY=
+```
+
+Puedes usar la misma clave en ambas; graphify lee cualquiera de las dos. Crear o rotar en [Google AI Studio](https://aistudio.google.com/apikey).
+
+**¿Quién lee `.env` automáticamente?**
+
+| Comando | Lee `GEMINI_API_KEY` del `.env` |
+|---------|-----------------------------------|
+| Backend FastAPI / Docker | Sí (otras vars; no usa graphify por defecto) |
+| `py -3.12 -m graphify ...` directo | **No** |
+| `py -3.12 scripts/graphify_from_env.py ...` | **Sí** |
+| `py -3.12 scripts/graphify_build_ast.py` | Sí (carga `.env`; el modo AST no consume la clave) |
+
+### 6.4 Extracción semántica completa (opcional)
+
+Pega la clave en `GEMINI_API_KEY=` y ejecuta (el script carga `.env` solo):
+
+```powershell
+py -3.12 scripts/graphify_from_env.py extract docs --out . --backend gemini
+py -3.12 scripts/graphify_from_env.py query "ADR arquitectura" --budget 1500
+```
+
+El monorepo completo (~900 archivos) es grande; prefiere subcarpetas o el script AST antes de un `extract` global.
+
+### 6.5 Integración con subagentes
+
+Ver `.opencode/agent/_shared-discovery.md` y `docs/decisions/ADR-006-protocolo-descubrimiento-agentes.md`. Los revisores **leen** `GRAPH_REPORT.md`; no ejecutan el pipeline si tienen `bash: deny`.

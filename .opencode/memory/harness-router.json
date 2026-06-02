@@ -1,0 +1,18 @@
+{
+  "subagent": "harness-router",
+  "description": "Read-only routing recommender. Does NOT approve, block, or invoke subagents.",
+  "capabilities": {
+    "route_plan": "Given scope description, recommend required subagents for plan mode",
+    "route_build": "Given modified files, recommend required subagents for build mode",
+    "summarize_scope": "Generate scope summary from list of files"
+  },
+  "command_patterns": {
+    "route <scope> [plan|build]": "Recommend subagents for given scope and mode",
+    "stats": "Return routing statistics (how many times routed, common patterns)"
+  },
+  "routing_history": [],
+  "stats": {
+    "total_routes": 0,
+    "last_route": null
+  }
+}

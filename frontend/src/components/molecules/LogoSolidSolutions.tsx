@@ -21,12 +21,12 @@ const LogoSolidSolutions: React.FC<LogoSolidSolutionsProps> = ({
   const isPortal = variant === 'portal';
   const isIconOnly = variant === 'icon';
 
-  const barWidth = isLarge ? 'w-2' : isSmall ? 'w-1' : 'w-[5px]';
-  const barGap = isLarge ? 'gap-1' : isSmall ? 'gap-0.5' : 'gap-0.5';
-  const barHeight = isLarge ? 'h-8' : isSmall ? 'h-[18px]' : 'h-6';
+  const barWidth = isLarge ? 'w-[8px]' : isSmall ? 'w-1' : 'w-[5px]';
+  const barGap = isLarge ? 'gap-[3px]' : isSmall ? 'gap-0.5' : 'gap-0.5';
+  const barHeight = isLarge ? 'h-10' : isSmall ? 'h-[18px]' : 'h-6';
 
   return (
-    <div className="flex items-center select-none" style={{ gap: isIconOnly ? '0' : '0.5rem' }}>
+    <div className={`flex items-center select-none ${isIconOnly ? 'gap-0' : 'gap-2'}`}>
       {!isIconOnly && (
         <div className="flex items-center leading-none">
           <Text as="span" weight="bold" className="italic font-['Inter'] tracking-tight">
@@ -46,30 +46,16 @@ const LogoSolidSolutions: React.FC<LogoSolidSolutionsProps> = ({
       )}
 
       <div
-        className={`flex items-end pb-0.5 ${barGap}`}
-        style={{ height: isLarge ? '32px' : isSmall ? '18px' : '24px' }} /* [CONTROLADO] */
+        className={`flex items-end ${isLarge ? 'pb-1' : 'pb-0.5'} ${barGap} ${barHeight}`}
       >
         <div
-          className={`rounded-sm ${barWidth}`}
-          style={{ /* [CONTROLADO] */
-            height: '40%',
-            background: fixedColors ? 'var(--white)' : 'var(--text-primary)',
-          }}
+          className={`rounded-sm ${barWidth} h-[40%] ${fixedColors ? 'bg-[var(--white)]' : 'bg-[var(--text-primary)]'}`}
         />
         <div
-          className={`rounded-sm ${barWidth}`}
-          style={{ /* [CONTROLADO] */
-            height: '70%',
-            background: 'var(--powder-blue-400)',
-          }}
+          className={`rounded-sm ${barWidth} h-[70%] bg-[var(--powder-blue-400)]`}
         />
         <div
-          className={`rounded-sm ${barWidth}`}
-          style={{ /* [CONTROLADO] */
-            height: '100%',
-            background: 'var(--deep-navy-800)',
-            boxShadow: '0 0 12px rgba(90, 145, 255, 0.6)',
-          }}
+          className={`rounded-sm ${barWidth} h-full bg-[var(--deep-navy-800)] ${isLarge ? 'shadow-[0_0_18px_rgba(90,145,255,0.6)]' : 'shadow-[0_0_12px_rgba(90,145,255,0.6)]'}`}
         />
       </div>
     </div>

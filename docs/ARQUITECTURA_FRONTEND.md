@@ -133,3 +133,56 @@ Estilos y Utilidades:
 ├── uniqueProviders - Lista de proveedores únicos
 └── uniqueStatuses - Lista de estados únicos
 ```
+
+---
+
+## Patrón: Logo como Retorno Seguro al Panel Maestro
+
+**Agregado:** 2026-06-02 (plan acceso-panel-administracion-header v2.1)
+
+El header del Portal de Servicios usa el logotipo como punto de retorno seguro al panel maestro para usuarios administrativos.
+
+### Componentes involucrados
+
+- `src/components/molecules/LogoSolidSolutions.tsx` — Logo (átomo visual, sin lógica)
+- `src/components/atoms/Button.tsx` — Átomo con extensión `aria-label` para accesibilidad
+- `src/components/molecules/AdminLoginLock.tsx` — Modal de re-verificación con a11y completa
+- `src/hooks/useIsAdmin.ts` — Hook que consulta `AppContext` + `constants/roles.ts`
+- `src/constants/roles.ts` — SSOT espejo del backend
+- `src/pages/ServicePortal/PortalLayout.tsx` — Composición final
+
+### Flujo
+
+```
+[Usuario NO admin]     →  <div aria-hidden><LogoSolidSolutions /></div>   (estático)
+[Usuario admin]        →  <Button onClick={handleLogoClick}>
+                            <LogoSolidSolutions />
+                          </Button>
+[handleLogoClick]
+  ├── sessionStorage.fromAdmin === 'true'  →  navigate('/')
+  └── sessionStorage.fromAdmin !== 'true'  →  setIsAdminLockOpen(true)
+                                                ↓
+                                            [AdminLoginLock modal]
+                                                ↓
+                                            onUnlock(password)
+                                                ↓
+                                  sessionStorage.setItem('fromAdmin', 'true')
+                                                ↓
+                                            navigate('/')
+```
+
+### Limpieza de `fromAdmin` (ciclo de vida)
+
+- **Set:** en `onUnlock` exitoso de `AdminLoginLock`
+- **Read:** lazy init en `useState` de `PortalLayout`
+- **Clear:** en 4 lugares
+  1. `AppContext.tsx` reducer `LOGOUT` (primario)
+  2. `Sidebar.tsx` `handleLogout` (primario)
+  3. `ServicePortal.tsx` `onLogout` (primario)
+  4. `PortalLayout.tsx` `useEffect` cleanup al desmontar (respaldo defensivo)
+
+### Consideraciones de seguridad
+
+- El flag `fromAdmin` es puramente cosmético. **No escala privilegios**.
+- La autorización real ocurre en el backend en cada endpoint protegido.
+- Es aceptable que devtools pueda setear `fromAdmin=true` (UX), pero no se acepta XSS persistente.

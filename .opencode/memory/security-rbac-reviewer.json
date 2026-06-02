@@ -1,0 +1,23 @@
+{
+  "subagent": "security-rbac-reviewer",
+  "description": "Read-only security/RBAC reviewer. Enforces auth, schemas, mass-assignment safety, secrets, and infra consistency.",
+  "capabilities": {
+    "review_auth": "Verify all endpoints have Depends(obtener_usuario_actual_db) or Depends(requerir_modulo(...))",
+    "review_schemas": "Reject datos: dict in Pydantic/SQLAlchemy; enforce Field(pattern) on PK str fields",
+    "review_mass_assignment": "Enforce model_dump(exclude_unset=True) on PUT/PATCH",
+    "review_error_handling": "Reject str(e) leakage in HTTPException 500",
+    "review_secrets": "Verify default secrets in config.py have startup guards",
+    "review_logging": "Reject print() in route handlers; enforce PII redaction",
+    "review_docker_infra": "Verify Docker/env/config consistency",
+    "review_rbac_manifest": "Verify backend_v2/app/core/rbac_manifest.py covers new modules"
+  },
+  "command_patterns": {
+    "review <files>": "Review security/RBAC surface for files or diffs",
+    "checklist <scope>": "Return the relevant subset of the security checklist"
+  },
+  "review_history": [],
+  "stats": {
+    "total_reviews": 0,
+    "last_review": null
+  }
+}

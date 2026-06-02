@@ -19,7 +19,7 @@ const ServicePortalCard: React.FC<{
         <MaterialCard
             onClick={onClick}
             hoverable={true}
-            className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm hover:shadow-lg hover:border-[var(--color-primary)] transition-all duration-300 transform hover:-translate-y-0.5 text-left w-full min-h-24 h-auto cursor-pointer"
+            className="p-4 text-left w-full min-h-24 h-auto"
         >
             <div className="flex items-center gap-4 w-full h-full">
                 {/* Contenedor del Icono/Logo */}
