@@ -14,6 +14,77 @@ interface Props {
   nombreSolicitante: string;
 }
 
+const AutocompleteField = ({
+  label, name, value, onChange, options, placeholder, icon, disabled = false, required = false
+}: {
+  label: string, name: string, value: string, onChange: (val: string) => void, options: string[], placeholder: string, icon: any, disabled?: boolean, required?: boolean
+}) => {
+  const [searchTerm, setSearchTerm] = useState(value);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    setSearchTerm(value);
+  }, [value]);
+
+  const filtered = options
+    .filter(o => o.toLowerCase().includes(searchTerm.toLowerCase()))
+    .slice(0, 50);
+
+  const handleSelect = (option: string) => {
+    setSearchTerm(option);
+    setShowDropdown(false);
+    onChange(option);
+  };
+
+  const handleInputChange = (val: string) => {
+    const uppercased = val.toUpperCase();
+    setSearchTerm(uppercased);
+    setShowDropdown(true);
+    // Solo actualizar si coincide exactamente o simplemente pasarlo y que falle la validación después si no es de la lista.
+    // Lo mejor es pasarlo para que el usuario pueda tipear sin bloqueos.
+    onChange(uppercased);
+  };
+
+  return (
+    <div className="relative flex-1">
+      <Input
+        label={label}
+        name={name}
+        value={searchTerm}
+        onChange={e => handleInputChange(e.target.value)}
+        onFocus={() => setShowDropdown(true)}
+        onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        icon={icon}
+        autoComplete="off"
+      />
+      {showDropdown && !disabled && (
+        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-[var(--color-border)] rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-[var(--color-border)] transition-all">
+          {filtered.length > 0 ? (
+            filtered.map(o => (
+              <Button
+                variant="custom"
+                key={o}
+                type="button"
+                onClick={() => handleSelect(o)}
+                className="w-full !justify-start px-4 py-3 bg-white dark:bg-neutral-800 hover:bg-slate-50 dark:hover:bg-neutral-700 transition-colors rounded-none"
+              >
+                <Text as="span" className="font-bold text-sm text-[var(--color-text-primary)]">{o}</Text>
+              </Button>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-xs text-red-500 font-medium">
+              No hay coincidencias
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante, nombreSolicitante }) => {
 
   // Autocomplete Centro de costo
@@ -92,16 +163,8 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
     )
     .slice(0, 15);
 
-  const departamentoOptions = [
-    { value: '', label: 'SELECCIONAR DEPARTAMENTO...' },
-    ...Object.keys(DIVIPOLA).map(d => ({ value: d, label: d })),
-  ];
-
-  const municipiosDisponibles = form.departamento ? DIVIPOLA[form.departamento] || [] : [];
-  const municipioOptions = [
-    { value: '', label: 'SELECCIONAR MUNICIPIO...' },
-    ...municipiosDisponibles.map(m => ({ value: m, label: m })),
-  ];
+  const departamentoOptions = Object.keys(DIVIPOLA);
+  const municipioOptions = form.departamento ? DIVIPOLA[form.departamento] || [] : [];
   const today = new Date().toISOString().split('T')[0];
 
   return (
@@ -126,29 +189,30 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="flex gap-2">
-          <Select
+        <div className="flex flex-col md:flex-row gap-5">
+          <AutocompleteField
             label="Departamento"
             name="departamento"
             value={form.departamento}
-            onChange={e => {
-              update('departamento', e.target.value);
-              update('municipio', ''); // Reset municipio if dept changes
+            onChange={val => {
+              update('departamento', val);
+              update('municipio', ''); // Reset municipio
             }}
             icon={MapPin}
             options={departamentoOptions}
+            placeholder="Escribe el departamento..."
             required
-            className="flex-1"
           />
-          <Select
+          <AutocompleteField
             label="Municipio"
             name="municipio"
             value={form.municipio}
-            onChange={e => update('municipio', e.target.value)}
+            onChange={val => update('municipio', val)}
             options={municipioOptions}
-            disabled={!form.departamento}
+            placeholder="Escribe el municipio..."
+            icon={MapPin}
+            disabled={!form.departamento || !DIVIPOLA[form.departamento]}
             required
-            className="flex-1"
           />
         </div>
         <FormField
