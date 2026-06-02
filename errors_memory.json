@@ -2,5 +2,61 @@
   "version": "1.0",
   "project": "Gestor-de-proyectos-Ti",
   "errors": [],
-  "decisions": []
+  "decisions": [
+    {
+      "id": "D2-2026-06-02",
+      "titulo": "RBAC dinámico como Single Source of Truth para roles administrativos",
+      "contexto": "El endpoint /api/v2/config/verify-admin debe aceptar a todos los roles con permisos en categoria='panel' sin hardcodear whitelist.",
+      "decision": "Usar ServicioAuth.tiene_acceso_panel_admin() que consulta PermisoRol JOIN ModuloSistema WHERE categoria IN ('panel','analistas'). NO whitelist hardcodeada.",
+      "archivos_relevantes": [
+        "backend_v2/app/core/roles.py",
+        "backend_v2/app/services/auth/servicio.py",
+        "backend_v2/app/api/auth/config_router.py",
+        "frontend/src/constants/roles.ts",
+        "frontend/src/hooks/useIsAdmin.ts"
+      ],
+      "alternativas_rechazadas": [
+        "Whitelist hardcodeada de 6 roles (causa drift)",
+        "Whitelist de 5 roles sin manager (inconsistente con ProtectedRoute)"
+      ],
+      "fecha": "2026-06-02",
+      "plan_referencia": "docs/reviews/plans/2026-06-02_acceso-panel-administracion-header_v2.1.md",
+      "adr_referencia": "docs/decisions/ADR-005-acceso-panel-admin-via-header.md"
+    },
+    {
+      "id": "D4-2026-06-02",
+      "titulo": "Rate limiting obligatorio en endpoints sensibles (/verify-admin)",
+      "contexto": "Endpoint que valida contraseñas administrativas sin protección es vector de fuerza bruta. AGENTS.md no lo prohibía explícitamente pero skill_testing_mandate lo exige.",
+      "decision": "slowapi middleware con key_func combinando (usuario_id:ip) y default 5/5min. Variable VERIFY_ADMIN_RATE_LIMIT en config.py con pydantic-settings.",
+      "archivos_relevantes": [
+        "backend_v2/app/main.py",
+        "backend_v2/app/core/config.py",
+        "backend_v2/requirements.txt"
+      ],
+      "alternativas_rechazadas": [
+        "Sin rate limit (riesgo de fuerza bruta)",
+        "Lockout tras N fallos (UX invasiva)",
+        "Middleware custom (más código a mantener)"
+      ],
+      "fecha": "2026-06-02",
+      "plan_referencia": "docs/reviews/plans/2026-06-02_acceso-panel-administracion-header_v2.1.md"
+    },
+    {
+      "id": "TECH-DEBT-2026-06-02-1",
+      "titulo": "Refactor parcial de useIsAdmin en 4 archivos frontend",
+      "contexto": "Plan v2.1 implementó useIsAdmin() en PortalLayout.tsx pero hay 3 archivos adicionales con listas hardcodeadas de roles administrativos (ProtectedRoute.tsx, Router.tsx, Sidebar.tsx) más 2 más con variantes (ViaticosManagement.tsx, GestionHumana/CertificadoIngresosView.tsx).",
+      "decision": "Mantener comportamiento actual en los 5 archivos restantes. Crear ticket para refactor futuro que migre a useIsAdmin() o cree un hook especializado (useCanAccessModule(moduleId)).",
+      "archivos_pendientes": [
+        "frontend/src/components/auth/ProtectedRoute.tsx (línea 23)",
+        "frontend/src/components/Router.tsx (línea 38)",
+        "frontend/src/components/layout/Sidebar.tsx (línea 89)",
+        "frontend/src/pages/ServicePortal/pages/ViaticosManagement.tsx (línea 56)",
+        "frontend/src/pages/ServicePortal/pages/GestionHumana/CertificadoIngresosView.tsx (línea 29)"
+      ],
+      "prioridad": "MEDIA",
+      "estimacion": "4-6 horas (refactor + tests)",
+      "fecha": "2026-06-02",
+      "plan_referencia": "docs/reviews/plans/2026-06-02_acceso-panel-administracion-header_v2.1.md R-NEW-1"
+    }
+  ]
 }

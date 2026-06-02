@@ -1818,3 +1818,31 @@ erDiagram
 | baseviaticos | double precision | YES | - |
 | especialidades | character varying | YES | - |
 | areas_asignadas | character varying | YES | - |
+
+---
+
+## Tabla: `auditoria_eventos`
+
+**Agregada:** 2026-06-02 (plan acceso-panel-administracion-header v2.1)
+**Migración:** `backend_v2/app/core/migrations/auditoria_evento_migration.py` (NO Alembic)
+
+| Columna | Tipo | Nulo | Default | Descripción |
+|---|---|---|---|---|
+| `id` | `integer` (SERIAL) | NO | `nextval('auditoria_eventos_id_seq')` | PK |
+| `timestamp` | `timestamp with time zone` | NO | `now()` | Cuándo ocurrió el evento |
+| `usuario_id` | `varchar(50)` | NO | - | ID del usuario (sin FK: el log debe sobrevivir al borrado del usuario para trazabilidad legal) |
+| `rol` | `varchar(50)` | NO | - | Rol del usuario en el momento del evento |
+| `direccion_ip` | `varchar(45)` | YES | - | IP del cliente (soporta IPv4 e IPv6) |
+| `agente_usuario` | `text` | YES | - | User-Agent del cliente |
+| `resultado` | `varchar(30)` | NO | - | 'exito' \| 'fallo' (valores: exito, fallo_contrasena, fallo_sin_permiso, usuario_inactivo) |
+| `motivo` | `text` | YES | - | Texto corto con el motivo del fallo (NUNCA contiene la contraseña) |
+| `endpoint` | `varchar(100)` | NO | `/api/v2/config/verify-admin` | Endpoint que generó el evento |
+
+**Índices:**
+- `idx_auditoria_usuario_ts` (usuario_id, timestamp DESC) — consultas por usuario
+- `idx_auditoria_resultado` (resultado) — consultas por tipo de resultado
+
+**Notas de privacidad:**
+- El password NUNCA se almacena (ni en claro ni hasheado)
+- `usuario_id` se almacena tal cual (potencial PII como cédula) — considerar `pgcrypto` para encriptación en reposo (roadmap)
+- Retención recomendada: 365 días (configurable vía `auditoria_evento_limpiar_dias` en `config.py`)

@@ -57,4 +57,32 @@ Reportes no triviales se persisten en `docs/reviews/{plans,builds}/` usando las 
 
 ## Skills
 
-Use relevant skills from `.agents/skills/` for specific tasks.
+### Skills de proyecto
+
+Usar según dominio: cada skill vive en `.agents/skills/<nombre>/SKILL.md`. Los subagentes listan referencias obligatorias en `.opencode/agent/<revisor>.md`.
+
+### Protocolo del arnés OpenCode
+
+Antes de revisar o implementar con subagentes, leer:
+
+- `.opencode/agent/_shared-discovery.md` — orden de resolución (skills locales → graphify → find-skills)
+- `docs/decisions/ADR-006-protocolo-descubrimiento-agentes.md` — matriz skill → subagente
+
+### Exploración del codebase (graphify)
+
+- Generación local (sin API key): `py -3.12 scripts/graphify_build_ast.py` → `graphify-out/GRAPH_REPORT.md`
+- Con `GEMINI_API_KEY` en `.env`: `py -3.12 scripts/graphify_from_env.py extract docs --out . --backend gemini` (carga `.env` automáticamente).
+- `py -3.12 -m graphify` **no** lee `.env` solo; usar `graphify_from_env.py` o exportar variables a mano.
+- Salida esperada: `graphify-out/GRAPH_REPORT.md` y `graphify-out/graph.json` (directorio ignorado por git).
+- Los **subagentes read-only** solo consumen artefactos existentes; no ejecutan el pipeline.
+- Detalle: `docs/GUIA_DESARROLLO.md` sección 6.
+
+### Descubrimiento externo (find-skills)
+
+- Solo el orquestador/implementación: `npx skills find <query>` cuando no exista skill en `.agents/skills/`.
+- No instalar skills sin confirmación del usuario.
+- Catálogo: https://skills.sh/
+
+### Push a remoto
+
+- `skill_git_controlled_push`: no hacer `git push` sin instrucción explícita del usuario.
