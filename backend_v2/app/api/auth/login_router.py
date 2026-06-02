@@ -5,6 +5,7 @@ from app.database import obtener_db, obtener_erp_db_opcional
 from app.services.auth.servicio import ServicioAuth
 from app.models.auth.usuario import LoginRequest, RecoveryRequest, PasswordReset, UsuarioRegistro
 from app.services.notifications.email_service import EmailService
+from app.core.rate_limiter import limiter
 
 router = APIRouter()
 
@@ -27,6 +28,13 @@ async def login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
+        if not ServicioAuth.es_password_configurado(usuario.hash_contrasena, usuario.cedula):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Contraseña no configurada",
+                headers={"X-Password-Not-Set": "true"},
+            )
+
         if not ServicioAuth.verificar_contrasena(
             form_data.password, usuario.hash_contrasena  # @audit-ok
         ):
@@ -34,13 +42,6 @@ async def login(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas",
                 headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        if not ServicioAuth.es_password_configurado(usuario.hash_contrasena, usuario.cedula):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Contraseña no configurada",
-                headers={"X-Password-Not-Set": "true"},
             )
 
         if not usuario.esta_activo:
@@ -104,7 +105,9 @@ async def login(
 
 
 @router.post("/setup-password")
+@limiter.limit("30/hour")
 async def setup_password(
+    request: Request,
     datos: LoginRequest,
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db_opcional),
