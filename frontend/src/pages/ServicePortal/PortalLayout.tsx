@@ -78,7 +78,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                                             : 'Verificar identidad para acceder al panel de administración'
                                     }
                                     title="Panel de Administración"
-                                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all shadow-lg backdrop-blur-md group min-h-12 min-w-12 p-2 focus-visible:ring-2 focus-visible:ring-white/60"
+                                    className="flex items-center gap-2 px-3 py-2 min-h-12 min-w-12"
                                 >
                                     <LogoSolidSolutions size="large" variant="icon" fixedColors />
                                 </Button>
