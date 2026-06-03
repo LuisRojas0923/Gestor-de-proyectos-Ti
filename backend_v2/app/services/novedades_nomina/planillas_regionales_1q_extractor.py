@@ -81,8 +81,8 @@ def extraer_planillas_regionales_1q(archivos_binarios: List[bytes]) -> Tuple[Lis
                 warnings.append(f"Archivo {i+1}: Faltan columnas esenciales: {missing}")
                 continue
 
-            # Filtrar novedades: EXCLUIR las que sean ["AUS", "CMP", "PNR", "RET"]
-            novedades_excluir = ["AUS", "CMP", "PNR", "RET"]
+            # Filtrar novedades: EXCLUIR las que sean ["CMP", "PNR", "RET"]
+            novedades_excluir = ["CMP", "PNR", "RET"]
             # El usuario indica "filtrar los diferentes a estos valores", lo que significa excluir estos y dejar el resto
             df = df[~df[col_map["NOVEDAD"]].astype(str).str.strip().str.upper().isin(novedades_excluir)]
             
