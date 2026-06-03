@@ -8,6 +8,7 @@ o se lanza un error en producción.
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,6 +35,32 @@ class Settings(BaseSettings):
     jwt_algoritmo: str = "HS256"
 
     cors_origenes_permitidos: str = "*"
+
+    # Auth: contraseña temporal del portal para usuarios JIT.
+    # En producción NO puede estar vacía ni ser el literal "PORTAL_PENDING_PWD".
+    portal_pending_pwd: str = ""
+
+    # Auth: flag para que el JIT auto-apruebe (esta_activo=True) usuarios nuevos.
+    # Default False en prod (cumple política de aprobación).
+    # True solo en desarrollo. Cambiar en runtime vía env sin redeploy.
+    jit_auto_aprobar: bool = False
+
+    @field_validator("portal_pending_pwd")
+    @classmethod
+    def _validar_portal_pending_pwd(cls, v: str) -> str:
+        if v and v == "PORTAL_PENDING_PWD":
+            raise ValueError(
+                "portal_pending_pwd no puede ser el literal 'PORTAL_PENDING_PWD'. "
+                "Define un valor seguro en el .env o déjalo vacío para desarrollo."
+            )
+        return v
+
+    @field_validator("jit_auto_aprobar", mode="before")
+    @classmethod
+    def _coercion_jit_flag(cls, v):
+        if isinstance(v, str):
+            return v.strip().lower() in ("1", "true", "yes", "on")
+        return bool(v)
 
     @property
     def es_produccion(self) -> bool:

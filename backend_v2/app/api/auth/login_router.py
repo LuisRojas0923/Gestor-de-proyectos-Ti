@@ -3,17 +3,24 @@ from fastapi.security import OAuth2PasswordRequestForm  # @audit-ok
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.services.auth.servicio import ServicioAuth
+from app.services.auth.servicio import normalizar_cedula, enmascarar_pii
 from app.models.auth.usuario import (
     LoginRequest, RecoveryRequest, PasswordReset, UsuarioRegistro, Usuario,
 )
 from app.services.notifications.email_service import EmailService
-from app.core.rate_limiter import limiter
+from app.core.rate_limiter import limiter, _login_key_func
 from app.config import config
+from app.core.config import obtener_configuracion
+from sqlalchemy.exc import IntegrityError
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
 @router.post("/login")
+@limiter.limit("10/minute;30/hour", key_func=_login_key_func)
 async def login(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),  # @audit-ok
@@ -21,30 +28,38 @@ async def login(
     db_erp=Depends(obtener_erp_db_opcional),
 ):
     """Endpoint para inicio de sesion (OAuth2 compatible)"""
+    settings = obtener_configuracion()
     try:
-        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, form_data.username)
+        cedula_normalizada = normalizar_cedula(form_data.username)
+        password_normalizada = (form_data.password or "").strip()
+        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula_normalizada)
 
         if not usuario:
             jit_creado = False
             if db_erp:
                 try:
                     from app.services.erp.empleados_service import EmpleadosService
-                    empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, form_data.username)
+                    empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula_normalizada)
                 except HTTPException:
                     raise
                 except Exception:
                     empleado = None
                 if empleado:
+                    if password_normalizada.lower() == cedula_normalizada:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="La contraseña no puede ser igual a la cédula. Por favor, elige una contraseña diferente.",
+                        )
                     hash_pendiente = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
-                    id_usuario = f"USR-P-{form_data.username}"
+                    id_usuario = f"USR-P-{cedula_normalizada}"
                     viaticante_val = bool(empleado.get("viaticante"))
                     nuevo_usuario = Usuario(
                         id=id_usuario,
-                        cedula=form_data.username,
+                        cedula=cedula_normalizada,
                         nombre=empleado["nombre"],
                         hash_contrasena=hash_pendiente,
                         rol="viaticante" if viaticante_val else "usuario",
-                        esta_activo=True,
+                        esta_activo=settings.jit_auto_aprobar,
                         area=empleado.get("area"),
                         cargo=empleado.get("cargo"),
                         sede=empleado.get("ciudadcontratacion"),
@@ -57,14 +72,28 @@ async def login(
                         correo_actualizado=bool(empleado.get("correocorporativo")),
                         correo_verificado=False,
                     )
-                    db.add(nuevo_usuario)
-                    await db.commit()
-                    jit_creado = True
+                    try:
+                        db.add(nuevo_usuario)
+                        await db.commit()
+                        jit_creado = True
+                    except IntegrityError:
+                        await db.rollback()
+                        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula_normalizada)
+                        if not usuario:
+                            raise HTTPException(
+                                status_code=500,
+                                detail="No se pudo crear ni recuperar el usuario JIT",
+                            )
             if jit_creado:
+                if settings.jit_auto_aprobar:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Contraseña no configurada",
+                        headers={"X-Password-Not-Set": "true"},
+                    )
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Contraseña no configurada",
-                    headers={"X-Password-Not-Set": "true"},
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Tu cuenta está pendiente de aprobación por un administrador. Recibirás un correo cuando sea activada.",
                 )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -80,7 +109,7 @@ async def login(
             )
 
         if not ServicioAuth.verificar_contrasena(
-            form_data.password, usuario.hash_contrasena  # @audit-ok
+            password_normalizada, usuario.hash_contrasena  # @audit-ok
         ):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -100,7 +129,7 @@ async def login(
                     db, db_erp, usuario
                 )
             except Exception as e:
-                print(f"DEBUG: Error no crítico sincronizando perfil en login: {e}")
+                logger.warning("Error no crítico sincronizando perfil en login: %s", enmascarar_pii(str(e)))
 
         permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
         token_acceso = ServicioAuth.crear_token_acceso(
@@ -141,7 +170,7 @@ async def login(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"ERROR CRITICO en Login API: {str(e)}")
+        logger.error("Login API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor durante la autenticacion",
@@ -160,9 +189,11 @@ async def setup_password(
     No requiere autenticación ni contraseña actual. Sigue el mismo patrón que
     /viaticos/configurar pero sin restricción de rol."""
     try:
-        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, datos.cedula)
+        cedula_norm = normalizar_cedula(datos.cedula)
+        contrasena_norm = (datos.contrasena or "").strip()
+        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula_norm)
 
-        if datos.contrasena == datos.cedula:
+        if contrasena_norm.lower() == cedula_norm:
             raise HTTPException(
                 status_code=400,
                 detail="La contraseña no puede ser igual a la cédula. Por favor, elige una contraseña diferente.",
@@ -174,7 +205,7 @@ async def setup_password(
                     status_code=400,
                     detail="El usuario ya tiene una contraseña configurada",
                 )
-            await ServicioAuth.cambiar_contrasena(db, usuario.id, datos.contrasena)
+            await ServicioAuth.cambiar_contrasena(db, usuario.id, contrasena_norm)
             return {"message": "Contraseña configurada exitosamente", "cedula": usuario.cedula}
 
         if not db_erp:
@@ -185,7 +216,7 @@ async def setup_password(
 
         from app.services.erp import EmpleadosService
 
-        empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, datos.cedula)
+        empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula_norm)
         if not empleado:
             raise HTTPException(
                 status_code=404,
@@ -199,7 +230,7 @@ async def setup_password(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"ERROR CRITICO en setup-password API: {str(e)}")
+        logger.error("setup-password API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor",
@@ -230,13 +261,11 @@ async def logout(
         exito = await ServicioAuth.marcar_fin_sesion(db, token)
         if not exito:
             # No lanzamos error para que el frontend pueda limpiar localmente de todos modos
-            print(
-                "DEBUG: No se encontro sesion activa para el token al intentar logout"
-            )
+            logger.info("No se encontro sesion activa para el token al intentar logout")
 
         return {"message": "Sesion cerrada correctamente"}
     except Exception as e:
-        print(f"ERROR en Logout API: {str(e)}")
+        logger.error("Logout API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
         return {"message": "Sesion cerrada localmente con errores en servidor"}
 
 
@@ -298,7 +327,7 @@ async def reset_password(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        print(f"ERROR en Reset Password API: {str(e)}")
+        logger.error("Reset Password API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
         raise HTTPException(status_code=500, detail="Error interno al restablecer la contraseña.")
 
 
@@ -344,7 +373,7 @@ async def registro_usuario_portal(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        print(f"ERROR en Registro API: {str(e)}")
+        logger.error("Registro API error", exc_info=True, extra={"detail": enmascarar_pii(str(e))})
         raise HTTPException(
             status_code=500, detail="Error interno al registrar la cuenta"
         )
