@@ -3,6 +3,32 @@
   "project": "Gestor-de-proyectos-Ti",
   "errors": [
     {
+      "id": "ERR-001",
+      "titulo": "Ciclo infinito login → setup-password → login cuando contraseña = cédula",
+      "archivos_afectados": [
+        "backend_v2/app/api/auth/login_router.py (setup-password endpoint)",
+        "backend_v2/app/services/auth/servicio.py (es_password_configurado)",
+        "frontend/src/components/molecules/PasswordSetupModal.tsx"
+      ],
+      "causa_raiz": "es_password_configurado() en servicio.py rechaza contraseñas que coincidan con la cédula (línea 60: bcrypt.checkpw(cedula, hash)). Pero setup-password NO validaba que contrasena != cedula, por lo que aceptaba el cambio (200 OK) y login inmediatamente después respondía 400 PASSWORD_NOT_SET al detectar hash === cédula. El usuario quedaba atrapado en bucle entre modal de setup y login.",
+      "solucion_propuesta": "Implementado en commit 42cbfe7: (a) Backend: setup-password valida contrasena == cedula y retorna 400 con mensaje claro. (b) Frontend: banner ámbar en tiempo real + botón deshabilitado cuando password === cedula. (c) Test test_setup_password_rechaza_contrasena_igual_a_cedula añadido. Pendiente P2: case-insensitive, trim, path JIT en setup-password, /viaticos/configurar también vulnerable (mismo bug), centralizar validación en ServicioAuth.",
+      "impacto": "Bloqueante: usuarios nuevos (cédulas que no existen en BD local) no podían completar primera configuración si elegían su cédula como contraseña. UX rota: 200 OK que no se traduce en acceso.",
+      "estado": "RESUELTO_PARCIAL",
+      "fecha_deteccion": "2026-06-03",
+      "fecha_resolucion_parcial": "2026-06-03",
+      "prioridad": "ALTA",
+      "componente": "backend+frontend",
+      "commit_referencia": "42cbfe7",
+      "tags": ["auth", "login", "jit", "ux", "ciclo-infinito", "validacion"],
+      "hallazgos_seguimiento": [
+        "F1: setup-password es case-sensitive; debería ser case-insensitive (consistencia con registrar_usuario_portal)",
+        "F2: setup-password no hace .strip() en cédula/contraseña",
+        "F3: /viaticos/configurar (viaticos_router.py:22-56) NO tiene la misma validación — fix de 42cbfe7 incompleto",
+        "F4: Cobertura de test insuficiente — falta parametrizar case-insensitive y trim",
+        "F5: Test actual solo cubre path con usuario pre-existente, no path JIT"
+      ]
+    },
+    {
       "id": "PRE-2026-06-02-1",
       "titulo": "test_escalado_rol_via_api_resetea_password falla consistentemente",
       "archivo": "testing/backend/test_auth_escalation.py:197",
@@ -69,6 +95,31 @@
       "estimacion": "4-6 horas (refactor + tests)",
       "fecha": "2026-06-02",
       "plan_referencia": "docs/reviews/plans/2026-06-02_acceso-panel-administracion-header_v2.1.md R-NEW-1"
+    },
+    {
+      "id": "DEC-2026-06-03-1",
+      "titulo": "Permisos ampliados para subagentes con whitelists explícitas",
+      "contexto": "Los 8 subagentes en .opencode/agent/ operaban con edit:deny y bash:deny/ask globalmente, lo que obligaba a pedir confirmación para comandos básicos (git status, ls, cat) e impedía que error-memory persistiera errores en errors_memory.json. Esto causaba lentitud en revisiones (2+ horas para 3 subagentes) y registro de memoria incompleto.",
+      "decision": "Modificar frontmatter de los 8 subagentes con whitelists explícitas: (a) bash:allow con lista de comandos read-only comunes; (b) edit:allow limitado a paths específicos (docs/reviews/builds/, errors_memory.json, .opencode/memory/); (c) error-memory es el único con edit:allow amplio sobre su dominio; (d) harness-router y scope-reviewer mantienen edit:deny/bash:deny como subagentes puramente asesores. _shared-discovery.md ahora incluye tabla §6 de permisos por subagente y comandos pre-autorizados.",
+      "modulos_afectados": [
+        ".opencode/agent/_shared-discovery.md",
+        ".opencode/agent/harness-router.md",
+        ".opencode/agent/scope-reviewer.md",
+        ".opencode/agent/backend-reviewer.md",
+        ".opencode/agent/frontend-reviewer.md",
+        ".opencode/agent/mobile-reviewer.md",
+        ".opencode/agent/docs-tests-reviewer.md",
+        ".opencode/agent/security-rbac-reviewer.md",
+        ".opencode/agent/error-memory.md"
+      ],
+      "alternativas_rechazadas": [
+        "Mantener edit:deny global y usar write tool desde el orquestador (fragil, requiere intervención manual constante)",
+        "Permitir bash:allow sin whitelist (riesgo de seguridad: rm, git push, docker destroy)",
+        "Hacer que los subagentes pidan bash:ask para todo (lentitud 2h+ por revisión, mala UX)"
+      ],
+      "consecuencias": "Las revisiones serán 5-10x más rápidas (sin pedir confirmación para git/cat/ls). error-memory puede persistir sin intervención. Riesgo: un subagente deshonesto podría ejecutar comandos fuera de whitelist — mitigado por la tabla explícita en frontmatter y en _shared-discovery.md.",
+      "fecha": "2026-06-03",
+      "estado": "VIGENTE"
     }
   ]
 }

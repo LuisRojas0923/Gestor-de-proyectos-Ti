@@ -21,9 +21,30 @@
     "summary": "Compact report",
     "stats <subagent>": "Stats for a subagent"
   },
-  "operation_history": [],
+  "operation_history": [
+    {
+      "operation": "record error",
+      "id": "ERR-001",
+      "titulo": "Ciclo infinito login → setup-password → login cuando contraseña = cédula",
+      "timestamp": "2026-06-03T09:30:00Z",
+      "prioridad": "ALTA",
+      "estado": "RESUELTO_PARCIAL",
+      "commit_referencia": "42cbfe7"
+    },
+    {
+      "operation": "record decision",
+      "id": "DEC-2026-06-03-1",
+      "titulo": "Permisos ampliados para subagentes con whitelists explícitas",
+      "timestamp": "2026-06-03T09:35:00Z",
+      "estado": "VIGENTE"
+    }
+  ],
   "stats": {
-    "total_operations": 0,
-    "last_operation": null
+    "total_operations": 2,
+    "last_operation": "record decision (DEC-2026-06-03-1) — 2026-06-03T09:35:00Z",
+    "errors_recorded": 1,
+    "decisions_recorded": 1,
+    "memory_persistence_enabled": true,
+    "permission_grant_date": "2026-06-03"
   }
 }
