@@ -130,6 +130,26 @@ async def test_setup_password_rechaza_si_ya_configurado(client, usuario_pendient
     assert "ya tiene una contraseña configurada" in response.json()["detail"]
 
 
+@pytest.mark.asyncio
+async def test_setup_password_rechaza_contrasena_igual_a_cedula(client, usuario_pendiente, db_session):
+    """Verifica que setup-password rechace si la contraseña es igual a la cédula (caso del ciclo infinito)."""
+    response = await client.post("/auth/setup-password", json={
+        "cedula": _CEDULA_SETUP,
+        "contrasena": _CEDULA_SETUP
+    })
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert "no puede ser igual a la cédula" in detail
+
+    # Verificar que el hash NO fue actualizado (sigue siendo pendiente)
+    result = await db_session.execute(
+        text("SELECT hash_contrasena FROM usuarios WHERE id = :id"),
+        {"id": _ID_SETUP}
+    )
+    hash_actual = result.scalar_one()
+    assert ServicioAuth.es_password_configurado(hash_actual, _CEDULA_SETUP) is False
+
+
 # ---------------------------------------------------------------------------
 # Test 3: POST /auth/login — rechazo con 400 cuando password_set=False
 # ---------------------------------------------------------------------------

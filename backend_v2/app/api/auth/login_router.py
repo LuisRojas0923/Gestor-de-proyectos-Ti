@@ -162,6 +162,12 @@ async def setup_password(
     try:
         usuario = await ServicioAuth.obtener_usuario_por_cedula(db, datos.cedula)
 
+        if datos.contrasena == datos.cedula:
+            raise HTTPException(
+                status_code=400,
+                detail="La contraseña no puede ser igual a la cédula. Por favor, elige una contraseña diferente.",
+            )
+
         if usuario:
             if ServicioAuth.es_password_configurado(usuario.hash_contrasena, usuario.cedula):
                 raise HTTPException(

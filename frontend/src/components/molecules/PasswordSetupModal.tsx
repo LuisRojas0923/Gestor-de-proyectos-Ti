@@ -23,6 +23,10 @@ const PasswordSetupModal: React.FC<PasswordSetupModalProps> = ({ cedula, onCompl
             setError("La contraseña debe tener al menos 8 caracteres.");
             return;
         }
+        if (password === cedula) {
+            setError("La contraseña no puede ser igual a tu cédula. Por favor, elige una contraseña diferente.");
+            return;
+        }
         if (password !== confirmPassword) {
             setError("Las contraseñas no coinciden.");
             return;
@@ -80,6 +84,13 @@ const PasswordSetupModal: React.FC<PasswordSetupModalProps> = ({ cedula, onCompl
                         size="lg"
                         autoComplete="new-password"
                     />
+                    {password.length > 0 && password === cedula && (
+                        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-xl flex items-start gap-2 -mt-2">
+                            <Text variant="caption" weight="medium" className="text-amber-700 dark:text-amber-400">
+                                La contraseña no puede ser igual a tu cédula ({cedula}). Elige una contraseña diferente.
+                            </Text>
+                        </div>
+                    )}
                     <Input
                         type="password"
                         label="Confirmar Contraseña"
@@ -106,6 +117,7 @@ const PasswordSetupModal: React.FC<PasswordSetupModalProps> = ({ cedula, onCompl
                         size="lg"
                         className="w-full !rounded-2xl h-14 shadow-xl"
                         loading={isLoading}
+                        disabled={password === cedula}
                         icon={ShieldCheck}
                     >
                         Configurar y Acceder
