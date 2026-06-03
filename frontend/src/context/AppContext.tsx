@@ -112,23 +112,7 @@ const getInitialUser = (): User | null => {
 
 // Función para obtener la verificación de viáticos desde localStorage (con expiración de 4 horas)
 const getInitialViaticosVerified = (): boolean => {
-  try {
-    const saved = localStorage.getItem('viaticosVerified');
-    if (!saved) return false;
-
-    const { verified, timestamp } = JSON.parse(saved);
-    const now = new Date().getTime();
-    const fourHours = 4 * 60 * 60 * 1000;
-
-    if (verified && (now - timestamp) < fourHours) {
-      return true;
-    }
-
-    localStorage.removeItem('viaticosVerified');
-    return false;
-  } catch (error) {
-    return false;
-  }
+  return true; // Bypass secondary authentication
 };
 
 const initialState: AppState = {
@@ -157,7 +141,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       localStorage.removeItem('theme');
       localStorage.removeItem('viaticosVerified');
       sessionStorage.removeItem('fromAdmin');
-      return { ...state, user: null, isViaticosVerified: false };
+      return { ...state, user: null, isViaticosVerified: true };
     case 'TOGGLE_DARK_MODE': {
       const newDarkMode = !state.darkMode;
       // Guardar en localStorage

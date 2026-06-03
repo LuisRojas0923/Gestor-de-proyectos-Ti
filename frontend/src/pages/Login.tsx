@@ -4,7 +4,7 @@ import { Lock, LogIn, User as UserIcon, UserPlus } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
-import { PasswordSetupModal } from '../components/molecules';
+import { PasswordSetupModal, Callout } from '../components/molecules';
 import imgUserLogin from '../assets/images/categories/Usuario Inicio Sesion.png';
 import ForgotPasswordModal from './Login/ForgotPasswordModal';
 import RegisterSidebar from './Login/RegisterSidebar';
@@ -24,6 +24,14 @@ const Login: React.FC = () => {
     const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
     const [isRegisterSidebarOpen, setIsRegisterSidebarOpen] = useState(false);
     const [setupCedula, setSetupCedula] = useState<string | null>(null);
+    const [showNotice, setShowNotice] = useState<boolean>(() => {
+        return !localStorage.getItem('portal_login_notice_dismissed');
+    });
+
+    const handleDismissNotice = () => {
+        localStorage.setItem('portal_login_notice_dismissed', 'true');
+        setShowNotice(false);
+    };
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -79,8 +87,9 @@ const Login: React.FC = () => {
             } else {
                 navigate('/service-portal/inicio');
             }
-        } catch (err: any) {
-            setError(err.message || 'Usuario o contraseña incorrectos');
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Usuario o contraseña incorrectos';
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -136,6 +145,17 @@ const Login: React.FC = () => {
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-6">
+                    {showNotice && (
+                        <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                            <Callout
+                                variant="warning"
+                                title="El método de inicio de sesión cambió"
+                                onDismiss={handleDismissNotice}
+                            >
+                                Si no has configurado tu contraseña, ingresa con tu cédula en ambos campos (usuario y contraseña). Luego, el sistema te guiará para configurar una contraseña nueva.
+                            </Callout>
+                        </div>
+                    )}
 
                     <Input
                         type="text"
@@ -174,9 +194,9 @@ const Login: React.FC = () => {
                     </div>
 
                     {error && (
-                        <div className="p-4 rounded-xl text-sm font-bold flex items-center space-x-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800">
-                            <Text color="inherit" weight="bold">{error}</Text>
-                        </div>
+                        <Callout variant="error" role="alert">
+                            {error}
+                        </Callout>
                     )}
 
                     <Button

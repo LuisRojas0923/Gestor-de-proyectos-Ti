@@ -1,6 +1,6 @@
 import React from 'react';
-import { Text } from '../atoms';
-import { Info, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Button, Text } from '../atoms';
+import { Info, AlertTriangle, CheckCircle, XCircle, X } from 'lucide-react';
 
 interface CalloutProps {
     children: React.ReactNode;
@@ -8,6 +8,9 @@ interface CalloutProps {
     title?: string;
     className?: string;
     icon?: React.ElementType;
+    onDismiss?: () => void;
+    dismissLabel?: string;
+    role?: string;
 }
 
 const Callout: React.FC<CalloutProps> = ({
@@ -15,7 +18,10 @@ const Callout: React.FC<CalloutProps> = ({
     variant = 'info',
     title,
     className = '',
-    icon: IconComponent
+    icon: IconComponent,
+    onDismiss,
+    dismissLabel = 'Cerrar aviso',
+    role
 }) => {
     const variants = {
         info: {
@@ -52,7 +58,10 @@ const Callout: React.FC<CalloutProps> = ({
     const Icon = IconComponent || config.icon;
 
     return (
-        <div className={`p-4 rounded-2xl border ${config.bg} ${config.border} ${className}`}>
+        <div
+            className={`relative p-4 rounded-2xl border ${config.bg} ${config.border} ${className}`}
+            role={role}
+        >
             <div className="flex gap-3">
                 <div className={`shrink-0 mt-0.5 ${config.iconColor}`}>
                     <Icon size={18} />
@@ -68,6 +77,17 @@ const Callout: React.FC<CalloutProps> = ({
                     </div>
                 </div>
             </div>
+            {onDismiss && (
+                <Button
+                    variant="ghost"
+                    size="xs"
+                    icon={X}
+                    onClick={onDismiss}
+                    aria-label={dismissLabel}
+                    title={dismissLabel}
+                    className={`!p-1 !min-w-0 absolute top-2 right-2 opacity-60 hover:opacity-100 ${config.text}`}
+                />
+            )}
         </div>
     );
 };
