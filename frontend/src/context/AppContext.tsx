@@ -156,6 +156,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       localStorage.removeItem('token');
       localStorage.removeItem('theme');
       localStorage.removeItem('viaticosVerified');
+      sessionStorage.removeItem('fromAdmin');
       return { ...state, user: null, isViaticosVerified: false };
     case 'TOGGLE_DARK_MODE': {
       const newDarkMode = !state.darkMode;

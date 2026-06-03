@@ -19,7 +19,6 @@ from .sesion_service import (
 from .provisioning_service import (
     crear_analista_desde_erp,
     crear_usuario_portal_desde_erp,
-    auto_provisionar_usuario_portal,
     registrar_usuario_portal,
 )
 
@@ -257,10 +256,94 @@ class ServicioAuth:
         )
         return list(result.scalars().all())
 
+    @staticmethod
+    async def tiene_acceso_panel_admin(db: AsyncSession, usuario) -> bool:
+        """
+        Verifica si el usuario tiene acceso a módulos del Panel Maestro.
+
+        Implementa el RBAC dinámico: consulta PermisoRol JOIN ModuloSistema
+        WHERE categoria = 'panel'. No usa whitelist hardcodeada.
+
+        Esto permite que un admin revoque el acceso de un rol desde la UI
+        de permisos y surta efecto inmediato en el endpoint /verify-admin.
+
+        Args:
+            db: Sesión async de SQLAlchemy.
+            usuario: Instancia de Usuario con atributo .rol.
+
+        Returns:
+            True si el rol del usuario tiene al menos un permiso activo
+            en categoría 'panel'. False en caso contrario.
+        """
+        from app.models.auth.usuario import ModuloSistema
+
+        stmt = (
+            select(PermisoRol.rol)
+            .join(ModuloSistema, ModuloSistema.id == PermisoRol.modulo)
+            .where(
+                PermisoRol.rol == usuario.rol,
+                PermisoRol.permitido == True,  # noqa: E712
+                ModuloSistema.categoria == "panel",
+                ModuloSistema.esta_activo == True,  # noqa: E712
+            )
+            .limit(1)
+        )
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none() is not None
+
+    @staticmethod
+    async def registrar_verificacion_panel(
+        db: AsyncSession,
+        usuario_id: str,
+        rol: str,
+        exitosa: bool,
+        motivo: str,
+        direccion_ip: Optional[str] = None,
+        agente_usuario: Optional[str] = None,
+    ) -> None:
+        """
+        Registra un evento de auditoría para /verify-admin.
+
+        El log nunca almacena la contraseña (ni en claro ni hasheada).
+        Si la inserción falla, NO bloquea el flujo de auth (try/except interno).
+
+        Args:
+            db: Sesión async de SQLAlchemy.
+            usuario_id: ID del usuario que intentó verificar.
+            rol: Rol del usuario.
+            exitosa: True si la verificación fue exitosa.
+            motivo: Texto corto: 'exito', 'fallo_contrasena', 'fallo_sin_permiso',
+                    'rate_limit_excedido', 'token_invalido', etc.
+            direccion_ip: IP del cliente (opcional).
+            agente_usuario: User-Agent (opcional).
+        """
+        try:
+            from app.models.auth.auditoria_evento import AuditoriaEvento
+            from sqlalchemy import insert
+
+            stmt = insert(AuditoriaEvento).values(
+                usuario_id=usuario_id,
+                rol=rol,
+                direccion_ip=direccion_ip,
+                agente_usuario=agente_usuario,
+                resultado="exito" if exitosa else "fallo",
+                motivo=motivo,
+            )
+            await db.execute(stmt)
+            await db.commit()
+        except Exception as e:
+            # El audit log NUNCA debe tumbar el flujo de auth.
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error registrando auditoria verify-admin: {e}")
+            try:
+                await db.rollback()
+            except Exception:
+                pass
+
     # ── Métodos delegados a módulos extraídos ──
     crear_analista_desde_erp = staticmethod(crear_analista_desde_erp)
     crear_usuario_portal_desde_erp = staticmethod(crear_usuario_portal_desde_erp)
-    auto_provisionar_usuario_portal = staticmethod(auto_provisionar_usuario_portal)
     registrar_usuario_portal = staticmethod(registrar_usuario_portal)
     registrar_sesion = staticmethod(registrar_sesion)
     marcar_fin_sesion = staticmethod(marcar_fin_sesion)

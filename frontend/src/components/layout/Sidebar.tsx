@@ -25,6 +25,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
+import { useIsAdmin } from '../../hooks/useIsAdmin';
 import { Button, Text } from '../atoms';
 
 const Sidebar: React.FC = () => {
@@ -80,13 +81,15 @@ const Sidebar: React.FC = () => {
     { id: 'design-catalog', name: 'Catálogo de Diseño', href: '/design-catalog', icon: Palette },
   ];
 
+  const isAdmin = useIsAdmin();
+
   const filteredNavigation = navigation.filter(item => {
     // Si no hay permisos todavía (sesión antigua o error de carga), 
     // usamos el rol como fallback de emergencia para no dejar el sidebar vacío.
     if (!user?.permissions) {
       const userRole = (user?.role || '').trim().toLowerCase();
-      if (userRole === 'admin') return true;
-      if (['analyst', 'admin_sistemas', 'admin_mejoramiento', 'director', 'manager'].includes(userRole)) {
+      if (isAdmin) return true;
+      if (userRole === 'manager') {
         return !['admin_usuarios', 'admin_roles', 'design-catalog'].includes(item.id);
       }
       return item.id === 'service-portal';

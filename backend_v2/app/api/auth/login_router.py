@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm  # @audit-ok
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.services.auth.servicio import ServicioAuth
-from app.models.auth.usuario import RecoveryRequest, PasswordReset, UsuarioRegistro
+from app.models.auth.usuario import LoginRequest, RecoveryRequest, PasswordReset, UsuarioRegistro
 from app.services.notifications.email_service import EmailService
 
 router = APIRouter()
@@ -34,6 +34,13 @@ async def login(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas",
                 headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not ServicioAuth.es_password_configurado(usuario.hash_contrasena, usuario.cedula):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Contraseña no configurada",
+                headers={"X-Password-Not-Set": "true"},
             )
 
         if not usuario.esta_activo:
@@ -96,188 +103,67 @@ async def login(
         )
 
 
-@router.post("/portal-login")
-async def portal_login(
-    request: Request,
-    payload: dict,
+@router.post("/setup-password")
+async def setup_password(
+    datos: LoginRequest,
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db_opcional),
 ):
-    """Endpoint para inicio de sesion simplificado del portal (solo cedula)"""
-    cedula = payload.get("username")
-    if not cedula:
-        raise HTTPException(status_code=400, detail="Cedula requerida")
-
-    if not db_erp:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Servicio ERP no disponible para validacion de portal",
-        )
-
+    """Configura la contraseña por primera vez para usuarios con password_set=False.
+    No requiere autenticación ni contraseña actual. Sigue el mismo patrón que
+    /viaticos/configurar pero sin restricción de rol."""
     try:
+        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, datos.cedula)
+
+        if usuario:
+            if ServicioAuth.es_password_configurado(usuario.hash_contrasena, usuario.cedula):
+                raise HTTPException(
+                    status_code=400,
+                    detail="El usuario ya tiene una contraseña configurada",
+                )
+            await ServicioAuth.cambiar_contrasena(db, usuario.id, datos.contrasena)
+            return {"message": "Contraseña configurada exitosamente", "cedula": usuario.cedula}
+
+        if not db_erp:
+            raise HTTPException(
+                status_code=503,
+                detail="Servicio ERP no disponible para crear el usuario",
+            )
+
         from app.services.erp import EmpleadosService
 
-        empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula)
-    except Exception as e:
-        print(f"ERROR ERP en portal-login: {e}")
-        raise HTTPException(status_code=503, detail="Error de conexion con ERP")
-
-    if not empleado:
-        raise HTTPException(
-            status_code=404, detail="Usuario no encontrado en el sistema"
-        )
-
-    usuario_local = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
-
-    # Verificar si el usuario está pendiente de aprobación
-    if usuario_local and not usuario_local.esta_activo:
-        raise HTTPException(
-            status_code=403,
-            detail="Cuenta pendiente de aprobación. Un administrador debe activar tu cuenta.",
-        )
-
-    is_viaticante = bool(empleado.get("viaticante"))
-    user_data = {
-        "id": usuario_local.id if usuario_local else f"USR-P-{cedula}",
-        "cedula": cedula,
-        "nombre": empleado["nombre"],
-        "rol": usuario_local.rol if (usuario_local and usuario_local.rol not in ["usuario", "viaticante", "user"]) else ("viaticante" if is_viaticante else "usuario"),
-        "area": empleado.get("area"),
-        "cargo": empleado.get("cargo"),
-        "sede": empleado.get("ciudadcontratacion"),
-        "centrocosto": empleado.get("centrocosto"),
-        "viaticante": is_viaticante,
-        "baseviaticos": empleado.get("baseviaticos"),
-    }
-
-    if not usuario_local:
-        try:
-            usuario_local = await ServicioAuth.auto_provisionar_usuario_portal(
-                db, db_erp, cedula, empleado
+        empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, datos.cedula)
+        if not empleado:
+            raise HTTPException(
+                status_code=404,
+                detail="Usuario no encontrado en el sistema. Debe registrarse primero o contactar al administrador.",
             )
-        except Exception as e:
-            print(f"ERROR auto-provisionando usuario: {e}")
-            # Si falla la creación, seguimos con el objeto temporal pero sin correo falso
-    else:
-        try:
-            usuario_local.area = user_data["area"]
-            usuario_local.cargo = user_data["cargo"]
-            usuario_local.sede = user_data["sede"]
-            usuario_local.centrocosto = user_data["centrocosto"]
-            usuario_local.nombre = user_data["nombre"]
-            usuario_local.viaticante = user_data["viaticante"]
-            usuario_local.baseviaticos = user_data["baseviaticos"]
-            # Sincronización de rol automática para perfiles de portal
-            if usuario_local.rol in ["usuario", "viaticante", "user"]:
-                usuario_local.rol = user_data["rol"]
-            
-            # REPARACIÓN AUTOMÁTICA: Si el hash es 'N/A' o inválido, lo corregimos JIT
-            await ServicioAuth.reparar_hash_invalido(db, usuario_local)
-            
-            await db.commit()
-        except Exception as e:
-            print(f"DEBUG: Error sincronizando o reparando usuario local existente: {e}")
-            await db.rollback()
 
-    permisos = await ServicioAuth.obtener_permisos_por_rol(db, user_data["rol"])
-    if not permisos and (user_data["rol"] == "usuario" or user_data["rol"] == "user"):
-        permisos = ["service-portal"]
-
-    token_acceso = ServicioAuth.crear_token_acceso(
-        datos={"sub": user_data["cedula"], "rol": user_data["rol"]}
-    )
-
-    await ServicioAuth.registrar_sesion(
-        db=db,
-        usuario_id=usuario_local.id if usuario_local else user_data["id"],
-        token_jwt=token_acceso,
-        nombre_usuario=user_data["nombre"],
-        rol_usuario=user_data["rol"],
-        direccion_ip=request.client.host if request.client else None,
-        agente_usuario=request.headers.get("user-agent"),
-    )
-
-    return {
-        "access_token": token_acceso,  # @audit-ok
-        "token_type": "bearer",
-        "user": {
-            "id": usuario_local.id if usuario_local else user_data["id"],
-            "cedula": user_data["cedula"],
-            "name": user_data["nombre"],
-            "role": user_data["rol"],
-            "email": usuario_local.correo if usuario_local else None,
-            "area": user_data["area"],
-            "cargo": user_data["cargo"],
-            "sede": user_data["sede"],
-            "centrocosto": user_data["centrocosto"],
-            "viaticante": user_data["viaticante"],
-            "baseviaticos": user_data["baseviaticos"],
-            "email_needs_update": not usuario_local.correo_actualizado if usuario_local else True,
-            "correo_verificado": usuario_local.correo_verificado if usuario_local else False,
-            "password_set": ServicioAuth.es_password_configurado(usuario_local.hash_contrasena) if usuario_local else False,
-            "permissions": permisos,
-        },
-    }
-
-
-@router.post("/portal-init")
-async def portal_init(
-    db: AsyncSession = Depends(obtener_db),
-    db_erp=Depends(obtener_erp_db_opcional),
-    token: str = Depends(ServicioAuth.oauth2_scheme),  # Usamos el esquema del servicio
-):
-    """Endpoint para inicializar físicamente un usuario del portal en la DB local."""
-    cedula = ServicioAuth.obtener_cedula_desde_token(token)
-    if not cedula:
-        raise HTTPException(status_code=401, detail="Token inválido o expirado")
-
-    usuario_local = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
-    if usuario_local:
-        return {"status": "already_exists", "user_id": usuario_local.id}
-
-    if not db_erp:
+        nuevo_usuario = await ServicioAuth.crear_usuario_portal_desde_erp(
+            db, db_erp, datos.cedula, datos.contrasena
+        )
+        return {"message": "Usuario creado y contraseña configurada exitosamente", "cedula": nuevo_usuario.cedula}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"ERROR CRITICO en setup-password API: {str(e)}")
         raise HTTPException(
-            status_code=503, detail="Servicio ERP no disponible para inicialización"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor",
         )
 
-    from app.services.erp.empleados_service import EmpleadosService
 
-    empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula)
-
-    if not empleado:
-        raise HTTPException(status_code=404, detail="Empleado no encontrado en el ERP")
-
-    id_usuario = f"USR-P-{cedula}"
-    hash_temporal = ServicioAuth.obtener_hash_contrasena(cedula)
-    is_viaticante = bool(empleado.get("viaticante"))
-    try:
-        from app.models.auth.usuario import Usuario
-
-        nuevo_usuario = Usuario(
-            id=id_usuario,
-            cedula=cedula,
-            nombre=empleado["nombre"],
-            hash_contrasena=hash_temporal,
-            rol="viaticante" if is_viaticante else "usuario",
-            esta_activo=True,
-            area=empleado.get("area"),
-            cargo=empleado.get("cargo"),
-            sede=empleado.get("ciudadcontratacion"),
-            centrocosto=empleado.get("centrocosto"),
-            viaticante=bool(empleado.get("viaticante")),
-            baseviaticos=empleado.get("baseviaticos"),
-        )
-        db.add(nuevo_usuario)
-        await db.commit()
-        await db.refresh(nuevo_usuario)
-        return {
-            "status": "created",
-            "user_id": nuevo_usuario.id,
-            "message": "Usuario inicializado",
-        }
-    except Exception:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail="Error al crear el registro local")
+@router.get("/password-status/{cedula}")
+async def password_status(
+    cedula: str,
+    db: AsyncSession = Depends(obtener_db),
+):
+    """Verifica si un usuario tiene la contraseña configurada."""
+    usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+    if not usuario:
+        return {"configurado": False, "existe": False}
+    configurado = ServicioAuth.es_password_configurado(usuario.hash_contrasena, usuario.cedula)
+    return {"configurado": configurado, "existe": True}
 
 
 @router.post("/logout")

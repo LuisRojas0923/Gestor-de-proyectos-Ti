@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, LogIn, ArrowRight, User as UserIcon, UserPlus } from 'lucide-react';
+import { Lock, LogIn, User as UserIcon, UserPlus } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { Input, Button, Title, Text, MaterialCard } from '../components/atoms';
+import { PasswordSetupModal } from '../components/molecules';
 import imgUserLogin from '../assets/images/categories/Usuario Inicio Sesion.png';
-import imgAdminLogin from '../assets/images/categories/icons8-usuario-administrador-96.png';
 import ForgotPasswordModal from './Login/ForgotPasswordModal';
 import RegisterSidebar from './Login/RegisterSidebar';
 
@@ -14,12 +14,8 @@ const Login: React.FC = () => {
     const { darkMode } = state;
     const navigate = useNavigate();
 
-    // 'portal' = Login de usuario final (solo cédula)
-    // 'admin' = Login de analista (usuario + contraseña)
-    const [loginMode, setLoginMode] = useState<'portal' | 'admin'>('portal');
-
     const [formData, setFormData] = useState({
-        username: '', // Cédula o usuario
+        username: '',
         password: ''
     });
 
@@ -27,96 +23,43 @@ const Login: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
     const [isRegisterSidebarOpen, setIsRegisterSidebarOpen] = useState(false);
+    const [setupCedula, setSetupCedula] = useState<string | null>(null);
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
         setError(null);
     };
 
-    const handlePortalLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (formData.username.length < 5) {
-            setError("Identificación inválida");
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            // Autenticación en el backend para obtener token JWT y datos de usuario
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_PORTAL_LOGIN}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username: formData.username }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Error de autenticación');
-            }
-
-            const data = await response.json();
-
-            // Normalización de datos del usuario
-            const userData = {
-                ...data.user,
-                id: data.user.id || data.user.cedula,
-                cedula: data.user.cedula || data.user.id,
-                name: data.user.nombre || data.user.name || '',
-                role: (data.user.rol || data.user.role || 'usuario').toLowerCase(),
-                emailNeedsUpdate: !!data.user.email_needs_update,
-                emailVerified: !!data.user.correo_verificado,
-                passwordSet: data.user.password_set !== undefined ? !!data.user.password_set : true
-            };
-
-            // Guardar token para futuras peticiones
-            localStorage.setItem('token', data.access_token);
-
-            // Guardar en contexto global
-            dispatch({ type: 'LOGIN', payload: userData });
-            navigate('/service-portal/inicio');
-
-        } catch (err: any) {
-            console.error('Portal login error:', err);
-            setError(err.message || "Error al conectar con el servidor.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleAdminLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const performLogin = async (username: string, password: string) => {
         setIsLoading(true);
         setError(null);
 
         try {
             const params = new URLSearchParams();
-            params.append('username', formData.username);
-            params.append('password', formData.password);
+            params.append('username', username);
+            params.append('password', password);
 
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_LOGIN}`, { // [CONTROLADO]
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_LOGIN}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: params,
             });
 
             if (!response.ok) {
-                throw new Error('Credenciales inválidas');
+                const errorData = await response.json();
+                if (response.status === 400 && errorData.detail === "Contraseña no configurada") {
+                    setSetupCedula(username);
+                    return;
+                }
+                throw new Error(errorData.detail || 'Credenciales inválidas');
             }
 
             const data = await response.json();
 
             localStorage.setItem('token', data.access_token);
 
-            // Asegurar que el objeto de usuario tenga todos los campos necesarios
             const userData = {
                 ...data.user,
-                // Si el backend devuelve 'cedula' pero no 'id', o viceversa, lo unificamos
                 id: data.user.id || data.user.cedula,
                 cedula: data.user.cedula || data.user.id,
                 emailNeedsUpdate: !!data.user.email_needs_update,
@@ -126,9 +69,8 @@ const Login: React.FC = () => {
 
             dispatch({ type: 'LOGIN', payload: userData });
 
-            // Redirección dinámica basada en permisos (RBAC)
             const permissions = userData.permissions || [];
-            const isAdminPath = permissions.some((p: string) => 
+            const isAdminPath = permissions.some((p: string) =>
                 ['dashboard', 'control-tower', 'admin_usuarios', 'admin_roles', 'panel_maestro'].includes(p)
             );
 
@@ -137,72 +79,69 @@ const Login: React.FC = () => {
             } else {
                 navigate('/service-portal/inicio');
             }
-        } catch (err) {
-            setError('Usuario o contraseña incorrectos');
+        } catch (err: any) {
+            setError(err.message || 'Usuario o contraseña incorrectos');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const toggleMode = () => {
-        setLoginMode(prev => prev === 'portal' ? 'admin' : 'portal');
-        setFormData({ username: '', password: '' });
-        setError(null);
+    const handleLogin = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (formData.username.length < 5) {
+            setError("Identificación inválida");
+            return;
+        }
+        performLogin(formData.username, formData.password);
     };
 
-    // Estilos basados en LoginView.tsx para modo portal, pero adaptados para soportar ambos
-    // Usaremos un diseño unificado visualmente atractivo
+    const handleSetupComplete = async (contrasena: string) => {
+        setSetupCedula(null);
+        await performLogin(formData.username, contrasena);
+    };
+
+    const handleSetupCancel = () => {
+        setSetupCedula(null);
+        setError("Configura tu contraseña para poder acceder.");
+    };
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Imagen de Fondo con Overlay */}
             <div className="absolute inset-0 bg-main-wallpaper transition-transform duration-1000 scale-105" />
             <div className={`absolute inset-0 transition-colors duration-500 
-                ${loginMode === 'portal'
-                    ? 'bg-black/40 backdrop-blur-[2px]'
-                    : (darkMode ? 'bg-black/60 backdrop-blur-[3px]' : 'bg-white/30 backdrop-blur-[2px]')
-                }`}
-            />
+                ${darkMode ? 'bg-black/60 backdrop-blur-[3px]' : 'bg-white/30 backdrop-blur-[2px]'}
+            `} />
 
             <MaterialCard
                 elevation={5}
                 className="w-full max-w-md p-8 transform transition-all !rounded-[2.5rem]"
             >
 
-                {/* Header */}
                 <div className="text-center mb-10">
-                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 
-                        ${loginMode === 'portal'
-                            ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-                            : 'bg-blue-600/10 text-blue-600 shadow-xl shadow-blue-500/10' // Cambié bg admin para que se vea la img si es transparente, o dejar blanco. 
-                        // Si las imagenes tienen fondo transparente, un bg suave queda bien.
-                        }`}>
+                    <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                         <img
-                            src={loginMode === 'portal' ? imgUserLogin : imgAdminLogin}
-                            alt={loginMode === 'portal' ? "Login Usuario" : "Login Admin"}
+                            src={imgUserLogin}
+                            alt="Inicio de sesión"
                             className="w-12 h-12 object-contain"
                         />
                     </div>
 
-                    <Title variant="h4" weight="bold" color={loginMode === 'portal' || !darkMode ? 'text-primary' : 'text-primary'}>
-                        {loginMode === 'portal' ? 'Portal de Servicios' : 'Gestión Administrativa'}
+                    <Title variant="h4" weight="bold" color="text-primary">
+                        Portal de Servicios
                     </Title>
 
-                    <Text variant="body1" className={`mt-2 ${loginMode === 'portal' ? 'text-[var(--color-text-secondary)]' : 'text-gray-500'}`} weight="medium">
-                        {loginMode === 'portal'
-                            ? 'Ingrese su identificación para continuar'
-                            : 'Ingrese sus credenciales de administrador'}
+                    <Text variant="body1" className="mt-2 text-[var(--color-text-secondary)]" weight="medium">
+                        Ingrese sus credenciales para continuar
                     </Text>
                 </div>
 
-                {/* Form */}
-                <form onSubmit={loginMode === 'portal' ? handlePortalLogin : handleAdminLogin} className="space-y-6">
+                <form onSubmit={handleLogin} className="space-y-6">
 
                     <Input
-                        type="text" // Cambiado a text para soportar IDs arbitrarios
+                        type="text"
                         name="username"
-                        label={loginMode === 'portal' ? 'Número de Identificación' : 'Usuario'}
-                        placeholder={loginMode === 'portal' ? 'Ej: 123456789' : 'usuario.admin'}
+                        label="Número de Identificación"
+                        placeholder="Ej: 123456789"
                         value={formData.username}
                         onChange={(e) => handleInputChange('username', e.target.value)}
                         icon={UserIcon}
@@ -210,40 +149,32 @@ const Login: React.FC = () => {
                         size="lg"
                     />
 
-                    {loginMode === 'admin' && (
-                        <Input
-                            type="password"
-                            name="password"
-                            label="Contraseña"
-                            placeholder="••••••••"
-                            value={formData.password}
-                            onChange={(e) => handleInputChange('password', e.target.value)}
-                            icon={Lock}
-                            required
-                            size="lg"
-                        />
-                    )}
+                    <Input
+                        type="password"
+                        name="password"
+                        label="Contraseña"
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        icon={Lock}
+                        required
+                        size="lg"
+                    />
 
-                    {loginMode === 'admin' && (
-                        <div className="flex justify-end !mt-2">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setIsRecoveryModalOpen(true)}
-                                className="text-xs font-semibold text-blue-600 dark:text-blue-400 p-0 h-auto hover:bg-transparent"
-                            >
-                                ¿Olvidaste tu contraseña?
-                            </Button>
-                        </div>
-                    )}
+                    <div className="flex justify-end !mt-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsRecoveryModalOpen(true)}
+                            className="text-xs font-semibold text-[var(--color-primary)] hover:opacity-80 p-0 h-auto hover:bg-transparent"
+                        >
+                            ¿Olvidaste tu contraseña?
+                        </Button>
+                    </div>
 
                     {error && (
-                        <div className={`p-4 rounded-xl text-sm font-bold flex items-center space-x-2
-                            ${loginMode === 'portal'
-                                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 border border-red-100'
-                                : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                            }`}>
+                        <div className="p-4 rounded-xl text-sm font-bold flex items-center space-x-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800">
                             <Text color="inherit" weight="bold">{error}</Text>
                         </div>
                     )}
@@ -254,32 +185,20 @@ const Login: React.FC = () => {
                         size="lg"
                         className="w-full"
                         loading={isLoading}
-                        icon={loginMode === 'portal' ? ArrowRight : LogIn}
+                        icon={LogIn}
                     >
-                        {loginMode === 'portal' ? 'Acceder al Portal' : 'Iniciar Sesión'}
+                        Iniciar Sesión
                     </Button>
                 </form>
 
-                {/* Switch Mode Link */}
                 <div className="mt-8 text-center border-t border-gray-100 dark:border-neutral-800 pt-6">
-                    {loginMode === 'portal' && (
-                        <Button
-                            variant="ghost"
-                            onClick={() => setIsRegisterSidebarOpen(true)}
-                            className="text-sm font-medium text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 mb-3"
-                            icon={UserPlus}
-                        >
-                            ¿No tienes cuenta? Regístrate aquí
-                        </Button>
-                    )}
                     <Button
                         variant="ghost"
-                        onClick={toggleMode}
-                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                        onClick={() => setIsRegisterSidebarOpen(true)}
+                        className="text-sm font-medium text-[var(--color-primary)] hover:opacity-80 mb-3"
+                        icon={UserPlus}
                     >
-                        {loginMode === 'portal'
-                            ? '¿Eres administrador? Ingresa aquí'
-                            : '¿Eres usuario? Ir al Portal de Servicios'}
+                        ¿No tienes cuenta? Regístrate aquí
                     </Button>
                 </div>
 
@@ -294,6 +213,14 @@ const Login: React.FC = () => {
                 isOpen={isRegisterSidebarOpen}
                 onClose={() => setIsRegisterSidebarOpen(false)}
             />
+
+            {setupCedula && (
+                <PasswordSetupModal
+                    cedula={setupCedula}
+                    onComplete={handleSetupComplete}
+                    onCancel={handleSetupCancel}
+                />
+            )}
         </div>
     );
 };

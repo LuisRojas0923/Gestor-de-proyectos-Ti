@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
+import { useIsAdmin } from '../../hooks/useIsAdmin';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -20,7 +21,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
 
     // Normalizar rol del usuario de forma segura
     const userRole = (user.role || '').trim().toLowerCase();
-    const isAdminRole = ['analyst', 'admin', 'director', 'admin_sistemas', 'admin_mejoramiento'].includes(userRole);
+    const isAdminRole = useIsAdmin();
 
     // 1. Validación por módulo (RBAC Dinámico)
     // El Dashboard administrativo y la Torre de Control están permitidos para roles administrativos.

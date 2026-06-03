@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Power, ShieldCheck } from 'lucide-react';
 import { Title, MaterialCard, Button, Text } from '../components/atoms';
@@ -10,9 +10,10 @@ import NotificationSection from './Settings/components/NotificationSection';
 import SecuritySection from './Settings/components/SecuritySection';
 import AdminSection from './Settings/components/AdminSection';
 import ApiTokenSection from './Settings/components/ApiTokenSection';
-import AdminLoginLock from './Settings/components/AdminLoginLock';
+import AdminLoginLock from '../components/molecules/AdminLoginLock';
 import ModuleMasterPanel from './Settings/components/ModuleMasterPanel';
 
+import { useIsAdmin } from '../hooks/useIsAdmin';
 import { useProfileSettings } from './Settings/hooks/useProfileSettings';
 import { useSecuritySettings } from './Settings/hooks/useSecuritySettings';
 import { useApiTokenSettings } from './Settings/hooks/useApiTokenSettings';
@@ -20,6 +21,7 @@ import { useApiTokenSettings } from './Settings/hooks/useApiTokenSettings';
 const Settings: React.FC = () => {
   const { addNotification } = useNotifications();
   const { t, i18n } = useTranslation();
+  const isAdmin = useIsAdmin();
   const { 
     profile, setProfile, handleProfileUpdate, 
     handleEmailUpdate, isUpdatingEmail,
@@ -58,6 +60,10 @@ const Settings: React.FC = () => {
     setIsPanelUnlocked(true);
     setShowAdminLock(false);
   };
+
+  const handleCloseAdminLock = useCallback(() => {
+    setShowAdminLock(false);
+  }, []);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -99,14 +105,14 @@ const Settings: React.FC = () => {
         isChangingPassword={isChangingPassword} handleChangePassword={handleChangePassword}
       />
 
-      {user?.role === 'admin' && (
+      {isAdmin && (
         <AdminSection
           analystCedula={analystCedula} setAnalystCedula={setAnalystCedula}
           isCreatingAnalyst={isCreatingAnalyst} handleCreateAnalyst={handleCreateAnalyst}
         />
       )}
 
-      {user?.role === 'admin' && (
+      {isAdmin && (
         <MaterialCard className="p-6 border-2 border-red-500/10 bg-red-50/5">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-4">
@@ -142,7 +148,7 @@ const Settings: React.FC = () => {
       <AdminLoginLock
         isOpen={showAdminLock}
         onUnlock={handleUnlockAdmin}
-        onClose={() => setShowAdminLock(false)}
+        onClose={handleCloseAdminLock}
       />
 
       <ApiTokenSection

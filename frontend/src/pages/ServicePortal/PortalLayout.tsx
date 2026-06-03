@@ -1,13 +1,15 @@
-import { LogOut, ArrowLeft } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button, Text, Title } from '../../components/atoms';
 import ThemeToggle from '../../components/atoms/ThemeToggle';
 import LogoSolidSolutions from '../../components/molecules/LogoSolidSolutions';
+import AdminLoginLock from '../../components/molecules/AdminLoginLock';
 import imgLogoRefridcol from '../../assets/images/Logo Refridcol Solo.png';
 import imgSolidLogo from '../../assets/images/categories/Logo SOLID-ERP.png';
 import { UpdateEmailBanner } from '../../components/layout/UpdateEmailBanner';
 import EmailUpdateModal from './components/EmailUpdateModal';
+import { useIsAdmin } from '../../hooks/useIsAdmin';
 
 interface PortalLayoutProps {
     children: React.ReactNode;
@@ -19,25 +21,43 @@ interface PortalLayoutProps {
 const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onLogout }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [fromAdmin, setFromAdmin] = useState(false);
+    const isAdmin = useIsAdmin();
+    const [fromAdmin, setFromAdmin] = useState<boolean>(
+        () => sessionStorage.getItem('fromAdmin') === 'true'
+    );
+    const [isAdminLockOpen, setIsAdminLockOpen] = useState(false);
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
 
     const isInventario = location.pathname.includes('/inventario');
 
     useEffect(() => {
-        // Detectar si venimos del panel administrativo en esta sesión
-        const isFromAdmin = sessionStorage.getItem('fromAdmin') === 'true';
-        setFromAdmin(isFromAdmin);
-    }, []);
-
-    useEffect(() => {
-        // Lanzar el modal automáticamente si el correo requiere actualización
         if (user?.emailNeedsUpdate) {
             setIsEmailModalOpen(true);
         }
     }, [user?.emailNeedsUpdate]);
 
-    const isAdmin = ['analyst', 'admin', 'director', 'manager', 'admin_sistemas', 'admin_mejoramiento'].includes(user?.role?.toLowerCase());
+    useEffect(() => {
+        return () => {
+            sessionStorage.removeItem('fromAdmin');
+        };
+    }, []);
+
+    const handleLogoClick = useCallback(() => {
+        if (fromAdmin) {
+            sessionStorage.removeItem('fromAdmin');
+            setFromAdmin(false);
+            navigate('/');
+            return;
+        }
+        setIsAdminLockOpen(true);
+    }, [fromAdmin, navigate]);
+
+    const handleAdminUnlock = useCallback((_password: string) => {
+        sessionStorage.setItem('fromAdmin', 'true');
+        setFromAdmin(true);
+        setIsAdminLockOpen(false);
+        navigate('/');
+    }, [navigate]);
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--color-background)] font-sans text-[var(--color-text-primary)] transition-colors duration-300">
@@ -48,16 +68,28 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
                     <div className="w-full px-4 sm:px-10 h-full flex items-center justify-between text-white relative py-0">
                         {/* 1. SECCIÓN IZQUIERDA (Navegación y Barras) */}
                         <div className="flex items-center justify-start shrink-0 h-full py-2 gap-3">
-                            {fromAdmin && isAdmin && (
+                            {isAdmin ? (
                                 <Button
                                     variant="ghost"
-                                    onClick={() => navigate('/')}
-                                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all shadow-lg backdrop-blur-md group animate-in slide-in-from-left-4 duration-500 scale-90 sm:scale-100"
-                                    icon={ArrowLeft}
-                                />
+                                    onClick={handleLogoClick}
+                                    aria-label={
+                                        fromAdmin
+                                            ? 'Volver al panel de administración'
+                                            : 'Verificar identidad para acceder al panel de administración'
+                                    }
+                                    title="Panel de Administración"
+                                    className="flex items-center gap-2 px-3 py-2 min-h-12 min-w-12"
+                                >
+                                    <LogoSolidSolutions size="large" variant="icon" fixedColors />
+                                </Button>
+                            ) : (
+                                <div
+                                    aria-hidden="true"
+                                    className="flex items-center gap-2 px-3 py-2 min-h-12 min-w-12"
+                                >
+                                    <LogoSolidSolutions size="large" variant="icon" fixedColors />
+                                </div>
                             )}
-
-                            <LogoSolidSolutions size="large" variant="icon" fixedColors />
                         </div>
 
                         {/* 2. SECCIÓN CENTRAL (PORTAL RDX + Logo Refridcol) */}
@@ -124,6 +156,11 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
             <EmailUpdateModal
                 isOpen={isEmailModalOpen}
                 onClose={() => setIsEmailModalOpen(false)}
+            />
+            <AdminLoginLock
+                isOpen={isAdminLockOpen}
+                onClose={() => setIsAdminLockOpen(false)}
+                onUnlock={handleAdminUnlock}
             />
             <main className="flex-1 w-full max-w-[var(--portal-max-width)] mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
                 {children}

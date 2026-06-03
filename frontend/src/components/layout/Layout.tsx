@@ -39,8 +39,9 @@ const Layout: React.FC = () => {
     // Latido inicial
     sendHeartbeat();
 
-    // Marcar que venimos del panel administrativo para navegación contextual
-    sessionStorage.setItem('fromAdmin', 'true');
+    // NOTA: La marca 'fromAdmin' ahora se establece únicamente cuando el usuario
+    // pasa exitosamente por AdminLoginLock (vía PortalLayout). Eliminado el
+    // setter legacy de 2026-06-02 (plan v2.1 N4 docs-tests).
 
     // Intervalo de 1.5 minutos
     const interval = setInterval(sendHeartbeat, 90000);
