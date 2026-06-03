@@ -3,9 +3,12 @@ from fastapi.security import OAuth2PasswordRequestForm  # @audit-ok
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.services.auth.servicio import ServicioAuth
-from app.models.auth.usuario import LoginRequest, RecoveryRequest, PasswordReset, UsuarioRegistro
+from app.models.auth.usuario import (
+    LoginRequest, RecoveryRequest, PasswordReset, UsuarioRegistro, Usuario,
+)
 from app.services.notifications.email_service import EmailService
 from app.core.rate_limiter import limiter
+from app.config import config
 
 router = APIRouter()
 
@@ -22,6 +25,47 @@ async def login(
         usuario = await ServicioAuth.obtener_usuario_por_cedula(db, form_data.username)
 
         if not usuario:
+            jit_creado = False
+            if db_erp:
+                try:
+                    from app.services.erp.empleados_service import EmpleadosService
+                    empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, form_data.username)
+                except HTTPException:
+                    raise
+                except Exception:
+                    empleado = None
+                if empleado:
+                    hash_pendiente = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
+                    id_usuario = f"USR-P-{form_data.username}"
+                    viaticante_val = bool(empleado.get("viaticante"))
+                    nuevo_usuario = Usuario(
+                        id=id_usuario,
+                        cedula=form_data.username,
+                        nombre=empleado["nombre"],
+                        hash_contrasena=hash_pendiente,
+                        rol="viaticante" if viaticante_val else "usuario",
+                        esta_activo=True,
+                        area=empleado.get("area"),
+                        cargo=empleado.get("cargo"),
+                        sede=empleado.get("ciudadcontratacion"),
+                        centrocosto=empleado.get("centrocosto"),
+                        viaticante=viaticante_val,
+                        baseviaticos=empleado.get("baseviaticos"),
+                        correo=empleado.get("correocorporativo", "").strip()
+                        if empleado.get("correocorporativo")
+                        else None,
+                        correo_actualizado=bool(empleado.get("correocorporativo")),
+                        correo_verificado=False,
+                    )
+                    db.add(nuevo_usuario)
+                    await db.commit()
+                    jit_creado = True
+            if jit_creado:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Contraseña no configurada",
+                    headers={"X-Password-Not-Set": "true"},
+                )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas",
