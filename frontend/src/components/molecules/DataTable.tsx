@@ -204,7 +204,7 @@ export function DataTable<T>({
         : false;
 
     return (
-        <div className={`relative flex flex-col overflow-x-auto overflow-y-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}>
+        <div className={`relative flex flex-col overflow-x-auto overflow-y-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}>
 
             {/* Filter Dropdown */}
             {activeFilter && anchorRect && (
@@ -259,7 +259,7 @@ export function DataTable<T>({
                      */}
                     <div
                         ref={headerGridRef}
-                        className={`shrink-0 bg-[var(--deep-navy)] rounded-t-2xl border-b border-[var(--deep-navy)] overflow-hidden z-20 ${headerClassName}`}
+                        className={`shrink-0 bg-[var(--deep-navy)] border-b border-[var(--deep-navy)] overflow-hidden z-20 ${headerClassName}`}
                     >
                         {columns.map((col) => (
                             <Button
