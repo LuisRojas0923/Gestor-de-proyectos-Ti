@@ -269,12 +269,19 @@ if "tool=whoami status=ok" in stderr:
 # 4. listar_desarrollos
 if "tool=listar_desarrollos status=ok" in stderr:
     checks.append("listar_desarrollos: retorno 200 OK del backend")
-# 5. obtener_desarrollo (404 es valido — el ID no existe pero el endpoint respondio)
-if "tool=obtener_desarrollo" in stderr and "404" in stderr.split("tool=obtener_desarrollo")[1][:300]:
-    checks.append("obtener_desarrollo: backend respondio (404 esperado)")
-# 6. listar_actividades sin args — validacion correcta via stderr
-if "tool=listar_actividades status=error" in stderr and "desarrollo_id" in stderr:
-    checks.append("listar_actividades sin args: rechazado por validacion")
+# 5. obtener_desarrollo (ID inexistente — backend debe responder 404, MCP lo envuelve en text)
+id5_resp = parsed_ids.get(5, ("", "", ""))[2]
+if "id=5" in str(parsed_ids) and ("404" in id5_resp or "Not Found" in id5_resp):
+    checks.append("obtener_desarrollo: backend respondio 404 (ID no existe)")
+# Tambien esperamos ver "status=error" en stderr porque r.raise_for_status() lanzo HTTPStatusError
+elif "tool=obtener_desarrollo status=error" in stderr:
+    checks.append("obtener_desarrollo: mcp_server loggeo status=error por 4xx")
+# 6. listar_actividades sin args — validacion por el MCP library (schema validation)
+# Nuestro handler NO se llama, asi que no hay log de "tool=listar_actividades status=error".
+# La validacion se refleja en el stdout como contenido con isError=true.
+id6_resp = parsed_ids.get(6, ("", "", ""))[2]
+if "id=6" in str(parsed_ids) and "desarrollo_id" in id6_resp and "isError" in id6_resp:
+    checks.append("listar_actividades sin args: rechazado por MCP schema validation")
 
 for c in checks:
     print(f"  + {c}")
