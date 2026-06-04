@@ -264,8 +264,34 @@ async def actualizar_desarrollo(
             raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
 
         update_data = desarrollo.model_dump(exclude_unset=True)
+        estado_previo = db_desarrollo.estado_general
+        nuevo_estado = update_data.get("estado_general")
+
         for key, value in update_data.items():
             setattr(db_desarrollo, key, value)
+
+        # Lógica de cascada para Pausa / Reanudación
+        if nuevo_estado and nuevo_estado != estado_previo:
+            if nuevo_estado == "Pausado":
+                # Pausar todas las actividades "Pendiente"
+                query_act = select(Actividad).where(
+                    Actividad.desarrollo_id == desarrollo_id,
+                    Actividad.estado == "Pendiente"
+                )
+                result_act = await db.execute(query_act)
+                for actividad in result_act.scalars().all():
+                    actividad.estado = "Pausa"
+                    db.add(actividad)
+            elif nuevo_estado in ("En curso", "En Proceso") and estado_previo == "Pausado":
+                # Reanudar todas las actividades "Pausa" a "Pendiente"
+                query_act = select(Actividad).where(
+                    Actividad.desarrollo_id == desarrollo_id,
+                    Actividad.estado == "Pausa"
+                )
+                result_act = await db.execute(query_act)
+                for actividad in result_act.scalars().all():
+                    actividad.estado = "Pendiente"
+                    db.add(actividad)
 
         await db.commit()
         await db.refresh(db_desarrollo)

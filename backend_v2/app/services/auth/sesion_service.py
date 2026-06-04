@@ -21,15 +21,30 @@ async def registrar_sesion(
     rol_usuario: Optional[str] = None,
     direccion_ip: Optional[str] = None,
     agente_usuario: Optional[str] = None,
+    tipo_sesion: str = "web",
+    jti: Optional[str] = None,
+    scope: Optional[str] = None,
+    tiempo_expiracion: Optional[timedelta] = None,
 ) -> None:
-    """Registra una nueva sesión en la base de datos."""
+    """Registra una nueva sesión en la base de datos.
+
+    Acepta `tipo_sesion` ('web' | 'mcp'), `jti` (UUID del JWT) y `scope`
+    para soportar tokens MCP de larga duracion (ver docs/PLAN_SERVIDOR_MCP.md).
+    `tiempo_expiracion` permite sobreescribir el default de
+    `jwt_token_expire_minutes` cuando se registran tokens con vigencia
+    personalizada (MCP: 30/90 dias).
+    """
     from app.database import AsyncSessionLocal
     from app.models.auth.usuario import Sesion
 
     try:
         async with AsyncSessionLocal() as session:
             ahora = get_bogota_now()
-            expira = ahora + timedelta(minutes=config.jwt_token_expire_minutes)
+            expira = ahora + (
+                tiempo_expiracion
+                if tiempo_expiracion
+                else timedelta(minutes=config.jwt_token_expire_minutes)
+            )
 
             nueva_sesion = Sesion(
                 usuario_id=usuario_id,
@@ -39,6 +54,9 @@ async def registrar_sesion(
                 direccion_ip=direccion_ip,
                 agente_usuario=agente_usuario,
                 expira_en=expira,
+                tipo_sesion=tipo_sesion,
+                jti=jti,
+                scope=scope,
             )
             session.add(nueva_sesion)
             await session.commit()

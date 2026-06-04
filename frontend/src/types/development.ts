@@ -60,6 +60,7 @@ export interface Development {
   portal_link?: string;
   area_desarrollo?: string;
   analista?: string;
+  prioridad?: string;
 
   // Sistema de fases y etapas
   current_phase_id?: number;
@@ -131,6 +132,7 @@ export interface DevelopmentCreate {
   authority?: string;
   area_desarrollo?: string;
   analista?: string;
+  prioridad?: string;
 }
 
 export interface DevelopmentUpdate {
@@ -149,6 +151,7 @@ export interface DevelopmentUpdate {
   responsible?: string;
   area_desarrollo?: string;
   analista?: string;
+  prioridad?: string;
 }
 
 export interface DevelopmentDate {

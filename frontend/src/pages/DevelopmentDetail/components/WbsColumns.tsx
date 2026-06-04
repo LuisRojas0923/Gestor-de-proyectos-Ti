@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Pencil, Copy, Trash2, CheckCircle2, XCircle, Play, CirclePause } from 'lucide-react';
+import { Download, Pencil, Copy, Trash2, CheckCircle2, XCircle, Play, CirclePause, Circle } from 'lucide-react';
 import { Text, Button, Badge, ProgressBar } from '../../../components/atoms';
 import { ValidationStatusBadge } from '../../../components/assignments/ValidationStatusBadge';
 import { DataTableColumn } from '../../../components/molecules/DataTable';
@@ -279,7 +279,7 @@ export const getWbsColumns = ({
                                     title="Pendiente"
                                     onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Pendiente'); setStateMenuId(null); setPopoverPos(null); }}
                                 >
-                                    <Play size={14} className="text-blue-600 dark:text-blue-400" />
+                                    <Circle size={14} className="text-slate-500 dark:text-slate-400" />
                                 </Button>
                                 <Button
                                     variant="ghost"
@@ -288,7 +288,7 @@ export const getWbsColumns = ({
                                     title="En Proceso"
                                     onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'En Proceso'); setStateMenuId(null); setPopoverPos(null); }}
                                 >
-                                    <CirclePause size={14} className="text-amber-600 dark:text-amber-400" />
+                                    <Play size={14} className="text-amber-600 dark:text-amber-400" />
                                 </Button>
                                 <Button
                                     variant="ghost"

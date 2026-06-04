@@ -147,6 +147,34 @@ Para evitar **dependencias circulares** que rompan el renderizado de React:
 2. Importa directamente desde el archivo base: `import { Text } from './Text';` en lugar de `import { Text } from './index';`.
 3. El archivo `index.ts` solo debe usarse para exportar, no para consumo interno de la misma carpeta.
 
+### 5.3 Patrón: Filtros en cascada con `useColumnFilters`
+
+`src/hooks/useColumnFilters.ts` devuelve por defecto opciones de dropdown en **cascada** (faceted search): para cada columna K, las opciones son los valores únicos de K en las filas que pasan todos los demás filtros activos, unidos con los valores ya seleccionados en K (para no perder chips).
+
+Cuándo usar cascada:
+- ✅ Listas con jerarquías reales (país→ciudad, equipo→miembro, área→responsable).
+- ✅ Tableros con muchos datos donde el usuario refina progresivamente.
+
+Cuándo **desactivarla** (pasar `cascade: false` como cuarto arg):
+- ❌ Filtros ortogonales (ej. rango de fechas + texto libre) donde la cascada confunde más que ayuda.
+- ❌ Vistas donde el universo de opciones es pequeño y siempre se quiere ver todo.
+
+Costos: por cada cambio de filtro, el hook itera `columnas × filas` para recalcular `cascadingOptions`. Para < 5000 filas es despreciable; sobre eso medir.
+
+Tests: ver `src/hooks/__tests__/useColumnFilters.cascade.test.ts` para los 7 escenarios de referencia.
+
+### 5.4 Patrón: Persistencia frontend-only en `localStorage`
+
+Para estado de UI que NO debe llegar al backend (marcas personales, vistas, etc.):
+
+1. Crear hook en `src/pages/<Modulo>/hooks/use<Name>.ts` (específico del módulo).
+2. Lazy init desde `localStorage.getItem(KEY)` con `try/catch` (storage puede estar deshabilitado, cuota llena, o contener JSON inválido).
+3. `useEffect` que serializa en cada cambio.
+4. Si el usuario puede tener la página abierta en varias pestañas, escuchar `window.addEventListener('storage', …)` para sincronizar.
+5. Tests con `@testing-library/react` `renderHook` + `act`, mockeando `localStorage` con `localStorage.clear()` en `beforeEach`.
+
+Ejemplo de referencia: `src/pages/MyDevelopments/hooks/useReviewedDevelopments.ts`.
+
 ---
 
 ## 6. Grafo del codebase (graphify)

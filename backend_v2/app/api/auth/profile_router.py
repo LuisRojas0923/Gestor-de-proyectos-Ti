@@ -1,11 +1,13 @@
 from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
-from app.models.auth.usuario import Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
+from app.models.auth.usuario import Sesion, Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
 from app.services.auth.servicio import ServicioAuth
 from app.services.erp import EmpleadosService
 from app.services.notifications.email_service import EmailService
+from app.utils_date import get_bogota_now
 
 router = APIRouter()
 
@@ -16,15 +18,52 @@ async def obtener_usuario_actual_db(
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db_opcional),
 ):
-    """Dependencia para obtener el objeto usuario completo del token y sincronizar si es necesario"""
+    """Dependencia para obtener el objeto usuario completo del token y sincronizar si es necesario.
+
+    Validacion adicional para tokens MCP (ver docs/PLAN_SERVIDOR_MCP.md seccion 4.5):
+    - Si token_type == 'mcp', se valida que la sesion correspondiente (por jti)
+      este activa (fin_sesion IS NULL, expira_en > now).
+    - Backwards compatible: tokens existentes sin token_type se tratan como 'session'.
+    """
     try:
-        cedula = ServicioAuth.obtener_cedula_desde_token(token)
-        if not cedula:
+        # Decodificar payload completo para detectar token_type='mcp'
+        payload = ServicioAuth.obtener_payload_token(token)
+        if not payload:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token invalido o expirado",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+        cedula = payload.get("sub")
+        if not cedula:
+            raise HTTPException(401, "Token sin sujeto")
+
+        # ── Validacion especifica para tokens MCP ──
+        if payload.get("token_type") == "mcp":
+            jti = payload.get("jti")
+            if not jti:
+                raise HTTPException(401, "Token MCP sin jti")
+            sesion = (
+                await db.execute(
+                    select(Sesion).where(
+                        Sesion.jti == jti,
+                        Sesion.tipo_sesion == "mcp",
+                    )
+                )
+            ).scalars().first()
+            if not sesion or sesion.fin_sesion is not None or sesion.expira_en < get_bogota_now().replace(tzinfo=None):
+                raise HTTPException(401, "Token MCP revocado o expirado")
+            # Throttle: actualizar ultima_actividad_en solo si > 5 min desde la ultima
+            ahora = get_bogota_now()
+            ultima = sesion.ultima_actividad_en.replace(tzinfo=None) if sesion.ultima_actividad_en else None
+            if not ultima or (ahora - ultima).total_seconds() > 300:
+                sesion.ultima_actividad_en = ahora
+                try:
+                    await db.commit()
+                except Exception:
+                    await db.rollback()
+
         usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
 
         if not usuario:
@@ -61,6 +100,7 @@ async def obtener_usuario_actual_db(
                 baseviaticos=empleado.get("baseviaticos"),
             )
             request.state.usuario_id = usuario.id
+            request.state.token_type = payload.get("token_type", "session")
             return usuario
 
         # Si el usuario es local y no tiene area/sede pero hay ERP disponible, sincronizar:
@@ -73,6 +113,7 @@ async def obtener_usuario_actual_db(
                 print(f"DEBUG: ERP no disponible o fallo en sincronizacion local: {e}")
 
         request.state.usuario_id = usuario.id
+        request.state.token_type = payload.get("token_type", "session")
         return usuario
     except HTTPException:
         raise

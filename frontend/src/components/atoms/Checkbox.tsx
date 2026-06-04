@@ -8,6 +8,8 @@ interface CheckboxProps {
     disabled?: boolean;
     className?: string;
     id?: string;
+    'aria-label'?: string;
+    'aria-labelledby'?: string;
 }
 
 const Checkbox: React.FC<CheckboxProps> = ({
@@ -16,7 +18,9 @@ const Checkbox: React.FC<CheckboxProps> = ({
     onChange,
     disabled = false,
     className = '',
-    id
+    id,
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledBy,
 }) => {
     return (
         <Text as="label" className={`flex items-center cursor-pointer select-none group ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}>
@@ -27,6 +31,8 @@ const Checkbox: React.FC<CheckboxProps> = ({
                     checked={checked}
                     onChange={onChange}
                     disabled={disabled}
+                    aria-label={ariaLabel}
+                    aria-labelledby={ariaLabelledBy}
                     className="sr-only"
                 />
                 <div className={`

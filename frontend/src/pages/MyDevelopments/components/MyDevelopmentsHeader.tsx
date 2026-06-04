@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Activity, RotateCcw, Users, X, Plus } from 'lucide-react';
+import { ClipboardList, Activity, RotateCcw, Users, X, Plus, CheckCheck } from 'lucide-react';
 import { Button, Title, Text } from '../../../components/atoms';
 
 interface MyDevelopmentsHeaderProps {
@@ -14,6 +14,8 @@ interface MyDevelopmentsHeaderProps {
   onOpenCreateModal: () => void;
   selectedStatus: string | null;
   onStatusSelect: (status: string | null) => void;
+  reviewedCount: number;
+  clearReviewed: () => void;
 }
 
 const getStatusChipClass = (status: string, isSelected: boolean, hasActiveFilter: boolean) => {
@@ -45,6 +47,8 @@ export const MyDevelopmentsHeader: React.FC<MyDevelopmentsHeaderProps> = ({
   onOpenCreateModal,
   selectedStatus,
   onStatusSelect,
+  reviewedCount,
+  clearReviewed,
 }) => {
   const navigate = useNavigate();
 
@@ -97,6 +101,15 @@ export const MyDevelopmentsHeader: React.FC<MyDevelopmentsHeaderProps> = ({
             <Text as="span" variant="caption" color="inherit" className="flex items-center gap-1.5 !text-[10px] !font-bold uppercase tracking-tight">
               <RotateCcw size={11} />
               Limpiar {activeFilterCount} {activeFilterCount === 1 ? 'filtro' : 'filtros'}
+            </Text>
+          </Button>
+        )}
+        {reviewedCount > 0 && (
+          <Button variant="custom" size="xs" onClick={clearReviewed}
+            className="flex items-center bg-amber-50 dark:bg-amber-900/10 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-900/30 text-amber-700 dark:text-amber-400 hover:text-amber-800 transition-colors shadow-sm">
+            <Text as="span" variant="caption" color="inherit" className="flex items-center gap-1.5 !text-[10px] !font-bold uppercase tracking-tight">
+              <CheckCheck size={11} />
+              Borrar {reviewedCount} {reviewedCount === 1 ? 'check' : 'checks'}
             </Text>
           </Button>
         )}

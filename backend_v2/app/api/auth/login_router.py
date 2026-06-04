@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm  # @audit-ok
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.services.auth.servicio import ServicioAuth
@@ -377,3 +378,83 @@ async def registro_usuario_portal(
         raise HTTPException(
             status_code=500, detail="Error interno al registrar la cuenta"
         )
+
+
+# ────────────────────────────────────────────────────────────────────
+# Endpoints MCP (ver docs/PLAN_SERVIDOR_MCP.md seccion 4.4)
+# ────────────────────────────────────────────────────────────────────
+
+def _mcp_token_key_func(request) -> str:
+    """Key function para /auth/mcp-token: bucket por IP.
+    No usa _login_key_func porque ese parsea form-urlencoded y este
+    endpoint recibe JSON payload."""
+    return f"mcp_token:{get_remote_address(request)}"
+
+
+@router.post("/mcp-token")
+@limiter.limit("5/hour", key_func=_mcp_token_key_func)
+async def emitir_token_mcp(
+    request: Request,
+    payload: dict,
+    usuario_actual: Usuario = Depends(
+        __import__("app.api.auth.profile_router", fromlist=["obtener_usuario_actual_db"]).obtener_usuario_actual_db
+    ),
+    db: AsyncSession = Depends(obtener_db),
+):
+    """Emite un token MCP de larga duracion para el usuario autenticado.
+
+    ANTI-ORFANDAD: solo sesiones web (token_type='session') pueden emitir
+    tokens MCP. Un token MCP no puede generar otro token MCP.
+    """
+    # Anti-orfandad: validar tipo de credencial entrante
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        token_entrante = auth_header[7:]
+        payload_in = ServicioAuth.obtener_payload_token(token_entrante)
+        if payload_in and payload_in.get("token_type") == "mcp":
+            raise HTTPException(
+                status_code=403,
+                detail="Los tokens MCP no pueden emitir otros tokens MCP. "
+                       "Inicia sesion web para generar un token MCP nuevo.",
+            )
+
+    from app.services.auth.mcp_service import emitir_token_mcp as svc
+
+    return await svc(
+        db,
+        usuario_actual,
+        vigencia_dias=payload.get("vigencia_dias", 30),
+        scope=payload.get("scope", "read"),
+        motivo=enmascarar_pii(payload.get("motivo", "")),
+        direccion_ip=request.client.host if request.client else None,
+    )
+
+
+@router.get("/mcp-tokens")
+async def listar_mis_tokens_mcp(
+    usuario_actual: Usuario = Depends(
+        __import__("app.api.auth.profile_router", fromlist=["obtener_usuario_actual_db"]).obtener_usuario_actual_db
+    ),
+    db: AsyncSession = Depends(obtener_db),
+):
+    """Lista los tokens MCP activos del usuario autenticado."""
+    from app.services.auth.mcp_service import listar_tokens_mcp_activos
+
+    return {"tokens": await listar_tokens_mcp_activos(db, usuario_actual)}
+
+
+@router.delete("/mcp-tokens/{jti}")
+async def revocar_mi_token_mcp(
+    jti: str,
+    usuario_actual: Usuario = Depends(
+        __import__("app.api.auth.profile_router", fromlist=["obtener_usuario_actual_db"]).obtener_usuario_actual_db
+    ),
+    db: AsyncSession = Depends(obtener_db),
+):
+    """Revoca un token MCP propio por jti."""
+    from app.services.auth.mcp_service import revocar_token_mcp
+
+    ok = await revocar_token_mcp(db, usuario_actual, jti)
+    if not ok:
+        raise HTTPException(404, "Token no encontrado o no te pertenece")
+    return {"message": "Token revocado"}

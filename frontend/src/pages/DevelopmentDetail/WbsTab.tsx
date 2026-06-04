@@ -136,6 +136,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         const s = (estado || '').toLowerCase();
         if (s.includes('complet')) return 100;
         if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 50;
+        if (s.includes('pausa')) return 50; // Pausa preserva el peso parcial
         return 0;
     };
 

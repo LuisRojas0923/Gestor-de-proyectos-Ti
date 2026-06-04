@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS desarrollos (
     proveedor VARCHAR(100),
     responsable VARCHAR(255),
     estado_general VARCHAR(50) DEFAULT 'Pendiente',
+    prioridad VARCHAR(50),
     fase_actual_id INTEGER REFERENCES fases_desarrollo(id),
     etapa_actual_id INTEGER REFERENCES etapas_desarrollo(id),
     porcentaje_progreso DECIMAL(5, 2) DEFAULT 0,
