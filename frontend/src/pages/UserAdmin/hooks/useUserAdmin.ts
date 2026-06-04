@@ -166,7 +166,9 @@ export const useUserAdmin = () => {
         cascadingOptions,
         setColumnFilter,
         sortState,
-        setSort
+        setSort,
+        activeFilterCount,
+        clearAllFilters
     } = useColumnFilters(searchFilteredUsers, columnAccessors, 'user_admin_table');
 
 
@@ -179,6 +181,8 @@ export const useUserAdmin = () => {
         setColumnFilter,
         sortState,
         setSort,
+        activeFilterCount,
+        clearAllFilters,
         isLoading,
         searchTerm,
         setSearchTerm,
