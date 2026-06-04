@@ -17,6 +17,7 @@ interface Modulo {
     id: string;
     label: string;
     category: string;
+    descripcion?: string;
 }
 
 const CATEGORIES = {
@@ -63,7 +64,8 @@ const PermissionsMatrix: React.FC = () => {
                 const normalizedModulos = modulosData.map((m: any) => ({
                     id: m.id,
                     label: m.nombre,
-                    category: m.categoria
+                    category: m.categoria,
+                    descripcion: m.descripcion
                 }));
                 setDynamicModulos(normalizedModulos);
             }
@@ -198,6 +200,18 @@ const PermissionsMatrix: React.FC = () => {
             render: (row) => (
                 <Text weight="bold" variant="body2" className="text-gray-900 dark:text-gray-100">
                     {row.label}
+                </Text>
+            )
+        },
+        {
+            key: 'descripcion',
+            label: 'Descripción',
+            flex: true,
+            minWidth: '220px',
+            filterable: false,
+            render: (row) => (
+                <Text variant="caption" color="text-secondary" className="line-clamp-2 max-w-sm">
+                    {row.descripcion || 'Sin descripción disponible.'}
                 </Text>
             )
         },
