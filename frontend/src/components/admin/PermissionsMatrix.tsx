@@ -192,8 +192,8 @@ const PermissionsMatrix: React.FC = () => {
         {
             key: 'label',
             label: 'Nombre de Módulo',
-            flex: true,
-            minWidth: '220px',
+            minWidth: '160px',
+            maxWidth: '220px',
             filterable: true,
             render: (row) => (
                 <Text weight="bold" variant="body2" className="text-gray-900 dark:text-gray-100">
