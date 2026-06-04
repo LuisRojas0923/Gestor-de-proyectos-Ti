@@ -27,7 +27,7 @@ const CATEGORIES = {
 };
 
 const PermissionsMatrix: React.FC = () => {
-    const { get, post } = useApi<any>();
+    const { get, post } = useApi<unknown>();
     const { addNotification } = useNotifications();
     const { roles: dynamicRoles } = useUserAdmin();
     const [permisos, setPermisos] = useState<Permiso[]>([]);
@@ -51,7 +51,7 @@ const PermissionsMatrix: React.FC = () => {
         }
     }, [dynamicRoles, roles, selectedRoleId]);
 
-    const fetchInitialData = async () => {
+    const fetchInitialData = useCallback(async () => {
         setIsLoading(true);
         try {
             const [permisosData, modulosData] = await Promise.all([
@@ -59,9 +59,9 @@ const PermissionsMatrix: React.FC = () => {
                 get('/config/modulos')
             ]);
 
-            if (permisosData) setPermisos(permisosData);
+            if (permisosData) setPermisos(permisosData as Permiso[]);
             if (modulosData) {
-                const normalizedModulos = modulosData.map((m: any) => ({
+                const normalizedModulos = (modulosData as { id: string; nombre: string; categoria: string; descripcion?: string }[]).map((m) => ({
                     id: m.id,
                     label: m.nombre,
                     category: m.categoria,
@@ -74,11 +74,11 @@ const PermissionsMatrix: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [get, addNotification]);
 
     useEffect(() => {
         fetchInitialData();
-    }, []);
+    }, [fetchInitialData]);
 
     const togglePermiso = (rol: string, modulo: string) => {
         if (!isEditMode) return;
@@ -194,11 +194,11 @@ const PermissionsMatrix: React.FC = () => {
         {
             key: 'label',
             label: 'Nombre de Módulo',
-            minWidth: '160px',
-            maxWidth: '220px',
+            minWidth: '110px',
+            maxWidth: '140px',
             filterable: true,
             render: (row) => (
-                <Text weight="bold" variant="body2" className="text-gray-900 dark:text-gray-100">
+                <Text weight="bold" variant="body2" className="text-gray-900 dark:text-gray-100 truncate">
                     {row.label}
                 </Text>
             )
@@ -206,11 +206,11 @@ const PermissionsMatrix: React.FC = () => {
         {
             key: 'descripcion',
             label: 'Descripción',
-            flex: true,
-            minWidth: '220px',
+            minWidth: '90px',
+            maxWidth: '120px',
             filterable: false,
             render: (row) => (
-                <Text variant="caption" color="text-secondary" className="line-clamp-2 max-w-sm">
+                <Text variant="caption" color="text-secondary" className="line-clamp-2 max-w-[120px]">
                     {row.descripcion || 'Sin descripción disponible.'}
                 </Text>
             )
@@ -281,7 +281,7 @@ const PermissionsMatrix: React.FC = () => {
                             <Input
                                 placeholder="Buscar módulo..."
                                 value={searchTerm}
-                                onChange={(e: any) => setSearchTerm(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                                 icon={Search}
                                 className="!rounded-xl border-none shadow-sm ring-1 ring-[var(--color-border)]"
                             />
