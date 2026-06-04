@@ -25,6 +25,11 @@ import RoleManager from './components/RoleManager';
 const UserAdmin: React.FC = () => {
     const {
         filteredUsers,
+        columnFilters,
+        cascadingOptions,
+        setColumnFilter,
+        sortState,
+        setSort,
         isLoading,
         searchTerm,
         setSearchTerm,
@@ -117,6 +122,11 @@ const UserAdmin: React.FC = () => {
                             selectedUserId={selectedUser?.id}
                             onUserSelect={setSelectedUser}
                             isLoading={isLoading}
+                            columnFilters={columnFilters}
+                            cascadingOptions={cascadingOptions}
+                            onFilterChange={setColumnFilter}
+                            sortState={sortState}
+                            onSort={setSort}
                         />
                     </div>
 

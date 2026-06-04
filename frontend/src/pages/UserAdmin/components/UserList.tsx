@@ -10,14 +10,30 @@ interface UserListProps {
     selectedUserId?: string;
     onUserSelect: (user: User) => void;
     isLoading: boolean;
+    columnFilters: Record<string, Set<string>>;
+    cascadingOptions: Record<string, string[]>;
+    onFilterChange: (columnKey: string, filter: Set<string>) => void;
+    sortState: { key: string; dir: 'asc' | 'desc' | null } | null;
+    onSort: (key: string, dir: 'asc' | 'desc' | null) => void;
 }
 
-const UserList: React.FC<UserListProps> = ({ users, selectedUserId, onUserSelect, isLoading }) => {
+const UserList: React.FC<UserListProps> = ({
+    users,
+    selectedUserId,
+    onUserSelect,
+    isLoading,
+    columnFilters,
+    cascadingOptions,
+    onFilterChange,
+    sortState,
+    onSort
+}) => {
     const columns: DataTableColumn<User>[] = [
         {
             key: 'cedula',
             label: 'Cédula',
             minWidth: '110px',
+            filterable: true,
             render: (row) => (
                 <Text
                     as="span"
@@ -33,6 +49,7 @@ const UserList: React.FC<UserListProps> = ({ users, selectedUserId, onUserSelect
             label: 'Nombre Completo',
             flex: true,
             minWidth: '220px',
+            filterable: false,
             render: (row) => {
                 const isSelected = row.id === selectedUserId;
                 return (
@@ -55,6 +72,7 @@ const UserList: React.FC<UserListProps> = ({ users, selectedUserId, onUserSelect
             key: 'rol',
             label: 'Rol',
             minWidth: '120px',
+            filterable: true,
             render: (row) => (
                 <Text variant="caption" weight="bold" color="primary" className="uppercase tracking-wider text-[10px]">
                     {row.rol}
@@ -65,6 +83,7 @@ const UserList: React.FC<UserListProps> = ({ users, selectedUserId, onUserSelect
             key: 'esta_activo',
             label: 'Estado',
             minWidth: '100px',
+            filterable: true,
             render: (row) => (
                 <Badge variant={row.esta_activo ? 'success' : 'error'} size="sm" className="shadow-none">
                     {row.esta_activo ? 'Activo' : 'Inactivo'}
@@ -75,6 +94,7 @@ const UserList: React.FC<UserListProps> = ({ users, selectedUserId, onUserSelect
             key: 'especialidades',
             label: 'Especialidades TI / Áreas',
             minWidth: '240px',
+            filterable: false,
             render: (row) => {
                 const especialidades = JSON.parse(row.especialidades || '[]') as string[];
                 const areasCount = JSON.parse(row.areas_asignadas || '[]').length;
@@ -111,6 +131,12 @@ const UserList: React.FC<UserListProps> = ({ users, selectedUserId, onUserSelect
             data={users}
             keyExtractor={(row) => row.id}
             onRowClick={onUserSelect}
+            columnFilters={columnFilters}
+            columnOptions={cascadingOptions}
+            onFilterChange={onFilterChange}
+            activeSortKey={sortState?.key ?? null}
+            activeSortDir={sortState?.dir ?? null}
+            onSort={onSort}
             isLoading={isLoading}
             loadingMessage="Cargando lista de usuarios..."
             emptyMessage="No se encontraron usuarios para los criterios de búsqueda"

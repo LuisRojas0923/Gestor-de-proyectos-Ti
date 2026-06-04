@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { useAppContext } from '../../../context/AppContext';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
+import { useColumnFilters } from '../../../hooks/useColumnFilters';
 
 export interface Role {
     id: string;
@@ -145,18 +146,39 @@ export const useUserAdmin = () => {
         }
     };
 
-    const filteredUsers = users
-        .filter(u =>
+    const searchFilteredUsers = useMemo(() => {
+        return users.filter(u =>
             u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
             u.cedula.includes(searchTerm)
-        )
-        .sort((a, b) => a.rol.localeCompare(b.rol));
+        );
+    }, [users, searchTerm]);
+
+    const columnAccessors = useMemo(() => ({
+        cedula: (u: User) => u.cedula,
+        nombre: (u: User) => u.nombre,
+        rol: (u: User) => u.rol,
+        esta_activo: (u: User) => u.esta_activo ? 'Activo' : 'Inactivo',
+    }), []);
+
+    const {
+        filters: columnFilters,
+        filteredData: finalFilteredUsers,
+        cascadingOptions,
+        setColumnFilter,
+        sortState,
+        setSort
+    } = useColumnFilters(searchFilteredUsers, columnAccessors, 'user_admin_table');
 
 
     return {
         users,
         roles,
-        filteredUsers,
+        filteredUsers: finalFilteredUsers,
+        columnFilters,
+        cascadingOptions,
+        setColumnFilter,
+        sortState,
+        setSort,
         isLoading,
         searchTerm,
         setSearchTerm,
