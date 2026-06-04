@@ -1,6 +1,6 @@
 import React from 'react';
 import { Title, Text, Button, ProgressBar, Badge } from '../../../../components/atoms';
-import { Loader2, FileText, Save, FilterX, Lock } from 'lucide-react';
+import { Loader2, FileText, Save, FilterX, Lock, ArrowLeft } from 'lucide-react';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import { TableRow } from './components/TableRow';
 import { MobileItemCard } from './components/MobileItemCard';
@@ -9,9 +9,10 @@ import { useInventarioData } from './hooks/useInventarioData';
 import { useInventarioPDF } from './hooks/useInventarioPDF';
 
 interface InventarioViewProps {
+    onBack?: () => void;
 }
 
-const InventarioView: React.FC<InventarioViewProps> = () => {
+const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
     const { addNotification } = useNotifications();
     const {
         isLoading,
@@ -56,6 +57,11 @@ const InventarioView: React.FC<InventarioViewProps> = () => {
             <div className="bg-[var(--color-surface)] border border-[var(--color-border)] py-2 px-6 rounded-3xl shadow-sm flex flex-col items-stretch relative overflow-hidden min-h-[64px]">
                 <div className="flex flex-col md:flex-row items-center justify-start gap-4 w-full z-10">
                     <div className="flex flex-1 items-center gap-2 w-full md:w-auto">
+                        {onBack && (
+                            <Button variant="ghost" onClick={onBack} className="p-1 -ml-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0" title="Volver al inicio">
+                                <ArrowLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-300" />
+                            </Button>
+                        )}
                         <div className="flex flex-col justify-center shrink-0">
                             <Title variant="h5" weight="bold" className="leading-tight text-xs">Inventario 2026</Title>
                         </div>
