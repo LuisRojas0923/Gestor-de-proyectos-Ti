@@ -170,23 +170,13 @@ const PermissionsMatrix: React.FC = () => {
 
     const columns: DataTableColumn<Modulo>[] = [
         {
-            key: 'category',
-            label: 'Categoría',
-            minWidth: '180px',
-            filterable: true,
-            render: (row) => (
-                <Text variant="caption" weight="bold" color="secondary" className="uppercase tracking-wider text-[10px]">
-                    {CATEGORIES[row.category as keyof typeof CATEGORIES] || row.category}
-                </Text>
-            )
-        },
-        {
             key: 'id',
             label: 'Identificador',
-            minWidth: '150px',
+            minWidth: '80px',
+            maxWidth: '100px',
             filterable: true,
             render: (row) => (
-                <Text as="span" variant="caption" className="font-mono text-neutral-500 dark:text-neutral-400 text-[10px]">
+                <Text as="span" variant="caption" className="font-mono text-neutral-500 dark:text-neutral-400 text-[10px] truncate block" title={row.id}>
                     {row.id}
                 </Text>
             )
@@ -194,11 +184,11 @@ const PermissionsMatrix: React.FC = () => {
         {
             key: 'label',
             label: 'Nombre de Módulo',
-            minWidth: '110px',
-            maxWidth: '140px',
+            minWidth: '120px',
+            maxWidth: '150px',
             filterable: true,
             render: (row) => (
-                <Text weight="bold" variant="body2" className="text-gray-900 dark:text-gray-100 truncate">
+                <Text weight="bold" variant="body2" className="text-gray-900 dark:text-gray-100 truncate block" title={row.label}>
                     {row.label}
                 </Text>
             )
@@ -206,19 +196,32 @@ const PermissionsMatrix: React.FC = () => {
         {
             key: 'descripcion',
             label: 'Descripción',
-            minWidth: '90px',
-            maxWidth: '120px',
+            flex: true,
+            minWidth: '180px',
             filterable: false,
             render: (row) => (
-                <Text variant="caption" color="text-secondary" className="line-clamp-2 max-w-[120px]">
+                <Text variant="caption" color="text-secondary" className="line-clamp-2">
                     {row.descripcion || 'Sin descripción disponible.'}
+                </Text>
+            )
+        },
+        {
+            key: 'category',
+            label: 'Categoría',
+            minWidth: '130px',
+            maxWidth: '160px',
+            filterable: true,
+            render: (row) => (
+                <Text variant="caption" weight="bold" color="secondary" className="uppercase tracking-wider text-[10px] truncate block" title={CATEGORIES[row.category as keyof typeof CATEGORIES] || row.category}>
+                    {CATEGORIES[row.category as keyof typeof CATEGORIES] || row.category}
                 </Text>
             )
         },
         {
             key: 'permitido',
             label: `Acceso para ${(dynamicRoles.find(r => r.id === selectedRoleId)?.nombre || selectedRoleId).toUpperCase()}`,
-            minWidth: '160px',
+            minWidth: '140px',
+            maxWidth: '160px',
             centered: true,
             filterable: true,
             render: (row) => {
