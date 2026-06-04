@@ -105,11 +105,19 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
       )}
 
       {/* Trigger */}
-      <button // @audit-ok
-        type="button"
-        disabled={loading}
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2.5 text-xs bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:border-[var(--color-border)]/50"
+      <div
+        role="button"
+        tabIndex={loading ? -1 : 0}
+        onClick={() => !loading && setOpen(o => !o)}
+        onKeyDown={e => {
+          if (!loading && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            setOpen(o => !o);
+          }
+        }}
+        className={`w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2.5 text-xs bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-colors dark:border-[var(--color-border)]/50 ${
+          loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+        }`}
       >
         <div className="flex flex-col items-start gap-0.5 min-w-0">
           <Text as="span" variant="caption" className={`leading-tight ${selected ? 'font-medium text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
@@ -134,7 +142,7 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
           )}
           <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </div>
-      </button>
+      </div>
 
       {/* Dropdown */}
       {open && (
