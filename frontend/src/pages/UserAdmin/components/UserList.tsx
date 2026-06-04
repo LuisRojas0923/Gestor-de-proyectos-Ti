@@ -49,7 +49,7 @@ const UserList: React.FC<UserListProps> = ({
             label: 'Nombre Completo',
             flex: true,
             minWidth: '220px',
-            filterable: false,
+            filterable: true,
             render: (row) => {
                 const isSelected = row.id === selectedUserId;
                 return (
