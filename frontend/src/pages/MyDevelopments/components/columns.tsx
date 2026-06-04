@@ -129,12 +129,13 @@ export const getColumns = (
     ...(reviewed ? [reviewColumn] : []),
     {
       key: 'id',
-    label: 'ID',
-    filterable: true,
-    subFilters: [
-      { key: 'id', label: 'ID' },
-      { key: 'tipo', label: 'Tipo' }
-    ],
+      label: 'ID',
+      minWidth: '90px',
+      filterable: true,
+      subFilters: [
+        { key: 'id', label: 'ID' },
+        { key: 'tipo', label: 'Tipo' }
+      ],
     render: (dev) => (
       <div className="flex flex-col items-start gap-1">
         <Text as="span" variant="caption" color="gray" className="font-mono whitespace-nowrap">
@@ -183,6 +184,7 @@ export const getColumns = (
   {
     key: 'status',
     label: 'Estado',
+    minWidth: '100px',
     centered: true,
     filterable: true,
     render: (dev) => {
@@ -198,6 +200,7 @@ export const getColumns = (
   {
     key: 'prioridad',
     label: 'Prioridad',
+    minWidth: '85px',
     centered: true,
     filterable: true,
     render: (dev) => {

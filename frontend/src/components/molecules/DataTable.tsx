@@ -204,7 +204,7 @@ export function DataTable<T>({
         : false;
 
     return (
-        <div className={`relative flex flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}>
+        <div className={`relative flex flex-col overflow-x-auto overflow-y-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}>
 
             {/* Filter Dropdown */}
             {activeFilter && anchorRect && (
