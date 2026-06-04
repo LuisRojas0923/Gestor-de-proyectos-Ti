@@ -311,6 +311,8 @@ CREATE INDEX idx_milestones_dev_status ON milestones(development_id, status);
 
 
 
+
+
 ## 🔄 Detalles Técnicos (Auto-generado)
 > [!NOTE]
 > Esta sección es generada automáticamente por `scripts/sync_docs.py`. No editar manualmente.
@@ -939,6 +941,16 @@ erDiagram
         character varying ciudad
         integer fila_origen
         character varying observaciones
+    }
+    NOTIFICACIONES_USUARIO {
+        integer id
+        character varying usuario_id
+        character varying titulo
+        character varying mensaje
+        boolean leido
+        character varying tipo_evento
+        character varying referencia_id
+        timestamp without time zone creado_en
     }
     PERMISOS_ROL {
         integer id
@@ -1980,6 +1992,18 @@ erDiagram
 | ciudad | character varying | YES | - |
 | fila_origen | integer | NO | - |
 | observaciones | character varying | YES | - |
+
+#### Tabla: `notificaciones_usuario`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('notificaciones_usuario_id_seq'::regclass) |
+| usuario_id | character varying | NO | - |
+| titulo | character varying | NO | - |
+| mensaje | character varying | NO | - |
+| leido | boolean | NO | - |
+| tipo_evento | character varying | NO | - |
+| referencia_id | character varying | YES | - |
+| creado_en | timestamp without time zone | YES | now() |
 
 #### Tabla: `permisos_rol`
 | Columna | Tipo | Nulable | Defecto |

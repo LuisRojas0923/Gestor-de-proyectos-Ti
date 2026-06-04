@@ -40,6 +40,7 @@ from .api.inventario.router import router as inventario_router
 from .api.impuestos import router as impuestos_router
 from .api.lineas_corporativas.router import router as lineas_corporativas_router
 from .api.jerarquia import router as jerarquia_router
+from .api.notificaciones.router import router as notificaciones_router
 
 # Configurar logging centralizado
 logging.basicConfig(
@@ -210,6 +211,11 @@ app.include_router(
     validaciones_asignacion_router,
     prefix=f"{api_prefix}/validaciones-asignacion",
     tags=["Validaciones Asignacion"],
+)
+app.include_router(
+    notificaciones_router,
+    prefix=f"{api_prefix}/notificaciones",
+    tags=["Notificaciones"],
 )
 
 # Consolidated developments-activities endpoint and number-mapped endpoint

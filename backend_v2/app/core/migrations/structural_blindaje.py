@@ -145,6 +145,27 @@ async def ejecutar_blindaje_estructural(conn):
     # 9. Otros (Formato 2276, etc.)
     await safe_execute(conn, 'ALTER TABLE formato_2276 ADD COLUMN IF NOT EXISTS entidad_informante VARCHAR(10)')
 
+    # 9.1 Notificaciones de Usuario
+    await safe_execute(
+        conn,
+        """
+        CREATE TABLE IF NOT EXISTS notificaciones_usuario (
+            id SERIAL PRIMARY KEY,
+            usuario_id VARCHAR(50) NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+            titulo VARCHAR(255) NOT NULL,
+            mensaje TEXT NOT NULL,
+            leido BOOLEAN DEFAULT FALSE,
+            tipo_evento VARCHAR(50) NOT NULL,
+            referencia_id VARCHAR(100),
+            creado_en TIMESTAMPTZ DEFAULT NOW()
+        )
+        """
+    )
+    await safe_execute(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_leido ON notificaciones_usuario(usuario_id, leido)"
+    )
+
     # 10. Migración de estados de actividades y desarrollos
     await migrar_estados_actividades(conn)
 

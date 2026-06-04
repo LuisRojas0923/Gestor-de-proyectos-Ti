@@ -533,3 +533,19 @@ INSERT INTO roles_sistema (id, nombre, descripcion, es_sistema) VALUES
 ('director', 'Director de Área', 'Supervisión y reportes', true),
 ('usuario', 'Usuario Colaborador', 'Solicitante de servicios', true)
 ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- 9. Notificaciones de Usuario
+-- ==========================================
+CREATE TABLE IF NOT EXISTS notificaciones_usuario (
+    id SERIAL PRIMARY KEY,
+    usuario_id VARCHAR(50) NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    titulo VARCHAR(255) NOT NULL,
+    mensaje TEXT NOT NULL,
+    leido BOOLEAN DEFAULT FALSE,
+    tipo_evento VARCHAR(50) NOT NULL,
+    referencia_id VARCHAR(100),
+    creado_en TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_leido ON notificaciones_usuario(usuario_id, leido);

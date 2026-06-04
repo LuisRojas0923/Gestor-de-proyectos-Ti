@@ -1,4 +1,5 @@
 from typing import Any, Optional
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,7 @@ from app.services.erp import EmpleadosService
 from app.services.notifications.email_service import EmailService
 from app.utils_date import get_bogota_now
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -52,7 +54,12 @@ async def obtener_usuario_actual_db(
                     )
                 )
             ).scalars().first()
-            if not sesion or sesion.fin_sesion is not None or sesion.expira_en < get_bogota_now().replace(tzinfo=None):
+            # Chequear primero si la sesion existe antes de acceder a sus atributos
+            if not sesion:
+                raise HTTPException(401, "Token MCP revocado o expirado")
+            # Normalizar: sesion.expira_en viene AWARE (asyncpg), get_bogota_now() es naive
+            expira_naive = sesion.expira_en.replace(tzinfo=None) if sesion.expira_en else None
+            if sesion.fin_sesion is not None or (expira_naive and expira_naive < get_bogota_now()):
                 raise HTTPException(401, "Token MCP revocado o expirado")
             # Throttle: actualizar ultima_actividad_en solo si > 5 min desde la ultima
             ahora = get_bogota_now()
@@ -118,6 +125,7 @@ async def obtener_usuario_actual_db(
     except HTTPException:
         raise
     except Exception as e:
+        logger.exception("obtener_usuario_actual_db: error inesperado")
         raise HTTPException(
             status_code=500, detail=f"Error al validar usuario: {str(e)}"
         )

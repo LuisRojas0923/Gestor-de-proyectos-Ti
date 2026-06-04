@@ -105,7 +105,7 @@ async def listar_tokens_mcp_activos(
         Sesion.usuario_id == usuario.id,
         Sesion.tipo_sesion == "mcp",
         Sesion.fin_sesion.is_(None),
-        Sesion.expira_en > ahora.replace(tzinfo=None),
+        Sesion.expira_en > ahora,
     )
     result = await db.execute(stmt)
     return [

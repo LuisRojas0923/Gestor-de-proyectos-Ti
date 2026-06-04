@@ -90,6 +90,26 @@ async def crear_actividad(
         await recalcular_progreso_desarrollo(db, nueva_act.desarrollo_id)
         await db.commit()
         await db.refresh(nueva_act)
+
+        # Notificar al usuario asignado
+        if nueva_act.asignado_a_id:
+            try:
+                from app.services.notificacion.servicio import ServicioNotificacion
+                from app.models.alerta.notificacion import NotificacionUsuarioCrear
+                await ServicioNotificacion.crear_notificacion(
+                    db,
+                    NotificacionUsuarioCrear(
+                        usuario_id=nueva_act.asignado_a_id,
+                        titulo="Nueva actividad asignada",
+                        mensaje=f"Se te ha asignado la actividad '{nueva_act.titulo}' en el desarrollo {nueva_act.desarrollo_id}.",
+                        tipo_evento="actividad_asignada",
+                        referencia_id=nueva_act.desarrollo_id
+                    )
+                )
+            except Exception as e_notif:
+                import logging
+                logging.getLogger(__name__).warning(f"Error creando notificación de actividad: {e_notif}")
+
         return nueva_act
     except Exception as e:
         await db.rollback()
@@ -288,6 +308,26 @@ async def actualizar_actividad(
         if nuevo_estado is not None:
             await db.refresh(act_db)
         await db.refresh(act_db)
+
+        # Notificar al nuevo usuario asignado si cambió
+        if "asignado_a_id" in act_data and act_db.asignado_a_id:
+            try:
+                from app.services.notificacion.servicio import ServicioNotificacion
+                from app.models.alerta.notificacion import NotificacionUsuarioCrear
+                await ServicioNotificacion.crear_notificacion(
+                    db,
+                    NotificacionUsuarioCrear(
+                        usuario_id=act_db.asignado_a_id,
+                        titulo="Actividad asignada",
+                        mensaje=f"Se te ha asignado la actividad '{act_db.titulo}' en el desarrollo {act_db.desarrollo_id}.",
+                        tipo_evento="actividad_asignada",
+                        referencia_id=act_db.desarrollo_id
+                    )
+                )
+            except Exception as e_notif:
+                import logging
+                logging.getLogger(__name__).warning(f"Error creando notificación de reasignación de actividad: {e_notif}")
+
         return act_db
     except HTTPException:
         raise
