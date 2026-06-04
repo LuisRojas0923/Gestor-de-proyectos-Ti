@@ -1,11 +1,45 @@
+import sys
+import pytest
 import pytest_asyncio
 import httpx
 import os
 import asyncio
 import json
+import socket
+import warnings
+import builtins
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
+
+# Forzar UTF-8 en stdout/stderr ANTES de que pytest intente imprimir nada.
+# Windows usa cp1252 por defecto y falla con caracteres españoles (ñ, tildes, etc.)
+# que aparecen en docstrings, prints o tracebacks de los tests.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except (AttributeError, ValueError):
+    # Python < 3.7 o streams redirigidos sin reconfigure
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace", line_buffering=True)
+
+# Forzar encoding UTF-8 en open() built-in ANTES de que slowapi/starlette
+# importen el .env. En Windows, open() sin encoding usa cp1252 y falla al leer
+# archivos UTF-8 con caracteres no-ASCII (tildes, ñ, símbolos). Esto es solo
+# para tests: en Docker (Linux) el default ya es UTF-8.
+_real_open = builtins.open
+
+
+def _open_utf8(file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None):
+    if "b" not in mode and encoding is None:
+        encoding = "utf-8"
+        if errors is None:
+            errors = "replace"
+    return _real_open(file, mode, buffering, encoding, errors, newline, closefd, opener)
+
+
+builtins.open = _open_utf8
 
 # Cargar .env.test primero (tiene DB_HOST=localhost para tests locales),
 # luego el .env del backend como fallback.
@@ -14,9 +48,79 @@ _env_backend = Path(__file__).parent.parent.parent / "backend_v2" / ".env"
 load_dotenv(_env_test)
 load_dotenv(_env_backend)  # fallback para vars no definidas en .env.test
 
+# Suprimir DeprecationWarning del legacy app.config en el contexto de tests.
+# La migración completa a app.core.config está pendiente (Fase 4); mientras
+# tanto evitamos ruido en cada test que use el config legacy.
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="app.config")
+
 from app.config import config
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.pool import NullPool
+
+
+# ---------------------------------------------------------------------------
+# F5.0 — Fixtures de seguridad de RAM (Fase 5 del plan de hardening)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def limiter_reset():
+    """
+    Limpia el estado en memoria del rate limiter (slowapi) entre tests.
+
+    slowapi guarda un dict {key: timestamps} en el Limiter singleton. Sin
+    reset, las keys de tests anteriores contaminan los buckets de los
+    siguientes, lo que puede causar falsos 429 e incluso crecimiento
+    descontrolado de memoria en sesiones largas.
+    """
+    from app.core.rate_limiter import limiter
+    limiter.reset()
+    yield
+    limiter.reset()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def bcrypt_fast():
+    """
+    Reduce bcrypt rounds a 4 SOLO durante los tests.
+
+    bcrypt default es rounds=12 (~250ms por hash + ~50MB pico). En tests
+    con muchos usuarios creados (race condition, approval) eso se acumula
+    y dispara el uso de CPU/RAM. rounds=4 baja a ~6ms (40x más rápido)
+    con el coste de hashes de baja entropía — aceptable porque estos
+    hashes NUNCA se persisten en producción: el test crea y borra.
+    """
+    import bcrypt
+    _original_gensalt = bcrypt.gensalt
+
+    def _fast_gensalt(rounds=4, prefix=b"2b"):
+        return _original_gensalt(rounds=4, prefix=prefix)
+
+    bcrypt.gensalt = _fast_gensalt
+    yield
+    bcrypt.gensalt = _original_gensalt
+
+
+@pytest.fixture(scope="session")
+def require_docker():
+    """
+    Marca el test como skipped si el backend no está disponible.
+
+    Usado por integration tests (test_jit_race.py) para evitar fallos
+    ruidosos en máquinas de devs que no tienen docker compose levantado.
+    Los unit tests NO deben usar este fixture.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(2)
+    reachable = sock.connect_ex(("127.0.0.1", 8000)) == 0
+    sock.close()
+    if not reachable:
+        import pytest
+        pytest.skip("Backend no disponible en 127.0.0.1:8000 (requiere Docker compose up)")
+
+
+# ---------------------------------------------------------------------------
+# Fixtures originales (sin cambios)
+# ---------------------------------------------------------------------------
 
 @pytest_asyncio.fixture(scope="function")
 async def db_session():
@@ -45,10 +149,10 @@ async def client():
     2. Tiempo de espera (timeout) aumentado a 60s.
     """
     limits = httpx.Limits(max_connections=50, max_keepalive_connections=20)
-    
+
     async with httpx.AsyncClient(
-        base_url=BASE_URL, 
-        timeout=60.0, 
+        base_url=BASE_URL,
+        timeout=60.0,
         limits=limits,
         follow_redirects=True
     ) as ac:
@@ -63,7 +167,7 @@ async def auth_token(client):
     """
     user_cedula = os.getenv("TEST_USER_CEDULA", "1107068093")
     user_pass = os.getenv("TEST_USER_PASS", "1107068093")
-    
+
     try:
         response = await client.post("/auth/login", data={
             "username": user_cedula,

@@ -1,8 +1,7 @@
-import { useNavigate } from 'react-router-dom';
-import { ClipboardList, ShieldCheck, ChevronRight } from 'lucide-react';
-import { Button, Text, Title, MaterialCard } from '../../../components/atoms';
+import { ClipboardList, ChevronRight } from 'lucide-react';
+import { Text, Title, MaterialCard } from '../../../components/atoms';
+import Callout from '../../../components/molecules/Callout';
 import { useAppContext } from '../../../context/AppContext';
-import ViaticosAuthModal from '../components/ViaticosAuthModal';
 
 import imgIngresar from '../../../assets/images/categories/Ingresar Reporte.png';
 import imgEstadoCuenta from '../../../assets/images/categories/estado de cuenta.png';
@@ -48,9 +47,8 @@ const ServicePortalCard: React.FC<{
 };
 
 const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, moduleStatus = {} }) => {
-    const navigate = useNavigate();
-    const { state, dispatch } = useAppContext();
-    const { user, isViaticosVerified } = state;
+    const { state } = useAppContext();
+    const { user } = state;
     const userRole = ((user as any)?.rol || user?.role || '').toLowerCase();
     const permissions = (user as any)?.permissions || [];
     const isAdmin = ['admin', 'director', 'manager'].includes(userRole);
@@ -62,24 +60,7 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, mod
     const canSeeEstado = (permissions.includes('viaticos_estado') || isAdmin || isViaticante) && moduleStatus['viaticos_estado'] !== false;
     const canSeeDirectorPanel = (permissions.includes('viaticos_director_panel') || isAdmin) && moduleStatus['viaticos_director_panel'] !== false;
 
-    if (!isViaticosVerified && user) {
-        return (
-            <ViaticosAuthModal
-                cedula={user.cedula}
-                onVerified={() => {
-                    dispatch({ type: 'SET_VIATICOS_VERIFIED', payload: true });
-                    // Actualizar el estado del usuario para reflejar que ya configuró su contraseña
-                    if (user) {
-                        dispatch({ 
-                            type: 'SET_USER', 
-                            payload: { ...user, password_set: true } 
-                        });
-                    }
-                }}
-                onBack={() => navigate('/service-portal/inicio')}
-            />
-        );
-    }
+
 
     return (
         <div className="space-y-6">
@@ -92,23 +73,16 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, mod
 
             {/* Mensaje Informativo si es viaticante pero no tiene permiso administrativo */}
             {!hasGestionPermission && user?.viaticante && (
-                <div className="max-w-[var(--portal-max-width)] mx-auto mt-6 p-6 rounded-[2rem] bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200/50 dark:border-amber-800/30 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-                        <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 shrink-0">
-                            <ShieldCheck className="w-8 h-8" />
-                        </div>
-                        <div className="space-y-1">
-                            <Title variant="h5" weight="bold" className="text-amber-900 dark:text-amber-100">
-                                Acceso Restringido por Administración
-                            </Title>
-                            <Text variant="body1" className="text-amber-800/80 dark:text-amber-200/60 leading-relaxed">
-                                Hemos validado tu identidad correctamente. Sin embargo, tu acceso a los módulos funcionales de viáticos
-                                (Legalización y Estado de Cuenta) está actualmente **restringido** por la administración del sistema.
-                                <br />
-                                <Text variant="caption" weight="semibold" className="opacity-70 block">Por favor contacta al área administrativa si crees que esto es un error.</Text>
-                            </Text>
-                        </div>
-                    </div>
+                <div className="max-w-[var(--portal-max-width)] mx-auto mt-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <Callout
+                        variant="warning"
+                        title="Acceso Restringido por Administración"
+                    >
+                        Hemos validado tu identidad correctamente. Sin embargo, tu acceso a los módulos funcionales de viáticos
+                        (Legalización y Estado de Cuenta) está actualmente <strong>restringido</strong> por la administración del sistema.
+                        <br />
+                        Por favor contacta al área administrativa si crees que esto es un error.
+                    </Callout>
                 </div>
             )}
 

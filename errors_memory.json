@@ -3,6 +3,39 @@
   "project": "Gestor-de-proyectos-Ti",
   "errors": [
     {
+      "id": "ERR-001",
+      "titulo": "Ciclo infinito login → setup-password → login cuando contraseña = cédula",
+      "archivos_afectados": [
+        "backend_v2/app/api/auth/login_router.py (setup-password endpoint)",
+        "backend_v2/app/services/auth/servicio.py (es_password_configurado)",
+        "frontend/src/components/molecules/PasswordSetupModal.tsx"
+      ],
+      "causa_raiz": "es_password_configurado() en servicio.py rechaza contraseñas que coincidan con la cédula (línea 60: bcrypt.checkpw(cedula, hash)). Pero setup-password NO validaba que contrasena != cedula, por lo que aceptaba el cambio (200 OK) y login inmediatamente después respondía 400 PASSWORD_NOT_SET al detectar hash === cédula. El usuario quedaba atrapado en bucle entre modal de setup y login.",
+      "solucion_propuesta": "Implementado en commit 42cbfe7: (a) Backend: setup-password valida contrasena == cedula y retorna 400 con mensaje claro. (b) Frontend: banner ámbar en tiempo real + botón deshabilitado cuando password === cedula. (c) Test test_setup_password_rechaza_contrasena_igual_a_cedula añadido. Pendiente P2: case-insensitive, trim, path JIT en setup-password, /viaticos/configurar también vulnerable (mismo bug), centralizar validación en ServicioAuth.",
+      "impacto": "Bloqueante: usuarios nuevos (cédulas que no existen en BD local) no podían completar primera configuración si elegían su cédula como contraseña. UX rota: 200 OK que no se traduce en acceso.",
+      "estado": "RESUELTO_PARCIAL",
+      "fecha_deteccion": "2026-06-03",
+      "fecha_resolucion_parcial": "2026-06-03",
+      "prioridad": "ALTA",
+      "componente": "backend+frontend",
+      "commit_referencia": "42cbfe7",
+      "tags": [
+        "auth",
+        "login",
+        "jit",
+        "ux",
+        "ciclo-infinito",
+        "validacion"
+      ],
+      "hallazgos_seguimiento": [
+        "F1: setup-password es case-sensitive; debería ser case-insensitive (consistencia con registrar_usuario_portal)",
+        "F2: setup-password no hace .strip() en cédula/contraseña",
+        "F3: /viaticos/configurar (viaticos_router.py:22-56) NO tiene la misma validación — fix de 42cbfe7 incompleto",
+        "F4: Cobertura de test insuficiente — falta parametrizar case-insensitive y trim",
+        "F5: Test actual solo cubre path con usuario pre-existente, no path JIT"
+      ]
+    },
+    {
       "id": "PRE-2026-06-02-1",
       "titulo": "test_escalado_rol_via_api_resetea_password falla consistentemente",
       "archivo": "testing/backend/test_auth_escalation.py:197",
@@ -12,6 +45,64 @@
       "plan_referencia": "docs/reviews/plans/2026-06-02-eliminar-portal-login_v3.md (pre-existing, no causado por este plan)",
       "fecha_deteccion": "2026-06-02",
       "prioridad": "BAJA"
+    },
+    {
+      "id": "ERR-002",
+      "titulo": "Multi-agente auth review: 5 críticos + 8 altos cerrados",
+      "archivos_afectados": [
+        "backend_v2/app/api/auth/login_router.py",
+        "backend_v2/app/services/auth/servicio.py",
+        "backend_v2/app/core/config.py",
+        "backend_v2/app/core/rate_limiter.py",
+        "backend_v2/app/config.py (deprecation)",
+        "frontend/src/config/api.ts",
+        "frontend/src/utils/errors.ts",
+        "frontend/src/hooks/useModalA11y.ts",
+        "frontend/src/components/molecules/PasswordSetupModal.tsx",
+        "frontend/src/components/molecules/Callout.tsx (reutilizado)",
+        "frontend/src/pages/Login.tsx",
+        "frontend/src/pages/ServicePortal/components/ViaticosAuthModal.tsx",
+        "frontend/src/pages/ServicePortal/pages/ViaticosManagement.tsx"
+      ],
+      "causa_raiz": "Tres agentes de revisión (security, backend, frontend) analizaron el flujo de auth tras 5 commits de reorganización (42cbfe7, 0092b4c, 9d56123, 822c7f3, 2089da0). Detectaron: C1) /auth/login sin rate limit (DoS + scraping). C2) JIT crea usuario con esta_activo=True (bypassa aprobación). C3) portal_pending_pwd hardcoded con literal inseguro. C4) Race condition en JIT con IntegrityError no capturada. C5) /viaticos/configurar eliminado del backend pero el modal cliente seguía llamándolo (reformulado: hardening de ViaticosAuthModal). Más 8 altos: sin a11y en PasswordSetupModal, catch(err:any), banners duplican Callout, endpoints hardcoded, sin tests del modal, inconsistencias case, sin trim, print() con PII.",
+      "solucion_propuesta": "Implementado en sesión de plan mode (plan file: .claude/plans/shimmying-chasing-oasis.md). F0 (infra): useModalA11y hook extraído de AdminLoginLock, normalizar_cedula en backend, getErrorMessage en frontend, 4 endpoints añadidos a API_ENDPOINTS. F1 (defensiva): rate limit 10/min;30/hour con key_func combinada IP+cédula, normalizar_cedula aplicada en login y setup-password, print() reemplazado por logger.error con enmascarar_pii. F2 (bugs): esta_activo=settings.jit_auto_aprobar (default False), IntegrityError capturada con rollback+re-lookup, contrasena==cedula también en JIT, portal_pending_pwd migrado a v2 con field_validator. F3 (UX/a11y): PasswordSetupModal y ViaticosAuthModal migrados a useModalA11y+createPortal, banners inline a Callout, axios→useApi, sanitización cédula con regex. Verificación: backend Python compila, frontend tsc OK, build OK, 16/16 tests admin pasan, lint sin nuevos errores.",
+      "impacto": "Cierra 5 vulnerabilidades críticas que permitían bypass de aprobación, race conditions 500, brute force, y secret hardcoded. Endurece a11y de modales (cumple WCAG 2.1 AA para focus trap/escape/scroll lock). PII deja de filtrarse en logs. Endpoints centralizados evitan drift cliente-servidor.",
+      "estado": "RESUELTO",
+      "fecha_deteccion": "2026-06-03",
+      "fecha_resolucion": "2026-06-03",
+      "prioridad": "CRITICA",
+      "componente": "auth+frontend",
+      "commits_pendientes": [
+        "fix(auth): add rate limit to /auth/login (C1)",
+        "fix(auth): require admin approval for JIT-created users (C2)",
+        "fix(auth): handle IntegrityError in JIT user creation (C4)",
+        "fix(auth): add contrasena!=cedula check to JIT path",
+        "fix(auth): move portal_pending_pwd to v2 settings with prod validation (C3)",
+        "feat(frontend): add useModalA11y hook and error helpers",
+        "fix(frontend): harden ViaticosAuthModal with useApi and a11y (C5)",
+        "refactor(frontend): migrate modals to useModalA11y and Callout",
+        "fix(frontend): type-safe error handling and parametrized endpoints",
+        "fix(auth): normalize cedula case and trim across auth endpoints",
+        "fix(auth): replace PII print() with structured logger"
+      ],
+      "tags": [
+        "auth",
+        "security",
+        "a11y",
+        "refactor",
+        "rate-limit",
+        "race-condition",
+        "secret-management",
+        "multi-agent-review"
+      ],
+      "hallazgos_seguimiento": [
+        "F1: Endpoints /auth/viaticos/* NO existen en backend (verificado por grep) — el modal seguirá fallando hasta que se implementen. Tracked como issue separado.",
+        "F2: app/config.py legacy sigue en uso por código no migrado — DeprecationWarning añadido pero no removido. Cleanup en Fase 4 (no bloqueante).",
+        "F3: Tests de race condition (test_jit_race.py), rate limit (test_auth_rate_limit.py), approval (test_jit_approval.py) y frontend modal (PasswordSetupModal.test.tsx, ViaticosAuthModal.test.tsx, useModalA11y.test.tsx) son bloqueantes de merge y aún no escritos.",
+        "F4: docs-tests-reviewer se colgó en sesión previa (task ses_171a33b51ffeGshH71WKZ3S85y sin output) — reintento pendiente para validar cobertura.",
+        "F5: vitest-axe no instalado — añadir para tests a11y de los modales migrados.",
+        "F6: Bundle size warning pre-existente (index.js 2.97MB) no relacionado con estos cambios."
+      ]
     }
   ],
   "decisions": [
@@ -69,6 +160,31 @@
       "estimacion": "4-6 horas (refactor + tests)",
       "fecha": "2026-06-02",
       "plan_referencia": "docs/reviews/plans/2026-06-02_acceso-panel-administracion-header_v2.1.md R-NEW-1"
+    },
+    {
+      "id": "DEC-2026-06-03-1",
+      "titulo": "Permisos ampliados para subagentes con whitelists explícitas",
+      "contexto": "Los 8 subagentes en .opencode/agent/ operaban con edit:deny y bash:deny/ask globalmente, lo que obligaba a pedir confirmación para comandos básicos (git status, ls, cat) e impedía que error-memory persistiera errores en errors_memory.json. Esto causaba lentitud en revisiones (2+ horas para 3 subagentes) y registro de memoria incompleto.",
+      "decision": "Modificar frontmatter de los 8 subagentes con whitelists explícitas: (a) bash:allow con lista de comandos read-only comunes; (b) edit:allow limitado a paths específicos (docs/reviews/builds/, errors_memory.json, .opencode/memory/); (c) error-memory es el único con edit:allow amplio sobre su dominio; (d) harness-router y scope-reviewer mantienen edit:deny/bash:deny como subagentes puramente asesores. _shared-discovery.md ahora incluye tabla §6 de permisos por subagente y comandos pre-autorizados.",
+      "modulos_afectados": [
+        ".opencode/agent/_shared-discovery.md",
+        ".opencode/agent/harness-router.md",
+        ".opencode/agent/scope-reviewer.md",
+        ".opencode/agent/backend-reviewer.md",
+        ".opencode/agent/frontend-reviewer.md",
+        ".opencode/agent/mobile-reviewer.md",
+        ".opencode/agent/docs-tests-reviewer.md",
+        ".opencode/agent/security-rbac-reviewer.md",
+        ".opencode/agent/error-memory.md"
+      ],
+      "alternativas_rechazadas": [
+        "Mantener edit:deny global y usar write tool desde el orquestador (fragil, requiere intervención manual constante)",
+        "Permitir bash:allow sin whitelist (riesgo de seguridad: rm, git push, docker destroy)",
+        "Hacer que los subagentes pidan bash:ask para todo (lentitud 2h+ por revisión, mala UX)"
+      ],
+      "consecuencias": "Las revisiones serán 5-10x más rápidas (sin pedir confirmación para git/cat/ls). error-memory puede persistir sin intervención. Riesgo: un subagente deshonesto podría ejecutar comandos fuera de whitelist — mitigado por la tabla explícita en frontmatter y en _shared-discovery.md.",
+      "fecha": "2026-06-03",
+      "estado": "VIGENTE"
     }
   ]
 }

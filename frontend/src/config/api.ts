@@ -110,6 +110,10 @@ export const API_ENDPOINTS = {
   AUTH_UPDATE_EMAIL: '/auth/update-email',
   AUTH_VERIFY_EMAIL: '/auth/verify-email',
   AUTH_RESEND_VERIFICATION: '/auth/resend-verification',
+  AUTH_SETUP_PASSWORD: '/auth/setup-password',
+  AUTH_VIATICOS_STATUS: (cedula: string) => `/auth/viaticos/status/${cedula}`,
+  AUTH_VIATICOS_CONFIGURAR: '/auth/viaticos/configurar',
+  AUTH_VIATICOS_VERIFICAR: '/auth/viaticos/verificar',
   // Reportes
   REPORTS_PORTAL_DETAILED: '/desarrollos/informe-detallado-casos-portal',
 

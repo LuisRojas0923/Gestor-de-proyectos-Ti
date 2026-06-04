@@ -9,6 +9,7 @@ import bcrypt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.config import config
+from app.core.config import obtener_configuracion
 from app.models.auth.usuario import Usuario, PermisoRol
 from app.services.erp import EmpleadosService
 from .sesion_service import (
@@ -26,6 +27,29 @@ from .provisioning_service import (
 from fastapi.security import OAuth2PasswordBearer
 
 
+def normalizar_cedula(s: Optional[str]) -> str:
+    """Normaliza una cédula para comparaciones: strip + lower.
+
+    Las cédulas se almacenan en minúsculas en BD. Esta función se usa en
+    todos los puntos de entrada (login, setup-password, registro) para
+    evitar inconsistencias de case y whitespace que pueden crear cuentas
+    duplicadas o romper el rate limit por usuario.
+    """
+    if s is None:
+        return ""
+    return s.strip().lower()
+
+
+def enmascarar_pii(texto: Optional[str]) -> str:
+    """Enmascara PII (correos, contraseñas) en mensajes de log para evitar filtraciones."""
+    if not texto:
+        return ""
+    import re
+    texto = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[EMAIL]", texto)
+    texto = re.sub(r"(?i)(password|contraseña|contrasena)\s*[=:]\s*\S+", r"\1=[REDACTED]", texto)
+    return texto
+
+
 class ServicioAuth:
     """Clase principal para logica de autenticacion (Async)"""
 
@@ -33,19 +57,34 @@ class ServicioAuth:
     oauth2_scheme_opcional = OAuth2PasswordBearer(tokenUrl="api/v2/auth/login", auto_error=False)
 
     @staticmethod
+    def _es_hash_bcrypt_valido(hash_contrasena: str) -> bool:
+        """Verifica si el string tiene formato de hash bcrypt válido ($2b$, $2a$ o $2y$)."""
+        try:
+            if not hash_contrasena or len(hash_contrasena) < 20:
+                return False
+            return hash_contrasena.startswith(("$2b$", "$2a$", "$2y$"))
+        except (ValueError, TypeError, AttributeError):
+            return False
+
+    @staticmethod
     def es_password_configurado(hash_contrasena: str, cedula: Optional[str] = None) -> bool:
         """
         Verifica si el usuario ya cambió su contraseña inicial.
-        No se considera configurada si coincide con la clave genérica O con su cédula.
+        No se considera configurada si:
+          - El hash no es bcrypt válido (texto plano)
+          - Coincide con la clave genérica del portal
+          - Coincide con su cédula
         """
-        # 1. Validar contra clave genérica del portal
-        if ServicioAuth.verificar_contrasena(config.portal_pending_pwd, hash_contrasena):
+        if not ServicioAuth._es_hash_bcrypt_valido(hash_contrasena):
             return False
-        
-        # 2. Validar contra cédula si se proporciona
+
+        portal_pending = obtener_configuracion().portal_pending_pwd or config.portal_pending_pwd
+        if portal_pending and ServicioAuth.verificar_contrasena(portal_pending, hash_contrasena):
+            return False
+
         if cedula and ServicioAuth.verificar_contrasena(cedula, hash_contrasena):
             return False
-            
+
         return True
 
     @staticmethod
@@ -172,7 +211,8 @@ class ServicioAuth:
         if es_invalido:
             import logging
             logging.info(f"REPARACIÓN: Corrigiendo hash inválido para usuario {usuario.cedula}")
-            usuario.hash_contrasena = ServicioAuth.obtener_hash_contrasena(config.portal_pending_pwd)
+            portal_pending = obtener_configuracion().portal_pending_pwd or config.portal_pending_pwd
+            usuario.hash_contrasena = ServicioAuth.obtener_hash_contrasena(portal_pending)
             await db.commit()
             await db.refresh(usuario)
             return True

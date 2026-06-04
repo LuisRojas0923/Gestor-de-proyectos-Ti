@@ -1,7 +1,14 @@
 import socket
+import warnings
 from typing import Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+warnings.warn(
+    "app.config is deprecated; use app.core.config.obtener_configuracion() instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class Configuracion(BaseSettings):
