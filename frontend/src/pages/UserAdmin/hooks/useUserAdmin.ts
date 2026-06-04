@@ -131,6 +131,20 @@ export const useUserAdmin = () => {
         }
     };
 
+    const handleUnlockRateLimit = async (userId: string) => {
+        setIsSaving(true);
+        try {
+            await post(`/auth/analistas/${userId}/desbloquear-rate-limit`, {});
+            addNotification('success', 'Intentos de login (rate limit) desbloqueados exitosamente');
+            return true;
+        } catch {
+            addNotification('error', 'Error al desbloquear el rate limit del usuario');
+            return false;
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const filteredUsers = users
         .filter(u =>
             u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -153,6 +167,7 @@ export const useUserAdmin = () => {
         handleCreateUser,
         handleCreateRole,
         handleDeleteRole,
+        handleUnlockRateLimit,
         isCreateModalOpen,
         setIsCreateModalOpen,
         activeTab,

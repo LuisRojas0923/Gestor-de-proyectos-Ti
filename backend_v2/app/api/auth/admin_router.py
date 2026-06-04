@@ -356,3 +356,57 @@ async def eliminar_rol(
         await db.rollback()
         logging.error(f"Error en DELETE /roles/{rol_id}: {e}")
         raise HTTPException(status_code=500, detail="Error al eliminar rol")
+
+
+@router.post("/analistas/{usuario_id}/desbloquear-rate-limit")
+async def desbloquear_rate_limit(
+    usuario_id: str,
+    db: AsyncSession = Depends(obtener_db),
+    admin: Usuario = Depends(obtener_usuario_actual_db),
+):
+    """Limpia el rate limit del inicio de sesión (slowapi) para un usuario por su ID"""
+    if admin.rol != "admin":
+        raise HTTPException(
+            status_code=403, detail="No tiene permisos para desbloquear usuarios"
+        )
+
+    try:
+        result = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
+        usuario = result.scalars().first()
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        from app.core.rate_limiter import limiter
+        storage = limiter.limiter.storage
+        cedula_patron = f":{usuario.cedula.strip().lower()}"
+        eliminadas = 0
+
+        # 1. Caso MemoryStorage (Desarrollo y Tests)
+        if hasattr(storage, "storage") and hasattr(storage, "expirations"):
+            keys_to_delete = [k for k in storage.storage.keys() if cedula_patron in k.lower()]
+            for k in keys_to_delete:
+                storage.storage.pop(k, None)
+                storage.expirations.pop(k, None)
+                if hasattr(storage, "events") and k in storage.events:
+                    storage.events.pop(k, None)
+            eliminadas = len(keys_to_delete)
+
+        # 2. Caso RedisStorage / RedisClusterStorage / RedisSentinelStorage (Producción con Redis)
+        elif hasattr(storage, "storage") and hasattr(storage.storage, "keys") and hasattr(storage.storage, "delete"):
+            patron_busqueda = f"*login*:{usuario.cedula.strip().lower()}*"
+            keys_to_delete = storage.storage.keys(patron_busqueda)
+            if keys_to_delete:
+                storage.storage.delete(*keys_to_delete)
+            eliminadas = len(keys_to_delete)
+
+        return {
+            "mensaje": f"Se eliminaron {eliminadas} registros de bloqueo temporal para el usuario.",
+            "usuario_id": usuario_id,
+            "cedula": usuario.cedula,
+            "desbloqueado": True,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error al desbloquear rate limit para {usuario_id}: {e}")
+        raise HTTPException(status_code=500, detail="Error interno al procesar el desbloqueo")

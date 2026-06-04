@@ -138,3 +138,34 @@ class TestLimiterSingleton:
         limiter.reset()
         # Llamar dos veces seguidas también debe ser no-op
         limiter.reset()
+
+
+class TestDesbloquearRateLimitLogica:
+    """Verifica que la lógica para desbloquear la cédula de un usuario en el storage funcione."""
+
+    def test_desbloquear_remueve_clave_del_storage(self):
+        from app.core.rate_limiter import limiter
+        storage = limiter.limiter.storage
+
+        # Limpiar antes de la prueba
+        limiter.reset()
+
+        # Añadir un hit simulado en el storage
+        key_simulada = "LIMITER/login:1.2.3.4:12345678///10/1/minute"
+        storage.incr(key_simulada, 60)
+
+        # Confirmamos que el hit existe
+        assert storage.get(key_simulada) == 1
+
+        # Simular el desbloqueo para la cédula 12345678
+        cedula_patron = ":12345678"
+        if hasattr(storage, "storage") and hasattr(storage, "expirations"):
+            keys_to_delete = [k for k in storage.storage.keys() if cedula_patron in k.lower()]
+            for k in keys_to_delete:
+                storage.storage.pop(k, None)
+                storage.expirations.pop(k, None)
+                if hasattr(storage, "events") and k in storage.events:
+                    storage.events.pop(k, None)
+
+        # Verificar que se eliminó
+        assert storage.get(key_simulada) == 0

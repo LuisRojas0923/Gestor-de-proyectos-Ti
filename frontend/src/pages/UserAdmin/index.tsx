@@ -33,6 +33,7 @@ const UserAdmin: React.FC = () => {
         isSaving,
         handleUpdateUser,
         handleCreateUser,
+        handleUnlockRateLimit,
         isCreateModalOpen,
         setIsCreateModalOpen,
         activeTab,
@@ -125,6 +126,7 @@ const UserAdmin: React.FC = () => {
                             <UserEditor
                                 user={selectedUser}
                                 onSave={handleUpdateUser}
+                                onUnlock={handleUnlockRateLimit}
                                 onCancel={() => setSelectedUser(null)}
                                 isSaving={isSaving}
                             />
