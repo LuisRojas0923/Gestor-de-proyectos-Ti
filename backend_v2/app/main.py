@@ -214,6 +214,12 @@ async def startup_event():
         MetricaService.iniciar_recolector_automatico(intervalo_minutos=15)
     )
 
+    # 4. Iniciar verificador de compromisos de actividades en segundo plano (cada 12 horas)
+    from app.services.desarrollo.compromiso_notificacion import iniciar_loop_verificador_compromisos
+    asyncio.create_task(
+        iniciar_loop_verificador_compromisos(intervalo_horas=12)
+    )
+
 
 @app.get("/")
 async def raiz():

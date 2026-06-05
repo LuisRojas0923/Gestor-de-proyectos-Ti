@@ -95,6 +95,8 @@ async def ejecutar_blindaje_estructural(conn):
     
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS seguimiento TEXT')
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS compromiso TEXT')
+    await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS compromiso_fecha DATE')
+    await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS compromiso_cumplido BOOLEAN DEFAULT FALSE')
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS archivo_url VARCHAR(500)')
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS asignado_a_id VARCHAR(50)')
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS delegado_por_id VARCHAR(50)')
@@ -268,5 +270,15 @@ async def ejecutar_blindaje_estructural(conn):
     ]
     for causal in causales_base:
         await safe_execute(conn, f"INSERT INTO causales_descarte_rp (causal, activo) VALUES ('{causal}', TRUE) ON CONFLICT (causal) DO NOTHING")
+
+    # 13. Normalizar creador_id en tickets existentes (convertir cédulas numéricas en USR-P-<cedula>)
+    await safe_execute(
+        conn,
+        """
+        UPDATE tickets 
+        SET creador_id = 'USR-P-' || creador_id 
+        WHERE creador_id ~ '^[0-9]+$' AND creador_id NOT LIKE 'USR-%'
+        """
+    )
 
     logger.info("Blindaje estructural completado exitosamente.")

@@ -40,12 +40,16 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const userId = state.user?.id;
 
   useEffect(() => {
-    if (!userId) return;
-
-    // Solicitar permiso de notificaciones nativas si el navegador lo soporta
+    // Solicitar permiso de notificaciones nativas inmediatamente al recargar el sistema
     if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+      Notification.requestPermission().catch(err => {
+        console.warn("Error al solicitar permisos de notificación:", err);
+      });
     }
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
 
     let socket: WebSocket | null = null;
     let reconnectTimeout: NodeJS.Timeout;

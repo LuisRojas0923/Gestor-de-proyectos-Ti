@@ -253,7 +253,7 @@ const MyDevelopments: React.FC = () => {
         actionsMinWidth="120px"
         emptyIcon={<Search size={40} className="opacity-40" />}
         emptyMessage="No se encontraron actividades"
-        maxHeight="max-h-[calc(100vh-420px)]"
+        maxHeight="max-h-[calc(100vh-280px)]"
       />
 
       <CreateDevelopmentModal

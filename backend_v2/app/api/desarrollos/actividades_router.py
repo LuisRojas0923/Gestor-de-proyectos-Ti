@@ -52,6 +52,8 @@ def actividad_a_arbol(actividad: Actividad) -> ActividadArbol:
         porcentaje_avance=actividad.porcentaje_avance,
         seguimiento=actividad.seguimiento,
         compromiso=actividad.compromiso,
+        compromiso_fecha=actividad.compromiso_fecha,
+        compromiso_cumplido=actividad.compromiso_cumplido,
         archivo_url=actividad.archivo_url,
         creado_en=actividad.creado_en,
         actualizado_en=actividad.actualizado_en,
