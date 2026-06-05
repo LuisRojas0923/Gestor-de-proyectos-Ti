@@ -162,6 +162,11 @@ async def ejecutar_blindaje_estructural(conn):
     await safe_execute(conn, "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS departamento VARCHAR(100)")
     await safe_execute(conn, "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS municipio VARCHAR(100)")
 
+    # 8.7 Requisiciones RP - Modificación Salarial y Tiempos GH
+    await safe_execute(conn, "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS fecha_recibido_gh TIMESTAMP WITHOUT TIME ZONE")
+    await safe_execute(conn, "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS modificada_por_gh BOOLEAN DEFAULT FALSE")
+    await safe_execute(conn, "ALTER TABLE requisiciones_personal ADD COLUMN IF NOT EXISTS fecha_modificacion_gh TIMESTAMP WITHOUT TIME ZONE")
+
     # 9. Otros (Formato 2276, etc.)
     await safe_execute(conn, 'ALTER TABLE formato_2276 ADD COLUMN IF NOT EXISTS entidad_informante VARCHAR(10)')
 

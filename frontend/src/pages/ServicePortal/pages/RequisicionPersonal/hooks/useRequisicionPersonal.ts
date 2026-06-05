@@ -234,6 +234,7 @@ export function useRequisicionPersonal(
         auxilio_alimentacion: formatThousands(req.auxilio_alimentacion ?? 0),
         auxilio_vivienda: formatThousands(req.auxilio_vivienda ?? 0),
         confirmacion: false,
+        estado: req.estado,
       });
     } finally {
       setLoading(false);

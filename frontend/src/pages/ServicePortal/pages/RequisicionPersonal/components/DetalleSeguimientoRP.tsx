@@ -7,7 +7,7 @@ import { Badge, Button, Text, Title } from '../../../../../components/atoms';
 import { 
   getRequisicionTemporales, asignarRequisicionTemporales, actualizarFechaEnvioHV,
   getCandidatos, agregarCandidato, actualizarCandidato, getSeguimientoStats, getTemporales,
-  cancelarRequisicionGH, getCausalesDescarte
+  cancelarRequisicionGH, getCausalesDescarte, marcarVistaGH, devolverModificacionSalarial
 } from '../services/requisicionService';
 import type { 
   RequisicionRP, RequisicionTemporal, CandidatoRequisicion, SeguimientoStats, EmpresaTemporal, CausalDescarteRP
@@ -18,6 +18,7 @@ import AsignarTemporalesModal from './modals/AsignarTemporalesModal';
 import AgregarCandidatoModal from './modals/AgregarCandidatoModal';
 import DescartarCandidatoModal from './modals/DescartarCandidatoModal';
 import CancelarRPModal from './modals/CancelarRPModal';
+import DevolverModificacionModal from './modals/DevolverModificacionModal';
 
 interface Props {
   requisicion: RequisicionRP;
@@ -55,6 +56,11 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
   const [cancelando, setCancelando] = useState(false);
 
+  // Devolver por Modificacion Salarial
+  const [mostrarDevolverModificacion, setMostrarDevolverModificacion] = useState(false);
+  const [motivoDevolucion, setMotivoDevolucion] = useState('');
+  const [devolviendo, setDevolviendo] = useState(false);
+
 
   const cargarDatos = async () => {
     setCargando(true);
@@ -81,6 +87,7 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
 
   useEffect(() => {
     cargarDatos();
+    marcarVistaGH(requisicion.id).catch(() => {});
   }, [requisicion.id]);
 
   useEffect(() => {
@@ -209,6 +216,25 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
     }
   };
 
+  const handleDevolverModificacion = async () => {
+    if (!motivoDevolucion.trim()) {
+      alert('Debes ingresar el motivo de la devolución.');
+      return;
+    }
+    setDevolviendo(true);
+    try {
+      await devolverModificacionSalarial(requisicion.id, motivoDevolucion.trim());
+      setMostrarDevolverModificacion(false);
+      setMotivoDevolucion('');
+      await cargarDatos();
+      if (onStatusChanged) onStatusChanged();
+    } catch (e: any) {
+      alert(e.response?.data?.detail || 'Error al devolver la requisición.');
+    } finally {
+      setDevolviendo(false);
+    }
+  };
+
 
   if (cargando) {
     return (
@@ -242,14 +268,23 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
         </div>
         <div className="flex items-center bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700/50 gap-1">
           {/* Cancelar RP — solo si no está en estado final */}
-          {!['CERRADA', 'CANCELADA'].includes(requisicion.estado) && (
-            <Button
-              variant="ghost"
-              onClick={() => setMostrarCancelar(true)}
-              className="text-rose-600 hover:text-rose-700 hover:bg-white dark:hover:bg-slate-700 rounded-xl px-4 py-2 font-semibold text-sm transition-all"
-            >
-              Cancelar RP
-            </Button>
+          {!['CERRADA', 'CANCELADA', 'DEVUELTA_MODIFICACION_SALARIAL'].includes(requisicion.estado) && (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => setMostrarDevolverModificacion(true)}
+                className="text-amber-600 hover:text-amber-700 hover:bg-white dark:hover:bg-slate-700 rounded-xl px-4 py-2 font-semibold text-sm transition-all"
+              >
+                Modificar (Devolver)
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setMostrarCancelar(true)}
+                className="text-rose-600 hover:text-rose-700 hover:bg-white dark:hover:bg-slate-700 rounded-xl px-4 py-2 font-semibold text-sm transition-all"
+              >
+                Cancelar RP
+              </Button>
+            </>
           )}
           <Button 
              variant="ghost" 
@@ -474,6 +509,18 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
           cancelando={cancelando}
           onClose={() => { setMostrarCancelar(false); setMotivoCancelacion(''); }}
           onConfirm={handleCancelarRP}
+        />
+      )}
+
+      {/* MODAL: Devolver RP por Modificacion Salarial */}
+      {mostrarDevolverModificacion && (
+        <DevolverModificacionModal
+          requisicion={requisicion}
+          motivo={motivoDevolucion}
+          setMotivo={setMotivoDevolucion}
+          devolviendo={devolviendo}
+          onClose={() => { setMostrarDevolverModificacion(false); setMotivoDevolucion(''); }}
+          onConfirm={handleDevolverModificacion}
         />
       )}
     </div>

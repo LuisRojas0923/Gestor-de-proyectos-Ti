@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users, Settings, BarChart2, Printer, ListFilter } from 'lucide-react';
+import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/react';
 import { Button, Text, Title } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
@@ -186,22 +187,42 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
           >
             Métricas RP
           </Button>
-          <Button
-            variant="ghost"
-            icon={ListFilter}
-            onClick={() => setShowCausalesConfig(true)}
-            className="text-xs font-bold"
-          >
-            Configurar Causales
-          </Button>
-          <Button
-            variant="ghost"
-            icon={Settings}
-            onClick={() => setShowTemporalesConfig(true)}
-            className="text-xs font-bold"
-          >
-            Configurar Temporales
-          </Button>
+          <Menu as="div" className="relative inline-block text-left">
+            <MenuButton as={Button} variant="ghost" icon={Settings} className="text-xs font-bold">
+              Configuración
+            </MenuButton>
+            <MenuItems
+              transition
+              className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-xl bg-white dark:bg-slate-900 shadow-xl ring-1 ring-slate-900/5 focus:outline-none border border-slate-200 dark:border-slate-800 p-1 transition duration-100 ease-out [--anchor-gap:var(--spacing-1)] focus:outline-none data-[closed]:scale-95 data-[closed]:opacity-0"
+            >
+              <MenuItem>
+                {({ focus }) => (
+                  <button
+                    onClick={() => setShowCausalesConfig(true)}
+                    className={`${
+                      focus ? 'bg-slate-100 dark:bg-slate-800' : ''
+                    } group flex w-full items-center rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-300 font-medium transition-colors`}
+                  >
+                    <ListFilter className="mr-3 h-4 w-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300" />
+                    Causales de Descarte
+                  </button>
+                )}
+              </MenuItem>
+              <MenuItem>
+                {({ focus }) => (
+                  <button
+                    onClick={() => setShowTemporalesConfig(true)}
+                    className={`${
+                      focus ? 'bg-slate-100 dark:bg-slate-800' : ''
+                    } group flex w-full items-center rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-300 font-medium transition-colors`}
+                  >
+                    <Briefcase className="mr-3 h-4 w-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300" />
+                    Empresas Temporales
+                  </button>
+                )}
+              </MenuItem>
+            </MenuItems>
+          </Menu>
           <Button
             variant="ghost"
             icon={RefreshCw}

@@ -117,6 +117,9 @@ export interface RequisicionRP {
   responsable_gh_email: string | null;
   fecha_cierre: string | null;
   observacion_cierre: string | null;
+  fecha_recibido_gh: string | null;
+  modificada_por_gh: boolean;
+  fecha_modificacion_gh: string | null;
   created_at: string | null;
   updated_at: string | null;
   // Solo en detalle
@@ -166,6 +169,7 @@ export interface FormularioRP {
   auxilio_vivienda: string;
   // Sección 6
   confirmacion: boolean;
+  estado?: EstadoRP;
 }
 
 export const FORMULARIO_INICIAL: FormularioRP = {

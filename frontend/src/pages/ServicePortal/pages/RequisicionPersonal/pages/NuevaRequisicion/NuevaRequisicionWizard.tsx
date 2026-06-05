@@ -77,13 +77,23 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
   const renderPaso = () => {
     const props = { form, update: updateField };
     switch (pasoActual) {
-      case 1: return (
+      case 1: 
+        const isModificacionSalarial = form.estado === 'DEVUELTA_MODIFICACION_SALARIAL';
+        return (
         <div className="space-y-6">
-          <Step1DatosGenerales {...props} correoSolicitante={correoSolicitante} nombreSolicitante={nombreSolicitante} />
-          <Step2AreaCargo {...props} />
-          <Step3Causal {...props} aprobadores={aprobadores} />
-          <Step4Requisitos {...props} />
-          <Step5Contratacion {...props} />
+          {isModificacionSalarial && (
+            <div className="p-4 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center gap-2 mb-4">
+              <span className="font-bold text-amber-900">Modificación Salarial:</span>
+              Solo puedes editar Salario, Movilización, Alimentación y Vivienda. Los demás campos están bloqueados.
+            </div>
+          )}
+          <div className={isModificacionSalarial ? "pointer-events-none opacity-60" : ""}>
+            <Step1DatosGenerales {...props} correoSolicitante={correoSolicitante} nombreSolicitante={nombreSolicitante} />
+            <Step2AreaCargo {...props} />
+            <Step3Causal {...props} aprobadores={aprobadores} />
+            <Step4Requisitos {...props} />
+          </div>
+          <Step5Contratacion {...props} isModificacionSalarial={isModificacionSalarial} />
         </div>
       );
       case 2: return <Step6Confirmacion {...props} nombreSolicitante={nombreSolicitante} correoSolicitante={correoSolicitante} areaNombre={areaNombre} cargoNombre={cargoNombre} />;

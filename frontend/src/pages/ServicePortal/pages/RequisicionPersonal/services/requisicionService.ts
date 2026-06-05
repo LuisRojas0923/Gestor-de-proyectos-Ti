@@ -155,6 +155,12 @@ export const getBandejaGH = (): Promise<RequisicionRP[]> =>
 export const cancelarRequisicionGH = (id: number, observacion: string): Promise<RequisicionRP> =>
   axios.post(`${BASE}/requisiciones/${id}/cancelar-gh`, { observacion }, authHeaders()).then(r => r.data);
 
+export const marcarVistaGH = (id: number): Promise<RequisicionRP> =>
+  axios.post(`${BASE}/requisiciones/${id}/marcar-vista-gh`, {}, authHeaders()).then(r => r.data);
+
+export const devolverModificacionSalarial = (id: number, observacion: string): Promise<RequisicionRP> =>
+  axios.post(`${BASE}/requisiciones/${id}/devolver-modificacion-salarial`, { observacion }, authHeaders()).then(r => r.data);
+
 
 // ── Bandeja Gerente ───────────────────────────
 export const getBandejaGerente = (): Promise<RequisicionRP[]> =>

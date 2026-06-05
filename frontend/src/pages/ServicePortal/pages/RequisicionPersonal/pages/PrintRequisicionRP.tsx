@@ -134,6 +134,11 @@ const PrintRequisicionRP: React.FC = () => {
             <div className="text-[9px]">
               {formatDateCO(req.fecha_radicacion, false) || 'N/A'}
             </div>
+            {req.modificada_por_gh && (
+              <div className="mt-1 text-[8px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded font-bold self-start uppercase">
+                Modificada por solicitud de GH
+              </div>
+            )}
           </div>
         </div>
 
@@ -307,6 +312,19 @@ const PrintRequisicionRP: React.FC = () => {
                <div className="font-bold text-[9px]">GERENCIA</div>
                <div className="text-[9px]">{req.gerente_nombre}</div>
                <div className="text-[8px] text-slate-500">{formatDateCO(req.fecha_decision_gerente)}</div>
+            </div>
+          )}
+
+          {req.fecha_recibido_gh && (
+            <div className="flex-1 text-center">
+               <div className="border-b border-black w-48 mx-auto mb-2 relative">
+                 <div className="absolute bottom-2 right-4 rotate-[-15deg] border-2 border-purple-600 text-purple-600 text-[9px] font-black px-2 py-0.5 rounded opacity-70">
+                   RECIBIDO
+                 </div>
+               </div>
+               <div className="font-bold text-[9px]">JEFE DE GESTIÓN HUMANA</div>
+               <div className="text-[9px]">{req.responsable_gh_nombre || 'Gestión Humana'}</div>
+               <div className="text-[8px] text-slate-500">{formatDateCO(req.fecha_recibido_gh)}</div>
             </div>
           )}
         </div>

@@ -222,6 +222,9 @@ class RequisicionOut(BaseModel):
     responsable_gh_email: Optional[str]
     fecha_cierre: Optional[datetime]
     observacion_cierre: Optional[str]
+    fecha_recibido_gh: Optional[datetime] = None
+    modificada_por_gh: bool = False
+    fecha_modificacion_gh: Optional[datetime] = None
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
 

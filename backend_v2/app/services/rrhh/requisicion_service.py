@@ -126,7 +126,7 @@ async def crear_o_actualizar_borrador(
         req = result.scalar_one_or_none()
         if not req:
             raise ValueError(f"Requisición {requisicion_id} no encontrada")
-        if req.estado not in (EstadoRP.BORRADOR, EstadoRP.DEVUELTA_AJUSTE):
+        if req.estado not in (EstadoRP.BORRADOR, EstadoRP.DEVUELTA_AJUSTE, EstadoRP.DEVUELTA_MODIFICACION_SALARIAL):
             raise PermissionError(f"No se puede editar una requisición en estado '{req.estado}'")
         for k, v in payload.items():
             setattr(req, k, v)
@@ -171,7 +171,7 @@ async def enviar_a_aprobacion(
     if not req:
         raise ValueError(f"Requisición {requisicion_id} no encontrada")
 
-    estados_validos = (EstadoRP.BORRADOR, EstadoRP.DEVUELTA_AJUSTE)
+    estados_validos = (EstadoRP.BORRADOR, EstadoRP.DEVUELTA_AJUSTE, EstadoRP.DEVUELTA_MODIFICACION_SALARIAL)
     if req.estado not in estados_validos:
         raise PermissionError(f"No se puede enviar a aprobación desde estado '{req.estado}'")
 
@@ -200,7 +200,12 @@ async def enviar_a_aprobacion(
         logger.warning(f"[RP] No hay aprobador configurado para área_id={req.area_id}")
 
     estado_anterior = req.estado
-    req.estado = EstadoRP.PENDIENTE_APROBACION
+    if estado_anterior == EstadoRP.DEVUELTA_MODIFICACION_SALARIAL:
+        req.modificada_por_gh = True
+        req.fecha_modificacion_gh = datetime.utcnow()
+        req.estado = EstadoRP.PENDIENTE_APROBACION_GERENCIA # Va directo a gerencia
+    else:
+        req.estado = EstadoRP.PENDIENTE_APROBACION
     req.fecha_radicacion = datetime.utcnow()
     req.updated_at = datetime.utcnow()
 
@@ -540,4 +545,67 @@ async def cancelar_requisicion_gh(
     await db.refresh(req)
     logger.info(f"[RP] {req.rp} CANCELADA por GH {responsable_email}: {observacion[:60]}")
     return req
+
+
+# ──────────────────────────────────────────────
+# Modificación Salarial (Devolución desde GH)
+# ──────────────────────────────────────────────
+async def devolver_modificacion_salarial(
+    db: AsyncSession,
+    requisicion_id: int,
+    responsable_nombre: str,
+    responsable_email: str,
+    observacion: str,
+) -> RequisicionPersonal:
+    if not observacion or not observacion.strip():
+        raise ValueError("La observación es obligatoria para devolver por ajuste salarial")
+
+    result = await db.execute(
+        sqlmodel_select(RequisicionPersonal).where(RequisicionPersonal.id == requisicion_id)
+    )
+    req = result.scalar_one_or_none()
+    if not req:
+        raise ValueError(f"Requisición {requisicion_id} no encontrada")
+
+    if req.estado not in EstadoRP.CANCELABLES_GH:
+        raise PermissionError(
+            f"No se puede solicitar modificación salarial en estado '{req.estado}'"
+        )
+
+    estado_anterior = req.estado
+    req.estado = EstadoRP.DEVUELTA_MODIFICACION_SALARIAL
+    req.responsable_gh_nombre = responsable_nombre
+    req.responsable_gh_email = responsable_email
+    req.updated_at = datetime.utcnow()
+
+    await registrar_historial(
+        db, req.id, estado_anterior, EstadoRP.DEVUELTA_MODIFICACION_SALARIAL,
+        responsable_nombre, responsable_email, observacion.strip(),
+    )
+
+    await db.commit()
+    await db.refresh(req)
+    logger.info(f"[RP] {req.rp} DEVUELTA PARA MODIFICACION SALARIAL por GH {responsable_email}")
+    return req
+
+
+async def marcar_vista_gh(
+    db: AsyncSession,
+    requisicion_id: int,
+) -> RequisicionPersonal:
+    result = await db.execute(
+        sqlmodel_select(RequisicionPersonal).where(RequisicionPersonal.id == requisicion_id)
+    )
+    req = result.scalar_one_or_none()
+    if not req:
+        raise ValueError(f"Requisición {requisicion_id} no encontrada")
+
+    if not req.fecha_recibido_gh:
+        req.fecha_recibido_gh = datetime.utcnow()
+        await db.commit()
+        await db.refresh(req)
+        logger.info(f"[RP] {req.rp} marcada como vista/recibida por GH")
+    
+    return req
+
 

@@ -103,13 +103,13 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
               <Printer className="w-4 h-4" />
             </Button>
           )}
-          {(row.estado === 'BORRADOR' || row.estado === 'DEVUELTA_AJUSTE') && (
+          {(row.estado === 'BORRADOR' || row.estado === 'DEVUELTA_AJUSTE' || row.estado === 'DEVUELTA_MODIFICACION_SALARIAL') && (
             <Button variant="ghost" onClick={() => onEditar(row.id)} title="Editar"
               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-amber-600 transition-colors">
               <Edit className="w-4 h-4" />
             </Button>
           )}
-          {row.estado === 'DEVUELTA_AJUSTE' && (
+          {(row.estado === 'DEVUELTA_AJUSTE' || row.estado === 'DEVUELTA_MODIFICACION_SALARIAL') && (
             <Button variant="ghost" onClick={() => handleReenviar(row.id)} title="Reenviar a aprobación"
               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-emerald-600 transition-colors">
               <Send className="w-4 h-4" />

@@ -24,6 +24,7 @@ class EstadoRP:
     PENDIENTE_APROBACION = "PENDIENTE_APROBACION"
     PENDIENTE_APROBACION_GERENCIA = "PENDIENTE_APROBACION_GERENCIA"
     DEVUELTA_AJUSTE = "DEVUELTA_AJUSTE"
+    DEVUELTA_MODIFICACION_SALARIAL = "DEVUELTA_MODIFICACION_SALARIAL"
     APROBADA = "APROBADA"
     RECHAZADA = "RECHAZADA"
     EN_PROCESO_SELECCION = "EN_PROCESO_SELECCION"
@@ -35,6 +36,7 @@ class EstadoRP:
         PENDIENTE_APROBACION: "Pendiente de Aprobación",
         PENDIENTE_APROBACION_GERENCIA: "Pendiente Aprobación Gerencia",
         DEVUELTA_AJUSTE: "Devuelta para Ajuste",
+        DEVUELTA_MODIFICACION_SALARIAL: "Devuelta por Modificación Salarial",
         APROBADA: "Aprobada",
         RECHAZADA: "Rechazada",
         EN_PROCESO_SELECCION: "En Proceso de Selección",
@@ -135,6 +137,9 @@ class RequisicionPersonal(SQLModel, table=True):
     responsable_gh_email: Optional[str] = Field(default=None, max_length=255)
     fecha_cierre: Optional[datetime] = Field(default=None)
     observacion_cierre: Optional[str] = Field(default=None)
+    fecha_recibido_gh: Optional[datetime] = Field(default=None)
+    modificada_por_gh: bool = Field(default=False)
+    fecha_modificacion_gh: Optional[datetime] = Field(default=None)
 
     # Auditoría
     created_at: Optional[datetime] = Field(

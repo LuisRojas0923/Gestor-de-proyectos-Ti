@@ -68,6 +68,45 @@ async def cancelar_requisicion_gh(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
+@router.post("/{requisicion_id}/marcar-vista-gh", response_model=RequisicionOut)
+async def marcar_vista_gh(
+    requisicion_id: int,
+    db: AsyncSession = Depends(obtener_db),
+):
+    """
+    Registra la fecha y hora de la primera vez que GH visualiza la RP.
+    """
+    try:
+        return await svc.marcar_vista_gh(db, requisicion_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/{requisicion_id}/devolver-modificacion-salarial", response_model=RequisicionOut)
+async def devolver_modificacion_salarial(
+    requisicion_id: int,
+    payload: CancelarGHPayload,
+    db: AsyncSession = Depends(obtener_db),
+):
+    """
+    Devuelve la RP al solicitante para ajustes en salarios y auxilios.
+    Solo disponible para estados APROBADA o EN_PROCESO_SELECCION.
+    """
+    try:
+        req = await svc.devolver_modificacion_salarial(
+            db,
+            requisicion_id,
+            "Gestión Humana",
+            "gestion.humana@refridcol.com",
+            payload.observacion or "",
+        )
+        return req
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
 # ── Catálogo de Temporales ─────────────────────
 @router.get("/temporales", response_model=List[EmpresaTemporalOut])
 async def listar_temporales(db: AsyncSession = Depends(obtener_db)):

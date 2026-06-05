@@ -23,9 +23,10 @@ const TIPOS_CONTRATO = [
 interface Props {
   form: FormularioRP;
   update: <K extends keyof FormularioRP>(k: K, v: FormularioRP[K]) => void;
+  isModificacionSalarial?: boolean;
 }
 
-const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
+const Step5Contratacion: React.FC<Props> = ({ form, update, isModificacionSalarial }) => {
   const handleNumericChange = (
     campo: 'salario_asignado' | 'auxilio_movilizacion' | 'auxilio_alimentacion' | 'auxilio_vivienda',
     rawValue: string
@@ -50,7 +51,7 @@ const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
     }
   };
 
-  const isTipoContratoBloqueado = form.modalidad_contratacion === 'AGENCIA TEMPORAL' || form.modalidad_contratacion === 'APRENDIZ CONVENIO SENA';
+  const isTipoContratoBloqueado = isModificacionSalarial || form.modalidad_contratacion === 'AGENCIA TEMPORAL' || form.modalidad_contratacion === 'APRENDIZ CONVENIO SENA';
 
   return (
     <div className="space-y-5">
@@ -75,6 +76,7 @@ const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
             onChange={e => update('horas_extras', e.target.value as 'SI' | 'NO')}
             icon={Clock}
             options={[{ value: 'NO', label: 'NO' }, { value: 'SI', label: 'SÍ' }]}
+            disabled={isModificacionSalarial}
             required
           />
         </div>
@@ -89,6 +91,7 @@ const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
             value={form.modalidad_contratacion}
             onChange={e => handleModalidadChange(e.target.value)}
             options={MODALIDADES}
+            disabled={isModificacionSalarial}
             required
           />
         </div>
