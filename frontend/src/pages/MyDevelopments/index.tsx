@@ -191,6 +191,7 @@ const MyDevelopments: React.FC = () => {
         activeSortKey={sortState?.key ?? null}
         activeSortDir={sortState?.dir ?? null}
         onSort={setSort}
+        actionsMinWidth="90px"
         renderRowActions={(dev) => (
           <>
             {getDevelopmentStatus(dev) === 'Pausado' ? (
@@ -250,7 +251,6 @@ const MyDevelopments: React.FC = () => {
             </Button>
           </>
         )}
-        actionsMinWidth="120px"
         emptyIcon={<Search size={40} className="opacity-40" />}
         emptyMessage="No se encontraron actividades"
         maxHeight="max-h-[calc(100vh-280px)]"

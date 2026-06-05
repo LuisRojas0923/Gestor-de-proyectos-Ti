@@ -164,8 +164,8 @@ export const getColumns = (
     {
       key: 'name',
       label: 'Proyecto',
+      flex: true,
       minWidth: '200px',
-      maxWidth: '200px',
       filterable: true,
       subFilters: [
         { key: 'name_name', label: 'Nombre' },
@@ -222,9 +222,9 @@ export const getColumns = (
         }
         
         return (
-          <div className="flex items-center gap-2 w-full" title={status}>
+          <div className="flex flex-col items-center gap-1 w-full" title={status}>
             <IconComponent size={18} className={`${iconColor} shrink-0`} />
-            <div className="flex items-center gap-1 flex-1 min-w-0">
+            <div className="flex items-center gap-1 w-full min-w-0">
               <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div className={`h-full bg-green-500 transition-all duration-500 ${getProgressWidthClass(progress)}`} />
               </div>
@@ -239,8 +239,8 @@ export const getColumns = (
     {
       key: 'prioridad',
       label: 'Prioridad',
-      minWidth: '60px',
-      maxWidth: '60px',
+      minWidth: '70px',
+      maxWidth: '70px',
       centered: true,
       filterable: true,
       render: (dev) => {
@@ -281,14 +281,14 @@ export const getColumns = (
             <div className="flex items-center gap-1">
               <Text as="span" className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0 mr-1" title="Fecha Inicio" />
               <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[24px] shrink-0 !text-[10px]">Ini:</Text>
-              <Text as="span" variant="caption" color="text-primary" className="!text-[11px] font-medium whitespace-nowrap">
+              <Text as="span" variant="caption" color="text-primary" className="!text-[10px] whitespace-nowrap">
                 {valueOrFallback(start)}
               </Text>
             </div>
             <div className="flex items-center gap-1">
               <Text as="span" className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 mr-1" title="Fecha Estimada Fin" />
               <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[24px] shrink-0 !text-[10px]">Fin:</Text>
-              <Text as="span" variant="caption" color="text-secondary" className="!text-[10px] whitespace-nowrap">
+              <Text as="span" variant="caption" color="text-primary" className="!text-[10px] whitespace-nowrap">
                 {valueOrFallback(end)}
               </Text>
             </div>
@@ -310,13 +310,15 @@ export const getColumns = (
         const imp = dev.area_desarrollo ?? 'N/A';
         const ejec = dev.area_ejecutor ?? '—';
         return (
-          <div className="flex flex-col text-left min-w-0">
-            <Text as="span" variant="caption" color="text-primary" className="truncate !text-[11px] font-medium" title={`Área de impacto: ${imp}`}>
-              {imp}
-            </Text>
-            <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[10px]" title={`Área Ejecutora: ${ejec}`}>
-              {ejec}
-            </Text>
+          <div className="flex flex-col gap-0.5 text-left min-w-0">
+            <div className="truncate !text-[10px] flex items-center" title={`Área de impacto: ${imp}`}>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[16px] shrink-0 !text-[10px]">I:</Text>
+              <Text as="span" variant="caption" color="text-primary" className="truncate">{imp}</Text>
+            </div>
+            <div className="truncate !text-[10px] flex items-center" title={`Área Ejecutora: ${ejec}`}>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[16px] shrink-0 !text-[10px]">E:</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="truncate">{ejec}</Text>
+            </div>
           </div>
         );
       },
@@ -324,8 +326,8 @@ export const getColumns = (
     {
       key: 'authority',
       label: 'Equipo',
-      minWidth: '360px',
-      maxWidth: '360px',
+      minWidth: '300px',
+      maxWidth: '300px',
       filterable: true,
       subFilters: [
         { key: 'authority', label: 'Autoridad' },
