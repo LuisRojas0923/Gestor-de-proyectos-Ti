@@ -25,7 +25,10 @@ async def fix_tickets():
         "UPDATE tickets SET descripcion = 'Sin descripción' WHERE descripcion IS NULL OR descripcion = '';",
         
         # 5. Corregir creador_id nulos (si existieran, aunque el modelo es estricto)
-        "UPDATE tickets SET creador_id = 'sistema' WHERE creador_id IS NULL;"
+        "UPDATE tickets SET creador_id = 'sistema' WHERE creador_id IS NULL;",
+
+        # 6. Normalizar creador_id con prefijo USR-P-
+        "UPDATE tickets SET creador_id = 'USR-P-' || creador_id WHERE creador_id ~ '^[0-9]+$' AND creador_id NOT LIKE 'USR-%';"
     ]
     
     try:

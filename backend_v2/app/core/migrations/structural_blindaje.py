@@ -171,4 +171,14 @@ async def ejecutar_blindaje_estructural(conn):
     # 10. Migración de estados de actividades y desarrollos
     await migrar_estados_actividades(conn)
 
+    # 11. Normalizar creador_id en tickets existentes (convertir cédulas numéricas en USR-P-<cedula>)
+    await safe_execute(
+        conn,
+        """
+        UPDATE tickets 
+        SET creador_id = 'USR-P-' || creador_id 
+        WHERE creador_id ~ '^[0-9]+$' AND creador_id NOT LIKE 'USR-%'
+        """
+    )
+
     logger.info("Blindaje estructural completado exitosamente.")
