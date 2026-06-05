@@ -291,8 +291,8 @@ export const getColumns = (
     },
     {
       key: 'area_desarrollo',
-      label: 'Áreas (Imp / Ejec)',
-      minWidth: '130px',
+      label: 'AREAS',
+      minWidth: '95px',
       filterable: true,
       subFilters: [
         { key: 'area_desarrollo', label: 'Área de impacto' },
@@ -315,8 +315,8 @@ export const getColumns = (
     },
     {
       key: 'authority',
-      label: 'Equipo (Aut / Líd / Sup / Eje)',
-      minWidth: '180px',
+      label: 'Equipo',
+      minWidth: '215px',
       filterable: true,
       subFilters: [
         { key: 'authority', label: 'Autoridad' },
