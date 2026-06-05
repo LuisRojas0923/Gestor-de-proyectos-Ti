@@ -2,6 +2,16 @@ import React from 'react';
 import { DataTableColumn } from '../../../components/molecules/DataTable';
 import { Checkbox, Text } from '../../../components/atoms';
 import { DevelopmentWithCurrentStatus } from '../../../types';
+import { 
+  Clock, 
+  PlayCircle, 
+  CheckCircle2, 
+  PauseCircle, 
+  AlertCircle, 
+  ArrowUp, 
+  ArrowRight, 
+  ArrowDown 
+} from 'lucide-react';
 
 export type DevelopmentRow = DevelopmentWithCurrentStatus & {
   nombre?: string;
@@ -136,194 +146,216 @@ export const getColumns = (
         { key: 'id', label: 'ID' },
         { key: 'tipo', label: 'Tipo' }
       ],
-    render: (dev) => (
-      <div className="flex flex-col items-start gap-1">
-        <Text as="span" variant="caption" color="gray" className="font-mono whitespace-nowrap">
-          {dev.id}
-        </Text>
-        {dev.tipo && (
-          <Text as="span" variant="caption" color="text-secondary" className="!text-[10px]">
-            {getTipoLabel(dev.tipo)}
+      render: (dev) => (
+        <div className="flex flex-col items-start gap-1">
+          <Text as="span" variant="caption" color="gray" className="font-mono whitespace-nowrap">
+            {dev.id}
           </Text>
-        )}
-      </div>
-    ),
-  },
-  {
-    key: 'name',
-    label: 'Proyecto',
-    flex: true,
-    minWidth: '360px',
-    filterable: true,
-    subFilters: [
-      { key: 'name_name', label: 'Nombre' },
-      { key: 'name_description', label: 'Descripción' },
-      { key: 'name_creator', label: 'Creado por' }
-    ],
-    render: (dev) => {
-      const description = getDevelopmentDescription(dev);
-      return (
-        <div className="min-w-0">
-          <Text variant="body2" weight="bold" className="truncate group-hover:text-[var(--color-primary)] transition-colors" title={getDevelopmentName(dev)}>
-            {getDevelopmentName(dev)}
-          </Text>
-          {description && (
-            <Text as="span" variant="caption" color="text-secondary" className="mt-0.5 block truncate !text-[11px]" title={description}>
-              {description}
-            </Text>
-          )}
-          {dev.creado_por_id && (
-            <Text as="span" variant="caption" color="text-secondary" className="mt-0.5 block truncate !text-[10px] font-medium opacity-80">
-              Creado por: {resolveUserName(dev.creado_por_id) || dev.creado_por_id}
+          {dev.tipo && (
+            <Text as="span" variant="caption" color="text-secondary" className="!text-[10px]">
+              {getTipoLabel(dev.tipo)}
             </Text>
           )}
         </div>
-      );
+      ),
     },
-  },
-  {
-    key: 'status',
-    label: 'Estado',
-    minWidth: '100px',
-    centered: true,
-    filterable: true,
-    render: (dev) => {
-      const status = getStatusLabel(getDevelopmentStatus(dev));
-      return (
-        <Text as="span" variant="caption" weight="medium" color="inherit"
-          className={`inline-flex items-center rounded-full !text-[10px] tracking-wider px-2 py-0.5 ${getStatusColor(status)} shadow-md`}>
-          {status}
-        </Text>
-      );
-    },
-  },
-  {
-    key: 'prioridad',
-    label: 'Prioridad',
-    minWidth: '85px',
-    centered: true,
-    filterable: true,
-    render: (dev) => {
-      const p = dev.prioridad;
-      if (!p) return <Text as="span" className="text-gray-400 dark:text-gray-600">—</Text>;
-      return (
-        <Text as="span" variant="caption" weight="medium" color="inherit"
-          className={`inline-flex items-center rounded-full !text-[10px] tracking-wider px-2 py-0.5 ${getPrioridadColor(p)} shadow-md`}>
-          {p}
-        </Text>
-      );
-    },
-  },
-  {
-    key: 'progress',
-    label: 'Progreso',
-    minWidth: '100px',
-    render: (dev) => {
-      const progress = getDevelopmentProgress(dev);
-      return (
-        <div className="flex items-center gap-1.5 w-full">
-          <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div className={`h-full bg-green-500 transition-all duration-500 ${getProgressWidthClass(progress)}`} />
+    {
+      key: 'name',
+      label: 'Proyecto',
+      flex: true,
+      minWidth: '360px',
+      filterable: true,
+      subFilters: [
+        { key: 'name_name', label: 'Nombre' },
+        { key: 'name_description', label: 'Descripción' },
+        { key: 'name_creator', label: 'Creado por' }
+      ],
+      render: (dev) => {
+        const description = getDevelopmentDescription(dev);
+        return (
+          <div className="min-w-0">
+            <Text variant="body2" weight="bold" className="truncate group-hover:text-[var(--color-primary)] transition-colors" title={getDevelopmentName(dev)}>
+              {getDevelopmentName(dev)}
+            </Text>
+            {description && (
+              <Text as="span" variant="caption" color="text-secondary" className="mt-0.5 block truncate !text-[11px]" title={description}>
+                {description}
+              </Text>
+            )}
+            {dev.creado_por_id && (
+              <Text as="span" variant="caption" color="text-secondary" className="mt-0.5 block truncate !text-[10px] font-medium opacity-80">
+                Creado por: {resolveUserName(dev.creado_por_id) || dev.creado_por_id}
+              </Text>
+            )}
           </div>
-          <Text as="span" variant="caption" weight="bold" color="text-secondary" className="w-8 text-right !text-[10px]">
-            {progress}%
-          </Text>
-        </div>
-      );
+        );
+      },
     },
-  },
-  {
-    key: 'start_date',
-    label: 'Inicio',
-    minWidth: '80px',
-    filterable: true,
-    render: (dev) => (
-      <Text as="span" variant="caption" color="text-secondary" className="!text-[11px]">
-        {valueOrFallback(getDevelopmentStartDate(dev))}
-      </Text>
-    ),
-  },
-  {
-    key: 'estimated_end_date',
-    label: 'Fin',
-    minWidth: '80px',
-    filterable: true,
-    render: (dev) => (
-      <Text as="span" variant="caption" color="text-secondary" className="!text-[11px]">
-        {valueOrFallback(getDevelopmentEndDate(dev))}
-      </Text>
-    ),
-  },
-  {
-    key: 'area_desarrollo',
-    label: 'Área de impacto',
-    minWidth: '100px',
-    filterable: true,
-    render: (dev) => (
-      <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={dev.area_desarrollo ?? 'N/A'}>
-        {dev.area_desarrollo ?? 'N/A'}
-      </Text>
-    ),
-  },
-  {
-    key: 'area_ejecutor',
-    label: 'Área Ejec.',
-    minWidth: '90px',
-    filterable: true,
-    render: (dev) => (
-      <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={dev.area_ejecutor ?? '—'}>
-        {dev.area_ejecutor ?? '—'}
-      </Text>
-    ),
-  },
-  {
-    key: 'authority',
-    label: 'Autoridad',
-    minWidth: '90px',
-    filterable: true,
-    render: (dev) => (
-      <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={valueOrFallback(resolveUserName(dev.authority ?? dev.autoridad))}>
-        {valueOrFallback(resolveUserName(dev.authority ?? dev.autoridad))}
-      </Text>
-    ),
-  },
-  {
-    key: 'responsible',
-    label: 'Líder',
-    minWidth: '90px',
-    filterable: true,
-    render: (dev) => (
-      <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={valueOrFallback(resolveUserName(dev.responsible ?? dev.responsable))}>
-        {valueOrFallback(resolveUserName(dev.responsible ?? dev.responsable))}
-      </Text>
-    ),
-  },
-  {
-    key: 'supervisor',
-    label: 'Supervisor',
-    minWidth: '90px',
-    filterable: true,
-    render: (dev) => (
-      <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]" title={valueOrFallback(resolveUserName(dev.supervisor))}>
-        {valueOrFallback(resolveUserName(dev.supervisor))}
-      </Text>
-    ),
-  },
-  {
-    key: 'analista',
-    label: 'Ejecutor',
-    minWidth: '90px',
-    filterable: true,
-    render: (dev) => (
-      <div className="flex items-center gap-2 min-w-0" title={resolveUserName(dev.analista) ?? 'N/A'}>
-        <div className="w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold bg-[var(--color-primary-light)] text-[var(--color-primary)]">
-          {(dev.analista ?? 'A')[0].toUpperCase()}
-        </div>
-        <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[11px]">
-          {resolveUserName(dev.analista) ?? 'N/A'}
-        </Text>
-      </div>
-    ),
-  },
+    {
+      key: 'status',
+      label: 'Estado y Progreso',
+      minWidth: '160px',
+      filterable: true,
+      render: (dev) => {
+        const status = getStatusLabel(getDevelopmentStatus(dev));
+        const progress = getDevelopmentProgress(dev);
+        
+        let IconComponent = Clock;
+        let iconColor = 'text-yellow-500';
+        const s = status.toLowerCase();
+        
+        if (s.includes('pendiente')) {
+          IconComponent = AlertCircle;
+          iconColor = 'text-red-500 animate-pulse';
+        } else if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) {
+          IconComponent = PlayCircle;
+          iconColor = 'text-blue-500';
+        } else if (s.includes('complet')) {
+          IconComponent = CheckCircle2;
+          iconColor = 'text-green-500';
+        } else if (s.includes('paus') || s.includes('pausa') || s.includes('pausado')) {
+          IconComponent = PauseCircle;
+          iconColor = 'text-orange-500';
+        }
+        
+        return (
+          <div className="flex flex-col gap-1.5 w-full">
+            <div className="flex items-center gap-1.5">
+              <IconComponent size={14} className={`${iconColor} shrink-0`} title={status} />
+              <Text as="span" variant="caption" weight="medium" color="text-secondary" className="!text-[10px] truncate">
+                {status}
+              </Text>
+            </div>
+            <div className="flex items-center gap-1.5 w-full">
+              <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div className={`h-full bg-green-500 transition-all duration-500 ${getProgressWidthClass(progress)}`} />
+              </div>
+              <Text as="span" variant="caption" weight="bold" color="text-secondary" className="w-8 text-right !text-[10px] shrink-0">
+                {progress}%
+              </Text>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'prioridad',
+      label: 'Prioridad',
+      minWidth: '60px',
+      centered: true,
+      filterable: true,
+      render: (dev) => {
+        const p = dev.prioridad;
+        if (!p) return <Text as="span" className="text-gray-400 dark:text-gray-600">—</Text>;
+        const pLower = p.toLowerCase();
+        let IconComponent = ArrowRight;
+        let colorClass = 'text-orange-500';
+        if (pLower === 'alta' || pLower === 'crítica' || pLower === 'critica') {
+          IconComponent = ArrowUp;
+          colorClass = 'text-red-500';
+        } else if (pLower === 'baja') {
+          IconComponent = ArrowDown;
+          colorClass = 'text-blue-500';
+        }
+        return (
+          <div className="flex items-center justify-center" title={`Prioridad: ${p}`}>
+            <IconComponent size={16} className={`${colorClass} stroke-[2.5]`} />
+          </div>
+        );
+      },
+    },
+    {
+      key: 'start_date',
+      label: 'Cronograma',
+      minWidth: '100px',
+      filterable: true,
+      subFilters: [
+        { key: 'start_date', label: 'Fecha Inicio' },
+        { key: 'estimated_end_date', label: 'Fecha Fin' }
+      ],
+      render: (dev) => {
+        const start = getDevelopmentStartDate(dev);
+        const end = getDevelopmentEndDate(dev);
+        return (
+          <div className="flex flex-col gap-0.5 text-left">
+            <div className="flex items-center gap-1.5">
+              <Text as="span" className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" title="Fecha Inicio" />
+              <Text as="span" variant="caption" color="text-primary" className="!text-[11px] font-medium whitespace-nowrap">
+                {valueOrFallback(start)}
+              </Text>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Text as="span" className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" title="Fecha Estimada Fin" />
+              <Text as="span" variant="caption" color="text-secondary" className="!text-[10px] whitespace-nowrap">
+                {valueOrFallback(end)}
+              </Text>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'area_desarrollo',
+      label: 'Áreas (Imp / Ejec)',
+      minWidth: '130px',
+      filterable: true,
+      subFilters: [
+        { key: 'area_desarrollo', label: 'Área de impacto' },
+        { key: 'area_ejecutor', label: 'Área Ejecutora' }
+      ],
+      render: (dev) => {
+        const imp = dev.area_desarrollo ?? 'N/A';
+        const ejec = dev.area_ejecutor ?? '—';
+        return (
+          <div className="flex flex-col text-left min-w-0">
+            <Text as="span" variant="caption" color="text-primary" className="truncate !text-[11px] font-medium" title={`Área de impacto: ${imp}`}>
+              {imp}
+            </Text>
+            <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[10px]" title={`Área Ejecutora: ${ejec}`}>
+              {ejec}
+            </Text>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'authority',
+      label: 'Equipo (Aut / Líd / Sup / Eje)',
+      minWidth: '180px',
+      filterable: true,
+      subFilters: [
+        { key: 'authority', label: 'Autoridad' },
+        { key: 'responsible', label: 'Líder' },
+        { key: 'supervisor', label: 'Supervisor' },
+        { key: 'analista', label: 'Ejecutor' }
+      ],
+      render: (dev) => {
+        const aut = resolveUserName(dev.authority ?? dev.autoridad) || dev.authority || dev.autoridad || 'N/A';
+        const lid = resolveUserName(dev.responsible ?? dev.responsable) || dev.responsible || dev.responsable || 'N/A';
+        const sup = resolveUserName(dev.supervisor) || dev.supervisor || 'N/A';
+        const eje = resolveUserName(dev.analista) || dev.analista || 'N/A';
+        
+        return (
+          <div className="flex flex-col gap-0.5 text-left py-1 min-w-0">
+            <div className="truncate !text-[10px] flex items-center" title={`Autoridad: ${aut}`}>
+              <Text as="span" className="font-bold text-[8px] text-blue-600 dark:text-blue-400 mr-1.5 bg-blue-100 dark:bg-blue-900/20 px-1 rounded shrink-0">AUT</Text>
+              <Text as="span" variant="caption" color="text-primary" className="truncate">{aut}</Text>
+            </div>
+            <div className="truncate !text-[10px] flex items-center" title={`Líder: ${lid}`}>
+              <Text as="span" className="font-bold text-[8px] text-green-600 dark:text-green-400 mr-1.5 bg-green-100 dark:bg-green-900/20 px-1 rounded shrink-0">LÍD</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="truncate">{lid}</Text>
+            </div>
+            <div className="truncate !text-[10px] flex items-center" title={`Supervisor: ${sup}`}>
+              <Text as="span" className="font-bold text-[8px] text-purple-600 dark:text-purple-400 mr-1.5 bg-purple-100 dark:bg-purple-900/20 px-1 rounded shrink-0">SUP</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="truncate">{sup}</Text>
+            </div>
+            <div className="truncate !text-[10px] flex items-center" title={`Ejecutor: ${eje}`}>
+              <Text as="span" className="font-bold text-[8px] text-amber-600 dark:text-amber-400 mr-1.5 bg-amber-100 dark:bg-amber-900/20 px-1 rounded shrink-0">EJE</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="truncate">{eje}</Text>
+            </div>
+          </div>
+        );
+      },
+    },
   ];
 };
