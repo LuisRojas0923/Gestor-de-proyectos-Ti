@@ -67,3 +67,15 @@ class AprobadorAreaRP(SQLModel, table=True):
 
     # Relaciones
     area: Optional[AreaRP] = Relationship(back_populates="aprobadores")
+
+
+class CausalDescarteRP(SQLModel, table=True):
+    """Causales de descarte dinámicas para el seguimiento de requisiciones"""
+    __tablename__ = "causales_descarte_rp"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    causal: str = Field(max_length=255, unique=True)
+    activo: bool = Field(default=True)
+    creado_en: Optional[datetime] = Field(
+        default=None, sa_column_kwargs={"server_default": "now()"}
+    )

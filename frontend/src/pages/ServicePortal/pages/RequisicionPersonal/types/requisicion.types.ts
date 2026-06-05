@@ -43,6 +43,7 @@ export interface AprobadorRP {
   id: number; area_id: number;
   nombre_aprobador: string; email_aprobador: string; activo: boolean;
 }
+export interface CausalDescarteRP { id: number; causal: string; activo: boolean; }
 
 // ── Requisición ────────────────────────────────
 export interface EquipoItem { id: number; equipo: string; }

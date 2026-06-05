@@ -53,14 +53,9 @@ const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
   const isTipoContratoBloqueado = form.modalidad_contratacion === 'AGENCIA TEMPORAL' || form.modalidad_contratacion === 'APRENDIZ CONVENIO SENA';
 
   return (
-    <div className="space-y-8">
-      {/* Salario y horas extras */}
-      <div className="space-y-5">
-        <div className="flex items-center gap-3 pb-2 border-b border-[var(--color-border)]">
-          <DollarSign className="w-5 h-5 text-[var(--color-primary)]" />
-          <Title variant="h6" className="font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Compensación</Title>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="md:col-span-1">
           <FormField
             label="Salario asignado (COP)"
             name="salario_asignado"
@@ -71,6 +66,8 @@ const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
             icon={DollarSign}
             isRequired
           />
+        </div>
+        <div className="md:col-span-1 md:col-start-3">
           <Select
             label="¿Tiene horas extras?"
             name="horas_extras"
@@ -84,12 +81,8 @@ const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
       </div>
 
       {/* Modalidad y tipo */}
-      <div className="space-y-5">
-        <div className="flex items-center gap-3 pb-2 border-b border-[var(--color-border)]">
-          <FileText className="w-5 h-5 text-[var(--color-primary)]" />
-          <Title variant="h6" className="font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Vinculación</Title>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="md:col-span-1">
           <Select
             label="Modalidad de contratación"
             name="modalidad_contratacion"
@@ -98,6 +91,8 @@ const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
             options={MODALIDADES}
             required
           />
+        </div>
+        <div className="md:col-span-1 md:col-start-3">
           <Select
             label="Tipo de contratación"
             name="tipo_contratacion"
@@ -111,39 +106,51 @@ const Step5Contratacion: React.FC<Props> = ({ form, update }) => {
       </div>
 
       {/* Auxilios */}
-      <div className="space-y-5">
-        <div className="flex items-center gap-3 pb-2 border-b border-[var(--color-border)]">
-          <DollarSign className="w-5 h-5 text-[var(--color-primary)]" />
-          <Title variant="h6" className="font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Auxilios (si no aplica, dejar en 0)</Title>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="md:col-span-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="md:col-span-1">
+              <FormField
+                label="Movilización"
+                name="auxilio_movilizacion"
+                type="text"
+                value={form.auxilio_movilizacion}
+                onChange={e => handleNumericChange('auxilio_movilizacion', e.target.value)}
+                icon={DollarSign}
+                placeholder="0"
+              />
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <FormField
-            label="Auxilio de movilización (COP)"
-            name="auxilio_movilizacion"
-            type="text"
-            value={form.auxilio_movilizacion}
-            onChange={e => handleNumericChange('auxilio_movilizacion', e.target.value)}
-            icon={DollarSign}
-            placeholder="0"
-          />
-          <FormField
-            label="Auxilio de alimentación (COP)"
-            name="auxilio_alimentacion"
-            type="text"
-            value={form.auxilio_alimentacion}
-            onChange={e => handleNumericChange('auxilio_alimentacion', e.target.value)}
-            icon={DollarSign}
-            placeholder="0"
-          />
-          <FormField
-            label="Auxilio de vivienda (COP)"
-            name="auxilio_vivienda"
-            type="text"
-            value={form.auxilio_vivienda}
-            onChange={e => handleNumericChange('auxilio_vivienda', e.target.value)}
-            icon={DollarSign}
-            placeholder="0"
-          />
+        <div className="md:col-span-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="md:col-span-1">
+              <FormField
+                label="Alimentación"
+                name="auxilio_alimentacion"
+                type="text"
+                value={form.auxilio_alimentacion}
+                onChange={e => handleNumericChange('auxilio_alimentacion', e.target.value)}
+                icon={DollarSign}
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="md:col-span-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="md:col-span-1">
+              <FormField
+                label="Vivienda"
+                name="auxilio_vivienda"
+                type="text"
+                value={form.auxilio_vivienda}
+                onChange={e => handleNumericChange('auxilio_vivienda', e.target.value)}
+                icon={DollarSign}
+                placeholder="0"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -169,27 +169,17 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 pb-2 border-b border-[var(--color-border)]">
-        <User className="w-5 h-5 text-[var(--color-primary)]" />
-        <Title variant="h6" className="font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
-          Información del Solicitante
-        </Title>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="md:col-span-2">
+          <FormField label="Nombre del solicitante" name="nombre_solicitante" defaultValue={nombreSolicitante} readOnly icon={User} />
+        </div>
+        <div className="md:col-span-2">
+          <FormField label="Correo del solicitante" name="correo_solicitante" defaultValue={correoSolicitante} readOnly icon={User} />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <FormField label="Nombre del solicitante" name="nombre_solicitante" defaultValue={nombreSolicitante} readOnly icon={User} />
-        <FormField label="Correo del solicitante" name="correo_solicitante" defaultValue={correoSolicitante} readOnly icon={User} />
-      </div>
-
-      <div className="flex items-center gap-3 pt-2 pb-2 border-b border-[var(--color-border)]">
-        <Building2 className="w-5 h-5 text-[var(--color-primary)]" />
-        <Title variant="h6" className="font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
-          Datos de la Obra / Proyecto
-        </Title>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="flex flex-col md:flex-row gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="md:col-span-2 flex flex-col md:flex-row gap-5">
           <AutocompleteField
             label="Departamento"
             name="departamento"
@@ -215,96 +205,132 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
             required
           />
         </div>
-        <FormField
-          label="OT (Orden de Trabajo)"
-          name="ot"
-          value={form.ot}
-          onChange={e => update('ot', e.target.value)}
-          icon={Hash}
-          placeholder="Ej: OT-20260001 o N/A"
-          isRequired={false}
-        />
-        <FormField
-          label="Nombre obra / proyecto"
-          name="nombre_obra_proyecto"
-          value={form.nombre_obra_proyecto}
-          onChange={e => update('nombre_obra_proyecto', e.target.value)}
-          icon={Briefcase}
-          isRequired
-        />
-        <FormField
-          label="Dirección de obra o proyecto"
-          name="direccion_obra_proyecto"
-          value={form.direccion_obra_proyecto}
-          onChange={e => update('direccion_obra_proyecto', e.target.value)}
-          icon={MapPin}
-          isRequired={false}
-        />
-        <FormField
-          label="Encargado en sitio"
-          name="encargado_sitio"
-          value={form.encargado_sitio}
-          onChange={e => update('encargado_sitio', e.target.value)}
-          icon={HardHat}
-          isRequired={false}
-        />
-        <FormField
-          label="N° personas requeridas"
-          name="numero_personas_requeridas"
-          type="number"
-          min={1}
-          value={String(form.numero_personas_requeridas)}
-          onChange={e => {
-            const val = e.target.value;
-            const clean = val.replace(/\D/g, '');
-            const parsed = clean ? parseInt(clean, 10) : 0;
-            update('numero_personas_requeridas', parsed);
-          }}
-          isRequired
-        />
-        <Select
-          label="TSA (Trabajo Seguro en Alturas)"
-          name="tsa"
-          value={form.tsa}
-          onChange={e => update('tsa', e.target.value)}
-          options={[
-            { value: '', label: 'SELECCIONAR...' },
-            { value: 'APLICA', label: 'APLICA' },
-            { value: 'NO APLICA', label: 'NO APLICA' },
-          ]}
-          required
-        />
-        <Select
-          label="Duración obra o contrato"
-          name="duracion_obra_contrato"
-          value={form.duracion_obra_contrato}
-          onChange={e => update('duracion_obra_contrato', e.target.value)}
-          options={[
-            { value: '', label: 'SELECCIONAR...' },
-            { value: '2 MESES', label: '2 MESES' },
-            { value: 'MÁS DE 2 MESES', label: 'MÁS DE 2 MESES' },
-          ]}
-          required
-        />
-        <FormField
-          label="Fecha probable de ingreso"
-          name="fecha_probable_ingreso"
-          type="date"
-          value={form.fecha_probable_ingreso}
-          onChange={e => update('fecha_probable_ingreso', e.target.value)}
-          min={today}
-          icon={Calendar}
-          isRequired
-        />
-        <div className="relative">
+
+        <div className="md:col-span-2">
+          <FormField
+            label="Nombre obra / proyecto"
+            name="nombre_obra_proyecto"
+            value={form.nombre_obra_proyecto}
+            onChange={e => update('nombre_obra_proyecto', e.target.value)}
+            icon={Briefcase}
+            isRequired
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <FormField
+            label="Dirección de obra o proyecto"
+            name="direccion_obra_proyecto"
+            value={form.direccion_obra_proyecto}
+            onChange={e => update('direccion_obra_proyecto', e.target.value)}
+            icon={MapPin}
+            isRequired={false}
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <FormField
+            label="Encargado en sitio"
+            name="encargado_sitio"
+            value={form.encargado_sitio}
+            onChange={e => update('encargado_sitio', e.target.value)}
+            icon={HardHat}
+            isRequired={false}
+          />
+        </div>
+
+        <div className="md:col-span-1">
+          <FormField
+            label="OT (Orden de Trabajo)"
+            name="ot"
+            value={form.ot}
+            onChange={e => update('ot', e.target.value)}
+            icon={Hash}
+            placeholder="Ej: OT-20260001"
+            isRequired={false}
+          />
+        </div>
+
+        <div className="md:col-span-1">
+          <FormField
+            label="N° personas requeridas"
+            name="numero_personas_requeridas"
+            type="number"
+            min={1}
+            value={String(form.numero_personas_requeridas)}
+            onChange={e => {
+              const val = e.target.value;
+              const clean = val.replace(/\D/g, '');
+              const parsed = clean ? parseInt(clean, 10) : 0;
+              update('numero_personas_requeridas', parsed);
+            }}
+            isRequired
+          />
+        </div>
+
+        <div className="md:col-span-1">
+          <Select
+            label="TSA"
+            name="tsa"
+            value={form.tsa}
+            onChange={e => update('tsa', e.target.value)}
+            options={[
+              { value: '', label: 'SELECCIONAR...' },
+              { value: 'APLICA', label: 'APLICA' },
+              { value: 'NO APLICA', label: 'NO APLICA' },
+            ]}
+            required
+          />
+        </div>
+
+        <div className="md:col-span-1">
+          <Select
+            label="Duración"
+            name="duracion_obra_contrato"
+            value={form.duracion_obra_contrato}
+            onChange={e => update('duracion_obra_contrato', e.target.value)}
+            options={[
+              { value: '', label: 'SELECCIONAR...' },
+              { value: '2 MESES', label: '2 MESES' },
+              { value: 'MÁS DE 2 MESES', label: 'MÁS DE 2 MESES' },
+            ]}
+            required
+          />
+        </div>
+
+        <div className="md:col-span-1">
+          <FormField
+            label="Fecha de ingreso"
+            name="fecha_probable_ingreso"
+            type="date"
+            value={form.fecha_probable_ingreso}
+            onChange={e => update('fecha_probable_ingreso', e.target.value)}
+            min={today}
+            icon={Calendar}
+            isRequired
+          />
+        </div>
+
+        <div className="md:col-span-3 relative">
+          <div className="mb-1 flex justify-between items-baseline gap-2">
+            <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
+              Centro de costo <Text as="span" color="error" className="ml-1">*</Text>
+            </Text>
+            <a
+              href="/service-portal/centro-costos?tab=combinador"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] md:text-xs text-[var(--color-primary)] hover:underline font-medium text-right"
+            >
+              ¿No conoce el centro de costo? Revise el simulador aquí
+            </a>
+          </div>
           <Input
-            label="Centro de costo"
             name="centro_costo"
             value={searchTerm}
             onChange={e => handleInputChange(e.target.value)}
             onFocus={() => setShowDropdown(true)}
             onBlur={() => {
-              // Pequeño retardo para dar tiempo a capturar el click en el listado
               setTimeout(() => setShowDropdown(false), 200);
             }}
             placeholder="Escriba el código o nombre del centro de costo..."
@@ -335,7 +361,6 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
             </div>
           )}
 
-          {/* Discriminación del Centro de Costo */}
           {selectedBreakdown && (
             <div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 rounded-xl flex items-start gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
               <Text as="span" className="text-emerald-600 dark:text-emerald-400 font-bold text-xs select-none">✓</Text>

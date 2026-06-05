@@ -338,3 +338,22 @@ class SeguimientoStatsOut(BaseModel):
     contratados: int
     por_evaluar: int
     causales_descarte: Dict[str, int]
+
+
+class CausalDescarteOut(BaseModel):
+    id: int
+    causal: str
+    activo: bool
+    creado_en: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CausalDescarteCreate(BaseModel):
+    causal: str
+
+
+class CausalDescarteUpdate(BaseModel):
+    causal: str
+    activo: bool

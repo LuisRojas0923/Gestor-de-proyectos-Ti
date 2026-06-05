@@ -389,3 +389,66 @@ async def desactivar_aprobador(aprobador_id: int, db: AsyncSession = Depends(obt
         raise HTTPException(status_code=404, detail="Aprobador no encontrado")
     aprobador.activo = False  # Baja lógica
     await db.commit()
+
+
+# ──────────────────────────────────────────────
+# Causales de Descarte
+# ──────────────────────────────────────────────
+from app.models.rrhh.catalogos import CausalDescarteRP
+from app.api.rrhh.schemas import CausalDescarteOut, CausalDescarteCreate, CausalDescarteUpdate
+
+@router.get("/causales-descarte", response_model=List[CausalDescarteOut])
+async def listar_causales_descarte(solo_activas: bool = True, db: AsyncSession = Depends(obtener_db)):
+    stmt = select(CausalDescarteRP)
+    if solo_activas:
+        stmt = stmt.where(CausalDescarteRP.activo == True)
+    result = await db.execute(stmt.order_by(CausalDescarteRP.causal))  # [CONTROLADO]
+    return result.scalars().all()
+
+
+@router.post("/causales-descarte", response_model=CausalDescarteOut, status_code=status.HTTP_201_CREATED)
+async def crear_causal_descarte(payload: CausalDescarteCreate, db: AsyncSession = Depends(obtener_db)):
+    causal_norm = payload.causal.strip()
+    # Check if exists
+    res = await db.execute(select(CausalDescarteRP).where(CausalDescarteRP.causal == causal_norm))
+    if res.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Esta causal ya existe.")
+    
+    causal = CausalDescarteRP(causal=causal_norm)
+    db.add(causal)
+    await db.commit()
+    await db.refresh(causal)
+    return causal
+
+
+@router.put("/causales-descarte/{causal_id}", response_model=CausalDescarteOut)
+async def actualizar_causal_descarte(causal_id: int, payload: CausalDescarteUpdate, db: AsyncSession = Depends(obtener_db)):
+    causal_norm = payload.causal.strip()
+    result = await db.execute(select(CausalDescarteRP).where(CausalDescarteRP.id == causal_id))  # [CONTROLADO]
+    causal = result.scalar_one_or_none()
+    if not causal:
+        raise HTTPException(status_code=404, detail="Causal no encontrada")
+    
+    # Check if another causal has the same name
+    if causal_norm != causal.causal:
+        res = await db.execute(select(CausalDescarteRP).where(CausalDescarteRP.causal == causal_norm))
+        if res.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Ya existe otra causal con ese nombre.")
+            
+    causal.causal = causal_norm
+    causal.activo = payload.activo
+    await db.commit()
+    await db.refresh(causal)
+    return causal
+
+
+@router.put("/causales-descarte/{causal_id}/toggle", response_model=CausalDescarteOut)
+async def toggle_causal_descarte(causal_id: int, db: AsyncSession = Depends(obtener_db)):
+    result = await db.execute(select(CausalDescarteRP).where(CausalDescarteRP.id == causal_id))  # [CONTROLADO]
+    causal = result.scalar_one_or_none()
+    if not causal:
+        raise HTTPException(status_code=404, detail="Causal no encontrada")
+    causal.activo = not causal.activo
+    await db.commit()
+    await db.refresh(causal)
+    return causal

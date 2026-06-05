@@ -66,83 +66,91 @@ const SiNoSelect: React.FC<{
 );
 
 const Step4Requisitos: React.FC<Props> = ({ form, update }) => (
-  <div className="space-y-8">
-    {/* Equipos de oficina */}
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 pb-2 border-b border-[var(--color-border)]">
-        <Package className="w-5 h-5 text-[var(--color-primary)]" />
-        <Title variant="h6" className="font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Equipos de Oficina</Title>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-8">
+    {/* Columna Izquierda: Equipos */}
+    <div className="space-y-8">
+      {/* Equipos de oficina */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="md:col-span-1">
+            <SiNoSelect label="¿Necesita equipos de oficina?" name="necesita_equipos_oficina"
+              value={form.necesita_equipos_oficina}
+              onChange={v => { update('necesita_equipos_oficina', v); if (v === 'NO') update('equipos_oficina', []); }}
+              icon={Package}
+            />
+          </div>
+        </div>
+        {form.necesita_equipos_oficina === 'SI' && (
+          <CheckGroup options={EQUIPOS_OFICINA} selected={form.equipos_oficina}
+            onChange={v => update('equipos_oficina', v)} />
+        )}
       </div>
-      <SiNoSelect label="¿Necesita equipos de oficina?" name="necesita_equipos_oficina"
-        value={form.necesita_equipos_oficina}
-        onChange={v => { update('necesita_equipos_oficina', v); if (v === 'NO') update('equipos_oficina', []); }}
-        icon={Package}
-      />
-      {form.necesita_equipos_oficina === 'SI' && (
-        <CheckGroup options={EQUIPOS_OFICINA} selected={form.equipos_oficina}
-          onChange={v => update('equipos_oficina', v)} />
-      )}
-    </div>
 
-    {/* Equipos tecnológicos */}
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 pb-2 border-b border-[var(--color-border)]">
-        <Monitor className="w-5 h-5 text-[var(--color-primary)]" />
-        <Title variant="h6" className="font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Equipos Tecnológicos</Title>
-      </div>
-      <SiNoSelect label="¿Necesita equipos tecnológicos?" name="necesita_equipos_tecnologicos"
-        value={form.necesita_equipos_tecnologicos}
-        onChange={v => { update('necesita_equipos_tecnologicos', v); if (v === 'NO') update('equipos_tecnologicos', []); }}
-        icon={Monitor}
-      />
-      {form.necesita_equipos_tecnologicos === 'SI' && (
-        <CheckGroup options={EQUIPOS_TEC} selected={form.equipos_tecnologicos}
-          onChange={v => update('equipos_tecnologicos', v)} />
-      )}
-    </div>
-
-    {/* SIMCARD */}
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 pb-2 border-b border-[var(--color-border)]">
-        <Smartphone className="w-5 h-5 text-[var(--color-primary)]" />
-        <Title variant="h6" className="font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">SIMCARD</Title>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <SiNoSelect label="¿Requiere SIMCARD?" name="requiere_simcard"
-          value={form.requiere_simcard}
-          onChange={v => { update('requiere_simcard', v); if (v === 'NO') update('tipo_plan_simcard', ''); }}
-          icon={Smartphone}
-        />
-        {form.requiere_simcard === 'SI' && (
-          <Select label="Tipo de plan SIMCARD" name="tipo_plan_simcard"
-            value={form.tipo_plan_simcard}
-            onChange={e => update('tipo_plan_simcard', e.target.value)}
-            options={PLANES_SIMCARD}
-            required
-          />
+      {/* Equipos tecnológicos */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="md:col-span-1">
+            <SiNoSelect label="¿Necesita equipos tecnológicos?" name="necesita_equipos_tecnologicos"
+              value={form.necesita_equipos_tecnologicos}
+              onChange={v => { update('necesita_equipos_tecnologicos', v); if (v === 'NO') update('equipos_tecnologicos', []); }}
+              icon={Monitor}
+            />
+          </div>
+        </div>
+        {form.necesita_equipos_tecnologicos === 'SI' && (
+          <CheckGroup options={EQUIPOS_TEC} selected={form.equipos_tecnologicos}
+            onChange={v => update('equipos_tecnologicos', v)} />
         )}
       </div>
     </div>
 
-    {/* Programas especiales */}
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 pb-2 border-b border-[var(--color-border)]">
-        <Code className="w-5 h-5 text-[var(--color-primary)]" />
-        <Title variant="h6" className="font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Programas Especiales</Title>
+    {/* Columna Derecha: SIMCARD y Programas */}
+    <div className="space-y-8">
+      {/* SIMCARD */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="md:col-span-1">
+            <SiNoSelect label="¿Requiere SIMCARD?" name="requiere_simcard"
+              value={form.requiere_simcard}
+              onChange={v => { update('requiere_simcard', v); if (v === 'NO') update('tipo_plan_simcard', ''); }}
+              icon={Smartphone}
+            />
+          </div>
+        </div>
+        {form.requiere_simcard === 'SI' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="md:col-span-1">
+              <Select label="Tipo de plan SIMCARD" name="tipo_plan_simcard"
+                value={form.tipo_plan_simcard}
+                onChange={e => update('tipo_plan_simcard', e.target.value)}
+                options={PLANES_SIMCARD}
+                required
+              />
+            </div>
+          </div>
+        )}
       </div>
-      <SiNoSelect label="¿Requiere programas especiales?" name="requiere_programas_especiales"
-        value={form.requiere_programas_especiales}
-        onChange={v => { update('requiere_programas_especiales', v); if (v === 'NO') update('programas_especiales', ''); }}
-        icon={Code}
-      />
-      {form.requiere_programas_especiales === 'SI' && (
-        <TextAreaField label="¿Cuáles programas?" name="programas_especiales"
-          value={form.programas_especiales}
-          onChange={e => update('programas_especiales', e.target.value)}
-          placeholder="Ej: AutoCAD, SAP, Adobe Suite, etc."
-          rows={3} isRequired
-        />
-      )}
+
+      {/* Programas especiales */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="md:col-span-1">
+            <SiNoSelect label="¿Requiere programas especiales?" name="requiere_programas_especiales"
+              value={form.requiere_programas_especiales}
+              onChange={v => { update('requiere_programas_especiales', v); if (v === 'NO') update('programas_especiales', ''); }}
+              icon={Code}
+            />
+          </div>
+        </div>
+        {form.requiere_programas_especiales === 'SI' && (
+          <TextAreaField label="¿Cuáles programas?" name="programas_especiales"
+            value={form.programas_especiales}
+            onChange={e => update('programas_especiales', e.target.value)}
+            placeholder="Ej: AutoCAD, SAP, Adobe Suite, etc."
+            rows={2} isRequired
+          />
+        )}
+      </div>
     </div>
   </div>
 );

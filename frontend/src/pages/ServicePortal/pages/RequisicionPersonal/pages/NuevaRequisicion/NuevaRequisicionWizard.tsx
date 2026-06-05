@@ -77,12 +77,16 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
   const renderPaso = () => {
     const props = { form, update: updateField };
     switch (pasoActual) {
-      case 1: return <Step1DatosGenerales {...props} correoSolicitante={correoSolicitante} nombreSolicitante={nombreSolicitante} />;
-      case 2: return <Step2AreaCargo {...props} />;
-      case 3: return <Step3Causal {...props} aprobadores={aprobadores} />;
-      case 4: return <Step4Requisitos {...props} />;
-      case 5: return <Step5Contratacion {...props} />;
-      case 6: return <Step6Confirmacion {...props} nombreSolicitante={nombreSolicitante} correoSolicitante={correoSolicitante} areaNombre={areaNombre} cargoNombre={cargoNombre} />;
+      case 1: return (
+        <div className="space-y-6">
+          <Step1DatosGenerales {...props} correoSolicitante={correoSolicitante} nombreSolicitante={nombreSolicitante} />
+          <Step2AreaCargo {...props} />
+          <Step3Causal {...props} aprobadores={aprobadores} />
+          <Step4Requisitos {...props} />
+          <Step5Contratacion {...props} />
+        </div>
+      );
+      case 2: return <Step6Confirmacion {...props} nombreSolicitante={nombreSolicitante} correoSolicitante={correoSolicitante} areaNombre={areaNombre} cargoNombre={cargoNombre} />;
       default: return null;
     }
   };

@@ -40,42 +40,33 @@ const Step3Causal: React.FC<Props> = ({ form, update, aprobadores }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 pb-2 border-b border-[var(--color-border)]">
-        <AlertTriangle className="w-5 h-5 text-[var(--color-primary)]" />
-        <Title variant="h6" className="font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
-          Causal de la Requisición
-        </Title>
-      </div>
-
-      <Select
-        label="Causal de requisición"
-        name="causal_requisicion"
-        value={form.causal_requisicion}
-        onChange={e => update('causal_requisicion', e.target.value)}
-        options={CAUSALES}
-        required
-      />
-
-      {form.causal_requisicion === 'OTRO' && (
-        <TextAreaField
-          label="Especifique la causal"
-          name="otra_causal"
-          value={form.otra_causal}
-          onChange={e => update('otra_causal', e.target.value)}
-          placeholder="Describa detalladamente el motivo de la requisición..."
-          rows={4}
-          isRequired
-        />
-      )}
-
-      {/* Director a Cargo — condicional al área seleccionada */}
-      <div className="border-t border-[var(--color-border)] pt-6 space-y-3">
-        <div className="flex items-center gap-3 pb-1">
-          <UserCheck className="w-5 h-5 text-[var(--color-primary)]" />
-          <Title variant="h6" className="font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
-            Director a Cargo
-          </Title>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="md:col-span-2">
+          <Select
+            label="Causal de requisición"
+            name="causal_requisicion"
+            value={form.causal_requisicion}
+            onChange={e => update('causal_requisicion', e.target.value)}
+            options={CAUSALES}
+            required
+          />
         </div>
+
+        {form.causal_requisicion === 'OTRO' && (
+          <div className="md:col-span-2">
+            <TextAreaField
+              label="Especifique la causal"
+              name="otra_causal"
+              value={form.otra_causal}
+              onChange={e => update('otra_causal', e.target.value)}
+              placeholder="Describa detalladamente el motivo de la requisición..."
+              rows={2}
+              isRequired
+            />
+          </div>
+        )}
+
+        <div className="md:col-span-2">
 
         {!form.area_id ? (
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
@@ -104,6 +95,7 @@ const Step3Causal: React.FC<Props> = ({ form, update, aprobadores }) => {
             </Text>
           </>
         )}
+        </div>
       </div>
     </div>
   );

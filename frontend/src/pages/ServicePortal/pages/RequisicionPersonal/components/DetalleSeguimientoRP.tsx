@@ -7,10 +7,10 @@ import { Badge, Button, Text, Title } from '../../../../../components/atoms';
 import { 
   getRequisicionTemporales, asignarRequisicionTemporales, actualizarFechaEnvioHV,
   getCandidatos, agregarCandidato, actualizarCandidato, getSeguimientoStats, getTemporales,
-  cancelarRequisicionGH
+  cancelarRequisicionGH, getCausalesDescarte
 } from '../services/requisicionService';
 import type { 
-  RequisicionRP, RequisicionTemporal, CandidatoRequisicion, SeguimientoStats, EmpresaTemporal 
+  RequisicionRP, RequisicionTemporal, CandidatoRequisicion, SeguimientoStats, EmpresaTemporal, CausalDescarteRP
 } from '../types/requisicion.types';
 import KanbanCol from './KanbanCol';
 import AnalisisTemporales from './AnalisisTemporales';
@@ -25,21 +25,14 @@ interface Props {
   onStatusChanged?: () => void;
 }
 
-const CAUSALES_DISCARTE = [
-  { value: 'N.C.EXP', label: 'Empresa: No cumple experiencia / perfil técnico' },
-  { value: 'N.C. E.M', label: 'Empresa: No aprobó exámenes médicos' },
-  { value: 'N.C. ENT', label: 'Empresa: No aprobó entrevista con líder' },
-  { value: 'DESISTE_SALARIO', label: 'Candidato: Desistió por aspiración salarial' },
-  { value: 'DESISTE_CONTRATO', label: 'Candidato: Desistió por tipo de contrato/horario' },
-  { value: 'DESISTE_DISTANCIA', label: 'Candidato: Desistió por ubicación/transporte' },
-  { value: 'DESISTE_PERSONAL', label: 'Candidato: Desistió por motivos personales' },
-];
+// Removida CAUSALES_DISCARTE estática
 
 const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusChanged }) => {
   const [asignadas, setAsignadas] = useState<RequisicionTemporal[]>([]);
   const [candidatos, setCandidatos] = useState<CandidatoRequisicion[]>([]);
   const [stats, setStats] = useState<SeguimientoStats | null>(null);
   const [todasTemporales, setTodasTemporales] = useState<EmpresaTemporal[]>([]);
+  const [causalesDescarte, setCausalesDescarte] = useState<{ value: string; label: string }[]>([]);
   
   const [cargando, setCargando] = useState(true);
   const [cargandoCandidatos, setCargandoCandidatos] = useState(false);
@@ -66,16 +59,18 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
   const cargarDatos = async () => {
     setCargando(true);
     try {
-      const [rt, cand, st, tt] = await Promise.all([
+      const [rt, cand, st, tt, causales] = await Promise.all([
         getRequisicionTemporales(requisicion.id),
         getCandidatos(requisicion.id),
         getSeguimientoStats(requisicion.id),
-        getTemporales()
+        getTemporales(),
+        getCausalesDescarte(true)
       ]);
       setAsignadas(rt);
       setCandidatos(cand);
       setStats(st);
       setTodasTemporales(tt.filter(t => t.activo));
+      setCausalesDescarte(causales.map(c => ({ value: c.causal, label: c.causal })));
       setTemporalesSeleccionadas(rt.map(r => r.temporal_id));
     } catch (e) {
       console.error(e);
@@ -459,7 +454,7 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
       {candidatoDescartar && (
         <DescartarCandidatoModal
           candidatoDescartar={candidatoDescartar}
-          causales={CAUSALES_DISCARTE}
+          causales={causalesDescarte}
           causalSeleccionada={causalSeleccionada}
           setCausalSeleccionada={setCausalSeleccionada}
           obsDescarte={obsDescarte}

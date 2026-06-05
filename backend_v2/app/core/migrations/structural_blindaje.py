@@ -207,4 +207,29 @@ async def ejecutar_blindaje_estructural(conn):
     # 11. Migración de estados de actividades y desarrollos
     await migrar_estados_actividades(conn)
 
+    # 12. Causales de descarte RP
+    await safe_execute(
+        conn,
+        """
+        CREATE TABLE IF NOT EXISTS causales_descarte_rp (
+            id SERIAL PRIMARY KEY,
+            causal VARCHAR(255) NOT NULL UNIQUE,
+            activo BOOLEAN NOT NULL DEFAULT TRUE,
+            creado_en TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
+        )
+        """
+    )
+    # Semillado de causales de descarte
+    causales_base = [
+        'Empresa: No cumple experiencia / perfil técnico',
+        'Empresa: No aprobó exámenes médicos',
+        'Empresa: No aprobó entrevista con líder',
+        'Candidato: Desistió por aspiración salarial',
+        'Candidato: Desistió por tipo de contrato/horario',
+        'Candidato: Desistió por ubicación/transporte',
+        'Candidato: Desistió por motivos personales'
+    ]
+    for causal in causales_base:
+        await safe_execute(conn, f"INSERT INTO causales_descarte_rp (causal, activo) VALUES ('{causal}', TRUE) ON CONFLICT (causal) DO NOTHING")
+
     logger.info("Blindaje estructural completado exitosamente.")

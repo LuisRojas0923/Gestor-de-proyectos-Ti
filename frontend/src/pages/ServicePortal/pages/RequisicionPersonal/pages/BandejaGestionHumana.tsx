@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users, Settings, BarChart2, Printer } from 'lucide-react';
+import { Eye, RefreshCw, ArrowLeft, Archive, Clock, CheckCircle, XCircle, Briefcase, Users, Settings, BarChart2, Printer, ListFilter } from 'lucide-react';
 import { Button, Text, Title } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
@@ -10,6 +10,7 @@ import { ESTADO_COLORES, ESTADO_LABELS } from '../types/requisicion.types';
 import ConfigTemporalesModal from '../components/ConfigTemporalesModal';
 import DetalleSeguimientoRP from '../components/DetalleSeguimientoRP';
 import MetricasRPModal from '../components/MetricasRPModal';
+import CausalesDescarteConfigModal from '../components/modals/CausalesDescarteConfigModal';
 
 const ICONOS: Record<string, React.ElementType> = {
   BORRADOR: Archive,
@@ -33,6 +34,7 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
   const [loading, setLoading] = useState(true);
   const [selectedRequisicion, setSelectedRequisicion] = useState<RequisicionRP | null>(null);
   const [showTemporalesConfig, setShowTemporalesConfig] = useState(false);
+  const [showCausalesConfig, setShowCausalesConfig] = useState(false);
   const [showMetricas, setShowMetricas] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchText, setSearchText] = useState('');
@@ -186,6 +188,14 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
           </Button>
           <Button
             variant="ghost"
+            icon={ListFilter}
+            onClick={() => setShowCausalesConfig(true)}
+            className="text-xs font-bold"
+          >
+            Configurar Causales
+          </Button>
+          <Button
+            variant="ghost"
             icon={Settings}
             onClick={() => setShowTemporalesConfig(true)}
             className="text-xs font-bold"
@@ -274,6 +284,12 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
         <ConfigTemporalesModal
           onClose={() => setShowTemporalesConfig(false)}
           onRefreshList={cargar}
+        />
+      )}
+
+      {showCausalesConfig && (
+        <CausalesDescarteConfigModal
+          onClose={() => setShowCausalesConfig(false)}
         />
       )}
 

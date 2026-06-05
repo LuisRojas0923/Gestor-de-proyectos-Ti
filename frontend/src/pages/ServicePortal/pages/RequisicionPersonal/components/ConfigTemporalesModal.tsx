@@ -97,12 +97,12 @@ const ConfigTemporalesModal: React.FC<Props> = ({ onClose, onRefreshList }) => {
               Administra las empresas temporales o medios de reclutamiento del portal.
             </Text>
           </div>
-          <Button 
+          <button 
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] transition-colors"
+            className="p-2 rounded-full hover:bg-[var(--color-border)] transition-colors"
           >
-            <X className="w-5 h-5" />
-          </Button>
+            <X className="w-5 h-5 text-[var(--color-text-secondary)]" />
+          </button>
         </div>
 
         {/* Content */}

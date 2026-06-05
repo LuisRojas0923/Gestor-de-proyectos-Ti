@@ -9,12 +9,8 @@ export interface WizardStep {
 }
 
 export const PASOS: WizardStep[] = [
-  { id: 1, titulo: 'Datos Generales',       descripcion: 'Información del solicitante y la obra' },
-  { id: 2, titulo: 'Área y Cargo',           descripcion: 'Área funcional y cargo requerido'       },
-  { id: 3, titulo: 'Causal',                 descripcion: 'Motivo de la requisición'               },
-  { id: 4, titulo: 'Requisitos',             descripcion: 'Equipos y herramientas necesarios'      },
-  { id: 5, titulo: 'Contratación',           descripcion: 'Condiciones laborales y salario'        },
-  { id: 6, titulo: 'Confirmación',           descripcion: 'Revise y declare los datos'             },
+  { id: 1, titulo: 'Formulario Completo',       descripcion: 'Diligenciamiento de todos los datos requeridos' },
+  { id: 2, titulo: 'Confirmación',              descripcion: 'Revise y declare los datos antes de enviar'             },
 ];
 
 export function useRequisicionPersonal(
@@ -109,7 +105,8 @@ export function useRequisicionPersonal(
   const validarPaso = useCallback((paso: number): boolean => {
     switch (paso) {
       case 1:
-        return !!(
+        // Datos generales
+        if (!(
           form.departamento &&
           form.municipio &&
           form.nombre_obra_proyecto?.trim() &&
@@ -118,27 +115,31 @@ export function useRequisicionPersonal(
           form.duracion_obra_contrato &&
           form.fecha_probable_ingreso &&
           form.centro_costo?.trim()
-        );
-      case 2:
-        return !!(form.area_id && form.cargo_id);
-      case 3:
+        )) return false;
+
+        // Área y Cargo
+        if (!(form.area_id && form.cargo_id)) return false;
+
+        // Causal
         if (!form.causal_requisicion) return false;
         if (form.causal_requisicion === 'OTRO' && !form.otra_causal?.trim()) return false;
         if (!form.aprobador_id) return false;
-        return true;
-      case 4:
+
+        // Requisitos
         if (form.necesita_equipos_oficina === 'SI' && form.equipos_oficina.length === 0) return false;
         if (form.necesita_equipos_tecnologicos === 'SI' && form.equipos_tecnologicos.length === 0) return false;
         if (form.requiere_simcard === 'SI' && !form.tipo_plan_simcard) return false;
         if (form.requiere_programas_especiales === 'SI' && !form.programas_especiales?.trim()) return false;
-        return true;
-      case 5:
-        return !!(
+
+        // Contratación
+        if (!(
           form.salario_asignado?.trim() &&
           form.horas_extras &&
           form.modalidad_contratacion &&
           form.tipo_contratacion
-        );
+        )) return false;
+
+        return true;
       default:
         return true;
     }

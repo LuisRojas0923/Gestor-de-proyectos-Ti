@@ -3,7 +3,7 @@ import axios from 'axios';
 import { API_CONFIG } from '../../../../../config/api';
 import type {
   RequisicionRP, AreaRP, CargoRP, CiudadRP, AprobadorRP, DashboardRP, FormularioRP,
-  EmpresaTemporal, RequisicionTemporal, CandidatoRequisicion, SeguimientoStats
+  EmpresaTemporal, RequisicionTemporal, CandidatoRequisicion, SeguimientoStats, CausalDescarteRP
 } from '../types/requisicion.types';
 
 const BASE = `${API_CONFIG.BASE_URL}/rrhh`;
@@ -69,6 +69,19 @@ export const actualizarAprobador = (id: number, payload: Omit<AprobadorRP, 'id'>
 
 export const desactivarAprobador = (id: number): Promise<void> =>
   axios.delete(`${BASE}/catalogos/aprobadores/${id}`, authHeaders()).then(r => r.data);
+
+// ── Causales de Descarte ───────────────────────
+export const getCausalesDescarte = (solo_activas = true): Promise<CausalDescarteRP[]> =>
+  axios.get(`${BASE}/catalogos/causales-descarte?solo_activas=${solo_activas}`, authHeaders()).then(r => r.data);
+
+export const crearCausalDescarte = (causal: string): Promise<CausalDescarteRP> =>
+  axios.post(`${BASE}/catalogos/causales-descarte`, { causal }, authHeaders()).then(r => r.data);
+
+export const actualizarCausalDescarte = (id: number, causal: string, activo: boolean): Promise<CausalDescarteRP> =>
+  axios.put(`${BASE}/catalogos/causales-descarte/${id}`, { causal, activo }, authHeaders()).then(r => r.data);
+
+export const toggleCausalDescarte = (id: number): Promise<CausalDescarteRP> =>
+  axios.put(`${BASE}/catalogos/causales-descarte/${id}/toggle`, {}, authHeaders()).then(r => r.data);
 
 // ── Dashboard ──────────────────────────────────
 export const getDashboard = (correo?: string): Promise<DashboardRP> => {

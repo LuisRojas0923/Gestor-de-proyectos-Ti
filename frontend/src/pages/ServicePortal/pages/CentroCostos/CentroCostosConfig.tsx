@@ -10,7 +10,10 @@ interface CentroCostosConfigProps {
 
 const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ user, onVolver }) => {
   const isAdmin = ['admin', 'admin_sistemas', 'admin_mejoramiento'].includes(user?.rol?.toLowerCase() || user?.role?.toLowerCase() || '');
-  const [activeTab, setActiveTab] = useState<'uen' | 'subcentro' | 'especialidad' | 'combinador'>(isAdmin ? 'uen' : 'combinador');
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialTabFromUrl = urlParams.get('tab') as 'uen' | 'subcentro' | 'especialidad' | 'combinador' | null;
+  const [activeTab, setActiveTab] = useState<'uen' | 'subcentro' | 'especialidad' | 'combinador'>(initialTabFromUrl || (isAdmin ? 'uen' : 'combinador'));
 
   // --- Estados de Datos ---
   const [uens, setUens] = useState<CostCenterItem[]>([]);
