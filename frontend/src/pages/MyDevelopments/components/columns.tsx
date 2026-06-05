@@ -293,6 +293,7 @@ export const getColumns = (
       key: 'area_desarrollo',
       label: 'AREAS',
       minWidth: '75px',
+      maxWidth: '75px',
       filterable: true,
       subFilters: [
         { key: 'area_desarrollo', label: 'Área de impacto' },
