@@ -71,11 +71,22 @@ def limiter_reset():
     reset, las keys de tests anteriores contaminan los buckets de los
     siguientes, lo que puede causar falsos 429 e incluso crecimiento
     descontrolado de memoria en sesiones largas.
+
+    En el rate limiter nuevo, el storage es Redis. Si Redis no esta
+    disponible (tests unitarios locales), swallow-eamos el error: los
+    tests no deben requerir infra externa para correr.
     """
     from app.core.rate_limiter import limiter
-    limiter.reset()
+    try:
+        limiter.reset()
+    except Exception:
+        # Redis caido o no disponible: el test sigue, solo no resetea buckets.
+        pass
     yield
-    limiter.reset()
+    try:
+        limiter.reset()
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope="session", autouse=True)

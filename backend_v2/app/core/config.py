@@ -45,6 +45,36 @@ class Settings(BaseSettings):
     # True solo en desarrollo. Cambiar en runtime vía env sin redeploy.
     jit_auto_aprobar: bool = False
 
+    # Rate limiting (SlowAPI). Redis-backed para compartir bucket entre workers.
+    redis_url: str = "redis://localhost:6379/0"
+
+    # IPs (separadas por coma) de proxies en los que se confía el header
+    # X-Forwarded-For. Vacío = no se confía en ningún proxy (cae al IP de
+    # la conexión TCP real). "*" está prohibido por seguridad.
+    trusted_proxy_ips: str = ""
+
+    # Límites por endpoint. Documentados en docs/GUIA_DESARROLLO.md.
+    rate_limit_login: str = "5/minute;20/hour"
+    rate_limit_setup_password: str = "30/hour"
+    rate_limit_forgot_password: str = "3/hour"
+    rate_limit_reset_password: str = "5/hour"
+    rate_limit_registro: str = "5/hour"
+    rate_limit_password_status: str = "5/minute"
+    rate_limit_logout: str = "10/minute"
+    rate_limit_mcp_token: str = "5/hour"
+    rate_limit_mcp_tokens_list: str = "30/minute"
+    rate_limit_mcp_tokens_revoke: str = "10/minute"
+    # /auth/refresh: el usuario ya esta autenticado, pero limitamos por IP
+    # para evitar que un atacante con un token robado haga refresh infinito.
+    rate_limit_refresh: str = "20/hour"
+
+    # Lockout por cuenta: tras N fallos de login consecutivos en una ventana
+    # corta, se bloquea el acceso a esa cuenta (no por IP) durante
+    # `lockout_duracion_minutos`. Defense-in-depth sobre el rate limit por IP.
+    lockout_umbral_fallos: int = 10
+    lockout_ventana_minutos: int = 15
+    lockout_duracion_minutos: int = 15
+
     @field_validator("portal_pending_pwd")
     @classmethod
     def _validar_portal_pending_pwd(cls, v: str) -> str:
@@ -62,6 +92,19 @@ class Settings(BaseSettings):
             return v.strip().lower() in ("1", "true", "yes", "on")
         return bool(v)
 
+    @field_validator("trusted_proxy_ips")
+    @classmethod
+    def _rechazar_trusted_proxy_wildcard(cls, v: str) -> str:
+        # "*" en una allowlist es un footgun clásico: si alguien lo pone
+        # "para que funcione", toda IP queda autorizada a inyectar
+        # X-Forwarded-For y se anula el rate limit por IP.
+        if v and v.strip() == "*":
+            raise ValueError(
+                "trusted_proxy_ips no puede ser '*'. "
+                "Lista las IPs de tus proxies separadas por coma en .env (ver .env.example)."
+            )
+        return v
+
     @property
     def es_produccion(self) -> bool:
         return self.entorno == "produccion"
@@ -71,6 +114,10 @@ class Settings(BaseSettings):
         if self.cors_origenes_permitidos == "*":
             return ["*"]
         return [o.strip() for o in self.cors_origenes_permitidos.split(",") if o.strip()]
+
+    @property
+    def trusted_proxy_ips_set(self) -> set[str]:
+        return {ip.strip() for ip in self.trusted_proxy_ips.split(",") if ip.strip()}
 
 
 @lru_cache(maxsize=1)

@@ -113,6 +113,7 @@ class ServicioAuth:
         tiempo_expiracion: Optional[timedelta] = None,
         tipo_token: str = "session",
         jti: Optional[str] = None,
+        last_ip: Optional[str] = None,
     ):
         """Crea un JWT firmado. Acepta `tipo_token` ('session' | 'mcp') para
         distinguir tokens web de tokens MCP (ver docs/PLAN_SERVIDOR_MCP.md).
@@ -120,6 +121,13 @@ class ServicioAuth:
         Si se pasa `jti`, se usa ese (necesario para tokens MCP donde el jti
         del JWT debe coincidir con el jti guardado en la tabla `sesiones`
         para validar revocacion). Si no, se genera uno nuevo.
+
+        Si se pasa `last_ip`, se estampa como claim `last_ip` (la IP real
+        de la conexion TCP del login, no el claim X-Forwarded-For). Esto
+        permite al rate limiter validar que la IP de la peticion actual
+        no haya sido manipulada respecto al login. Tokens en vuelo antes
+        de este cambio no tienen `last_ip`; el key func lo trata como
+        ausente (cae al path de first-login: ignora XFF, usa connection IP).
 
         Backwards compatible: tokens emitidos antes de este cambio no tenian
         `jti` ni `token_type`, y el codigo de validacion los trata como
@@ -138,6 +146,8 @@ class ServicioAuth:
             "jti": jti or str(uuid.uuid4()),
             "token_type": tipo_token,
         })
+        if last_ip:
+            a_codificar["last_ip"] = last_ip
         token_jwt = jwt.encode(
             a_codificar, config.jwt_secret_key, algorithm=config.algorithm
         )
