@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { useAppContext } from '../../../context/AppContext';
 import { useNotifications } from '../../../components/notifications/NotificationsContext';
+import { useColumnFilters } from '../../../hooks/useColumnFilters';
 
 export interface Role {
     id: string;
@@ -131,18 +132,71 @@ export const useUserAdmin = () => {
         }
     };
 
-    const filteredUsers = users
-        .filter(u =>
+    const handleUnlockRateLimit = async (userId: string) => {
+        setIsSaving(true);
+        try {
+            await post(`/auth/analistas/${userId}/desbloquear-rate-limit`, {});
+            addNotification('success', 'Intentos de login (rate limit) desbloqueados exitosamente');
+            return true;
+        } catch {
+            addNotification('error', 'Error al desbloquear el rate limit del usuario');
+            return false;
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleResetPassword = async (userId: string) => {
+        setIsSaving(true);
+        try {
+            await post(`/auth/analistas/${userId}/reset-password`, {});
+            addNotification('success', 'Contraseña restablecida a la cédula del usuario exitosamente');
+            return true;
+        } catch {
+            addNotification('error', 'Error al resetear la contraseña del usuario');
+            return false;
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const searchFilteredUsers = useMemo(() => {
+        return users.filter(u =>
             u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
             u.cedula.includes(searchTerm)
-        )
-        .sort((a, b) => a.rol.localeCompare(b.rol));
+        );
+    }, [users, searchTerm]);
+
+    const columnAccessors = useMemo(() => ({
+        cedula: (u: User) => u.cedula,
+        nombre: (u: User) => u.nombre,
+        rol: (u: User) => u.rol,
+        esta_activo: (u: User) => u.esta_activo ? 'Activo' : 'Inactivo',
+    }), []);
+
+    const {
+        filters: columnFilters,
+        filteredData: finalFilteredUsers,
+        cascadingOptions,
+        setColumnFilter,
+        sortState,
+        setSort,
+        activeFilterCount,
+        clearAllFilters
+    } = useColumnFilters(searchFilteredUsers, columnAccessors, 'user_admin_table');
 
 
     return {
         users,
         roles,
-        filteredUsers,
+        filteredUsers: finalFilteredUsers,
+        columnFilters,
+        cascadingOptions,
+        setColumnFilter,
+        sortState,
+        setSort,
+        activeFilterCount,
+        clearAllFilters,
         isLoading,
         searchTerm,
         setSearchTerm,
@@ -153,6 +207,8 @@ export const useUserAdmin = () => {
         handleCreateUser,
         handleCreateRole,
         handleDeleteRole,
+        handleUnlockRateLimit,
+        handleResetPassword,
         isCreateModalOpen,
         setIsCreateModalOpen,
         activeTab,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { DataTableColumn } from '../../../components/molecules/DataTable';
-import { Text } from '../../../components/atoms';
+import { Checkbox, Text } from '../../../components/atoms';
 import { DevelopmentWithCurrentStatus } from '../../../types';
 
 export type DevelopmentRow = DevelopmentWithCurrentStatus & {
@@ -33,6 +33,7 @@ export const getDevelopmentStatus = (dev: DevelopmentRow) =>
   dev.estado_general ?? 'Pendiente';
 
 export const getStatusLabel = (status: string) => {
+  if (status === 'En curso') return 'En Proceso';
   return status;
 };
 
@@ -44,6 +45,15 @@ export const getStatusColor = (status: string) => {
   if (s.includes('pendiente')) return 'text-red-800 bg-red-100 dark:bg-red-900/20 dark:text-red-400';
   if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 'text-yellow-800 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400';
   if (s.includes('complet')) return 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400';
+  return 'text-gray-800 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
+};
+
+export const getPrioridadColor = (prioridad?: string) => {
+  if (!prioridad) return 'text-gray-800 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
+  const p = prioridad.toLowerCase();
+  if (p === 'alta') return 'text-red-800 bg-red-100 dark:bg-red-900/20 dark:text-red-400';
+  if (p === 'media') return 'text-orange-800 bg-orange-100 dark:bg-orange-900/20 dark:text-orange-400';
+  if (p === 'baja') return 'text-blue-800 bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400';
   return 'text-gray-800 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
 };
 
@@ -66,7 +76,10 @@ export const getProgressWidthClass = (p: number) => {
   return 'w-0';
 };
 
-export const getColumnAccessors = (resolveUserName: (val?: string | null) => string | undefined) => ({
+export const getColumnAccessors = (
+  resolveUserName: (val?: string | null) => string | undefined,
+  reviewedIds?: Set<string>
+) => ({
   id:                 (dev: DevelopmentRow) => String(dev.id),
   tipo:               (dev: DevelopmentRow) => getTipoLabel(dev.tipo) || '',
   name:               getDevelopmentName,
@@ -74,6 +87,7 @@ export const getColumnAccessors = (resolveUserName: (val?: string | null) => str
   name_description:   (dev: DevelopmentRow) => getDevelopmentDescription(dev) ?? '(Vacío)',
   name_creator:       (dev: DevelopmentRow) => resolveUserName(dev.creado_por_id) || dev.creado_por_id || '(Vacío)',
   status:             (dev: DevelopmentRow) => getStatusLabel(getDevelopmentStatus(dev)),
+  prioridad:          (dev: DevelopmentRow) => dev.prioridad || '',
   start_date:         getDevelopmentStartDate,
   estimated_end_date: getDevelopmentEndDate,
   area_desarrollo:    (dev: DevelopmentRow) => dev.area_desarrollo || '(Vacío)',
@@ -82,17 +96,46 @@ export const getColumnAccessors = (resolveUserName: (val?: string | null) => str
   supervisor:         (dev: DevelopmentRow) => resolveUserName(dev.supervisor) || dev.supervisor || '(Sin asignar)',
   authority:          (dev: DevelopmentRow) => resolveUserName(dev.authority ?? dev.autoridad) || dev.authority || dev.autoridad || '(Sin asignar)',
   responsible:        (dev: DevelopmentRow) => resolveUserName(dev.responsible ?? dev.responsable) || dev.responsible || dev.responsable || '(Sin asignar)',
+  __review__:         (dev: DevelopmentRow) => reviewedIds?.has(String(dev.id)) ? 'Revisado' : 'No revisado',
 });
 
-export const getColumns = (resolveUserName: (val?: string | null) => string | undefined): DataTableColumn<DevelopmentRow>[] => [
-  {
-    key: 'id',
-    label: 'ID',
+export const getColumns = (
+  resolveUserName: (val?: string | null) => string | undefined,
+  reviewed?: { ids: Set<string>; toggle: (id: string) => void }
+): DataTableColumn<DevelopmentRow>[] => {
+  const reviewColumn: DataTableColumn<DevelopmentRow> = {
+    key: '__review__',
+    label: '✓',
+    minWidth: '36px',
+    centered: true,
     filterable: true,
-    subFilters: [
-      { key: 'id', label: 'ID' },
-      { key: 'tipo', label: 'Tipo' }
-    ],
+    cellClassName: '!px-2',
+    render: (dev) => (
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="flex items-center justify-center"
+        data-testid={`review-${dev.id}`}
+      >
+        <Checkbox
+          checked={reviewed?.ids.has(String(dev.id)) ?? false}
+          onChange={() => reviewed?.toggle(String(dev.id))}
+          aria-label={`Marcar actividad ${dev.id} como revisada`}
+        />
+      </div>
+    ),
+  };
+
+  return [
+    ...(reviewed ? [reviewColumn] : []),
+    {
+      key: 'id',
+      label: 'ID',
+      minWidth: '90px',
+      filterable: true,
+      subFilters: [
+        { key: 'id', label: 'ID' },
+        { key: 'tipo', label: 'Tipo' }
+      ],
     render: (dev) => (
       <div className="flex flex-col items-start gap-1">
         <Text as="span" variant="caption" color="gray" className="font-mono whitespace-nowrap">
@@ -141,6 +184,7 @@ export const getColumns = (resolveUserName: (val?: string | null) => string | un
   {
     key: 'status',
     label: 'Estado',
+    minWidth: '100px',
     centered: true,
     filterable: true,
     render: (dev) => {
@@ -149,6 +193,23 @@ export const getColumns = (resolveUserName: (val?: string | null) => string | un
         <Text as="span" variant="caption" weight="medium" color="inherit"
           className={`inline-flex items-center rounded-full !text-[10px] tracking-wider px-2 py-0.5 ${getStatusColor(status)} shadow-md`}>
           {status}
+        </Text>
+      );
+    },
+  },
+  {
+    key: 'prioridad',
+    label: 'Prioridad',
+    minWidth: '85px',
+    centered: true,
+    filterable: true,
+    render: (dev) => {
+      const p = dev.prioridad;
+      if (!p) return <Text as="span" className="text-gray-400 dark:text-gray-600">—</Text>;
+      return (
+        <Text as="span" variant="caption" weight="medium" color="inherit"
+          className={`inline-flex items-center rounded-full !text-[10px] tracking-wider px-2 py-0.5 ${getPrioridadColor(p)} shadow-md`}>
+          {p}
         </Text>
       );
     },
@@ -264,4 +325,5 @@ export const getColumns = (resolveUserName: (val?: string | null) => string | un
       </div>
     ),
   },
-];
+  ];
+};

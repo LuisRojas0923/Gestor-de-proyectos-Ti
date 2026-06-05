@@ -3,7 +3,8 @@ import {
     Users,
     Shield,
     Search,
-    Lock
+    Lock,
+    X
 } from 'lucide-react';
 import PermissionsMatrix from '../../components/admin/PermissionsMatrix';
 import {
@@ -25,6 +26,13 @@ import RoleManager from './components/RoleManager';
 const UserAdmin: React.FC = () => {
     const {
         filteredUsers,
+        columnFilters,
+        cascadingOptions,
+        setColumnFilter,
+        sortState,
+        setSort,
+        activeFilterCount,
+        clearAllFilters,
         isLoading,
         searchTerm,
         setSearchTerm,
@@ -33,6 +41,8 @@ const UserAdmin: React.FC = () => {
         isSaving,
         handleUpdateUser,
         handleCreateUser,
+        handleUnlockRateLimit,
+        handleResetPassword,
         isCreateModalOpen,
         setIsCreateModalOpen,
         activeTab,
@@ -53,7 +63,18 @@ const UserAdmin: React.FC = () => {
                 </div>
 
                 {activeTab === 'users' && (
-                    <div className="flex w-full md:w-auto gap-3 items-center">
+                    <div className="flex w-full md:w-auto gap-3 items-center flex-wrap md:flex-nowrap">
+                        {activeFilterCount > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={clearAllFilters}
+                                className="!rounded-2xl h-[42px] px-4 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 font-bold border border-red-200 dark:border-red-900/30 transition-all flex items-center gap-1.5"
+                                icon={X}
+                            >
+                                Limpiar Filtros ({activeFilterCount})
+                            </Button>
+                        )}
                         <div className="relative w-full md:w-72 group">
                             <Input
                                 placeholder="Buscar por nombre o cédula..."
@@ -116,6 +137,11 @@ const UserAdmin: React.FC = () => {
                             selectedUserId={selectedUser?.id}
                             onUserSelect={setSelectedUser}
                             isLoading={isLoading}
+                            columnFilters={columnFilters}
+                            cascadingOptions={cascadingOptions}
+                            onFilterChange={setColumnFilter}
+                            sortState={sortState}
+                            onSort={setSort}
                         />
                     </div>
 
@@ -125,6 +151,8 @@ const UserAdmin: React.FC = () => {
                             <UserEditor
                                 user={selectedUser}
                                 onSave={handleUpdateUser}
+                                onUnlock={handleUnlockRateLimit}
+                                onResetPassword={handleResetPassword}
                                 onCancel={() => setSelectedUser(null)}
                                 isSaving={isSaving}
                             />

@@ -1,6 +1,13 @@
-import React, { createContext, ReactNode, useContext, useReducer } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useMemo, useReducer } from 'react';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
+import { AuthService } from '../services/AuthService';
+
+// Constante: minutos desde el login hasta el refresh proactivo. El JWT
+// expira a los 60 min (config.py: jwt_expiracion_minutos), asi que
+// refrescamos a los 45 para tener 15 min de margen ante latencia.
+const PROACTIVE_REFRESH_MINUTES = 45;
+const PROACTIVE_REFRESH_MS = PROACTIVE_REFRESH_MINUTES * 60 * 1000;
 
 // Types
 interface User {
@@ -251,8 +258,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             sede: data.sede,
             centrocosto: data.centrocosto || data.centro_costo || '',
             viaticante: typeof data.viaticante === 'boolean' ? data.viaticante : String(data.viaticante).toLowerCase() === 'true',
-            emailNeedsUpdate: data.email_needs_update !== undefined 
-              ? !!data.email_needs_update 
+            emailNeedsUpdate: data.email_needs_update !== undefined
+              ? !!data.email_needs_update
               : (data.correo_actualizado !== undefined ? !data.correo_actualizado : false),
             emailVerified: data.correo_verificado !== undefined ? !!data.correo_verificado : false,
             passwordSet: data.password_set !== undefined ? !!data.password_set : true, // Por defecto true para no bloquear si no viene
@@ -265,17 +272,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'LOGIN', payload: normalizedUser });
         }
       } catch (error) {
-        console.error('Sesión inválida o expirada:', error);
-        // Si el token no sirve, limpiar todo para evitar estados corruptos
-        dispatch({ type: 'LOGOUT' });
+        // Solo LOGOUT en 401 (token invalido/expirado y refresh ya fallo).
+        // 5xx / network / 503 (rate limiter fail-closed): mantener la sesion
+        // hidratada del localStorage y loguear warning. La proxima request
+        // real del usuario (que pasa por useApi) se beneficiara del refresh
+        // on 401. Tumbar la sesion ante un 503 transitorio era el bug
+        // original: el usuario volvia al panel tras 5 min de estar en el
+        // portal, Redis estaba arrancando, /auth/yo devolvia 503, y se
+        // quedaba en el login.
+        const status = (error as any)?.response?.status;
+        if (status === 401) {
+          console.warn('Sesion invalida o expirada (401). Limpiando estado.');
+          dispatch({ type: 'LOGOUT' });
+        } else {
+          console.warn('Validacion de sesion fallo transitoriamente; se mantiene el estado hidratado.', error);
+        }
       }
     };
 
     validateSession();
   }, []); // Solo al montar la app
 
+  // Refresh proactivo: a los 45 min desde el login, refresca el JWT para
+  // que no expire mientras el usuario esta en el portal. Si el usuario
+  // esta en el panel cuando toque, se ejecuta igual (en background).
+  useEffect(() => {
+    if (!state.user) return;
+    const timeoutId = window.setTimeout(async () => {
+      const newToken = await AuthService.refreshAccessToken();
+      if (newToken) {
+        console.info(`Token refrescado proactivamente a los ${PROACTIVE_REFRESH_MINUTES} min.`);
+      } else {
+        console.warn('Refresh proactivo fallo; useApi lo reintentara en la proxima 401.');
+      }
+    }, PROACTIVE_REFRESH_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [state.user]);
+
+  const providerValue = useMemo(() => ({ state, dispatch }), [state]);
+
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={providerValue}>
       {children}
     </AppContext.Provider>
   );

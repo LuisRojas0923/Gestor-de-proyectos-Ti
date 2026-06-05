@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, ChevronDown, X } from 'lucide-react';
 import { Text, Input } from '../atoms';
 import { useApi } from '../../hooks/useApi';
@@ -24,7 +25,10 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -50,9 +54,37 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
     void loadTeam();
   }, [get]);
 
+  const updateCoords = useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      updateCoords();
+      window.addEventListener('resize', updateCoords);
+      window.addEventListener('scroll', updateCoords, true);
+    }
+    return () => {
+      window.removeEventListener('resize', updateCoords);
+      window.removeEventListener('scroll', updateCoords, true);
+    };
+  }, [open, updateCoords]);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current && 
+        !containerRef.current.contains(e.target as Node) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
         setSearch('');
       }
@@ -105,11 +137,20 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
       )}
 
       {/* Trigger */}
-      <button // @audit-ok
-        type="button"
-        disabled={loading}
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2.5 text-xs bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:border-[var(--color-border)]/50"
+      <div
+        ref={triggerRef}
+        role="button"
+        tabIndex={loading ? -1 : 0}
+        onClick={() => !loading && setOpen(o => !o)}
+        onKeyDown={e => {
+          if (!loading && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            setOpen(o => !o);
+          }
+        }}
+        className={`w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2.5 text-xs bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-colors dark:border-[var(--color-border)]/50 ${
+          loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+        }`}
       >
         <div className="flex flex-col items-start gap-0.5 min-w-0">
           <Text as="span" variant="caption" className={`leading-tight ${selected ? 'font-medium text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
@@ -134,11 +175,20 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
           )}
           <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </div>
-      </button>
+      </div>
 
       {/* Dropdown */}
-      {open && (
-        <div className="absolute left-0 right-0 z-50 min-w-[240px] max-h-64 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl mt-1 custom-scrollbar">
+      {open && coords && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{ // @audit-ok
+            position: 'absolute',
+            top: `${coords.top}px`,
+            left: `${coords.left}px`,
+            width: `${coords.width}px`,
+          }}
+          className="z-[9999] min-w-[240px] max-h-64 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl mt-1 custom-scrollbar"
+        >
           {/* Buscador */}
           <div className="sticky top-0 px-2 py-2 bg-[var(--color-surface)] border-b border-[var(--color-border)]/30 z-10">
             <Input
@@ -187,7 +237,8 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
               Sin resultados para "{search}"
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
 
       {selected && !selected.isDirect && (

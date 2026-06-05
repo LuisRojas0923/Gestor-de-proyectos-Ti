@@ -28,6 +28,7 @@ from .category_service import CategoryService
 from .attachment_service import AttachmentService
 from .ticket_utils import TicketUtils
 from .list_service import TicketListService
+from .comment_service import CommentService
 from ..notifications.email_service import EmailService
 from ...models.ticket.ticket import CategoriaTicket
 from ...utils_cache import global_cache
@@ -51,6 +52,9 @@ class ServicioTicket:
     
     # Delegación de listado
     listar_tickets = TicketListService.listar_tickets
+
+    # Delegación de comentarios
+    agregar_comentario = CommentService.agregar_comentario
 
     @staticmethod
     async def _obtener_usuario_por_nombre(db: AsyncSession, nombre: str) -> Optional[Usuario]:
@@ -200,6 +204,23 @@ class ServicioTicket:
             try:
                 if nuevo_ticket.asignado_a:
                     analista_obj = await cls._obtener_usuario_por_nombre(db, nuevo_ticket.asignado_a)
+                    if analista_obj:
+                        try:
+                            from app.services.notificacion.servicio import ServicioNotificacion
+                            from app.models.alerta.notificacion import NotificacionUsuarioCrear
+                            await ServicioNotificacion.crear_notificacion(
+                                db,
+                                NotificacionUsuarioCrear(
+                                    usuario_id=analista_obj.id,
+                                    titulo="Nuevo ticket asignado",
+                                    mensaje=f"Se te ha asignado el ticket {ticket_id}: {ticket_data.asunto}",
+                                    tipo_evento="ticket_asignado",
+                                    referencia_id=ticket_id
+                                )
+                            )
+                        except Exception as e_notif:
+                            import logging
+                            logging.getLogger(__name__).warning(f"Error creando notificación de asignación: {e_notif}")
                     if analista_obj and analista_obj.correo:
                         res_cat = await db.execute(
                             select(CategoriaTicket).where(CategoriaTicket.id == ticket_data.categoria_id)
@@ -351,6 +372,43 @@ class ServicioTicket:
 
         await db.commit()
         
+        # Notificaciones nativas
+        try:
+            from app.services.notificacion.servicio import ServicioNotificacion
+            from app.models.alerta.notificacion import NotificacionUsuarioCrear
+            
+            # 1. Si cambió el estado o sub_estado a Resuelto / Cerrado -> Notificar al creador
+            if "estado" in update_data or "sub_estado" in update_data:
+                if db_ticket.estado in ("Cerrado", "Resuelto") or db_ticket.sub_estado == "Resuelto":
+                    await ServicioNotificacion.crear_notificacion(
+                        db,
+                        NotificacionUsuarioCrear(
+                            usuario_id=db_ticket.creador_id,
+                            titulo=f"Ticket {db_ticket.estado}",
+                            mensaje=f"Tu ticket {ticket_id} ha sido marcado como {db_ticket.estado}.",
+                            tipo_evento="ticket_actualizado",
+                            referencia_id=ticket_id
+                        )
+                    )
+            
+            # 2. Si cambió el analista asignado -> Notificar al nuevo analista
+            if "asignado_a" in update_data and db_ticket.asignado_a:
+                analista_obj = await cls._obtener_usuario_por_nombre(db, db_ticket.asignado_a)
+                if analista_obj:
+                    await ServicioNotificacion.crear_notificacion(
+                        db,
+                        NotificacionUsuarioCrear(
+                            usuario_id=analista_obj.id,
+                            titulo="Ticket reasignado",
+                            mensaje=f"Se te ha asignado el ticket {ticket_id}: {db_ticket.asunto}",
+                            tipo_evento="ticket_asignado",
+                            referencia_id=ticket_id
+                        )
+                    )
+        except Exception as e_notif:
+            import logging
+            logging.getLogger(__name__).warning(f"Error creando notificación de actualización: {e_notif}")
+
         # Notificación en tiempo real vía WebSocket
         try:
             await manager.broadcast_to_ticket(ticket_id, {
@@ -400,92 +458,7 @@ class ServicioTicket:
             res_simple = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
             return res_simple.scalars().first()
 
-    @classmethod
-    async def agregar_comentario(
-        cls, db: AsyncSession, ticket_id: str, comentario_data: ComentarioCrear, background_tasks: Optional[BackgroundTasks] = None
-    ) -> ComentarioTicket:
-        """Agrega un comentario y dispara notificación si aplica"""
-        try:
-            nuevo_comentario = ComentarioTicket(
-                ticket_id=ticket_id,
-                comentario=comentario_data.comentario,
-                es_interno=comentario_data.es_interno,
-                usuario_id=comentario_data.usuario_id,
-                nombre_usuario=comentario_data.nombre_usuario,
-            )
-            db.add(nuevo_comentario)
-            await db.commit()
-            await db.refresh(nuevo_comentario)
 
-            # Lógica de notificación Bidireccional:
-            if not nuevo_comentario.es_interno:
-                ticket = await cls.obtener_ticket_por_id(db, ticket_id)
-                if ticket:
-                    es_solicitante = False
-                    # Caso A: El creador del ticket responde -> Notificar al analista asignado
-                    # Usamos str() para asegurar comparación robusta entre UUIDs y strings
-                    if str(nuevo_comentario.usuario_id) == str(ticket.creador_id):
-                        if ticket.asignado_a:
-                            analista = await cls._obtener_usuario_por_nombre(db, ticket.asignado_a)
-                            if analista and analista.correo:
-                                destinatario_email = analista.correo
-                                nombre_destinatario = analista.nombre
-                    
-                    # Caso B: Alguien más responde (Analista u otro) -> Notificar al creador
-                    else:
-                        destinatario_email = ticket.correo_creador
-                        nombre_destinatario = ticket.nombre_creador or "Usuario"
-                        es_solicitante = True
-
-                    if destinatario_email:
-                        # THROTTLE: 30 min por ticket/destinatario para evitar spam
-                        cache_key = f"chat_notif_throttle:{ticket_id}:{destinatario_email}"
-                        if not global_cache.get(cache_key):
-                            try:
-                                if background_tasks:
-                                    background_tasks.add_task(
-                                        EmailService.enviar_notificacion_chat,
-                                        email_destinatario=destinatario_email,
-                                        nombre_destinatario=nombre_destinatario,
-                                        ticket_id=ticket_id,
-                                        asunto_ticket=ticket.asunto,
-                                        nombre_remitente=nuevo_comentario.nombre_usuario or "Soporte",
-                                        mensaje=nuevo_comentario.comentario,
-                                        es_solicitante=es_solicitante,
-                                    )
-                                else:
-                                    await EmailService.enviar_notificacion_chat(
-                                        email_destinatario=destinatario_email,
-                                        nombre_destinatario=nombre_destinatario,
-                                        ticket_id=ticket_id,
-                                        asunto_ticket=ticket.asunto,
-                                        nombre_remitente=nuevo_comentario.nombre_usuario or "Soporte",
-                                        mensaje=nuevo_comentario.comentario,
-                                        es_solicitante=es_solicitante,
-                                    )
-                                global_cache.set(cache_key, True, ttl=1800)
-                            except Exception as e:
-                                print(f"WARNING: No se pudo enviar notificación de chat: {e}")
-                
-            # Notificación en tiempo real vía WebSocket
-            try:
-                await manager.broadcast_to_ticket(ticket_id, {
-                    "type": "new_comment",
-                    "data": {
-                        "id": nuevo_comentario.id,
-                        "comentario": nuevo_comentario.comentario,
-                        "nombre_usuario": nuevo_comentario.nombre_usuario,
-                        "creado_en": str(nuevo_comentario.creado_en),
-                        "es_interno": nuevo_comentario.es_interno
-                    }
-                })
-            except Exception as ws_err:
-                print(f"WARNING: No se pudo notificar vía WebSocket: {ws_err}")
-
-            return nuevo_comentario
-        except Exception as e:
-            await db.rollback()
-            raise e
 
 
     @staticmethod

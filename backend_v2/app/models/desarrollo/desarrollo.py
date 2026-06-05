@@ -147,6 +147,7 @@ class Desarrollo(SQLModel, table=True):
     # Estado y progreso
     estado_general: str = Field(default="Pendiente", max_length=50)
     estado_validacion: str = Field(default="aprobada", max_length=50)
+    prioridad: Optional[str] = Field(default=None, max_length=50)
     validado_por_id: Optional[str] = Field(default=None, max_length=50)
     fase_actual_id: Optional[int] = Field(
         default=None, foreign_key="fases_desarrollo.id"
@@ -224,6 +225,7 @@ class DesarrolloCrear(SQLModel):
     responsable_id: Optional[str] = None
     estado_general: str = "Pendiente"
     estado_validacion: str = "aprobada"
+    prioridad: Optional[str] = None
     validado_por_id: Optional[str] = None
     fase_actual_id: Optional[int] = None
     etapa_actual_id: Optional[int] = None
@@ -253,6 +255,7 @@ class DesarrolloActualizar(SQLModel):
     responsable_id: Optional[str] = None
     estado_general: Optional[str] = None
     estado_validacion: Optional[str] = None
+    prioridad: Optional[str] = None
     validado_por_id: Optional[str] = None
     fase_actual_id: Optional[int] = None
     etapa_actual_id: Optional[int] = None

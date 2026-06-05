@@ -41,6 +41,7 @@ from .api.impuestos import router as impuestos_router
 from .api.lineas_corporativas.router import router as lineas_corporativas_router
 from .api.jerarquia import router as jerarquia_router
 from .api.rrhh.router import router as rrhh_router
+from .api.notificaciones.router import router as notificaciones_router
 
 # Configurar logging centralizado
 logging.basicConfig(
@@ -125,11 +126,79 @@ app.add_middleware(
 # Rate limiting para /config/verify-admin (5 intentos / 5 minutos por usuario+IP)
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from app.core.rate_limiter import limiter
+from app.core.rate_limiter import (
+    limiter,
+    _resolve_effective_ip,
+    PATHS_CON_BODY_PARA_RATE_LIMIT,
+)
+from limits.errors import StorageError
 
 # Registrar el handler de rate limit excedido en la app
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+async def _rate_limit_handler_con_log(request, exc: RateLimitExceeded):
+    """Wrapper del handler por defecto de SlowAPI que loguea 429s
+    estructurados (key, ip, path, timestamp) para SOC/observabilidad."""
+    try:
+        ip = _resolve_effective_ip(request)
+    except Exception:
+        ip = "unknown"
+    view_limit = getattr(request.state, "view_rate_limit", None)
+    limit_str = str(view_limit[0]) if view_limit else str(exc)
+    logger.warning(
+        "RATE_LIMIT_EXCEEDED | key=%s | ip=%s | path=%s | method=%s | limit=%s",
+        view_limit[1] if view_limit else "n/a",
+        ip,
+        request.url.path,
+        request.method,
+        limit_str,
+    )
+    return await _rate_limit_exceeded_handler(request, exc)
+
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_handler_con_log)
+
+
+@app.middleware("http")
+async def cache_request_body_for_rate_limit(request, call_next):
+    """Pre-corre `await request.body()` para los endpoints con rate limit
+    que dependen del body (form/JSON con cedula). Esto puebla
+    `request._body` antes de que SlowAPI evalue el key func, que es sync
+    y necesita leer el body de forma sincrona.
+
+    Sin este middleware, `request._body` seria None cuando el key func
+    corre (Starlette solo cachea el body despues de la primera lectura).
+    """
+    if request.method in ("POST", "PUT", "PATCH") and request.url.path in PATHS_CON_BODY_PARA_RATE_LIMIT:
+        try:
+            await request.body()
+        except Exception:
+            pass
+    return await call_next(request)
+
+
+@app.exception_handler(StorageError)
+async def _storage_error_handler(request, exc: StorageError):
+    """Fail-closed: si Redis (storage del rate limiter) esta caido,
+    rechazamos la request con 503 en vez de permitir acceso sin limite.
+
+    Es la postura correcta para endpoints de auth: un atacante que DoS-ea
+    Redis para evadir el rate limit NO debe poder bypasear el control.
+    Operadores pueden seguir rotando contrasenas directo en DB si Redis
+    queda caido por tiempo prolongado.
+    """
+    logger.error(
+        "Rate limiter storage caido: %s | path=%s | method=%s",
+        exc, request.url.path, request.method,
+    )
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": "Servicio de limitacion de tasa no disponible. Intente de nuevo en unos minutos.",
+        },
+    )
 
 
 @app.on_event("startup")
@@ -213,6 +282,11 @@ app.include_router(
     tags=["Validaciones Asignacion"],
 )
 app.include_router(rrhh_router, prefix=f"{api_prefix}/rrhh", tags=["Recursos Humanos"])
+app.include_router(
+    notificaciones_router,
+    prefix=f"{api_prefix}/notificaciones",
+    tags=["Notificaciones"],
+)
 
 # Consolidated developments-activities endpoint and number-mapped endpoint
 app.include_router(desarrollos_actividades_router, prefix=api_prefix)

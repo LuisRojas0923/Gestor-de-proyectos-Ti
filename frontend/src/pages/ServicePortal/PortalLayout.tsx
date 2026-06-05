@@ -36,16 +36,8 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
         }
     }, [user?.emailNeedsUpdate]);
 
-    useEffect(() => {
-        return () => {
-            sessionStorage.removeItem('fromAdmin');
-        };
-    }, []);
-
     const handleLogoClick = useCallback(() => {
         if (fromAdmin) {
-            sessionStorage.removeItem('fromAdmin');
-            setFromAdmin(false);
             navigate('/');
             return;
         }

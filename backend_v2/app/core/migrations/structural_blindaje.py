@@ -34,6 +34,14 @@ async def ejecutar_blindaje_estructural(conn):
     await safe_execute(conn, "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS ultima_actividad_en TIMESTAMPTZ DEFAULT NOW()")
     await safe_execute(conn, "ALTER TABLE sesiones DROP CONSTRAINT IF EXISTS sesiones_usuario_id_fkey")
 
+    # 2.1 Sesiones - soporte para tokens MCP (jti + tipo_sesion + scope)
+    # Ver docs/PLAN_SERVIDOR_MCP.md seccion 4.1
+    await safe_execute(conn, "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS tipo_sesion VARCHAR(20) NOT NULL DEFAULT 'web'")
+    await safe_execute(conn, "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS jti VARCHAR(64)")
+    await safe_execute(conn, "ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS scope VARCHAR(50)")
+    await safe_execute(conn, "CREATE UNIQUE INDEX IF NOT EXISTS idx_sesiones_jti_unique ON sesiones(jti) WHERE jti IS NOT NULL")
+    await safe_execute(conn, "CREATE INDEX IF NOT EXISTS idx_sesiones_tipo ON sesiones(tipo_sesion) WHERE fin_sesion IS NULL")
+
     # 3. Inventario
     await safe_execute(conn, "ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS estado VARCHAR(20) DEFAULT 'PENDIENTE'")
     await safe_execute(conn, "ALTER TABLE conteoinventario ADD COLUMN IF NOT EXISTS invporlegalizar FLOAT DEFAULT 0.0")
@@ -83,6 +91,7 @@ async def ejecutar_blindaje_estructural(conn):
     await safe_execute(conn, "ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS estado_validacion VARCHAR(50) DEFAULT 'aprobada'")
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS validado_por_id VARCHAR(50)')
     await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS validado_en TIMESTAMPTZ')
+    await safe_execute(conn, 'ALTER TABLE desarrollos ADD COLUMN IF NOT EXISTS prioridad VARCHAR(50)')
     
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS seguimiento TEXT')
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS compromiso TEXT')
@@ -156,6 +165,23 @@ async def ejecutar_blindaje_estructural(conn):
     # 9. Otros (Formato 2276, etc.)
     await safe_execute(conn, 'ALTER TABLE formato_2276 ADD COLUMN IF NOT EXISTS entidad_informante VARCHAR(10)')
 
+    # 9.1 Notificaciones de Usuario
+    await safe_execute(
+        conn,
+        """
+        CREATE TABLE IF NOT EXISTS notificaciones_usuario (
+            id SERIAL PRIMARY KEY,
+            usuario_id VARCHAR(50) NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+            titulo VARCHAR(255) NOT NULL,
+            mensaje TEXT NOT NULL,
+            leido BOOLEAN DEFAULT FALSE,
+            tipo_evento VARCHAR(50) NOT NULL,
+            referencia_id VARCHAR(100),
+            creado_en TIMESTAMPTZ DEFAULT NOW()
+        )
+        """
+    )
+    
     # 10. Seguimiento de Requisiciones de Personal (Gestión Humana)
     await safe_execute(
         conn,
@@ -168,6 +194,7 @@ async def ejecutar_blindaje_estructural(conn):
         )
         """
     )
+
     await safe_execute(
         conn,
         """
@@ -203,6 +230,11 @@ async def ejecutar_blindaje_estructural(conn):
     await safe_execute(conn, "INSERT INTO empresas_temporales (nombre, activo) VALUES ('SUMMAR TEMPORALES', TRUE) ON CONFLICT (nombre) DO NOTHING")
     await safe_execute(conn, "INSERT INTO empresas_temporales (nombre, activo) VALUES ('MULTIEMPLEOS', TRUE) ON CONFLICT (nombre) DO NOTHING")
     await safe_execute(conn, "INSERT INTO empresas_temporales (nombre, activo) VALUES ('DIRECTO', TRUE) ON CONFLICT (nombre) DO NOTHING")
+
+    await safe_execute(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_leido ON notificaciones_usuario(usuario_id, leido)"
+    )
 
     # 11. Migración de estados de actividades y desarrollos
     await migrar_estados_actividades(conn)

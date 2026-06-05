@@ -5,7 +5,8 @@ type SortState = { key: string; dir: 'asc' | 'desc' | null } | null;
 export function useColumnFilters<T>(
   data: T[],
   columnAccessors: Record<string, (row: T) => string | number | null | undefined>,
-  storageKey?: string
+  storageKey?: string,
+  cascade: boolean = true
 ) {
   const [filters, setFilters] = useState<Record<string, Set<string>>>(() => {
     if (!storageKey) return {};
@@ -47,6 +48,43 @@ export function useColumnFilters<T>(
     }
     return result;
   }, [data, columnAccessors]);
+
+  const cascadingOptions = useMemo(() => {
+    if (!cascade) return uniqueValues;
+    const result: Record<string, string[]> = {};
+    const activeFilterKeys = Object.keys(filters).filter(k => (filters[k]?.size ?? 0) > 0);
+    const hasAnyFilter = activeFilterKeys.length > 0;
+    if (!hasAnyFilter) return uniqueValues;
+
+    const matchesOthers = (row: T, key: string) => {
+      for (const filterKey of activeFilterKeys) {
+        if (filterKey === key) continue;
+        const selectedValues = filters[filterKey];
+        if (!selectedValues || selectedValues.size === 0) continue;
+        const otherAccessor = columnAccessors[filterKey];
+        if (!otherAccessor) continue;
+        const raw = otherAccessor(row);
+        const value = raw === null || raw === undefined ? '(Vacío)' : String(raw);
+        if (!selectedValues.has(value)) return false;
+      }
+      return true;
+    };
+
+    for (const [key, accessor] of Object.entries(columnAccessors)) {
+      const values = new Set<string>();
+      for (const row of data) {
+        if (!matchesOthers(row, key)) continue;
+        const v = accessor(row);
+        values.add(v === null || v === undefined ? '(Vacío)' : String(v));
+      }
+      const currentSelected = filters[key];
+      if (currentSelected && currentSelected.size > 0) {
+        for (const sel of currentSelected) values.add(sel);
+      }
+      result[key] = Array.from(values).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    }
+    return result;
+  }, [data, columnAccessors, filters, cascade, uniqueValues]);
 
   const filteredData = useMemo(() => {
     const filtered = data.filter(row => {
@@ -118,6 +156,7 @@ export function useColumnFilters<T>(
     filters,
     filteredData,
     uniqueValues,
+    cascadingOptions,
     activePopover,
     setActivePopover,
     hasActiveFilter,

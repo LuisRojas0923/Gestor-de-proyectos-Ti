@@ -22,6 +22,13 @@ const DEFAULT_TIPO_OPTIONS = [
     { value: 'Actividad Puntual', label: 'Actividad Puntual' },
 ];
 
+const PRIORIDAD_OPTIONS = [
+    { value: '', label: 'Seleccione una prioridad...' },
+    { value: 'Alta', label: 'Alta' },
+    { value: 'Media', label: 'Media' },
+    { value: 'Baja', label: 'Baja' },
+];
+
 export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     isOpen, onClose, onSaved
 }) => {
@@ -50,6 +57,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     const [areaEjecutor, setAreaEjecutor] = useState('');
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaEstimadaFin, setFechaEstimadaFin] = useState('');
+    const [prioridad, setPrioridad] = useState('');
 
     const totalSteps = 3;
 
@@ -64,6 +72,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         setSupervisor(''); setSupervisorId('');
         setAreaEjecutor('');
         setFechaInicio(''); setFechaEstimadaFin('');
+        setPrioridad('');
         onClose();
     };
 
@@ -195,6 +204,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                 fecha_inicio: fechaInicio || undefined,
                 fecha_estimada_fin: fechaEstimadaFin || undefined,
                 estado_general: 'Pendiente',
+                prioridad: prioridad || undefined,
                 porcentaje_progreso: 0.0,
             };
 
@@ -225,6 +235,12 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                                 value={tipo}
                                 onChange={(e) => setTipo(e.target.value)}
                                 options={tipoOptions}
+                            />
+                            <Select
+                                label="Prioridad"
+                                value={prioridad}
+                                onChange={(e) => setPrioridad(e.target.value)}
+                                options={PRIORIDAD_OPTIONS}
                             />
                             <Textarea
                                 label="Nombre del Proyecto"

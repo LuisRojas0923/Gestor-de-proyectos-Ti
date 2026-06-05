@@ -521,3 +521,57 @@ async def test_yo_refleja_password_set_true_tras_cambio(client, db_session):
         text("DELETE FROM usuarios WHERE id = :id"), {"id": usuario_id}
     )
     await db_session.commit()
+
+
+# ---------------------------------------------------------------------------
+# Test 6: Reseteo manual de contraseña por administrador
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_resetear_contrasena_analista_exito(client, db_session, admin_token):
+    """
+    Verifica que un administrador pueda resetear exitosamente la contraseña
+    de un usuario a su cédula.
+    """
+    cedula_usuario = "999888777"
+    id_usuario = f"USR-{cedula_usuario}"
+
+    # Limpiar previamente
+    await db_session.execute(
+        text("DELETE FROM sesiones WHERE usuario_id = :id"), {"id": id_usuario}
+    )
+    await db_session.execute(
+        text("DELETE FROM usuarios WHERE id = :id"), {"id": id_usuario}
+    )
+    await db_session.commit()
+
+    # Crear usuario de prueba
+    usuario = Usuario(
+        id=id_usuario,
+        cedula=cedula_usuario,
+        nombre="Usuario Para Reset",
+        hash_contrasena=ServicioAuth.obtener_hash_contrasena("ClaveSuperSegura123!"),
+        rol="usuario",
+        esta_activo=True,
+    )
+    db_session.add(usuario)
+    await db_session.commit()
+
+    # Intentar resetear como admin
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = await client.post(
+        f"/auth/analistas/{id_usuario}/reset-password",
+        headers=headers
+    )
+    assert response.status_code == 200
+    assert response.json()["mensaje"] == "Contraseña reseteada exitosamente"
+
+    # Verificar que el hash se reestableció a la cédula
+    await db_session.refresh(usuario)
+    assert ServicioAuth.verificar_contrasena(cedula_usuario, usuario.hash_contrasena) is True
+
+    # Teardown
+    await db_session.execute(
+        text("DELETE FROM usuarios WHERE id = :id"), {"id": id_usuario}
+    )
+    await db_session.commit()

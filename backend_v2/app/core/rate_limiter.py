@@ -1,50 +1,229 @@
 """
-Rate limiter global del backend (singleton).
+Rate limiter global del backend (singleton SlowAPI con Redis).
 
-Se importa desde app/main.py y desde los routers que necesiten
-limitar requests (e.g., /api/v2/config/verify-admin).
+Storage: Redis (compartido entre workers de uvicorn).
+Key funcs: todas SYNC. SlowAPI 0.1.9 NO awaita el resultado de un key
+func async (llama `lim.key_func(request)` y trata el retorno como string),
+asi que leer el body en un key func async dejaria la key con un coroutine.
+En su lugar, un middleware HTTP en main.py pre-corre `await request.body()`
+para los paths con rate limit, poblando `request._body`. El key func
+luego lee `request._body` sync y parsea segun Content-Type.
+
+IMPORTANTE (async-safety): SlowAPI 0.1.9 invoca `self.limiter.hit()`
+sincrónicamente desde el async_wrapper. Con `limits.storage.RedisStorage`
+la llamada a redis-py bloquea el event loop 1-5ms por request. Para
+herramientas admin con tráfico bajo es aceptable; en alta concurrencia
+migrar a `limits.aio.storage.AsyncRedisStorage` (strategy="async") o
+usar un solo worker de uvicorn.
 """
+import json
+import logging
+from typing import Optional
+from urllib.parse import parse_qs
+
+from fastapi import Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from app.core.config import obtener_configuracion
-from urllib.parse import parse_qs
+
+logger = logging.getLogger(__name__)
 
 _settings = obtener_configuracion()
 
 
-def _verify_admin_key_func(request) -> str:
-    """Key function para slowapi: combina usuario_id (de request.state) con IP."""
-    usuario_id = getattr(request.state, "usuario_id", "anonimo")
-    ip = get_remote_address(request)
-    return f"{usuario_id}:{ip}"
+def _resolve_effective_ip(request: Request) -> str:
+    """Resuelve la IP efectiva del cliente.
 
-
-def _login_key_func(request) -> str:
-    """Key function para /auth/login: combina IP con cédula del form.
-
-    El form ya fue parseado por la dependencia OAuth2PasswordRequestForm
-    (resolución de dependencias ocurre antes del check de rate limit),
-    por lo que `request._body` está cacheado y podemos leerlo sync.
-
-    Esto evita que un atacante evada el rate limit rotando IPs (X-Forwarded-For)
-    porque el bucket es por (IP, cédula): la misma cédula sigue limitada
-    desde la misma IP, y distintas IPs tienen buckets independientes pero
-    la misma cédula sigue contando para un eventual patrón distribuido.
+    Si la conexion TCP viene de un proxy en `trusted_proxy_ips`, lee
+    `X-Forwarded-For` y usa la primera IP. Si no, IGNORA el header
+    y usa la IP de la conexion TCP. Cierra el bypass por header
+    falsificado: el atacante no puede mentir sobre su IP salvo que ya
+    este en la allowlist (en cuyo caso es un proxy de confianza).
     """
-    ip = get_remote_address(request)
-    cedula = ""
+    connection_ip = get_remote_address(request) or "unknown"
+    trusted = _settings.trusted_proxy_ips_set
+    if not trusted or connection_ip not in trusted:
+        return connection_ip
+
+    xff = request.headers.get("x-forwarded-for", "")
+    if not xff:
+        return connection_ip
+    first = xff.split(",")[0].strip()
+    if not first:
+        return connection_ip
+    return first
+
+
+def _safe_resolve_effective_ip(request: Request) -> str:
+    """Wrapper de _resolve_effective_ip que nunca lanza (SlowAPI key func
+    no tolera excepciones)."""
     try:
-        body = getattr(request, "_body", None)
-        if body:
-            form = parse_qs(body.decode("utf-8"))
-            cedula = (form.get("username", [""])[0] or "").strip().lower()
+        return _resolve_effective_ip(request)
     except Exception:
-        cedula = ""
+        try:
+            return get_remote_address(request) or "unknown"
+        except Exception:
+            return "unknown"
+
+
+def _read_cedula_from_cached_body(request: Request) -> str:
+    """Lee la cedula del body pre-cacheado por el middleware
+    `cache_request_body_for_rate_limit` (registrado en main.py).
+
+    Soporta `application/x-www-form-urlencoded` (campo `username`) y
+    `application/json` (campo `username` o `cedula`).
+    """
+    body = getattr(request, "_body", None) or b""
+    if not body:
+        return ""
+    content_type = (request.headers.get("content-type") or "").lower()
+    try:
+        if "application/json" in content_type:
+            data = json.loads(body)
+            if not isinstance(data, dict):
+                return ""
+            for key in ("username", "cedula"):
+                v = data.get(key)
+                if isinstance(v, str) and v.strip():
+                    return v.strip().lower()
+            return ""
+        if "application/x-www-form-urlencoded" in content_type:
+            form = parse_qs(body.decode("utf-8"))
+            for key in ("username", "cedula"):
+                v = form.get(key, [""])[0]
+                if v and v.strip():
+                    return v.strip().lower()
+        return ""
+    except Exception:
+        return ""
+
+
+def _verify_admin_key_func(request: Request) -> str:
+    """Key para /config/verify-admin: usuario autenticado (de request.state) + IP."""
+    usuario_id = getattr(request.state, "usuario_id", "anonimo") or "anonimo"
+    ip = _safe_resolve_effective_ip(request)
+    return f"verify_admin:{usuario_id}:{ip}"
+
+
+def _login_key_func(request: Request) -> str:
+    """Key para /auth/login: IP efectiva + cedula del form (cacheado)."""
+    ip = _safe_resolve_effective_ip(request)
+    cedula = _read_cedula_from_cached_body(request)
     return f"login:{ip}:{cedula}"
+
+
+def _generic_json_body_key_func(request: Request) -> str:
+    """Key generica para endpoints que reciben JSON con campo cedula/username."""
+    ip = _safe_resolve_effective_ip(request)
+    cedula = _read_cedula_from_cached_body(request)
+    return f"{request.url.path}:{ip}:{cedula}"
+
+
+def _setup_password_key_func(request: Request) -> str:
+    """Key para /auth/setup-password: IP + cedula del body JSON cacheado."""
+    ip = _safe_resolve_effective_ip(request)
+    cedula = _read_cedula_from_cached_body(request)
+    return f"setup_password:{ip}:{cedula}"
+
+
+def _mcp_token_key_func(request: Request) -> str:
+    """Key para /auth/mcp-token: solo IP (usuario autenticado, rate por origen)."""
+    ip = _safe_resolve_effective_ip(request)
+    return f"mcp_token:{ip}"
+
+
+def _password_status_key_func(request: Request) -> str:
+    """Key para /password-status/{cedula}: IP + cedula del path param."""
+    ip = _safe_resolve_effective_ip(request)
+    cedula = (request.path_params.get("cedula") or "").strip().lower()
+    return f"password_status:{ip}:{cedula}"
+
+
+def _logout_key_func(request: Request) -> str:
+    """Key para /auth/logout: usuario del JWT (si esta en state) + IP."""
+    sub = getattr(request.state, "sub", "anonimo") or "anonimo"
+    ip = _safe_resolve_effective_ip(request)
+    return f"logout:{sub}:{ip}"
+
+
+def _mcp_tokens_list_key_func(request: Request) -> str:
+    sub = getattr(request.state, "sub", "anonimo") or "anonimo"
+    ip = _safe_resolve_effective_ip(request)
+    return f"mcp_tokens_list:{sub}:{ip}"
+
+
+def _mcp_tokens_revoke_key_func(request: Request) -> str:
+    sub = getattr(request.state, "sub", "anonimo") or "anonimo"
+    ip = _safe_resolve_effective_ip(request)
+    jti = (request.path_params.get("jti") or "").strip().lower()
+    return f"mcp_tokens_revoke:{jti}:{sub}:{ip}"
+
+
+# --- Lockout per-cuenta (defense-in-depth sobre el rate limit por IP) ---
+
+
+def _verificar_lockout_cedula(cedula: str) -> Optional[int]:
+    """Si la cedula esta lockeada en Redis, retorna segundos restantes.
+    Retorna None si no hay lockout activo o si Redis no esta disponible."""
+    if not cedula:
+        return None
+    try:
+        from limits.storage import RedisStorage
+        storage = limiter._storage
+        if not isinstance(storage, RedisStorage):
+            return None
+        key = f"LIMITER/lockout:{cedula}///{_settings.lockout_duracion_minutos * 60}/1/second"
+        remaining = storage.get(key)
+        if remaining and int(remaining) > 0:
+            return _settings.lockout_duracion_minutos * 60
+        return None
+    except Exception as e:
+        logger.warning("No se pudo consultar lockout para cedula=%s: %s", cedula, e)
+        return None
+
+
+def _registrar_fallo_cedula(cedula: str) -> None:
+    """Incrementa el contador de fallos. Si supera el umbral, activa
+    lockout durante `lockout_duracion_minutos`."""
+    if not cedula:
+        return
+    try:
+        from limits.storage import RedisStorage
+        storage = limiter._storage
+        if not isinstance(storage, RedisStorage):
+            return
+        ventana = _settings.lockout_ventana_minutos * 60
+        fail_key = f"LIMITER/login_fallos:{cedula}///{ventana}/1/second"
+        current = storage.incr(fail_key, ventana)
+        if current and int(current) >= _settings.lockout_umbral_fallos:
+            lockout_ttl = _settings.lockout_duracion_minutos * 60
+            lockout_key = f"LIMITER/lockout:{cedula}///{lockout_ttl}/1/second"
+            storage.set(lockout_key, lockout_ttl, lockout_ttl)
+            storage.delete(fail_key)
+            logger.warning("Lockout activado para cedula=%s tras %d fallos", cedula, current)
+    except Exception as e:
+        logger.warning("No se pudo registrar fallo de lockout para cedula=%s: %s", cedula, e)
 
 
 limiter = Limiter(
     key_func=_verify_admin_key_func,
     default_limits=[],
     headers_enabled=False,
+    storage_uri=_settings.redis_url,
+    # SlowAPI por defecto intenta leer .env con Starlette Config. En
+    # Windows + UTF-8 con tildes eso falla con UnicodeDecodeError. No
+    # necesitamos esa config (pasamos todos los flags directo), asi que
+    # pasamos un path inexistente para que lo skipee.
+    config_filename="",
 )
+
+
+# Paths que requieren pre-cachear el body para que el key func pueda
+# leer la cedula del form/JSON. El middleware en main.py consulta este set.
+PATHS_CON_BODY_PARA_RATE_LIMIT: set[str] = {
+    "/api/v2/auth/login",
+    "/api/v2/auth/setup-password",
+    "/api/v2/auth/forgot-password",
+    "/api/v2/auth/reset-password",
+    "/api/v2/auth/registro",
+}

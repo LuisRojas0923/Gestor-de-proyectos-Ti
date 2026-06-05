@@ -32,7 +32,7 @@ const HierarchyAutocomplete: React.FC<HierarchyAutocompleteProps> = ({
                   (u.cedula || '').includes(term)
               )
             : options
-    ).slice(0, 8);
+    ).slice(0, 5);
 
     const updateCoords = useCallback(() => {
         if (containerRef.current) {

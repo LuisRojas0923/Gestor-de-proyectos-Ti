@@ -68,5 +68,35 @@ export const AuthService = {
         } catch (error: any) {
             throw error.response?.data?.detail || 'Error al actualizar el correo corporativo';
         }
+    },
+
+    /**
+     * Refresca el JWT actual llamando a POST /auth/refresh.
+     *
+     * El token actual debe ser valido (firma OK y no expirado). Si la
+     * peticion tiene exito, el nuevo token se guarda en localStorage
+     * (reemplazando al anterior) y se retorna.
+     *
+     * Si falla (401, red, etc.), retorna null sin lanzar excepcion: el
+     * caller decide si hacer logout o no.
+     */
+    async refreshAccessToken(): Promise<string | null> {
+        const headers = getAuthHeaders();
+        if (!headers.Authorization) return null;
+        try {
+            const response = await axios.post(
+                `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_LOGIN.replace('/login', '/refresh')}`,
+                {},
+                { headers }
+            );
+            const newToken: string | undefined = response.data?.access_token;
+            if (newToken && typeof newToken === 'string') {
+                localStorage.setItem('token', newToken);
+                return newToken;
+            }
+            return null;
+        } catch {
+            return null;
+        }
     }
 };
