@@ -28,6 +28,8 @@ class ActividadOut(BaseModel):
     fecha_fin_estimada: Optional[str] = None
     seguimiento: Optional[str] = None
     compromiso: Optional[str] = None
+    compromiso_fecha: Optional[str] = None
+    compromiso_cumplido: bool = False
     archivo_url: Optional[str] = None
 
 
@@ -51,6 +53,8 @@ def _build_actividad(a) -> ActividadOut:
         fecha_fin_estimada=(a.fecha_fin_estimada.isoformat() if a.fecha_fin_estimada else None),
         seguimiento=a.seguimiento,
         compromiso=a.compromiso,
+        compromiso_fecha=(a.compromiso_fecha.isoformat() if a.compromiso_fecha else None),
+        compromiso_cumplido=bool(a.compromiso_cumplido),
         archivo_url=a.archivo_url,
     )
 

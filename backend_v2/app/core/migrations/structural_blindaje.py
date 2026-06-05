@@ -95,6 +95,8 @@ async def ejecutar_blindaje_estructural(conn):
     
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS seguimiento TEXT')
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS compromiso TEXT')
+    await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS compromiso_fecha DATE')
+    await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS compromiso_cumplido BOOLEAN DEFAULT FALSE')
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS archivo_url VARCHAR(500)')
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS asignado_a_id VARCHAR(50)')
     await safe_execute(conn, 'ALTER TABLE actividades ADD COLUMN IF NOT EXISTS delegado_por_id VARCHAR(50)')
