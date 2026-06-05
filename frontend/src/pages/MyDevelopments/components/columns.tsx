@@ -163,7 +163,7 @@ export const getColumns = (
       key: 'name',
       label: 'Proyecto',
       flex: true,
-      minWidth: '360px',
+      minWidth: '180px',
       filterable: true,
       subFilters: [
         { key: 'name_name', label: 'Nombre' },
