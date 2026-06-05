@@ -162,8 +162,8 @@ export const getColumns = (
     {
       key: 'name',
       label: 'Proyecto',
-      minWidth: '360px',
-      maxWidth: '360px',
+      minWidth: '200px',
+      maxWidth: '200px',
       filterable: true,
       subFilters: [
         { key: 'name_name', label: 'Nombre' },
@@ -220,7 +220,7 @@ export const getColumns = (
         
         return (
           <div className="flex items-center gap-2 w-full" title={status}>
-            <IconComponent size={15} className={`${iconColor} shrink-0`} />
+            <IconComponent size={18} className={`${iconColor} shrink-0`} />
             <div className="flex items-center gap-1 flex-1 min-w-0">
               <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div className={`h-full bg-green-500 transition-all duration-500 ${getProgressWidthClass(progress)}`} />
