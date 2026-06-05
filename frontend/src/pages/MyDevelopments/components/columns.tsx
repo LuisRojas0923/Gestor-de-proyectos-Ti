@@ -117,6 +117,7 @@ export const getColumns = (
     key: '__review__',
     label: '✓',
     minWidth: '36px',
+    maxWidth: '36px',
     centered: true,
     filterable: true,
     cellClassName: '!px-2',
@@ -141,6 +142,7 @@ export const getColumns = (
       key: 'id',
       label: 'ID',
       minWidth: '90px',
+      maxWidth: '90px',
       filterable: true,
       subFilters: [
         { key: 'id', label: 'ID' },
@@ -195,6 +197,7 @@ export const getColumns = (
       key: 'status',
       label: 'Estado',
       minWidth: '100px',
+      maxWidth: '100px',
       filterable: true,
       render: (dev) => {
         const status = getStatusLabel(getDevelopmentStatus(dev));
@@ -237,6 +240,7 @@ export const getColumns = (
       key: 'prioridad',
       label: 'Prioridad',
       minWidth: '60px',
+      maxWidth: '60px',
       centered: true,
       filterable: true,
       render: (dev) => {
@@ -263,6 +267,7 @@ export const getColumns = (
       key: 'start_date',
       label: 'Fechas',
       minWidth: '100px',
+      maxWidth: '100px',
       filterable: true,
       subFilters: [
         { key: 'start_date', label: 'Fecha Inicio' },
