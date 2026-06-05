@@ -193,8 +193,8 @@ export const getColumns = (
     },
     {
       key: 'status',
-      label: 'Estado y Progreso',
-      minWidth: '160px',
+      label: 'Estado',
+      minWidth: '100px',
       filterable: true,
       render: (dev) => {
         const status = getStatusLabel(getDevelopmentStatus(dev));
@@ -219,18 +219,13 @@ export const getColumns = (
         }
         
         return (
-          <div className="flex flex-col gap-1.5 w-full">
-            <div className="flex items-center gap-1.5">
-              <IconComponent size={14} className={`${iconColor} shrink-0`} title={status} />
-              <Text as="span" variant="caption" weight="medium" color="text-secondary" className="!text-[10px] truncate">
-                {status}
-              </Text>
-            </div>
-            <div className="flex items-center gap-1.5 w-full">
-              <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="flex items-center gap-2 w-full" title={status}>
+            <IconComponent size={15} className={`${iconColor} shrink-0`} />
+            <div className="flex items-center gap-1 flex-1 min-w-0">
+              <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div className={`h-full bg-green-500 transition-all duration-500 ${getProgressWidthClass(progress)}`} />
               </div>
-              <Text as="span" variant="caption" weight="bold" color="text-secondary" className="w-8 text-right !text-[10px] shrink-0">
+              <Text as="span" variant="caption" weight="bold" color="text-secondary" className="!text-[9px] shrink-0">
                 {progress}%
               </Text>
             </div>
