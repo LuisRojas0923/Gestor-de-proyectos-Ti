@@ -335,19 +335,19 @@ export const getColumns = (
         return (
           <div className="flex flex-col gap-0.5 text-left py-1 min-w-0">
             <div className="truncate !text-[10px] flex items-center" title={`Autoridad: ${aut}`}>
-              <Text as="span" className="font-bold text-[8px] text-blue-600 dark:text-blue-400 mr-1.5 bg-blue-100 dark:bg-blue-900/20 px-1 rounded shrink-0">AUT</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold mr-1 shrink-0 !text-[10px]">Autoridad:</Text>
               <Text as="span" variant="caption" color="text-primary" className="truncate">{aut}</Text>
             </div>
             <div className="truncate !text-[10px] flex items-center" title={`Líder: ${lid}`}>
-              <Text as="span" className="font-bold text-[8px] text-green-600 dark:text-green-400 mr-1.5 bg-green-100 dark:bg-green-900/20 px-1 rounded shrink-0">LÍD</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold mr-1 shrink-0 !text-[10px]">Líder:</Text>
               <Text as="span" variant="caption" color="text-secondary" className="truncate">{lid}</Text>
             </div>
             <div className="truncate !text-[10px] flex items-center" title={`Supervisor: ${sup}`}>
-              <Text as="span" className="font-bold text-[8px] text-purple-600 dark:text-purple-400 mr-1.5 bg-purple-100 dark:bg-purple-900/20 px-1 rounded shrink-0">SUP</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold mr-1 shrink-0 !text-[10px]">Supervisor:</Text>
               <Text as="span" variant="caption" color="text-secondary" className="truncate">{sup}</Text>
             </div>
             <div className="truncate !text-[10px] flex items-center" title={`Ejecutor: ${eje}`}>
-              <Text as="span" className="font-bold text-[8px] text-amber-600 dark:text-amber-400 mr-1.5 bg-amber-100 dark:bg-amber-900/20 px-1 rounded shrink-0">EJE</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold mr-1 shrink-0 !text-[10px]">Ejecutor:</Text>
               <Text as="span" variant="caption" color="text-secondary" className="truncate">{eje}</Text>
             </div>
           </div>
