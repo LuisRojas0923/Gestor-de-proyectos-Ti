@@ -162,8 +162,8 @@ export const getColumns = (
     {
       key: 'name',
       label: 'Proyecto',
-      flex: true,
-      minWidth: '180px',
+      minWidth: '200px',
+      maxWidth: '200px',
       filterable: true,
       subFilters: [
         { key: 'name_name', label: 'Nombre' },
@@ -318,6 +318,7 @@ export const getColumns = (
       key: 'authority',
       label: 'Equipo',
       minWidth: '235px',
+      flex: true,
       filterable: true,
       subFilters: [
         { key: 'authority', label: 'Autoridad' },
