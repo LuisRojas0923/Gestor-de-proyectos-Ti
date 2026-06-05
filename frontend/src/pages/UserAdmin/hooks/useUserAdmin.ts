@@ -146,6 +146,20 @@ export const useUserAdmin = () => {
         }
     };
 
+    const handleResetPassword = async (userId: string) => {
+        setIsSaving(true);
+        try {
+            await post(`/auth/analistas/${userId}/reset-password`, {});
+            addNotification('success', 'Contraseña restablecida a la cédula del usuario exitosamente');
+            return true;
+        } catch {
+            addNotification('error', 'Error al resetear la contraseña del usuario');
+            return false;
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const searchFilteredUsers = useMemo(() => {
         return users.filter(u =>
             u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -194,6 +208,7 @@ export const useUserAdmin = () => {
         handleCreateRole,
         handleDeleteRole,
         handleUnlockRateLimit,
+        handleResetPassword,
         isCreateModalOpen,
         setIsCreateModalOpen,
         activeTab,

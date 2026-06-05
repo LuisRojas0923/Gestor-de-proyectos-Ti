@@ -410,3 +410,45 @@ async def desbloquear_rate_limit(
     except Exception as e:
         logging.error(f"Error al desbloquear rate limit para {usuario_id}: {e}")
         raise HTTPException(status_code=500, detail="Error interno al procesar el desbloqueo")
+
+
+@router.post("/analistas/{usuario_id}/reset-password")
+async def resetear_contrasena_analista(
+    usuario_id: str,
+    db: AsyncSession = Depends(obtener_db),
+    admin: Usuario = Depends(obtener_usuario_actual_db),
+):
+    """Resetea la contraseña de un usuario a su cédula (Solo Admin)"""
+    if admin.rol != "admin":
+        raise HTTPException(
+            status_code=403, detail="No tiene permisos para resetear contraseñas"
+        )
+
+    try:
+        result = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
+        usuario = result.scalars().first()
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        # 1. Resetear hash a la cédula
+        usuario.hash_contrasena = ServicioAuth.obtener_hash_contrasena(usuario.cedula)
+        # 2. Invalidar todas las sesiones
+        await ServicioAuth.invalidar_sesiones_usuario(db, usuario.id)
+        # 3. Notificar por correo
+        if usuario.correo:
+            import asyncio
+            asyncio.create_task(
+                EmailService.enviar_notificacion_reseteo_clave(
+                    usuario.correo, 
+                    usuario.nombre
+                )
+            )
+
+        await db.commit()
+        return {"mensaje": "Contraseña reseteada exitosamente"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logging.error(f"Error en POST /analistas/{usuario_id}/reset-password: {e}")
+        raise HTTPException(status_code=500, detail="Error al resetear la contraseña")

@@ -42,6 +42,7 @@ const UserAdmin: React.FC = () => {
         handleUpdateUser,
         handleCreateUser,
         handleUnlockRateLimit,
+        handleResetPassword,
         isCreateModalOpen,
         setIsCreateModalOpen,
         activeTab,
@@ -151,6 +152,7 @@ const UserAdmin: React.FC = () => {
                                 user={selectedUser}
                                 onSave={handleUpdateUser}
                                 onUnlock={handleUnlockRateLimit}
+                                onResetPassword={handleResetPassword}
                                 onCancel={() => setSelectedUser(null)}
                                 isSaving={isSaving}
                             />

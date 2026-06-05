@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Briefcase, MapPin, Save, X, Activity, Unlock } from 'lucide-react';
+import { Shield, Briefcase, MapPin, Save, X, Activity, Unlock, Lock } from 'lucide-react';
 import { MaterialCard, Title, Text, Button, Switch } from '../../../components/atoms';
 import { User, useUserAdmin, Role } from '../hooks/useUserAdmin';
 import { especialidadesList, areasList } from '../constants';
@@ -8,11 +8,12 @@ interface UserEditorProps {
     user: User;
     onSave: (updatedUser: User) => Promise<boolean>;
     onUnlock?: (userId: string) => Promise<boolean>;
+    onResetPassword?: (userId: string) => Promise<boolean>;
     onCancel: () => void;
     isSaving: boolean;
 }
 
-const UserEditor: React.FC<UserEditorProps> = ({ user, onSave, onUnlock, onCancel, isSaving }) => {
+const UserEditor: React.FC<UserEditorProps> = ({ user, onSave, onUnlock, onResetPassword, onCancel, isSaving }) => {
     const [editedUser, setEditedUser] = useState<User>(user);
 
     useEffect(() => {
@@ -85,6 +86,35 @@ const UserEditor: React.FC<UserEditorProps> = ({ user, onSave, onUnlock, onCance
                             icon={Unlock}
                         >
                             Desbloquear Intentos
+                        </Button>
+                    </div>
+                )}
+
+                {onResetPassword && (
+                    <div className="bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                                <Lock size={18} />
+                            </div>
+                            <div>
+                                <Text variant="body2" weight="bold" color="text-primary">Reseteo de Contraseña</Text>
+                                <Text variant="caption" color="text-secondary" className="opacity-60">
+                                    Restablece la contraseña al número de cédula.
+                                </Text>
+                            </div>
+                        </div>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="w-full text-xs font-bold !rounded-xl !bg-red-600 hover:!bg-red-700 !text-white border-none"
+                            onClick={() => {
+                                if (window.confirm(`¿Está seguro de que desea resetear la contraseña del usuario ${editedUser.nombre}? Esta acción invalidará todas sus sesiones activas.`)) {
+                                    onResetPassword(editedUser.id);
+                                }
+                            }}
+                            icon={Lock}
+                        >
+                            Resetear Contraseña
                         </Button>
                     </div>
                 )}
