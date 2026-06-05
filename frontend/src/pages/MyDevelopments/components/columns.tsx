@@ -261,7 +261,7 @@ export const getColumns = (
     },
     {
       key: 'start_date',
-      label: 'Cronograma',
+      label: 'Fechas',
       minWidth: '100px',
       filterable: true,
       subFilters: [
@@ -273,14 +273,16 @@ export const getColumns = (
         const end = getDevelopmentEndDate(dev);
         return (
           <div className="flex flex-col gap-0.5 text-left">
-            <div className="flex items-center gap-1.5">
-              <Text as="span" className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" title="Fecha Inicio" />
+            <div className="flex items-center gap-1">
+              <Text as="span" className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0 mr-1" title="Fecha Inicio" />
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[24px] shrink-0 !text-[10px]">Ini:</Text>
               <Text as="span" variant="caption" color="text-primary" className="!text-[11px] font-medium whitespace-nowrap">
                 {valueOrFallback(start)}
               </Text>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Text as="span" className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" title="Fecha Estimada Fin" />
+            <div className="flex items-center gap-1">
+              <Text as="span" className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 mr-1" title="Fecha Estimada Fin" />
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[24px] shrink-0 !text-[10px]">Fin:</Text>
               <Text as="span" variant="caption" color="text-secondary" className="!text-[10px] whitespace-nowrap">
                 {valueOrFallback(end)}
               </Text>
