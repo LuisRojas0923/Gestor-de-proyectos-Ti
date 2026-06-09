@@ -3,10 +3,14 @@ import AppRouter from './components/Router';
 import { AppProvider } from './context/AppContext';
 import { NotificationsProvider } from './components/notifications/NotificationsContext';
 import { NotificationsContainer } from './components/notifications/NotificationsContainer';
+import { UpdateAvailableBanner } from './components/molecules/UpdateAvailableBanner';
+import { useAppVersionCheck } from './hooks/useAppVersionCheck';
 import './i18n';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
 function App() {
+  const { updateAvailable, reloadApp } = useAppVersionCheck();
+
   useEffect(() => {
     // Inicializar tema desde localStorage o preferencia del sistema
     const savedTheme = localStorage.getItem('theme');
@@ -20,6 +24,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      {updateAvailable && <UpdateAvailableBanner onReload={reloadApp} />}
       <AppProvider>
         <NotificationsProvider>
           <AppRouter />

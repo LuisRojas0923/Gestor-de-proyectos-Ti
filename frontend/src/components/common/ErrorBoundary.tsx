@@ -2,6 +2,7 @@ import { Component, ErrorInfo, ReactNode } from 'react';
 import { Title } from '../atoms/Title';
 import { Text } from '../atoms/Text';
 import Button from '../atoms/Button';
+import { CHUNK_ERROR_RELOAD_MS, isChunkLoadError } from '../../utils/appVersion';
 
 interface Props {
     children: ReactNode;
@@ -9,24 +10,61 @@ interface Props {
 
 interface State {
     hasError: boolean;
+    isChunkError: boolean;
 }
 
 class ErrorBoundary extends Component<Props, State> {
+    private chunkReloadTimeoutId: number | null = null;
+
     public state: State = {
-        hasError: false
+        hasError: false,
+        isChunkError: false,
     };
 
-    public static getDerivedStateFromError(_: Error): State {
-        // Actualiza el estado para que el siguiente renderizado muestre la interfaz de repuesto
-        return { hasError: true };
+    public static getDerivedStateFromError(error: Error): State {
+        const isChunkError = isChunkLoadError(error?.message ?? '');
+        return { hasError: true, isChunkError };
     }
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error('Error capturado por ErrorBoundary:', error, errorInfo);
+
+        if (this.state.isChunkError) {
+            this.chunkReloadTimeoutId = window.setTimeout(() => {
+                window.location.reload();
+            }, CHUNK_ERROR_RELOAD_MS);
+        }
+    }
+
+    public componentWillUnmount() {
+        if (this.chunkReloadTimeoutId !== null) {
+            window.clearTimeout(this.chunkReloadTimeoutId);
+        }
     }
 
     public render() {
         if (this.state.hasError) {
+            if (this.state.isChunkError) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900 p-4">
+                        <div className="max-w-md w-full text-center space-y-4">
+                            <Title variant="h3" weight="bold" className="text-primary mb-2">
+                                Actualizando el portal
+                            </Title>
+                            <Text color="text-secondary">
+                                Se detectó una nueva versión. La página se recargará automáticamente en unos segundos.
+                            </Text>
+                            <Button
+                                onClick={() => window.location.reload()}
+                                className="px-6 py-3"
+                            >
+                                Recargar ahora
+                            </Button>
+                        </div>
+                    </div>
+                );
+            }
+
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900 p-4">
                     <div className="max-w-md w-full text-center space-y-6">
