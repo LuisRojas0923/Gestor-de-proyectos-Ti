@@ -68,9 +68,14 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, mod
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     {onBack && (
-                        <Button variant="ghost" onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors" title="Volver al inicio">
-                            <ArrowLeft className="w-6 h-6 text-neutral-600 dark:text-neutral-300" />
-                        </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={onBack}
+                            icon={ArrowLeft}
+                            className="rounded-full !p-2 -ml-2"
+                            aria-label="Volver al inicio"
+                            title="Volver al inicio"
+                        />
                     )}
                     <Title variant="h4" weight="bold" color="text-primary" className="uppercase tracking-tight">
                         Gestión de Viáticos

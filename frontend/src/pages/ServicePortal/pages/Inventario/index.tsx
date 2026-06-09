@@ -58,9 +58,14 @@ const InventarioView: React.FC<InventarioViewProps> = ({ onBack }) => {
                 <div className="flex flex-col md:flex-row items-center justify-start gap-4 w-full z-10">
                     <div className="flex flex-1 items-center gap-2 w-full md:w-auto">
                         {onBack && (
-                            <Button variant="ghost" onClick={onBack} className="p-1 -ml-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0" title="Volver al inicio">
-                                <ArrowLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-300" />
-                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={onBack}
+                                icon={ArrowLeft}
+                                className="rounded-full !p-2 -ml-2 shrink-0"
+                                aria-label="Volver al inicio"
+                                title="Volver al inicio"
+                            />
                         )}
                         <div className="flex flex-col justify-center shrink-0">
                             <Title variant="h5" weight="bold" className="leading-tight text-xs">Inventario 2026</Title>
