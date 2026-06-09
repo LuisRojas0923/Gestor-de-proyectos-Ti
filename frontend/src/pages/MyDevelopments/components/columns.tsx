@@ -2,15 +2,18 @@ import React from 'react';
 import { DataTableColumn } from '../../../components/molecules/DataTable';
 import { Checkbox, Text } from '../../../components/atoms';
 import { DevelopmentWithCurrentStatus } from '../../../types';
-import { 
-  Clock, 
-  PlayCircle, 
-  CheckCircle2, 
-  PauseCircle, 
-  AlertCircle, 
-  ArrowUp, 
-  ArrowRight, 
-  ArrowDown 
+import {
+  Clock,
+  PlayCircle,
+  CheckCircle2,
+  PauseCircle,
+  AlertCircle,
+  ArrowUp,
+  ArrowRight,
+  ArrowDown,
+  Calendar,
+  CalendarCheck,
+  type LucideIcon,
 } from 'lucide-react';
 
 export type DevelopmentRow = DevelopmentWithCurrentStatus & {
@@ -38,6 +41,48 @@ export const getDevelopmentName = (dev: DevelopmentRow) => dev.name ?? dev.nombr
 export const getDevelopmentDescription = (dev: DevelopmentRow) => dev.description ?? dev.descripcion;
 export const getDevelopmentStartDate = (dev: DevelopmentRow) => dev.start_date ?? dev.fecha_inicio;
 export const getDevelopmentEndDate = (dev: DevelopmentRow) => dev.estimated_end_date ?? dev.fecha_estimada_fin;
+
+const formatDevelopmentDate = (dateStr?: string | null) => {
+  if (!dateStr) return 'N/A';
+  try {
+    const [y, m, d] = dateStr.split('T')[0].split('-');
+    return `${d}/${m}/${y}`;
+  } catch {
+    return String(dateStr);
+  }
+};
+
+interface StackedIconRowProps {
+  Icon: LucideIcon;
+  iconClassName: string;
+  iconTitle: string;
+  value: string;
+  valueTitle?: string;
+}
+
+const StackedIconRow: React.FC<StackedIconRowProps> = ({
+  Icon,
+  iconClassName,
+  iconTitle,
+  value,
+  valueTitle,
+}) => (
+  <div className="flex items-center gap-0.5 min-w-0">
+    <Text as="span" title={iconTitle} aria-label={iconTitle} className="shrink-0 inline-flex m-0">
+      <Icon size={10} className={iconClassName} />
+    </Text>
+    <Text
+      as="span"
+      variant="caption"
+      color="text-primary"
+      weight="bold"
+      className="!text-[10px] truncate min-w-0 leading-none"
+      title={valueTitle ?? value}
+    >
+      {value}
+    </Text>
+  </div>
+);
 
 export const getDevelopmentStatus = (dev: DevelopmentRow) =>
   dev.estado_general ?? 'Pendiente';
@@ -277,51 +322,20 @@ export const getColumns = (
       render: (dev) => {
         const start = getDevelopmentStartDate(dev);
         const end = getDevelopmentEndDate(dev);
-        const DateRow = ({
-          color,
-          label,
-          value,
-          title,
-        }: {
-          color: string;
-          label: string;
-          value?: string | null;
-          title: string;
-        }) => {
-          const display = valueOrFallback(value);
-          return (
-            <div className="flex items-center gap-0.5 min-w-0">
-              <Text
-                as="span"
-                className={`w-1.5 h-1.5 rounded-full shrink-0 ${color}`}
-                title={title}
-                aria-hidden
-              />
-              <Text
-                as="span"
-                variant="caption"
-                color="text-secondary"
-                className="font-semibold shrink-0 !text-[10px] leading-none"
-              >
-                {label}
-              </Text>
-              <Text
-                as="span"
-                variant="caption"
-                color="text-primary"
-                weight="bold"
-                className="!text-[10px] truncate min-w-0 leading-none"
-                title={display}
-              >
-                {display}
-              </Text>
-            </div>
-          );
-        };
         return (
           <div className="flex flex-col gap-0 min-w-0 overflow-hidden">
-            <DateRow color="bg-green-500" label="Ini:" value={start} title="Fecha Inicio" />
-            <DateRow color="bg-red-500" label="Fin:" value={end} title="Fecha Estimada Fin" />
+            <StackedIconRow
+              Icon={Calendar}
+              iconClassName="text-green-600 dark:text-green-400"
+              iconTitle="Fecha inicio"
+              value={formatDevelopmentDate(start)}
+            />
+            <StackedIconRow
+              Icon={CalendarCheck}
+              iconClassName="text-red-500 dark:text-red-400"
+              iconTitle="Fecha fin"
+              value={formatDevelopmentDate(end)}
+            />
           </div>
         );
       },

@@ -6,9 +6,7 @@ import {
     Trash2,
     CheckCircle2,
     XCircle,
-    Play,
     CirclePause,
-    Circle,
     Calendar,
     CalendarCheck,
     UserCog,
@@ -17,8 +15,6 @@ import {
     Handshake,
     PlayCircle,
     AlertCircle,
-    Lock,
-    TrendingUp,
     type LucideIcon,
 } from 'lucide-react';
 import { Text, Button, ProgressBar } from '../../../components/atoms';
@@ -38,6 +34,8 @@ const formatDate = (dateStr?: string) => {
     }
 };
 
+const ESTADO_ICON_SIZE = 16;
+
 const getEstadoStatusIcon = (estado: string) => {
     const n = estado.toLowerCase();
     if (n.includes('complet')) {
@@ -50,10 +48,21 @@ const getEstadoStatusIcon = (estado: string) => {
         return { Icon: CirclePause, className: 'text-amber-600 dark:text-amber-400', label: estado };
     }
     if (n.includes('bloqueado')) {
-        return { Icon: Lock, className: 'text-red-500 dark:text-red-400', label: estado };
+        return { Icon: XCircle, className: 'text-red-500 dark:text-red-400', label: estado };
     }
-    return { Icon: AlertCircle, className: 'text-slate-500 dark:text-slate-400', label: estado };
+    if (n.includes('pendiente')) {
+        return { Icon: AlertCircle, className: 'text-red-500 animate-pulse', label: estado };
+    }
+    return { Icon: AlertCircle, className: 'text-red-500 animate-pulse', label: estado };
 };
+
+const ESTADO_MENU_OPTIONS = [
+    { value: 'Pendiente', ...getEstadoStatusIcon('Pendiente') },
+    { value: 'En Proceso', ...getEstadoStatusIcon('En Proceso') },
+    { value: 'Pausa', ...getEstadoStatusIcon('Pausa') },
+    { value: 'Bloqueado', ...getEstadoStatusIcon('Bloqueado') },
+    { value: 'Completada', ...getEstadoStatusIcon('Completada') },
+] as const;
 
 interface StackedIconRowProps {
     Icon: LucideIcon;
@@ -111,7 +120,7 @@ export const getWbsColumns = ({
   setStateMenuId,
   popoverPos,
   setPopoverPos,
-  handleQuickAction,
+  handleQuickAction: _handleQuickAction,
   handleEstadoChange,
   handleEditTask,
   handleCopyTask,
@@ -263,66 +272,23 @@ export const getWbsColumns = ({
             { key: 'porcentaje_avance', label: 'Avance' },
         ],
         render: (row) => {
-            const n = row.estado.toLowerCase();
-            const isCompleted = n.includes('complet');
-            const isInProgress = n.includes('progreso') || n.includes('curso') || n.includes('proceso');
-            const isPaused = n.includes('pausa');
-            const isBlocked = n.includes('bloqueado');
             const isMenuOpen = stateMenuId === row.id;
             const { Icon: StatusIcon, className: statusClass, label: statusLabel } = getEstadoStatusIcon(row.estado);
 
             return (
-                <div className="flex flex-col gap-0.5 min-w-0 overflow-hidden w-full">
-                    <div className="flex items-center gap-0.5 w-full min-w-0 relative">
-                        <Text
-                            as="span"
-                            title={statusLabel}
-                            aria-label={statusLabel}
-                            className="shrink-0 inline-flex items-center justify-center m-0"
-                        >
-                            <StatusIcon size={16} className={statusClass} />
-                        </Text>
-                        {!isCompleted && !isInProgress && !isPaused && !isBlocked && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'play', row); }}
-                                icon={Play}
-                                className="h-6 w-6 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-                                title="Iniciar"
-                            />
-                        )}
-                        {isInProgress && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'pause', row); }}
-                                icon={CirclePause}
-                                className="h-6 w-6 !p-0 text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
-                                title="Pausar"
-                            />
-                        )}
-                        {isPaused && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'play', row); }}
-                                icon={Play}
-                                className="h-6 w-6 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-                                title="Reanudar"
-                            />
-                        )}
-                        {(isInProgress || isPaused) && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'finish', row); }}
-                                icon={CheckCircle2}
-                                className="h-6 w-6 !p-0 text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
-                                title="Terminar"
-                            />
-                        )}
-                        <div className="relative ml-auto shrink-0">
+                <div className="flex flex-col gap-0.5 min-w-0 w-full">
+                    <div className="relative flex items-center w-full min-w-0 min-h-6">
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                            <Text
+                                as="span"
+                                title={statusLabel}
+                                aria-label={statusLabel}
+                                className="pointer-events-auto shrink-0 inline-flex items-center justify-center m-0"
+                            >
+                                <StatusIcon size={ESTADO_ICON_SIZE} className={statusClass} />
+                            </Text>
+                        </div>
+                        <div className="relative z-10 ml-auto shrink-0" data-wbs-state-menu-trigger>
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -333,7 +299,7 @@ export const getWbsColumns = ({
                                         setPopoverPos(null);
                                     } else {
                                         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                        setPopoverPos({ top: rect.top - 6, left: rect.left - 126 });
+                                        setPopoverPos({ top: rect.top - 6, left: rect.left - 158 });
                                         setStateMenuId(row.id);
                                     }
                                 }}
@@ -347,50 +313,31 @@ export const getWbsColumns = ({
                                     ref={stateMenuRef as React.RefObject<HTMLDivElement>}
                                     className="fixed z-[99999] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-lg flex items-center gap-1"
                                 >
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 !p-0"
-                                        title="Pendiente"
-                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Pendiente'); setStateMenuId(null); setPopoverPos(null); }}
-                                    >
-                                        <Circle size={14} className="text-slate-500 dark:text-slate-400" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 !p-0"
-                                        title="En Proceso"
-                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'En Proceso'); setStateMenuId(null); setPopoverPos(null); }}
-                                    >
-                                        <Play size={14} className="text-amber-600 dark:text-amber-400" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 !p-0"
-                                        title="Bloqueado"
-                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Bloqueado'); setStateMenuId(null); setPopoverPos(null); }}
-                                    >
-                                        <XCircle size={14} className="text-red-500 dark:text-red-400" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 !p-0"
-                                        title="Completada"
-                                        onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Completada'); setStateMenuId(null); setPopoverPos(null); }}
-                                    >
-                                        <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />
-                                    </Button>
+                                    {ESTADO_MENU_OPTIONS.map(({ value, Icon, className }) => (
+                                        <Button
+                                            key={value}
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 w-7 !p-0"
+                                            title={value}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                void handleEstadoChange(row.id, value);
+                                                setStateMenuId(null);
+                                                setPopoverPos(null);
+                                            }}
+                                        >
+                                            <Icon size={ESTADO_ICON_SIZE} className={className} />
+                                        </Button>
+                                    ))}
                                 </div>
                             )}
                         </div>
                     </div>
-                    <div className="flex items-center gap-0.5 min-w-0 overflow-hidden" title={`Avance: ${row.porcentaje_avance}%`}>
-                        <Text as="span" title="Avance" aria-label="Avance" className="shrink-0 inline-flex m-0">
-                            <TrendingUp size={10} className="text-neutral-500 dark:text-neutral-400" />
-                        </Text>
+                    <div
+                        className="flex items-center justify-center gap-0.5 min-w-0 w-full"
+                        title={`Avance: ${row.porcentaje_avance}%`}
+                    >
                         <Text as="span" variant="caption" weight="bold" className="!text-[9px] shrink-0 leading-none">
                             {row.porcentaje_avance}%
                         </Text>

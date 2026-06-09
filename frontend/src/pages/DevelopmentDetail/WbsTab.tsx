@@ -250,10 +250,11 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (stateMenuRef.current && !stateMenuRef.current.contains(e.target as Node)) {
-                setStateMenuId(null);
-                setPopoverPos(null);
-            }
+            const target = e.target as Node;
+            if (stateMenuRef.current?.contains(target)) return;
+            if ((target as Element).closest?.('[data-wbs-state-menu-trigger]')) return;
+            setStateMenuId(null);
+            setPopoverPos(null);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
