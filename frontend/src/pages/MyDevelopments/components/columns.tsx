@@ -254,7 +254,7 @@ export const getColumns = (
           colorClass = 'text-red-500';
         } else if (pLower === 'baja') {
           IconComponent = ArrowDown;
-          colorClass = 'text-blue-500';
+          colorClass = 'text-green-500';
         }
         return (
           <div className="flex items-center justify-center" title={`Prioridad: ${p}`}>
@@ -268,6 +268,7 @@ export const getColumns = (
       label: 'Fechas',
       minWidth: '100px',
       maxWidth: '100px',
+      cellClassName: '!px-2',
       filterable: true,
       subFilters: [
         { key: 'start_date', label: 'Fecha Inicio' },
@@ -276,22 +277,51 @@ export const getColumns = (
       render: (dev) => {
         const start = getDevelopmentStartDate(dev);
         const end = getDevelopmentEndDate(dev);
+        const DateRow = ({
+          color,
+          label,
+          value,
+          title,
+        }: {
+          color: string;
+          label: string;
+          value?: string | null;
+          title: string;
+        }) => {
+          const display = valueOrFallback(value);
+          return (
+            <div className="flex items-center gap-0.5 min-w-0">
+              <Text
+                as="span"
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${color}`}
+                title={title}
+                aria-hidden
+              />
+              <Text
+                as="span"
+                variant="caption"
+                color="text-secondary"
+                className="font-semibold shrink-0 !text-[10px] leading-none"
+              >
+                {label}
+              </Text>
+              <Text
+                as="span"
+                variant="caption"
+                color="text-primary"
+                weight="bold"
+                className="!text-[10px] truncate min-w-0 leading-none"
+                title={display}
+              >
+                {display}
+              </Text>
+            </div>
+          );
+        };
         return (
-          <div className="flex flex-col gap-0.5 text-left">
-            <div className="flex items-center gap-1">
-              <Text as="span" className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0 mr-1" title="Fecha Inicio" />
-              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[24px] shrink-0 !text-[10px]">Ini:</Text>
-              <Text as="span" variant="caption" color="text-primary" className="!text-[10px] whitespace-nowrap">
-                {valueOrFallback(start)}
-              </Text>
-            </div>
-            <div className="flex items-center gap-1">
-              <Text as="span" className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 mr-1" title="Fecha Estimada Fin" />
-              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[24px] shrink-0 !text-[10px]">Fin:</Text>
-              <Text as="span" variant="caption" color="text-primary" className="!text-[10px] whitespace-nowrap">
-                {valueOrFallback(end)}
-              </Text>
-            </div>
+          <div className="flex flex-col gap-0 min-w-0 overflow-hidden">
+            <DateRow color="bg-green-500" label="Ini:" value={start} title="Fecha Inicio" />
+            <DateRow color="bg-red-500" label="Fin:" value={end} title="Fecha Estimada Fin" />
           </div>
         );
       },
@@ -313,11 +343,11 @@ export const getColumns = (
           <div className="flex flex-col gap-0.5 text-left min-w-0">
             <div className="truncate !text-[10px] flex items-center" title={`Área de impacto: ${imp}`}>
               <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[16px] shrink-0 !text-[10px]">I:</Text>
-              <Text as="span" variant="caption" color="text-primary" className="truncate">{imp}</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{imp}</Text>
             </div>
             <div className="truncate !text-[10px] flex items-center" title={`Área Ejecutora: ${ejec}`}>
               <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[16px] shrink-0 !text-[10px]">E:</Text>
-              <Text as="span" variant="caption" color="text-secondary" className="truncate">{ejec}</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{ejec}</Text>
             </div>
           </div>
         );
@@ -345,19 +375,19 @@ export const getColumns = (
           <div className="flex flex-col gap-0.5 text-left py-1 min-w-0">
             <div className="truncate !text-[10px] flex items-center" title={`Autoridad: ${aut}`}>
               <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[70px] shrink-0 !text-[10px]">Autoridad:</Text>
-              <Text as="span" variant="caption" color="text-primary" className="truncate">{aut}</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{aut}</Text>
             </div>
             <div className="truncate !text-[10px] flex items-center" title={`Líder: ${lid}`}>
               <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[70px] shrink-0 !text-[10px]">Líder:</Text>
-              <Text as="span" variant="caption" color="text-secondary" className="truncate">{lid}</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{lid}</Text>
             </div>
             <div className="truncate !text-[10px] flex items-center" title={`Supervisor: ${sup}`}>
               <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[70px] shrink-0 !text-[10px]">Supervisor:</Text>
-              <Text as="span" variant="caption" color="text-secondary" className="truncate">{sup}</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{sup}</Text>
             </div>
             <div className="truncate !text-[10px] flex items-center" title={`Ejecutor: ${eje}`}>
               <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[70px] shrink-0 !text-[10px]">Ejecutor:</Text>
-              <Text as="span" variant="caption" color="text-secondary" className="truncate">{eje}</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{eje}</Text>
             </div>
           </div>
         );
