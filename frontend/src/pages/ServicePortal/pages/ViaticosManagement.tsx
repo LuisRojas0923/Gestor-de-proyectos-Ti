@@ -1,5 +1,5 @@
-import { ClipboardList, ChevronRight } from 'lucide-react';
-import { Text, Title, MaterialCard } from '../../../components/atoms';
+import { ClipboardList, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Text, Title, MaterialCard, Button } from '../../../components/atoms';
 import Callout from '../../../components/molecules/Callout';
 import { useAppContext } from '../../../context/AppContext';
 
@@ -9,6 +9,7 @@ import imgEstadoCuenta from '../../../assets/images/categories/estado de cuenta.
 interface ViaticosManagementProps {
     onNavigate: (view: 'legalizar_gastos' | 'viaticos_reportes' | 'viaticos_estado' | 'director_legalizaciones') => void;
     moduleStatus?: Record<string, boolean>;
+    onBack?: () => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -46,7 +47,7 @@ const ServicePortalCard: React.FC<{
     );
 };
 
-const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, moduleStatus = {} }) => {
+const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, moduleStatus = {}, onBack }) => {
     const { state } = useAppContext();
     const { user } = state;
     const userRole = ((user as any)?.rol || user?.role || '').toLowerCase();
@@ -65,9 +66,21 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, mod
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <Title variant="h4" weight="bold" color="text-primary" className="uppercase tracking-tight">
-                    Gestión de Viáticos
-                </Title>
+                <div className="flex items-center gap-3">
+                    {onBack && (
+                        <Button
+                            variant="ghost"
+                            onClick={onBack}
+                            icon={ArrowLeft}
+                            className="rounded-full !p-2 -ml-2"
+                            aria-label="Volver al inicio"
+                            title="Volver al inicio"
+                        />
+                    )}
+                    <Title variant="h4" weight="bold" color="text-primary" className="uppercase tracking-tight">
+                        Gestión de Viáticos
+                    </Title>
+                </div>
                 <div className="w-20"></div>
             </div>
 
