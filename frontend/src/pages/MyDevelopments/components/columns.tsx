@@ -3,11 +3,6 @@ import { DataTableColumn } from '../../../components/molecules/DataTable';
 import { Checkbox, Text } from '../../../components/atoms';
 import { DevelopmentWithCurrentStatus } from '../../../types';
 import {
-  Clock,
-  PlayCircle,
-  CheckCircle2,
-  PauseCircle,
-  AlertCircle,
   ArrowUp,
   ArrowRight,
   ArrowDown,
@@ -15,6 +10,7 @@ import {
   CalendarCheck,
   type LucideIcon,
 } from 'lucide-react';
+import { ESTADO_ICON_SIZE, getEstadoStatusIcon } from '../../../utils/estadoIcons';
 
 export type DevelopmentRow = DevelopmentWithCurrentStatus & {
   nombre?: string;
@@ -247,28 +243,11 @@ export const getColumns = (
       render: (dev) => {
         const status = getStatusLabel(getDevelopmentStatus(dev));
         const progress = getDevelopmentProgress(dev);
-        
-        let IconComponent = Clock;
-        let iconColor = 'text-yellow-500';
-        const s = status.toLowerCase();
-        
-        if (s.includes('pendiente')) {
-          IconComponent = AlertCircle;
-          iconColor = 'text-red-500 animate-pulse';
-        } else if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) {
-          IconComponent = PlayCircle;
-          iconColor = 'text-blue-500';
-        } else if (s.includes('complet')) {
-          IconComponent = CheckCircle2;
-          iconColor = 'text-green-500';
-        } else if (s.includes('paus') || s.includes('pausa') || s.includes('pausado')) {
-          IconComponent = PauseCircle;
-          iconColor = 'text-orange-500';
-        }
-        
+        const { Icon: StatusIcon, className: statusClass } = getEstadoStatusIcon(status);
+
         return (
           <div className="flex flex-col items-center gap-1 w-full" title={status}>
-            <IconComponent size={18} className={`${iconColor} shrink-0`} />
+            <StatusIcon size={ESTADO_ICON_SIZE} className={`${statusClass} shrink-0`} />
             <div className="flex items-center gap-1 w-full min-w-0">
               <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div className={`h-full bg-green-500 transition-all duration-500 ${getProgressWidthClass(progress)}`} />

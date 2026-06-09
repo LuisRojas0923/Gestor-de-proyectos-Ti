@@ -6,21 +6,19 @@ import {
     Trash2,
     CheckCircle2,
     XCircle,
-    CirclePause,
     Calendar,
     CalendarCheck,
     UserCog,
     User,
     MessageSquare,
     Handshake,
-    PlayCircle,
-    AlertCircle,
     type LucideIcon,
 } from 'lucide-react';
 import { Text, Button, ProgressBar } from '../../../components/atoms';
 import { ValidationStatusBadge } from '../../../components/assignments/ValidationStatusBadge';
 import { DataTableColumn } from '../../../components/molecules/DataTable';
 import { WbsActivityTree } from '../../../types/wbs';
+import { ESTADO_ICON_SIZE, ESTADO_MENU_OPTIONS, getEstadoStatusIcon } from '../../../utils/estadoIcons';
 
 type WbsRow = WbsActivityTree & { _rowIndex: number };
 
@@ -33,36 +31,6 @@ const formatDate = (dateStr?: string) => {
         return dateStr;
     }
 };
-
-const ESTADO_ICON_SIZE = 16;
-
-const getEstadoStatusIcon = (estado: string) => {
-    const n = estado.toLowerCase();
-    if (n.includes('complet')) {
-        return { Icon: CheckCircle2, className: 'text-green-600 dark:text-green-400', label: estado };
-    }
-    if (n.includes('progreso') || n.includes('curso') || n.includes('proceso')) {
-        return { Icon: PlayCircle, className: 'text-amber-600 dark:text-amber-400', label: estado };
-    }
-    if (n.includes('pausa')) {
-        return { Icon: CirclePause, className: 'text-amber-600 dark:text-amber-400', label: estado };
-    }
-    if (n.includes('bloqueado')) {
-        return { Icon: XCircle, className: 'text-red-500 dark:text-red-400', label: estado };
-    }
-    if (n.includes('pendiente')) {
-        return { Icon: AlertCircle, className: 'text-red-500 animate-pulse', label: estado };
-    }
-    return { Icon: AlertCircle, className: 'text-red-500 animate-pulse', label: estado };
-};
-
-const ESTADO_MENU_OPTIONS = [
-    { value: 'Pendiente', ...getEstadoStatusIcon('Pendiente') },
-    { value: 'En Proceso', ...getEstadoStatusIcon('En Proceso') },
-    { value: 'Pausa', ...getEstadoStatusIcon('Pausa') },
-    { value: 'Bloqueado', ...getEstadoStatusIcon('Bloqueado') },
-    { value: 'Completada', ...getEstadoStatusIcon('Completada') },
-] as const;
 
 interface StackedIconRowProps {
     Icon: LucideIcon;
