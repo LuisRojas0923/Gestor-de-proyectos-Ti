@@ -1,11 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Activity, RotateCcw, Users, X, Plus, CheckCheck } from 'lucide-react';
+import { ClipboardList, Activity, RotateCcw, Users, X, Plus, CheckCheck, ChevronDown } from 'lucide-react';
 import { Button, Title, Text } from '../../../components/atoms';
 
 interface MyDevelopmentsHeaderProps {
   isPortal: boolean;
   totalCount: number;
+  loadedCount: number;
   statusGroups: Record<string, number>;
   activeFilterCount: number;
   clearAllFilters: () => void;
@@ -16,6 +17,9 @@ interface MyDevelopmentsHeaderProps {
   onStatusSelect: (status: string | null) => void;
   reviewedCount: number;
   clearReviewed: () => void;
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
 }
 
 const getStatusChipClass = (status: string, isSelected: boolean, hasActiveFilter: boolean) => {
@@ -39,6 +43,7 @@ const getStatusChipClass = (status: string, isSelected: boolean, hasActiveFilter
 export const MyDevelopmentsHeader: React.FC<MyDevelopmentsHeaderProps> = ({
   isPortal,
   totalCount,
+  loadedCount,
   statusGroups,
   activeFilterCount,
   clearAllFilters,
@@ -49,6 +54,9 @@ export const MyDevelopmentsHeader: React.FC<MyDevelopmentsHeaderProps> = ({
   onStatusSelect,
   reviewedCount,
   clearReviewed,
+  hasMore,
+  loadingMore,
+  onLoadMore,
 }) => {
   const navigate = useNavigate();
 
@@ -133,6 +141,18 @@ export const MyDevelopmentsHeader: React.FC<MyDevelopmentsHeaderProps> = ({
             </button>
           )}
         </div>
+        {hasMore && (
+          <Button
+            variant="custom"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            icon={ChevronDown}
+            title={loadingMore ? 'Cargando...' : `Cargar más (mostrando ${loadedCount} de ${totalCount})`}
+            className="bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-700 hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-all px-3 py-2 text-sm rounded-lg font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          >
+            {loadingMore ? 'Cargando...' : `Cargar más (${loadedCount} de ${totalCount})`}
+          </Button>
+        )}
         <Button variant="primary" icon={Plus} onClick={onOpenCreateModal}
           className="shadow-lg shadow-primary-500/20 shrink-0">
           Nueva Actividad

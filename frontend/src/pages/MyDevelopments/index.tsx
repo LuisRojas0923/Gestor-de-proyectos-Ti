@@ -27,7 +27,7 @@ const MyDevelopments: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isPortal = location.pathname.startsWith('/service-portal');
-  const { developments, loadDevelopments } = useDevelopments();
+  const { developments, loadDevelopments, loadMore, total, hasMore, loadingMore } = useDevelopments();
   const { reviewedIds, toggle: toggleReviewed, clearAll: clearReviewed, count: reviewedCount } = useReviewedDevelopments();
   const { addNotification } = useNotifications();
   const { delete: apiDelete, get: apiGet, put: apiPut } = useApi();
@@ -167,7 +167,8 @@ const MyDevelopments: React.FC = () => {
     <div className="space-y-4">
       <MyDevelopmentsHeader
         isPortal={isPortal}
-        totalCount={dataForCounters.length}
+        totalCount={Object.values(statusGroups).reduce((a, b) => a + b, 0)}
+        loadedCount={developments.length}
         statusGroups={statusGroups}
         activeFilterCount={activeFilterCount}
         clearAllFilters={clearAllFilters}
@@ -178,6 +179,9 @@ const MyDevelopments: React.FC = () => {
         onStatusSelect={handleStatusSelect}
         reviewedCount={reviewedCount}
         clearReviewed={clearReviewed}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        onLoadMore={loadMore}
       />
 
       <DataTable<DevelopmentRow>

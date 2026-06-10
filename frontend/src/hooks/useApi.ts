@@ -129,6 +129,39 @@ export function useApi<T>() {
 
   const get = useCallback((url: string) => request(url), [request]); // [CONTROLADO]
 
+  const getWithHeaders = useCallback(async (url: string): Promise<{ data: T; headers: Headers } | null> => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    };
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, { headers });
+      if (response.status === HTTP_STATUS.UNAUTHORIZED) {
+        const isAuthEndpoint = url.includes('/auth/');
+        const newToken = !isAuthEndpoint ? await AuthService.refreshAccessToken() : null;
+        if (newToken) {
+          return getWithHeaders(url);
+        }
+        dispatch({ type: 'LOGOUT' });
+        return null;
+      }
+      if (!response.ok) {
+        let body: { detail?: unknown; message?: string } | null = null;
+        try { body = await response.json(); } catch { /* ignore */ }
+        const msg = (typeof body?.detail === 'string' && body.detail) || body?.message || getErrorMessage(response.status);
+        throw new Error(msg);
+      }
+      const data = await response.json();
+      setState({ data, loading: false, error: null });
+      return { data, headers: response.headers };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR;
+      setState({ data: null, loading: false, error: errorMessage });
+      throw error;
+    }
+  }, [dispatch, addNotification]);
+
   const post = useCallback(
     (url: string, data: any, options: RequestInit = {}) =>
       request(url, { // [CONTROLADO]
@@ -170,9 +203,10 @@ export function useApi<T>() {
   return useMemo(() => ({
     ...state,
     get,
+    getWithHeaders,
     post,
     put,
     patch,
     delete: del,
-  }), [state, get, post, put, patch, del]);
+  }), [state, get, getWithHeaders, post, put, patch, del]);
 }
