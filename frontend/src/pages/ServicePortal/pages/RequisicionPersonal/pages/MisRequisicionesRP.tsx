@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Eye, Edit, Plus, ArrowLeft, Send, XCircle, Printer } from 'lucide-react';
+import { Eye, Edit, Plus, ArrowLeft, Send, XCircle, Printer, Briefcase } from 'lucide-react';
 import { Button, Text, Title } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import RPStatusBadge from '../components/RPStatusBadge';
@@ -140,7 +140,7 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
           <Button variant="ghost" onClick={onVolver} icon={ArrowLeft} className="font-bold hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl" />
           <div>
             <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
-              Mis Requisiciones de Personal
+              Firma Express — Requisiciones de Personal
             </Title>
             <Text variant="caption" color="text-secondary" className="block text-[10px] leading-none uppercase tracking-widest opacity-70 mt-1">
               RECURSOS HUMANOS / MIS SOLICITUDES
@@ -151,9 +151,21 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
       </div>
 
       {requisiciones.length === 0 ? (
-        <div className="text-center py-20 bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)]">
-          <Text color="secondary" className="mb-4">No tiene requisiciones registradas aún.</Text>
-          <Button variant="primary" icon={Plus} onClick={onNueva}>Crear primera requisición</Button>
+        <div className="flex flex-col items-center justify-center text-center py-16 bg-[var(--color-surface)] rounded-3xl border border-[var(--color-border)] shadow-sm space-y-4 max-w-4xl mx-auto animate-in fade-in duration-500">
+          <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-neutral-800 flex items-center justify-center shadow-inner border border-slate-100 dark:border-neutral-700">
+            <Briefcase className="w-8 h-8 text-[var(--color-primary)]" />
+          </div>
+          <div className="space-y-1">
+            <Title variant="h5" weight="bold" align="center" className="text-slate-800 dark:text-slate-100">
+              No tienes requisiciones
+            </Title>
+            <Text color="secondary" align="center" className="text-sm">
+              Aún no has registrado ninguna requisición de personal.
+            </Text>
+          </div>
+          <Button variant="primary" icon={Plus} onClick={onNueva} className="mt-2">
+            Crear primera requisición
+          </Button>
         </div>
       ) : (
         <div className="min-h-0 flex flex-col space-y-3 overflow-hidden">
