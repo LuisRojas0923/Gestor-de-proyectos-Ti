@@ -39,9 +39,11 @@ class CandidatoRequisicion(SQLModel, table=True):
     requisicion_id: int = Field(foreign_key="requisiciones_personal.id", index=True)
     temporal_id: int = Field(foreign_key="empresas_temporales.id")
     nombre_candidato: str = Field(max_length=255)
+    cedula: Optional[str] = Field(default=None, max_length=20)
     estado: str = Field(default="POR_EVALUAR", max_length=50, index=True)
     causal_descarte: Optional[str] = Field(default=None, max_length=255)
     observaciones: Optional[str] = Field(default=None)
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": "now()"}
     )
+

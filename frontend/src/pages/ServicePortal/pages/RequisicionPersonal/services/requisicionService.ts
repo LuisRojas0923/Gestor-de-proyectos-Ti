@@ -210,8 +210,8 @@ export const actualizarFechaEnvioHV = (requisicionId: number, temporalId: number
 export const getCandidatos = (requisicionId: number): Promise<CandidatoRequisicion[]> =>
   axios.get(`${BASE}/requisiciones/${requisicionId}/candidatos`, authHeaders()).then(r => r.data);
 
-export const agregarCandidato = (requisicionId: number, temporalId: number, nombreCandidato: string, observaciones?: string): Promise<CandidatoRequisicion> =>
-  axios.post(`${BASE}/requisiciones/${requisicionId}/candidatos`, { temporal_id: temporalId, nombre_candidato: nombreCandidato, observaciones }, authHeaders()).then(r => r.data);
+export const agregarCandidato = (requisicionId: number, temporalId: number, nombreCandidato: string, cedula?: string, observaciones?: string): Promise<CandidatoRequisicion> =>
+  axios.post(`${BASE}/requisiciones/${requisicionId}/candidatos`, { temporal_id: temporalId, nombre_candidato: nombreCandidato, cedula, observaciones }, authHeaders()).then(r => r.data);
 
 export const actualizarCandidato = (candidatoId: number, fields: Partial<CandidatoRequisicion>): Promise<CandidatoRequisicion> =>
   axios.put(`${BASE}/requisiciones/candidatos/${candidatoId}`, fields, authHeaders()).then(r => r.data);
@@ -219,3 +219,43 @@ export const actualizarCandidato = (candidatoId: number, fields: Partial<Candida
 // ── Métricas de Seguimiento ────────────────────
 export const getSeguimientoStats = (requisicionId: number): Promise<SeguimientoStats> =>
   axios.get(`${BASE}/requisiciones/${requisicionId}/seguimiento-stats`, authHeaders()).then(r => r.data);
+
+// ── Métricas por Cédula ────────────────────────
+export interface HistorialCandidatoItem {
+  requisicion_id: number;
+  rp: string;
+  cargo: string;
+  ciudad?: string;
+  area?: string;
+  empresa_temporal?: string;
+  estado_candidato: string;
+  causal_descarte?: string;
+  fecha?: string;
+}
+
+export interface MetricasCedulaItem {
+  cedula: string;
+  nombre: string;
+  total_postulaciones: number;
+  contratado: boolean;
+  postulaciones_activas: number;
+  historial: HistorialCandidatoItem[];
+}
+
+export interface ConsolidadoRPItem {
+  nombre_candidato: string;
+  cedula?: string;
+  rp: string;
+  cargo: string;
+  ciudad?: string;
+  area?: string;
+  empresa_temporal?: string;
+  estado_candidato: string;
+  causal_descarte?: string;
+}
+
+export const getMetricasCedula = (): Promise<MetricasCedulaItem[]> =>
+  axios.get(`${BASE}/requisiciones/metricas/por-cedula`, authHeaders()).then(r => r.data);
+
+export const getConsolidadoCandidatos = (): Promise<ConsolidadoRPItem[]> =>
+  axios.get(`${BASE}/requisiciones/metricas/consolidado`, authHeaders()).then(r => r.data);

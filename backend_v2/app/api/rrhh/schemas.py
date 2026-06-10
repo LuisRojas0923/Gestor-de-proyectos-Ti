@@ -312,6 +312,7 @@ class CandidatoRequisicionOut(BaseModel):
     temporal_id: int
     nombre_temporal: Optional[str] = None
     nombre_candidato: str
+    cedula: Optional[str] = None
     estado: str
     causal_descarte: Optional[str] = None
     observaciones: Optional[str] = None
@@ -324,11 +325,13 @@ class CandidatoRequisicionOut(BaseModel):
 class CandidatoRequisicionCreate(BaseModel):
     temporal_id: int
     nombre_candidato: str
+    cedula: Optional[str] = None
     observaciones: Optional[str] = None
 
 
 class CandidatoRequisicionUpdate(BaseModel):
     nombre_candidato: Optional[str] = None
+    cedula: Optional[str] = None
     estado: Optional[str] = None
     causal_descarte: Optional[str] = None
     observaciones: Optional[str] = None
@@ -341,6 +344,41 @@ class SeguimientoStatsOut(BaseModel):
     contratados: int
     por_evaluar: int
     causales_descarte: Dict[str, int]
+
+
+# ── Métricas por Cédula ────────────────────────────────────────────────────────
+
+class HistorialCandidatoItem(BaseModel):
+    requisicion_id: int
+    rp: str
+    cargo: str
+    ciudad: Optional[str] = None
+    area: Optional[str] = None
+    empresa_temporal: Optional[str] = None
+    estado_candidato: str
+    causal_descarte: Optional[str] = None
+    fecha: Optional[datetime] = None
+
+
+class MetricasCedulaItem(BaseModel):
+    cedula: str
+    nombre: str
+    total_postulaciones: int
+    contratado: bool
+    postulaciones_activas: int   # en estados distintos a NO_APLICA (paralelas)
+    historial: List[HistorialCandidatoItem]
+
+
+class ConsolidadoRPItem(BaseModel):
+    nombre_candidato: str
+    cedula: Optional[str] = None
+    rp: str
+    cargo: str
+    ciudad: Optional[str] = None
+    area: Optional[str] = None
+    empresa_temporal: Optional[str] = None
+    estado_candidato: str
+    causal_descarte: Optional[str] = None
 
 
 class CausalDescarteOut(BaseModel):

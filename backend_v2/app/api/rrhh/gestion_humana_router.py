@@ -13,7 +13,7 @@ from app.api.rrhh.schemas import (
     EmpresaTemporalOut, EmpresaTemporalCreate, EmpresaTemporalUpdate,
     RequisicionTemporalOut, RequisicionTemporalAssignPayload, RequisicionTemporalEnvioHVPayload,
     CandidatoRequisicionOut, CandidatoRequisicionCreate, CandidatoRequisicionUpdate,
-    SeguimientoStatsOut
+    SeguimientoStatsOut, MetricasCedulaItem, ConsolidadoRPItem
 )
 import app.services.rrhh.requisicion_service as svc
 import app.services.rrhh.seguimiento_service as seg_svc
@@ -188,7 +188,8 @@ async def agregar_candidato(
     """Agrega un candidato al pipeline de selección de la requisición."""
     try:
         return await seg_svc.add_candidato(
-            db, requisicion_id, payload.temporal_id, payload.nombre_candidato, payload.observaciones
+            db, requisicion_id, payload.temporal_id, payload.nombre_candidato,
+            payload.cedula, payload.observaciones
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -213,3 +214,15 @@ async def actualizar_candidato(
 async def obtener_estadisticas_seguimiento(requisicion_id: int, db: AsyncSession = Depends(obtener_db)):
     """Calcula acumulados y estadísticas del pipeline de candidatos de la requisición."""
     return await seg_svc.get_seguimiento_stats(db, requisicion_id)
+
+
+@router.get("/metricas/por-cedula", response_model=List[MetricasCedulaItem])
+async def obtener_metricas_por_cedula(db: AsyncSession = Depends(obtener_db)):
+    """Retorna métricas de candidatos agrupadas por cédula: recurrencia, historial y participación paralela."""
+    return await seg_svc.get_metricas_cedula(db)
+
+
+@router.get("/metricas/consolidado", response_model=List[ConsolidadoRPItem])
+async def obtener_consolidado_candidatos(db: AsyncSession = Depends(obtener_db)):
+    """Retorna consolidado plano de candidatos cruzado con datos de RP (cargo, ciudad, área, temporal)."""
+    return await seg_svc.get_consolidado_candidatos(db)

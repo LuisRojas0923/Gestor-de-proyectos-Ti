@@ -50,9 +50,9 @@ const ServicePortalCard: React.FC<{
             </MaterialCard>
 
             {/* Custom CSS Tooltip */}
-            <div className="absolute z-50 left-1/2 bottom-full mb-2 -translate-x-1/2 w-max max-w-[250px] whitespace-normal bg-slate-800 text-white text-xs text-center font-medium px-3 py-2 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none scale-95 group-hover:scale-100 origin-bottom">
+            <div className="absolute z-50 left-1/2 top-full mt-2 -translate-x-1/2 w-max max-w-[250px] whitespace-normal bg-slate-800 text-white text-xs text-center font-medium px-3 py-2 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none scale-95 group-hover:scale-100 origin-top">
                 {description}
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
             </div>
         </div>
     );

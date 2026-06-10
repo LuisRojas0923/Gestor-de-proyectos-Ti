@@ -213,7 +213,8 @@ async def get_candidatos(db: AsyncSession, requisicion_id: int) -> List[dict]:
 
 
 async def add_candidato(
-    db: AsyncSession, requisicion_id: int, temporal_id: int, nombre_candidato: str, observaciones: Optional[str] = None
+    db: AsyncSession, requisicion_id: int, temporal_id: int, nombre_candidato: str,
+    cedula: Optional[str] = None, observaciones: Optional[str] = None
 ) -> CandidatoRequisicion:
     """Registra un nuevo candidato en el pipeline.
     Si la RP está en APROBADA, la transiciona automáticamente a EN_PROCESO_SELECCION.
@@ -226,6 +227,7 @@ async def add_candidato(
         requisicion_id=requisicion_id,
         temporal_id=temporal_id,
         nombre_candidato=nombre_candidato.strip(),
+        cedula=cedula.strip() if cedula else None,
         estado="POR_EVALUAR",
         observaciones=observaciones,
         creado_en=datetime.utcnow()
@@ -277,6 +279,8 @@ async def update_candidato(db: AsyncSession, candidato_id: int, data: dict) -> C
 
     if "nombre_candidato" in data:
         cand.nombre_candidato = data["nombre_candidato"].strip()
+    if "cedula" in data:
+        cand.cedula = data["cedula"].strip() if data["cedula"] else None
     if "estado" in data:
         cand.estado = data["estado"]
     if "causal_descarte" in data:
@@ -376,3 +380,97 @@ async def get_seguimiento_stats(db: AsyncSession, requisicion_id: int) -> dict:
         "por_evaluar": por_evaluar,
         "causales_descarte": causales
     }
+
+
+# ──────────────────────────────────────────────
+# Métricas por Cédula
+# ──────────────────────────────────────────────
+
+async def get_metricas_cedula(db: AsyncSession) -> List[dict]:
+    """Retorna métricas agrupadas por cédula: historial, recurrencia y participación paralela."""
+    stmt = (
+        select(
+            CandidatoRequisicion,
+            EmpresaTemporal.nombre.label("nombre_temporal"),
+            RequisicionPersonal.rp,
+            RequisicionPersonal.cargo_nombre,
+            RequisicionPersonal.municipio,
+            RequisicionPersonal.area_nombre,
+        )
+        .join(EmpresaTemporal, CandidatoRequisicion.temporal_id == EmpresaTemporal.id)
+        .join(RequisicionPersonal, CandidatoRequisicion.requisicion_id == RequisicionPersonal.id)
+        .where(CandidatoRequisicion.cedula.isnot(None))
+        .order_by(CandidatoRequisicion.cedula, CandidatoRequisicion.creado_en)
+    )
+    res = await db.execute(stmt)
+    rows = res.all()
+
+    grouped: dict = {}
+    for cand, nombre_temporal, rp, cargo_nombre, municipio, area_nombre in rows:
+        key = cand.cedula
+        if key not in grouped:
+            grouped[key] = {
+                "cedula": key,
+                "nombre": cand.nombre_candidato,
+                "historial": [],
+                "contratado": False,
+                "postulaciones_activas": 0,
+            }
+        if cand.estado == "CONTRATADO":
+            grouped[key]["contratado"] = True
+        if cand.estado not in ("NO_APLICA",):
+            grouped[key]["postulaciones_activas"] += 1
+
+        grouped[key]["historial"].append({
+            "requisicion_id": cand.requisicion_id,
+            "rp": rp or "",
+            "cargo": cargo_nombre or "",
+            "ciudad": municipio,
+            "area": area_nombre,
+            "empresa_temporal": nombre_temporal,
+            "estado_candidato": cand.estado,
+            "causal_descarte": cand.causal_descarte,
+            "fecha": cand.creado_en,
+        })
+
+    result = []
+    for item in grouped.values():
+        item["total_postulaciones"] = len(item["historial"])
+        result.append(item)
+
+    # Ordenar: mayor cantidad de postulaciones primero
+    result.sort(key=lambda x: x["total_postulaciones"], reverse=True)
+    return result
+
+
+async def get_consolidado_candidatos(db: AsyncSession) -> List[dict]:
+    """Retorna consolidado plano de todos los candidatos con info de su RP."""
+    stmt = (
+        select(
+            CandidatoRequisicion,
+            EmpresaTemporal.nombre.label("nombre_temporal"),
+            RequisicionPersonal.rp,
+            RequisicionPersonal.cargo_nombre,
+            RequisicionPersonal.municipio,
+            RequisicionPersonal.area_nombre,
+        )
+        .join(EmpresaTemporal, CandidatoRequisicion.temporal_id == EmpresaTemporal.id)
+        .join(RequisicionPersonal, CandidatoRequisicion.requisicion_id == RequisicionPersonal.id)
+        .order_by(RequisicionPersonal.rp, CandidatoRequisicion.nombre_candidato)
+    )
+    res = await db.execute(stmt)
+    return [
+        {
+            "nombre_candidato": cand.nombre_candidato,
+            "cedula": cand.cedula,
+            "rp": rp or "",
+            "cargo": cargo_nombre or "",
+            "ciudad": municipio,
+            "area": area_nombre,
+            "empresa_temporal": nombre_temporal,
+            "estado_candidato": cand.estado,
+            "causal_descarte": cand.causal_descarte,
+        }
+        for cand, nombre_temporal, rp, cargo_nombre, municipio, area_nombre in res.all()
+    ]
+

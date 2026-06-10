@@ -216,6 +216,7 @@ export interface CandidatoRequisicion {
   temporal_id: number;
   nombre_temporal?: string;
   nombre_candidato: string;
+  cedula?: string;
   estado: string; // 'POR_EVALUAR' | 'APLICA' | 'NO_APLICA' | 'CONTRATADO'
   causal_descarte?: string;
   observaciones?: string;

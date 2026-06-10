@@ -6,6 +6,8 @@ interface Props {
   asignadas: RequisicionTemporal[];
   nuevoNombreCand: string;
   setNuevoNombreCand: (val: string) => void;
+  nuevaCedulaCand: string;
+  setNuevaCedulaCand: (val: string) => void;
   nuevaTemporalCand: number;
   setNuevaTemporalCand: (val: number) => void;
   nuevasObsCand: string;
@@ -19,6 +21,8 @@ const AgregarCandidatoModal: React.FC<Props> = ({
   asignadas,
   nuevoNombreCand,
   setNuevoNombreCand,
+  nuevaCedulaCand,
+  setNuevaCedulaCand,
   nuevaTemporalCand,
   setNuevaTemporalCand,
   nuevasObsCand,
@@ -45,6 +49,19 @@ const AgregarCandidatoModal: React.FC<Props> = ({
               placeholder="Ej: Carlos Gómez"
               value={nuevoNombreCand}
               onChange={e => setNuevoNombreCand(e.target.value)}
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            />
+          </div>
+          <div className="space-y-1">
+            <Text variant="caption" className="font-semibold text-xs text-[var(--color-text-secondary)]">
+              Cédula <span className="text-red-500">*</span>
+            </Text>
+            <Input
+              required
+              type="text"
+              placeholder="Ej: 1234567890"
+              value={nuevaCedulaCand}
+              onChange={e => setNuevaCedulaCand(e.target.value)}
               className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
           </div>

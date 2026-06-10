@@ -44,6 +44,7 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
   
   const [mostrarAgregarCand, setMostrarAgregarCand] = useState(false);
   const [nuevoNombreCand, setNuevoNombreCand] = useState('');
+  const [nuevaCedulaCand, setNuevaCedulaCand] = useState('');
   const [nuevaTemporalCand, setNuevaTemporalCand] = useState<number>(0);
   const [nuevasObsCand, setNuevasObsCand] = useState('');
   
@@ -135,9 +136,10 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
     }
     setCargandoCandidatos(true);
     try {
-      await agregarCandidato(requisicion.id, nuevaTemporalCand, nuevoNombreCand, nuevasObsCand);
+      await agregarCandidato(requisicion.id, nuevaTemporalCand, nuevoNombreCand, nuevaCedulaCand, nuevasObsCand);
       setMostrarAgregarCand(false);
       setNuevoNombreCand('');
+      setNuevaCedulaCand('');
       setNuevaTemporalCand(0);
       setNuevasObsCand('');
       await cargarDatos();
@@ -475,6 +477,8 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
           asignadas={asignadas}
           nuevoNombreCand={nuevoNombreCand}
           setNuevoNombreCand={setNuevoNombreCand}
+          nuevaCedulaCand={nuevaCedulaCand}
+          setNuevaCedulaCand={setNuevaCedulaCand}
           nuevaTemporalCand={nuevaTemporalCand}
           setNuevaTemporalCand={setNuevaTemporalCand}
           nuevasObsCand={nuevasObsCand}

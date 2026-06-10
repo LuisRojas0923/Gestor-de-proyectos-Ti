@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, BarChart2, TrendingUp, Users, CheckCircle, Target, Award, AlertTriangle, ArrowLeft, Clock } from 'lucide-react';
+import { X, BarChart2, TrendingUp, Users, CheckCircle, Target, Award, AlertTriangle, ArrowLeft, Clock, Fingerprint } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line,
@@ -9,6 +9,7 @@ import { Button, Select, Text, Title } from '../../../../../components/atoms';
 import type { RequisicionRP, CandidatoRequisicion } from '../types/requisicion.types';
 import { ESTADO_LABELS } from '../types/requisicion.types';
 import { getCandidatos } from '../services/requisicionService';
+import MetricasCedula from './MetricasCedula';
 
 // ── Tipos internos ────────────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ import { CAUSALES_LABEL_MAP, fmt, MESES, COLORES_CHART, ESTADO_COLOR_MAP, KpiCar
 
 const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requisiciones }) => {
   const now = new Date();
+  const [tabActiva, setTabActiva] = useState<'globales' | 'cedula'>('globales');
   const [mesFiltro, setMesFiltro] = useState(String(now.getMonth())); // 0-11
   const [anioFiltro, setAnioFiltro] = useState(String(now.getFullYear()));
   const [candidatosPorRP, setCandidatosPorRP] = useState<Record<number, CandidatoRequisicion[]>>({});
@@ -196,31 +198,63 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
             </Text>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Filtro Mes/Año */}
-          <div className="flex items-center gap-2">
-            <Select
-              value={mesFiltro}
-              onChange={e => setMesFiltro(e.target.value)}
-              options={opcionesMes}
-              size="sm"
-              className="w-36"
-            />
-            <Select
-              value={anioFiltro}
-              onChange={e => setAnioFiltro(e.target.value)}
-              options={opcionesAnio}
-              size="sm"
-              className="w-24"
-            />
+        {/* Tabs + filtros */}
+        <div className="flex items-center gap-3">
+          {/* Toggle tabs */}
+          <div className="flex items-center gap-1 bg-[var(--color-background)] border border-[var(--color-border)] rounded-xl p-1">
+            <button
+              onClick={() => setTabActiva('globales')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                tabActiva === 'globales'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+              }`}
+            >
+              <BarChart2 className="w-4 h-4" />
+              Métricas Globales
+            </button>
+            <button
+              onClick={() => setTabActiva('cedula')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                tabActiva === 'cedula'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+              }`}
+            >
+              <Fingerprint className="w-4 h-4" />
+              Métricas por Cédula
+            </button>
           </div>
+          {/* Filtro Mes/Año solo en tab globales */}
+          {tabActiva === 'globales' && (
+            <div className="flex items-center gap-2">
+              <Select
+                value={mesFiltro}
+                onChange={e => setMesFiltro(e.target.value)}
+                options={opcionesMes}
+                size="sm"
+                className="w-36"
+              />
+              <Select
+                value={anioFiltro}
+                onChange={e => setAnioFiltro(e.target.value)}
+                options={opcionesAnio}
+                size="sm"
+                className="w-24"
+              />
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── Cuerpo con scroll ─────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-        {/* ── KPI Cards ────────────────────────────────────────────────────────── */}
+        {/* ── Tab: Métricas por Cédula ──────────────────────────────────────── */}
+        {tabActiva === 'cedula' && <MetricasCedula />}
+
+        {/* ── Tab: Métricas Globales ────────────────────────────────────────── */}
+        {tabActiva === 'globales' && (<>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <KpiCard
             label="RP en el período"
@@ -467,6 +501,7 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
             </div>
           </div>
         )}
+        </>)}
       </div>
     </div>
   );
