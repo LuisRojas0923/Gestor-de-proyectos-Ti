@@ -280,8 +280,8 @@ const PrintRequisicionRP: React.FC = () => {
         </div>
 
         {/* Firmas / Aprobaciones */}
-        <div className="flex justify-between items-start pt-4 gap-6">
-          <div className="flex-1 text-center">
+        <div className="grid grid-cols-3 gap-6 pt-4 items-start">
+          <div className="text-center">
              <div className="border-b border-black w-48 mx-auto mb-2"></div>
              <div className="font-bold text-[9px]">SOLICITADO POR</div>
              <div className="text-[9px]">{req.nombre_solicitante}</div>
@@ -289,7 +289,7 @@ const PrintRequisicionRP: React.FC = () => {
           </div>
           
           {req.aprobador_nombre && (
-            <div className="flex-1 text-center">
+            <div className="text-center">
                <div className="border-b border-black w-48 mx-auto mb-2 relative">
                  {/* Sello de Aprobación */}
                  <div className="absolute bottom-2 right-4 rotate-[-15deg] border-2 border-emerald-600 text-emerald-600 text-[9px] font-black px-2 py-0.5 rounded opacity-70">
@@ -303,7 +303,7 @@ const PrintRequisicionRP: React.FC = () => {
           )}
 
           {req.gerente_nombre && (
-            <div className="flex-1 text-center">
+            <div className="text-center">
                <div className="border-b border-black w-48 mx-auto mb-2 relative">
                  <div className="absolute bottom-2 right-4 rotate-[-15deg] border-2 border-blue-600 text-blue-600 text-[9px] font-black px-2 py-0.5 rounded opacity-70">
                    AUTORIZADO
@@ -314,9 +314,11 @@ const PrintRequisicionRP: React.FC = () => {
                <div className="text-[8px] text-slate-500">{formatDateCO(req.fecha_decision_gerente)}</div>
             </div>
           )}
+        </div>
 
-          {req.fecha_recibido_gh && (
-            <div className="flex-1 text-center">
+        {req.fecha_recibido_gh && (
+          <div className="grid grid-cols-3 gap-6 pt-6 items-start">
+            <div className="text-center">
                <div className="border-b border-black w-48 mx-auto mb-2 relative">
                  <div className="absolute bottom-2 right-4 rotate-[-15deg] border-2 border-purple-600 text-purple-600 text-[9px] font-black px-2 py-0.5 rounded opacity-70">
                    RECIBIDO
@@ -326,8 +328,10 @@ const PrintRequisicionRP: React.FC = () => {
                <div className="text-[9px]">{req.responsable_gh_nombre || 'Gestión Humana'}</div>
                <div className="text-[8px] text-slate-500">{formatDateCO(req.fecha_recibido_gh)}</div>
             </div>
-          )}
-        </div>
+            <div></div>
+            <div></div>
+          </div>
+        )}
         
         {/* Footer Documento */}
         <div className="mt-4 text-center text-[8px] text-slate-400 border-t border-slate-200 pt-2 pb-2">
