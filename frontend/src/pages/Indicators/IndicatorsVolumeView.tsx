@@ -289,7 +289,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                 {/* Soportes por Prioridad */}
                 <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)] overflow-hidden">
                     <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Soportes por Prioridad</Title>
-                    <div className="relative h-[480px] w-full flex items-center justify-center">
+                    <div className="relative h-[420px] w-full flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart margin={{ top: 20, bottom: 20, left: 30, right: 30 }}>
                                 <defs>
