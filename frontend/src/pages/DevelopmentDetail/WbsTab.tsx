@@ -101,7 +101,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         titulo_descripcion: (node: WbsActivityTree) => node.descripcion || '(Vacío)',
         porcentaje_avance: (node: WbsActivityTree) => `${node.porcentaje_avance}%`,
         estado: (node: WbsActivityTree) => node.estado,
-        seguimiento: (node: WbsActivityTree) => node.seguimiento || '(Sin seguimiento)',
+        notas_seguimiento: (node: WbsActivityTree) => node.seguimiento || '(Sin seguimiento)',
+        notas_compromiso: (node: WbsActivityTree) => node.compromiso || '(Sin compromiso)',
         lider: (node: WbsActivityTree) => getLider(node),
         lider_supervisor: (node: WbsActivityTree) => getUserName(node.responsable_id) || '(Sin asignar)',
         lider_ejecutor: (node: WbsActivityTree) => getUserName(node.asignado_a_id) || '(Sin asignar)',
@@ -249,10 +250,11 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (stateMenuRef.current && !stateMenuRef.current.contains(e.target as Node)) {
-                setStateMenuId(null);
-                setPopoverPos(null);
-            }
+            const target = e.target as Node;
+            if (stateMenuRef.current?.contains(target)) return;
+            if ((target as Element).closest?.('[data-wbs-state-menu-trigger]')) return;
+            setStateMenuId(null);
+            setPopoverPos(null);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);

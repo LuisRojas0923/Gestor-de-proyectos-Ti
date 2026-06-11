@@ -1,9 +1,24 @@
 import React from 'react';
-import { Download, Pencil, Copy, Trash2, CheckCircle2, XCircle, Play, CirclePause, Circle } from 'lucide-react';
-import { Text, Button, Badge, ProgressBar } from '../../../components/atoms';
+import {
+    Download,
+    Pencil,
+    Copy,
+    Trash2,
+    CheckCircle2,
+    XCircle,
+    Calendar,
+    CalendarCheck,
+    UserCog,
+    User,
+    MessageSquare,
+    Handshake,
+    type LucideIcon,
+} from 'lucide-react';
+import { Text, Button, ProgressBar } from '../../../components/atoms';
 import { ValidationStatusBadge } from '../../../components/assignments/ValidationStatusBadge';
 import { DataTableColumn } from '../../../components/molecules/DataTable';
 import { WbsActivityTree } from '../../../types/wbs';
+import { ESTADO_ICON_SIZE, ESTADO_MENU_OPTIONS, getEstadoStatusIcon } from '../../../utils/estadoIcons';
 
 type WbsRow = WbsActivityTree & { _rowIndex: number };
 
@@ -16,6 +31,38 @@ const formatDate = (dateStr?: string) => {
         return dateStr;
     }
 };
+
+interface StackedIconRowProps {
+    Icon: LucideIcon;
+    iconClassName: string;
+    iconTitle: string;
+    value: string;
+    valueTitle?: string;
+}
+
+const StackedIconRow: React.FC<StackedIconRowProps> = ({
+    Icon,
+    iconClassName,
+    iconTitle,
+    value,
+    valueTitle,
+}) => (
+    <div className="flex items-center gap-0.5 min-w-0">
+        <Text as="span" title={iconTitle} aria-label={iconTitle} className="shrink-0 inline-flex m-0">
+            <Icon size={10} className={iconClassName} />
+        </Text>
+        <Text
+            as="span"
+            variant="caption"
+            color="text-primary"
+            weight="bold"
+            className="!text-[10px] truncate min-w-0 leading-none"
+            title={valueTitle ?? value}
+        >
+            {value}
+        </Text>
+    </div>
+);
 
 interface GetWbsColumnsArgs {
   getUserName: (id?: string) => string;
@@ -41,7 +88,7 @@ export const getWbsColumns = ({
   setStateMenuId,
   popoverPos,
   setPopoverPos,
-  handleQuickAction,
+  handleQuickAction: _handleQuickAction,
   handleEstadoChange,
   handleEditTask,
   handleCopyTask,
@@ -63,7 +110,7 @@ export const getWbsColumns = ({
     {
         key: 'titulo',
         label: 'Tarea',
-        minWidth: '360px',
+        minWidth: '420px',
         flex: true,
         filterable: true,
         subFilters: [
@@ -82,46 +129,66 @@ export const getWbsColumns = ({
         ),
     },
     {
-        key: 'fecha_inicio_estimada',
-        label: 'F.Inicio',
-        minWidth: '58px',
+        key: 'fechas',
+        label: 'Fechas',
+        minWidth: '96px',
+        maxWidth: '96px',
+        cellClassName: '!px-2',
         filterable: true,
+        subFilters: [
+            { key: 'fecha_inicio_estimada', label: 'Fecha Inicio' },
+            { key: 'fecha_fin_estimada', label: 'Fecha Fin' },
+        ],
         render: (row) => (
-            <Text variant="caption" className="truncate">
-                {formatDate(row.fecha_inicio_estimada || row.fecha_inicio_real)}
-            </Text>
-        ),
-    },
-    {
-        key: 'fecha_fin_estimada',
-        label: 'F.Fin',
-        minWidth: '58px',
-        filterable: true,
-        render: (row) => (
-            <Text variant="caption" className="truncate">
-                {formatDate(row.fecha_fin_estimada || row.fecha_fin_real)}
-            </Text>
+            <div className="flex flex-col gap-0 min-w-0 overflow-hidden">
+                <StackedIconRow
+                    Icon={Calendar}
+                    iconClassName="text-green-600 dark:text-green-400"
+                    iconTitle="Fecha inicio"
+                    value={formatDate(row.fecha_inicio_estimada || row.fecha_inicio_real)}
+                />
+                <StackedIconRow
+                    Icon={CalendarCheck}
+                    iconClassName="text-red-500 dark:text-red-400"
+                    iconTitle="Fecha fin"
+                    value={formatDate(row.fecha_fin_estimada || row.fecha_fin_real)}
+                />
+            </div>
         ),
     },
     {
         key: 'lider',
         label: 'Líder',
-        minWidth: '80px',
+        minWidth: '180px',
+        maxWidth: '180px',
+        cellClassName: '!px-2',
         filterable: true,
         subFilters: [
             { key: 'lider_supervisor', label: 'Supervisor' },
             { key: 'lider_ejecutor', label: 'Ejecutor' }
         ],
-        render: (row) => (
-            <div className="flex flex-col min-w-0">
-                <Text variant="caption" color="text-secondary" className="truncate text-[10px] leading-tight">
-                    Supervisor: {getUserName(row.responsable_id)}
-                </Text>
-                <Text variant="caption" color="text-secondary" className="truncate text-[10px] leading-tight">
-                    Ejecutor: {getUserName(row.asignado_a_id)}
-                </Text>
-            </div>
-        ),
+        render: (row) => {
+            const supervisor = getUserName(row.responsable_id);
+            const ejecutor = getUserName(row.asignado_a_id);
+            return (
+                <div className="flex flex-col gap-0 min-w-0 overflow-hidden">
+                    <StackedIconRow
+                        Icon={UserCog}
+                        iconClassName="text-neutral-500 dark:text-neutral-400"
+                        iconTitle={`Supervisor: ${supervisor}`}
+                        value={supervisor}
+                        valueTitle={`Supervisor: ${supervisor}`}
+                    />
+                    <StackedIconRow
+                        Icon={User}
+                        iconClassName="text-neutral-500 dark:text-neutral-400"
+                        iconTitle={`Ejecutor: ${ejecutor}`}
+                        value={ejecutor}
+                        valueTitle={`Ejecutor: ${ejecutor}`}
+                    />
+                </div>
+            );
+        },
     },
     {
         key: 'validacion',
@@ -164,208 +231,147 @@ export const getWbsColumns = ({
     {
         key: 'estado',
         label: 'Estado',
-        minWidth: '120px',
+        minWidth: '100px',
+        maxWidth: '128px',
+        cellClassName: '!px-2',
         filterable: true,
+        subFilters: [
+            { key: 'estado', label: 'Estado' },
+            { key: 'porcentaje_avance', label: 'Avance' },
+        ],
         render: (row) => {
-            const n = row.estado.toLowerCase();
-            const isCompleted = n.includes('complet');
-            const isInProgress = n.includes('progreso') || n.includes('curso') || n.includes('proceso');
-            const isPaused = n.includes('pausa');
-            const isBlocked = n.includes('bloqueado');
             const isMenuOpen = stateMenuId === row.id;
-
-            const badgeVariant = isCompleted
-                ? 'success'
-                : isInProgress
-                ? 'warning'
-                : isBlocked
-                ? 'error'
-                : 'default';
-
-            const badgeClassName = `whitespace-nowrap ${
-                isPaused
-                    ? '!bg-amber-100 !text-amber-800 dark:!bg-amber-900/20 dark:!text-amber-400'
-                    : (!isCompleted && !isInProgress && !isBlocked)
-                    ? 'dark:!bg-neutral-800 dark:!text-neutral-400'
-                    : ''
-            }`;
+            const { Icon: StatusIcon, className: statusClass, label: statusLabel } = getEstadoStatusIcon(row.estado);
 
             return (
-                <div className="flex items-center gap-1 w-full relative pr-5">
-                    <Badge
-                        variant={badgeVariant}
-                        size="sm"
-                        className={badgeClassName}
-                    >
-                        {row.estado}
-                    </Badge>
-                    {!isCompleted && !isInProgress && !isPaused && !isBlocked && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'play', row); }}
-                            icon={Play}
-                            className="h-7 w-7 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-                            title="Iniciar"
-                        />
-                    )}
-                    {isInProgress && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'pause', row); }}
-                            icon={CirclePause}
-                            className="h-7 w-7 !p-0 text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
-                            title="Pausar"
-                        />
-                    )}
-                    {isPaused && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'play', row); }}
-                            icon={Play}
-                            className="h-7 w-7 !p-0 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-                            title="Reanudar"
-                        />
-                    )}
-                    {isBlocked && (
-                        <Text className="text-base" title="Bloqueado" aria-label="Bloqueado">🔒</Text>
-                    )}
-                    {(isInProgress || isPaused) && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); void handleQuickAction(row.id, 'finish', row); }}
-                            icon={CheckCircle2}
-                            className="h-7 w-7 !p-0 text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
-                            title="Terminar"
-                        />
-                    )}
-                    {isCompleted && (
-                        <Text className="text-green-600 dark:text-green-400" aria-label="Completada">
-                            <CheckCircle2 size={18} />
-                        </Text>
-                    )}
-                    <div className="relative ml-auto">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (isMenuOpen) {
-                                    setStateMenuId(null);
-                                    setPopoverPos(null);
-                                } else {
-                                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                    setPopoverPos({ top: rect.top - 6, left: rect.left - 126 });
-                                    setStateMenuId(row.id);
-                                }
-                            }}
-                            className="h-6 w-6 !p-0 text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300"
-                            title="Cambiar estado"
-                        >
-                            ⋮
-                        </Button>
-                        {isMenuOpen && popoverPos && (
-                            <div
-                                ref={stateMenuRef}
-                                className="fixed z-[99999] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-lg flex items-center gap-1"
+                <div className="flex flex-col gap-0.5 min-w-0 w-full">
+                    <div className="relative flex items-center w-full min-w-0 min-h-6">
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                            <Text
+                                as="span"
+                                title={statusLabel}
+                                aria-label={statusLabel}
+                                className="pointer-events-auto shrink-0 inline-flex items-center justify-center m-0"
                             >
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 !p-0"
-                                    title="Pendiente"
-                                    onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Pendiente'); setStateMenuId(null); setPopoverPos(null); }}
+                                <StatusIcon size={ESTADO_ICON_SIZE} className={statusClass} />
+                            </Text>
+                        </div>
+                        <div className="relative z-10 ml-auto shrink-0" data-wbs-state-menu-trigger>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isMenuOpen) {
+                                        setStateMenuId(null);
+                                        setPopoverPos(null);
+                                    } else {
+                                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                        setPopoverPos({ top: rect.top - 6, left: rect.left - 158 });
+                                        setStateMenuId(row.id);
+                                    }
+                                }}
+                                className="h-6 w-6 !p-0 text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300"
+                                title="Cambiar estado"
+                            >
+                                ⋮
+                            </Button>
+                            {isMenuOpen && popoverPos && (
+                                <div
+                                    ref={stateMenuRef as React.RefObject<HTMLDivElement>}
+                                    className="fixed z-[99999] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-lg flex items-center gap-1"
                                 >
-                                    <Circle size={14} className="text-slate-500 dark:text-slate-400" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 !p-0"
-                                    title="En Proceso"
-                                    onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'En Proceso'); setStateMenuId(null); setPopoverPos(null); }}
-                                >
-                                    <Play size={14} className="text-amber-600 dark:text-amber-400" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 !p-0"
-                                    title="Bloqueado"
-                                    onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Bloqueado'); setStateMenuId(null); setPopoverPos(null); }}
-                                >
-                                    <XCircle size={14} className="text-red-500 dark:text-red-400" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 !p-0"
-                                    title="Completada"
-                                    onClick={(e) => { e.stopPropagation(); void handleEstadoChange(row.id, 'Completada'); setStateMenuId(null); setPopoverPos(null); }}
-                                >
-                                    <CheckCircle2 size={14} className="text-green-600 dark:text-green-400" />
-                                </Button>
-                            </div>
-                        )}
+                                    {ESTADO_MENU_OPTIONS.map(({ value, Icon, className }) => (
+                                        <Button
+                                            key={value}
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 w-7 !p-0"
+                                            title={value}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                void handleEstadoChange(row.id, value);
+                                                setStateMenuId(null);
+                                                setPopoverPos(null);
+                                            }}
+                                        >
+                                            <Icon size={ESTADO_ICON_SIZE} className={className} />
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <div className="absolute right-[-16px] top-1/2 -translate-y-1/2 h-5 w-[1px] bg-neutral-200 dark:bg-neutral-700/60" />
+                    <div
+                        className="flex items-center justify-center gap-0.5 min-w-0 w-full"
+                        title={`Avance: ${row.porcentaje_avance}%`}
+                    >
+                        <Text as="span" variant="caption" weight="bold" className="!text-[9px] shrink-0 leading-none">
+                            {row.porcentaje_avance}%
+                        </Text>
+                        <ProgressBar
+                            progress={row.porcentaje_avance}
+                            variant="success"
+                            className="h-2 w-10 shrink-0 max-w-full"
+                        />
+                    </div>
                 </div>
             );
         },
     },
     {
-        key: 'seguimiento',
-        label: 'Seguimiento',
-        minWidth: '120px',
-        maxWidth: '120px',
+        key: 'notas',
+        label: 'Notas',
+        minWidth: '96px',
+        maxWidth: '96px',
+        cellClassName: '!px-2',
         filterable: true,
-        render: (row) => (
-            <Text variant="caption" className="truncate" title={row.seguimiento}>
-                {row.seguimiento || '-'}
-            </Text>
-        ),
-    },
-    {
-        key: 'compromiso',
-        label: 'Compromiso',
-        minWidth: '90px',
-        maxWidth: '90px',
-        render: (row) => (
-            <Text variant="caption" className="truncate" title={row.compromiso}>
-                {row.compromiso || '-'}
-            </Text>
-        ),
+        subFilters: [
+            { key: 'notas_seguimiento', label: 'Seguimiento' },
+            { key: 'notas_compromiso', label: 'Compromiso' },
+        ],
+        render: (row) => {
+            const seg = row.seguimiento || '-';
+            const comp = row.compromiso || '-';
+            return (
+                <div className="flex flex-col gap-0 min-w-0 overflow-hidden">
+                    <StackedIconRow
+                        Icon={MessageSquare}
+                        iconClassName="text-neutral-500 dark:text-neutral-400"
+                        iconTitle="Seguimiento"
+                        value={seg}
+                        valueTitle={row.seguimiento || undefined}
+                    />
+                    <StackedIconRow
+                        Icon={Handshake}
+                        iconClassName="text-neutral-500 dark:text-neutral-400"
+                        iconTitle="Compromiso"
+                        value={comp}
+                        valueTitle={row.compromiso || undefined}
+                    />
+                </div>
+            );
+        },
     },
     {
         key: 'archivo',
-        label: '📎',
+        label: 'Archivo',
         minWidth: '40px',
+        maxWidth: '48px',
         centered: true,
         render: (row) => row.archivo_url ? (
-            <a href={row.archivo_url} target="_blank" rel="noreferrer" className="text-[var(--color-primary)] hover:underline">
+            <a
+                href={row.archivo_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[var(--color-primary)] hover:underline inline-flex"
+                title="Descargar archivo"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <Download size={14} />
             </a>
         ) : (
             <Text variant="caption" color="text-secondary">-</Text>
-        ),
-    },
-    {
-        key: 'porcentaje_avance',
-        label: 'Avance',
-        minWidth: '58px',
-        filterable: true,
-        render: (row) => (
-            <div className="w-full text-right">
-                <Text variant="caption">{row.porcentaje_avance}%</Text>
-                <ProgressBar
-                    progress={row.porcentaje_avance}
-                    variant={row.porcentaje_avance === 100 ? 'success' : 'primary'}
-                    className="h-1 mt-1"
-                />
-            </div>
         ),
     },
     {

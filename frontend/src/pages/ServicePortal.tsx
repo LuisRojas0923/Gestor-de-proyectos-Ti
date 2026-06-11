@@ -399,7 +399,7 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="inventario" element={
                     <ProtectedRoute moduleCode="inventario_2026">
-                        <InventarioView />
+                        <InventarioView onBack={() => navigate('/service-portal/inicio')} />
                     </ProtectedRoute>
                 } />
 

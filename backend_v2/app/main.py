@@ -154,7 +154,7 @@ async def _rate_limit_handler_con_log(request, exc: RateLimitExceeded):
         request.method,
         limit_str,
     )
-    return await _rate_limit_exceeded_handler(request, exc)
+    return _rate_limit_exceeded_handler(request, exc)
 
 
 app.add_exception_handler(RateLimitExceeded, _rate_limit_handler_con_log)

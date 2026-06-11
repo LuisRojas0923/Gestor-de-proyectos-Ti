@@ -25,6 +25,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     };
 
     const validatedProgress = Math.min(100, Math.max(0, progress));
+    const hasExplicitWidth = /\bw-/.test(className);
 
     React.useLayoutEffect(() => {
         if (barRef.current) {
@@ -33,10 +34,14 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     }, [validatedProgress]);
 
     return (
-        <div className={`w-full bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden flex ${className}`}>
-            <div 
+        <div
+            className={`overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800 ${
+                hasExplicitWidth ? '' : 'w-full'
+            } ${className || 'h-2'}`}
+        >
+            <div
                 ref={barRef}
-                className={`h-full transition-all duration-500 ${variantClasses[variant]}`} 
+                className={`h-full max-w-full transition-all duration-500 ${variantClasses[variant]}`}
             />
         </div>
     );

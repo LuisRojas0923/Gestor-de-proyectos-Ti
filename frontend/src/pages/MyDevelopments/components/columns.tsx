@@ -2,16 +2,15 @@ import React from 'react';
 import { DataTableColumn } from '../../../components/molecules/DataTable';
 import { Checkbox, Text } from '../../../components/atoms';
 import { DevelopmentWithCurrentStatus } from '../../../types';
-import { 
-  Clock, 
-  PlayCircle, 
-  CheckCircle2, 
-  PauseCircle, 
-  AlertCircle, 
-  ArrowUp, 
-  ArrowRight, 
-  ArrowDown 
+import {
+  ArrowUp,
+  ArrowRight,
+  ArrowDown,
+  Calendar,
+  CalendarCheck,
+  type LucideIcon,
 } from 'lucide-react';
+import { ESTADO_ICON_SIZE, getEstadoStatusIcon } from '../../../utils/estadoIcons';
 
 export type DevelopmentRow = DevelopmentWithCurrentStatus & {
   nombre?: string;
@@ -38,6 +37,48 @@ export const getDevelopmentName = (dev: DevelopmentRow) => dev.name ?? dev.nombr
 export const getDevelopmentDescription = (dev: DevelopmentRow) => dev.description ?? dev.descripcion;
 export const getDevelopmentStartDate = (dev: DevelopmentRow) => dev.start_date ?? dev.fecha_inicio;
 export const getDevelopmentEndDate = (dev: DevelopmentRow) => dev.estimated_end_date ?? dev.fecha_estimada_fin;
+
+const formatDevelopmentDate = (dateStr?: string | null) => {
+  if (!dateStr) return 'N/A';
+  try {
+    const [y, m, d] = dateStr.split('T')[0].split('-');
+    return `${d}/${m}/${y}`;
+  } catch {
+    return String(dateStr);
+  }
+};
+
+interface StackedIconRowProps {
+  Icon: LucideIcon;
+  iconClassName: string;
+  iconTitle: string;
+  value: string;
+  valueTitle?: string;
+}
+
+const StackedIconRow: React.FC<StackedIconRowProps> = ({
+  Icon,
+  iconClassName,
+  iconTitle,
+  value,
+  valueTitle,
+}) => (
+  <div className="flex items-center gap-0.5 min-w-0">
+    <Text as="span" title={iconTitle} aria-label={iconTitle} className="shrink-0 inline-flex m-0">
+      <Icon size={10} className={iconClassName} />
+    </Text>
+    <Text
+      as="span"
+      variant="caption"
+      color="text-primary"
+      weight="bold"
+      className="!text-[10px] truncate min-w-0 leading-none"
+      title={valueTitle ?? value}
+    >
+      {value}
+    </Text>
+  </div>
+);
 
 export const getDevelopmentStatus = (dev: DevelopmentRow) =>
   dev.estado_general ?? 'Pendiente';
@@ -117,6 +158,7 @@ export const getColumns = (
     key: '__review__',
     label: '✓',
     minWidth: '36px',
+    maxWidth: '36px',
     centered: true,
     filterable: true,
     cellClassName: '!px-2',
@@ -141,6 +183,7 @@ export const getColumns = (
       key: 'id',
       label: 'ID',
       minWidth: '90px',
+      maxWidth: '90px',
       filterable: true,
       subFilters: [
         { key: 'id', label: 'ID' },
@@ -163,7 +206,7 @@ export const getColumns = (
       key: 'name',
       label: 'Proyecto',
       flex: true,
-      minWidth: '180px',
+      minWidth: '200px',
       filterable: true,
       subFilters: [
         { key: 'name_name', label: 'Nombre' },
@@ -195,33 +238,17 @@ export const getColumns = (
       key: 'status',
       label: 'Estado',
       minWidth: '100px',
+      maxWidth: '100px',
       filterable: true,
       render: (dev) => {
         const status = getStatusLabel(getDevelopmentStatus(dev));
         const progress = getDevelopmentProgress(dev);
-        
-        let IconComponent = Clock;
-        let iconColor = 'text-yellow-500';
-        const s = status.toLowerCase();
-        
-        if (s.includes('pendiente')) {
-          IconComponent = AlertCircle;
-          iconColor = 'text-red-500 animate-pulse';
-        } else if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) {
-          IconComponent = PlayCircle;
-          iconColor = 'text-blue-500';
-        } else if (s.includes('complet')) {
-          IconComponent = CheckCircle2;
-          iconColor = 'text-green-500';
-        } else if (s.includes('paus') || s.includes('pausa') || s.includes('pausado')) {
-          IconComponent = PauseCircle;
-          iconColor = 'text-orange-500';
-        }
-        
+        const { Icon: StatusIcon, className: statusClass } = getEstadoStatusIcon(status);
+
         return (
-          <div className="flex items-center gap-2 w-full" title={status}>
-            <IconComponent size={15} className={`${iconColor} shrink-0`} />
-            <div className="flex items-center gap-1 flex-1 min-w-0">
+          <div className="flex flex-col items-center gap-1 w-full" title={status}>
+            <StatusIcon size={ESTADO_ICON_SIZE} className={`${statusClass} shrink-0`} />
+            <div className="flex items-center gap-1 w-full min-w-0">
               <div className="flex-1 h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div className={`h-full bg-green-500 transition-all duration-500 ${getProgressWidthClass(progress)}`} />
               </div>
@@ -236,7 +263,8 @@ export const getColumns = (
     {
       key: 'prioridad',
       label: 'Prioridad',
-      minWidth: '60px',
+      minWidth: '70px',
+      maxWidth: '70px',
       centered: true,
       filterable: true,
       render: (dev) => {
@@ -250,7 +278,7 @@ export const getColumns = (
           colorClass = 'text-red-500';
         } else if (pLower === 'baja') {
           IconComponent = ArrowDown;
-          colorClass = 'text-blue-500';
+          colorClass = 'text-green-500';
         }
         return (
           <div className="flex items-center justify-center" title={`Prioridad: ${p}`}>
@@ -261,8 +289,10 @@ export const getColumns = (
     },
     {
       key: 'start_date',
-      label: 'Cronograma',
+      label: 'Fechas',
       minWidth: '100px',
+      maxWidth: '100px',
+      cellClassName: '!px-2',
       filterable: true,
       subFilters: [
         { key: 'start_date', label: 'Fecha Inicio' },
@@ -272,19 +302,19 @@ export const getColumns = (
         const start = getDevelopmentStartDate(dev);
         const end = getDevelopmentEndDate(dev);
         return (
-          <div className="flex flex-col gap-0.5 text-left">
-            <div className="flex items-center gap-1.5">
-              <Text as="span" className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" title="Fecha Inicio" />
-              <Text as="span" variant="caption" color="text-primary" className="!text-[11px] font-medium whitespace-nowrap">
-                {valueOrFallback(start)}
-              </Text>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Text as="span" className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" title="Fecha Estimada Fin" />
-              <Text as="span" variant="caption" color="text-secondary" className="!text-[10px] whitespace-nowrap">
-                {valueOrFallback(end)}
-              </Text>
-            </div>
+          <div className="flex flex-col gap-0 min-w-0 overflow-hidden">
+            <StackedIconRow
+              Icon={Calendar}
+              iconClassName="text-green-600 dark:text-green-400"
+              iconTitle="Fecha inicio"
+              value={formatDevelopmentDate(start)}
+            />
+            <StackedIconRow
+              Icon={CalendarCheck}
+              iconClassName="text-red-500 dark:text-red-400"
+              iconTitle="Fecha fin"
+              value={formatDevelopmentDate(end)}
+            />
           </div>
         );
       },
@@ -292,8 +322,8 @@ export const getColumns = (
     {
       key: 'area_desarrollo',
       label: 'AREAS',
-      minWidth: '75px',
-      maxWidth: '75px',
+      minWidth: '120px',
+      maxWidth: '120px',
       filterable: true,
       subFilters: [
         { key: 'area_desarrollo', label: 'Área de impacto' },
@@ -303,13 +333,15 @@ export const getColumns = (
         const imp = dev.area_desarrollo ?? 'N/A';
         const ejec = dev.area_ejecutor ?? '—';
         return (
-          <div className="flex flex-col text-left min-w-0">
-            <Text as="span" variant="caption" color="text-primary" className="truncate !text-[11px] font-medium" title={`Área de impacto: ${imp}`}>
-              {imp}
-            </Text>
-            <Text as="span" variant="caption" color="text-secondary" className="truncate !text-[10px]" title={`Área Ejecutora: ${ejec}`}>
-              {ejec}
-            </Text>
+          <div className="flex flex-col gap-0.5 text-left min-w-0">
+            <div className="truncate !text-[10px] flex items-center" title={`Área de impacto: ${imp}`}>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[16px] shrink-0 !text-[10px]">I:</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{imp}</Text>
+            </div>
+            <div className="truncate !text-[10px] flex items-center" title={`Área Ejecutora: ${ejec}`}>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[16px] shrink-0 !text-[10px]">E:</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{ejec}</Text>
+            </div>
           </div>
         );
       },
@@ -317,7 +349,8 @@ export const getColumns = (
     {
       key: 'authority',
       label: 'Equipo',
-      minWidth: '235px',
+      minWidth: '300px',
+      maxWidth: '300px',
       filterable: true,
       subFilters: [
         { key: 'authority', label: 'Autoridad' },
@@ -334,20 +367,20 @@ export const getColumns = (
         return (
           <div className="flex flex-col gap-0.5 text-left py-1 min-w-0">
             <div className="truncate !text-[10px] flex items-center" title={`Autoridad: ${aut}`}>
-              <Text as="span" className="font-bold text-[8px] text-blue-600 dark:text-blue-400 mr-1.5 bg-blue-100 dark:bg-blue-900/20 px-1 rounded shrink-0">AUT</Text>
-              <Text as="span" variant="caption" color="text-primary" className="truncate">{aut}</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[70px] shrink-0 !text-[10px]">Autoridad:</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{aut}</Text>
             </div>
             <div className="truncate !text-[10px] flex items-center" title={`Líder: ${lid}`}>
-              <Text as="span" className="font-bold text-[8px] text-green-600 dark:text-green-400 mr-1.5 bg-green-100 dark:bg-green-900/20 px-1 rounded shrink-0">LÍD</Text>
-              <Text as="span" variant="caption" color="text-secondary" className="truncate">{lid}</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[70px] shrink-0 !text-[10px]">Líder:</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{lid}</Text>
             </div>
             <div className="truncate !text-[10px] flex items-center" title={`Supervisor: ${sup}`}>
-              <Text as="span" className="font-bold text-[8px] text-purple-600 dark:text-purple-400 mr-1.5 bg-purple-100 dark:bg-purple-900/20 px-1 rounded shrink-0">SUP</Text>
-              <Text as="span" variant="caption" color="text-secondary" className="truncate">{sup}</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[70px] shrink-0 !text-[10px]">Supervisor:</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{sup}</Text>
             </div>
             <div className="truncate !text-[10px] flex items-center" title={`Ejecutor: ${eje}`}>
-              <Text as="span" className="font-bold text-[8px] text-amber-600 dark:text-amber-400 mr-1.5 bg-amber-100 dark:bg-amber-900/20 px-1 rounded shrink-0">EJE</Text>
-              <Text as="span" variant="caption" color="text-secondary" className="truncate">{eje}</Text>
+              <Text as="span" variant="caption" color="text-secondary" className="font-semibold w-[70px] shrink-0 !text-[10px]">Ejecutor:</Text>
+              <Text as="span" variant="caption" color="text-primary" weight="bold" className="truncate !text-[10px]">{eje}</Text>
             </div>
           </div>
         );

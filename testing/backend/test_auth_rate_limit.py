@@ -1,7 +1,7 @@
 """
 Tests del rate limiter (F1.1 + F1.2):
 
-- _login_key_func: la key incluye IP efectiva y cedula del body cacheado.
+- _login_key_func: la key usa cedula del body (sin IP compartida de proxy).
 - IP resolution con allowlist: X-Forwarded-For se respeta SOLO si la
   conexion viene de un proxy en trusted_proxy_ips.
 - Lockout per-cuenta: tras N fallos se activa lockout en Redis.
@@ -11,8 +11,13 @@ Tests del rate limiter (F1.1 + F1.2):
 NO requiere Docker para tests unitarios. Para tests de storage (Redis)
 usa una conexion real a Redis si esta disponible.
 """
+import hashlib
+from unittest.mock import MagicMock, patch
+
 import pytest
+from slowapi.errors import RateLimitExceeded
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 
 def _build_request(
@@ -44,9 +49,9 @@ def _build_request(
 
 
 class TestLoginKeyFunc:
-    """_login_key_func (sync): combina IP efectiva + cedula del body cacheado."""
+    """_login_key_func (sync): rate limit por cedula, sin IP de proxy compartida."""
 
-    def test_key_incluye_ip_y_cedula(self):
+    def test_key_solo_cedula_sin_ip(self):
         from app.core.rate_limiter import _login_key_func
 
         request = _build_request(
@@ -54,7 +59,7 @@ class TestLoginKeyFunc:
             body=b"username=1107068093&password=foo",
         )
         key = _login_key_func(request)
-        assert key == "login:192.168.1.10:1107068093"
+        assert key == "login:1107068093"
 
     def test_cedula_case_insensitive(self):
         from app.core.rate_limiter import _login_key_func
@@ -64,21 +69,43 @@ class TestLoginKeyFunc:
         assert upper == lower
         assert "abc123" in upper
 
-    def test_distintas_ips_producen_distintas_keys(self):
+    def test_misma_cedula_distinta_ip_misma_key(self):
         from app.core.rate_limiter import _login_key_func
 
         k1 = _login_key_func(_build_request(client_ip="1.1.1.1", body=b"username=99"))
         k2 = _login_key_func(_build_request(client_ip="2.2.2.2", body=b"username=99"))
-        assert k1 != k2
-        assert "1.1.1.1" in k1
-        assert "2.2.2.2" in k2
+        assert k1 == k2 == "login:99"
 
-    def test_body_sin_campo_username(self):
+    def test_distintas_cedulas_producen_distintas_keys(self):
         from app.core.rate_limiter import _login_key_func
 
-        request = _build_request(body=b"password=solo_esto")
+        shared_ip = "172.18.0.5"
+        k1 = _login_key_func(
+            _build_request(client_ip=shared_ip, body=b"username=111&password=x")
+        )
+        k2 = _login_key_func(
+            _build_request(client_ip=shared_ip, body=b"username=222&password=x")
+        )
+        assert k1 != k2
+        assert k1 == "login:111"
+        assert k2 == "login:222"
+
+    def test_body_sin_campo_username_usa_fallback_body_hash(self):
+        from app.core.rate_limiter import _login_key_func
+
+        body = b"password=solo_esto"
+        request = _build_request(body=body)
         key = _login_key_func(request)
-        assert key.endswith(":")
+        expected_hash = hashlib.sha256(body).hexdigest()[:16]
+        assert key == f"login:body:{expected_hash}"
+        assert not key.endswith(":")
+
+    def test_sin_body_cacheado_usa_fallback_ip(self):
+        from app.core.rate_limiter import _login_key_func
+
+        request = _build_request(client_ip="172.18.0.5")
+        key = _login_key_func(request)
+        assert key == "login:anon:172.18.0.5"
 
     def test_prefijo_login_diferencia_de_otras_keys(self):
         from app.core.rate_limiter import _login_key_func
@@ -96,7 +123,71 @@ class TestLoginKeyFunc:
             content_type="application/json",
         )
         key = _login_key_func(request)
-        assert key == "login:1.2.3.4:12345"
+        assert key == "login:12345"
+
+    def test_body_multipart_con_username(self):
+        from app.core.rate_limiter import _login_key_func
+
+        boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+        body = (
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="username"\r\n\r\n'
+            "99887766\r\n"
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="password"\r\n\r\n'
+            "secret\r\n"
+            f"--{boundary}--\r\n"
+        ).encode()
+        request = _build_request(
+            body=body,
+            content_type=f"multipart/form-data; boundary={boundary}",
+        )
+        key = _login_key_func(request)
+        assert key == "login:99887766"
+
+
+class TestGenericBodyKeyFuncs:
+    """Keys de setup-password y endpoints JSON genericos sin IP."""
+
+    def test_setup_password_key_sin_ip(self):
+        from app.core.rate_limiter import _setup_password_key_func
+
+        request = _build_request(
+            path="/api/v2/auth/setup-password",
+            body=b'{"cedula": "55555", "password": "x"}',
+            content_type="application/json",
+        )
+        key = _setup_password_key_func(request)
+        assert key == "setup_password:55555"
+
+    def test_generic_json_body_key_sin_ip(self):
+        from app.core.rate_limiter import _generic_json_body_key_func
+
+        request = _build_request(
+            path="/api/v2/auth/forgot-password",
+            body=b'{"cedula": "77777"}',
+            content_type="application/json",
+        )
+        key = _generic_json_body_key_func(request)
+        assert key == "/api/v2/auth/forgot-password:77777"
+
+
+class TestRateLimitHandler429:
+    """El handler de 429 no debe awaitar una funcion sync de slowapi."""
+
+    @pytest.mark.asyncio
+    async def test_handler_429_retorna_json_response(self):
+        from app.main import _rate_limit_handler_con_log
+
+        request = _build_request(body=b"username=1&password=x")
+        mock_limit = MagicMock()
+        mock_limit.error_message = None
+        exc = RateLimitExceeded(mock_limit)
+        fake_response = JSONResponse(status_code=429, content={"error": "rate limit"})
+        with patch("app.main._rate_limit_exceeded_handler", return_value=fake_response):
+            response = await _rate_limit_handler_con_log(request, exc)
+        assert response is fake_response
+        assert response.status_code == 429
 
 
 class TestResolveEffectiveIP:

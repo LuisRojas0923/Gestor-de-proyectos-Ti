@@ -16,6 +16,7 @@ herramientas admin con tráfico bajo es aceptable; en alta concurrencia
 migrar a `limits.aio.storage.AsyncRedisStorage` (strategy="async") o
 usar un solo worker de uvicorn.
 """
+import hashlib
 import json
 import logging
 from typing import Optional
@@ -66,12 +67,44 @@ def _safe_resolve_effective_ip(request: Request) -> str:
             return "unknown"
 
 
+def _extract_form_field_from_multipart(
+    body: bytes, content_type: str, field_names: tuple[str, ...]
+) -> str:
+    """Extrae username/cedula de multipart/form-data de forma sync."""
+    boundary = None
+    for segment in content_type.split(";"):
+        segment = segment.strip()
+        if segment.startswith("boundary="):
+            boundary = segment[9:].strip().strip('"')
+            break
+    if not boundary:
+        return ""
+    delimiter = f"--{boundary}".encode("ascii", errors="ignore")
+    for chunk in body.split(delimiter):
+        if not chunk or chunk in (b"--\r\n", b"--", b"\r\n"):
+            continue
+        header_end = chunk.find(b"\r\n\r\n")
+        if header_end == -1:
+            continue
+        headers = chunk[:header_end].decode("utf-8", errors="replace").lower()
+        for name in field_names:
+            if f'name="{name}"' in headers or f"name='{name}'" in headers:
+                raw = chunk[header_end + 4 :]
+                line_end = raw.find(b"\r\n")
+                if line_end != -1:
+                    raw = raw[:line_end]
+                text = raw.decode("utf-8", errors="replace").strip()
+                if text:
+                    return text.lower()
+    return ""
+
+
 def _read_cedula_from_cached_body(request: Request) -> str:
     """Lee la cedula del body pre-cacheado por el middleware
     `cache_request_body_for_rate_limit` (registrado en main.py).
 
-    Soporta `application/x-www-form-urlencoded` (campo `username`) y
-    `application/json` (campo `username` o `cedula`).
+    Soporta `application/x-www-form-urlencoded`, `application/json` y
+    `multipart/form-data` (campo `username` o `cedula`).
     """
     body = getattr(request, "_body", None) or b""
     if not body:
@@ -93,9 +126,44 @@ def _read_cedula_from_cached_body(request: Request) -> str:
                 v = form.get(key, [""])[0]
                 if v and v.strip():
                     return v.strip().lower()
+            return ""
+        if "multipart/form-data" in content_type:
+            return _extract_form_field_from_multipart(
+                body, content_type, ("username", "cedula")
+            )
         return ""
     except Exception:
         return ""
+
+
+def _resolve_body_identity(request: Request, *, anon_prefix: str = "anon") -> str:
+    """Identidad para rate limit basada en cedula/username del body cacheado.
+
+    Fallbacks (en orden):
+    1. cedula/username parseados del body
+    2. hash corto del body crudo (distingue requests aunque el parser falle)
+    3. IP como ultimo recurso (evita bucket global unico)
+    """
+    cedula = _read_cedula_from_cached_body(request)
+    if cedula:
+        return cedula
+    body = getattr(request, "_body", None) or b""
+    content_type = request.headers.get("content-type", "")
+    if body:
+        identity = f"body:{hashlib.sha256(body).hexdigest()[:16]}"
+        logger.warning(
+            "RATE_LIMIT_IDENTITY_FALLBACK | fallback=body_hash | path=%s | content_type=%s",
+            request.url.path,
+            content_type,
+        )
+        return identity
+    ip = _safe_resolve_effective_ip(request)
+    logger.warning(
+        "RATE_LIMIT_IDENTITY_FALLBACK | fallback=ip | path=%s | content_type=%s",
+        request.url.path,
+        content_type,
+    )
+    return f"{anon_prefix}:{ip}"
 
 
 def _verify_admin_key_func(request: Request) -> str:
@@ -106,24 +174,21 @@ def _verify_admin_key_func(request: Request) -> str:
 
 
 def _login_key_func(request: Request) -> str:
-    """Key para /auth/login: IP efectiva + cedula del form (cacheado)."""
-    ip = _safe_resolve_effective_ip(request)
-    cedula = _read_cedula_from_cached_body(request)
-    return f"login:{ip}:{cedula}"
+    """Key para /auth/login: cedula del form (cacheado), sin IP compartida de proxy."""
+    identity = _resolve_body_identity(request)
+    return f"login:{identity}"
 
 
 def _generic_json_body_key_func(request: Request) -> str:
     """Key generica para endpoints que reciben JSON con campo cedula/username."""
-    ip = _safe_resolve_effective_ip(request)
-    cedula = _read_cedula_from_cached_body(request)
-    return f"{request.url.path}:{ip}:{cedula}"
+    identity = _resolve_body_identity(request)
+    return f"{request.url.path}:{identity}"
 
 
 def _setup_password_key_func(request: Request) -> str:
-    """Key para /auth/setup-password: IP + cedula del body JSON cacheado."""
-    ip = _safe_resolve_effective_ip(request)
-    cedula = _read_cedula_from_cached_body(request)
-    return f"setup_password:{ip}:{cedula}"
+    """Key para /auth/setup-password: cedula del body cacheado, sin IP."""
+    identity = _resolve_body_identity(request)
+    return f"setup_password:{identity}"
 
 
 def _mcp_token_key_func(request: Request) -> str:
