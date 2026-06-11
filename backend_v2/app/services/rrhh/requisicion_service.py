@@ -40,7 +40,7 @@ async def generar_numero_rp(db: AsyncSession) -> tuple[str, int]:
     )
     row = result.fetchone()
     consecutivo = row.siguiente if row else 1
-    rp = f"RP-{consecutivo:04d}"
+    rp = f"RP-{consecutivo:05d}"
     return rp, consecutivo
 
 
