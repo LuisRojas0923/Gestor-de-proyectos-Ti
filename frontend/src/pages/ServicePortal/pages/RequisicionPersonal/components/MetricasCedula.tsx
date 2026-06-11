@@ -10,8 +10,7 @@ import {
   MetricasCedulaItem, ConsolidadoRPItem,
 } from '../services/requisicionService';
 import { DetalleCandidatoDrawer } from './DetalleCandidatoDrawer';
-import { MetricasGraficasTab } from './MetricasGraficasTab';
-import { MetricasTemporalesTab } from './MetricasTemporalesTab';
+import { MetricasAnalisisTab } from './MetricasAnalisisTab';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -30,7 +29,7 @@ const estadoBadge = (estado: string) => {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-type Tab = 'consolidado' | 'graficos' | 'temporales';
+type Tab = 'consolidado' | 'analisis';
 
 const MetricasCedula: React.FC = () => {
   const [tab, setTab] = useState<Tab>('consolidado');
@@ -140,8 +139,7 @@ const MetricasCedula: React.FC = () => {
       <div className="flex items-center gap-1 border-b border-[var(--color-border)]">
         {([
           { id: 'consolidado', label: 'Consolidado RP', icon: Users },
-          { id: 'graficos', label: 'Métricas Visuales', icon: BarChart2 },
-          { id: 'temporales', label: 'Métricas Temporales', icon: BarChart2 },
+          { id: 'analisis', label: 'Análisis de Candidatos', icon: BarChart2 },
         ] as { id: Tab; label: string; icon: React.FC<any> }[]).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -353,14 +351,9 @@ const MetricasCedula: React.FC = () => {
         </div>
       )}
 
-      {/* ── Tab: Métricas Visuales ────────────────────────────────────────────── */}
-      {tab === 'graficos' && (
-        <MetricasGraficasTab consolidado={consolidado} />
-      )}
-
-      {/* ── Tab: Métricas Temporales ─────────────────────────────────────────── */}
-      {tab === 'temporales' && (
-        <MetricasTemporalesTab consolidado={consolidado} />
+      {/* ── Tab: Análisis de Candidatos ───────────────────────────────────────── */}
+      {tab === 'analisis' && (
+        <MetricasAnalisisTab consolidado={consolidado} />
       )}
 
       {/* Drawer de Detalle del Candidato */}

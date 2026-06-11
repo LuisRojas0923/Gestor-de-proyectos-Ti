@@ -7,7 +7,7 @@ import {
 import { Text, Title, Select, MaterialCard } from '../../../../../components/atoms';
 import { ConsolidadoRPItem } from '../services/requisicionService';
 
-interface MetricasTemporalesTabProps {
+interface MetricasAnalisisTabProps {
   consolidado: ConsolidadoRPItem[];
 }
 
@@ -19,7 +19,7 @@ const COLORES_ESTADO: Record<string, string> = {
   DEFAULT: '#94a3b8'     // slate-400
 };
 
-export const MetricasTemporalesTab: React.FC<MetricasTemporalesTabProps> = ({ consolidado }) => {
+export const MetricasAnalisisTab: React.FC<MetricasAnalisisTabProps> = ({ consolidado }) => {
   const [selectedTemporal, setSelectedTemporal] = useState<string>('TODAS');
 
   // Obtener lista única de temporales
