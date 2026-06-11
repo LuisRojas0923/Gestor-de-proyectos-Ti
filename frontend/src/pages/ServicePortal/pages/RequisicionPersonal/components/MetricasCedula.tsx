@@ -11,6 +11,7 @@ import {
 } from '../services/requisicionService';
 import { DetalleCandidatoDrawer } from './DetalleCandidatoDrawer';
 import { MetricasGraficasTab } from './MetricasGraficasTab';
+import { MetricasTemporalesTab } from './MetricasTemporalesTab';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ const estadoBadge = (estado: string) => {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-type Tab = 'consolidado' | 'graficos';
+type Tab = 'consolidado' | 'graficos' | 'temporales';
 
 const MetricasCedula: React.FC = () => {
   const [tab, setTab] = useState<Tab>('consolidado');
@@ -140,6 +141,7 @@ const MetricasCedula: React.FC = () => {
         {([
           { id: 'consolidado', label: 'Consolidado RP', icon: Users },
           { id: 'graficos', label: 'Métricas Visuales', icon: BarChart2 },
+          { id: 'temporales', label: 'Métricas Temporales', icon: BarChart2 },
         ] as { id: Tab; label: string; icon: React.FC<any> }[]).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -354,6 +356,11 @@ const MetricasCedula: React.FC = () => {
       {/* ── Tab: Métricas Visuales ────────────────────────────────────────────── */}
       {tab === 'graficos' && (
         <MetricasGraficasTab consolidado={consolidado} />
+      )}
+
+      {/* ── Tab: Métricas Temporales ─────────────────────────────────────────── */}
+      {tab === 'temporales' && (
+        <MetricasTemporalesTab consolidado={consolidado} />
       )}
 
       {/* Drawer de Detalle del Candidato */}
