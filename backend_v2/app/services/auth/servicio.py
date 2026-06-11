@@ -41,6 +41,36 @@ def normalizar_cedula(s: Optional[str]) -> str:
     return s.strip().lower()
 
 
+def extraer_cedula_desde_identificador(identificador: str) -> str:
+    """Deriva la cédula desde cédula plana, USR-{cedula} o USR-P-{cedula}."""
+    valor = (identificador or "").strip()
+    if valor.startswith("USR-P-"):
+        return valor[6:]
+    if valor.startswith("USR-"):
+        return valor[4:]
+    return valor
+
+
+def ids_creador_ticket_equivalentes(
+    identificador: str, usuario: Optional["Usuario"] = None
+) -> list[str]:
+    """IDs históricos posibles de creador_id en tickets para un mismo usuario."""
+    valor = (identificador or "").strip()
+    cedula = extraer_cedula_desde_identificador(valor)
+    ids = {valor, cedula, f"USR-{cedula}", f"USR-P-{cedula}"}
+    if usuario:
+        ids.add(usuario.id)
+        ids.add(usuario.cedula)
+        ids.add(f"USR-{usuario.cedula}")
+        ids.add(f"USR-P-{usuario.cedula}")
+    return sorted(ids)
+
+
+def id_creador_ticket_canonico(usuario: "Usuario") -> str:
+    """Formato canónico al persistir creador_id en tickets nuevos."""
+    return f"USR-P-{usuario.cedula}"
+
+
 def enmascarar_pii(texto: Optional[str]) -> str:
     """Enmascara PII (correos, contraseñas) en mensajes de log para evitar filtraciones."""
     if not texto:

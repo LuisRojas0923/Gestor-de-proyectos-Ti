@@ -19,6 +19,7 @@ class TicketListService:
         estado: Optional[str] = None,
         sub_estado: Optional[str] = None,
         creador_id: Optional[str] = None,
+        creador_ids: Optional[List[str]] = None,
         asignado_a: Optional[str] = None,
         categoria_id: Optional[str] = None,
         search: Optional[str] = None,
@@ -39,7 +40,9 @@ class TicketListService:
             )
         )
 
-        if creador_id:
+        if creador_ids:
+            query = query.where(Ticket.creador_id.in_(creador_ids))
+        elif creador_id:
             query = query.where(Ticket.creador_id == creador_id)
         if estado:
             query = query.where(Ticket.estado == estado)

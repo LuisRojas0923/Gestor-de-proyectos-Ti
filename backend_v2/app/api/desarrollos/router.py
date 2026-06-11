@@ -2,7 +2,7 @@
 API de Desarrollos - Backend V2
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, or_, func
 from app.database import obtener_db
@@ -17,6 +17,12 @@ from app.models.desarrollo.actividad import Actividad
 from app.models.auth.usuario import Usuario
 from app.api.auth.profile_router import obtener_usuario_actual_opcional, obtener_usuario_actual_db
 from app.services.jerarquia.service import JerarquiaService
+from app.services.auditoria.snapshots import (
+    asignar_actualizacion_segura,
+    asignar_creacion_segura,
+    asignar_eliminacion_segura,
+    modelo_a_dict_auditoria,
+)
 
 router = APIRouter()
 
@@ -97,6 +103,7 @@ async def listar_desarrollos(
 
 @router.post("/", response_model=Desarrollo)
 async def crear_desarrollo(
+    request: Request,
     desarrollo_in: DesarrolloCrear,
     db: AsyncSession = Depends(obtener_db),
     usuario: Optional[Usuario] = Depends(obtener_usuario_actual_opcional),
@@ -132,6 +139,11 @@ async def crear_desarrollo(
         db.add(nuevo_desarrollo)
         await db.commit()
         await db.refresh(nuevo_desarrollo)
+
+        request.state.auditoria_entidad_tipo = "desarrollo"
+        request.state.auditoria_entidad_id = nuevo_desarrollo.id
+        asignar_creacion_segura(request, nuevo_desarrollo)
+
         return nuevo_desarrollo
     except Exception as e:
         await db.rollback()
@@ -211,6 +223,7 @@ async def obtener_desarrollo(
 
 @router.delete("/{desarrollo_id}", status_code=204)
 async def eliminar_desarrollo(
+    request: Request,
     desarrollo_id: str,
     db: AsyncSession = Depends(obtener_db),
     usuario: Usuario = Depends(obtener_usuario_actual_db),
@@ -223,6 +236,8 @@ async def eliminar_desarrollo(
 
         if not db_desarrollo:
             raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
+
+        snapshot_antes = modelo_a_dict_auditoria(db_desarrollo)
 
         # Validar permisos para eliminar el desarrollo — sin bypass de roles
         tiene_acceso = db_desarrollo.creado_por_id == usuario.id
@@ -259,6 +274,10 @@ async def eliminar_desarrollo(
         await db.delete(db_desarrollo)
         
         await db.commit()
+
+        request.state.auditoria_entidad_tipo = "desarrollo"
+        request.state.auditoria_entidad_id = desarrollo_id
+        asignar_eliminacion_segura(request, snapshot_antes)
     except HTTPException:
         raise
     except Exception as e:
@@ -268,9 +287,11 @@ async def eliminar_desarrollo(
 
 @router.put("/{desarrollo_id}", response_model=Desarrollo)
 async def actualizar_desarrollo(
+    request: Request,
     desarrollo_id: str,
     desarrollo: DesarrolloActualizar,
-    db: AsyncSession = Depends(obtener_db)
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Actualiza un desarrollo existente"""
     try:
@@ -281,6 +302,7 @@ async def actualizar_desarrollo(
         if not db_desarrollo:
             raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
 
+        snapshot_antes = modelo_a_dict_auditoria(db_desarrollo)
         update_data = desarrollo.model_dump(exclude_unset=True)
         estado_previo = db_desarrollo.estado_general
         nuevo_estado = update_data.get("estado_general")
@@ -313,6 +335,7 @@ async def actualizar_desarrollo(
 
         await db.commit()
         await db.refresh(db_desarrollo)
+        asignar_actualizacion_segura(request, snapshot_antes, db_desarrollo)
         return db_desarrollo
     except HTTPException:
         raise

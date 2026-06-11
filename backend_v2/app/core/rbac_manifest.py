@@ -266,4 +266,11 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": True,
         "descripcion": "Carga y procesamiento de novedades de personal (incapacidades, horas extra, recargos) destinadas al sistema de nómina SOLID.",
     },
+    {
+        "id": "auditoria_sistema",
+        "nombre": "Auditoría del Sistema",
+        "categoria": "panel",
+        "es_critico": True,
+        "descripcion": "Consulta de trazabilidad de acciones realizadas por usuarios en el sistema.",
+    },
 ]

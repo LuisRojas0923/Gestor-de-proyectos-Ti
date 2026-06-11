@@ -465,5 +465,19 @@ class ServicioTicket:
     async def listar_tickets_por_usuario(
         db: AsyncSession, usuario_id: str
     ) -> List[Ticket]:
-        """Lista tickets creados por un usuario (Async)"""
-        return await ServicioTicket.listar_tickets(db, creador_id=usuario_id, limit=500)
+        """Lista tickets creados por un usuario (Async).
+
+        Resuelve variantes históricas de creador_id (cédula, USR-*, USR-P-*).
+        """
+        from app.services.auth.servicio import (
+            ServicioAuth,
+            extraer_cedula_desde_identificador,
+            ids_creador_ticket_equivalentes,
+        )
+
+        cedula = extraer_cedula_desde_identificador(usuario_id)
+        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
+        ids_creador = ids_creador_ticket_equivalentes(usuario_id, usuario)
+        return await ServicioTicket.listar_tickets(
+            db, creador_ids=ids_creador, limit=500
+        )

@@ -22,6 +22,9 @@ from app.core.rate_limiter import (
 )
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.models.auth.usuario import Usuario
+from app.database import AsyncSessionLocal
+from app.models.auditoria.accion_usuario import AccionAuditoria
+from app.services.auditoria.servicio import ServicioAuditoria
 from app.services.auth.servicio import (
     ServicioAuth,
     enmascarar_pii,
@@ -32,6 +35,34 @@ from app.services.auth.servicio import (
 logger = logging.getLogger(__name__)
 router = APIRouter()
 _settings = obtener_configuracion()
+
+
+async def _auditar_login(
+    *,
+    usuario_id: str,
+    usuario_nombre: str | None,
+    rol: str | None,
+    exitoso: bool,
+    motivo: str,
+    request: Request,
+) -> None:
+    correlacion_id = getattr(request.state, "correlacion_id", None)
+    async with AsyncSessionLocal() as audit_db:
+        await ServicioAuditoria.registrar(
+            audit_db,
+            usuario_id=usuario_id,
+            usuario_nombre=usuario_nombre,
+            rol=rol,
+            modulo="auth",
+            accion=AccionAuditoria.LOGIN,
+            resultado="exito" if exitoso else "fallo",
+            metodo_http="POST",
+            ruta="/api/v2/auth/login",
+            direccion_ip=request.client.host if request.client else None,
+            agente_usuario=request.headers.get("user-agent"),
+            correlacion_id=correlacion_id,
+            metadatos={"motivo": motivo},
+        )
 
 
 @router.post("/login")
@@ -123,6 +154,14 @@ async def login(
                 )
             # Cedula no existe: contar como fallo para lockout per-cuenta.
             _registrar_fallo_cedula(cedula_normalizada)
+            await _auditar_login(
+                usuario_id=f"desconocido:{cedula_normalizada}",
+                usuario_nombre=None,
+                rol=None,
+                exitoso=False,
+                motivo="usuario_no_encontrado",
+                request=request,
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas",
@@ -141,6 +180,14 @@ async def login(
         ):
             # Password incorrecto: contar como fallo para lockout per-cuenta.
             _registrar_fallo_cedula(cedula_normalizada)
+            await _auditar_login(
+                usuario_id=usuario.id,
+                usuario_nombre=usuario.nombre,
+                rol=usuario.rol,
+                exitoso=False,
+                motivo="contrasena_incorrecta",
+                request=request,
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas",
@@ -178,6 +225,15 @@ async def login(
             rol_usuario=usuario.rol,
             direccion_ip=request.client.host if request.client else None,
             agente_usuario=request.headers.get("user-agent"),
+        )
+
+        await _auditar_login(
+            usuario_id=usuario.id,
+            usuario_nombre=usuario.nombre,
+            rol=usuario.rol,
+            exitoso=True,
+            motivo="exito",
+            request=request,
         )
 
         return {
@@ -220,10 +276,31 @@ async def logout(
 ):
     """Cierra la sesion actual del usuario"""
     try:
+        payload = ServicioAuth.obtener_payload_token(token)
+        cedula = payload.get("sub") if payload else None
+        usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula) if cedula else None
+
         exito = await ServicioAuth.marcar_fin_sesion(db, token)
         if not exito:
             # No lanzamos error para que el frontend pueda limpiar localmente de todos modos
             logger.info("No se encontro sesion activa para el token al intentar logout")
+
+        if usuario:
+            correlacion_id = getattr(request.state, "correlacion_id", None)
+            async with AsyncSessionLocal() as audit_db:
+                await ServicioAuditoria.registrar(
+                    audit_db,
+                    usuario_id=usuario.id,
+                    usuario_nombre=usuario.nombre,
+                    rol=usuario.rol,
+                    modulo="auth",
+                    accion=AccionAuditoria.LOGOUT,
+                    metodo_http="POST",
+                    ruta="/api/v2/auth/logout",
+                    direccion_ip=request.client.host if request.client else None,
+                    agente_usuario=request.headers.get("user-agent"),
+                    correlacion_id=correlacion_id,
+                )
 
         return {"message": "Sesion cerrada correctamente"}
     except Exception as e:

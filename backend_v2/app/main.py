@@ -41,6 +41,8 @@ from .api.impuestos import router as impuestos_router
 from .api.lineas_corporativas.router import router as lineas_corporativas_router
 from .api.jerarquia import router as jerarquia_router
 from .api.notificaciones.router import router as notificaciones_router
+from .api.auditoria import router as auditoria_router
+from .core.middleware.auditoria_middleware import auditoria_http_middleware
 
 # Configurar logging centralizado
 logging.basicConfig(
@@ -157,6 +159,11 @@ async def _rate_limit_handler_con_log(request, exc: RateLimitExceeded):
 
 
 app.add_exception_handler(RateLimitExceeded, _rate_limit_handler_con_log)
+
+
+@app.middleware("http")
+async def middleware_auditoria_acciones(request, call_next):
+    return await auditoria_http_middleware(request, call_next)
 
 
 @app.middleware("http")
@@ -290,6 +297,11 @@ app.include_router(
     notificaciones_router,
     prefix=f"{api_prefix}/notificaciones",
     tags=["Notificaciones"],
+)
+app.include_router(
+    auditoria_router,
+    prefix=f"{api_prefix}/auditoria",
+    tags=["Auditoria"],
 )
 
 # Consolidated developments-activities endpoint and number-mapped endpoint

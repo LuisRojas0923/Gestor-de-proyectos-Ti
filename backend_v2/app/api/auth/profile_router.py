@@ -5,6 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
 from app.models.auth.usuario import Sesion, Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
+from app.database import AsyncSessionLocal
+from app.models.auditoria.accion_usuario import AccionAuditoria
+from app.services.auditoria.servicio import ServicioAuditoria
 from app.services.auth.servicio import ServicioAuth
 from app.services.erp import EmpleadosService
 from app.services.notifications.email_service import EmailService
@@ -120,6 +123,8 @@ async def obtener_usuario_actual_db(
                 print(f"DEBUG: ERP no disponible o fallo en sincronizacion local: {e}")
 
         request.state.usuario_id = usuario.id
+        request.state.usuario_nombre = usuario.nombre
+        request.state.usuario_rol = usuario.rol
         request.state.token_type = payload.get("token_type", "session")
         return usuario
     except HTTPException:
@@ -170,6 +175,7 @@ async def obtener_usuario_actual(
 
 @router.patch("/password", response_model=UsuarioPublico)
 async def cambiar_contrasena(
+    request: Request,
     datos: PasswordCambiar,
     db: AsyncSession = Depends(obtener_db),
     usuario: Usuario = Depends(obtener_usuario_actual_db),
@@ -179,12 +185,48 @@ async def cambiar_contrasena(
         if not ServicioAuth.verificar_contrasena(
             datos.contrasena_actual, usuario.hash_contrasena
         ):
+            async with AsyncSessionLocal() as audit_db:
+                await ServicioAuditoria.registrar(
+                    audit_db,
+                    usuario_id=usuario.id,
+                    usuario_nombre=usuario.nombre,
+                    rol=usuario.rol,
+                    modulo="auth",
+                    accion=AccionAuditoria.ACTUALIZAR,
+                    resultado="fallo",
+                    entidad_tipo="usuario",
+                    entidad_id=usuario.id,
+                    metodo_http="PATCH",
+                    ruta="/api/v2/auth/password",
+                    direccion_ip=request.client.host if request.client else None,
+                    agente_usuario=request.headers.get("user-agent"),
+                    correlacion_id=getattr(request.state, "correlacion_id", None),
+                    metadatos={"motivo": "contrasena_actual_incorrecta"},
+                )
             raise HTTPException(
                 status_code=400, detail="La contrasena actual es incorrecta"
             )
-        return await ServicioAuth.cambiar_contrasena(
+        resultado = await ServicioAuth.cambiar_contrasena(
             db, usuario.id, datos.nueva_contrasena
         )
+        async with AsyncSessionLocal() as audit_db:
+            await ServicioAuditoria.registrar(
+                audit_db,
+                usuario_id=usuario.id,
+                usuario_nombre=usuario.nombre,
+                rol=usuario.rol,
+                modulo="auth",
+                accion=AccionAuditoria.ACTUALIZAR,
+                entidad_tipo="usuario",
+                entidad_id=usuario.id,
+                metodo_http="PATCH",
+                ruta="/api/v2/auth/password",
+                direccion_ip=request.client.host if request.client else None,
+                agente_usuario=request.headers.get("user-agent"),
+                correlacion_id=getattr(request.state, "correlacion_id", None),
+                metadatos={"campo": "contrasena"},
+            )
+        return resultado
     except HTTPException:
         raise
     except ValueError as e:
