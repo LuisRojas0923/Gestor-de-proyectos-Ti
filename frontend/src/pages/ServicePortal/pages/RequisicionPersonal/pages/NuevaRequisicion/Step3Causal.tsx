@@ -81,7 +81,6 @@ const Step3Causal: React.FC<Props> = ({ form, update, aprobadores }) => {
             </Text>
           </div>
         ) : (
-          <>
             <Select
               label="Director que aprobará la requisición"
               name="aprobador_id"
@@ -89,11 +88,8 @@ const Step3Causal: React.FC<Props> = ({ form, update, aprobadores }) => {
               onChange={e => update('aprobador_id', e.target.value ? Number(e.target.value) : null)}
               options={opcionesDirector}
               required
+              helperText="Este director recibirá la solicitud por correo electrónico para su aprobación."
             />
-            <Text size="xs" color="secondary">
-              Este director recibirá la solicitud por correo electrónico para su aprobación.
-            </Text>
-          </>
         )}
         </div>
       </div>

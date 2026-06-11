@@ -280,6 +280,7 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
               { value: 'NO APLICA', label: 'NO APLICA' },
             ]}
             required
+            helperText="Trabajo Seguro en Alturas"
           />
         </div>
 
@@ -386,11 +387,11 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
       </div>
 
       <TextAreaField
-        label="Perfil requerido"
+        label="Perfil O"
         name="perfil_requerido"
         value={form.perfil_requerido}
         onChange={e => update('perfil_requerido', e.target.value)}
-        placeholder="Experiencia, formación, conocimientos técnicos, certificaciones, competencias y condiciones especiales requeridas..."
+        placeholder="(Perfil Oculto) - Experiencia, formación, conocimientos técnicos, certificaciones, competencias y condiciones especiales requeridas..."
         rows={5}
         isRequired={false}
       />

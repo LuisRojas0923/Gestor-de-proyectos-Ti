@@ -76,6 +76,7 @@ const Step2AreaCargo: React.FC<Props> = ({ form, update }) => {
           options={cargoOptions}
           disabled={!form.area_id || loadingCargos}
           required
+          helperText="Si el cargo no se encuentra dentro de las opciones, por favor diríjase al área de Gestión Humana."
         />
         </div>
       </div>
