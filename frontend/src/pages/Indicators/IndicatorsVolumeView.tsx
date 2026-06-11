@@ -16,9 +16,12 @@ interface Props {
 
 const renderCustomizedLabel = (props: any) => {
     const {
-        cx, cy, midAngle, innerRadius, outerRadius, value, name, percent, fill, index, activeIndex
+        cx, cy, midAngle, innerRadius, outerRadius, value, name, percent, fill, index, activeIndex, payload
     } = props;
     const RADIAN = Math.PI / 180;
+    
+    // Recovery of original color from data item payload (avoids losing colors when Pie is transparent)
+    const color = payload?.color || fill || '#cccccc';
     
     // Check if this label is for the active/hovered slice
     const isActive = index === activeIndex;
@@ -41,8 +44,8 @@ const renderCustomizedLabel = (props: any) => {
     const hx = ex + (cos >= 0 ? 12 : -12);
     const hy = ey;
 
-    const boxWidth = 65;
-    const boxHeight = 32;
+    const boxWidth = 76;
+    const boxHeight = 38;
     const boxX = cos >= 0 ? hx : hx - boxWidth;
     const boxY = hy - boxHeight / 2;
 
@@ -53,12 +56,12 @@ const renderCustomizedLabel = (props: any) => {
             {/* Pointer line */}
             <path
                 d={`M${sx},${sy} L${ex},${ey} L${hx},${hy}`}
-                stroke={fill}
+                stroke={color}
                 strokeWidth={1.5}
                 fill="none"
             />
             {/* Circle node at the start of the line */}
-            <circle cx={sx} cy={sy} r={2.5} fill={fill} />
+            <circle cx={sx} cy={sy} r={2.5} fill={color} />
             
             {/* Callout box */}
             <rect
@@ -66,19 +69,19 @@ const renderCustomizedLabel = (props: any) => {
                 y={boxY}
                 width={boxWidth}
                 height={boxHeight}
-                rx={4}
-                ry={4}
+                rx={6}
+                ry={6}
                 fill="var(--color-surface)"
-                stroke={fill}
+                stroke={color}
                 strokeWidth={1.5}
-                filter="drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.06))"
+                filter="drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.08))"
             />
             {/* Title (name) */}
             <text
                 x={boxX + boxWidth / 2}
-                y={boxY + 11}
+                y={boxY + 14}
                 textAnchor="middle"
-                fontSize={8}
+                fontSize={10}
                 fontWeight="bold"
                 fill="var(--color-text-secondary)"
                 className="uppercase tracking-wider"
@@ -88,9 +91,9 @@ const renderCustomizedLabel = (props: any) => {
             {/* Percentage */}
             <text
                 x={boxX + boxWidth / 2}
-                y={boxY + 25}
+                y={boxY + 30}
                 textAnchor="middle"
-                fontSize={12}
+                fontSize={14}
                 fontWeight="black"
                 fill="var(--color-text-primary)"
             >
@@ -286,7 +289,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                 {/* Soportes por Prioridad */}
                 <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)] overflow-hidden">
                     <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Soportes por Prioridad</Title>
-                    <div className="relative h-[420px] w-full flex items-center justify-center">
+                    <div className="relative h-[480px] w-full flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart margin={{ top: 20, bottom: 20, left: 30, right: 30 }}>
                                 <defs>
@@ -309,7 +312,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={0}
-                                    outerRadius={115}
+                                    outerRadius={130}
                                     paddingAngle={2}
                                     dataKey="value"
                                     activeIndex={activePriorityIndex !== null ? activePriorityIndex : undefined}
@@ -328,7 +331,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={0}
-                                    outerRadius={115}
+                                    outerRadius={130}
                                     paddingAngle={2}
                                     dataKey="value"
                                     fill="none"
@@ -338,17 +341,34 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                     style={{ pointerEvents: 'none' }}
                                 />
                                 <Tooltip
-                                    formatter={(value: any) => {
-                                        const pct = totalTickets ? ((value / totalTickets) * 100).toFixed(1) : 0;
-                                        return [`${value.toLocaleString('es-CO')} (${pct}%)`, 'Tickets'];
-                                    }}
-                                    contentStyle={{
-                                        backgroundColor: 'var(--color-surface)',
-                                        borderColor: 'var(--color-border)',
-                                        borderRadius: '12px',
-                                        color: 'var(--color-text-primary)',
-                                        fontSize: '11px',
-                                        fontWeight: 'bold'
+                                    content={({ active, payload }) => {
+                                        if (!active || !payload || payload.length === 0) return null;
+                                        // Filtramos duplicados por nombre de prioridad (evita duplicados de la doble capa de Pie)
+                                        const uniquePayload = payload.filter((item, idx, self) =>
+                                            self.findIndex(t => t.name === item.name) === idx
+                                        );
+                                        const item = uniquePayload[0];
+                                        if (!item) return null;
+                                        const value = item.value;
+                                        const pct = totalTickets ? ((Number(value) / totalTickets) * 100).toFixed(1) : 0;
+                                        
+                                        // Recuperamos el color original
+                                        const color = item.payload?.color || item.color || '#cccccc';
+                                        
+                                        return (
+                                            <div 
+                                                className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3 shadow-lg text-xs font-bold text-[var(--color-text-primary)]"
+                                                style={{ filter: 'drop-shadow(0px 4px 12px rgba(0, 0, 0, 0.08))' }}
+                                            >
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                                                    <span className="uppercase tracking-wider">{item.name}</span>
+                                                </div>
+                                                <div className="mt-1 text-[var(--color-text-secondary)] font-semibold">
+                                                    Tickets: <span className="text-[var(--color-text-primary)] font-black">{value?.toLocaleString('es-CO')}</span> ({pct}%)
+                                                </div>
+                                            </div>
+                                        );
                                     }}
                                 />
                             </PieChart>
