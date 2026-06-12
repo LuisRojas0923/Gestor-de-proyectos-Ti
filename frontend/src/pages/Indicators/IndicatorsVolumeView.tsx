@@ -178,6 +178,15 @@ const CustomAnalistaYAxisTick = (props: any) => {
 
 const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analistaStats, matriz: _matriz, headers: _headers, prioridadStats }) => {
     const [activePriorityIndex, setActivePriorityIndex] = React.useState<number | null>(null);
+    const [analystFilter, setAnalystFilter] = React.useState<'active' | 'all'>('active');
+
+    const filteredAnalistaStats = React.useMemo(() => {
+        if (!analistaStats) return [];
+        if (analystFilter === 'active') {
+            return analistaStats.filter((a) => a.esta_activo !== false);
+        }
+        return analistaStats;
+    }, [analistaStats, analystFilter]);
 
     const priorityData = React.useMemo(() => {
         return [
@@ -267,10 +276,34 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Porcentaje por Analista */}
                 <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)]">
-                    <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Porcentaje de Carga por Analista</Title>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 md:mb-6">
+                        <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Porcentaje de Carga por Analista</Title>
+                        <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
+                            <button
+                                onClick={() => setAnalystFilter('active')}
+                                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                                    analystFilter === 'active'
+                                        ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                                }`}
+                            >
+                                Activos
+                            </button>
+                            <button
+                                onClick={() => setAnalystFilter('all')}
+                                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                                    analystFilter === 'all'
+                                        ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                                }`}
+                            >
+                                Todos
+                            </button>
+                        </div>
+                    </div>
                     <div className="h-[420px] w-full">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                            <BarChart data={analistaStats} layout="vertical" margin={{ left: 10, right: 30 }}>
+                            <BarChart data={filteredAnalistaStats} layout="vertical" margin={{ left: 10, right: 30 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
                                 <XAxis type="number" hide />
                                 <YAxis 
