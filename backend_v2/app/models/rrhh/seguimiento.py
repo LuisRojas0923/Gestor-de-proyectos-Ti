@@ -46,4 +46,3 @@ class CandidatoRequisicion(SQLModel, table=True):
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": "now()"}
     )
-

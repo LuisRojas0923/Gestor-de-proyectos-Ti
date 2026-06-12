@@ -159,7 +159,7 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
             <Title variant="h5" weight="bold" align="center" className="text-slate-800 dark:text-slate-100">
               No tienes requisiciones
             </Title>
-            <Text color="secondary" align="center" className="text-sm">
+            <Text color="primary" align="center" className="text-sm">
               Aún no has registrado ninguna requisición de personal.
             </Text>
           </div>

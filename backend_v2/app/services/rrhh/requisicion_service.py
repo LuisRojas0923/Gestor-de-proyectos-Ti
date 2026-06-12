@@ -607,5 +607,3 @@ async def marcar_vista_gh(
         logger.info(f"[RP] {req.rp} marcada como vista/recibida por GH")
     
     return req
-
-

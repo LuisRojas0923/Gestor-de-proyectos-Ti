@@ -1,5 +1,5 @@
 import React from 'react';
-import { Title, Text, MaterialCard } from '../../../components/atoms';
+import { Title, Text, MaterialCard, Tooltip } from '../../../components/atoms';
 import {
     FileText, Briefcase, ChevronRight, Users, Settings, UserCheck,
     PenTool, Database
@@ -25,7 +25,7 @@ const ServicePortalCard: React.FC<{
     onClick: () => void;
 }> = ({ title, description, icon, onClick }) => {
     return (
-        <div className="relative group">
+        <Tooltip content={description} align="center" width="w-64" className="w-full block">
             <MaterialCard
                 onClick={onClick}
                 hoverable={true}
@@ -48,13 +48,7 @@ const ServicePortalCard: React.FC<{
                     <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-[var(--color-primary)] group-hover:translate-x-1 transition-all shrink-0" />
                 </div>
             </MaterialCard>
-
-            {/* Custom CSS Tooltip */}
-            <div className="absolute z-50 left-1/2 top-full mt-2 -translate-x-1/2 w-max max-w-[250px] whitespace-normal bg-slate-800 text-white text-xs text-center font-medium px-3 py-2 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none scale-95 group-hover:scale-100 origin-top">
-                {description}
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
-            </div>
-        </div>
+        </Tooltip>
     );
 };
 

@@ -473,4 +473,3 @@ async def get_consolidado_candidatos(db: AsyncSession) -> List[dict]:
         }
         for cand, nombre_temporal, rp, cargo_nombre, municipio, area_nombre in res.all()
     ]
-

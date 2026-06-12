@@ -33,7 +33,7 @@ const formatFecha = (fecha: string | null) => {
 const RPTimeline: React.FC<RPTimelineProps> = ({ historial }) => {
   if (!historial.length) {
     return (
-      <Text variant="caption" color="secondary" className="italic py-4 text-center">
+      <Text variant="caption" color="primary" className="italic py-4 text-center">
         Sin eventos registrados aún.
       </Text>
     );
@@ -57,16 +57,16 @@ const RPTimeline: React.FC<RPTimelineProps> = ({ historial }) => {
                     <Text variant="body" className="font-semibold text-[var(--color-text-primary)]">
                       {evento.estado_nuevo.replace(/_/g, ' ')}
                     </Text>
-                    <Text variant="caption" color="secondary">
+                    <Text variant="caption" color="primary">
                       {formatFecha(evento.fecha_evento)}
                     </Text>
                   </div>
-                  <Text variant="caption" color="secondary">
+                  <Text variant="caption" color="primary">
                     Por: <strong>{evento.usuario_nombre}</strong>
                   </Text>
                   {evento.observacion && (
                     <div className="mt-1 rounded-md bg-[var(--color-surface-secondary)] px-3 py-2">
-                      <Text variant="caption" color="secondary" className="italic">
+                      <Text variant="caption" color="primary" className="italic">
                         "{evento.observacion}"
                       </Text>
                     </div>

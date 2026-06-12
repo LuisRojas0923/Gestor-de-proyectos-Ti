@@ -579,6 +579,3 @@ async def test_requisicion_validation_personas_requeridas(client, db_session):
         await db_session.execute(text("DELETE FROM areas_rp WHERE nombre = 'VENTAS'"))
         await db_session.execute(text("DELETE FROM ciudades_rp WHERE nombre = 'BOGOTA'"))
         await db_session.commit()
-
-
-

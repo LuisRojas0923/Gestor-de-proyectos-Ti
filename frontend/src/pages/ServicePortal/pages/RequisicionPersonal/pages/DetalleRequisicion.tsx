@@ -14,7 +14,7 @@ interface Props {
 
 const Fila: React.FC<{ label: string; valor?: string | number | null }> = ({ label, valor }) => (
   <div className="grid grid-cols-2 gap-4 py-2.5 border-b border-[var(--color-border)] last:border-0">
-    <Text variant="caption" color="secondary">{label}</Text>
+    <Text variant="caption" color="primary">{label}</Text>
     <Text variant="body" className="font-medium">{valor || '—'}</Text>
   </div>
 );
@@ -52,7 +52,7 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
       <div className="animate-spin w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full" />
     </div>
   );
-  if (!req) return <Text color="secondary">Requisición no encontrada.</Text>;
+  if (!req) return <Text color="primary">Requisición no encontrada.</Text>;
 
   const formatCOP = (val: number | null | undefined) => {
     if (val === null || val === undefined) return '—';
@@ -82,10 +82,10 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
       </div>
 
       <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 text-sm space-y-1 shadow-sm">
-        <Text color="secondary">
+        <Text color="primary">
           Solicitado por: <strong>{req.nombre_solicitante}</strong> ({req.correo_solicitante})
         </Text>
-        <Text variant="caption" color="secondary" className="block">
+        <Text variant="caption" color="primary" className="block">
           Radicado: {req.fecha_radicacion ? new Date(req.fecha_radicacion).toLocaleDateString('es-CO') : '—'}
         </Text>
       </div>
@@ -168,7 +168,7 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
               <div key={c.id} className="mb-3 p-3 bg-[var(--color-surface-secondary)] rounded-xl">
                 <div className="flex items-center justify-between mb-1">
                   <Text variant="caption" className="font-semibold">{c.usuario_nombre}</Text>
-                  <Text variant="caption" color="secondary">{c.fecha_comentario ? new Date(c.fecha_comentario).toLocaleString('es-CO') : ''}</Text>
+                  <Text variant="caption" color="primary">{c.fecha_comentario ? new Date(c.fecha_comentario).toLocaleString('es-CO') : ''}</Text>
                 </div>
                 <Text variant="body">{c.comentario}</Text>
               </div>
@@ -202,7 +202,7 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
                 Aprobador Asignado
               </Title>
               <Text variant="body" className="font-semibold">{req.aprobador_nombre}</Text>
-              <Text variant="caption" color="secondary">{req.aprobador_email}</Text>
+              <Text variant="caption" color="primary">{req.aprobador_email}</Text>
               {req.observacion_aprobador && (
                 <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
                   <Text variant="caption" className="text-amber-800 italic">"{req.observacion_aprobador}"</Text>
@@ -217,7 +217,7 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
                 Firma Gerencial
               </Title>
               <Text variant="body" className="font-semibold">{req.gerente_nombre}</Text>
-              <Text variant="caption" color="secondary">{req.gerente_email}</Text>
+              <Text variant="caption" color="primary">{req.gerente_email}</Text>
               {req.observacion_gerente && (
                 <div className="mt-3 p-3 bg-indigo-50 rounded-xl border border-indigo-200">
                   <Text variant="caption" className="text-indigo-800 italic font-medium">"{req.observacion_gerente}"</Text>
