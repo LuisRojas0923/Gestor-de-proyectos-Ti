@@ -14,7 +14,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
     content,
     align = 'center',
     width = 'w-52',
-    className = '',
+    className = 'inline-block',
 }) => {
     const alignmentClasses = {
         left: {
@@ -34,9 +34,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
     const placement = alignmentClasses[align];
 
     return (
-        <div className="relative group cursor-help inline-block">
+        <div className={`relative group cursor-help ${className}`}>
             {children}
-            <div className={`absolute top-full ${placement.container} mt-2 ${width} p-2.5 bg-[var(--color-surface)]/95 backdrop-blur-md border border-[var(--color-border)] rounded-xl shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 ease-out z-50 text-center ${className}`}>
+            <div className={`absolute top-full ${placement.container} mt-2 ${width} p-2.5 bg-[var(--color-surface)]/95 backdrop-blur-md border border-[var(--color-border)] rounded-xl shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 ease-out z-50 text-center`}>
                 <div className={`absolute -top-1 ${placement.arrow} w-2 h-2 bg-[var(--color-surface)] border-t border-l border-[var(--color-border)] rotate-45`}></div>
                 {typeof content === 'string' ? (
                     <Text 

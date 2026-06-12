@@ -88,31 +88,29 @@ const IndicatorsSummary: React.FC<Props> = ({ data }) => {
                 {metrics.map((m, idx) => {
                     const align = idx === 0 ? 'left' : idx === metrics.length - 1 ? 'right' : 'center';
                     return (
-                        <div 
+                        <Tooltip 
                             key={idx} 
-                            className="flex flex-col items-center justify-center text-center px-2 py-1"
+                            content={m.description} 
+                            align={align}
+                            className="w-full flex flex-col items-center justify-center text-center px-2 py-1"
                         >
-                            <Tooltip content={m.description} align={align}>
-                                <div className="flex flex-col items-center justify-center text-center">
-                                    <Text
-                                        variant="caption"
-                                        weight="medium"
-                                        color="text-secondary"
-                                        className="uppercase tracking-wider text-[9px] leading-tight mb-1"
-                                    >
-                                        {m.title}
-                                    </Text>
-                                    <Text
-                                        as="span"
-                                        className={`text-sm md:text-base font-black tracking-tight ${
-                                            m.isAlert ? m.alertColor : 'text-[var(--color-text-primary)]'
-                                        }`}
-                                    >
-                                        {m.value}
-                                    </Text>
-                                </div>
-                            </Tooltip>
-                        </div>
+                            <Text
+                                variant="caption"
+                                weight="medium"
+                                color="text-secondary"
+                                className="uppercase tracking-wider text-[9px] leading-tight mb-1"
+                            >
+                                {m.title}
+                            </Text>
+                            <Text
+                                as="span"
+                                className={`text-sm md:text-base font-black tracking-tight ${
+                                    m.isAlert ? m.alertColor : 'text-[var(--color-text-primary)]'
+                                }`}
+                            >
+                                {m.value}
+                            </Text>
+                        </Tooltip>
                     );
                 })}
             </div>
