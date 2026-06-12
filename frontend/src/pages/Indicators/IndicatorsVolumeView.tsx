@@ -231,7 +231,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
         <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Soportes por Categoría */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)] flex flex-col h-full">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
                         <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Soportes por Categoría</Title>
                         <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
@@ -257,51 +257,53 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                             </button>
                         </div>
                     </div>
-                    <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${categoryHeight}px` }}>
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                            <BarChart data={filteredCausaStats} layout="vertical" margin={{ left: 10, right: 30 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
-                                <XAxis type="number" hide />
-                                <YAxis 
-                                    dataKey="causa" 
-                                    type="category" 
-                                    width={160} 
-                                    tick={<CustomYAxisTick />}
-                                />
-                                <Tooltip formatter={(value, _, props: any) => [`${value} (${props.payload.porcentaje}%)`, 'Cantidad']} />
-                                <Bar
-                                    dataKey="cantidad"
-                                    fill="var(--deep-navy)"
-                                    radius={[0, 4, 4, 0]}
-                                    label={(props: any) => {
-                                        const { x, y, width, value, payload } = props;
-                                        const porcentaje = payload?.porcentaje;
-                                        return (
-                                            <text
-                                                x={x + width + 5}
-                                                y={y + 30 / 2}
-                                                fill="var(--color-text-primary)"
-                                                fontSize={9}
-                                                fontWeight="bold"
-                                                textAnchor="start"
-                                                dominantBaseline="middle"
-                                            >
-                                                {porcentaje ? `${value} (${porcentaje}%)` : value}
-                                            </text>
-                                        );
-                                    }}
-                                >
-                                    {filteredCausaStats.map((_, index) => (
-                                        <Cell key={`cell-${index}`} opacity={1 - (index * 0.05)} />
-                                    ))}
-                                </Bar>
-                             </BarChart>
-                        </ResponsiveContainer>
+                    <div className="flex-1 flex items-center justify-center w-full">
+                        <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${categoryHeight}px` }}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <BarChart data={filteredCausaStats} layout="vertical" margin={{ left: 10, right: 30 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
+                                    <XAxis type="number" hide />
+                                    <YAxis 
+                                        dataKey="causa" 
+                                        type="category" 
+                                        width={160} 
+                                        tick={<CustomYAxisTick />}
+                                    />
+                                    <Tooltip formatter={(value, _, props: any) => [`${value} (${props.payload.porcentaje}%)`, 'Cantidad']} />
+                                    <Bar
+                                        dataKey="cantidad"
+                                        fill="var(--deep-navy)"
+                                        radius={[0, 4, 4, 0]}
+                                        label={(props: any) => {
+                                            const { x, y, width, value, payload } = props;
+                                            const porcentaje = payload?.porcentaje;
+                                            return (
+                                                <text
+                                                    x={x + width + 5}
+                                                    y={y + 30 / 2}
+                                                    fill="var(--color-text-primary)"
+                                                    fontSize={9}
+                                                    fontWeight="bold"
+                                                    textAnchor="start"
+                                                    dominantBaseline="middle"
+                                                >
+                                                    {porcentaje ? `${value} (${porcentaje}%)` : value}
+                                                </text>
+                                            );
+                                        }}
+                                    >
+                                        {filteredCausaStats.map((_, index) => (
+                                            <Cell key={`cell-${index}`} opacity={1 - (index * 0.05)} />
+                                        ))}
+                                    </Bar>
+                                 </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
 
                 {/* Soportes por Área */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)] flex flex-col h-full">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
                         <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Soportes por Área</Title>
                         <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
@@ -327,23 +329,25 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                             </button>
                         </div>
                     </div>
-                    <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${areaHeight}px` }}>
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                            <BarChart data={filteredAreaStats} margin={{ bottom: 25 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                                <XAxis 
-                                    dataKey="area" 
-                                    tick={{ fontSize: 9, fill: 'var(--color-text-secondary)' }} 
-                                    interval={0}
-                                    angle={-35}
-                                    textAnchor="end"
-                                    height={60}
-                                />
-                                <YAxis />
-                                <Tooltip />
-                                <Bar dataKey="cantidad" fill="var(--deep-navy)" radius={[8, 8, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="flex-1 flex items-center justify-center w-full">
+                        <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${areaHeight}px` }}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <BarChart data={filteredAreaStats} margin={{ bottom: 25 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                                    <XAxis 
+                                        dataKey="area" 
+                                        tick={{ fontSize: 9, fill: 'var(--color-text-secondary)' }} 
+                                        interval={0}
+                                        angle={-35}
+                                        textAnchor="end"
+                                        height={60}
+                                    />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="cantidad" fill="var(--deep-navy)" radius={[8, 8, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
             </div>
