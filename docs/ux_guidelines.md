@@ -28,3 +28,12 @@ El sistema utiliza una paleta que transmite profesionalismo y serenidad (configu
 ## 4. Patrones de Navegación Eficientes
 - **Mantener el Contexto**: Si un usuario está viendo una lista de tickets y hace clic en uno, es mejor abrir los detalles en un panel lateral deslizable (Slide-over) o en un Drawer, en lugar de mandarlo a otra página completa. Así no pierde de vista la lista original.
 - **Agrupación Lógica**: Si un formulario tiene más de 6 campos, agrúpalos en tarjetas separadas con subtítulos claros, o usa pestañas (Tabs) para no abrumar al usuario de golpe.
+
+## 5. Diseño de Tooltips Contextuales (KPIs y Métricas)
+Para garantizar la comprensibilidad de los indicadores clave de rendimiento (KPIs), el sistema integra tooltips explicativos flotantes que responden al evento `hover`:
+- **Estilo de Contenedor**: Fondo semi-transparente glassmorphic (`bg-[var(--color-surface)]/95 backdrop-blur-md`), borde sutil (`border border-[var(--color-border)]`), esquinas redondeadas (`rounded-xl`), y sombra profunda (`shadow-2xl`).
+- **Alineación Responsiva Inteligente**:
+  - **Primer elemento del grid**: Aligned-left (`left-0 translate-x-0 origin-top-left`), con la flecha indicadora desplazada a la izquierda (`left-6`), para evitar que el tooltip se corte por el borde izquierdo de la pantalla.
+  - **Último elemento del grid**: Aligned-right (`right-0 left-auto translate-x-0 origin-top-right`), con la flecha indicadora desplazada a la derecha (`right-6`), para evitar que el tooltip se desborde del margen derecho.
+  - **Elementos intermedios**: Centrado estándar (`left-1/2 -translate-x-1/2 origin-top`).
+- **Interactividad**: Uso de cursor indicativo (`cursor-help`) en el elemento padre, y transiciones suaves (`transition-all duration-200 ease-out`) en las clases de opacidad (`opacity-0 group-hover:opacity-100`).

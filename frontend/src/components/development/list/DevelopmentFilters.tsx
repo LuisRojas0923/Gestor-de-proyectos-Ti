@@ -2,8 +2,6 @@ import React from 'react';
 import { Search, X } from 'lucide-react';
 import { UseFiltersReturn } from '../../../pages/MyDevelopments/hooks';
 import { Input, Select } from '../../atoms';
-import { Button } from '../../../components/atoms';
-
 
 interface DevelopmentFiltersProps {
   filters: UseFiltersReturn;
@@ -54,7 +52,7 @@ export const DevelopmentFilters: React.FC<DevelopmentFiltersProps> = ({
 
           <Select
             value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as any)}
+            onChange={(e) => setGroupBy(e.target.value as "none" | "provider" | "module" | "responsible")}
             options={[
               { value: "none", label: "Sin agrupar" },
               { value: "provider", label: "Agrupar por Proveedor" },
@@ -76,14 +74,14 @@ export const DevelopmentFilters: React.FC<DevelopmentFiltersProps> = ({
               ]}
             />
             {providerFilter !== 'all' && (
-              <Button
+              <button // [CONTROLADO]
                 type="button"
                 onClick={() => setProviderFilter('all')}
                 className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
                 title="Limpiar filtro"
               >
                 <X size={14} />
-              </Button>
+              </button>
             )}
           </div>
 
@@ -97,14 +95,14 @@ export const DevelopmentFilters: React.FC<DevelopmentFiltersProps> = ({
               ]}
             />
             {moduleFilter !== 'all' && (
-              <Button
+              <button // [CONTROLADO]
                 type="button"
                 onClick={() => setModuleFilter('all')}
                 className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
                 title="Limpiar filtro"
               >
                 <X size={14} />
-              </Button>
+              </button>
             )}
           </div>
 
@@ -118,14 +116,14 @@ export const DevelopmentFilters: React.FC<DevelopmentFiltersProps> = ({
               ]}
             />
             {responsibleFilter !== 'all' && (
-              <Button
+              <button // [CONTROLADO]
                 type="button"
                 onClick={() => setResponsibleFilter('all')}
                 className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
                 title="Limpiar filtro"
               >
                 <X size={14} />
-              </Button>
+              </button>
             )}
           </div>
 
@@ -139,14 +137,14 @@ export const DevelopmentFilters: React.FC<DevelopmentFiltersProps> = ({
               ]}
             />
             {statusFilter !== 'all' && (
-              <Button
+              <button // [CONTROLADO]
                 type="button"
                 onClick={() => setStatusFilter('all')}
                 className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
                 title="Limpiar filtro"
               >
                 <X size={14} />
-              </Button>
+              </button>
             )}
           </div>
         </div>

@@ -1,6 +1,5 @@
 import React from 'react';
-import { MetricCard } from '../../components/molecules';
-import { CheckCircle, Clock, TrendingUp, AlertCircle, Calendar, Hash, Zap } from 'lucide-react';
+import { MaterialCard, Text, Tooltip } from '../../components/atoms';
 
 interface Props {
     data: {
@@ -12,61 +11,115 @@ interface Props {
         total_minutos: number;
         avg_atender_global: number;
         avg_atencion_global: number;
+        avg_resolucion_global?: number;
+        sla_compliance?: number;
     };
 }
 
+const formatMinutesToHumanReadable = (mins: number) => {
+    if (!mins) return "0 min";
+    if (mins >= 1440) {
+        const days = mins / 1440;
+        return `${days.toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} d`;
+    }
+    if (mins >= 60) {
+        const hours = mins / 60;
+        return `${hours.toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} h`;
+    }
+    return `${Math.round(mins).toLocaleString('es-CO')} min`;
+};
+
 const IndicatorsSummary: React.FC<Props> = ({ data }) => {
+    const metrics = [
+        {
+            title: "AVG Tickets Ult. Año",
+            value: (data?.avg_mes || 0).toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+            description: "Promedio mensual de tickets recibidos durante el último año (12 meses móviles)."
+        },
+        {
+            title: "Total Soportes",
+            value: (data?.total || 0).toLocaleString('es-CO'),
+            description: "Cantidad total de tickets de soporte registrados en el período seleccionado."
+        },
+        {
+            title: "Soportes Resueltos",
+            value: (data?.resueltos || 0).toLocaleString('es-CO'),
+            description: "Cantidad de tickets de soporte que han sido completados y cerrados satisfactoriamente."
+        },
+        {
+            title: "Soportes Pendientes",
+            value: (data?.pendientes || 0).toLocaleString('es-CO'),
+            isAlert: (data?.pendientes || 0) > 0,
+            alertColor: 'text-red-500 dark:text-red-400',
+            description: "Cantidad de tickets de soporte que se encuentran actualmente abiertos, en proceso o asignados esperando resolución."
+        },
+        {
+            title: "Cumplimiento SLA",
+            value: (data?.sla_compliance ?? 100).toLocaleString('es-CO', { maximumFractionDigits: 1 }) + "%",
+            isAlert: (data?.sla_compliance ?? 100) < 80,
+            alertColor: 'text-red-500 dark:text-red-400',
+            description: "Porcentaje de tickets resueltos dentro del tiempo comprometido en el Acuerdo de Nivel de Servicio (SLA)."
+        },
+        {
+            title: "Horas Totales",
+            value: Math.round(data?.total_horas || 0).toLocaleString('es-CO') + " h",
+            description: "Suma acumulada de horas invertidas en la atención activa de todos los tickets."
+        },
+        {
+            title: "Prom. Tiempo en Atender",
+            value: formatMinutesToHumanReadable(data?.avg_atender_global || 0),
+            description: "Tiempo promedio transcurrido desde que se registra el ticket hasta que el analista inicia su atención (tiempo en cola)."
+        },
+        {
+            title: "Prom. Atención Activa",
+            value: formatMinutesToHumanReadable(data?.avg_atencion_global || 0),
+            description: "Tiempo promedio dedicado por el analista para resolver el ticket una vez iniciada su gestión (excluye tiempo en cola)."
+        },
+        {
+            title: "Tiempo de Resolución",
+            value: formatMinutesToHumanReadable(data?.avg_resolucion_global || 0),
+            description: "Tiempo promedio total transcurrido desde la creación del ticket hasta su resolución final (incluye tiempo en cola)."
+        }
+    ];
+
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-8 gap-4">
-            <MetricCard
-                title="Solicitudes por Mes"
-                value={(data?.avg_mes || 0).toString()}
-                icon={Calendar}
-                color="blue"
-            />
-            <MetricCard
-                title="Total Soportes Recibidos"
-                value={(data?.total || 0).toString()}
-                icon={Hash}
-                color="blue"
-            />
-            <MetricCard
-                title="Solicitudes Resueltas"
-                value={(data?.resueltos || 0).toString()}
-                icon={CheckCircle}
-                color="green"
-            />
-            <MetricCard
-                title="Solicitudes Pendientes"
-                value={(data?.pendientes || 0).toString()}
-                icon={AlertCircle}
-                color="red"
-            />
-            <MetricCard
-                title="Minutos Totales"
-                value={(data?.total_minutos || 0).toString() + "m"}
-                icon={TrendingUp}
-                color="blue"
-            />
-            <MetricCard
-                title="Horas Totales"
-                value={(data?.total_horas || 0).toString() + "h"}
-                icon={Clock}
-                color="blue"
-            />
-            <MetricCard
-                title="Prom. Tiempo en Atender"
-                value={(data?.avg_atender_global || 0).toString() + "m"}
-                icon={Clock}
-                color="yellow"
-            />
-            <MetricCard
-                title="Promedio de Atención"
-                value={(data?.avg_atencion_global || 0).toString() + "m"}
-                icon={Zap}
-                color="yellow"
-            />
-        </div>
+        <MaterialCard elevation={2} className="p-3 md:p-4 w-full">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-9 gap-y-3 xl:gap-y-0 xl:divide-x divide-[var(--color-border)]">
+                {metrics.map((m, idx) => {
+                    const align = idx === 0 ? 'left' : idx === metrics.length - 1 ? 'right' : 'center';
+                    return (
+                        <Tooltip 
+                            key={idx} 
+                            content={m.description} 
+                            align={align}
+                            className="w-full flex flex-col items-center justify-center text-center px-2 py-1"
+                        >
+                            <div className="h-7 flex items-center justify-center mb-1 w-full">
+                                <Text
+                                    variant="caption"
+                                    weight="medium"
+                                    color="text-secondary"
+                                    align="center"
+                                    className="uppercase tracking-wider text-[9px] leading-tight"
+                                >
+                                    {m.title}
+                                </Text>
+                            </div>
+                            <Text
+                                as="span"
+                                weight="bold"
+                                align="center"
+                                className={`text-sm md:text-base tracking-tight ${
+                                    m.isAlert ? m.alertColor : 'text-[var(--color-text-primary)]'
+                                }`}
+                            >
+                                {m.value}
+                            </Text>
+                        </Tooltip>
+                    );
+                })}
+            </div>
+        </MaterialCard>
     );
 };
 
