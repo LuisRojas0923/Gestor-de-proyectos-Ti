@@ -201,12 +201,12 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
     }, [priorityData]);
 
     return (
-        <div className="space-y-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Soportes por Categoría */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)]">
-                    <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Soportes por Categoría</Title>
-                    <div className="h-[520px] w-full">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
+                    <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Soportes por Categoría</Title>
+                    <div className="h-[400px] w-full">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                             <BarChart data={causaStats || []} layout="vertical" margin={{ left: 10, right: 30 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
@@ -250,9 +250,9 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                 </div>
 
                 {/* Soportes por Área */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)]">
-                    <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Soportes por Área</Title>
-                    <div className="h-[520px] w-full">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
+                    <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Soportes por Área</Title>
+                    <div className="h-[400px] w-full">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                             <BarChart data={areaStats || []} margin={{ bottom: 25 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
@@ -273,9 +273,9 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Porcentaje por Analista */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)]">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 md:mb-6">
                         <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Porcentaje de Carga por Analista</Title>
                         <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
@@ -301,7 +301,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                             </button>
                         </div>
                     </div>
-                    <div className="h-[420px] w-full">
+                    <div className="h-[350px] w-full">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                             <BarChart data={filteredAnalistaStats} layout="vertical" margin={{ left: 10, right: 30 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
@@ -320,9 +320,9 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                 </div>
 
                 {/* Soportes por Prioridad */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)] overflow-hidden">
-                    <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Soportes por Prioridad</Title>
-                    <div className="relative h-[420px] w-full flex items-center justify-center">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)] overflow-hidden">
+                    <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Soportes por Prioridad</Title>
+                    <div className="relative h-[350px] w-full flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart margin={{ top: 20, bottom: 20, left: 30, right: 30 }}>
                                 <defs>
@@ -345,7 +345,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={0}
-                                    outerRadius={130}
+                                    outerRadius={115}
                                     paddingAngle={2}
                                     dataKey="value"
                                     activeIndex={activePriorityIndex !== null ? activePriorityIndex : undefined}
@@ -364,7 +364,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={0}
-                                    outerRadius={130}
+                                    outerRadius={115}
                                     paddingAngle={2}
                                     dataKey="value"
                                     fill="none"
