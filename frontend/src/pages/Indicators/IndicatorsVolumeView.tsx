@@ -179,6 +179,8 @@ const CustomAnalistaYAxisTick = (props: any) => {
 const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analistaStats, matriz: _matriz, headers: _headers, prioridadStats }) => {
     const [activePriorityIndex, setActivePriorityIndex] = React.useState<number | null>(null);
     const [analystFilter, setAnalystFilter] = React.useState<'active' | 'all'>('active');
+    const [categoryFilter, setCategoryFilter] = React.useState<'top6' | 'all'>('top6');
+    const [areaFilter, setAreaFilter] = React.useState<'top6' | 'all'>('top6');
 
     const filteredAnalistaStats = React.useMemo(() => {
         if (!analistaStats) return [];
@@ -187,6 +189,22 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
         }
         return analistaStats;
     }, [analistaStats, analystFilter]);
+
+    const filteredCausaStats = React.useMemo(() => {
+        if (!causaStats) return [];
+        if (categoryFilter === 'top6') {
+            return causaStats.slice(0, 6);
+        }
+        return causaStats;
+    }, [causaStats, categoryFilter]);
+
+    const filteredAreaStats = React.useMemo(() => {
+        if (!areaStats) return [];
+        if (areaFilter === 'top6') {
+            return areaStats.slice(0, 6);
+        }
+        return areaStats;
+    }, [areaStats, areaFilter]);
 
     const priorityData = React.useMemo(() => {
         return [
@@ -205,10 +223,34 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Soportes por Categoría */}
                 <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
-                    <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Soportes por Categoría</Title>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
+                        <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Soportes por Categoría</Title>
+                        <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
+                            <button
+                                onClick={() => setCategoryFilter('top6')}
+                                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                                    categoryFilter === 'top6'
+                                        ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                                }`}
+                            >
+                                Top 6
+                            </button>
+                            <button
+                                onClick={() => setCategoryFilter('all')}
+                                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                                    categoryFilter === 'all'
+                                        ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                                }`}
+                            >
+                                Todos
+                            </button>
+                        </div>
+                    </div>
                     <div className="h-[400px] w-full">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                            <BarChart data={causaStats || []} layout="vertical" margin={{ left: 10, right: 30 }}>
+                            <BarChart data={filteredCausaStats} layout="vertical" margin={{ left: 10, right: 30 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
                                 <XAxis type="number" hide />
                                 <YAxis 
@@ -240,7 +282,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                         );
                                     }}
                                 >
-                                    {(causaStats || []).map((_, index) => (
+                                    {filteredCausaStats.map((_, index) => (
                                         <Cell key={`cell-${index}`} opacity={1 - (index * 0.05)} />
                                     ))}
                                 </Bar>
@@ -251,10 +293,34 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
 
                 {/* Soportes por Área */}
                 <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
-                    <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Soportes por Área</Title>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
+                        <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Soportes por Área</Title>
+                        <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
+                            <button
+                                onClick={() => setAreaFilter('top6')}
+                                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                                    areaFilter === 'top6'
+                                        ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                                }`}
+                            >
+                                Top 6
+                            </button>
+                            <button
+                                onClick={() => setAreaFilter('all')}
+                                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                                    areaFilter === 'all'
+                                        ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                                }`}
+                            >
+                                Todos
+                            </button>
+                        </div>
+                    </div>
                     <div className="h-[400px] w-full">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                            <BarChart data={areaStats || []} margin={{ bottom: 25 }}>
+                            <BarChart data={filteredAreaStats} margin={{ bottom: 25 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                                 <XAxis 
                                     dataKey="area" 
