@@ -94,17 +94,22 @@ const IndicatorsSummary: React.FC<Props> = ({ data }) => {
                             align={align}
                             className="w-full flex flex-col items-center justify-center text-center px-2 py-1"
                         >
-                            <Text
-                                variant="caption"
-                                weight="medium"
-                                color="text-secondary"
-                                className="uppercase tracking-wider text-[9px] leading-tight mb-1"
-                            >
-                                {m.title}
-                            </Text>
+                            <div className="h-7 flex items-center justify-center mb-1 w-full">
+                                <Text
+                                    variant="caption"
+                                    weight="medium"
+                                    color="text-secondary"
+                                    align="center"
+                                    className="uppercase tracking-wider text-[9px] leading-tight"
+                                >
+                                    {m.title}
+                                </Text>
+                            </div>
                             <Text
                                 as="span"
-                                className={`text-sm md:text-base font-black tracking-tight ${
+                                weight="bold"
+                                align="center"
+                                className={`text-sm md:text-base tracking-tight ${
                                     m.isAlert ? m.alertColor : 'text-[var(--color-text-primary)]'
                                 }`}
                             >
