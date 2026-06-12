@@ -206,6 +206,15 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
         return areaStats;
     }, [areaStats, areaFilter]);
 
+    const categoryHeight = React.useMemo(() => {
+        if (categoryFilter === 'top6') return 250;
+        return Math.max(250, (causaStats?.length || 0) * 35);
+    }, [causaStats, categoryFilter]);
+
+    const areaHeight = React.useMemo(() => {
+        return areaFilter === 'top6' ? 250 : 400;
+    }, [areaFilter]);
+
     const priorityData = React.useMemo(() => {
         return [
             { name: 'Alta', value: prioridadStats?.['Alta'] || 0, color: '#f43f5e', gradientId: 'gradAlta' },
@@ -248,7 +257,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                             </button>
                         </div>
                     </div>
-                    <div className="h-[400px] w-full">
+                    <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${categoryHeight}px` }}>
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                             <BarChart data={filteredCausaStats} layout="vertical" margin={{ left: 10, right: 30 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
@@ -318,7 +327,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                             </button>
                         </div>
                     </div>
-                    <div className="h-[400px] w-full">
+                    <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${areaHeight}px` }}>
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                             <BarChart data={filteredAreaStats} margin={{ bottom: 25 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
