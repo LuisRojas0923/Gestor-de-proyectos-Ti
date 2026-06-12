@@ -11,9 +11,23 @@ interface Props {
         total_minutos: number;
         avg_atender_global: number;
         avg_atencion_global: number;
+        avg_resolucion_global?: number;
         sla_compliance?: number;
     };
 }
+
+const formatMinutesToHumanReadable = (mins: number) => {
+    if (!mins) return "0 min";
+    if (mins >= 1440) {
+        const days = mins / 1440;
+        return `${days.toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} d`;
+    }
+    if (mins >= 60) {
+        const hours = mins / 60;
+        return `${hours.toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} h`;
+    }
+    return `${Math.round(mins).toLocaleString('es-CO')} min`;
+};
 
 const IndicatorsSummary: React.FC<Props> = ({ data }) => {
     const metrics = [
@@ -49,17 +63,22 @@ const IndicatorsSummary: React.FC<Props> = ({ data }) => {
         {
             title: "Horas Totales",
             value: Math.round(data?.total_horas || 0).toLocaleString('es-CO') + " h",
-            description: "Suma acumulada de horas invertidas en la atención y resolución de todos los tickets."
+            description: "Suma acumulada de horas invertidas en la atención activa de todos los tickets."
         },
         {
             title: "Prom. Tiempo en Atender",
-            value: Math.round(data?.avg_atender_global || 0).toLocaleString('es-CO') + " min",
-            description: "Tiempo promedio transcurrido desde que se registra el ticket hasta que el analista inicia su atención."
+            value: formatMinutesToHumanReadable(data?.avg_atender_global || 0),
+            description: "Tiempo promedio transcurrido desde que se registra el ticket hasta que el analista inicia su atención (tiempo en cola)."
         },
         {
-            title: "Promedio de Atención",
-            value: Math.round(data?.avg_atencion_global || 0).toLocaleString('es-CO') + " min",
-            description: "Tiempo promedio dedicado por el analista para resolver el ticket una vez iniciada su gestión."
+            title: "Prom. Atención Activa",
+            value: formatMinutesToHumanReadable(data?.avg_atencion_global || 0),
+            description: "Tiempo promedio dedicado por el analista para resolver el ticket una vez iniciada su gestión (excluye tiempo en cola)."
+        },
+        {
+            title: "Tiempo de Resolución",
+            value: formatMinutesToHumanReadable(data?.avg_resolucion_global || 0),
+            description: "Tiempo promedio total transcurrido desde la creación del ticket hasta su resolución final (incluye tiempo en cola)."
         }
     ];
 
@@ -84,7 +103,7 @@ const IndicatorsSummary: React.FC<Props> = ({ data }) => {
 
     return (
         <MaterialCard elevation={2} className="p-3 md:p-4 w-full">
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-y-3 xl:gap-y-0 xl:divide-x divide-[var(--color-border)]">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-9 gap-y-3 xl:gap-y-0 xl:divide-x divide-[var(--color-border)]">
                 {metrics.map((m, idx) => {
                     const placement = getTooltipPlacement(idx);
                     return (
@@ -109,7 +128,7 @@ const IndicatorsSummary: React.FC<Props> = ({ data }) => {
                             </span>
 
                             {/* Tooltip Explicativo */}
-                            <div className={`absolute top-full ${placement.container} mt-2 w-52 p-2.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 ease-out z-50 text-center`}>
+                            <div className={`absolute top-full ${placement.container} mt-2 w-52 p-2.5 bg-[var(--color-surface)]/95 backdrop-blur-md border border-[var(--color-border)] rounded-xl shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 ease-out z-50 text-center`}>
                                 <div className={`absolute -top-1 ${placement.arrow} w-2 h-2 bg-[var(--color-surface)] border-t border-l border-[var(--color-border)] rotate-45`}></div>
                                 <Text 
                                     variant="caption" 

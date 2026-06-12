@@ -24,7 +24,7 @@ class TicketBIService:
         for t in tickets:
             area = t.area_creador or "Sin Área"
             if area not in areas_data:
-                areas_data[area] = {"total": 0, "resueltos": 0, "min_atender": [], "min_atencion": []}
+                areas_data[area] = {"total": 0, "resueltos": 0, "min_atender": [], "min_atencion": [], "min_resolucion": []}
             
             areas_data[area]["total"] += 1
             if t.estado in ["Resuelto", "Cerrado"]:
@@ -40,17 +40,19 @@ class TicketBIService:
                     min_atender = max(0.0, (atendido - creado).total_seconds() / 60)
                     areas_data[area]["min_atender"].append(min_atender)
                 
-                # Tiempo de Atención (Min) - Desde inicio de atención hasta resolución/cierre
+                # Tiempo de Atención Activa (Min) - Desde inicio de atención hasta resolución/cierre (sin fallback)
                 if fecha_fin and t.atendido_en:
                     fin = fecha_fin.replace(tzinfo=None) if fecha_fin.tzinfo else fecha_fin
                     atendido = t.atendido_en.replace(tzinfo=None) if t.atendido_en.tzinfo else t.atendido_en
                     min_atencion = max(0.0, (fin - atendido).total_seconds() / 60)
                     areas_data[area]["min_atencion"].append(min_atencion)
-                elif fecha_fin and t.creado_en:
+                
+                # Tiempo de Resolución Total (Min) - Desde creación hasta resolución/cierre (ciclo completo)
+                if fecha_fin and t.creado_en:
                     fin = fecha_fin.replace(tzinfo=None) if fecha_fin.tzinfo else fecha_fin
                     creado = t.creado_en.replace(tzinfo=None) if t.creado_en.tzinfo else t.creado_en
-                    min_atencion = max(0.0, (fin - creado).total_seconds() / 60)
-                    areas_data[area]["min_atencion"].append(min_atencion)
+                    min_resolucion = max(0.0, (fin - creado).total_seconds() / 60)
+                    areas_data[area]["min_resolucion"].append(min_resolucion)
 
         area_stats = []
         for area, d in areas_data.items():
@@ -58,7 +60,8 @@ class TicketBIService:
                 "area": area,
                 "cantidad": d["total"],
                 "avg_atender": round(sum(d["min_atender"]) / len(d["min_atender"]), 2) if d["min_atender"] else 0,
-                "avg_atencion": round(sum(d["min_atencion"]) / len(d["min_atencion"]), 2) if d["min_atencion"] else 0
+                "avg_atencion": round(sum(d["min_atencion"]) / len(d["min_atencion"]), 2) if d["min_atencion"] else 0,
+                "avg_resolucion": round(sum(d["min_resolucion"]) / len(d["min_resolucion"]), 2) if d["min_resolucion"] else 0
             })
         area_stats.sort(key=lambda x: x["cantidad"], reverse=True)
 
@@ -90,7 +93,7 @@ class TicketBIService:
         for t in tickets:
             causa = t.causa_novedad or "(En blanco)"
             if causa not in causas_data:
-                causas_data[causa] = {"cantidad": 0, "min_atender": [], "min_atencion": []}
+                causas_data[causa] = {"cantidad": 0, "min_atender": [], "min_atencion": [], "min_resolucion": []}
             
             causas_data[causa]["cantidad"] += 1
             if t.estado in ["Resuelto", "Cerrado"]:
@@ -103,10 +106,10 @@ class TicketBIService:
                     fin = fecha_fin.replace(tzinfo=None) if fecha_fin.tzinfo else fecha_fin
                     atendido = t.atendido_en.replace(tzinfo=None) if t.atendido_en.tzinfo else t.atendido_en
                     causas_data[causa]["min_atencion"].append(max(0.0, (fin - atendido).total_seconds() / 60))
-                elif fecha_fin and t.creado_en:
+                if fecha_fin and t.creado_en:
                     fin = fecha_fin.replace(tzinfo=None) if fecha_fin.tzinfo else fecha_fin
                     creado = t.creado_en.replace(tzinfo=None) if t.creado_en.tzinfo else t.creado_en
-                    causas_data[causa]["min_atencion"].append(max(0.0, (fin - creado).total_seconds() / 60))
+                    causas_data[causa]["min_resolucion"].append(max(0.0, (fin - creado).total_seconds() / 60))
 
         causa_stats = []
         for causa, d in causas_data.items():
@@ -116,7 +119,8 @@ class TicketBIService:
                 "cantidad": total_causa,
                 "porcentaje": round((total_causa / total * 100), 2) if total > 0 else 0,
                 "avg_atender": round(sum(d["min_atender"]) / len(d["min_atender"]), 2) if d["min_atender"] else 0,
-                "avg_atencion": round(sum(d["min_atencion"]) / len(d["min_atencion"]), 2) if d["min_atencion"] else 0
+                "avg_atencion": round(sum(d["min_atencion"]) / len(d["min_atencion"]), 2) if d["min_atencion"] else 0,
+                "avg_resolucion": round(sum(d["min_resolucion"]) / len(d["min_resolucion"]), 2) if d["min_resolucion"] else 0
             })
         causa_stats.sort(key=lambda x: x["cantidad"], reverse=True)
 
@@ -155,7 +159,7 @@ class TicketBIService:
             fila["total"] = total_fila
             matriz_analista_causa.append(fila)
 
-        # 8. Horas/Minutos totales
+        # 8. Horas/Minutos totales (Basados en tiempo de atención activa de analistas)
         total_min_atencion = sum(sum(d["min_atencion"]) for d in areas_data.values())
         
         # 9. Cálculo de Promedio Mensual Móvil de los Últimos 12 Meses (Rolling 12M)
@@ -188,6 +192,15 @@ class TicketBIService:
         dentro_sla = sum(1 for t in tiempos_resolucion if t <= 48)
         sla_compliance = round((dentro_sla / len(tiempos_resolucion) * 100), 1) if tiempos_resolucion else 100.0
 
+        # Calcular totales y promedios con divisores correctos
+        total_min_atender = sum(sum(d["min_atender"]) for d in areas_data.values())
+        count_atender = sum(len(d["min_atender"]) for d in areas_data.values())
+        
+        count_atencion = sum(len(d["min_atencion"]) for d in areas_data.values())
+        
+        total_min_resolucion = sum(sum(d["min_resolucion"]) for d in areas_data.values())
+        count_resolucion = sum(len(d["min_resolucion"]) for d in areas_data.values())
+
         return {
             "resumen": {
                 "total": total,
@@ -196,8 +209,9 @@ class TicketBIService:
                 "avg_mes": avg_mes,
                 "total_horas": round(total_min_atencion / 60, 2),
                 "total_minutos": round(total_min_atencion, 2),
-                "avg_atender_global": round(sum(sum(d["min_atender"]) for d in areas_data.values()) / (resueltos or 1), 2),
-                "avg_atencion_global": round(total_min_atencion / (resueltos or 1), 2),
+                "avg_atender_global": round(total_min_atender / (count_atender or 1), 2),
+                "avg_atencion_global": round(total_min_atencion / (count_atencion or 1), 2),
+                "avg_resolucion_global": round(total_min_resolucion / (count_resolucion or 1), 2),
                 "sla_compliance": sla_compliance
             },
             "prioridad_stats": {
