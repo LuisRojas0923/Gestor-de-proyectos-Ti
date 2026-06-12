@@ -14,10 +14,10 @@ interface Props {
 
 const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }) => {
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Minutos de Atención por Área (Barra Simple) */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
                     <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Minutos de Atención por Área</Title>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -40,7 +40,7 @@ const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }
                 </div>
 
                 {/* Minutos Promedio en Atender y de Atención (Cards) */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
                     <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Minutos Promedio: Atender vs Atención</Title>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                         {(causaStats || []).map((stat, i) => (
@@ -75,7 +75,7 @@ const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }
             </div>
 
             {/* Solicitudes por Fecha (Línea) */}
-            <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
+            <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
                 <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Solicitudes por Fecha</Title>
                 <div className="h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -91,7 +91,7 @@ const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }
             </div>
 
             {/* Tiempo de Solicitud por Fecha (Línea) */}
-            <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
+            <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
                 <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Tiempo de Solicitud por Fecha (Min)</Title>
                 <div className="h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0}>

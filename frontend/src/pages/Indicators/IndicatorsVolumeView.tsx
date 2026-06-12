@@ -228,10 +228,10 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
     }, [priorityData]);
 
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Soportes por Categoría */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)] flex flex-col h-full">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)] flex flex-col h-full">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
                         <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Soportes por Categoría</Title>
                         <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
@@ -303,7 +303,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                 </div>
 
                 {/* Soportes por Área */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)] flex flex-col h-full">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)] flex flex-col h-full">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
                         <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Soportes por Área</Title>
                         <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
@@ -352,9 +352,9 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Porcentaje por Analista */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)]">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 md:mb-6">
                         <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Porcentaje de Carga por Analista</Title>
                         <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
@@ -399,7 +399,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                 </div>
 
                 {/* Soportes por Prioridad */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border border-[var(--color-border)] overflow-hidden">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)] overflow-hidden">
                     <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Soportes por Prioridad</Title>
                     <div className="relative h-[350px] w-full flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">

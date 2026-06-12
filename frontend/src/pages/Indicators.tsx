@@ -46,7 +46,7 @@ const Indicators: React.FC = () => {
   if (!data) return <div className="p-10 text-center">No se encontraron datos analíticos.</div>;
 
   return (
-    <div className="space-y-4 pb-8 -mt-6">
+    <div className="space-y-3 pb-6 -mt-6">
       {/* Header con Selección de Vista */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
