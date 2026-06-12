@@ -18,68 +18,110 @@ interface Props {
 const IndicatorsSummary: React.FC<Props> = ({ data }) => {
     const metrics = [
         {
-            title: "Prom. Móvil 12 Meses",
-            value: (data?.avg_mes || 0).toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+            title: "AVG Tickets Ult. Año",
+            value: (data?.avg_mes || 0).toLocaleString('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+            description: "Promedio mensual de tickets recibidos durante el último año (12 meses móviles)."
         },
         {
             title: "Total Soportes",
-            value: (data?.total || 0).toLocaleString('es-CO')
+            value: (data?.total || 0).toLocaleString('es-CO'),
+            description: "Cantidad total de tickets de soporte registrados en el período seleccionado."
         },
         {
             title: "Soportes Resueltos",
-            value: (data?.resueltos || 0).toLocaleString('es-CO')
+            value: (data?.resueltos || 0).toLocaleString('es-CO'),
+            description: "Cantidad de tickets de soporte que han sido completados y cerrados satisfactoriamente."
         },
         {
             title: "Soportes Pendientes",
             value: (data?.pendientes || 0).toLocaleString('es-CO'),
             isAlert: (data?.pendientes || 0) > 0,
-            alertColor: 'text-red-500 dark:text-red-400'
+            alertColor: 'text-red-500 dark:text-red-400',
+            description: "Cantidad de tickets de soporte que se encuentran actualmente abiertos, en proceso o asignados esperando resolución."
         },
         {
             title: "Cumplimiento SLA",
             value: (data?.sla_compliance ?? 100).toLocaleString('es-CO', { maximumFractionDigits: 1 }) + "%",
             isAlert: (data?.sla_compliance ?? 100) < 80,
-            alertColor: 'text-red-500 dark:text-red-400'
+            alertColor: 'text-red-500 dark:text-red-400',
+            description: "Porcentaje de tickets resueltos dentro del tiempo comprometido en el Acuerdo de Nivel de Servicio (SLA)."
         },
         {
             title: "Horas Totales",
-            value: Math.round(data?.total_horas || 0).toLocaleString('es-CO') + " h"
+            value: Math.round(data?.total_horas || 0).toLocaleString('es-CO') + " h",
+            description: "Suma acumulada de horas invertidas en la atención y resolución de todos los tickets."
         },
         {
             title: "Prom. Tiempo en Atender",
-            value: Math.round(data?.avg_atender_global || 0).toLocaleString('es-CO') + " min"
+            value: Math.round(data?.avg_atender_global || 0).toLocaleString('es-CO') + " min",
+            description: "Tiempo promedio transcurrido desde que se registra el ticket hasta que el analista inicia su atención."
         },
         {
             title: "Promedio de Atención",
-            value: Math.round(data?.avg_atencion_global || 0).toLocaleString('es-CO') + " min"
+            value: Math.round(data?.avg_atencion_global || 0).toLocaleString('es-CO') + " min",
+            description: "Tiempo promedio dedicado por el analista para resolver el ticket una vez iniciada su gestión."
         }
     ];
+
+    const getTooltipPlacement = (idx: number) => {
+        if (idx === 0) {
+            return {
+                container: "left-0 translate-x-0 origin-top-left",
+                arrow: "left-6"
+            };
+        }
+        if (idx === metrics.length - 1) {
+            return {
+                container: "right-0 left-auto translate-x-0 origin-top-right",
+                arrow: "right-6 left-auto"
+            };
+        }
+        return {
+            container: "left-1/2 -translate-x-1/2 origin-top",
+            arrow: "left-1/2 -translate-x-1/2"
+        };
+    };
 
     return (
         <MaterialCard elevation={2} className="p-3 md:p-4 w-full">
             <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-y-3 xl:gap-y-0 xl:divide-x divide-[var(--color-border)]">
-                {metrics.map((m, idx) => (
-                    <div 
-                        key={idx} 
-                        className="flex flex-col items-center justify-center text-center px-2 py-1"
-                    >
-                        <Text
-                            variant="caption"
-                            weight="medium"
-                            color="text-secondary"
-                            className="uppercase tracking-wider text-[9px] leading-tight mb-1"
+                {metrics.map((m, idx) => {
+                    const placement = getTooltipPlacement(idx);
+                    return (
+                        <div 
+                            key={idx} 
+                            className="flex flex-col items-center justify-center text-center px-2 py-1 group relative cursor-help"
                         >
-                            {m.title}
-                        </Text>
-                        <span 
-                            className={`text-sm md:text-base font-black tracking-tight ${
-                                m.isAlert ? m.alertColor : 'text-[var(--color-text-primary)]'
-                            }`}
-                        >
-                            {m.value}
-                        </span>
-                    </div>
-                ))}
+                            <Text
+                                variant="caption"
+                                weight="medium"
+                                color="text-secondary"
+                                className="uppercase tracking-wider text-[9px] leading-tight mb-1"
+                            >
+                                {m.title}
+                            </Text>
+                            <span 
+                                className={`text-sm md:text-base font-black tracking-tight ${
+                                    m.isAlert ? m.alertColor : 'text-[var(--color-text-primary)]'
+                                }`}
+                            >
+                                {m.value}
+                            </span>
+
+                            {/* Tooltip Explicativo */}
+                            <div className={`absolute top-full ${placement.container} mt-2 w-52 p-2.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 ease-out z-50 text-center`}>
+                                <div className={`absolute -top-1 ${placement.arrow} w-2 h-2 bg-[var(--color-surface)] border-t border-l border-[var(--color-border)] rotate-45`}></div>
+                                <Text 
+                                    variant="caption" 
+                                    color="text-secondary" 
+                                    className="leading-normal text-[10.5px] block font-normal normal-case"
+                                >
+                                    {m.description}
+                                </Text>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </MaterialCard>
     );
