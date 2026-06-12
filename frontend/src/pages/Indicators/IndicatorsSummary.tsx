@@ -102,13 +102,14 @@ const IndicatorsSummary: React.FC<Props> = ({ data }) => {
                                     >
                                         {m.title}
                                     </Text>
-                                    <span 
+                                    <Text
+                                        as="span"
                                         className={`text-sm md:text-base font-black tracking-tight ${
                                             m.isAlert ? m.alertColor : 'text-[var(--color-text-primary)]'
                                         }`}
                                     >
                                         {m.value}
-                                    </span>
+                                    </Text>
                                 </div>
                             </Tooltip>
                         </div>

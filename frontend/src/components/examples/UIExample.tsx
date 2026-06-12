@@ -168,19 +168,19 @@ const UIExample: React.FC = () => {
                     </Text>
                     <div className="flex flex-wrap gap-12 p-6 bg-white dark:bg-neutral-800 rounded-xl border border-[var(--color-border)]">
                         <Tooltip content="Tooltip alineado a la izquierda. Ideal para elementos al inicio de la pantalla." align="left">
-                            <span className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-lg text-sm font-semibold cursor-help">
+                            <Text as="span" className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-lg text-sm font-semibold cursor-help inline-block">
                                 Alineado Izquierda (Hover)
-                            </span>
+                            </Text>
                         </Tooltip>
                         <Tooltip content="Tooltip centrado estándar. Usar para la mayoría de los casos generales." align="center">
-                            <span className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-lg text-sm font-semibold cursor-help">
+                            <Text as="span" className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-lg text-sm font-semibold cursor-help inline-block">
                                 Centrado (Hover)
-                            </span>
+                            </Text>
                         </Tooltip>
                         <Tooltip content="Tooltip alineado a la derecha. Ideal para elementos al borde derecho de la pantalla." align="right">
-                            <span className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-lg text-sm font-semibold cursor-help">
+                            <Text as="span" className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-lg text-sm font-semibold cursor-help inline-block">
                                 Alineado Derecha (Hover)
-                            </span>
+                            </Text>
                         </Tooltip>
                     </div>
                 </div>

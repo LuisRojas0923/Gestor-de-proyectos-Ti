@@ -37,4 +37,3 @@ Para garantizar la comprensibilidad de los indicadores clave de rendimiento (KPI
   - **Último elemento del grid**: Aligned-right (`right-0 left-auto translate-x-0 origin-top-right`), con la flecha indicadora desplazada a la derecha (`right-6`), para evitar que el tooltip se desborde del margen derecho.
   - **Elementos intermedios**: Centrado estándar (`left-1/2 -translate-x-1/2 origin-top`).
 - **Interactividad**: Uso de cursor indicativo (`cursor-help`) en el elemento padre, y transiciones suaves (`transition-all duration-200 ease-out`) en las clases de opacidad (`opacity-0 group-hover:opacity-100`).
-

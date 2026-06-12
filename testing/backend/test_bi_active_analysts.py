@@ -69,5 +69,3 @@ async def test_bi_service_logic_direct(db_session):
     assert isinstance(resumen["avg_atender_global"], (int, float))
     assert isinstance(resumen["avg_atencion_global"], (int, float))
     assert isinstance(resumen["avg_resolucion_global"], (int, float))
-
-
