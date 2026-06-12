@@ -52,7 +52,7 @@ const renderCustomizedLabel = (props: any) => {
     const percentageText = `${(percent * 100).toFixed(0)}%`;
 
     return (
-        <g transform={`translate(${dx}, ${dy})`} style={{ transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+        <g transform={`translate(${dx}, ${dy})`} style={{ transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }} /* [CONTROLADO] */ >
             {/* Pointer line */}
             <path
                 d={`M${sx},${sy} L${ex},${ey} L${hx},${hy}`}
@@ -118,7 +118,7 @@ const renderActiveShape = (props: any) => {
     const dy = sin * offset;
 
     return (
-        <g transform={`translate(${dx}, ${dy})`} style={{ transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+        <g transform={`translate(${dx}, ${dy})`} style={{ transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }} /* [CONTROLADO] */ >
             <Sector
                 cx={cx}
                 cy={cy}
@@ -127,7 +127,7 @@ const renderActiveShape = (props: any) => {
                 startAngle={startAngle}
                 endAngle={endAngle}
                 fill={fill}
-                style={{ filter: 'drop-shadow(0px 8px 12px rgba(0, 0, 0, 0.15))' }}
+                style={{ filter: 'drop-shadow(0px 8px 12px rgba(0, 0, 0, 0.15))' }} // [CONTROLADO]
             />
         </g>
     );
@@ -235,7 +235,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
                         <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Soportes por Categoría</Title>
                         <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
-                            <button
+                            <button // [CONTROLADO]
                                 onClick={() => setCategoryFilter('top6')}
                                 className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                                     categoryFilter === 'top6'
@@ -245,7 +245,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                             >
                                 Top 6
                             </button>
-                            <button
+                            <button // [CONTROLADO]
                                 onClick={() => setCategoryFilter('all')}
                                 className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                                     categoryFilter === 'all'
@@ -258,7 +258,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                         </div>
                     </div>
                     <div className="flex-1 flex items-center justify-center w-full">
-                        <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${categoryHeight}px` }}>
+                        <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${categoryHeight}px` }} /* [CONTROLADO] */ >
                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                 <BarChart data={filteredCausaStats} layout="vertical" margin={{ left: 10, right: 30 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
@@ -307,7 +307,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
                         <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Soportes por Área</Title>
                         <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
-                            <button
+                            <button // [CONTROLADO]
                                 onClick={() => setAreaFilter('top6')}
                                 className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                                     areaFilter === 'top6'
@@ -317,7 +317,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                             >
                                 Top 6
                             </button>
-                            <button
+                            <button // [CONTROLADO]
                                 onClick={() => setAreaFilter('all')}
                                 className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                                     areaFilter === 'all'
@@ -330,7 +330,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                         </div>
                     </div>
                     <div className="flex-1 flex items-center justify-center w-full">
-                        <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${areaHeight}px` }}>
+                        <div className="w-full transition-all duration-300 ease-in-out" style={{ height: `${areaHeight}px` }} /* [CONTROLADO] */ >
                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                 <BarChart data={filteredAreaStats} margin={{ bottom: 25 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
@@ -358,7 +358,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 md:mb-6">
                         <Title variant="h4" weight="bold" color="text-primary" className="text-lg md:text-xl">Porcentaje de Carga por Analista</Title>
                         <div className="flex items-center bg-[var(--color-surface-hover)] md:bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)] shadow-sm text-xs">
-                            <button
+                            <button // [CONTROLADO]
                                 onClick={() => setAnalystFilter('active')}
                                 className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
                                     analystFilter === 'active'
@@ -368,7 +368,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                             >
                                 Activos
                             </button>
-                            <button
+                            <button // [CONTROLADO]
                                 onClick={() => setAnalystFilter('all')}
                                 className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
                                     analystFilter === 'all'
@@ -434,7 +434,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                     onMouseLeave={() => setActivePriorityIndex(null)}
                                 >
                                     {priorityData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={`url(#${entry.gradientId})`} style={{ outline: 'none' }} />
+                                        <Cell key={`cell-${index}`} fill={`url(#${entry.gradientId})`} style={{ outline: 'none' }} /* [CONTROLADO] */ />
                                     ))}
                                 </Pie>
                                 {/* Overlay Pie purely for rendering labels of all slices at all times */}
@@ -450,7 +450,7 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                     stroke="none"
                                     isAnimationActive={false}
                                     label={(props) => renderCustomizedLabel({ ...props, activeIndex: activePriorityIndex })}
-                                    style={{ pointerEvents: 'none' }}
+                                    style={{ pointerEvents: 'none' }} // [CONTROLADO]
                                 />
                                 <Tooltip
                                     content={({ active, payload }) => {
@@ -470,14 +470,14 @@ const IndicatorsVolumeView: React.FC<Props> = ({ causaStats, areaStats, analista
                                         return (
                                             <div 
                                                 className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3 shadow-lg text-xs font-bold text-[var(--color-text-primary)]"
-                                                style={{ filter: 'drop-shadow(0px 4px 12px rgba(0, 0, 0, 0.08))' }}
+                                                style={{ filter: 'drop-shadow(0px 4px 12px rgba(0, 0, 0, 0.08))' }} /* [CONTROLADO] */
                                             >
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-                                                    <span className="uppercase tracking-wider">{item.name}</span>
+                                                    <Text as="span" className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} /* [CONTROLADO] */ />
+                                                    <Text as="span" className="uppercase tracking-wider">{item.name}</Text>
                                                 </div>
                                                 <div className="mt-1 text-[var(--color-text-secondary)] font-semibold">
-                                                    Tickets: <span className="text-[var(--color-text-primary)] font-black">{value?.toLocaleString('es-CO')}</span> ({pct}%)
+                                                    Tickets: <Text as="span" className="text-[var(--color-text-primary)] font-black">{value?.toLocaleString('es-CO')}</Text> ({pct}%)
                                                 </div>
                                             </div>
                                         );
