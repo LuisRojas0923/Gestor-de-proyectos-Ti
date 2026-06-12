@@ -1,5 +1,5 @@
 import React from 'react';
-import { MaterialCard, Text } from '../../components/atoms';
+import { MaterialCard, Text, Tooltip } from '../../components/atoms';
 
 interface Props {
     data: {
@@ -82,62 +82,35 @@ const IndicatorsSummary: React.FC<Props> = ({ data }) => {
         }
     ];
 
-    const getTooltipPlacement = (idx: number) => {
-        if (idx === 0) {
-            return {
-                container: "left-0 translate-x-0 origin-top-left",
-                arrow: "left-6"
-            };
-        }
-        if (idx === metrics.length - 1) {
-            return {
-                container: "right-0 left-auto translate-x-0 origin-top-right",
-                arrow: "right-6 left-auto"
-            };
-        }
-        return {
-            container: "left-1/2 -translate-x-1/2 origin-top",
-            arrow: "left-1/2 -translate-x-1/2"
-        };
-    };
-
     return (
         <MaterialCard elevation={2} className="p-3 md:p-4 w-full">
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-9 gap-y-3 xl:gap-y-0 xl:divide-x divide-[var(--color-border)]">
                 {metrics.map((m, idx) => {
-                    const placement = getTooltipPlacement(idx);
+                    const align = idx === 0 ? 'left' : idx === metrics.length - 1 ? 'right' : 'center';
                     return (
                         <div 
                             key={idx} 
-                            className="flex flex-col items-center justify-center text-center px-2 py-1 group relative cursor-help"
+                            className="flex flex-col items-center justify-center text-center px-2 py-1"
                         >
-                            <Text
-                                variant="caption"
-                                weight="medium"
-                                color="text-secondary"
-                                className="uppercase tracking-wider text-[9px] leading-tight mb-1"
-                            >
-                                {m.title}
-                            </Text>
-                            <span 
-                                className={`text-sm md:text-base font-black tracking-tight ${
-                                    m.isAlert ? m.alertColor : 'text-[var(--color-text-primary)]'
-                                }`}
-                            >
-                                {m.value}
-                            </span>
-
-                            {/* Tooltip Explicativo */}
-                            <div className={`absolute top-full ${placement.container} mt-2 w-52 p-2.5 bg-[var(--color-surface)]/95 backdrop-blur-md border border-[var(--color-border)] rounded-xl shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 ease-out z-50 text-center`}>
-                                <div className={`absolute -top-1 ${placement.arrow} w-2 h-2 bg-[var(--color-surface)] border-t border-l border-[var(--color-border)] rotate-45`}></div>
-                                <Text 
-                                    variant="caption" 
-                                    color="text-secondary" 
-                                    className="leading-normal text-[10.5px] block font-normal normal-case"
-                                >
-                                    {m.description}
-                                </Text>
-                            </div>
+                            <Tooltip content={m.description} align={align}>
+                                <div className="flex flex-col items-center justify-center text-center">
+                                    <Text
+                                        variant="caption"
+                                        weight="medium"
+                                        color="text-secondary"
+                                        className="uppercase tracking-wider text-[9px] leading-tight mb-1"
+                                    >
+                                        {m.title}
+                                    </Text>
+                                    <span 
+                                        className={`text-sm md:text-base font-black tracking-tight ${
+                                            m.isAlert ? m.alertColor : 'text-[var(--color-text-primary)]'
+                                        }`}
+                                    >
+                                        {m.value}
+                                    </span>
+                                </div>
+                            </Tooltip>
                         </div>
                     );
                 })}

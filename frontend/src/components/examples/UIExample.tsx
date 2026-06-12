@@ -14,7 +14,8 @@ import {
     Textarea,
     MaterialCard,
     Title,
-    Text
+    Text,
+    Tooltip
 } from '../atoms';
 import {
     MaterialSearchBar
@@ -156,6 +157,31 @@ const UIExample: React.FC = () => {
                         <Button variant="primary" size="md">Medium</Button>
                         <Button variant="primary" size="lg">Large</Button>
                         <Button variant="primary" icon={Settings}>Con Icono</Button>
+                    </div>
+                </div>
+
+                {/* Tooltips */}
+                <div className="space-y-4">
+                    <Title variant="h4">Tooltips Contextuales (KPIs y Métricas)</Title>
+                    <Text color="secondary">
+                        Pasa el cursor sobre los botones para observar el diseño del tooltip y la alineación responsiva/posicionamiento con texto de alta legibilidad.
+                    </Text>
+                    <div className="flex flex-wrap gap-12 p-6 bg-white dark:bg-neutral-800 rounded-xl border border-[var(--color-border)]">
+                        <Tooltip content="Tooltip alineado a la izquierda. Ideal para elementos al inicio de la pantalla." align="left">
+                            <span className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-lg text-sm font-semibold cursor-help">
+                                Alineado Izquierda (Hover)
+                            </span>
+                        </Tooltip>
+                        <Tooltip content="Tooltip centrado estándar. Usar para la mayoría de los casos generales." align="center">
+                            <span className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-lg text-sm font-semibold cursor-help">
+                                Centrado (Hover)
+                            </span>
+                        </Tooltip>
+                        <Tooltip content="Tooltip alineado a la derecha. Ideal para elementos al borde derecho de la pantalla." align="right">
+                            <span className="px-4 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-lg text-sm font-semibold cursor-help">
+                                Alineado Derecha (Hover)
+                            </span>
+                        </Tooltip>
                     </div>
                 </div>
             </div>
