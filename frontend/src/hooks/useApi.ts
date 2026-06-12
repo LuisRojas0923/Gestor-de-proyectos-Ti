@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 import { API_CONFIG, ERROR_MESSAGES, HTTP_STATUS } from '../config/api';
 import { useAppContext } from '../context/AppContext';
+import { AuthService } from '../services/AuthService';
 
 interface ApiResponse<T> {
   data: T | null;
@@ -35,15 +36,16 @@ export function useApi<T>() {
 
   const request = useCallback(async (
     url: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    _retriedWithRefresh = false
   ): Promise<T | null> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     const token = localStorage.getItem('token');
-    
+
     // Si el body es FormData, el navegador debe elijir el Content-Type (con boundary) automaticamente.
     const isFormData = options.body instanceof FormData;
-    
+
     const headers: Record<string, string> = {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -56,7 +58,20 @@ export function useApi<T>() {
         headers,
       });
 
+      // 401: intentar refresh silencioso una vez antes de desloguar.
+      // Esto evita que un token expirado (mientras el usuario estaba en
+      // el portal) lo saque del panel al volver.
       if (response.status === HTTP_STATUS.UNAUTHORIZED) {
+        // No intentamos refresh contra el endpoint de refresh mismo (recursion
+        // infinita) ni contra endpoints publicos (no tiene sentido).
+        const isAuthEndpoint = url.includes('/auth/');
+        if (!_retriedWithRefresh && !isAuthEndpoint) {
+          const newToken = await AuthService.refreshAccessToken();
+          if (newToken) {
+            // Reintentar la request original con el token nuevo.
+            return request(url, options, true);
+          }
+        }
         console.error(`🔒 401 Unauthorized en ${url}. Token presente: ${!!token}, Token (primeros 20): ${token ? token.substring(0, 20) + '...' : 'NULL'}. Ejecutando logout...`);
         dispatch({ type: 'LOGOUT' });
         return null;
@@ -114,6 +129,39 @@ export function useApi<T>() {
 
   const get = useCallback((url: string) => request(url), [request]); // [CONTROLADO]
 
+  const getWithHeaders = useCallback(async (url: string): Promise<{ data: T; headers: Headers } | null> => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    };
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, { headers });
+      if (response.status === HTTP_STATUS.UNAUTHORIZED) {
+        const isAuthEndpoint = url.includes('/auth/');
+        const newToken = !isAuthEndpoint ? await AuthService.refreshAccessToken() : null;
+        if (newToken) {
+          return getWithHeaders(url);
+        }
+        dispatch({ type: 'LOGOUT' });
+        return null;
+      }
+      if (!response.ok) {
+        let body: { detail?: unknown; message?: string } | null = null;
+        try { body = await response.json(); } catch { /* ignore */ }
+        const msg = (typeof body?.detail === 'string' && body.detail) || body?.message || getErrorMessage(response.status);
+        throw new Error(msg);
+      }
+      const data = await response.json();
+      setState({ data, loading: false, error: null });
+      return { data, headers: response.headers };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR;
+      setState({ data: null, loading: false, error: errorMessage });
+      throw error;
+    }
+  }, [dispatch, addNotification]);
+
   const post = useCallback(
     (url: string, data: any, options: RequestInit = {}) =>
       request(url, { // [CONTROLADO]
@@ -155,9 +203,10 @@ export function useApi<T>() {
   return useMemo(() => ({
     ...state,
     get,
+    getWithHeaders,
     post,
     put,
     patch,
     delete: del,
-  }), [state, get, post, put, patch, del]);
+  }), [state, get, getWithHeaders, post, put, patch, del]);
 }

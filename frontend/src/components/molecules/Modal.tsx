@@ -12,6 +12,8 @@ export interface ModalProps {
     showCloseButton?: boolean;
     closeOnOverlayClick?: boolean;
     className?: string; // Para clases adicionales en el contenedor
+    contentClassName?: string;
+    headerClassName?: string;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -23,6 +25,8 @@ const Modal: React.FC<ModalProps> = ({
     showCloseButton = true,
     closeOnOverlayClick = true,
     className = '',
+    contentClassName = '',
+    headerClassName = '',
 }) => {
     // Prevenir scroll en el body cuando el modal está abierto
     useEffect(() => {
@@ -69,11 +73,15 @@ const Modal: React.FC<ModalProps> = ({
             >
                 {/* Header (Optional) */}
                 {(title || showCloseButton) && (
-                    <MaterialCard.Header className="flex items-center justify-between !py-4">
+                    <MaterialCard.Header className={`flex items-center justify-between !py-3 !px-4 ${headerClassName}`}>
                         {title && (
-                            <Title variant="h4" weight="semibold">
-                                {title}
-                            </Title>
+                            typeof title === 'string' ? (
+                                <Title variant="h4" weight="semibold">
+                                    {title}
+                                </Title>
+                            ) : (
+                                <div className="min-w-0 flex-1">{title}</div>
+                            )
                         )}
                         {showCloseButton && (
                             <Button
@@ -89,7 +97,7 @@ const Modal: React.FC<ModalProps> = ({
                 )}
 
                 {/* Content */}
-                <MaterialCard.Content className="!p-6 overflow-y-auto">
+                <MaterialCard.Content className={`!p-6 overflow-y-auto ${contentClassName}`}>
                     {children}
                 </MaterialCard.Content>
             </MaterialCard>

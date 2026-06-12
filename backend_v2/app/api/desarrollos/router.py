@@ -2,9 +2,9 @@
 API de Desarrollos - Backend V2
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, or_
+from sqlalchemy import select, delete, or_, func
 from app.database import obtener_db
 from app.models.desarrollo.desarrollo import (
     Desarrollo,
@@ -17,29 +17,40 @@ from app.models.desarrollo.actividad import Actividad
 from app.models.auth.usuario import Usuario
 from app.api.auth.profile_router import obtener_usuario_actual_opcional, obtener_usuario_actual_db
 from app.services.jerarquia.service import JerarquiaService
+from app.services.auditoria.snapshots import (
+    asignar_actualizacion_segura,
+    asignar_creacion_segura,
+    asignar_eliminacion_segura,
+    modelo_a_dict_auditoria,
+)
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[Desarrollo])
 async def listar_desarrollos(
-    skip: int = 0,
-    limit: int = 100,
+    response: Response,
+    skip: int = Query(0, ge=0, description="Número de registros a saltar (paginación)"),
+    limit: int = Query(100, ge=1, le=500, description="Tamaño de página (máx 500)"),
     estado: Optional[str] = None,
     solo_mios: bool = False,
     db: AsyncSession = Depends(obtener_db),
     usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
-    """Lista desarrollos con autenticación obligatoria y filtrado jerárquico/rol."""
+    """Lista desarrollos con autenticación obligatoria y filtrado jerárquico/rol.
+
+    Devuelve el total del conjunto filtrado (antes de paginar) en el header
+    ``X-Total-Count`` para que el cliente pueda mostrar "Cargar más" cuando
+    el resultado supere el ``limit``.
+    """
     try:
         # Si no es admin y no es director, forzar obligatoriamente solo_mios=True
         if usuario.rol not in ("admin", "director"):
             solo_mios = True
 
-        query = select(Desarrollo).offset(skip).limit(limit)
-
+        filtros = []
         if estado:
-            query = query.where(Desarrollo.estado_general == estado)
+            filtros.append(Desarrollo.estado_general == estado)
 
         if solo_mios and usuario:
             uid = usuario.id
@@ -59,7 +70,7 @@ async def listar_desarrollos(
                 )
             )
 
-            query = query.where(
+            filtros.append(
                 or_(
                     Desarrollo.creado_por_id.in_(todos_los_ids),
                     Desarrollo.responsable_id.in_(todos_los_ids),
@@ -71,6 +82,19 @@ async def listar_desarrollos(
                 )
             )
 
+        # Conteo total sobre el conjunto filtrado (mismos `filtros`, sin offset/limit)
+        count_query = select(func.count()).select_from(Desarrollo)
+        for f in filtros:
+            count_query = count_query.where(f)
+        total_result = await db.execute(count_query)
+        total = int(total_result.scalar() or 0)
+        response.headers["X-Total-Count"] = str(total)
+
+        # Página de datos, ordenada por id para que la paginación sea estable
+        query = select(Desarrollo).order_by(Desarrollo.id).offset(skip).limit(limit)
+        for f in filtros:
+            query = query.where(f)
+
         result = await db.execute(query)
         return result.scalars().all()
     except Exception as e:
@@ -79,6 +103,7 @@ async def listar_desarrollos(
 
 @router.post("/", response_model=Desarrollo)
 async def crear_desarrollo(
+    request: Request,
     desarrollo_in: DesarrolloCrear,
     db: AsyncSession = Depends(obtener_db),
     usuario: Optional[Usuario] = Depends(obtener_usuario_actual_opcional),
@@ -114,6 +139,11 @@ async def crear_desarrollo(
         db.add(nuevo_desarrollo)
         await db.commit()
         await db.refresh(nuevo_desarrollo)
+
+        request.state.auditoria_entidad_tipo = "desarrollo"
+        request.state.auditoria_entidad_id = nuevo_desarrollo.id
+        asignar_creacion_segura(request, nuevo_desarrollo)
+
         return nuevo_desarrollo
     except Exception as e:
         await db.rollback()
@@ -193,6 +223,7 @@ async def obtener_desarrollo(
 
 @router.delete("/{desarrollo_id}", status_code=204)
 async def eliminar_desarrollo(
+    request: Request,
     desarrollo_id: str,
     db: AsyncSession = Depends(obtener_db),
     usuario: Usuario = Depends(obtener_usuario_actual_db),
@@ -205,6 +236,8 @@ async def eliminar_desarrollo(
 
         if not db_desarrollo:
             raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
+
+        snapshot_antes = modelo_a_dict_auditoria(db_desarrollo)
 
         # Validar permisos para eliminar el desarrollo — sin bypass de roles
         tiene_acceso = db_desarrollo.creado_por_id == usuario.id
@@ -241,6 +274,10 @@ async def eliminar_desarrollo(
         await db.delete(db_desarrollo)
         
         await db.commit()
+
+        request.state.auditoria_entidad_tipo = "desarrollo"
+        request.state.auditoria_entidad_id = desarrollo_id
+        asignar_eliminacion_segura(request, snapshot_antes)
     except HTTPException:
         raise
     except Exception as e:
@@ -250,9 +287,11 @@ async def eliminar_desarrollo(
 
 @router.put("/{desarrollo_id}", response_model=Desarrollo)
 async def actualizar_desarrollo(
+    request: Request,
     desarrollo_id: str,
     desarrollo: DesarrolloActualizar,
-    db: AsyncSession = Depends(obtener_db)
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Actualiza un desarrollo existente"""
     try:
@@ -263,12 +302,40 @@ async def actualizar_desarrollo(
         if not db_desarrollo:
             raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
 
+        snapshot_antes = modelo_a_dict_auditoria(db_desarrollo)
         update_data = desarrollo.model_dump(exclude_unset=True)
+        estado_previo = db_desarrollo.estado_general
+        nuevo_estado = update_data.get("estado_general")
+
         for key, value in update_data.items():
             setattr(db_desarrollo, key, value)
 
+        # Lógica de cascada para Pausa / Reanudación
+        if nuevo_estado and nuevo_estado != estado_previo:
+            if nuevo_estado == "Pausado":
+                # Pausar todas las actividades "Pendiente"
+                query_act = select(Actividad).where(
+                    Actividad.desarrollo_id == desarrollo_id,
+                    Actividad.estado == "Pendiente"
+                )
+                result_act = await db.execute(query_act)
+                for actividad in result_act.scalars().all():
+                    actividad.estado = "Pausa"
+                    db.add(actividad)
+            elif nuevo_estado in ("En curso", "En Proceso") and estado_previo == "Pausado":
+                # Reanudar todas las actividades "Pausa" a "Pendiente"
+                query_act = select(Actividad).where(
+                    Actividad.desarrollo_id == desarrollo_id,
+                    Actividad.estado == "Pausa"
+                )
+                result_act = await db.execute(query_act)
+                for actividad in result_act.scalars().all():
+                    actividad.estado = "Pendiente"
+                    db.add(actividad)
+
         await db.commit()
         await db.refresh(db_desarrollo)
+        asignar_actualizacion_segura(request, snapshot_antes, db_desarrollo)
         return db_desarrollo
     except HTTPException:
         raise

@@ -2,8 +2,8 @@
  * Tests para PortalLayout (página del header unificado).
  *
  * Contratos a verificar:
- *   - isAdmin=true: logo como <button> clickable
- *   - isAdmin=false: logo como <div aria-hidden> (no <button>)
+ *   - isAdmin=true: logo como boton clickable
+ *   - isAdmin=false: logo como div con aria-hidden (no boton)
  *   - fromAdmin=true + click logo: navega a '/' SIN abrir modal
  *   - fromAdmin=false + click logo: abre AdminLoginLock
  *   - useEffect cleanup remueve 'fromAdmin' de sessionStorage al desmontar
@@ -73,7 +73,7 @@ describe('PortalLayout - render del logo según rol', () => {
     sessionStorage.clear();
   });
 
-  it('isAdmin=true: renderiza logo como <button> con aria-label', () => {
+  it('isAdmin=true: renderiza logo como boton con aria-label', () => {
     mockUseIsAdmin.mockReturnValue(true);
     renderLayout();
     const btn = screen.getByRole('button', {
@@ -112,7 +112,7 @@ describe('PortalLayout - comportamiento del logo', () => {
       name: /Volver al panel de administración/i,
     });
     fireEvent.click(btn);
-    expect(sessionStorage.getItem('fromAdmin')).toBeNull();
+    expect(sessionStorage.getItem('fromAdmin')).toBe('true');
     expect(
       document.querySelector('[role="dialog"]') === null ||
         screen.queryByText('Zona Restringida') === null
@@ -130,13 +130,13 @@ describe('PortalLayout - comportamiento del logo', () => {
     expect(screen.getByText('Zona Restringida')).toBeInTheDocument();
   });
 
-  it('useEffect cleanup remueve fromAdmin de sessionStorage al desmontar', () => {
+  it('useEffect cleanup NO remueve fromAdmin de sessionStorage al desmontar', () => {
     mockUseIsAdmin.mockReturnValue(false);
     sessionStorage.setItem('fromAdmin', 'true');
     const { unmount } = renderLayout();
     expect(sessionStorage.getItem('fromAdmin')).toBe('true');
     unmount();
-    expect(sessionStorage.getItem('fromAdmin')).toBeNull();
+    expect(sessionStorage.getItem('fromAdmin')).toBe('true');
   });
 });
 

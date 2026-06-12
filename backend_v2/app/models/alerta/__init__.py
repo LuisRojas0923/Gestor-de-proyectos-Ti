@@ -7,10 +7,18 @@ from .actividad import (
     ActividadProximaCrear,
     RegistroActividadCrear
 )
+from .notificacion import (
+    NotificacionUsuario,
+    NotificacionUsuarioCrear,
+    NotificacionUsuarioActualizar
+)
 
 __all__ = [
     "ActividadProxima",
     "RegistroActividad",
     "ActividadProximaCrear",
-    "RegistroActividadCrear"
+    "RegistroActividadCrear",
+    "NotificacionUsuario",
+    "NotificacionUsuarioCrear",
+    "NotificacionUsuarioActualizar"
 ]

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Search, ShieldAlert } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDevelopments } from './hooks/useDevelopments';
+import { useReviewedDevelopments } from './hooks/useReviewedDevelopments';
 import { useNotifications } from '../../components/notifications/NotificationsContext';
 import { DataTable } from '../../components/molecules/DataTable';
 import { useColumnFilters } from '../../hooks/useColumnFilters';
@@ -26,9 +27,10 @@ const MyDevelopments: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isPortal = location.pathname.startsWith('/service-portal');
-  const { developments, loadDevelopments } = useDevelopments();
+  const { developments, loadDevelopments, loadMore, total, hasMore, loadingMore } = useDevelopments();
+  const { reviewedIds, toggle: toggleReviewed, clearAll: clearReviewed, count: reviewedCount } = useReviewedDevelopments();
   const { addNotification } = useNotifications();
-  const { delete: apiDelete, get: apiGet } = useApi();
+  const { delete: apiDelete, get: apiGet, put: apiPut } = useApi();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [peopleSearch, setPeopleSearch] = useState('');
   const [editTarget, setEditTarget] = useState<DevelopmentRow | null>(null);
@@ -73,11 +75,12 @@ const MyDevelopments: React.FC = () => {
     }
   };
 
-  const columnAccessors = useMemo(() => getColumnAccessors(resolveUserName), [resolveUserName]);
+  const columnAccessors = useMemo(() => getColumnAccessors(resolveUserName, reviewedIds), [resolveUserName, reviewedIds]);
 
   const {
     filteredData,
     uniqueValues,
+    cascadingOptions,
     filters,
     clearAllFilters,
     setColumnFilter,
@@ -86,7 +89,10 @@ const MyDevelopments: React.FC = () => {
     setSort,
   } = useColumnFilters(developments || [], columnAccessors, 'my_developments');
 
-  const columns = useMemo(() => getColumns(resolveUserName), [resolveUserName]);
+  const columns = useMemo(
+    () => getColumns(resolveUserName, { ids: reviewedIds, toggle: toggleReviewed }),
+    [resolveUserName, reviewedIds, toggleReviewed]
+  );
 
   const displayData = useMemo(() => {
     if (!peopleSearch.trim()) return filteredData;
@@ -148,6 +154,7 @@ const MyDevelopments: React.FC = () => {
       'En Proceso': 0,
       'Pendiente': 0,
       'Completado': 0,
+      'Pausado': 0,
     };
     return dataForCounters.reduce<Record<string, number>>((acc, dev) => {
       const s = getStatusLabel(getDevelopmentStatus(dev)) || 'Sin estado';
@@ -160,7 +167,8 @@ const MyDevelopments: React.FC = () => {
     <div className="space-y-4">
       <MyDevelopmentsHeader
         isPortal={isPortal}
-        totalCount={dataForCounters.length}
+        totalCount={Object.values(statusGroups).reduce((a, b) => a + b, 0)}
+        loadedCount={developments.length}
         statusGroups={statusGroups}
         activeFilterCount={activeFilterCount}
         clearAllFilters={clearAllFilters}
@@ -169,6 +177,11 @@ const MyDevelopments: React.FC = () => {
         onOpenCreateModal={() => setIsCreateModalOpen(true)}
         selectedStatus={selectedStatus}
         onStatusSelect={handleStatusSelect}
+        reviewedCount={reviewedCount}
+        clearReviewed={clearReviewed}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        onLoadMore={loadMore}
       />
 
       <DataTable<DevelopmentRow>
@@ -177,13 +190,53 @@ const MyDevelopments: React.FC = () => {
         keyExtractor={(dev) => String(dev.id)}
         onRowClick={(dev) => navigate(isPortal ? `/service-portal/desarrollos/${dev.id}?tab=bitacora` : `/developments/${dev.id}?tab=bitacora`)}
         columnFilters={filters}
-        columnOptions={uniqueValues}
+        columnOptions={cascadingOptions}
         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
         activeSortKey={sortState?.key ?? null}
         activeSortDir={sortState?.dir ?? null}
         onSort={setSort}
+        actionsMinWidth="90px"
         renderRowActions={(dev) => (
           <>
+            {getDevelopmentStatus(dev) === 'Pausado' ? (
+              <Button
+                variant="custom"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    await apiPut(`/desarrollos/${dev.id}`, { estado_general: 'En curso' });
+                    addNotification('success', `Actividad "${getDevelopmentName(dev)}" reanudada`);
+                    loadDevelopments();
+                  } catch (err) {
+                    addNotification('error', 'Error al reanudar la actividad');
+                  }
+                }}
+                className="w-8 h-8 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500 hover:text-white transition-all border border-green-500/20 inline-flex items-center justify-center"
+                title="Reanudar"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </Button>
+            ) : (
+              (getDevelopmentStatus(dev) === 'En curso' || getDevelopmentStatus(dev) === 'En Proceso' || getDevelopmentStatus(dev) === 'Pendiente') && (
+                <Button
+                  variant="custom"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      await apiPut(`/desarrollos/${dev.id}`, { estado_general: 'Pausado' });
+                      addNotification('success', `Actividad "${getDevelopmentName(dev)}" pausada`);
+                      loadDevelopments();
+                    } catch (err) {
+                      addNotification('error', 'Error al pausar la actividad');
+                    }
+                  }}
+                  className="w-8 h-8 rounded-lg bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500 hover:text-white transition-all border border-yellow-500/20 inline-flex items-center justify-center"
+                  title="Pausar"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                </Button>
+              )
+            )}
             <Button
               variant="custom"
               onClick={(e) => { e.stopPropagation(); setEditTarget(dev); }}
@@ -202,10 +255,9 @@ const MyDevelopments: React.FC = () => {
             </Button>
           </>
         )}
-        actionsMinWidth="120px"
         emptyIcon={<Search size={40} className="opacity-40" />}
         emptyMessage="No se encontraron actividades"
-        maxHeight="max-h-[calc(100vh-420px)]"
+        maxHeight="max-h-[calc(100vh-280px)]"
       />
 
       <CreateDevelopmentModal

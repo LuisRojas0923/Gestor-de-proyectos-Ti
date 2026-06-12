@@ -83,6 +83,8 @@ async def _actualizar_porcentaje_actividad(db: AsyncSession, actividad: Activida
             actividad.porcentaje_avance = Decimal("100")
         elif actividad.estado in ("En Progreso", "En Proceso"):
             actividad.porcentaje_avance = Decimal("50")
+        elif actividad.estado == "Pausa":
+            pass  # Preservar el porcentaje actual al pausar
         else:
             actividad.porcentaje_avance = Decimal("0")
     else:
@@ -115,9 +117,9 @@ async def recalcular_progreso_desarrollo(db: AsyncSession, desarrollo_id: str) -
         def _puntos(estado: str) -> int:
             if estado in ("Completada", "Completado"):
                 return 100
-            if estado in ("En Progreso", "En Proceso"):
+            if estado in ("En Progreso", "En Proceso", "Pausa"):
                 return 50
-            return 0  # Pendiente, Pausa, Bloqueado, etc.
+            return 0  # Pendiente, Bloqueado, etc.
 
         suma = sum(_puntos(r.estado) for r in rows)
         progreso = Decimal(str(round(suma / total)))

@@ -186,3 +186,42 @@ El header del Portal de Servicios usa el logotipo como punto de retorno seguro a
 - El flag `fromAdmin` es puramente cosmético. **No escala privilegios**.
 - La autorización real ocurre en el backend en cada endpoint protegido.
 - Es aceptable que devtools pueda setear `fromAdmin=true` (UX), pero no se acepta XSS persistente.
+
+---
+
+## Patrón: Filtros en Cascada + Columna de Revisión en `MyDevelopments`
+
+**Agregado:** 2026-06-03
+
+La página `/developments` (`pages/MyDevelopments/`) usa dos patrones que conviene documentar porque otros módulos podrían adoptarlos.
+
+### Componentes y hooks
+
+- `src/hooks/useColumnFilters.ts` — Hook genérico de filtros + sort + búsqueda. Devuelve `filteredData`, `uniqueValues`, **`cascadingOptions`** (nuevo), `filters`, `setColumnFilter`, etc.
+- `src/pages/MyDevelopments/hooks/useReviewedDevelopments.ts` — Hook específico para el check de revisión por fila, con persistencia en `localStorage` (clave `my_developments_reviewed`).
+- `src/components/molecules/DataTable.tsx` — Tabla genérica que recibe `columnOptions` (lo que el usuario ve en cada dropdown).
+- `src/pages/MyDevelopments/components/columns.tsx` — Definición de las 13 columnas. `getColumns(resolveUserName, reviewed?)` inserta la columna `__review__` al inicio cuando se pasa el segundo arg.
+- `src/pages/MyDevelopments/components/MyDevelopmentsHeader.tsx` — Header con chips de estado, búsqueda, "Nueva Actividad" y los botones "Limpiar N filtros" (rojo) y "Borrar N check(s)" (ámbar).
+
+### Cascada de filtros (faceted search)
+
+`useColumnFilters(data, accessors, storageKey, cascade=true)` calcula `cascadingOptions` en un `useMemo` separado. Para cada columna K, las opciones son los valores únicos de K en las filas que pasan **todos los demás filtros activos**, unidos con los valores ya seleccionados en K (para no perder chips cuando un filtro descarte un valor previamente elegido).
+
+- Si no hay filtros activos, `cascadingOptions === uniqueValues` (mismo resultado, no costo extra).
+- Si `cascade=false`, devuelve `uniqueValues` sin restricción (modo "legacy").
+
+El consumidor (`MyDevelopments`) pasa `columnOptions={cascadingOptions}` al `DataTable`. Otros módulos que usen `useColumnFilters` deben decidir conscientemente: por defecto la cascada está activa.
+
+### Columna de revisión (frontend-only)
+
+- Hook `useReviewedDevelopments()` persiste el `Set<string>` de IDs marcados en `localStorage` bajo la clave `my_developments_reviewed`.
+- Sincroniza entre pestañas vía `window.addEventListener('storage', …)`.
+- El Checkbox se renderiza con `aria-label="Marcar actividad {id} como revisada"` para TTS.
+- `e.stopPropagation()` en el wrapper evita que el click del checkbox propague al `onRowClick` del `DataTable` (que navega al detalle).
+- El botón "Borrar N check(s)" aparece solo si hay al menos 1 marcado, paralelo semántico al "Limpiar N filtros".
+
+### Gotchas a recordar
+
+- **No es fuente de verdad del backend.** Es marca personal/equipo. Si el equipo cambia de navegador o limpia storage, los checks se pierden.
+- **No se migra si se renombra la clave.** Si `my_developments_reviewed` cambia, los checks existentes quedan huérfanos en localStorage.
+- **Performance:** con 12 columnas y N filas, la cascada itera `12 × N` por cambio de filtro. Para N < 5000 es despreciable; sobre eso considerar memoizar por `data` + `filters` signature.

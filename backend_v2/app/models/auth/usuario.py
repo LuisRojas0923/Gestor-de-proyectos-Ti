@@ -174,6 +174,10 @@ class Sesion(SQLModel, table=True):
     nombre_usuario: Optional[str] = Field(default=None, max_length=255)
     rol_usuario: Optional[str] = Field(default=None, max_length=50)
     fin_sesion: Optional[datetime] = Field(default=None)
+    # Soporte para tokens MCP (ver docs/PLAN_SERVIDOR_MCP.md seccion 4.1)
+    tipo_sesion: str = Field(default="web", max_length=20)  # 'web' | 'mcp'
+    jti: Optional[str] = Field(default=None, max_length=64)  # UUID del JWT (UNIQUE en DB)
+    scope: Optional[str] = Field(default=None, max_length=50)  # 'read' | 'write' | None
 
 
 class PermisoRol(SQLModel, table=True):

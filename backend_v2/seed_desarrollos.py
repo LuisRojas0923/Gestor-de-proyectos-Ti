@@ -51,6 +51,7 @@ def seed():
             proveedor="Externo",
             responsable="PEREZ MARIN GERSON DAVID",
             estado_general="En curso",
+            prioridad="Alta",
             fase_actual_id=fase.id,
             etapa_actual_id=etapa2.id,
             porcentaje_progreso=Decimal("45.0")
@@ -64,6 +65,7 @@ def seed():
             proveedor="Interno",
             responsable="ROJAS VILLOTA LUIS ENRIQUE",
             estado_general="Pendiente",
+            prioridad="Media",
             fase_actual_id=fase.id,
             etapa_actual_id=etapa1.id,
             porcentaje_progreso=Decimal("10.0")
@@ -77,6 +79,7 @@ def seed():
             proveedor="Externo",
             responsable="MARULANDA CORREA JHON HENRY",
             estado_general="Completado",
+            prioridad="Baja",
             fase_actual_id=fase.id,
             etapa_actual_id=etapa3.id,
             porcentaje_progreso=Decimal("100.0")

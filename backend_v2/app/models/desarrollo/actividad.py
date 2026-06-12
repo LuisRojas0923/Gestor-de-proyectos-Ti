@@ -53,6 +53,8 @@ class Actividad(SQLModel, table=True):
     # Campos de detalle adicionales
     seguimiento: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     compromiso: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    compromiso_fecha: Optional[date] = Field(default=None)
+    compromiso_cumplido: bool = Field(default=False)
     archivo_url: Optional[str] = Field(default=None, max_length=500)
 
     # Auditoria
@@ -94,6 +96,8 @@ class ActividadBase(SQLModel):
     porcentaje_avance: Decimal = Decimal("0.0")
     seguimiento: Optional[str] = None
     compromiso: Optional[str] = None
+    compromiso_fecha: Optional[date] = None
+    compromiso_cumplido: bool = False
     archivo_url: Optional[str] = None
 
 
@@ -120,6 +124,8 @@ class ActividadActualizar(SQLModel):
     porcentaje_avance: Optional[Decimal] = None
     seguimiento: Optional[str] = None
     compromiso: Optional[str] = None
+    compromiso_fecha: Optional[date] = None
+    compromiso_cumplido: Optional[bool] = None
     archivo_url: Optional[str] = None
     parent_id: Optional[int] = None
 

@@ -13,6 +13,8 @@ export interface WbsActivityBase {
     porcentaje_avance: number;
     seguimiento?: string;
     compromiso?: string;
+    compromiso_fecha?: string;
+    compromiso_cumplido?: boolean;
     archivo_url?: string;
 }
 

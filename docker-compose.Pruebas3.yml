@@ -49,6 +49,7 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_API_BASE_URL=/api/v2
+        - BUILD_SHA=${BUILD_SHA:-local}
     container_name: gestor-de-proyectos-ti-frontend-pruebas3
     restart: always
     environment:

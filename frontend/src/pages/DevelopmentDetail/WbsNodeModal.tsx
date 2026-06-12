@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, Info, Users, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
-import { Title, Button, Input, Select, Textarea, Text, ProgressBar } from '../../components/atoms';
+import { Title, Button, Input, Select, Textarea, Text, ProgressBar, Checkbox } from '../../components/atoms';
 import { WbsActivityCreate, WbsActivityUpdate, WbsActivityTree } from '../../types/wbs';
 import { AssignableUserSelect } from '../../components/assignments/AssignableUserSelect';
 import { useAppContext } from '../../context/AppContext';
@@ -30,6 +30,8 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     const [avance, setAvance] = useState(0);
     const [seguimiento, setSeguimiento] = useState('');
     const [compromiso, setCompromiso] = useState('');
+    const [compromisoFecha, setCompromisoFecha] = useState('');
+    const [compromisoCumplido, setCompromisoCumplido] = useState(false);
     const [archivoUrl, setArchivoUrl] = useState('');
     const [responsableId, setResponsableId] = useState('');
     const [asignadoAId, setAsignadoAId] = useState('');
@@ -55,6 +57,8 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 setAvance(editNode.porcentaje_avance);
                 setSeguimiento(editNode.seguimiento || '');
                 setCompromiso(editNode.compromiso || '');
+                setCompromisoFecha(editNode.compromiso_fecha || '');
+                setCompromisoCumplido(editNode.compromiso_cumplido || false);
                 setArchivoUrl(editNode.archivo_url || '');
                 setResponsableId(editNode.responsable_id || '');
                 setAsignadoAId(editNode.asignado_a_id || '');
@@ -69,6 +73,8 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 setAvance(0);
                 setSeguimiento('');
                 setCompromiso('');
+                setCompromisoFecha('');
+                setCompromisoCumplido(false);
                 setArchivoUrl('');
                 setResponsableId('');
                 setAsignadoAId('');
@@ -98,6 +104,8 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     delegado_por_id: state.user?.id || undefined,
                     seguimiento,
                     compromiso,
+                    compromiso_fecha: compromisoFecha || undefined,
+                    compromiso_cumplido: compromisoCumplido,
                     archivo_url: archivoUrl,
                     fecha_inicio_estimada: fechaInicioEstimada || undefined,
                     fecha_fin_estimada: fechaFinEstimada || undefined,
@@ -118,6 +126,8 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                     delegado_por_id: state.user?.id || undefined,
                     seguimiento,
                     compromiso,
+                    compromiso_fecha: compromisoFecha || undefined,
+                    compromiso_cumplido: compromisoCumplido,
                     archivo_url: archivoUrl,
                     fecha_inicio_estimada: fechaInicioEstimada || undefined,
                     fecha_fin_estimada: fechaFinEstimada || undefined,
@@ -297,6 +307,21 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                                 onChange={(e) => setCompromiso(e.target.value)}
                                 rows={2}
                             />
+                            <div className="grid grid-cols-2 gap-4 items-end">
+                                <Input
+                                    type="date"
+                                    label="Fecha de Compromiso"
+                                    value={compromisoFecha}
+                                    onChange={(e) => setCompromisoFecha(e.target.value)}
+                                />
+                                <div className="flex items-center pb-2 h-10">
+                                    <Checkbox
+                                        label="Compromiso Cumplido"
+                                        checked={compromisoCumplido}
+                                        onChange={(e) => setCompromisoCumplido(e.target.checked)}
+                                    />
+                                </div>
+                            </div>
                             <Input
                                 label="URL de Evidencia / Entregable"
                                 placeholder="https://sharepoint.com/..."

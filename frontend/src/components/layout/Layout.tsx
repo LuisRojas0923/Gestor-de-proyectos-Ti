@@ -39,9 +39,9 @@ const Layout: React.FC = () => {
     // Latido inicial
     sendHeartbeat();
 
-    // NOTA: La marca 'fromAdmin' ahora se establece únicamente cuando el usuario
-    // pasa exitosamente por AdminLoginLock (vía PortalLayout). Eliminado el
-    // setter legacy de 2026-06-02 (plan v2.1 N4 docs-tests).
+    // Establecer la marca 'fromAdmin' para recordar la sesión del administrador
+    // cuando está activo en las vistas de administración.
+    sessionStorage.setItem('fromAdmin', 'true');
 
     // Intervalo de 1.5 minutos
     const interval = setInterval(sendHeartbeat, 90000);

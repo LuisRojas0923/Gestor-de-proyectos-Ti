@@ -39,6 +39,13 @@ const DEFAULT_TIPO_OPTIONS = [
     { value: 'Actividad Puntual', label: 'Actividad Puntual' },
 ];
 
+const PRIORIDAD_OPTIONS = [
+    { value: '', label: 'Seleccione una prioridad...' },
+    { value: 'Alta', label: 'Alta' },
+    { value: 'Media', label: 'Media' },
+    { value: 'Baja', label: 'Baja' },
+];
+
 const EditDevelopmentModal: React.FC<EditDevelopmentModalProps> = ({
     development, onClose, onSaved
 }) => {
@@ -66,6 +73,7 @@ const EditDevelopmentModal: React.FC<EditDevelopmentModalProps> = ({
     const [areaEjecutor, setAreaEjecutor] = useState(development.area_ejecutor ?? '');
     const [fechaInicio, setFechaInicio] = useState(development.fecha_inicio ?? '');
     const [fechaEstimadaFin, setFechaEstimadaFin] = useState(development.fecha_estimada_fin ?? '');
+    const [prioridad, setPrioridad] = useState(development.prioridad ?? '');
 
     const totalSteps = 3;
 
@@ -201,6 +209,7 @@ const EditDevelopmentModal: React.FC<EditDevelopmentModalProps> = ({
                 area_ejecutor: areaEjecutor || undefined,
                 fecha_inicio: fechaInicio || undefined,
                 fecha_estimada_fin: fechaEstimadaFin || undefined,
+                prioridad: prioridad || undefined,
             };
 
             await put(`/desarrollos/${development.id}`, payload);
@@ -228,6 +237,12 @@ const EditDevelopmentModal: React.FC<EditDevelopmentModalProps> = ({
                                 value={tipo}
                                 onChange={(e) => setTipo(e.target.value)}
                                 options={tipoOptions}
+                            />
+                            <Select
+                                label="Prioridad"
+                                value={prioridad}
+                                onChange={(e) => setPrioridad(e.target.value)}
+                                options={PRIORIDAD_OPTIONS}
                             />
                             <Textarea
                                 label="Nombre del Proyecto"

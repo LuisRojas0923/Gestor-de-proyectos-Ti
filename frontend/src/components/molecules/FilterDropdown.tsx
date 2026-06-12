@@ -109,7 +109,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                 setMaxHeight(`${Math.min(450, spaceBelow)}px`);
             }
         }
-    }, [effectiveIsOpen, effectiveAnchor, triggerHeight]);
+    }, [effectiveIsOpen, effectiveAnchor?.top, effectiveAnchor?.left, effectiveAnchor?.width, triggerHeight]);
 
     const toggleSimple = (e: React.MouseEvent) => {
         e.stopPropagation();

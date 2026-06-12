@@ -1,12 +1,19 @@
 from typing import Any, Optional
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import obtener_db, obtener_erp_db_opcional
-from app.models.auth.usuario import Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
+from app.models.auth.usuario import Sesion, Usuario, UsuarioPublico, PasswordCambiar, EmailActualizar
+from app.database import AsyncSessionLocal
+from app.models.auditoria.accion_usuario import AccionAuditoria
+from app.services.auditoria.servicio import ServicioAuditoria
 from app.services.auth.servicio import ServicioAuth
 from app.services.erp import EmpleadosService
 from app.services.notifications.email_service import EmailService
+from app.utils_date import get_bogota_now
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -16,15 +23,57 @@ async def obtener_usuario_actual_db(
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db_opcional),
 ):
-    """Dependencia para obtener el objeto usuario completo del token y sincronizar si es necesario"""
+    """Dependencia para obtener el objeto usuario completo del token y sincronizar si es necesario.
+
+    Validacion adicional para tokens MCP (ver docs/PLAN_SERVIDOR_MCP.md seccion 4.5):
+    - Si token_type == 'mcp', se valida que la sesion correspondiente (por jti)
+      este activa (fin_sesion IS NULL, expira_en > now).
+    - Backwards compatible: tokens existentes sin token_type se tratan como 'session'.
+    """
     try:
-        cedula = ServicioAuth.obtener_cedula_desde_token(token)
-        if not cedula:
+        # Decodificar payload completo para detectar token_type='mcp'
+        payload = ServicioAuth.obtener_payload_token(token)
+        if not payload:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token invalido o expirado",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+        cedula = payload.get("sub")
+        if not cedula:
+            raise HTTPException(401, "Token sin sujeto")
+
+        # ── Validacion especifica para tokens MCP ──
+        if payload.get("token_type") == "mcp":
+            jti = payload.get("jti")
+            if not jti:
+                raise HTTPException(401, "Token MCP sin jti")
+            sesion = (
+                await db.execute(
+                    select(Sesion).where(
+                        Sesion.jti == jti,
+                        Sesion.tipo_sesion == "mcp",
+                    )
+                )
+            ).scalars().first()
+            # Chequear primero si la sesion existe antes de acceder a sus atributos
+            if not sesion:
+                raise HTTPException(401, "Token MCP revocado o expirado")
+            # Normalizar: sesion.expira_en viene AWARE (asyncpg), get_bogota_now() es naive
+            expira_naive = sesion.expira_en.replace(tzinfo=None) if sesion.expira_en else None
+            if sesion.fin_sesion is not None or (expira_naive and expira_naive < get_bogota_now()):
+                raise HTTPException(401, "Token MCP revocado o expirado")
+            # Throttle: actualizar ultima_actividad_en solo si > 5 min desde la ultima
+            ahora = get_bogota_now()
+            ultima = sesion.ultima_actividad_en.replace(tzinfo=None) if sesion.ultima_actividad_en else None
+            if not ultima or (ahora - ultima).total_seconds() > 300:
+                sesion.ultima_actividad_en = ahora
+                try:
+                    await db.commit()
+                except Exception:
+                    await db.rollback()
+
         usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
 
         if not usuario:
@@ -61,6 +110,7 @@ async def obtener_usuario_actual_db(
                 baseviaticos=empleado.get("baseviaticos"),
             )
             request.state.usuario_id = usuario.id
+            request.state.token_type = payload.get("token_type", "session")
             return usuario
 
         # Si el usuario es local y no tiene area/sede pero hay ERP disponible, sincronizar:
@@ -73,10 +123,14 @@ async def obtener_usuario_actual_db(
                 print(f"DEBUG: ERP no disponible o fallo en sincronizacion local: {e}")
 
         request.state.usuario_id = usuario.id
+        request.state.usuario_nombre = usuario.nombre
+        request.state.usuario_rol = usuario.rol
+        request.state.token_type = payload.get("token_type", "session")
         return usuario
     except HTTPException:
         raise
     except Exception as e:
+        logger.exception("obtener_usuario_actual_db: error inesperado")
         raise HTTPException(
             status_code=500, detail=f"Error al validar usuario: {str(e)}"
         )
@@ -121,6 +175,7 @@ async def obtener_usuario_actual(
 
 @router.patch("/password", response_model=UsuarioPublico)
 async def cambiar_contrasena(
+    request: Request,
     datos: PasswordCambiar,
     db: AsyncSession = Depends(obtener_db),
     usuario: Usuario = Depends(obtener_usuario_actual_db),
@@ -130,12 +185,48 @@ async def cambiar_contrasena(
         if not ServicioAuth.verificar_contrasena(
             datos.contrasena_actual, usuario.hash_contrasena
         ):
+            async with AsyncSessionLocal() as audit_db:
+                await ServicioAuditoria.registrar(
+                    audit_db,
+                    usuario_id=usuario.id,
+                    usuario_nombre=usuario.nombre,
+                    rol=usuario.rol,
+                    modulo="auth",
+                    accion=AccionAuditoria.ACTUALIZAR,
+                    resultado="fallo",
+                    entidad_tipo="usuario",
+                    entidad_id=usuario.id,
+                    metodo_http="PATCH",
+                    ruta="/api/v2/auth/password",
+                    direccion_ip=request.client.host if request.client else None,
+                    agente_usuario=request.headers.get("user-agent"),
+                    correlacion_id=getattr(request.state, "correlacion_id", None),
+                    metadatos={"motivo": "contrasena_actual_incorrecta"},
+                )
             raise HTTPException(
                 status_code=400, detail="La contrasena actual es incorrecta"
             )
-        return await ServicioAuth.cambiar_contrasena(
+        resultado = await ServicioAuth.cambiar_contrasena(
             db, usuario.id, datos.nueva_contrasena
         )
+        async with AsyncSessionLocal() as audit_db:
+            await ServicioAuditoria.registrar(
+                audit_db,
+                usuario_id=usuario.id,
+                usuario_nombre=usuario.nombre,
+                rol=usuario.rol,
+                modulo="auth",
+                accion=AccionAuditoria.ACTUALIZAR,
+                entidad_tipo="usuario",
+                entidad_id=usuario.id,
+                metodo_http="PATCH",
+                ruta="/api/v2/auth/password",
+                direccion_ip=request.client.host if request.client else None,
+                agente_usuario=request.headers.get("user-agent"),
+                correlacion_id=getattr(request.state, "correlacion_id", None),
+                metadatos={"campo": "contrasena"},
+            )
+        return resultado
     except HTTPException:
         raise
     except ValueError as e:
