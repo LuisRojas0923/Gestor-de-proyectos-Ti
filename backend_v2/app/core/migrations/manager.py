@@ -5,6 +5,7 @@ from app.core.migrations.structural_blindaje import ejecutar_blindaje_estructura
 from app.core.migrations.saneamiento_secuencias import reparar_todas_las_secuencias
 from app.core.migrations.auditoria_evento_migration import crear_tabla_auditoria_evento
 from app.core.migrations.auditoria_acciones_migration import crear_tabla_auditoria_acciones
+from app.core.migrations.horas_extras_migration import crear_tablas_horas_extras
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,13 @@ async def init_db_process(async_engine, AsyncSessionLocal):
         except Exception as e:
             logger.error(f"Error en migración auditoria_acciones_usuario: {e}")
 
+    # 3.7 Crear tablas del módulo Horas Extras y Novedades (S0 sprint)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tablas_horas_extras(conn)
+        except Exception as e:
+            logger.error(f"Error en migración horas_extras: {e}")
+
     # 4. Saneamiento de Datos (Inventario y otros)
     saneamientos = [
         "UPDATE conteoinventario SET estado = 'PENDIENTE' WHERE estado IS NULL;",
@@ -63,6 +71,14 @@ async def init_db_process(async_engine, AsyncSessionLocal):
 
     # 4. Semillado de Datos Maestros (Admin, Salas)
     await ejecutar_seeds(AsyncSessionLocal)
+
+    # 5. Seeds del módulo Horas Extras (catálogo + factores ARL + parámetros legales)
+    try:
+        from app.services.novedades_nomina.seed_horas_extras import seed_horas_extras_completo
+        await seed_horas_extras_completo()
+        logger.info("Seeds de Horas Extras cargados.")
+    except Exception as e:
+        logger.error(f"Error cargando seeds de horas extras: {e}")
 
 async def ejecutar_seeds(AsyncSessionLocal):
     """Ejecuta los semilleros de datos necesarios"""

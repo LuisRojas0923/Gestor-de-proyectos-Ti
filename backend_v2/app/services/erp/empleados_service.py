@@ -2,6 +2,37 @@ from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
+
+def _normalizar_nivel_riesgo(valor: Optional[str]) -> str:
+    """
+    Convierte el valor textual de `contrato.riesgoarl` (ej. 'Riesgo I 0.522%')
+    en código de nivel ARL (I, II, III, IV, V). Si no se reconoce, devuelve 'I'
+    (nivel más bajo, carga prestacional menor).
+    """
+    if not valor:
+        return "I"
+    v = str(valor).strip().upper()
+    # Match exacto primero
+    if v in ("I", "II", "III", "IV", "V"):
+        return v
+    # Prefijos en orden de mayor a menor longitud para que "III" no matchee "I"
+    for nivel in ("V", "IV", "III", "II", "I"):
+        if v.startswith(f"NIVEL {nivel}") or v.startswith(f"RIESGO {nivel}"):
+            return nivel
+    # Si llega como porcentaje, mapear inversamente
+    mapping_pct = {
+        0.522: "I",
+        1.044: "II",
+        2.436: "III",
+        4.350: "IV",
+        6.960: "V",
+    }
+    for pct, nivel in mapping_pct.items():
+        if str(pct) in v.replace(",", "."):
+            return nivel
+    return "I"
+
+
 class EmpleadosService:
     """Lógica para la consulta de empleados y sincronización con el ERP externo"""
     
@@ -9,10 +40,10 @@ class EmpleadosService:
     async def obtener_empleado_por_cedula(db_erp: Session, cedula: str, solo_activos: bool = True) -> Optional[Dict]:
         """Consulta un empleado en la base de datos del ERP por su cedula"""
         print(f"DEBUG: Consultando empleado cedula={cedula} en ERP (solo_activos={solo_activos})...")
-        
+
         # Filtro de estado dinámico
         estado_filtro = "AND C.estado = 'Activo'" if solo_activos else ""
-        
+
         query = text(f"""
             SELECT DISTINCT ON (E.nrocedula)
                 E.nrocedula      AS "nrocedula",
@@ -27,15 +58,20 @@ class EmpleadosService:
                 C.centrocosto::text AS "centrocosto",
                 C.jefe::text        AS "jefe",
                 C.fecharetiro       AS "fecharetiro",
+                C.riesgoarl::text   AS "riesgoarl",
+                B.autorizahe        AS "autoriza_he",
                 E.correocorporativo
             FROM establecimiento E
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
                 {estado_filtro}
+            LEFT JOIN beneficio B
+                ON TRIM(CAST(B.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+                AND B.estado = 'Activo'
             WHERE TRIM(CAST(E.nrocedula AS TEXT)) = :cedula
             ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST
         """)
-        
+
         resultado = db_erp.execute(query, {"cedula": cedula.strip()}).first()
         if resultado:
             return {
@@ -52,6 +88,9 @@ class EmpleadosService:
                 "jefe": resultado.jefe,
                 "fecharetiro": str(resultado.fecharetiro) if resultado.fecharetiro else None,
                 "correocorporativo": resultado.correocorporativo,
+                # --- Campos para módulo Horas Extras (S0) ---
+                "nivel_riesgo_arl": _normalizar_nivel_riesgo(resultado.riesgoarl),
+                "autoriza_he": bool(resultado.autoriza_he) if resultado.autoriza_he is not None else False,
                 "correo_sincronizado": True
             }
         return None
