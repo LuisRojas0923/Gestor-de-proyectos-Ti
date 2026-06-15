@@ -173,6 +173,14 @@ AUDITORIA_COBERTURA: dict[str, CoberturaAuditoriaModulo] = {
         "notas": "Mutaciones middleware; descargas en auditoria_rutas",
         "rutas_api": ["/api/v2/novedades-nomina"],
     },
+    "nomina_horas_extras": {
+        "tipo": "parcial",
+        "notas": "Cálculo pre-liquidación y CRUD catálogo (S1); middleware cubre mutaciones",
+        "archivos": [
+            "backend_v2/app/api/novedades_nomina/routers/horas_extras.py",
+        ],
+        "rutas_api": ["/api/v2/novedades-nomina/horas-extras"],
+    },
 }
 
 # Módulos RBAC sin acciones de backend auditables (solo navegación / consulta meta).

@@ -20,7 +20,7 @@ from ...services.novedades_nomina.processor import NominaProcessor
 from .routers import (
     cooperativas_router, libranzas_router, funebres_router, otros_router,
     descuentos_router, excepciones_router, novedades_router,
-    tabla_maestra_router, comisiones_router
+    tabla_maestra_router, comisiones_router, horas_extras_router,
 )
 
 
@@ -36,6 +36,7 @@ router.include_router(funebres_router)
 router.include_router(libranzas_router)
 router.include_router(novedades_router)
 router.include_router(tabla_maestra_router)
+router.include_router(horas_extras_router)
 
 
 STORAGE_DIR = "uploads/nomina"
