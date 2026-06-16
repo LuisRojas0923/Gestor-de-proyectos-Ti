@@ -229,3 +229,52 @@ export interface BolsaHoras {
   horas_pagadas: number;
   horas_disponibles: number;
 }
+
+// ---------------------------------------------------------------------------
+// S4 — Workflow de estados y compensación
+// ---------------------------------------------------------------------------
+
+export type EstadoWorkflowDestino = 'PAGADO' | 'COMPENSADO' | 'ANULADO';
+
+export interface WorkflowTransicionRequest {
+  estado_destino: EstadoWorkflowDestino;
+  justificacion?: string | null;
+  horas?: number | null;
+  fecha?: string | null;
+}
+
+export interface WorkflowTransicionResult {
+  calculo_id: number;
+  estado_anterior: string;
+  estado_nuevo: string;
+  evento_id: number;
+  movimiento_bolsa_id: number | null;
+  horas_afectadas: number;
+  mensaje: string;
+}
+
+export interface WorkflowEvento {
+  id: number;
+  calculo_id: number;
+  estado_origen: string;
+  estado_destino: string;
+  justificacion: string | null;
+  usuario_id: string | null;
+  created_at: string | null;
+}
+
+export interface CompensarBolsaRequest {
+  cedula: string;
+  horas: number;
+  fecha: string;
+  calculo_id?: number | null;
+  observaciones?: string | null;
+}
+
+export interface CompensarBolsaResponse {
+  cedula: string;
+  movimiento_id: number;
+  horas_compensadas: number;
+  horas_disponibles_despues: number;
+  mensaje: string;
+}

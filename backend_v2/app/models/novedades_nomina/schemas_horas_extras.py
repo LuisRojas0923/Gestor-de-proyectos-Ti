@@ -337,3 +337,53 @@ class CostoOtRead(SQLModel):
     scc: Optional[str] = None
     sub_indice: Optional[str] = None
     ultima_actualizacion: Optional[datetime] = None
+
+
+# ---------------------------------------------------------------------------
+# S4 — Workflow de estados del cálculo y compensación de bolsa
+# ---------------------------------------------------------------------------
+
+class WorkflowTransicionRequest(SQLModel):
+    """Body para POST /calculos/{id}/transicion."""
+    estado_destino: str = Field(..., description="PAGADO, COMPENSADO o ANULADO")
+    justificacion: Optional[str] = Field(default=None, max_length=500)
+    horas: Optional[float] = Field(default=None, ge=0, description="Horas a compensar (solo si destino=COMPENSADO)")
+    fecha: Optional[date] = Field(default=None, description="Fecha efectiva (solo si destino=COMPENSADO)")
+
+
+class WorkflowEventoRead(SQLModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    calculo_id: int
+    estado_origen: str
+    estado_destino: str
+    justificacion: Optional[str] = None
+    usuario_id: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+
+class WorkflowTransicionResult(SQLModel):
+    calculo_id: int
+    estado_anterior: str
+    estado_nuevo: str
+    evento_id: int
+    movimiento_bolsa_id: Optional[int] = None
+    horas_afectadas: float = 0.0
+    mensaje: str
+
+
+class CompensarBolsaRequest(SQLModel):
+    """Body para POST /bolsa/compensar (consumo directo de bolsa, no requiere cálculo)."""
+    cedula: str = Field(..., min_length=1, max_length=50)
+    horas: float = Field(..., gt=0)
+    fecha: date
+    calculo_id: Optional[int] = Field(default=None, description="Si viene de un cálculo, se vincula al movimiento")
+    observaciones: Optional[str] = Field(default=None, max_length=500)
+
+
+class CompensarBolsaResponse(SQLModel):
+    cedula: str
+    movimiento_id: int
+    horas_compensadas: float
+    horas_disponibles_despues: float
+    mensaje: str

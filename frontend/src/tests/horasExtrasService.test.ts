@@ -16,6 +16,9 @@ import {
   listarCalculos,
   obtenerCalculo,
   listarCostosOt,
+  transicionarCalculo,
+  obtenerHistorial,
+  compensarBolsa,
 } from '../services/horasExtrasService';
 import { API_CONFIG } from '../config/api';
 import type { PreLiquidacionInput, PreLiquidacionConfirmar } from '../types/horasExtras';
@@ -235,6 +238,131 @@ describe('horasExtrasService', () => {
     it('incluye status code si la respuesta está vacía', async () => {
       fetchMock.mockResolvedValueOnce(new Response('', { status: 500 }));
       await expect(obtenerCalculo(1, TOKEN)).rejects.toThrow();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // S4 — Workflow de estados
+  // -------------------------------------------------------------------------
+
+  describe('transicionarCalculo', () => {
+    it('POST a /calculos/{id}/transicion con payload', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({
+          calculo_id: 7,
+          estado_anterior: 'CONFIRMADO',
+          estado_nuevo: 'PAGADO',
+          evento_id: 99,
+          movimiento_bolsa_id: null,
+          horas_afectadas: 0,
+          mensaje: 'ok',
+        }),
+      );
+      const r = await transicionarCalculo(
+        7,
+        { estado_destino: 'PAGADO', justificacion: 'liquidado', horas: null, fecha: null },
+        TOKEN,
+      );
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/calculos/7/transicion`);
+      expect(init.method).toBe('POST');
+      expect(JSON.parse(init.body as string)).toEqual({
+        estado_destino: 'PAGADO',
+        justificacion: 'liquidado',
+        horas: null,
+        fecha: null,
+      });
+      expect(r.estado_nuevo).toBe('PAGADO');
+      expect(r.evento_id).toBe(99);
+    });
+
+    it('incluye horas y fecha en compensación', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({
+          calculo_id: 8,
+          estado_anterior: 'CONFIRMADO',
+          estado_nuevo: 'COMPENSADO',
+          evento_id: 100,
+          movimiento_bolsa_id: 50,
+          horas_afectadas: 1.5,
+          mensaje: 'ok',
+        }),
+      );
+      await transicionarCalculo(
+        8,
+        { estado_destino: 'COMPENSADO', justificacion: null, horas: 1.5, fecha: '2026-07-22' },
+        TOKEN,
+      );
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(init.body as string)).toEqual({
+        estado_destino: 'COMPENSADO',
+        justificacion: null,
+        horas: 1.5,
+        fecha: '2026-07-22',
+      });
+    });
+  });
+
+  describe('obtenerHistorial', () => {
+    it('GET a /calculos/{id}/historial', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse([
+          {
+            id: 1,
+            calculo_id: 5,
+            estado_origen: 'CONFIRMADO',
+            estado_destino: 'PAGADO',
+            justificacion: 'ok',
+            usuario_id: 'u1',
+            created_at: '2026-07-22T10:00:00',
+          },
+        ]),
+      );
+      const r = await obtenerHistorial(5, TOKEN);
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/calculos/5/historial`);
+      expect(init.method).toBeUndefined();
+      expect(r).toHaveLength(1);
+      expect(r[0].estado_destino).toBe('PAGADO');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // S4 — Compensar bolsa directa
+  // -------------------------------------------------------------------------
+
+  describe('compensarBolsa', () => {
+    it('POST a /bolsa/compensar con cedula, horas, fecha', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({
+          cedula: '12345',
+          movimiento_id: 200,
+          horas_compensadas: 2.0,
+          horas_disponibles_despues: 3.0,
+          mensaje: 'ok',
+        }),
+      );
+      const r = await compensarBolsa(
+        { cedula: '12345', horas: 2.0, fecha: '2026-07-22', calculo_id: null, observaciones: 'x' },
+        TOKEN,
+      );
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/bolsa/compensar`);
+      expect(init.method).toBe('POST');
+      expect(JSON.parse(init.body as string).horas).toBe(2.0);
+      expect(r.horas_disponibles_despues).toBe(3.0);
+    });
+
+    it('propaga error 409 con detail del backend', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({ detail: 'Bolsa solo tiene 0.5h disponibles' }, 409),
+      );
+      await expect(
+        compensarBolsa(
+          { cedula: '12345', horas: 5.0, fecha: '2026-07-22', calculo_id: null, observaciones: null },
+          TOKEN,
+        ),
+      ).rejects.toThrow('Bolsa solo tiene 0.5h disponibles');
     });
   });
 });

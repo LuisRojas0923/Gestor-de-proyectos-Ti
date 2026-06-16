@@ -342,3 +342,30 @@ async def crear_tablas_horas_extras(conn) -> None:
         )
         """,
     )
+
+
+async def crear_tabla_workflow_evento(conn) -> None:
+    """Sprint S4: bitácora inmutable de transiciones de estado de cálculos."""
+    logger.info("Creando tabla nomina_calculo_workflow_evento (S4)...")
+    await safe_execute(
+        conn,
+        """
+        CREATE TABLE IF NOT EXISTS nomina_calculo_workflow_evento (
+            id SERIAL PRIMARY KEY,
+            calculo_id INTEGER NOT NULL REFERENCES nomina_calculo_semanal(id) ON DELETE CASCADE,
+            estado_origen VARCHAR(30) NOT NULL,
+            estado_destino VARCHAR(30) NOT NULL,
+            justificacion TEXT,
+            usuario_id VARCHAR(50),
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """,
+    )
+    await safe_execute(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_wf_evento_calculo ON nomina_calculo_workflow_evento (calculo_id, created_at DESC)",
+    )
+    await safe_execute(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_wf_evento_destino ON nomina_calculo_workflow_evento (estado_destino)",
+    )

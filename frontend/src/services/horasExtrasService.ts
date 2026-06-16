@@ -19,6 +19,11 @@ import type {
   CostoOt,
   BolsaHoras,
   NivelRiesgoARL,
+  WorkflowTransicionRequest,
+  WorkflowTransicionResult,
+  WorkflowEvento,
+  CompensarBolsaRequest,
+  CompensarBolsaResponse,
 } from '../types/horasExtras';
 
 const BASE = `${API_CONFIG.BASE_URL}/novedades-nomina/horas-extras`;
@@ -179,6 +184,40 @@ export async function listarCostosOt(
   token: string,
 ): Promise<CostoOt[]> {
   return request<CostoOt[]>(`/costos-ot${buildQuery(params)}`, { token });
+}
+
+// ---------------------------------------------------------------------------
+// S4 — Workflow de estados y compensación
+// ---------------------------------------------------------------------------
+
+export async function transicionarCalculo(
+  calculoId: number,
+  payload: WorkflowTransicionRequest,
+  token: string,
+): Promise<WorkflowTransicionResult> {
+  return request<WorkflowTransicionResult>(`/calculos/${calculoId}/transicion`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export async function obtenerHistorial(
+  calculoId: number,
+  token: string,
+): Promise<WorkflowEvento[]> {
+  return request<WorkflowEvento[]>(`/calculos/${calculoId}/historial`, { token });
+}
+
+export async function compensarBolsa(
+  payload: CompensarBolsaRequest,
+  token: string,
+): Promise<CompensarBolsaResponse> {
+  return request<CompensarBolsaResponse>('/bolsa/compensar', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    token,
+  });
 }
 
 // Re-export del tipo de nivel ARL para conveniencia de consumidores.

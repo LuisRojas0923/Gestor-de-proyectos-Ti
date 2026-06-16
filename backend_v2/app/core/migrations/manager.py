@@ -5,7 +5,7 @@ from app.core.migrations.structural_blindaje import ejecutar_blindaje_estructura
 from app.core.migrations.saneamiento_secuencias import reparar_todas_las_secuencias
 from app.core.migrations.auditoria_evento_migration import crear_tabla_auditoria_evento
 from app.core.migrations.auditoria_acciones_migration import crear_tabla_auditoria_acciones
-from app.core.migrations.horas_extras_migration import crear_tablas_horas_extras
+from app.core.migrations.horas_extras_migration import crear_tablas_horas_extras, crear_tabla_workflow_evento
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +55,13 @@ async def init_db_process(async_engine, AsyncSessionLocal):
             await crear_tablas_horas_extras(conn)
         except Exception as e:
             logger.error(f"Error en migración horas_extras: {e}")
+
+    # 3.8 Crear tabla de eventos de workflow de cálculo (S4 sprint)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tabla_workflow_evento(conn)
+        except Exception as e:
+            logger.error(f"Error en migración workflow_evento (S4): {e}")
 
     # 4. Saneamiento de Datos (Inventario y otros)
     saneamientos = [

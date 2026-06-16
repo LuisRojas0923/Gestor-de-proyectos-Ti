@@ -408,3 +408,27 @@ class NominaParametroLegal(SQLModel, table=True):
     estado: str = Field(default="VIGENTE", max_length=20)
     observaciones: Optional[str] = Field(default=None)
     creado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+
+
+# ---------------------------------------------------------------------------
+# 9. Eventos de workflow del cálculo semanal (S4)
+# ---------------------------------------------------------------------------
+
+class NominaCalculoWorkflowEvento(SQLModel, table=True):
+    """
+    Bitácora inmutable de transiciones de estado de un cálculo semanal.
+
+    Decisión S4: cada cambio de estado (CONFIRMADO → PAGADO / COMPENSADO /
+    ANULADO) deja un evento con: origen, destino, justificación, usuario y
+    timestamp. Esto es la fuente de verdad para auditoría y para que el
+    módulo de auditoría central pueda consultarlo.
+    """
+    __tablename__ = "nomina_calculo_workflow_evento"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    calculo_id: int = Field(foreign_key="nomina_calculo_semanal.id", index=True)
+    estado_origen: str = Field(max_length=30)
+    estado_destino: str = Field(max_length=30)
+    justificacion: Optional[str] = Field(default=None)
+    usuario_id: Optional[str] = Field(default=None, max_length=50)
+    created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})

@@ -1,36 +1,108 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Title, Text, MaterialCard, Badge } from '../../../../components/atoms';
+import { Title, Text, MaterialCard, Badge, Button, Input, Textarea, Select } from '../../../../components/atoms';
 import { ArrowLeft } from 'lucide-react';
-import { obtenerCalculo } from '../../../../services/horasExtrasService';
-import type { CalculoSemanal } from '../../../../types/horasExtras';
+import {
+  obtenerCalculo,
+  obtenerHistorial,
+  transicionarCalculo,
+} from '../../../../services/horasExtrasService';
+import type {
+  CalculoSemanal,
+  WorkflowEvento,
+  EstadoWorkflowDestino,
+} from '../../../../types/horasExtras';
 
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
+
+const ESTADO_COLOR: Record<string, string> = {
+  BORRADOR: 'bg-slate-200 text-slate-700',
+  CONFIRMADO: 'bg-blue-100 text-blue-700',
+  PAGADO: 'bg-emerald-100 text-emerald-700',
+  COMPENSADO: 'bg-violet-100 text-violet-700',
+  ANULADO: 'bg-red-100 text-red-700',
+};
 
 const CalculoDetailView: React.FC = () => {
   const navigate = useNavigate();
   const { calculoId } = useParams<{ calculoId: string }>();
   const [calculo, setCalculo] = useState<CalculoSemanal | null>(null);
+  const [historial, setHistorial] = useState<WorkflowEvento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Form de transición
+  const [destino, setDestino] = useState<EstadoWorkflowDestino>('PAGADO');
+  const [justificacion, setJustificacion] = useState('');
+  const [horasCompensar, setHorasCompensar] = useState('');
+  const [fechaCompensar, setFechaCompensar] = useState(new Date().toISOString().slice(0, 10));
+  const [procesando, setProcesando] = useState(false);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+
+  const cargar = async () => {
     if (!calculoId) return;
-    const cargar = async () => {
-      setCargando(true);
-      setError(null);
-      try {
-        const r = await obtenerCalculo(Number(calculoId), localStorage.getItem('token') || '');
-        setCalculo(r);
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : 'No se pudo cargar el cálculo');
-      } finally {
-        setCargando(false);
-      }
-    };
+    setCargando(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token') || '';
+      const [calc, hist] = await Promise.all([
+        obtenerCalculo(Number(calculoId), token),
+        obtenerHistorial(Number(calculoId), token).catch(() => [] as WorkflowEvento[]),
+      ]);
+      setCalculo(calc);
+      setHistorial(hist);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'No se pudo cargar el cálculo');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useEffect(() => {
     cargar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calculoId]);
+
+  const transicionesPermitidas = (): EstadoWorkflowDestino[] => {
+    if (!calculo) return [];
+    if (calculo.estado !== 'CONFIRMADO') return [];
+    return ['PAGADO', 'COMPENSADO', 'ANULADO'];
+  };
+
+  const handleTransicionar = async () => {
+    if (!calculo) return;
+    setProcesando(true);
+    setMensaje(null);
+    try {
+      const token = localStorage.getItem('token') || '';
+      const payload: {
+        estado_destino: EstadoWorkflowDestino;
+        justificacion: string | null;
+        horas: number | null;
+        fecha: string | null;
+      } = {
+        estado_destino: destino,
+        justificacion: justificacion || null,
+        horas: null,
+        fecha: null,
+      };
+      if (destino === 'COMPENSADO') {
+        payload.horas = horasCompensar ? Number(horasCompensar) : null;
+        payload.fecha = fechaCompensar;
+      }
+      const r = await transicionarCalculo(calculo.id, payload, token);
+      setMensaje(r.mensaje);
+      setJustificacion('');
+      setHorasCompensar('');
+      await cargar();
+    } catch (e: unknown) {
+      setMensaje(null);
+      setError(e instanceof Error ? e.message : 'Error al transicionar');
+    } finally {
+      setProcesando(false);
+    }
+  };
 
   if (cargando) {
     return (
@@ -57,6 +129,8 @@ const CalculoDetailView: React.FC = () => {
       </div>
     );
   }
+
+  const permitidas = transicionesPermitidas();
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -85,7 +159,11 @@ const CalculoDetailView: React.FC = () => {
 
         <MaterialCard className="p-4">
           <Text className="text-xs text-slate-500">Estado</Text>
-          <div className="mt-1"><Badge>{calculo.estado}</Badge></div>
+          <div className="mt-1">
+            <Text className={`inline-block px-2 py-1 rounded text-xs font-medium !m-0 ${ESTADO_COLOR[calculo.estado] || 'bg-slate-100'}`}>
+              {calculo.estado}
+            </Text>
+          </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
             <div>
               <Text className="text-xs text-slate-500">Nivel ARL</Text>
@@ -131,7 +209,7 @@ const CalculoDetailView: React.FC = () => {
         </div>
       </MaterialCard>
 
-      <MaterialCard className="p-4">
+      <MaterialCard className="p-4 mb-6">
         <Text className="font-medium mb-3 block">Detalle por código</Text>
         {calculo.detalles.length === 0 ? (
           <Text className="text-slate-500">Sin detalles.</Text>
@@ -165,6 +243,85 @@ const CalculoDetailView: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </MaterialCard>
+
+      <MaterialCard className="p-4 mb-6">
+        <Text className="font-medium mb-3 block">Workflow</Text>
+        {permitidas.length === 0 ? (
+          <Text className="text-slate-500 text-sm">
+            El cálculo está en estado <strong>{calculo.estado}</strong>. No hay transiciones disponibles.
+          </Text>
+        ) : (
+          <div className="space-y-3">
+            <Text className="text-sm text-slate-600">
+              Estado actual: <strong>{calculo.estado}</strong>. Transiciones disponibles:
+            </Text>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Select
+                label="Acción"
+                value={destino}
+                onChange={(e) => setDestino(e.target.value as EstadoWorkflowDestino)}
+                options={permitidas.map((p) => ({ value: p, label: p }))}
+              />
+              {destino === 'COMPENSADO' && (
+                <>
+                  <Input
+                    label="Horas a compensar"
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    max={calculo.total_horas_extras}
+                    value={horasCompensar}
+                    onChange={(e) => setHorasCompensar(e.target.value)}
+                    placeholder={`Total: ${calculo.total_horas_extras}h`}
+                  />
+                  <Input
+                    label="Fecha efectiva"
+                    type="date"
+                    value={fechaCompensar}
+                    onChange={(e) => setFechaCompensar(e.target.value)}
+                  />
+                </>
+              )}
+            </div>
+            <Textarea
+              label="Justificación"
+              value={justificacion}
+              onChange={(e) => setJustificacion(e.target.value)}
+              placeholder="Motivo de la transición"
+              rows={2}
+            />
+            <Button
+              variant="primary"
+              onClick={handleTransicionar}
+              disabled={procesando}
+            >
+              {procesando ? 'Procesando...' : `Aplicar ${destino}`}
+            </Button>
+            {mensaje && <Text className="text-emerald-700 text-sm">{mensaje}</Text>}
+          </div>
+        )}
+
+        {historial.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-neutral-700">
+            <Text className="text-sm font-medium mb-2 block">Historial de transiciones</Text>
+            <ul className="space-y-1 text-xs">
+              {historial.map((ev) => (
+                <li key={ev.id} className="flex justify-between text-slate-600">
+                  <Text className="!m-0">
+                    <strong>{ev.estado_origen} → {ev.estado_destino}</strong>
+                    {ev.justificacion && (
+                      <Text as="span" className="ml-2 text-slate-500 !m-0">
+                        — {ev.justificacion}
+                      </Text>
+                    )}
+                  </Text>
+                  <Text className="text-slate-400 !m-0">{ev.created_at?.slice(0, 16).replace('T', ' ')} · {ev.usuario_id || '—'}</Text>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </MaterialCard>

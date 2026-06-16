@@ -45,6 +45,11 @@ from ....models.novedades_nomina.schemas_horas_extras import (
     PreLiquidacionConfirmada,
     CalculoSemanalRead,
     CostoOtRead,
+    WorkflowTransicionRequest,
+    WorkflowTransicionResult,
+    WorkflowEventoRead,
+    CompensarBolsaRequest,
+    CompensarBolsaResponse,
 )
 from ....services.auth.servicio import ServicioAuth
 from ....services.novedades_nomina.horas_extras_service import (
@@ -64,6 +69,11 @@ from ....services.novedades_nomina.horas_extras_confirmacion import (
     listar_calculos,
     obtener_calculo_completo,
     listar_costos_ot,
+)
+from ....services.novedades_nomina.horas_extras_workflow import (
+    transicionar_calculo,
+    listar_eventos_calculo,
+    compensar_bolsa,
 )
 
 logger = logging.getLogger(__name__)
@@ -365,4 +375,92 @@ async def listar_costos_ot_endpoint(
         anio=anio,
         semana_iso=semana_iso,
         limit=limit,
+    )
+
+
+# ---------------------------------------------------------------------------
+# S4 — Workflow de estados y compensación de bolsa
+# ---------------------------------------------------------------------------
+
+@router.post("/calculos/{calculo_id}/transicion", response_model=WorkflowTransicionResult)
+async def transicionar_calculo_endpoint(
+    calculo_id: int = Path(..., ge=1),
+    payload: WorkflowTransicionRequest = ...,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_he),
+):
+    """
+    Aplica una transición de estado al cálculo.
+    - CONFIRMADO → PAGADO: solo cambia estado.
+    - CONFIRMADO → COMPENSADO: consume horas de la bolsa (parcial o total).
+    - CONFIRMADO → ANULADO: revierte la ACREDITACION y resta del costo_ot.
+    """
+    usuario_id = getattr(usuario, "cedula", None) or usuario.id
+    try:
+        resultado = await transicionar_calculo(
+            db,
+            calculo_id=calculo_id,
+            estado_destino=payload.estado_destino,
+            justificacion=payload.justificacion,
+            usuario_id=usuario_id,
+            horas_compensar=payload.horas,
+            fecha_compensacion=payload.fecha,
+        )
+    except ValueError as e:
+        msg = str(e)
+        if "no encontrado" in msg:
+            raise HTTPException(status_code=404, detail=msg)
+        raise HTTPException(status_code=409, detail=msg)
+
+    return WorkflowTransicionResult(
+        calculo_id=resultado["calculo_id"],
+        estado_anterior=resultado["estado_anterior"],
+        estado_nuevo=resultado["estado_nuevo"],
+        evento_id=resultado["evento_id"],
+        movimiento_bolsa_id=resultado["movimiento_bolsa_id"],
+        horas_afectadas=resultado["horas_afectadas"],
+        mensaje=f"Cálculo {calculo_id} pasó de {resultado['estado_anterior']} a {resultado['estado_nuevo']}.",
+    )
+
+
+@router.get("/calculos/{calculo_id}/historial", response_model=List[WorkflowEventoRead])
+async def listar_historial_endpoint(
+    calculo_id: int = Path(..., ge=1),
+    db: AsyncSession = Depends(obtener_db),
+    _: Usuario = Depends(requiere_permiso_he),
+):
+    """Bitácora de transiciones del cálculo (CONFIRMADO inicial + cada cambio)."""
+    return await listar_eventos_calculo(db, calculo_id)
+
+
+@router.post("/bolsa/compensar", response_model=CompensarBolsaResponse)
+async def compensar_bolsa_endpoint(
+    payload: CompensarBolsaRequest,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_he),
+):
+    """
+    Consume horas de la bolsa del empleado. Crea movimiento CONSUMO_TIEMPO.
+    No requiere cálculo de origen (compensaciones administrativas).
+    """
+    usuario_id = getattr(usuario, "cedula", None) or usuario.id
+    try:
+        resultado = await compensar_bolsa(
+            db,
+            cedula=payload.cedula,
+            horas=payload.horas,
+            fecha=payload.fecha,
+            usuario_id=usuario_id,
+            calculo_id=payload.calculo_id,
+            observaciones=payload.observaciones,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    return CompensarBolsaResponse(
+        cedula=payload.cedula,
+        movimiento_id=resultado["movimiento_id"],
+        horas_compensadas=resultado["horas_compensadas"],
+        horas_disponibles_despues=resultado["horas_disponibles_despues"],
+        mensaje=f"Se compensaron {resultado['horas_compensadas']}h de la bolsa de {payload.cedula}.",
     )
