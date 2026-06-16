@@ -221,3 +221,119 @@ class BolsaHorasRead(SQLModel):
 
 class BolsaHorasEfectiva(BolsaHorasRead):
     horas_disponibles: float
+
+
+# ---------------------------------------------------------------------------
+# Confirmación de cálculo (persistencia en BD)
+# ---------------------------------------------------------------------------
+
+class PreLiquidacionConfirmar(SQLModel):
+    """
+    Input para CONFIRMAR un cálculo y persistirlo.
+    El frontend primero llama a /pre-liquidacion (cálculo) y luego a
+    /pre-liquidacion/confirmar con el resultado que el usuario aprobó.
+    """
+    cedula: str = Field(min_length=1, max_length=50)
+    anio: int = Field(ge=2020, le=2100)
+    semana_iso: int = Field(ge=1, le=53)
+    fecha_inicio: date
+    fecha_fin: date
+    nivel_riesgo_arl: str = Field(pattern="^(I|II|III|IV|V)$")
+    factor_prestacional: float = Field(ge=0.0)
+    salario_base_mensual: float = Field(gt=0)
+    valor_hora_ordinaria: float = Field(ge=0.0)
+    detalles: List["ConfirmarDetalleItem"] = Field(min_length=1)
+    ot_id: Optional[int] = None
+    ot_codigo: Optional[str] = Field(default=None, max_length=50)
+    usuario_confirma: str = Field(min_length=1, max_length=50)
+    observaciones: Optional[str] = None
+
+
+class ConfirmarDetalleItem(SQLModel):
+    codigo_novedad: str = Field(min_length=1, max_length=20)
+    horas: float = Field(gt=0.0)
+    factor_hora_ordinaria: float = Field(ge=0.0)
+    valor_bruto: float = Field(ge=0.0)
+    carga_prestacional: float = Field(ge=0.0)
+    costo_total: float = Field(ge=0.0)
+    fuente: str = Field(default="PORTAL", max_length=20)
+
+
+class PreLiquidacionConfirmada(SQLModel):
+    """Respuesta al confirmar. Incluye IDs persistidos y resumen de movimientos."""
+    calculo_id: int
+    bolsa_id: Optional[int] = None
+    horas_acreditadas_bolsa: float = 0.0
+    movimientos_bolsa: List[int] = Field(default_factory=list)
+    costo_ot_id: Optional[int] = None
+    mensaje: str = "Cálculo confirmado y persistido"
+
+
+# ---------------------------------------------------------------------------
+# Lectura de cálculos
+# ---------------------------------------------------------------------------
+
+class CalculoDetalleRead(SQLModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    codigo_novedad: str
+    horas: float
+    factor_hora_ordinaria: float
+    valor_bruto: float
+    carga_prestacional: float
+    costo_total: float
+    ot_id: Optional[int] = None
+    ot_codigo: Optional[str] = None
+    fuente: str
+
+
+class CalculoSemanalRead(SQLModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    cedula: str
+    anio: int
+    semana_iso: int
+    fecha_inicio: date
+    fecha_fin: date
+    nivel_riesgo_arl: str
+    factor_prestacional: float
+    salario_base_mensual: float
+    valor_hora_ordinaria: float
+    total_horas_extras: float
+    total_horas_recargo_nocturno: float
+    total_valor_bruto: float
+    total_carga_prestacional: float
+    total_costo_empresa: float
+    estado: str
+    calculado_por: Optional[str] = None
+    calculado_en: Optional[datetime] = None
+    confirmado_por: Optional[str] = None
+    confirmado_en: Optional[datetime] = None
+    observaciones: Optional[str] = None
+    detalles: List[CalculoDetalleRead] = Field(default_factory=list)
+
+
+class CostoOtRead(SQLModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    ot_id: int
+    ot_codigo: str
+    anio: int
+    semana_iso: int
+    fecha_inicio: date
+    fecha_fin: date
+    total_empleados: int
+    total_horas: float
+    total_horas_hed: float
+    total_horas_hen: float
+    total_horas_hefd: float
+    total_horas_hefn: float
+    total_horas_hf: float
+    total_valor_bruto: float
+    total_carga_prestacional: float
+    total_costo_empresa: float
+    categoria_sub_indice: Optional[str] = None
+    cc: Optional[str] = None
+    scc: Optional[str] = None
+    sub_indice: Optional[str] = None
+    ultima_actualizacion: Optional[datetime] = None

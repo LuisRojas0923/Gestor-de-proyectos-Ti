@@ -58,6 +58,12 @@ import TablaMaestraView from './ServicePortal/pages/NOVEDADES_NOMINA/TablaMaestr
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
 import ComisionesView from './ServicePortal/pages/Comisiones';
+import HorasExtrasDashboard from './ServicePortal/pages/HORAS_EXTRAS/HorasExtrasDashboard';
+import PreLiquidacionView from './ServicePortal/pages/HORAS_EXTRAS/PreLiquidacionView';
+import CalculoListView from './ServicePortal/pages/HORAS_EXTRAS/CalculoListView';
+import CalculoDetailView from './ServicePortal/pages/HORAS_EXTRAS/CalculoDetailView';
+import BolsaView from './ServicePortal/pages/HORAS_EXTRAS/BolsaView';
+import CostosOtView from './ServicePortal/pages/HORAS_EXTRAS/CostosOtView';
 
 import {
     CategoryWrapper,
@@ -199,6 +205,7 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'contabilidad') navigate('/service-portal/gestion-humana');
                             else if (v === 'gestion_actividades') navigate('/service-portal/gestion-actividades');
                             else if (v === 'comisiones') navigate('/service-portal/comisiones');
+                            else if (v === 'horas_extras') navigate('/service-portal/horas-extras');
                         }}
                     />
                 } />
@@ -402,6 +409,37 @@ const ServicePortal: React.FC = () => {
                 <Route path="comisiones" element={
                     <ProtectedRoute moduleCode="comisiones">
                         <ComisionesView />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="horas-extras" element={
+                    <ProtectedRoute moduleCode="nomina_horas_extras">
+                        <HorasExtrasDashboard />
+                    </ProtectedRoute>
+                } />
+                <Route path="horas-extras/pre-liquidacion" element={
+                    <ProtectedRoute moduleCode="nomina_horas_extras">
+                        <PreLiquidacionView />
+                    </ProtectedRoute>
+                } />
+                <Route path="horas-extras/calculos" element={
+                    <ProtectedRoute moduleCode="nomina_horas_extras">
+                        <CalculoListView />
+                    </ProtectedRoute>
+                } />
+                <Route path="horas-extras/calculos/:calculoId" element={
+                    <ProtectedRoute moduleCode="nomina_horas_extras">
+                        <CalculoDetailView />
+                    </ProtectedRoute>
+                } />
+                <Route path="horas-extras/bolsa" element={
+                    <ProtectedRoute moduleCode="nomina_horas_extras">
+                        <BolsaView />
+                    </ProtectedRoute>
+                } />
+                <Route path="horas-extras/costos-ot" element={
+                    <ProtectedRoute moduleCode="nomina_horas_extras">
+                        <CostosOtView />
                     </ProtectedRoute>
                 } />
 

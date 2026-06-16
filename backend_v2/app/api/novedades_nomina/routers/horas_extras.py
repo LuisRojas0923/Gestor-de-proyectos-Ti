@@ -12,6 +12,10 @@ Endpoints:
     ├── overrides/                   POST   Registra override de autorización
     ├── overrides/{cedula}           GET    Historial de overrides
     ├── pre-liquidacion/             POST   Ejecuta cálculo semanal
+    ├── pre-liquidacion/confirmar    POST   Persiste cálculo + acredita bolsa + UPSERT costo_ot
+    ├── calculos/                    GET    Historial de cálculos confirmados
+    ├── calculos/{id}                GET    Detalle de un cálculo
+    ├── costos-ot/                   GET    Costos consolidados por OT
     └── bolsa/{cedula}               GET    Saldo actual de bolsa
 
 Patrón: el router solo parsea, valida y delega al service.
@@ -37,6 +41,10 @@ from ....models.novedades_nomina.schemas_horas_extras import (
     OverrideAutorizaHERead,
     PreLiquidacionInput,
     PreLiquidacionResultado,
+    PreLiquidacionConfirmar,
+    PreLiquidacionConfirmada,
+    CalculoSemanalRead,
+    CostoOtRead,
 )
 from ....services.auth.servicio import ServicioAuth
 from ....services.novedades_nomina.horas_extras_service import (
@@ -50,6 +58,12 @@ from ....services.novedades_nomina.horas_extras_service import (
     resolver_autorizacion_he,
     ejecutar_pre_liquidacion,
     obtener_bolsa_horas,
+)
+from ....services.novedades_nomina.horas_extras_confirmacion import (
+    confirmar_pre_liquidacion,
+    listar_calculos,
+    obtener_calculo_completo,
+    listar_costos_ot,
 )
 
 logger = logging.getLogger(__name__)
@@ -258,3 +272,97 @@ async def obtener_bolsa(
         "horas_pagadas": bolsa.horas_pagadas,
         "horas_disponibles": disponibles,
     }
+
+
+# ---------------------------------------------------------------------------
+# Engine de confirmación (S2)
+# ---------------------------------------------------------------------------
+
+@router.post("/pre-liquidacion/confirmar", response_model=PreLiquidacionConfirmada)
+async def confirmar_pre_liquidacion_endpoint(
+    payload: PreLiquidacionConfirmar,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_he),
+):
+    """
+    Persiste un cálculo y sus efectos colaterales.
+
+    Decisión C1: la bolsa se acredita al confirmar, no al cargar.
+    Decisión H7: nomina_costo_ot se actualiza en tiempo real (UPSERT).
+    Decisión H8: la bolsa es siempre del empleado (cedula), nunca de la OT.
+
+    Idempotente sobre (cedula, anio, semana_iso): si ya existe, retorna 409.
+    """
+    if not payload.detalles:
+        raise HTTPException(status_code=400, detail="detalles no puede estar vacío")
+
+    # Si el usuario no se especifica en payload, usar el del token
+    if not payload.usuario_confirma:
+        payload.usuario_confirma = getattr(usuario, "cedula", None) or usuario.id
+
+    try:
+        resultado = await confirmar_pre_liquidacion(db, payload)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    return PreLiquidacionConfirmada(
+        calculo_id=resultado["calculo_id"],
+        bolsa_id=resultado["bolsa_id"],
+        horas_acreditadas_bolsa=resultado["horas_acreditadas_bolsa"],
+        movimientos_bolsa=resultado["movimientos_bolsa"],
+        costo_ot_id=resultado["costo_ot_id"],
+    )
+
+
+@router.get("/calculos", response_model=List[CalculoSemanalRead])
+async def listar_calculos_endpoint(
+    cedula: Optional[str] = Query(None),
+    anio: Optional[int] = Query(None),
+    semana_iso: Optional[int] = Query(None, ge=1, le=53),
+    estado: Optional[str] = Query(None, description="BORRADOR, CONFIRMADO, PAGADO, COMPENSADO, ANULADO"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(obtener_db),
+    _: Usuario = Depends(requiere_permiso_he),
+):
+    return await listar_calculos(
+        db,
+        cedula=cedula,
+        anio=anio,
+        semana_iso=semana_iso,
+        estado=estado,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/calculos/{calculo_id}", response_model=CalculoSemanalRead)
+async def obtener_calculo_endpoint(
+    calculo_id: int = Path(..., ge=1),
+    db: AsyncSession = Depends(obtener_db),
+    _: Usuario = Depends(requiere_permiso_he),
+):
+    calc = await obtener_calculo_completo(db, calculo_id)
+    if calc is None:
+        raise HTTPException(status_code=404, detail=f"Cálculo {calculo_id} no encontrado")
+    return calc
+
+
+@router.get("/costos-ot", response_model=List[CostoOtRead])
+async def listar_costos_ot_endpoint(
+    ot_id: Optional[int] = Query(None),
+    ot_codigo: Optional[str] = Query(None, max_length=50),
+    anio: Optional[int] = Query(None),
+    semana_iso: Optional[int] = Query(None, ge=1, le=53),
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(obtener_db),
+    _: Usuario = Depends(requiere_permiso_he),
+):
+    return await listar_costos_ot(
+        db,
+        ot_id=ot_id,
+        ot_codigo=ot_codigo,
+        anio=anio,
+        semana_iso=semana_iso,
+        limit=limit,
+    )
