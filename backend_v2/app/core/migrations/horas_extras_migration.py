@@ -395,3 +395,47 @@ async def crear_tabla_festivo_calendario(conn) -> None:
         conn,
         "CREATE INDEX IF NOT EXISTS idx_festivo_cal_fuente ON nomina_festivo_calendario (fuente)",
     )
+
+
+async def crear_tabla_novedad_evento(conn) -> None:
+    """Sprint S5: eventos de novedades (LIC, VAC, INC, AUS, ...) por empleado y rango de fechas."""
+    logger.info("Creando tabla nomina_novedad_evento (S5)...")
+    await safe_execute(
+        conn,
+        """
+        CREATE TABLE IF NOT EXISTS nomina_novedad_evento (
+            id SERIAL PRIMARY KEY,
+            cedula VARCHAR(50) NOT NULL,
+            codigo_novedad VARCHAR(20) NOT NULL REFERENCES nomina_catalogo_novedades(codigo),
+            fecha_inicio DATE NOT NULL,
+            fecha_fin DATE NOT NULL,
+            observaciones VARCHAR(500),
+            estado VARCHAR(20) NOT NULL DEFAULT 'BORRADOR',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            created_by VARCHAR(50),
+            updated_at TIMESTAMPTZ,
+            updated_by VARCHAR(50),
+            confirmado_at TIMESTAMPTZ,
+            confirmado_by VARCHAR(50),
+            anulado_at TIMESTAMPTZ,
+            anulado_justificacion VARCHAR(500)
+        )
+        """,
+    )
+    await safe_execute(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_nov_evento_cedula ON nomina_novedad_evento (cedula)",
+    )
+    await safe_execute(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_nov_evento_codigo ON nomina_novedad_evento (codigo_novedad)",
+    )
+    await safe_execute(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_nov_evento_estado ON nomina_novedad_evento (estado)",
+    )
+    # Índice compuesto para queries de solapamiento (cedula, fecha_inicio, fecha_fin)
+    await safe_execute(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_nov_evento_rango ON nomina_novedad_evento (cedula, fecha_inicio, fecha_fin)",
+    )

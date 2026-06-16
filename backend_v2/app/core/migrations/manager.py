@@ -9,6 +9,7 @@ from app.core.migrations.horas_extras_migration import (
     crear_tablas_horas_extras,
     crear_tabla_workflow_evento,
     crear_tabla_festivo_calendario,
+    crear_tabla_novedad_evento,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,13 @@ async def init_db_process(async_engine, AsyncSessionLocal):
             await crear_tabla_festivo_calendario(conn)
         except Exception as e:
             logger.error(f"Error en migración festivo_calendario (S5'): {e}")
+
+    # 3.10 Crear tabla de eventos de novedades (S5 sprint)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tabla_novedad_evento(conn)
+        except Exception as e:
+            logger.error(f"Error en migración nomina_novedad_evento (S5): {e}")
 
     # 4. Saneamiento de Datos (Inventario y otros)
     saneamientos = [

@@ -27,6 +27,11 @@ import type {
   Festivo,
   FestivoSincronizarResult,
   FuenteFestivoQuery,
+  NovedadEventoCreate,
+  NovedadEventoUpdate,
+  NovedadAnularRequest,
+  NovedadEventoRead,
+  NovedadEventoList,
 } from '../types/horasExtras';
 
 const BASE = `${API_CONFIG.BASE_URL}/novedades-nomina/horas-extras`;
@@ -241,6 +246,79 @@ export async function sincronizarFestivos(
 ): Promise<FestivoSincronizarResult> {
   return request<FestivoSincronizarResult>(`/festivos/${anio}/sincronizar`, {
     method: 'POST',
+    token,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// S5 — Eventos de novedades
+// ---------------------------------------------------------------------------
+
+export interface ListarNovedadesParams {
+  cedula?: string;
+  codigo?: string;
+  fecha_desde?: string;
+  fecha_hasta?: string;
+  estado?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function listarNovedades(
+  params: ListarNovedadesParams,
+  token: string,
+): Promise<NovedadEventoList> {
+  return request<NovedadEventoList>(`/novedades${buildQuery(params)}`, { token });
+}
+
+export async function crearNovedad(
+  payload: NovedadEventoCreate,
+  token: string,
+): Promise<NovedadEventoRead> {
+  return request<NovedadEventoRead>('/novedades', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export async function obtenerNovedad(
+  novedadId: number,
+  token: string,
+): Promise<NovedadEventoRead> {
+  return request<NovedadEventoRead>(`/novedades/${novedadId}`, { token });
+}
+
+export async function actualizarNovedad(
+  novedadId: number,
+  payload: NovedadEventoUpdate,
+  token: string,
+): Promise<NovedadEventoRead> {
+  return request<NovedadEventoRead>(`/novedades/${novedadId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export async function confirmarNovedad(
+  novedadId: number,
+  token: string,
+): Promise<NovedadEventoRead> {
+  return request<NovedadEventoRead>(`/novedades/${novedadId}/confirmar`, {
+    method: 'POST',
+    token,
+  });
+}
+
+export async function anularNovedad(
+  novedadId: number,
+  payload: NovedadAnularRequest,
+  token: string,
+): Promise<NovedadEventoRead> {
+  return request<NovedadEventoRead>(`/novedades/${novedadId}/anular`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
     token,
   });
 }

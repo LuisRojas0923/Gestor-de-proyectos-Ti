@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Title, Text, Button, MaterialCard } from '../../../../components/atoms';
-import { ArrowLeft, Calculator, Calendar, Clock, History, Wallet } from 'lucide-react';
+import { ArrowLeft, Calculator, Calendar, ClipboardList, Clock, History, Wallet } from 'lucide-react';
 
 const ACCIONES = [
   {
@@ -38,6 +38,13 @@ const ACCIONES = [
     description: 'Calendario de festivos (Ley Emiliani) con sincronización opcional vía Calendarific.',
     icon: Calendar,
     to: '/service-portal/horas-extras/festivos',
+  },
+  {
+    id: 'novedades',
+    title: 'Novedades (LIC, VAC, INC, AUS)',
+    description: 'Captura de licencias, vacaciones, incapacidades y ausencias para alimentar el motor de pre-liquidación.',
+    icon: ClipboardList,
+    to: '/service-portal/horas-extras/novedades',
   },
 ];
 

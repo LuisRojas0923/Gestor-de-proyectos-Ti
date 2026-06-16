@@ -33,11 +33,37 @@ const mockGet = vi.fn().mockResolvedValue([
   }
 ]);
 const mockDelete = vi.fn().mockResolvedValue({});
+const mockGetWithHeaders = vi.fn().mockResolvedValue({
+  data: [
+    {
+      id: 'DEV-101',
+      name: 'Desarrollo de Prueba TDD 1',
+      descripcion: 'Una descripcion de prueba',
+      estado_general: 'Pendiente',
+      creado_por_id: 'USR-1',
+      tipo: 'Mejora',
+      start_date: '2025-01-01',
+      estimated_end_date: '2025-02-01',
+    },
+    {
+      id: 'DEV-102',
+      name: 'Desarrollo de Prueba TDD 2',
+      descripcion: 'Otra descripcion de prueba',
+      estado_general: 'En Proceso',
+      creado_por_id: 'USR-2',
+      tipo: 'Actividad',
+      start_date: '2025-01-01',
+      estimated_end_date: '2025-02-01',
+    },
+  ],
+  headers: new Headers({ 'X-Total-Count': '2' }),
+});
 
 vi.mock('../hooks/useApi', () => ({
   useApi: () => ({
     get: mockGet,
     delete: mockDelete,
+    getWithHeaders: mockGetWithHeaders,
   }),
 }));
 

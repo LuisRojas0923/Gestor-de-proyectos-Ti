@@ -299,3 +299,64 @@ export interface FestivoSincronizarResult {
   calendarific_error: string | null;
   mensaje: string;
 }
+
+// ---------------------------------------------------------------------------
+// S5 — Eventos de novedades (AUS / LIC / VAC / INC)
+// ---------------------------------------------------------------------------
+
+export type NovedadEstado = 'BORRADOR' | 'CONFIRMADO' | 'ANULADO';
+
+export interface NovedadEventoCreate {
+  cedula: string;
+  codigo_novedad: string;
+  fecha_inicio: string; // ISO date (YYYY-MM-DD)
+  fecha_fin: string;
+  observaciones?: string | null;
+}
+
+export interface NovedadEventoUpdate {
+  cedula?: string;
+  codigo_novedad?: string;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  observaciones?: string | null;
+}
+
+export interface NovedadAnularRequest {
+  justificacion: string;
+}
+
+export interface NovedadEventoRead {
+  id: number;
+  cedula: string;
+  codigo_novedad: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  observaciones: string | null;
+  estado: NovedadEstado;
+  created_at: string | null;
+  created_by: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+  confirmado_at: string | null;
+  confirmado_by: string | null;
+  anulado_at: string | null;
+  anulado_justificacion: string | null;
+}
+
+export interface NovedadEventoListItem {
+  id: number;
+  cedula: string;
+  codigo_novedad: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  estado: NovedadEstado;
+  created_at: string | null;
+}
+
+export interface NovedadEventoList {
+  items: NovedadEventoListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}

@@ -4,6 +4,7 @@ Schemas Pydantic/SQLModel para el módulo de Horas Extras y Pre-liquidación.
 Convención del proyecto: usar `SQLModel` con `ConfigDict(from_attributes=True)`
 para que las respuestas se serialicen directo desde los modelos ORM.
 """
+import enum
 from datetime import date, datetime
 from typing import Optional, List
 from pydantic import ConfigDict, Field, field_validator
@@ -410,3 +411,75 @@ class FestivoSincronizarResult(SQLModel):
     cantidad: int
     calendarific_error: Optional[str] = None
     mensaje: str
+
+
+# ---------------------------------------------------------------------------
+# S5 — Eventos de novedades (AUS / LIC / VAC / INC)
+# ---------------------------------------------------------------------------
+
+# Enum declarado antes de las clases que lo referencian para evitar el bug
+# de PydanticUndefinedAnnotation que ya tuvimos con ConfirmarDetalleItem.
+class NovedadEstadoEnum(str, enum.Enum):
+    """Estados del workflow de un evento de novedad."""
+    BORRADOR = "BORRADOR"
+    CONFIRMADO = "CONFIRMADO"
+    ANULADO = "ANULADO"
+
+
+class NovedadEventoCreate(SQLModel):
+    """Input para crear un evento de novedad. Estado inicial: BORRADOR."""
+    cedula: str = Field(min_length=1, max_length=50)
+    codigo_novedad: str = Field(min_length=1, max_length=20)
+    fecha_inicio: date
+    fecha_fin: date
+    observaciones: Optional[str] = Field(default=None, max_length=500)
+
+
+class NovedadEventoUpdate(SQLModel):
+    """Patch parcial. Solo editable en estado BORRADOR."""
+    cedula: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    codigo_novedad: Optional[str] = Field(default=None, min_length=1, max_length=20)
+    fecha_inicio: Optional[date] = None
+    fecha_fin: Optional[date] = None
+    observaciones: Optional[str] = Field(default=None, max_length=500)
+
+
+class NovedadAnularRequest(SQLModel):
+    justificacion: str = Field(min_length=5, max_length=500)
+
+
+class NovedadEventoRead(SQLModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    cedula: str
+    codigo_novedad: str
+    fecha_inicio: date
+    fecha_fin: date
+    observaciones: Optional[str] = None
+    estado: str
+    created_at: Optional[datetime] = None
+    created_by: Optional[str] = None
+    updated_at: Optional[datetime] = None
+    updated_by: Optional[str] = None
+    confirmado_at: Optional[datetime] = None
+    confirmado_by: Optional[str] = None
+    anulado_at: Optional[datetime] = None
+    anulado_justificacion: Optional[str] = None
+
+
+class NovedadEventoListItem(SQLModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    cedula: str
+    codigo_novedad: str
+    fecha_inicio: date
+    fecha_fin: date
+    estado: str
+    created_at: Optional[datetime] = None
+
+
+class NovedadEventoList(SQLModel):
+    items: List[NovedadEventoListItem]
+    total: int
+    limit: int
+    offset: int

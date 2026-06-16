@@ -21,6 +21,12 @@ import {
   compensarBolsa,
   listarFestivos,
   sincronizarFestivos,
+  listarNovedades,
+  crearNovedad,
+  obtenerNovedad,
+  actualizarNovedad,
+  confirmarNovedad,
+  anularNovedad,
 } from '../services/horasExtrasService';
 import { API_CONFIG } from '../config/api';
 import type { PreLiquidacionInput, PreLiquidacionConfirmar } from '../types/horasExtras';
@@ -412,6 +418,177 @@ describe('horasExtrasService', () => {
       expect(init.method).toBe('POST');
       expect(r.fuente).toBe('LEY_EMILIANI');
       expect(r.calendarific_error).toBe('API caída');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // S5 — Novedades (AUS / LIC / VAC / INC)
+  // -------------------------------------------------------------------------
+
+  describe('listarNovedades', () => {
+    it('construye query con filtros activos', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({ items: [], total: 0, limit: 100, offset: 0 }),
+      );
+      await listarNovedades(
+        { cedula: '1107068093', codigo: 'LIC', estado: 'CONFIRMADO', limit: 50 },
+        TOKEN,
+      );
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(
+        `${BASE}/novedades?cedula=1107068093&codigo=LIC&estado=CONFIRMADO&limit=50`,
+      );
+      expect(init.method).toBeUndefined();
+    });
+
+    it('omite filtros vacíos', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({ items: [], total: 0, limit: 100, offset: 0 }),
+      );
+      await listarNovedades({}, TOKEN);
+      const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/novedades`);
+    });
+  });
+
+  describe('crearNovedad', () => {
+    it('POST a /novedades con payload y devuelve id+estado', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({
+          id: 10,
+          cedula: '1107068093',
+          codigo_novedad: 'LIC',
+          fecha_inicio: '2026-07-01',
+          fecha_fin: '2026-07-05',
+          observaciones: 'Vacaciones',
+          estado: 'BORRADOR',
+          created_at: null, created_by: null,
+          updated_at: null, updated_by: null,
+          confirmado_at: null, confirmado_by: null,
+          anulado_at: null, anulado_justificacion: null,
+        }),
+      );
+      const r = await crearNovedad(
+        {
+          cedula: '1107068093',
+          codigo_novedad: 'LIC',
+          fecha_inicio: '2026-07-01',
+          fecha_fin: '2026-07-05',
+          observaciones: 'Vacaciones',
+        },
+        TOKEN,
+      );
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/novedades`);
+      expect(init.method).toBe('POST');
+      expect(JSON.parse(init.body as string).codigo_novedad).toBe('LIC');
+      expect(r.id).toBe(10);
+      expect(r.estado).toBe('BORRADOR');
+    });
+  });
+
+  describe('obtenerNovedad', () => {
+    it('GET a /novedades/{id}', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({
+          id: 7, cedula: '1', codigo_novedad: 'VAC',
+          fecha_inicio: '2026-08-01', fecha_fin: '2026-08-03',
+          observaciones: null, estado: 'CONFIRMADO',
+          created_at: null, created_by: null,
+          updated_at: null, updated_by: null,
+          confirmado_at: '2026-07-30T10:00:00', confirmado_by: 'u1',
+          anulado_at: null, anulado_justificacion: null,
+        }),
+      );
+      const r = await obtenerNovedad(7, TOKEN);
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/novedades/7`);
+      expect(init.method).toBeUndefined();
+      expect(r.estado).toBe('CONFIRMADO');
+    });
+  });
+
+  describe('actualizarNovedad', () => {
+    it('PATCH a /novedades/{id} con payload parcial', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({
+          id: 7, cedula: '1', codigo_novedad: 'VAC',
+          fecha_inicio: '2026-08-01', fecha_fin: '2026-08-03',
+          observaciones: 'cambiado', estado: 'BORRADOR',
+          created_at: null, created_by: null,
+          updated_at: '2026-07-29T10:00:00', updated_by: 'u1',
+          confirmado_at: null, confirmado_by: null,
+          anulado_at: null, anulado_justificacion: null,
+        }),
+      );
+      const r = await actualizarNovedad(
+        7,
+        { observaciones: 'cambiado' },
+        TOKEN,
+      );
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/novedades/7`);
+      expect(init.method).toBe('PATCH');
+      expect(JSON.parse(init.body as string).observaciones).toBe('cambiado');
+      expect(r.observaciones).toBe('cambiado');
+    });
+  });
+
+  describe('confirmarNovedad', () => {
+    it('POST a /novedades/{id}/confirmar', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({
+          id: 7, cedula: '1', codigo_novedad: 'VAC',
+          fecha_inicio: '2026-08-01', fecha_fin: '2026-08-03',
+          observaciones: null, estado: 'CONFIRMADO',
+          created_at: null, created_by: null,
+          updated_at: null, updated_by: null,
+          confirmado_at: '2026-07-30T10:00:00', confirmado_by: 'u1',
+          anulado_at: null, anulado_justificacion: null,
+        }),
+      );
+      const r = await confirmarNovedad(7, TOKEN);
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/novedades/7/confirmar`);
+      expect(init.method).toBe('POST');
+      expect(r.estado).toBe('CONFIRMADO');
+    });
+  });
+
+  describe('anularNovedad', () => {
+    it('POST a /novedades/{id}/anular con justificación', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({
+          id: 7, cedula: '1', codigo_novedad: 'VAC',
+          fecha_inicio: '2026-08-01', fecha_fin: '2026-08-03',
+          observaciones: null, estado: 'ANULADO',
+          created_at: null, created_by: null,
+          updated_at: null, updated_by: null,
+          confirmado_at: null, confirmado_by: null,
+          anulado_at: '2026-07-30T11:00:00',
+          anulado_justificacion: 'error de captura',
+        }),
+      );
+      const r = await anularNovedad(
+        7,
+        { justificacion: 'error de captura' },
+        TOKEN,
+      );
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/novedades/7/anular`);
+      expect(init.method).toBe('POST');
+      expect(JSON.parse(init.body as string).justificacion).toBe('error de captura');
+      expect(r.estado).toBe('ANULADO');
+      expect(r.anulado_justificacion).toBe('error de captura');
+    });
+
+    it('propaga error 422 cuando justificación es corta', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({ detail: 'justificacion: ensure this value has at least 5 characters' }, 422),
+      );
+      await expect(
+        anularNovedad(7, { justificacion: 'x' }, TOKEN),
+      ).rejects.toThrow(/justificacion/);
     });
   });
 });

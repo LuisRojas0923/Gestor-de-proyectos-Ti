@@ -83,6 +83,7 @@ from ....services.novedades_nomina.horas_extras_workflow import (
     compensar_bolsa,
 )
 from .horas_extras_festivos import router as festivos_subrouter
+from .horas_extras_novedades import router as novedades_subrouter
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +94,8 @@ router = APIRouter(
 
 # S5' — Sub-router de festivos (mantiene este archivo bajo el límite de 500 líneas)
 router.include_router(festivos_subrouter)
+# S5 — Sub-router de novedades
+router.include_router(novedades_subrouter)
 
 MODULO_HE = "nomina_horas_extras"
 
