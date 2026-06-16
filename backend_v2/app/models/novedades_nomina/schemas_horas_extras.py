@@ -227,6 +227,21 @@ class BolsaHorasEfectiva(BolsaHorasRead):
 # Confirmación de cálculo (persistencia en BD)
 # ---------------------------------------------------------------------------
 
+# ConfirmarDetalleItem se declara ANTES de PreLiquidacionConfirmar para que
+# la forward-ref 'ConfirmarDetalleItem' en `detalles: List[...]` se resuelva
+# correctamente cuando Pydantic 2.5 construye el TypeAdapter del parámetro
+# de la ruta. Si va después, Pydantic lanza PydanticUndefinedAnnotation
+# en el primer request al endpoint /pre-liquidacion/confirmar.
+class ConfirmarDetalleItem(SQLModel):
+    codigo_novedad: str = Field(min_length=1, max_length=20)
+    horas: float = Field(gt=0.0)
+    factor_hora_ordinaria: float = Field(ge=0.0)
+    valor_bruto: float = Field(ge=0.0)
+    carga_prestacional: float = Field(ge=0.0)
+    costo_total: float = Field(ge=0.0)
+    fuente: str = Field(default="PORTAL", max_length=20)
+
+
 class PreLiquidacionConfirmar(SQLModel):
     """
     Input para CONFIRMAR un cálculo y persistirlo.
@@ -242,21 +257,11 @@ class PreLiquidacionConfirmar(SQLModel):
     factor_prestacional: float = Field(ge=0.0)
     salario_base_mensual: float = Field(gt=0)
     valor_hora_ordinaria: float = Field(ge=0.0)
-    detalles: List["ConfirmarDetalleItem"] = Field(min_length=1)
+    detalles: List[ConfirmarDetalleItem] = Field(min_length=1)
     ot_id: Optional[int] = None
     ot_codigo: Optional[str] = Field(default=None, max_length=50)
     usuario_confirma: str = Field(min_length=1, max_length=50)
     observaciones: Optional[str] = None
-
-
-class ConfirmarDetalleItem(SQLModel):
-    codigo_novedad: str = Field(min_length=1, max_length=20)
-    horas: float = Field(gt=0.0)
-    factor_hora_ordinaria: float = Field(ge=0.0)
-    valor_bruto: float = Field(ge=0.0)
-    carga_prestacional: float = Field(ge=0.0)
-    costo_total: float = Field(ge=0.0)
-    fuente: str = Field(default="PORTAL", max_length=20)
 
 
 class PreLiquidacionConfirmada(SQLModel):
