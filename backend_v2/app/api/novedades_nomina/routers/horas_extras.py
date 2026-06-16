@@ -16,7 +16,14 @@ Endpoints:
     ├── calculos/                    GET    Historial de cálculos confirmados
     ├── calculos/{id}                GET    Detalle de un cálculo
     ├── costos-ot/                   GET    Costos consolidados por OT
-    └── bolsa/{cedula}               GET    Saldo actual de bolsa
+    ├── bolsa/{cedula}               GET    Saldo actual de bolsa
+    ├── calculos/{id}/transicion     POST   Transición workflow (S4)
+    ├── calculos/{id}/historial      GET    Historial workflow (S4)
+    ├── bolsa/compensar              POST   Compensar bolsa (S4)
+    └── festivos/...                 GET/POST Festivos (S5', en sub-router)
+
+Los endpoints de festivos viven en `horas_extras_festivos.py` para mantener
+este archivo bajo el límite de 500 líneas del Architecture Enforcer.
 
 Patrón: el router solo parsea, valida y delega al service.
 La lógica de negocio y el acceso a DB viven en horas_extras_service.py.
@@ -75,6 +82,7 @@ from ....services.novedades_nomina.horas_extras_workflow import (
     listar_eventos_calculo,
     compensar_bolsa,
 )
+from .horas_extras_festivos import router as festivos_subrouter
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +90,9 @@ router = APIRouter(
     prefix="/horas-extras",
     tags=["Nómina - Horas Extras"],
 )
+
+# S5' — Sub-router de festivos (mantiene este archivo bajo el límite de 500 líneas)
+router.include_router(festivos_subrouter)
 
 MODULO_HE = "nomina_horas_extras"
 
@@ -464,3 +475,5 @@ async def compensar_bolsa_endpoint(
         horas_disponibles_despues=resultado["horas_disponibles_despues"],
         mensaje=f"Se compensaron {resultado['horas_compensadas']}h de la bolsa de {payload.cedula}.",
     )
+# Los endpoints de festivos (/festivos/{anio} y /festivos/{anio}/sincronizar)
+# viven en el sub-router horas_extras_festivos.py, incluido arriba.

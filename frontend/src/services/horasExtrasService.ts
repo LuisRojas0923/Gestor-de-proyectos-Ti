@@ -24,6 +24,9 @@ import type {
   WorkflowEvento,
   CompensarBolsaRequest,
   CompensarBolsaResponse,
+  Festivo,
+  FestivoSincronizarResult,
+  FuenteFestivoQuery,
 } from '../types/horasExtras';
 
 const BASE = `${API_CONFIG.BASE_URL}/novedades-nomina/horas-extras`;
@@ -216,6 +219,28 @@ export async function compensarBolsa(
   return request<CompensarBolsaResponse>('/bolsa/compensar', {
     method: 'POST',
     body: JSON.stringify(payload),
+    token,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// S5' — Festivos
+// ---------------------------------------------------------------------------
+
+export async function listarFestivos(
+  anio: number,
+  fuente: FuenteFestivoQuery,
+  token: string,
+): Promise<Festivo[]> {
+  return request<Festivo[]>(`/festivos/${anio}${buildQuery({ fuente })}`, { token });
+}
+
+export async function sincronizarFestivos(
+  anio: number,
+  token: string,
+): Promise<FestivoSincronizarResult> {
+  return request<FestivoSincronizarResult>(`/festivos/${anio}/sincronizar`, {
+    method: 'POST',
     token,
   });
 }

@@ -64,6 +64,7 @@ import CalculoListView from './ServicePortal/pages/HORAS_EXTRAS/CalculoListView'
 import CalculoDetailView from './ServicePortal/pages/HORAS_EXTRAS/CalculoDetailView';
 import BolsaView from './ServicePortal/pages/HORAS_EXTRAS/BolsaView';
 import CostosOtView from './ServicePortal/pages/HORAS_EXTRAS/CostosOtView';
+import FestivosView from './ServicePortal/pages/HORAS_EXTRAS/FestivosView';
 
 import {
     CategoryWrapper,
@@ -440,6 +441,11 @@ const ServicePortal: React.FC = () => {
                 <Route path="horas-extras/costos-ot" element={
                     <ProtectedRoute moduleCode="nomina_horas_extras">
                         <CostosOtView />
+                    </ProtectedRoute>
+                } />
+                <Route path="horas-extras/festivos" element={
+                    <ProtectedRoute moduleCode="nomina_horas_extras">
+                        <FestivosView />
                     </ProtectedRoute>
                 } />
 

@@ -278,3 +278,24 @@ export interface CompensarBolsaResponse {
   horas_disponibles_despues: number;
   mensaje: string;
 }
+
+// ---------------------------------------------------------------------------
+// S5' — Festivos
+// ---------------------------------------------------------------------------
+
+export type FuenteFestivo = 'CALENDARIFIC' | 'LEY_EMILIANI';
+export type FuenteFestivoQuery = 'auto' | 'calendarific' | 'emiliani';
+
+export interface Festivo {
+  fecha: string;
+  nombre: string;
+  fuente: FuenteFestivo;
+}
+
+export interface FestivoSincronizarResult {
+  anio: number;
+  fuente: FuenteFestivo;
+  cantidad: number;
+  calendarific_error: string | null;
+  mensaje: string;
+}

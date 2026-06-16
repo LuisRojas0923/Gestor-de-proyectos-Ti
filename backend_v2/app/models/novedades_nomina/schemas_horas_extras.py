@@ -387,3 +387,21 @@ class CompensarBolsaResponse(SQLModel):
     horas_compensadas: float
     horas_disponibles_despues: float
     mensaje: str
+
+
+# ---------------------------------------------------------------------------
+# S5' — Festivos
+# ---------------------------------------------------------------------------
+
+class FestivoRead(SQLModel):
+    fecha: date
+    nombre: str
+    fuente: str  # 'CALENDARIFIC' | 'LEY_EMILIANI'
+
+
+class FestivoSincronizarResult(SQLModel):
+    anio: int
+    fuente: str
+    cantidad: int
+    calendarific_error: Optional[str] = None
+    mensaje: str

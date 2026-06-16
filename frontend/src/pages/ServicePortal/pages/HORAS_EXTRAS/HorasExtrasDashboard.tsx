@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Title, Text, Button, MaterialCard } from '../../../../components/atoms';
-import { ArrowLeft, Calculator, Clock, History, Wallet } from 'lucide-react';
+import { ArrowLeft, Calculator, Calendar, Clock, History, Wallet } from 'lucide-react';
 
 const ACCIONES = [
   {
@@ -31,6 +31,13 @@ const ACCIONES = [
     description: 'Costos consolidados de mano de obra extra por Orden de Trabajo.',
     icon: Clock,
     to: '/service-portal/horas-extras/costos-ot',
+  },
+  {
+    id: 'festivos',
+    title: 'Festivos Nacionales',
+    description: 'Calendario de festivos (Ley Emiliani) con sincronización opcional vía Calendarific.',
+    icon: Calendar,
+    to: '/service-portal/horas-extras/festivos',
   },
 ];
 

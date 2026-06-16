@@ -369,3 +369,29 @@ async def crear_tabla_workflow_evento(conn) -> None:
         conn,
         "CREATE INDEX IF NOT EXISTS idx_wf_evento_destino ON nomina_calculo_workflow_evento (estado_destino)",
     )
+
+
+async def crear_tabla_festivo_calendario(conn) -> None:
+    """Sprint S5': calendario de festivos nacionales con fuente (Calendarific | Emiliani)."""
+    logger.info("Creando tabla nomina_festivo_calendario (S5')...")
+    await safe_execute(
+        conn,
+        """
+        CREATE TABLE IF NOT EXISTS nomina_festivo_calendario (
+            anio INTEGER NOT NULL,
+            fecha DATE NOT NULL,
+            nombre VARCHAR(100) NOT NULL,
+            fuente VARCHAR(20) NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (anio, fecha)
+        )
+        """,
+    )
+    await safe_execute(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_festivo_cal_anio ON nomina_festivo_calendario (anio)",
+    )
+    await safe_execute(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_festivo_cal_fuente ON nomina_festivo_calendario (fuente)",
+    )

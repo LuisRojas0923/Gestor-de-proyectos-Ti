@@ -19,6 +19,8 @@ import {
   transicionarCalculo,
   obtenerHistorial,
   compensarBolsa,
+  listarFestivos,
+  sincronizarFestivos,
 } from '../services/horasExtrasService';
 import { API_CONFIG } from '../config/api';
 import type { PreLiquidacionInput, PreLiquidacionConfirmar } from '../types/horasExtras';
@@ -363,6 +365,53 @@ describe('horasExtrasService', () => {
           TOKEN,
         ),
       ).rejects.toThrow('Bolsa solo tiene 0.5h disponibles');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // S5' — Festivos
+  // -------------------------------------------------------------------------
+
+  describe('listarFestivos', () => {
+    it('GET a /festivos/{anio} con query fuente', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse([
+          { fecha: '2026-01-01', nombre: 'Año Nuevo', fuente: 'LEY_EMILIANI' },
+        ]),
+      );
+      const r = await listarFestivos(2026, 'auto', TOKEN);
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/festivos/2026?fuente=auto`);
+      expect(init.method).toBeUndefined();
+      expect(r).toHaveLength(1);
+      expect(r[0].fuente).toBe('LEY_EMILIANI');
+    });
+
+    it('acepta fuente calendarific y emiliani en la query', async () => {
+      fetchMock.mockResolvedValueOnce(mockJsonResponse([]));
+      await listarFestivos(2027, 'calendarific', TOKEN);
+      const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/festivos/2027?fuente=calendarific`);
+    });
+  });
+
+  describe('sincronizarFestivos', () => {
+    it('POST a /festivos/{anio}/sincronizar y devuelve calendarific_error si lo hay', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({
+          anio: 2026,
+          fuente: 'LEY_EMILIANI',
+          cantidad: 18,
+          calendarific_error: 'API caída',
+          mensaje: 'Sincronizado con Ley Emiliani',
+        }),
+      );
+      const r = await sincronizarFestivos(2026, TOKEN);
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/festivos/2026/sincronizar`);
+      expect(init.method).toBe('POST');
+      expect(r.fuente).toBe('LEY_EMILIANI');
+      expect(r.calendarific_error).toBe('API caída');
     });
   });
 });

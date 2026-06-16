@@ -432,3 +432,28 @@ class NominaCalculoWorkflowEvento(SQLModel, table=True):
     justificacion: Optional[str] = Field(default=None)
     usuario_id: Optional[str] = Field(default=None, max_length=50)
     created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
+
+
+# ---------------------------------------------------------------------------
+# 10. Calendario de festivos (S5')
+# ---------------------------------------------------------------------------
+
+class NominaFestivoCalendario(SQLModel, table=True):
+    """
+    Festivos nacionales de Colombia para un año dado.
+
+    Decisión S5': fuente ∈ {CALENDARIFIC, LEY_EMILIANI}. Calendarific es
+    preferido cuando CALENDARIFIC_API_KEY está configurada; si no, se usa
+    la tabla hardcodeada con la Ley Emiliani (Ley 51/1983) que mueve a
+    lunes los festivos que caen en domingo.
+
+    PK compuesta por (anio, fecha) para que un mismo año pueda tener sus
+    18 festivos únicos pero distintos años convivan en la misma tabla.
+    """
+    __tablename__ = "nomina_festivo_calendario"
+
+    anio: int = Field(primary_key=True)
+    fecha: date = Field(primary_key=True)
+    nombre: str = Field(max_length=100)
+    fuente: str = Field(max_length=20)  # 'CALENDARIFIC' | 'LEY_EMILIANI'
+    created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})
