@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Title, Text, Button, MaterialCard, Input, Select, Badge, Checkbox } from '../../../../components/atoms';
-import { ArrowLeft, Play, Save, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Play, Save, AlertTriangle, CheckCircle2, Clock, Settings2 } from 'lucide-react';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import {
   ejecutarPreLiquidacion,
   confirmarPreLiquidacion,
+  obtenerHorarioSemana,
 } from '../../../../services/horasExtrasService';
 import type {
   PreLiquidacionInput,
@@ -13,9 +14,16 @@ import type {
   PreLiquidacionConfirmar,
   ConfirmarDetalleItem,
   NivelRiesgoARL,
+  RegistroDiario,
 } from '../../../../types/horasExtras';
+import {
+  calcularHorasDia,
+  horarioPactadoARegistro,
+  labelDia,
+  totalHorasSemana,
+} from './utils/horarioUtils';
 
-const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+const HORAS_ORDINARIAS_DIARIAS = 8;
 
 const NIVELES: { value: NivelRiesgoARL; label: string }[] = [
   { value: 'I', label: 'Nivel I — Dirección' },
@@ -42,6 +50,14 @@ const getCurrentWeek = (): { anio: number; semana: number } => {
   return { anio: now.getFullYear(), semana: week };
 };
 
+const registroVacio = (): RegistroDiario[] =>
+  Array.from({ length: 7 }, (_, i) => ({
+    dia_semana: i + 1,
+    hora_entrada: null,
+    hora_salida: null,
+    minutos_almuerzo: 0,
+  }));
+
 const PreLiquidacionView: React.FC = () => {
   const navigate = useNavigate();
   const { addNotification } = useNotifications();
@@ -51,29 +67,65 @@ const PreLiquidacionView: React.FC = () => {
   const [cedula, setCedula] = useState('');
   const [anio, setAnio] = useState(initialWeek.anio);
   const [semana, setSemana] = useState(initialWeek.semana);
-  const [horas, setHoras] = useState<number[]>([8, 8, 8, 8, 8, 8, 8]);
+  const [registro, setRegistro] = useState<RegistroDiario[]>(registroVacio);
   const [esJornadaNocturna, setEsJornadaNocturna] = useState(false);
   const [salario, setSalario] = useState<number>(3_000_000);
   const [nivel, setNivel] = useState<NivelRiesgoARL>('III');
   const [otCodigo, setOtCodigo] = useState('');
   const [otId, setOtId] = useState<number | ''>('');
 
+  const [cargandoHorario, setCargandoHorario] = useState(false);
   const [calculando, setCalculando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [resultado, setResultado] = useState<PreLiquidacionResultado | null>(null);
 
-  const handleHorasChange = (idx: number, val: string) => {
-    const num = Number(val);
-    if (Number.isNaN(num)) return;
-    const next = [...horas];
-    next[idx] = Math.max(0, Math.min(24, num));
-    setHoras(next);
+  // Cálculos en vivo (no se envían al backend; son referencia para el usuario)
+  const horasPorDia = useMemo(
+    () => registro.map((r) => calcularHorasDia(r.hora_entrada, r.hora_salida, r.minutos_almuerzo)),
+    [registro],
+  );
+  const totalHorasTrabajadas = useMemo(() => horasPorDia.reduce((a, b) => a + b, 0), [horasPorDia]);
+  const horasExtrasEsperadas = useMemo(
+    () => horasPorDia.reduce((acc, h) => acc + Math.max(0, h - HORAS_ORDINARIAS_DIARIAS), 0),
+    [horasPorDia],
+  );
+
+  const updateDia = (idx: number, patch: Partial<RegistroDiario>) => {
+    setRegistro((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  };
+
+  const cargarHorario = async () => {
+    if (!cedula.trim()) {
+      addNotification('error', 'Ingresa la cédula primero');
+      return;
+    }
+    setCargandoHorario(true);
+    try {
+      const resp = await obtenerHorarioSemana(
+        cedula.trim(),
+        localStorage.getItem('token') || '',
+      );
+      // Pre-rellenar el registro con el horario pactado (es la jornada ordinaria
+      // — el usuario ajustará si se quedó más tiempo).
+      setRegistro(resp.dias.map(horarioPactadoARegistro));
+      addNotification('success', 'Horario del empleado cargado');
+    } catch (e: unknown) {
+      addNotification('error', e instanceof Error ? e.message : 'Error al cargar horario');
+    } finally {
+      setCargandoHorario(false);
+    }
   };
 
   const handleCalcular = async () => {
     if (!cedula.trim()) {
       addNotification('error', 'Debes ingresar la cédula del empleado');
       return;
+    }
+    if (totalHorasTrabajadas === 0) {
+      addNotification(
+        'warning',
+        'No hay horas trabajadas esta semana (todos los días en blanco)',
+      );
     }
     setCalculando(true);
     setResultado(null);
@@ -82,7 +134,9 @@ const PreLiquidacionView: React.FC = () => {
         cedula: cedula.trim(),
         anio,
         semana_iso: semana,
-        horas_por_dia: horas,
+        // horas_por_dia se sobreescribe en backend cuando registro_diario viene
+        horas_por_dia: horasPorDia,
+        registro_diario: registro,
         es_jornada_nocturna: esJornadaNocturna,
         salario_base_mensual: salario,
         nivel_riesgo_arl: nivel,
@@ -108,7 +162,6 @@ const PreLiquidacionView: React.FC = () => {
     if (!resultado) return;
     setConfirmando(true);
     try {
-      // fecha_inicio/fin aproximadas: lunes de la semana ISO
       const simple = new Date(Date.UTC(anio, 0, 1 + (semana - 1) * 7));
       const dayOffset = (simple.getUTCDay() + 6) % 7;
       const fechaInicio = new Date(simple);
@@ -157,7 +210,7 @@ const PreLiquidacionView: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <Button
           variant="secondary"
@@ -225,21 +278,109 @@ const PreLiquidacionView: React.FC = () => {
           />
         </div>
 
-        <Text className="font-medium mb-2 block">Horas trabajadas por día</Text>
-        <div className="grid grid-cols-7 gap-2 mb-6">
-          {DIAS.map((d, i) => (
-            <div key={d}>
-              <Text className="text-xs text-center block mb-1">{d}</Text>
-              <Input
-                type="number"
-                min={0}
-                max={24}
-                step={0.5}
-                value={horas[i]}
-                onChange={(e) => handleHorasChange(i, e.target.value)}
-              />
-            </div>
-          ))}
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <Text className="font-medium block">Jornada real de la semana (formato reloj)</Text>
+            <Text className="text-xs text-slate-500">
+              Teclea la hora de entrada y salida. El sistema descuenta el almuerzo y calcula
+              las horas extras sobre las 8h ordinarias diarias.
+            </Text>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={cargarHorario}
+            disabled={cargandoHorario || !cedula.trim()}
+          >
+            <Settings2 className="w-4 h-4 mr-2" />
+            {cargandoHorario ? 'Cargando...' : 'Cargar horario del empleado'}
+          </Button>
+        </div>
+
+        <div className="overflow-x-auto mb-3">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-slate-600 border-b">
+                <th className="py-2 pr-3 w-16">Día</th>
+                <th className="py-2 pr-3">Entrada</th>
+                <th className="py-2 pr-3">Salida</th>
+                <th className="py-2 pr-3 w-32">Almuerzo (min)</th>
+                <th className="py-2 pr-3 w-28 text-right">Horas trab.</th>
+                <th className="py-2 pr-3 w-28 text-right">HE esperadas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {registro.map((r, idx) => {
+                const trabajadas = horasPorDia[idx];
+                const he = Math.max(0, trabajadas - HORAS_ORDINARIAS_DIARIAS);
+                return (
+                  <tr key={r.dia_semana} className="border-b last:border-b-0">
+                    <td className="py-2 pr-3 align-middle">
+                      <Badge variant={idx < 5 ? 'default' : 'info'} size="sm">
+                        {labelDia(r.dia_semana)}
+                      </Badge>
+                    </td>
+                    <td className="py-2 pr-3">
+                      <Input
+                        type="time"
+                        value={r.hora_entrada ?? ''}
+                        onChange={(e) =>
+                          updateDia(idx, {
+                            hora_entrada: e.target.value === '' ? null : e.target.value,
+                          })
+                        }
+                      />
+                    </td>
+                    <td className="py-2 pr-3">
+                      <Input
+                        type="time"
+                        value={r.hora_salida ?? ''}
+                        onChange={(e) =>
+                          updateDia(idx, {
+                            hora_salida: e.target.value === '' ? null : e.target.value,
+                          })
+                        }
+                      />
+                    </td>
+                    <td className="py-2 pr-3">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={240}
+                        step={5}
+                        value={r.minutos_almuerzo}
+                        onChange={(e) =>
+                          updateDia(idx, {
+                            minutos_almuerzo: Math.max(0, Math.min(240, Number(e.target.value) || 0)),
+                          })
+                        }
+                      />
+                    </td>
+                    <td className="py-2 pr-3 text-right align-middle">
+                      <Text className={trabajadas === 0 ? 'text-slate-400' : 'font-medium'}>
+                        {trabajadas.toFixed(2)}h
+                      </Text>
+                    </td>
+                    <td className="py-2 pr-3 text-right align-middle">
+                      <Text className={he > 0 ? 'font-bold text-[var(--color-primary)]' : 'text-slate-400'}>
+                        {he.toFixed(2)}h
+                      </Text>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-slate-300">
+                <td colSpan={4} className="py-2 pr-3 text-right font-medium">
+                  Total semana
+                </td>
+                <td className="py-2 pr-3 text-right font-bold">{totalHorasTrabajadas.toFixed(2)}h</td>
+                <td className="py-2 pr-3 text-right font-bold text-[var(--color-primary)]">
+                  {horasExtrasEsperadas.toFixed(2)}h
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
 
         <div className="flex justify-end">

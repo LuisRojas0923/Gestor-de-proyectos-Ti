@@ -3,12 +3,27 @@ Schemas Pydantic/SQLModel para el módulo de Horas Extras y Pre-liquidación.
 
 Convención del proyecto: usar `SQLModel` con `ConfigDict(from_attributes=True)`
 para que las respuestas se serialicen directo desde los modelos ORM.
+
+Los schemas de horario semanal editable (S5'') viven en
+``schemas_horario_semana`` y se re-exportan aquí por compatibilidad.
 """
 import enum
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Optional, List
 from pydantic import ConfigDict, Field, field_validator
 from sqlmodel import SQLModel
+
+from .schemas_horario_semana import (  # noqa: F401  (re-exports)
+    HorarioPactadoDiaRead,
+    HorarioPactadoDiaUpdate,
+    HorarioPactadoSemanaRead,
+    HorarioPactadoSemanaUpdate,
+    RegistroDiarioInput,
+)
+from .schemas_festivos import (  # noqa: F401  (re-exports)
+    FestivoRead,
+    FestivoSincronizarResult,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +152,10 @@ class OverrideAutorizaHERead(SQLModel):
 class PreLiquidacionInput(SQLModel):
     """
     Input para el cálculo de horas extras semanales.
-    horas_por_dia: lista de 7 días, Lunes a Domingo.
+    horas_por_dia: lista de 7 días, Lunes a Domingo. Si se pasa `registro_diario`
+    con 7 entradas, el backend sobreescribe horas_por_dia derivándolas de las
+    horas reales (salida - entrada - almuerzo). Si no, se usa horas_por_dia
+    directo (compatibilidad hacia atrás).
     codigos_por_dia: para cada día, lista de códigos de novedad aplicables (opcional).
     """
     cedula: str = Field(min_length=1, max_length=50)
@@ -151,6 +169,13 @@ class PreLiquidacionInput(SQLModel):
     codigos_por_dia: Optional[List[List[str]]] = Field(
         default=None,
         description="Para cada día, lista de códigos de novedad (ej. ['HED','HEN']).",
+    )
+    registro_diario: Optional[List[RegistroDiarioInput]] = Field(
+        default=None,
+        min_length=7,
+        max_length=7,
+        description="Si se envía, sobreescribe horas_por_dia con la derivación "
+        "(salida - entrada - almuerzo). Cada entrada corresponde a Lun-Dom.",
     )
     es_jornada_nocturna: bool = False
     salario_base_mensual: float = Field(gt=0, description="Salario base mensual del empleado")
@@ -396,21 +421,8 @@ class CompensarBolsaResponse(SQLModel):
 
 
 # ---------------------------------------------------------------------------
-# S5' — Festivos
+# S5' — Festivos (schemas en schemas_festivos.py, re-exportados abajo)
 # ---------------------------------------------------------------------------
-
-class FestivoRead(SQLModel):
-    fecha: date
-    nombre: str
-    fuente: str  # 'CALENDARIFIC' | 'LEY_EMILIANI'
-
-
-class FestivoSincronizarResult(SQLModel):
-    anio: int
-    fuente: str
-    cantidad: int
-    calendarific_error: Optional[str] = None
-    mensaje: str
 
 
 # ---------------------------------------------------------------------------

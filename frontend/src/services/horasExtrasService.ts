@@ -10,6 +10,8 @@ import { API_CONFIG } from '../config/api';
 import type {
   NovedadCatalogo,
   HorarioPactado,
+  HorarioPactadoSemana,
+  HorarioPactadoDiaUpdate,
   AutorizacionEfectiva,
   PreLiquidacionInput,
   PreLiquidacionResultado,
@@ -109,6 +111,32 @@ export async function obtenerAutorizacionEfectiva(
   return request<AutorizacionEfectiva>(`/autorizacion/${encodeURIComponent(cedula)}`, {
     token,
   });
+}
+
+// S5'' — Horario pactado por día (L-D) editable
+export async function obtenerHorarioSemana(
+  cedula: string,
+  token: string,
+): Promise<HorarioPactadoSemana> {
+  return request<HorarioPactadoSemana>(
+    `/horario/${encodeURIComponent(cedula)}/semana`,
+    { token },
+  );
+}
+
+export async function actualizarHorarioSemana(
+  cedula: string,
+  dias: HorarioPactadoDiaUpdate[],
+  token: string,
+): Promise<HorarioPactadoSemana> {
+  return request<HorarioPactadoSemana>(
+    `/horario/${encodeURIComponent(cedula)}/semana`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ dias }),
+      token,
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------

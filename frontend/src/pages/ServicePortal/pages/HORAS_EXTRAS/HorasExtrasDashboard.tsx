@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Title, Text, Button, MaterialCard } from '../../../../components/atoms';
-import { ArrowLeft, Calculator, Calendar, ClipboardList, Clock, History, Wallet } from 'lucide-react';
+import { ArrowLeft, Calculator, Calendar, CalendarDays, ClipboardList, Clock, History, Wallet } from 'lucide-react';
 
 const ACCIONES = [
   {
@@ -38,6 +38,13 @@ const ACCIONES = [
     description: 'Calendario de festivos (Ley Emiliani) con sincronización opcional vía Calendarific.',
     icon: Calendar,
     to: '/service-portal/horas-extras/festivos',
+  },
+  {
+    id: 'horario',
+    title: 'Horario Semanal',
+    description: 'Configura la jornada de cada empleado (entrada, salida, almuerzo por día).',
+    icon: CalendarDays,
+    to: '/service-portal/horas-extras/horario',
   },
   {
     id: 'novedades',

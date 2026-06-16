@@ -439,3 +439,26 @@ async def crear_tabla_novedad_evento(conn) -> None:
         conn,
         "CREATE INDEX IF NOT EXISTS idx_nov_evento_rango ON nomina_novedad_evento (cedula, fecha_inicio, fecha_fin)",
     )
+
+
+async def crear_tabla_horario_pactado_dia(conn) -> None:
+    """Sprint S5'': detalle diario del horario pactado (hora_entrada/salida/almuerzo)."""
+    logger.info("Creando tabla nomina_horario_pactado_dia (S5'')...")
+    await safe_execute(
+        conn,
+        """
+        CREATE TABLE IF NOT EXISTS nomina_horario_pactado_dia (
+            cedula VARCHAR(50) NOT NULL
+                REFERENCES nomina_horario_pactado(cedula) ON DELETE CASCADE,
+            dia_semana INT NOT NULL CHECK (dia_semana BETWEEN 1 AND 7),
+            hora_entrada TIME,
+            hora_salida TIME,
+            minutos_almuerzo INT NOT NULL DEFAULT 0 CHECK (minutos_almuerzo BETWEEN 0 AND 240),
+            PRIMARY KEY (cedula, dia_semana)
+        )
+        """,
+    )
+    await safe_execute(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_horario_dia_cedula ON nomina_horario_pactado_dia (cedula)",
+    )

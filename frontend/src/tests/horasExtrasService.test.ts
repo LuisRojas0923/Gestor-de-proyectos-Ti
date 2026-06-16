@@ -27,9 +27,15 @@ import {
   actualizarNovedad,
   confirmarNovedad,
   anularNovedad,
+  obtenerHorarioSemana,
+  actualizarHorarioSemana,
 } from '../services/horasExtrasService';
 import { API_CONFIG } from '../config/api';
-import type { PreLiquidacionInput, PreLiquidacionConfirmar } from '../types/horasExtras';
+import type {
+  PreLiquidacionInput,
+  PreLiquidacionConfirmar,
+  HorarioPactadoDiaUpdate,
+} from '../types/horasExtras';
 
 const BASE = `${API_CONFIG.BASE_URL}/novedades-nomina/horas-extras`;
 const TOKEN = 'fake-token-123';
@@ -589,6 +595,87 @@ describe('horasExtrasService', () => {
       await expect(
         anularNovedad(7, { justificacion: 'x' }, TOKEN),
       ).rejects.toThrow(/justificacion/);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // S5'' — Horario semanal editable
+  // -------------------------------------------------------------------------
+
+  describe('obtenerHorarioSemana', () => {
+    it('GET a /horario/{cedula}/semana y devuelve 7 días (5 laborales + 2 francos)', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({
+          cedula: '1107068093',
+          dias: [
+            { dia_semana: 1, hora_entrada: '07:30:00', hora_salida: '17:00:00', minutos_almuerzo: 30 },
+            { dia_semana: 2, hora_entrada: '07:30:00', hora_salida: '17:00:00', minutos_almuerzo: 30 },
+            { dia_semana: 3, hora_entrada: '07:30:00', hora_salida: '17:00:00', minutos_almuerzo: 30 },
+            { dia_semana: 4, hora_entrada: '07:30:00', hora_salida: '17:00:00', minutos_almuerzo: 30 },
+            { dia_semana: 5, hora_entrada: '07:30:00', hora_salida: '17:30:00', minutos_almuerzo: 30 },
+            { dia_semana: 6, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0 },
+            { dia_semana: 7, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0 },
+          ],
+        }),
+      );
+      const r = await obtenerHorarioSemana('1107068093', TOKEN);
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/horario/1107068093/semana`);
+      expect(init.method).toBeUndefined();
+      expect((init.headers as Record<string, string>).Authorization).toBe(`Bearer ${TOKEN}`);
+      expect(r.dias).toHaveLength(7);
+      expect(r.dias[5].hora_entrada).toBeNull();
+      expect(r.dias[6].hora_salida).toBeNull();
+    });
+
+    it('codifica la cédula en la URL', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({ cedula: '1 2 3', dias: [] }),
+      );
+      await obtenerHorarioSemana('1 2 3', TOKEN);
+      const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/horario/1%202%203/semana`);
+    });
+  });
+
+  describe('actualizarHorarioSemana', () => {
+    const buildDias = (): HorarioPactadoDiaUpdate[] =>
+      [1, 2, 3, 4, 5].map((d) => ({
+        dia_semana: d,
+        hora_entrada: '07:30:00',
+        hora_salida: d === 5 ? '17:30:00' : '17:00:00',
+        minutos_almuerzo: 30,
+      })).concat([
+        { dia_semana: 6, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0 },
+        { dia_semana: 7, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0 },
+      ]);
+
+    it('PUT a /horario/{cedula}/semana con 7 días en el body', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse({ cedula: '1107068093', dias: [] }),
+      );
+      const dias = buildDias();
+      await actualizarHorarioSemana('1107068093', dias, TOKEN);
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/horario/1107068093/semana`);
+      expect(init.method).toBe('PUT');
+      expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
+      const body = JSON.parse(init.body as string);
+      expect(body.dias).toHaveLength(7);
+      expect(body.dias[4].hora_salida).toBe('17:30:00');
+      expect(body.dias[5].hora_entrada).toBeNull();
+    });
+
+    it('propaga error 422 cuando los días no son 7', async () => {
+      fetchMock.mockResolvedValueOnce(
+        mockJsonResponse(
+          { detail: 'dias: List should have at least 7 items after validation, not 5' },
+          422,
+        ),
+      );
+      await expect(
+        actualizarHorarioSemana('1', buildDias().slice(0, 5), TOKEN),
+      ).rejects.toThrow(/at least 7 items/);
     });
   });
 });

@@ -66,8 +66,47 @@ export interface AutorizacionEfectiva {
 }
 
 // ---------------------------------------------------------------------------
+// S5'' — Horario pactado por día (L-D) editable
+// ---------------------------------------------------------------------------
+
+export interface HorarioPactadoDia {
+  cedula: string;
+  /** 1=Lun ... 7=Dom */
+  dia_semana: number;
+  /** HH:MM o null para días libres (sábado/domingo o franco) */
+  hora_entrada: string | null;
+  /** HH:MM o null para días libres */
+  hora_salida: string | null;
+  /** Minutos de almuerzo (0-240) */
+  minutos_almuerzo: number;
+}
+
+export interface HorarioPactadoSemana {
+  cedula: string;
+  dias: HorarioPactadoDia[];
+}
+
+export interface HorarioPactadoDiaUpdate {
+  dia_semana: number;
+  hora_entrada: string | null;
+  hora_salida: string | null;
+  minutos_almuerzo: number;
+}
+
+// ---------------------------------------------------------------------------
 // Pre-liquidación: input
 // ---------------------------------------------------------------------------
+
+export interface RegistroDiario {
+  /** 1=Lun ... 7=Dom */
+  dia_semana: number;
+  /** HH:MM o null para días libres */
+  hora_entrada: string | null;
+  /** HH:MM o null para días libres */
+  hora_salida: string | null;
+  /** Minutos de almuerzo (0-240) */
+  minutos_almuerzo: number;
+}
 
 export interface PreLiquidacionInput {
   cedula: string;
@@ -75,6 +114,12 @@ export interface PreLiquidacionInput {
   semana_iso: number;
   horas_por_dia: number[];
   codigos_por_dia?: string[][] | null;
+  /**
+   * S5'' UX: jornada REAL por día en formato reloj. Si se envía, el backend
+   * sobreescribe horas_por_dia derivándolo de (salida - entrada) - almuerzo.
+   * Días libres: hora_entrada = null.
+   */
+  registro_diario?: RegistroDiario[] | null;
   es_jornada_nocturna: boolean;
   salario_base_mensual: number;
   nivel_riesgo_arl: NivelRiesgoARL;
@@ -85,8 +130,6 @@ export interface PreLiquidacionInput {
 // ---------------------------------------------------------------------------
 // Pre-liquidación: output
 // ---------------------------------------------------------------------------
-
-export interface DetalleCalculoItem {
   codigo_novedad: string;
   horas: number;
   factor_hora_ordinaria: number;

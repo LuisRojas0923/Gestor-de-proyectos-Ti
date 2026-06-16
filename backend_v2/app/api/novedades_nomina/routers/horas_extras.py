@@ -84,6 +84,7 @@ from ....services.novedades_nomina.horas_extras_workflow import (
 )
 from .horas_extras_festivos import router as festivos_subrouter
 from .horas_extras_novedades import router as novedades_subrouter
+from .horas_extras_horario_semana import router as horario_semana_subrouter
 
 logger = logging.getLogger(__name__)
 

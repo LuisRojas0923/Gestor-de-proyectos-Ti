@@ -12,6 +12,7 @@ from datetime import date, datetime
 from typing import List, Optional, Tuple
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete
 
 from ...models.novedades_nomina.horas_extras import (
     NominaCatalogoNovedad,
@@ -114,7 +115,16 @@ async def ejecutar_pre_liquidacion(
     """
     Versión con DB: carga catálogo y factor prestacional, luego delega
     a la función pura `calcular_pre_liquidacion`.
+
+    Si `input_data.registro_diario` viene con 7 entradas, sobreescribe
+    `horas_por_dia` derivándolo de las horas reales (entrada/salida/almuerzo).
     """
+    # Si el cliente mandó el registro reloj (entrada/salida/almuerzo), derivamos
+    # las horas trabajadas por día. Esto refleja la UX natural: el usuario teclea
+    # las horas del reloj y el sistema calcula, en lugar de forzar aritmética mental.
+    if input_data.registro_diario is not None:
+        input_data = _aplicar_registro_diario(input_data)
+
     novedades_db = await listar_catalogo_vigente(session)
     catalogo = [
         {
@@ -135,6 +145,50 @@ async def ejecutar_pre_liquidacion(
 
     # La autorización se resuelve en el router (que inyecta advertencia al cliente).
     return calcular_pre_liquidacion(input_data, catalogo, factor_obj.factor_prestacional)
+
+
+def _aplicar_registro_diario(input_data: PreLiquidacionInput) -> PreLiquidacionInput:
+    """
+    Deriva horas_por_dia del registro reloj (entrada/salida/almuerzo).
+
+    Reglas:
+      - Días libres (hora_entrada o hora_salida null) → 0h trabajadas.
+      - (hora_salida - hora_entrada) da minutos brutos; se resta minutos_almuerzo.
+      - Resultado se redondea a 2 decimales (cuarto de hora).
+      - registro_diario debe estar ordenado por dia_semana 1..7 (L-D); si no,
+        se reordena para alinear con horas_por_dia.
+    """
+    from ...models.novedades_nomina.schemas_horas_extras import RegistroDiarioInput  # noqa: F401
+
+    if len(input_data.registro_diario or []) != 7:
+        raise ValueError("registro_diario debe tener exactamente 7 entradas (L-D)")
+
+    ordenados: List[RegistroDiarioInput] = sorted(
+        input_data.registro_diario, key=lambda r: r.dia_semana
+    )
+    nuevas_horas: List[float] = []
+    for i, r in enumerate(ordenados):
+        if r.dia_semana != i + 1:
+            raise ValueError(
+                f"registro_diario debe cubrir días 1-7 consecutivos; falta día {i + 1}"
+            )
+        if r.hora_entrada is None or r.hora_salida is None:
+            nuevas_horas.append(0.0)
+            continue
+        minutos_brutos = (
+            (r.hora_salida.hour * 60 + r.hora_salida.minute)
+            - (r.hora_entrada.hour * 60 + r.hora_entrada.minute)
+        )
+        if minutos_brutos < 0:
+            raise ValueError(
+                f"registro_diario[{i + 1}]: hora_salida debe ser posterior a hora_entrada"
+            )
+        minutos_efectivos = minutos_brutos - r.minutos_almuerzo
+        nuevas_horas.append(round(max(0.0, minutos_efectivos / 60.0), 2))
+
+    # Reemplazamos horas_por_dia in-place (es mutable en SQLModel).
+    input_data.horas_por_dia = nuevas_horas
+    return input_data
 
 
 # ---------------------------------------------------------------------------

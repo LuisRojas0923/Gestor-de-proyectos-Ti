@@ -65,6 +65,7 @@ import CalculoDetailView from './ServicePortal/pages/HORAS_EXTRAS/CalculoDetailV
 import BolsaView from './ServicePortal/pages/HORAS_EXTRAS/BolsaView';
 import CostosOtView from './ServicePortal/pages/HORAS_EXTRAS/CostosOtView';
 import FestivosView from './ServicePortal/pages/HORAS_EXTRAS/FestivosView';
+import HorarioSemanaView from './ServicePortal/pages/HORAS_EXTRAS/HorarioSemanaView';
 import NovedadesView from './ServicePortal/pages/HORAS_EXTRAS/NovedadesView';
 import NovedadFormView from './ServicePortal/pages/HORAS_EXTRAS/NovedadFormView';
 
@@ -448,6 +449,16 @@ const ServicePortal: React.FC = () => {
                 <Route path="horas-extras/festivos" element={
                     <ProtectedRoute moduleCode="nomina_horas_extras">
                         <FestivosView />
+                    </ProtectedRoute>
+                } />
+                <Route path="horas-extras/horario" element={
+                    <ProtectedRoute moduleCode="nomina_horas_extras">
+                        <HorarioSemanaView />
+                    </ProtectedRoute>
+                } />
+                <Route path="horas-extras/horario/:cedula" element={
+                    <ProtectedRoute moduleCode="nomina_horas_extras">
+                        <HorarioSemanaView />
                     </ProtectedRoute>
                 } />
                 <Route path="horas-extras/novedades" element={
