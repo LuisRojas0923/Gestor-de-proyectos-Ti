@@ -8,7 +8,7 @@ El cálculo puro vive en `horas_extras_calculo.py` y la confirmación/lectura
 vive en `horas_extras_confirmacion.py` para mantener cada archivo <500 líneas.
 """
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import List, Optional, Tuple
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,8 +27,20 @@ from ...models.novedades_nomina.schemas_horas_extras import (
     OverrideAutorizaHECreate,
 )
 from .horas_extras_calculo import calcular_pre_liquidacion
+from .festivos_service import listar_festivos
+from .horas_extras_novedades import listar_novedades
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Constantes de dominio — códigos de HE festiva
+# ---------------------------------------------------------------------------
+CODIGO_HE_FESTIVA_DIURNA = "HEFD"
+CODIGO_HE_FESTIVA_NOCTURNA = "HEFN"
+CODIGO_HE_DIURNA = "HED"
+CODIGO_HE_NOCTURNA = "HEN"
+CODIGOS_NOVEDAD_SUPRESION = {"VAC", "LIC", "INC", "AUS"}
 
 
 # ---------------------------------------------------------------------------
@@ -118,12 +130,21 @@ async def ejecutar_pre_liquidacion(
 
     Si `input_data.registro_diario` viene con 7 entradas, sobreescribe
     `horas_por_dia` derivándolo de las horas reales (entrada/salida/almuerzo).
+
+    S5''' — cruza con festivos y novedades CONFIRMADAS de la semana:
+      - Festivo → HEFD/HEFN en vez de HED/HEN
+      - Novedad (VAC/LIC/INC/AUS) → 0h (suprime HE para ese día)
     """
     # Si el cliente mandó el registro reloj (entrada/salida/almuerzo), derivamos
     # las horas trabajadas por día. Esto refleja la UX natural: el usuario teclea
     # las horas del reloj y el sistema calcula, en lugar de forzar aritmética mental.
     if input_data.registro_diario is not None:
         input_data = _aplicar_registro_diario(input_data)
+
+    # S5''' — Auto-inferir codigos_por_dia desde festivos y novedades confirmadas
+    # de la semana. Si el cliente mandó codigos_por_dia explícito, se respeta como
+    # override día a día (None en una posición = vuelve al default).
+    input_data = await _aplicar_contexto_festivos_y_novedades(session, input_data)
 
     novedades_db = await listar_catalogo_vigente(session)
     catalogo = [
@@ -188,6 +209,108 @@ def _aplicar_registro_diario(input_data: PreLiquidacionInput) -> PreLiquidacionI
 
     # Reemplazamos horas_por_dia in-place (es mutable en SQLModel).
     input_data.horas_por_dia = nuevas_horas
+    return input_data
+
+
+# ---------------------------------------------------------------------------
+# S5''' — Integración con festivos y novedades confirmadas
+# ---------------------------------------------------------------------------
+
+def _lunes_de_semana_iso(anio: int, semana_iso: int) -> date:
+    """Devuelve el lunes (date) de la semana ISO (anio, semana_iso)."""
+    return date.fromisocalendar(anio, semana_iso, 1)
+
+
+async def _aplicar_contexto_festivos_y_novedades(
+    session: AsyncSession,
+    input_data: PreLiquidacionInput,
+) -> PreLiquidacionInput:
+    """
+    Cruza la semana (anio, semana_iso) con festivos y novedades CONFIRMADAS
+    para auto-armar `codigos_por_dia` y, si aplica, suprimir HE los días con
+    novedad de tipo VAC/LIC/INC/AUS.
+
+    Reglas:
+      - Festivo + diurna → HEFD
+      - Festivo + nocturna → HEFN
+      - Novedad (VAC/LIC/INC/AUS) cubriendo el día → horas_por_dia=0, codigos=[]
+        (la novedad manda sobre el festivo: si el lunes es festivo y la persona
+         está de VAC ese día, no se devenga HEFD porque no trabajó).
+      - Sin festivo ni novedad → respeta `input_data.codigos_por_dia[idx]`
+        si el cliente lo envió; si no, default HED/HEN.
+    """
+    fecha_inicio = _lunes_de_semana_iso(input_data.anio, input_data.semana_iso)
+    fecha_fin = fecha_inicio + timedelta(days=6)
+
+    # Festivos del año, filtrados al rango de la semana
+    try:
+        festivos_anio = await listar_festivos(session, input_data.anio, fuente="auto")
+    except Exception as exc:
+        logger.warning("No se pudieron cargar festivos para auto-fill: %s", exc)
+        festivos_anio = []
+    festivos_set: set[date] = {f["fecha"] for f in festivos_anio}
+
+    # Novedades CONFIRMADAS que intersectan la semana (semántica overlap del listar)
+    try:
+        novedades_semana = await listar_novedades(
+            session,
+            cedula=input_data.cedula,
+            fecha_desde=fecha_inicio,
+            fecha_hasta=fecha_fin,
+            estado="CONFIRMADO",
+            limit=200,
+        )
+    except Exception as exc:
+        logger.warning("No se pudieron cargar novedades para auto-fill: %s", exc)
+        novedades_semana = []
+
+    # Indexar novedades por fecha: para cada día de la semana, qué códigos
+    # de supresión aplican.
+    novedades_por_fecha: dict[date, list[str]] = {fecha_inicio + timedelta(days=i): [] for i in range(7)}
+    for n in novedades_semana:
+        if n.codigo_novedad not in CODIGOS_NOVEDAD_SUPRESION:
+            continue
+        # Expandir el rango de la novedad sobre los días 1..7 que toca
+        d = max(n.fecha_inicio, fecha_inicio)
+        fin = min(n.fecha_fin, fecha_fin)
+        while d <= fin:
+            if d in novedades_por_fecha:
+                if n.codigo_novedad not in novedades_por_fecha[d]:
+                    novedades_por_fecha[d].append(n.codigo_novedad)
+            d = d + timedelta(days=1)
+
+    # Si el cliente mandó codigos_por_dia, lo respetamos. Si no, lista vacía
+    # (la función pura del motor le pone HED/HEN por defecto).
+    enviado = input_data.codigos_por_dia
+    if enviado is None:
+        enviado = [None] * 7
+    else:
+        enviado = list(enviado) + [None] * (7 - len(enviado))
+
+    nuevos_codigos: List[Optional[List[str]]] = []
+    horas = list(input_data.horas_por_dia) + [0.0] * (7 - len(input_data.horas_por_dia))
+    nuevas_horas: List[float] = []
+
+    for dia_idx in range(7):
+        fecha = fecha_inicio + timedelta(days=dia_idx)
+        supresiones = novedades_por_fecha.get(fecha, [])
+        if supresiones:
+            # Novedad manda: 0h trabajadas, sin códigos de HE
+            nuevas_horas.append(0.0)
+            nuevos_codigos.append([])
+        elif fecha in festivos_set:
+            # Festivo: HEFD/HEFN según jornada
+            nuevos_codigos.append(
+                [CODIGO_HE_FESTIVA_NOCTURNA if input_data.es_jornada_nocturna else CODIGO_HE_FESTIVA_DIURNA]
+            )
+            nuevas_horas.append(horas[dia_idx])
+        else:
+            # Día normal: respetar lo enviado o None (motor pone HED/HEN)
+            nuevos_codigos.append(enviado[dia_idx])
+            nuevas_horas.append(horas[dia_idx])
+
+    input_data.horas_por_dia = nuevas_horas
+    input_data.codigos_por_dia = nuevos_codigos  # type: ignore[assignment]
     return input_data
 
 

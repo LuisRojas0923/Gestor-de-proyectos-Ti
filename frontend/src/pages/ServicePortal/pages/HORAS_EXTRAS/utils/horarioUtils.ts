@@ -61,3 +61,45 @@ export const DIAS_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] a
 
 export const labelDia = (diaSemana: number): string =>
   DIAS_LABELS[diaSemana - 1] ?? `D${diaSemana}`;
+
+/**
+ * Devuelve el lunes de la semana ISO (anio, semana) como Date en UTC.
+ * Espejo del backend `_lunes_de_semana_iso` (date.fromisocalendar).
+ */
+export const lunesDeSemanaIso = (anio: number, semanaIso: number): Date => {
+  // Truco: 4 de enero siempre está en la semana 1 según ISO 8601.
+  // Buscamos el lunes de esa semana y luego avanzamos (semanaIso - 1) * 7 días.
+  const jan4 = new Date(Date.UTC(anio, 0, 4));
+  const jan4Day = jan4.getUTCDay() || 7; // 1=lun, 7=dom
+  const lunesW1 = new Date(jan4);
+  lunesW1.setUTCDate(jan4.getUTCDate() - (jan4Day - 1));
+  lunesW1.setUTCDate(lunesW1.getUTCDate() + (semanaIso - 1) * 7);
+  return lunesW1;
+};
+
+/**
+ * Devuelve las 7 fechas (Date, UTC) de la semana empezando en lunes.
+ */
+export const fechasDeSemanaIso = (anio: number, semanaIso: number): Date[] => {
+  const lunes = lunesDeSemanaIso(anio, semanaIso);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(lunes);
+    d.setUTCDate(lunes.getUTCDate() + i);
+    return d;
+  });
+};
+
+/**
+ * Formato ISO YYYY-MM-DD de una fecha UTC (sin ajuste de timezone).
+ */
+export const fechaIsoCorta = (d: Date): string => d.toISOString().slice(0, 10);
+
+/**
+ * S5''' — Determina si una fecha cae en el rango [inicio, fin] inclusivo.
+ * Las fechas son strings YYYY-MM-DD.
+ */
+export const fechaEnRango = (
+  fecha: string,
+  inicio: string,
+  fin: string,
+): boolean => fecha >= inicio && fecha <= fin;

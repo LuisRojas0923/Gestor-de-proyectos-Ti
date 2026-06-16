@@ -12,6 +12,10 @@ import {
   labelDia,
   DIAS_LABELS,
   esHoraValida,
+  lunesDeSemanaIso,
+  fechasDeSemanaIso,
+  fechaIsoCorta,
+  fechaEnRango,
 } from '../pages/ServicePortal/pages/HORAS_EXTRAS/utils/horarioUtils';
 import type { HorarioPactadoDia, RegistroDiario } from '../types/horasExtras';
 
@@ -122,6 +126,58 @@ describe('horarioUtils', () => {
     it('fuera de rango devuelve fallback', () => {
       expect(labelDia(0)).toBe('D0');
       expect(labelDia(8)).toBe('D8');
+    });
+  });
+
+  describe('lunesDeSemanaIso (S5ppp)', () => {
+    it('W25 de 2026 es lunes 2026-06-15', () => {
+      const d = lunesDeSemanaIso(2026, 25);
+      expect(d.toISOString().slice(0, 10)).toBe('2026-06-15');
+      expect(d.getUTCDay()).toBe(1); // lunes
+    });
+
+    it('W1 de 2026 cae en lunes', () => {
+      const d = lunesDeSemanaIso(2026, 1);
+      expect(d.getUTCDay()).toBe(1);
+    });
+
+    it('W53 de 2020 (año con 53 semanas) cae en lunes 2020-12-28', () => {
+      const d = lunesDeSemanaIso(2020, 53);
+      expect(d.toISOString().slice(0, 10)).toBe('2020-12-28');
+    });
+  });
+
+  describe('fechasDeSemanaIso (S5ppp)', () => {
+    it('devuelve 7 fechas consecutivas a partir del lunes', () => {
+      const fs = fechasDeSemanaIso(2026, 25);
+      expect(fs).toHaveLength(7);
+      expect(fs.map((d) => d.toISOString().slice(0, 10))).toEqual([
+        '2026-06-15',
+        '2026-06-16',
+        '2026-06-17',
+        '2026-06-18',
+        '2026-06-19',
+        '2026-06-20',
+        '2026-06-21',
+      ]);
+    });
+  });
+
+  describe('fechaIsoCorta', () => {
+    it('YYYY-MM-DD en UTC', () => {
+      expect(fechaIsoCorta(new Date(Date.UTC(2026, 5, 15, 12, 0, 0)))).toBe('2026-06-15');
+    });
+  });
+
+  describe('fechaEnRango (S5ppp)', () => {
+    it('inclusivo en ambos extremos', () => {
+      expect(fechaEnRango('2026-06-15', '2026-06-15', '2026-06-17')).toBe(true);
+      expect(fechaEnRango('2026-06-17', '2026-06-15', '2026-06-17')).toBe(true);
+    });
+
+    it('false fuera del rango', () => {
+      expect(fechaEnRango('2026-06-14', '2026-06-15', '2026-06-17')).toBe(false);
+      expect(fechaEnRango('2026-06-18', '2026-06-15', '2026-06-17')).toBe(false);
     });
   });
 });

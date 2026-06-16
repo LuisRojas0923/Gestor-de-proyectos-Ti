@@ -1,12 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Title, Text, Button, MaterialCard, Input, Select, Badge, Checkbox } from '../../../../components/atoms';
-import { ArrowLeft, Play, Save, AlertTriangle, CheckCircle2, Clock, Settings2 } from 'lucide-react';
+import { ArrowLeft, Play, Save, AlertTriangle, CheckCircle2, Clock, Settings2, Calendar, Briefcase } from 'lucide-react';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import {
   ejecutarPreLiquidacion,
   confirmarPreLiquidacion,
   obtenerHorarioSemana,
+  listarFestivos,
+  listarNovedades,
 } from '../../../../services/horasExtrasService';
 import type {
   PreLiquidacionInput,
@@ -15,13 +17,20 @@ import type {
   ConfirmarDetalleItem,
   NivelRiesgoARL,
   RegistroDiario,
+  Festivo,
+  NovedadEventoListItem,
 } from '../../../../types/horasExtras';
 import {
   calcularHorasDia,
   horarioPactadoARegistro,
   labelDia,
   totalHorasSemana,
+  fechasDeSemanaIso,
+  fechaIsoCorta,
+  fechaEnRango,
 } from './utils/horarioUtils';
+
+const CODIGOS_NOVEDAD_SUPRESION = ['VAC', 'LIC', 'INC', 'AUS'] as const;
 
 const HORAS_ORDINARIAS_DIARIAS = 8;
 
@@ -78,6 +87,87 @@ const PreLiquidacionView: React.FC = () => {
   const [calculando, setCalculando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [resultado, setResultado] = useState<PreLiquidacionResultado | null>(null);
+
+  // S5''' — Festivos y novedades de la semana (auto-fetch cuando cambian anio/semana/cedula)
+  const [festivosSemana, setFestivosSemana] = useState<Festivo[]>([]);
+  const [novedadesSemana, setNovedadesSemana] = useState<NovedadEventoListItem[]>([]);
+
+  // Fechas de la semana (L-D) como strings YYYY-MM-DD
+  const fechasSemana = useMemo(
+    () => fechasDeSemanaIso(anio, semana).map(fechaIsoCorta),
+    [anio, semana],
+  );
+
+  // Mapas para lookup O(1) en el render
+  const festivoPorFecha = useMemo(() => {
+    const m = new Map<string, Festivo>();
+    for (const f of festivosSemana) {
+      const key = typeof f.fecha === 'string' ? f.fecha.slice(0, 10) : fechaIsoCorta(new Date(f.fecha));
+      m.set(key, f);
+    }
+    return m;
+  }, [festivosSemana]);
+
+  const novedadesPorFecha = useMemo(() => {
+    const m = new Map<string, NovedadEventoListItem[]>();
+    for (const n of novedadesSemana) {
+      if (!(CODIGOS_NOVEDAD_SUPRESION as readonly string[]).includes(n.codigo_novedad)) continue;
+      const inicio = n.fecha_inicio.slice(0, 10);
+      const fin = n.fecha_fin.slice(0, 10);
+      for (const fecha of fechasSemana) {
+        if (fechaEnRango(fecha, inicio, fin)) {
+          const list = m.get(fecha) ?? [];
+          list.push(n);
+          m.set(fecha, list);
+        }
+      }
+    }
+    return m;
+  }, [novedadesSemana, fechasSemana]);
+
+  // Cargar festivos del año cuando cambia anio
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const fs = await listarFestivos(anio, 'auto', token);
+        if (!cancel) setFestivosSemana(fs);
+      } catch {
+        if (!cancel) setFestivosSemana([]);
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [anio]);
+
+  // Cargar novedades CONFIRMADAS del empleado que intersectan la semana
+  useEffect(() => {
+    if (!cedula.trim()) {
+      setNovedadesSemana([]);
+      return;
+    }
+    let cancel = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const inicio = fechasSemana[0];
+        const fin = fechasSemana[6];
+        const r = await listarNovedades(
+          { cedula: cedula.trim(), fecha_desde: inicio, fecha_hasta: fin, estado: 'CONFIRMADO', limit: 200 },
+          token,
+        );
+        if (!cancel) setNovedadesSemana(r.items);
+      } catch {
+        if (!cancel) setNovedadesSemana([]);
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cedula, anio, semana]);
 
   // Cálculos en vivo (no se envían al backend; son referencia para el usuario)
   const horasPorDia = useMemo(
@@ -312,12 +402,38 @@ const PreLiquidacionView: React.FC = () => {
               {registro.map((r, idx) => {
                 const trabajadas = horasPorDia[idx];
                 const he = Math.max(0, trabajadas - HORAS_ORDINARIAS_DIARIAS);
+                const fecha = fechasSemana[idx];
+                const festivo = festivoPorFecha.get(fecha);
+                const novedades = novedadesPorFecha.get(fecha) ?? [];
+                const novedadPrincipal = novedades[0];
+                const conflicto = !!novedadPrincipal && trabajadas > 0;
                 return (
-                  <tr key={r.dia_semana} className="border-b last:border-b-0">
+                  <tr
+                    key={r.dia_semana}
+                    className={`border-b last:border-b-0 ${conflicto ? 'bg-amber-50 dark:bg-amber-900/10' : ''}`}
+                  >
                     <td className="py-2 pr-3 align-middle">
-                      <Badge variant={idx < 5 ? 'default' : 'info'} size="sm">
-                        {labelDia(r.dia_semana)}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant={idx < 5 ? 'default' : 'info'} size="sm">
+                          {labelDia(r.dia_semana)}
+                        </Badge>
+                        {festivo && (
+                          <Badge variant="warning" size="sm" title={festivo.nombre}>
+                            <Calendar className="w-3 h-3 mr-1 inline" />
+                            {festivo.nombre}
+                          </Badge>
+                        )}
+                        {novedadPrincipal && (
+                          <Badge
+                            variant={conflicto ? 'error' : 'info'}
+                            size="sm"
+                            title={conflicto ? 'Hay horas trabajadas en un día con novedad — el backend las anulará' : ''}
+                          >
+                            <Briefcase className="w-3 h-3 mr-1 inline" />
+                            {novedadPrincipal.codigo_novedad}
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="py-2 pr-3">
                       <Input
