@@ -316,6 +316,13 @@ PARAMETROS_LEGALES = [
         "tipo_dato": "NUMERICO",
         "norma_soporte": "CST Art. 144",
     },
+    {
+        "codigo": "BOLSA_GLOBAL_HABILITADA",
+        "nombre": "Habilitar bolsa de horas (global)",
+        "valor": "true",
+        "tipo_dato": "BOOLEANO",
+        "norma_soporte": "Política interna — decisión organizacional",
+    },
 ]
 
 

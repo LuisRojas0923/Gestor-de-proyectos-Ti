@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Title, Text, MaterialCard, Badge, Button, Input, Textarea, Select } from '../../../../components/atoms';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 import {
   obtenerCalculo,
   obtenerHistorial,
   transicionarCalculo,
+  obtenerEstadoGlobalBolsa,
 } from '../../../../services/horasExtrasService';
 import type {
   CalculoSemanal,
@@ -31,6 +32,7 @@ const CalculoDetailView: React.FC = () => {
   const [historial, setHistorial] = useState<WorkflowEvento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bolsaHabilitada, setBolsaHabilitada] = useState<boolean | null>(null);
 
   // Form de transición
   const [destino, setDestino] = useState<EstadoWorkflowDestino>('PAGADO');
@@ -52,6 +54,10 @@ const CalculoDetailView: React.FC = () => {
       ]);
       setCalculo(calc);
       setHistorial(hist);
+      // S6: estado de bolsa por OT del calculo (puede ser null si la OT no tiene)
+      const otId = calc.ot_id ?? null;
+      const estado = await obtenerEstadoGlobalBolsa(otId, token).catch(() => null);
+      setBolsaHabilitada(estado ? estado.bolsa_habilitada : true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'No se pudo cargar el cálculo');
     } finally {
@@ -67,7 +73,9 @@ const CalculoDetailView: React.FC = () => {
   const transicionesPermitidas = (): EstadoWorkflowDestino[] => {
     if (!calculo) return [];
     if (calculo.estado !== 'CONFIRMADO') return [];
-    return ['PAGADO', 'COMPENSADO', 'ANULADO'];
+    const base: EstadoWorkflowDestino[] = ['PAGADO', 'ANULADO'];
+    if (bolsaHabilitada !== false) base.push('COMPENSADO');
+    return base;
   };
 
   const handleTransicionar = async () => {
@@ -258,6 +266,18 @@ const CalculoDetailView: React.FC = () => {
             <Text className="text-sm text-slate-600">
               Estado actual: <strong>{calculo.estado}</strong>. Transiciones disponibles:
             </Text>
+            {bolsaHabilitada === false && (
+              <div
+                className="mt-2 p-3 bg-amber-50 border border-amber-300 rounded flex items-start gap-2"
+                role="status"
+              >
+                <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                <Text className="text-amber-900 text-sm">
+                  Bolsa deshabilitada para esta OT. Transición a COMPENSADO no
+                  disponible — pague directamente en nómina usando PAGADO.
+                </Text>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Select
                 label="Acción"

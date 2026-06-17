@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Title, Text, Button, MaterialCard, Input, Textarea } from '../../../../components/atoms';
-import { ArrowLeft, Wallet, Search, Clock } from 'lucide-react';
-import { obtenerBolsa, compensarBolsa } from '../../../../services/horasExtrasService';
-import type { BolsaHoras } from '../../../../types/horasExtras';
+import { ArrowLeft, Wallet, Search, Clock, AlertCircle } from 'lucide-react';
+import { obtenerBolsa, compensarBolsa, obtenerEstadoGlobalBolsa } from '../../../../services/horasExtrasService';
+import type { BolsaHoras, BolsaEstadoGlobalOut } from '../../../../types/horasExtras';
 
 const BolsaView: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +11,26 @@ const BolsaView: React.FC = () => {
   const [bolsa, setBolsa] = useState<BolsaHoras | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [estadoGlobal, setEstadoGlobal] = useState<BolsaEstadoGlobalOut | null>(null);
+
+  // S6: estado global de la bolsa (carga una sola vez al montar)
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      try {
+        const r = await obtenerEstadoGlobalBolsa(
+          null,
+          localStorage.getItem('token') || '',
+        );
+        if (!cancelado) setEstadoGlobal(r);
+      } catch {
+        if (!cancelado) setEstadoGlobal(null);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   // Form de compensación
   const [horasCompensar, setHorasCompensar] = useState('');
@@ -86,6 +106,25 @@ const BolsaView: React.FC = () => {
         </Button>
         <Title level={2} className="!m-0">Bolsa de Horas</Title>
       </div>
+
+      {estadoGlobal && !estadoGlobal.bolsa_habilitada && (
+        <div
+          className="mb-6 p-4 bg-amber-50 border border-amber-300 rounded-lg flex items-start gap-3"
+          role="alert"
+        >
+          <AlertCircle className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
+          <div>
+            <Text className="font-semibold text-amber-900 block">
+              La bolsa de horas está deshabilitada
+            </Text>
+            <Text className="text-amber-800 text-sm">
+              Fuente: {estadoGlobal.fuente}. Los extras se pagan directamente en
+              nómina, no se acumulan para tiempo compensatorio. La vista se
+              mantiene habilitada para consulta y auditoría del histórico.
+            </Text>
+          </div>
+        </div>
+      )}
 
       <MaterialCard className="p-6 mb-6">
         <div className="flex gap-3 items-end">

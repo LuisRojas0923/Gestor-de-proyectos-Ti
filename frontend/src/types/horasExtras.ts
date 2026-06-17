@@ -323,6 +323,47 @@ export interface CompensarBolsaResponse {
 }
 
 // ---------------------------------------------------------------------------
+// S6 — Bolsa desactivable
+// ---------------------------------------------------------------------------
+
+export type BolsaFuente =
+  | 'OVERRIDE_OT'
+  | 'PARAMETRO_LEGAL'
+  | 'DEFAULT';
+
+export interface BolsaEstadoGlobalOut {
+  bolsa_habilitada: boolean;
+  fuente: BolsaFuente;
+}
+
+export interface BolsaOverrideOTIn {
+  ot_id: number;
+  bolsa_habilitada_override: boolean;
+  motivo: string;
+  autorizado_por: string;
+}
+
+export interface BolsaOverrideOTOut {
+  id: number;
+  ot_id: number;
+  bolsa_habilitada_override: boolean;
+  bolsa_habilitada_erp: boolean;
+  motivo: string;
+  autorizado_por: string;
+  vigente_desde: string;
+  vigente_hasta: string | null;
+  estado: EstadoOverride;
+  documento_soporte_url: string | null;
+  creado_en: string | null;
+}
+
+export interface BolsaGlobalConfigIn {
+  habilitada: boolean;
+  justificacion: string;
+  autorizado_por: string;
+}
+
+// ---------------------------------------------------------------------------
 // S5' — Festivos
 // ---------------------------------------------------------------------------
 

@@ -33,6 +33,7 @@ from ...models.novedades_nomina.horas_extras import (
     NominaBolsaHorasMovimiento,
     NominaCostoOt,
 )
+from .bolsa_horas_resolver import resolver_bolsa_habilitada
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,14 @@ async def _compensar_desde_calculo(
     usuario_id: Optional[str],
 ) -> int:
     """Mueve horas de horas_acreditadas a horas_consumidas en la bolsa."""
+    habilitada, fuente = await resolver_bolsa_habilitada(session, calc.ot_id)
+    if not habilitada:
+        raise ValueError(
+            f"BOLSA_DESACTIVADA: la compensacion requiere bolsa activa "
+            f"(fuente actual={fuente}, ot_id={calc.ot_id}). "
+            f"Use transicion PAGADO para liquidar el extra en nomina."
+        )
+
     bolsa = (
         await session.execute(
             select(NominaBolsaHoras).where(NominaBolsaHoras.cedula == calc.cedula)

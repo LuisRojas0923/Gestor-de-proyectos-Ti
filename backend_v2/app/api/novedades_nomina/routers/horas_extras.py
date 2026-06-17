@@ -29,7 +29,7 @@ Patrón: el router solo parsea, valida y delega al service.
 La lógica de negocio y el acceso a DB viven en horas_extras_service.py.
 """
 import logging
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
@@ -85,6 +85,7 @@ from ....services.novedades_nomina.horas_extras_workflow import (
 from .horas_extras_festivos import router as festivos_subrouter
 from .horas_extras_novedades import router as novedades_subrouter
 from .horas_extras_horario_semana import router as horario_semana_subrouter
+from .horas_extras_bolsa import router as bolsa_subrouter
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,8 @@ router = APIRouter(
 router.include_router(festivos_subrouter)
 # S5 — Sub-router de novedades
 router.include_router(novedades_subrouter)
+# S6 — Sub-router de bolsa desactivable
+router.include_router(bolsa_subrouter)
 
 MODULO_HE = "nomina_horas_extras"
 
@@ -114,7 +117,6 @@ async def requiere_permiso_he(
 # ---------------------------------------------------------------------------
 # Catálogo de novedades
 # ---------------------------------------------------------------------------
-
 @router.get("/catalogo", response_model=List[NovedadCatalogoRead])
 async def listar_catalogo(
     categoria: Optional[str] = Query(None, description="HORA_EXTRA, AUSENCIA, LICENCIA, ..."),
@@ -156,7 +158,6 @@ async def actualizar_novedad(
 # ---------------------------------------------------------------------------
 # Factores prestacionales ARL
 # ---------------------------------------------------------------------------
-
 @router.get("/factores-arl", response_model=List[FactorPrestacionalRead])
 async def listar_factores_arl(
     db: AsyncSession = Depends(obtener_db),
@@ -168,7 +169,6 @@ async def listar_factores_arl(
 # ---------------------------------------------------------------------------
 # Horario pactado
 # ---------------------------------------------------------------------------
-
 @router.get("/horario/{cedula}", response_model=Optional[HorarioPactadoRead])
 async def obtener_horario(
     cedula: str = Path(..., min_length=1, max_length=50),
@@ -208,7 +208,6 @@ async def obtener_autorizacion_efectiva(
 # ---------------------------------------------------------------------------
 # Overrides de autorización HE
 # ---------------------------------------------------------------------------
-
 @router.post("/overrides", response_model=OverrideAutorizaHERead)
 async def crear_override(
     payload: OverrideAutorizaHECreate,
@@ -235,7 +234,6 @@ async def listar_overrides(
 # ---------------------------------------------------------------------------
 # Pre-liquidación
 # ---------------------------------------------------------------------------
-
 @router.post("/pre-liquidacion", response_model=PreLiquidacionResultado)
 async def ejecutar_pre_liquidacion_endpoint(
     payload: PreLiquidacionInput,
@@ -273,7 +271,6 @@ async def ejecutar_pre_liquidacion_endpoint(
 # ---------------------------------------------------------------------------
 # Bolsa de horas
 # ---------------------------------------------------------------------------
-
 @router.get("/bolsa/{cedula}")
 async def obtener_bolsa(
     cedula: str = Path(..., min_length=1, max_length=50),
@@ -302,7 +299,6 @@ async def obtener_bolsa(
 # ---------------------------------------------------------------------------
 # Engine de confirmación (S2)
 # ---------------------------------------------------------------------------
-
 @router.post("/pre-liquidacion/confirmar", response_model=PreLiquidacionConfirmada)
 async def confirmar_pre_liquidacion_endpoint(
     payload: PreLiquidacionConfirmar,
@@ -425,6 +421,11 @@ async def transicionar_calculo_endpoint(
         msg = str(e)
         if "no encontrado" in msg:
             raise HTTPException(status_code=404, detail=msg)
+        if msg.startswith("BOLSA_DESACTIVADA"):
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "BOLSA_DESACTIVADA", "message": msg},
+            )
         raise HTTPException(status_code=409, detail=msg)
 
     return WorkflowTransicionResult(
@@ -481,3 +482,7 @@ async def compensar_bolsa_endpoint(
     )
 # Los endpoints de festivos (/festivos/{anio} y /festivos/{anio}/sincronizar)
 # viven en el sub-router horas_extras_festivos.py, incluido arriba.
+
+
+# Los endpoints S6 de bolsa desactivable (GET estado-global, POST/DELETE
+# overrides-ot, PUT admin/bolsa/global) viven en horas_extras_bolsa.py.

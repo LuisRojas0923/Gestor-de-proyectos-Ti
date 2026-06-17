@@ -464,25 +464,6 @@ async def crear_tabla_horario_pactado_dia(conn) -> None:
     )
 
 
-async def agregar_ot_a_calculo_semanal(conn) -> None:
-    """Sprint S5/Fix S4: añadir columnas ot_id/ot_codigo a nomina_calculo_semanal.
-
-    Requerido para que el workflow de anulación pueda encontrar el
-    nomina_costo_ot correspondiente (la cabecera del cálculo debe recordar
-    a qué OT pertenece, no solo los detalles).
-
-    Idempotente: usa ADD COLUMN IF NOT EXISTS (Postgres 9.6+).
-    """
-    logger.info("Agregando ot_id/ot_codigo a nomina_calculo_semanal (Fix S4)...")
-    await safe_execute(
-        conn,
-        "ALTER TABLE nomina_calculo_semanal ADD COLUMN IF NOT EXISTS ot_id INTEGER",
-    )
-    await safe_execute(
-        conn,
-        "ALTER TABLE nomina_calculo_semanal ADD COLUMN IF NOT EXISTS ot_codigo VARCHAR(50)",
-    )
-    await safe_execute(
-        conn,
-        "CREATE INDEX IF NOT EXISTS idx_calc_sem_ot ON nomina_calculo_semanal (ot_id)",
-    )
+# Las funciones agregar_ot_a_calculo_semanal (Fix S4) y crear_tabla_bolsa_ot_override
+# (S6) se movieron a horas_extras_migration_s6.py para mantener este archivo
+# bajo el límite de 500 líneas del pre-commit.

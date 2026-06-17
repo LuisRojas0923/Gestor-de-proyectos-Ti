@@ -34,6 +34,10 @@ import type {
   NovedadAnularRequest,
   NovedadEventoRead,
   NovedadEventoList,
+  BolsaEstadoGlobalOut,
+  BolsaOverrideOTIn,
+  BolsaOverrideOTOut,
+  BolsaGlobalConfigIn,
 } from '../types/horasExtras';
 
 const BASE = `${API_CONFIG.BASE_URL}/novedades-nomina/horas-extras`;
@@ -252,6 +256,50 @@ export async function compensarBolsa(
   return request<CompensarBolsaResponse>('/bolsa/compensar', {
     method: 'POST',
     body: JSON.stringify(payload),
+    token,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// S6 — Bolsa desactivable
+// ---------------------------------------------------------------------------
+
+export async function obtenerEstadoGlobalBolsa(
+  otId: number | null | undefined,
+  token: string,
+): Promise<BolsaEstadoGlobalOut> {
+  const query = otId ? buildQuery({ ot_id: otId }) : '';
+  return request<BolsaEstadoGlobalOut>(`/bolsa/estado-global${query}`, { token });
+}
+
+export async function configurarBolsaGlobal(
+  payload: BolsaGlobalConfigIn,
+  token: string,
+): Promise<BolsaEstadoGlobalOut> {
+  return request<BolsaEstadoGlobalOut>('/admin/bolsa/global', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export async function crearOverrideBolsaOT(
+  payload: BolsaOverrideOTIn,
+  token: string,
+): Promise<BolsaOverrideOTOut> {
+  return request<BolsaOverrideOTOut>('/bolsa/overrides-ot', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export async function revocarOverrideBolsaOT(
+  overrideId: number,
+  token: string,
+): Promise<void> {
+  await request<void>(`/bolsa/overrides-ot/${overrideId}`, {
+    method: 'DELETE',
     token,
   });
 }

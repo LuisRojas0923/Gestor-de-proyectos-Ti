@@ -24,6 +24,12 @@ from .schemas_festivos import (  # noqa: F401  (re-exports)
     FestivoRead,
     FestivoSincronizarResult,
 )
+from .schemas_horas_extras_bolsa import (  # noqa: F401  (re-exports)
+    BolsaEstadoGlobalOut,
+    BolsaOverrideOTIn,
+    BolsaOverrideOTOut,
+    BolsaGlobalConfigIn,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -297,13 +303,12 @@ class PreLiquidacionConfirmada(SQLModel):
     horas_acreditadas_bolsa: float = 0.0
     movimientos_bolsa: List[int] = Field(default_factory=list)
     costo_ot_id: Optional[int] = None
+    bolsa_habilitada_en_confirmacion: bool = True
+    bolsa_fuente: str = "DEFAULT"
     mensaje: str = "Cálculo confirmado y persistido"
 
 
-# ---------------------------------------------------------------------------
 # Lectura de cálculos
-# ---------------------------------------------------------------------------
-
 class CalculoDetalleRead(SQLModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -370,10 +375,7 @@ class CostoOtRead(SQLModel):
     ultima_actualizacion: Optional[datetime] = None
 
 
-# ---------------------------------------------------------------------------
 # S4 — Workflow de estados del cálculo y compensación de bolsa
-# ---------------------------------------------------------------------------
-
 class WorkflowTransicionRequest(SQLModel):
     """Body para POST /calculos/{id}/transicion."""
     estado_destino: str = Field(..., description="PAGADO, COMPENSADO o ANULADO")
@@ -423,7 +425,6 @@ class CompensarBolsaResponse(SQLModel):
 # ---------------------------------------------------------------------------
 # S5' — Festivos (schemas en schemas_festivos.py, re-exportados abajo)
 # ---------------------------------------------------------------------------
-
 
 # ---------------------------------------------------------------------------
 # S5 — Eventos de novedades (AUS / LIC / VAC / INC)

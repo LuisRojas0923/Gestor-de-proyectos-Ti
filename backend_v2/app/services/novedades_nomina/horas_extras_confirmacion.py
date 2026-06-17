@@ -24,6 +24,7 @@ from ...models.novedades_nomina.horas_extras import (
     NominaCalculoSemanalDetalle,
     NominaCostoOt,
 )
+from .bolsa_horas_resolver import resolver_bolsa_habilitada
 
 logger = logging.getLogger(__name__)
 
@@ -106,13 +107,21 @@ async def confirmar_pre_liquidacion(
         )
         session.add(detalle)
 
-    bolsa_id, horas_acreditadas, mov_ids = await _acreditar_bolsa(
-        session,
-        cedula=payload.cedula,
-        calculo_id=calculo.id,
-        detalles=payload.detalles,
-        usuario_id=payload.usuario_confirma,
+    bolsa_habilitada, bolsa_fuente = await resolver_bolsa_habilitada(
+        session, payload.ot_id
     )
+
+    bolsa_id: Optional[int] = None
+    horas_acreditadas = 0.0
+    mov_ids: List[int] = []
+    if bolsa_habilitada:
+        bolsa_id, horas_acreditadas, mov_ids = await _acreditar_bolsa(
+            session,
+            cedula=payload.cedula,
+            calculo_id=calculo.id,
+            detalles=payload.detalles,
+            usuario_id=payload.usuario_confirma,
+        )
 
     costo_ot_id = None
     if payload.ot_id is not None and payload.ot_codigo:
@@ -125,6 +134,8 @@ async def confirmar_pre_liquidacion(
         "horas_acreditadas_bolsa": horas_acreditadas,
         "movimientos_bolsa": mov_ids,
         "costo_ot_id": costo_ot_id,
+        "bolsa_habilitada_en_confirmacion": bolsa_habilitada,
+        "bolsa_fuente": bolsa_fuente,
     }
 
 
