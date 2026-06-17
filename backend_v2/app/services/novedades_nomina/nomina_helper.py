@@ -275,3 +275,76 @@ class NominaHelper:
             else:
                 agrupado[key] = fila.copy()
         return list(agrupado.values())
+
+    @staticmethod
+    def normalizar_nombre(nombre: str) -> str:
+        """Elimina acentos, eñes, mayúsculas y caracteres especiales de un nombre para comparación."""
+        if not nombre:
+            return ""
+        import unicodedata
+        # Pasar a mayúsculas y limpiar espacios múltiples
+        t = " ".join(nombre.split()).upper()
+        # Normalizar caracteres unicode (descomponer acentos)
+        t = "".join(
+            c for c in unicodedata.normalize('NFD', t)
+            if unicodedata.category(c) != 'Mn'
+        )
+        t = t.replace("Ñ", "N")
+        return t
+
+    @staticmethod
+    def buscar_cedula_por_nombre(nombre_buscado: str, lista_empleados: List[Dict]) -> Optional[str]:
+        """
+        Busca la cédula de un empleado en la lista del ERP por conjuntos de tokens del nombre.
+        Soporta desorden de nombres/apellidos y leves errores de digitación (umbral de coincidencia >= 75%).
+        """
+        if not nombre_buscado or not lista_empleados:
+            return None
+        
+        import re
+        from difflib import SequenceMatcher
+        
+        norm_buscado = NominaHelper.normalizar_nombre(nombre_buscado)
+        tokens_buscado = set(re.findall(r'\w+', norm_buscado))
+        if not tokens_buscado:
+            return None
+            
+        mejor_match = None
+        max_ratio = 0.0
+        
+        for emp in lista_empleados:
+            emp_nombre = emp.get("nombre") or emp.get("nombre_asociado") or ""
+            norm_emp = NominaHelper.normalizar_nombre(emp_nombre)
+            tokens_emp = set(re.findall(r'\w+', norm_emp))
+            if not tokens_emp:
+                continue
+                
+            # 1. Coincidencias exactas de tokens
+            exactas = tokens_buscado.intersection(tokens_emp)
+            
+            # 2. Encontrar tokens no coincidentes
+            unmatched_buscado = list(tokens_buscado - exactas)
+            unmatched_emp = list(tokens_emp - exactas)
+            
+            # 3. Intentar emparejar tokens no coincidentes de forma difusa (por ej. GARCUA -> GARCIA)
+            fuzzy_matches = 0
+            for tb in unmatched_buscado:
+                for te in unmatched_emp:
+                    sim = SequenceMatcher(None, tb, te).ratio()
+                    if sim >= 0.8:
+                        fuzzy_matches += 1
+                        unmatched_emp.remove(te)
+                        break
+                        
+            coincidencias_totales = len(exactas) + fuzzy_matches
+            total_tokens = max(len(tokens_buscado), len(tokens_emp))
+            ratio = coincidencias_totales / total_tokens if total_tokens > 0 else 0.0
+            
+            # Si supera el umbral del 75% y es mejor que el anterior
+            if ratio >= 0.75 and ratio > max_ratio:
+                max_ratio = ratio
+                mejor_match = emp
+                
+        if mejor_match:
+            return mejor_match.get("nrocedula") or mejor_match.get("cedula")
+        return None
