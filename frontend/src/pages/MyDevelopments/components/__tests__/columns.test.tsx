@@ -11,6 +11,8 @@ const baseRow: DevelopmentRow = {
   estado_general: 'En Proceso',
   autoridad: 'USR-1',
   responsable: 'USR-2',
+  tareas_completadas: 2,
+  tareas_totales: 3,
 } as DevelopmentRow;
 
 describe('getColumns — columna de revisión', () => {
@@ -76,5 +78,15 @@ describe('getColumns — columna de revisión', () => {
     const wrapper = screen.getByTestId('review-FD-001');
     fireEvent.click(wrapper);
     expect(parentClick).not.toHaveBeenCalled();
+  });
+
+  it('muestra el fraccionario de tareas bajo el progreso', () => {
+    const columns = getColumns(() => undefined, { ids: new Set(), toggle: () => {} });
+    const StatusCol = columns.find(c => c.key === 'status');
+    expect(StatusCol?.render).toBeDefined();
+
+    render(<>{StatusCol!.render!(baseRow)}</>);
+
+    expect(screen.getByText('2/3')).toBeInTheDocument();
   });
 });

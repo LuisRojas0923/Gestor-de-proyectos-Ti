@@ -12,14 +12,19 @@ interface ButtonProps {
   iconPosition?: 'left' | 'right';
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
+  onDragStart?: (event: React.DragEvent<HTMLButtonElement>) => void;
+  onDragEnd?: (event: React.DragEvent<HTMLButtonElement>) => void;
   type?: 'button' | 'submit' | 'reset';
   className?: string;
   title?: string;
   'aria-label'?: string;
+  'aria-describedby'?: string;
   'aria-hidden'?: boolean;
   fullWidth?: boolean;
   rounded?: 'lg' | 'full';
   tabIndex?: number;
+  draggable?: boolean;
 }
 
 const textVariantMap: Record<'xs' | 'sm' | 'md' | 'lg', 'body1' | 'body2' | 'caption'> = {
@@ -45,13 +50,18 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   iconPosition = 'left',
   onClick,
   onMouseDown,
+  onKeyDown,
+  onDragStart,
+  onDragEnd,
   type = 'button',
   className = '',
   title = '',
   fullWidth = false,
   rounded = 'lg',
   tabIndex,
+  draggable,
   'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedBy,
   'aria-hidden': ariaHidden,
 }, ref) => {
   const baseClasses = 'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
@@ -91,10 +101,15 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       type={type}
       onClick={onClick}
       onMouseDown={onMouseDown}
+      onKeyDown={onKeyDown}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       disabled={disabled || loading}
       title={title}
       aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
       aria-hidden={ariaHidden}
+      draggable={draggable}
       className={`
         ${baseClasses} 
         ${variantClasses[variant]} 
