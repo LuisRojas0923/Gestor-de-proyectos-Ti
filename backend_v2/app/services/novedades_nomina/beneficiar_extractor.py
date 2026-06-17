@@ -20,7 +20,8 @@ def extraer_beneficiar(archivos_binarios: List[bytes]) -> Tuple[List[Dict[str, A
         "DCTO_OBLIGACIONES", 
         "DCTO_SERVICIOS", 
         "DCTO_GES", 
-        "DCTO_ROTATIVO"
+        "DCTO_ROTATIVO",
+        "DCTO_PRIMA"
     ]
 
     for archivo_idx, contenido in enumerate(archivos_binarios):
@@ -57,6 +58,7 @@ def extraer_beneficiar(archivos_binarios: List[bytes]) -> Tuple[List[Dict[str, A
                     dcto_servicios = row.get("DCTO_SERVICIOS", 0)
                     dcto_ges = row.get("DCTO_GES", 0)
                     dcto_rotativo = row.get("DCTO_ROTATIVO", 0)
+                    dcto_prima = row.get("DCTO_PRIMA", 0)
 
                     # Reemplazar NaN con 0
                     def get_val(v): return float(v) if pd.notna(v) else 0.0
@@ -64,6 +66,7 @@ def extraer_beneficiar(archivos_binarios: List[bytes]) -> Tuple[List[Dict[str, A
                     aporte = get_val(dcto_aporte)
                     credito = get_val(dcto_obligaciones)
                     otros_descuentos = get_val(dcto_servicios) + get_val(dcto_ges) + get_val(dcto_rotativo) + get_val(dcto_ahorro)
+                    prima = get_val(dcto_prima)
 
                     # Obtener nombre (si existe en el excel, aunque luego se cruce con ERP)
                     nombre_asociado = ""
@@ -96,6 +99,14 @@ def extraer_beneficiar(archivos_binarios: List[bytes]) -> Tuple[List[Dict[str, A
                             "nombre_asociado": nombre_asociado,
                             "concepto": "BENEFICIAR OTROS DESCUENTOS",
                             "valor": otros_descuentos
+                        })
+
+                    if prima > 0:
+                        rows.append({
+                            "cedula": cedula_str,
+                            "nombre_asociado": nombre_asociado,
+                            "concepto": "BENEFICIAR PRIMA",
+                            "valor": prima
                         })
 
                 except Exception as e:
