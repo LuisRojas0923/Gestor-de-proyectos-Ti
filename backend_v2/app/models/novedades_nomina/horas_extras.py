@@ -295,6 +295,12 @@ class NominaCalculoSemanal(SQLModel, table=True):
     estado: str = Field(default="BORRADOR", max_length=30)
     # 'BORRADOR' | 'CONFIRMADO' | 'PAGADO' | 'COMPENSADO' | 'ANULADO'
 
+    # OT principal del cálculo. Si una semana cubre varias OTs, los detalles
+    # pueden tener ot_id distintos; este campo guarda la OT primaria para que
+    # el workflow de anulación sepa qué nomina_costo_ot revertir.
+    ot_id: Optional[int] = Field(default=None, index=True)
+    ot_codigo: Optional[str] = Field(default=None, max_length=50)
+
     # Trazabilidad
     calculado_por: Optional[str] = Field(default=None, max_length=50)
     calculado_en: Optional[datetime] = Field(default=None, sa_column_kwargs={"server_default": "now()"})

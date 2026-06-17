@@ -125,7 +125,7 @@ async def transicionar_calculo(
     session.add(calc)
 
     evento = NominaCalculoWorkflowEvento(
-        calculo_id=calculo.id,
+        calculo_id=calc.id,
         estado_origen=estado_origen,
         estado_destino=estado_destino,
         justificacion=justificacion,

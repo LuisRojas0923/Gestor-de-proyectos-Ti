@@ -81,6 +81,8 @@ async def confirmar_pre_liquidacion(
         total_carga_prestacional=total_carga,
         total_costo_empresa=total_costo,
         estado="CONFIRMADO",
+        ot_id=payload.ot_id,
+        ot_codigo=payload.ot_codigo,
         calculado_por=payload.usuario_confirma,
         confirmado_por=payload.usuario_confirma,
         confirmado_en=datetime.now(),

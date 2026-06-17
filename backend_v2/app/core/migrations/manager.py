@@ -11,6 +11,7 @@ from app.core.migrations.horas_extras_migration import (
     crear_tabla_festivo_calendario,
     crear_tabla_novedad_evento,
     crear_tabla_horario_pactado_dia,
+    agregar_ot_a_calculo_semanal,
 )
 
 logger = logging.getLogger(__name__)
@@ -89,6 +90,13 @@ async def init_db_process(async_engine, AsyncSessionLocal):
             await crear_tabla_horario_pactado_dia(conn)
         except Exception as e:
             logger.error(f"Error en migración nomina_horario_pactado_dia (S5''): {e}")
+
+    # 3.12 Agregar ot_id/ot_codigo a nomina_calculo_semanal (Fix S4)
+    async with async_engine.begin() as conn:
+        try:
+            await agregar_ot_a_calculo_semanal(conn)
+        except Exception as e:
+            logger.error(f"Error en migración agregar_ot_a_calculo_semanal (Fix S4): {e}")
 
     # 4. Saneamiento de Datos (Inventario y otros)
     saneamientos = [
