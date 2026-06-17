@@ -86,6 +86,7 @@ from .horas_extras_festivos import router as festivos_subrouter
 from .horas_extras_novedades import router as novedades_subrouter
 from .horas_extras_horario_semana import router as horario_semana_subrouter
 from .horas_extras_bolsa import router as bolsa_subrouter
+from .horas_extras_planificador import router as planificador_subrouter
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,8 @@ router.include_router(festivos_subrouter)
 router.include_router(novedades_subrouter)
 # S6 — Sub-router de bolsa desactivable
 router.include_router(bolsa_subrouter)
+# S7 — Sub-router de planificador semanal
+router.include_router(planificador_subrouter)
 
 MODULO_HE = "nomina_horas_extras"
 

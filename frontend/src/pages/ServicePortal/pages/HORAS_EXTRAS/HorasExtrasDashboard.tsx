@@ -1,9 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Title, Text, Button, MaterialCard } from '../../../../components/atoms';
-import { ArrowLeft, Calculator, Calendar, CalendarDays, ClipboardList, Clock, History, Wallet } from 'lucide-react';
+import { ArrowLeft, Calculator, Calendar, CalendarDays, ClipboardList, Clock, History, Wallet, ListChecks } from 'lucide-react';
 
 const ACCIONES = [
+  {
+    id: 'planificador',
+    title: 'Planificador Semanal',
+    description: 'Asigna horario y novedades en bloque a un grupo de empleados. Pre-cálculo en vivo, borrador y confirmación al cierre de la semana.',
+    icon: ListChecks,
+    to: '/service-portal/horas-extras/planificador',
+  },
   {
     id: 'pre-liquidacion',
     title: 'Calcular Pre-liquidación',

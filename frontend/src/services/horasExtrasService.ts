@@ -38,6 +38,12 @@ import type {
   BolsaOverrideOTIn,
   BolsaOverrideOTOut,
   BolsaGlobalConfigIn,
+  EmpleadoERPListResponse,
+  PlanBulkRequest,
+  PlanBulkResponse,
+  PlanPreCalculoResponse,
+  PlanConfirmarRequest,
+  PlanConfirmarResponse,
 } from '../types/horasExtras';
 
 const BASE = `${API_CONFIG.BASE_URL}/novedades-nomina/horas-extras`;
@@ -393,6 +399,57 @@ export async function anularNovedad(
   token: string,
 ): Promise<NovedadEventoRead> {
   return request<NovedadEventoRead>(`/novedades/${novedadId}/anular`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// S7 — Planificador semanal masivo
+// ---------------------------------------------------------------------------
+
+export async function buscarEmpleadosERP(
+  query: string | undefined,
+  limit: number,
+  offset: number,
+  token: string,
+  soloActivos: boolean = true,
+): Promise<EmpleadoERPListResponse> {
+  const qs = buildQuery({ q: query, limit, offset, solo_activos: soloActivos });
+  return request<EmpleadoERPListResponse>(`/planificador/empleados-erp${qs}`, {
+    method: 'GET',
+    token,
+  });
+}
+
+export async function guardarBorradorPlan(
+  payload: PlanBulkRequest,
+  token: string,
+): Promise<PlanBulkResponse> {
+  return request<PlanBulkResponse>('/horario/registros/bulk', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export async function preCalcularPlan(
+  payload: PlanBulkRequest,
+  token: string,
+): Promise<PlanPreCalculoResponse> {
+  return request<PlanPreCalculoResponse>('/planificador/pre-calcular', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export async function confirmarPlan(
+  payload: PlanConfirmarRequest,
+  token: string,
+): Promise<PlanConfirmarResponse> {
+  return request<PlanConfirmarResponse>('/planificador/confirmar', {
     method: 'POST',
     body: JSON.stringify(payload),
     token,

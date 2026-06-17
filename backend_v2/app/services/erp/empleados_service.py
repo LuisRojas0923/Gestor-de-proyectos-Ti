@@ -152,6 +152,87 @@ class EmpleadosService:
             return False
 
     @staticmethod
+    def listar_empleados_paginado(
+        db_erp: Session,
+        q: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0,
+        solo_activos: bool = True,
+    ) -> Dict:
+        """Sprint S7: lista paginada de empleados del ERP con búsqueda opcional.
+
+        Args:
+            q: filtro case-insensitive sobre cedula/nombre (LIKE %q%). None = sin filtro.
+            limit: maximo de filas a devolver (cap 100).
+            offset: desplazamiento para paginacion.
+            solo_activos: si True, solo empleados con contrato activo.
+
+        Returns:
+            {"items": List[Dict], "total": int}
+        """
+        if limit <= 0 or limit > 100:
+            limit = 20
+        if offset < 0:
+            offset = 0
+
+        estado_join_filtro = (
+            "AND C.estado = 'Activo'" if solo_activos else ""
+        )
+        where_clauses = ["1=1"]
+        params = {"limit": limit, "offset": offset}
+        if q:
+            where_clauses.append(
+                "(CAST(E.nrocedula AS TEXT) ILIKE :q OR E.nombre::text ILIKE :q)"
+            )
+            params["q"] = f"%{q.strip()}%"
+
+        where_sql = " AND ".join(where_clauses)
+
+        query = text(f"""
+            SELECT
+                E.nrocedula      AS "nrocedula",
+                E.nombre::text   AS "nombre",
+                C.cargo::text    AS "cargo",
+                C.area::text     AS "area",
+                C.riesgoarl::text AS "riesgoarl",
+                B.autorizahe     AS "autoriza_he"
+            FROM establecimiento E
+            LEFT JOIN contrato C
+                ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+                {estado_join_filtro}
+            LEFT JOIN beneficio B
+                ON TRIM(CAST(B.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+                AND B.estado = 'Activo'
+            WHERE {where_sql}
+            ORDER BY E.nrocedula
+            LIMIT :limit OFFSET :offset
+        """)
+        rows = db_erp.execute(query, params).fetchall()
+
+        count_query = text(f"""
+            SELECT COUNT(DISTINCT E.nrocedula) AS "total"
+            FROM establecimiento E
+            LEFT JOIN contrato C
+                ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+                {estado_join_filtro}
+            WHERE {where_sql}
+        """)
+        total_row = db_erp.execute(count_query, params).first()
+        total = int(total_row.total) if total_row else 0
+
+        items = []
+        for r in rows:
+            items.append({
+                "cedula": str(r.nrocedula).strip(),
+                "nombre": r.nombre,
+                "cargo": r.cargo,
+                "area": r.area,
+                "nivel_riesgo_arl": _normalizar_nivel_riesgo(r.riesgoarl),
+                "autoriza_he": bool(r.autoriza_he) if r.autoriza_he is not None else False,
+            })
+        return {"items": items, "total": total}
+
+    @staticmethod
     async def consultar_solicitudes_externas(empresa: Optional[str] = None) -> List[Dict]:
         """Consulta directa al API del ERP (Mock inicial)"""
         return [
