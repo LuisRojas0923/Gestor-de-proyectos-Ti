@@ -16,7 +16,7 @@ Cobertura:
 import pytest
 from pydantic import ValidationError
 from app.models.novedades_nomina.schemas_horas_extras import PreLiquidacionInput
-from app.services.novedades_nomina.horas_extras_service import (
+from app.services.novedades_nomina.horas_extras_calculo import (
     calcular_pre_liquidacion,
     _distribuir_horas_por_codigos,
     _agregar_detalles,
