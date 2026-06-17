@@ -17,7 +17,7 @@ def find_duplicate_files(root_dir: str, extensions: set) -> list[dict]:
     for dirpath, dirnames, filenames in os.walk(root_dir):
         # Ignorar carpetas comunes
         dirnames[:] = [d for d in dirnames if d not in {
-            'node_modules', '.git', '__pycache__', 'dist', 'build', 'auditoria'
+            'node_modules', '.git', '__pycache__', 'dist', 'build', 'auditoria', 'modulo_actividades_fork'
         }]
         
         for filename in filenames:

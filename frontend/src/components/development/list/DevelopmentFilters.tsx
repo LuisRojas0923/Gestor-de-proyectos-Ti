@@ -52,7 +52,7 @@ export const DevelopmentFilters: React.FC<DevelopmentFiltersProps> = ({
 
           <Select
             value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as any)}
+            onChange={(e) => setGroupBy(e.target.value as "none" | "provider" | "module" | "responsible")}
             options={[
               { value: "none", label: "Sin agrupar" },
               { value: "provider", label: "Agrupar por Proveedor" },
@@ -74,7 +74,7 @@ export const DevelopmentFilters: React.FC<DevelopmentFiltersProps> = ({
               ]}
             />
             {providerFilter !== 'all' && (
-              <button
+              <button // [CONTROLADO]
                 type="button"
                 onClick={() => setProviderFilter('all')}
                 className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
@@ -95,7 +95,7 @@ export const DevelopmentFilters: React.FC<DevelopmentFiltersProps> = ({
               ]}
             />
             {moduleFilter !== 'all' && (
-              <button
+              <button // [CONTROLADO]
                 type="button"
                 onClick={() => setModuleFilter('all')}
                 className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
@@ -116,7 +116,7 @@ export const DevelopmentFilters: React.FC<DevelopmentFiltersProps> = ({
               ]}
             />
             {responsibleFilter !== 'all' && (
-              <button
+              <button // [CONTROLADO]
                 type="button"
                 onClick={() => setResponsibleFilter('all')}
                 className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
@@ -137,7 +137,7 @@ export const DevelopmentFilters: React.FC<DevelopmentFiltersProps> = ({
               ]}
             />
             {statusFilter !== 'all' && (
-              <button
+              <button // [CONTROLADO]
                 type="button"
                 onClick={() => setStatusFilter('all')}
                 className="absolute right-8 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-red-500 transition-colors p-0.5 z-10"
