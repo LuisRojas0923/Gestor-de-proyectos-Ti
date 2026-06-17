@@ -63,6 +63,7 @@ async def preview_grancoop(
 
         # 1. Resolver cédulas vacías por coincidencia de nombre
         empleados_activos = EmpleadosService.obtener_todos_los_empleados_activos(db_erp)
+        nombres_resueltos = set()
         for row in rows:
             if not row.get("cedula"):
                 nombre_asoc = row.get("nombre_asociado", "")
@@ -71,8 +72,15 @@ async def preview_grancoop(
                     row["cedula"] = cedula_resuelta
                     row["observaciones"] = "Cédula resuelta por coincidencia de nombre en ERP."
                     logger_route.info(f"Cédula resuelta por nombre para '{nombre_asoc}': {cedula_resuelta}")
+                    nombres_resueltos.add(nombre_asoc)
                 else:
                     logger_route.warning(f"No se pudo resolver la cédula por nombre para: '{nombre_asoc}'")
+
+        # Filtrar de warnings_txt aquellos que fueron resueltos con éxito por nombre
+        warnings_txt = [
+            w for w in warnings_txt
+            if not any(f"'{n}'" in w for n in nombres_resueltos)
+        ]
 
         cedulas_sin_erp = set(mapa_excepciones.keys())
         cedulas_para_erp = list(set(r["cedula"] for r in rows if r["cedula"] and r["cedula"] not in cedulas_sin_erp))
