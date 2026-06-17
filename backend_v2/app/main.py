@@ -178,7 +178,8 @@ async def cache_request_body_for_rate_limit(request, call_next):
     """
     if request.method in ("POST", "PUT", "PATCH") and request.url.path in PATHS_CON_BODY_PARA_RATE_LIMIT:
         try:
-            await request.body()
+            body = await request.body()
+            request.scope["rate_limit_body"] = body
         except Exception:
             pass
     return await call_next(request)

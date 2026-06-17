@@ -107,6 +107,14 @@ class TestLoginKeyFunc:
         key = _login_key_func(request)
         assert key == "login:anon:172.18.0.5"
 
+    def test_body_en_scope_usa_cedula_sin_fallback_ip(self):
+        from app.core.rate_limiter import _login_key_func
+
+        request = _build_request(client_ip="172.18.0.5")
+        request.scope["rate_limit_body"] = b"username=1107068093&password=foo"
+        key = _login_key_func(request)
+        assert key == "login:1107068093"
+
     def test_prefijo_login_diferencia_de_otras_keys(self):
         from app.core.rate_limiter import _login_key_func
 

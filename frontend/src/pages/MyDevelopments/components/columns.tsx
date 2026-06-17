@@ -29,6 +29,8 @@ export type DevelopmentRow = DevelopmentWithCurrentStatus & {
   area_ejecutor?: string;
   analista?: string;
   supervisor?: string;
+  tareas_completadas?: number;
+  tareas_totales?: number;
 };
 
 export const valueOrFallback = (value?: string | number | null) => value ?? 'N/A';
@@ -90,6 +92,12 @@ export const getStatusLabel = (status: string) => {
 
 export const getDevelopmentProgress = (dev: DevelopmentRow) =>
   Number(dev.porcentaje_progreso ?? dev.stage_progress_percentage ?? 0);
+
+export const getDevelopmentTaskFraction = (dev: DevelopmentRow) => {
+  const completadas = Number(dev.tareas_completadas ?? 0);
+  const totales = Number(dev.tareas_totales ?? 0);
+  return `${completadas}/${totales}`;
+};
 
 export const getStatusColor = (status: string) => {
   const s = status.toLowerCase();
@@ -256,6 +264,17 @@ export const getColumns = (
                 {progress}%
               </Text>
             </div>
+            <Text
+              as="span"
+              variant="caption"
+              weight="bold"
+              color="text-secondary"
+              className="!text-[9px] leading-none"
+              title={`${getDevelopmentTaskFraction(dev)} tareas completadas`}
+              aria-label={`${getDevelopmentTaskFraction(dev)} tareas completadas`}
+            >
+              {getDevelopmentTaskFraction(dev)}
+            </Text>
           </div>
         );
       },

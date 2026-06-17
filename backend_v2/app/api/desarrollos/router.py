@@ -4,7 +4,7 @@ API de Desarrollos - Backend V2
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, or_, func
+from sqlalchemy import select, delete, or_, func, case
 from app.database import obtener_db
 from app.models.desarrollo.desarrollo import (
     Desarrollo,
@@ -27,7 +27,7 @@ from app.services.auditoria.snapshots import (
 router = APIRouter()
 
 
-@router.get("/", response_model=List[Desarrollo])
+@router.get("/")
 async def listar_desarrollos(
     response: Response,
     skip: int = Query(0, ge=0, description="Número de registros a saltar (paginación)"),
@@ -96,7 +96,42 @@ async def listar_desarrollos(
             query = query.where(f)
 
         result = await db.execute(query)
-        return result.scalars().all()
+        desarrollos = result.scalars().all()
+
+        ids_pagina = [desarrollo.id for desarrollo in desarrollos]
+        conteos_por_desarrollo = {}
+        if ids_pagina:
+            conteos_query = (
+                select(
+                    Actividad.desarrollo_id,
+                    func.count(Actividad.id).label("tareas_totales"),
+                    func.sum(
+                        case(
+                            (Actividad.estado.in_(("Completada", "Completado")), 1),
+                            else_=0,
+                        )
+                    ).label("tareas_completadas"),
+                )
+                .where(Actividad.desarrollo_id.in_(ids_pagina))
+                .group_by(Actividad.desarrollo_id)
+            )
+            conteos_result = await db.execute(conteos_query)
+            conteos_por_desarrollo = {
+                row.desarrollo_id: {
+                    "tareas_totales": int(row.tareas_totales or 0),
+                    "tareas_completadas": int(row.tareas_completadas or 0),
+                }
+                for row in conteos_result
+            }
+
+        return [
+            {
+                **desarrollo.model_dump(),
+                "tareas_totales": conteos_por_desarrollo.get(desarrollo.id, {}).get("tareas_totales", 0),
+                "tareas_completadas": conteos_por_desarrollo.get(desarrollo.id, {}).get("tareas_completadas", 0),
+            }
+            for desarrollo in desarrollos
+        ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al listar desarrollos: {str(e)}")
 

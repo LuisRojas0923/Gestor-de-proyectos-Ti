@@ -23,11 +23,30 @@ import {
   DevelopmentRow,
 } from './components/columns';
 
+const ORDER_STORAGE_KEY = 'my_developments_order';
+
+const loadStoredOrder = () => {
+  try {
+    const raw = localStorage.getItem(ORDER_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+};
+
+const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number) => {
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
+};
+
 const MyDevelopments: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isPortal = location.pathname.startsWith('/service-portal');
-  const { developments, loadDevelopments, loadMore, total, hasMore, loadingMore } = useDevelopments();
+  const { developments, loadDevelopments, loadMore, hasMore, loadingMore } = useDevelopments();
   const { reviewedIds, toggle: toggleReviewed, clearAll: clearReviewed, count: reviewedCount } = useReviewedDevelopments();
   const { addNotification } = useNotifications();
   const { delete: apiDelete, get: apiGet, put: apiPut } = useApi();
@@ -39,6 +58,7 @@ const MyDevelopments: React.FC = () => {
   const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [customOrder, setCustomOrder] = useState<string[]>(loadStoredOrder);
 
   useEffect(() => { loadDevelopments(); }, [loadDevelopments]);
 
@@ -79,7 +99,6 @@ const MyDevelopments: React.FC = () => {
 
   const {
     filteredData,
-    uniqueValues,
     cascadingOptions,
     filters,
     clearAllFilters,
@@ -105,6 +124,34 @@ const MyDevelopments: React.FC = () => {
       return authority.includes(q) || responsible.includes(q) || supervisor.includes(q) || analista.includes(q);
     });
   }, [filteredData, peopleSearch, resolveUserName]);
+
+  const orderedDisplayData = useMemo(() => {
+    if (customOrder.length === 0 || sortState?.key) return displayData;
+    const orderMap = new Map(customOrder.map((id, index) => [id, index]));
+    const originalIndex = new Map(displayData.map((dev, index) => [String(dev.id), index]));
+    return [...displayData].sort((a, b) => {
+      const aOrder = orderMap.get(String(a.id));
+      const bOrder = orderMap.get(String(b.id));
+      if (aOrder !== undefined && bOrder !== undefined) return aOrder - bOrder;
+      if (aOrder !== undefined) return -1;
+      if (bOrder !== undefined) return 1;
+      return (originalIndex.get(String(a.id)) ?? 0) - (originalIndex.get(String(b.id)) ?? 0);
+    });
+  }, [customOrder, displayData, sortState?.key]);
+
+  const canReorderRows = useMemo(
+    () => orderedDisplayData.length > 1 && !sortState?.key && activeFilterCount === 0 && !peopleSearch.trim(),
+    [activeFilterCount, orderedDisplayData.length, peopleSearch, sortState?.key]
+  );
+
+  const handleRowsReorder = useCallback((fromIndex: number, toIndex: number) => {
+    const reorderedVisible = moveItem(orderedDisplayData, fromIndex, toIndex).map(dev => String(dev.id));
+    const knownIds = developments.map(dev => String(dev.id));
+    const hiddenIds = knownIds.filter(id => !reorderedVisible.includes(id));
+    const nextOrder = [...reorderedVisible, ...hiddenIds];
+    setCustomOrder(nextOrder);
+    localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(nextOrder));
+  }, [developments, orderedDisplayData]);
 
   const selectedStatus = useMemo(() => {
     const statusFilterSet = filters.status;
@@ -186,8 +233,10 @@ const MyDevelopments: React.FC = () => {
 
       <DataTable<DevelopmentRow>
         columns={columns}
-        data={displayData}
+        data={orderedDisplayData}
         keyExtractor={(dev) => String(dev.id)}
+        isRowDraggable={canReorderRows}
+        onRowsReorder={handleRowsReorder}
         onRowClick={(dev) => navigate(isPortal ? `/service-portal/desarrollos/${dev.id}?tab=bitacora` : `/developments/${dev.id}?tab=bitacora`)}
         columnFilters={filters}
         columnOptions={cascadingOptions}
