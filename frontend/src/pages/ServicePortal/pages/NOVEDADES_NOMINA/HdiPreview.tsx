@@ -13,6 +13,8 @@ interface HdiRow {
     nombre_asociado: string;
     empresa: string;
     valor: number;
+    valor_rdc?: number;
+    valor_colaborador?: number;
     concepto: string;
     estado_erp?: string;
     estado_validacion?: string;
@@ -441,9 +443,19 @@ const HdiPreview: React.FC = () => {
                                                 />
                                             </div>
                                         </th>
-                                        <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 border-r border-white/5">
+                                        <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-28 border-b border-white/5 border-r border-white/5">
                                             <div className="flex items-center justify-center gap-1">
-                                                <Text as="span" size="xs" color="inherit">VALOR</Text>
+                                                <Text as="span" size="xs" color="inherit">VALOR RDC (24%)</Text>
+                                            </div>
+                                        </th>
+                                        <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-28 border-b border-white/5 border-r border-white/5">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <Text as="span" size="xs" color="inherit">VALOR COLAB.</Text>
+                                            </div>
+                                        </th>
+                                        <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-28 border-b border-white/5 border-r border-white/5">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <Text as="span" size="xs" color="inherit">VALOR TOTAL</Text>
                                             </div>
                                         </th>
                                         <th className="text-center py-2 px-4 font-bold uppercase tracking-wider w-36 border-b border-white/5 last:rounded-tr-xl">
@@ -472,6 +484,12 @@ const HdiPreview: React.FC = () => {
                                                 >
                                                     {row.empresa || 'REFRIDCOL'}
                                                 </Badge>
+                                            </td>
+                                            <td className="p-2 text-right font-mono text-slate-500 border-r border-slate-50">
+                                                {formatCurrency(row.valor_rdc || 0)}
+                                            </td>
+                                            <td className="p-2 text-right font-mono text-slate-600 font-medium border-r border-slate-50">
+                                                {formatCurrency(row.valor_colaborador || 0)}
                                             </td>
                                             <td className="p-2 text-right font-mono font-bold text-[var(--color-primary)] border-r border-slate-50">
                                                 {formatCurrency(row.valor)}

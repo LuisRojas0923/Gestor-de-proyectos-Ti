@@ -153,9 +153,12 @@ class NominaService:
                     "cedula": r.cedula,
                     "nombre": r.nombre_asociado,
                     "valor": r.valor,
+                    "valor_rdc": r.valor_rdc,
+                    "valor_colaborador": r.valor_colaborador,
                     "empresa": r.empresa,
                     "concepto": r.concepto,
                     "ciudad": r.ciudad,
+                    "observaciones": r.observaciones,
                     
                     # Mayúsculas / Variaciones (Legacy)
                     "CEDULA": r.cedula,
@@ -164,9 +167,12 @@ class NominaService:
                     "nombre_asociado": r.nombre_asociado,
                     "VALOR": r.valor,
                     "VALOR MES": r.valor,
+                    "VALOR_RDC": r.valor_rdc,
+                    "VALOR_COLABORADOR": r.valor_colaborador,
                     "EMPRESA": r.empresa,
                     "CONCEPTO": r.concepto,
                     "CIUDAD": r.ciudad,
+                    "OBSERVACIONES": r.observaciones,
                     
                     # Campos específicos Planillas
                     "horas": r.horas,
@@ -250,9 +256,12 @@ class NominaService:
                     "cedula": f.cedula,
                     "nombre": f.nombre_asociado,
                     "valor": f.valor,
+                    "valor_rdc": f.valor_rdc,
+                    "valor_colaborador": f.valor_colaborador,
                     "empresa": f.empresa,
                     "concepto": f.concepto,
                     "ciudad": f.ciudad,
+                    "observaciones": f.observaciones,
                     
                     # Mayúsculas / Variaciones
                     "CEDULA": f.cedula,
@@ -261,9 +270,12 @@ class NominaService:
                     "nombre_asociado": f.nombre_asociado,
                     "VALOR": f.valor,
                     "VALOR MES": f.valor,
+                    "VALOR_RDC": f.valor_rdc,
+                    "VALOR_COLABORADOR": f.valor_colaborador,
                     "EMPRESA": f.empresa,
                     "CONCEPTO": f.concepto,
                     "CIUDAD": f.ciudad,
+                    "OBSERVACIONES": f.observaciones,
                     
                     # Campos específicos Planillas
                     "horas": f.horas,

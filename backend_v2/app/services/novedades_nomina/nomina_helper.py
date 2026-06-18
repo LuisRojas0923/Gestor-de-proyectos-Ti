@@ -153,6 +153,14 @@ class NominaHelper:
 
             ciudad = (info_original.get("ciudadcontratacion", "") if info_original else "") or row.get("sucursal", "")
 
+            valor_rdc_final = row.get("valor_rdc", 0.0)
+            valor_colaborador_final = row.get("valor_colaborador", 0.0)
+            if valor_final == 0:
+                valor_rdc_final = 0.0
+                valor_colaborador_final = 0.0
+            elif valor_final != row["valor"]:
+                valor_colaborador_final = max(0.0, valor_final - valor_rdc_final)
+
             reg = NominaRegistroNormalizado(
                 archivo_id=archivo_id,
                 fecha_creacion=datetime.now(),
@@ -161,6 +169,8 @@ class NominaHelper:
                 cedula=cedula_final,
                 nombre_asociado=nombre_final,
                 valor=valor_final,
+                valor_rdc=valor_rdc_final,
+                valor_colaborador=valor_colaborador_final,
                 empresa=empresa_final,
                 concepto=concepto_final,
                 categoria_final=categoria,
@@ -170,7 +180,7 @@ class NominaHelper:
                 dias=row.get("dias", 0),
                 fila_origen=i + 1,
                 ciudad=ciudad or None,
-                observaciones=None,
+                observaciones=row.get("observaciones"),
             )
             session.add(reg)
             registros.append(reg)
@@ -268,6 +278,13 @@ class NominaHelper:
                 agrupado[key]["valor"] += fila["valor"]
                 if "VALOR" in agrupado[key]: agrupado[key]["VALOR"] += fila["VALOR"]
                 if "VALOR MES" in agrupado[key]: agrupado[key]["VALOR MES"] += fila.get("VALOR MES", 0)
+                
+                # Agrupación de aportes de empresa y colaborador
+                if "valor_rdc" in agrupado[key]: agrupado[key]["valor_rdc"] += fila.get("valor_rdc", 0)
+                if "VALOR_RDC" in agrupado[key]: agrupado[key]["VALOR_RDC"] += fila.get("VALOR_RDC", 0)
+                if "valor_colaborador" in agrupado[key]: agrupado[key]["valor_colaborador"] += fila.get("valor_colaborador", 0)
+                if "VALOR_COLABORADOR" in agrupado[key]: agrupado[key]["VALOR_COLABORADOR"] += fila.get("VALOR_COLABORADOR", 0)
+
                 agrupado[key]["horas"] += fila.get("horas", 0)
                 agrupado[key]["dias"] += fila.get("dias", 0)
                 if "HORAS" in agrupado[key]: agrupado[key]["HORAS"] += fila.get("HORAS", 0)

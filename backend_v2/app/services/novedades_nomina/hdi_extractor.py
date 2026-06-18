@@ -35,13 +35,10 @@ def _limpiar_numero(valor: Any) -> float:
     s = re.sub(r"[^0-9\.\-]", "", s)
     try:
         if not s: return 0.0
-        val = float(s)
-        # Heurística: Si el valor es > 1M, es VALOR ASEGURADO, no la PRIMA.
-        if val > 1000000:
-            return 0.0
-        return val
+        return float(s)
     except ValueError:
         return 0.0
+
 
 def _find_column(columns: List[str], keywords: List[str]) -> str:
     """Busca una columna que contenga alguna de las palabras clave."""
@@ -52,12 +49,13 @@ def _find_column(columns: List[str], keywords: List[str]) -> str:
                 return col
     return ""
 
+
 def _extraer_por_regex(text: str) -> List[Dict[str, Any]]:
     """Fallback por texto puro buscando el patrón de HDI."""
     rows = []
-    # Patrón: [CERT] [NOV] [TIPO P/D] [ID] [NAME...] [$ VALOR_ASEGURADO] [$ PRIMA_ANUAL] [$ EXTRAPRIMA] [$ PRIMA_COBRO]
+    # Patrón: [CERT] [NOV] [TIPO P/D] [ID] [NAME...] [EDAD] [PLAN] [$ VALOR_ASEGURADO] [$ PRIMA_ANUAL] [$ EXTRAPRIMA] [$ PRIMA_COBRO]
     pattern = re.compile(
-        r"(\d+)\s+[A-Z]+\s+([PD])\s+(\d{5,12})\s+(.*?)\s+\d+\s+1\s+.*?\$?\s*[\d,.]+\s+.*?\$?\s*[\d,.]+\s+.*?\$?\s*[\d,.]+\s+.*?\$?\s*([\d,.]+)\s*$",
+        r"(\d+)\s+[A-Z]+\s+([PD])\s+(\d{5,12})\s+(.*?)\s+\d+\s+\d+\s+.*?\$?\s*[\d,.]+\s+.*?\$?\s*([\d,.]+)\s+.*?\$?\s*[\d,.]+\s+.*?\$?\s*([\d,.]+)\s*$",
         re.MULTILINE
     )
     
@@ -67,24 +65,26 @@ def _extraer_por_regex(text: str) -> List[Dict[str, Any]]:
     for line in text.split("\n"):
         m = pattern.search(line.strip())
         if m:
+            cert_val = m.group(1)
             tipo = m.group(2)
-            if tipo == "P": # Paso 2: Filtrar por TIPO = "P"
-                cedula_raw = m.group(3)
-                nombre_raw = m.group(4).strip()
-                valor = _limpiar_numero(m.group(5))
-                
-                if valor > 0:
-                    # Paso 3: Reemplazos específicos
-                    cedula, nombre = _aplicar_reemplazos(cedula_raw, nombre_raw)
-                    
-                    rows.append({
-                        "cedula": cedula,
-                        "nombre_asociado": _formatear_nombre(nombre),
-                        "empresa": "REFRIDCOL",
-                        "valor": valor,
-                        "concepto": "SEGURO DE VIDA", # Paso 7
-                    })
+            cedula_raw = m.group(3)
+            nombre_raw = m.group(4).strip()
+            prima_anual = _limpiar_numero(m.group(5))
+            
+            # Aplicar reemplazos específicos
+            cedula, nombre = _aplicar_reemplazos(cedula_raw, nombre_raw)
+            
+            rows.append({
+                "cert": cert_val,
+                "tipo": tipo,
+                "cedula": cedula,
+                "nombre_asociado": _formatear_nombre(nombre),
+                "empresa": "REFRIDCOL",
+                "prima_anual": prima_anual,
+                "concepto": "SEGURO DE VIDA",
+            })
     return rows
+
 
 def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
     """Aplica las reglas del Paso 3 de normalización."""
@@ -98,6 +98,7 @@ def _aplicar_reemplazos(cedula: str, nombre: str) -> Tuple[str, str]:
     if "ESPERANZA AGUADO CORTES" in n_up: nombre = "GLORIA AGUDELO DE TORRES"
     
     return cedula, nombre
+
 
 def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
     """Normaliza el DataFrame siguiendo los 7 pasos."""
@@ -118,17 +119,27 @@ def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
 
     tipo_col_idx = id_col_idx - 1 if id_col_idx > 0 else -1
     nombre_col_idx = id_col_idx + 1 if id_col_idx < len(df.columns) -1 else -1
-    valor_col_idx = len(df.columns) - 1 # Paso 4: Prima Cobro es la última
+    
+    cert_col_idx = 0
+    prima_anual_col_idx = -1
+    for i, col in enumerate(df.columns):
+        col_up = str(col).upper()
+        if "ANUAL" in col_up:
+            prima_anual_col_idx = i
+            break
+    if prima_anual_col_idx == -1:
+        prima_anual_col_idx = id_col_idx + 5
 
     valid_rows = []
     for _, row in df.iterrows():
-        # Paso 2: Filtrar solo por TIPO = "P"
+        # Extraer Tipo
         tipo = ""
         if tipo_col_idx != -1:
             tipo = str(row.iloc[tipo_col_idx]).strip().upper()
-        if "P" not in tipo: continue
+        # Permitir tanto P como D
+        if tipo not in ["P", "D"]: continue
 
-        # Paso 3: Identificación
+        # Identificación
         raw_id = str(row.iloc[id_col_idx]).strip().split(".")[0]
         id_val = re.sub(r"[^0-9]", "", raw_id)
         if not id_val or len(id_val) < 5: continue
@@ -138,31 +149,37 @@ def normalizar_df(df: pd.DataFrame) -> pd.DataFrame:
         if nombre_col_idx != -1:
             nombre = str(row.iloc[nombre_col_idx]).strip().split("  ")[0]
 
-        # Paso 4 y 6: Valor (Prima Cobro -> VALOR)
-        valor = _limpiar_numero(row.iloc[valor_col_idx])
-        if valor <= 0: continue # Ignorar filas sin valor de cobro real
+        # Prima Anual
+        prima_anual = _limpiar_numero(row.iloc[prima_anual_col_idx])
+        if prima_anual <= 0: continue
 
-        # Paso 3: Aplicar reemplazos
+        # Certificado
+        cert_raw = str(row.iloc[cert_col_idx]).strip().split(".")[0]
+        cert_val = re.sub(r"[^0-9]", "", cert_raw)
+
+        # Aplicar reemplazos
         id_val, nombre = _aplicar_reemplazos(id_val, nombre)
         nombre = _formatear_nombre(nombre)
 
         valid_rows.append({
+            "cert": cert_val,
+            "tipo": tipo,
             "cedula": id_val,
             "nombre_asociado": nombre,
             "empresa": "REFRIDCOL",
-            "valor": valor,
-            "concepto": "SEGURO DE VIDA" # Paso 7
+            "prima_anual": prima_anual,
+            "concepto": "SEGURO DE VIDA"
         })
 
     return pd.DataFrame(valid_rows)
+
 
 def extraer_hdi(
     archivos_binarios: List[bytes]
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[str]]:
     """Procesa PDFs de HDI con la lógica de 7 pasos y redundancia."""
-    all_rows: List[Dict[str, Any]] = []
+    all_raw_rows: List[Dict[str, Any]] = []
     warnings: List[str] = []
-    vistos_global = set() # (cedula, valor) para evitar duplicados entre métodos
 
     for contenido in archivos_binarios:
         try:
@@ -182,44 +199,114 @@ def extraer_hdi(
                         for _, row in df_norm.iterrows():
                             page_table_rows.append(dict(row))
                     
-                    all_rows.extend(page_table_rows)
+                    all_raw_rows.extend(page_table_rows)
 
                     # 2. REGEX (Sellar lo que las tablas pierden)
                     text = page.extract_text()
                     if text:
                         # Contamos qué extrajeron las tablas para no duplicar en el regex
-                        table_counts = collections.Counter((r["cedula"], r["valor"]) for r in page_table_rows)
+                        table_counts = collections.Counter((r["cedula"], r["prima_anual"]) for r in page_table_rows)
                         regex_counts = collections.Counter()
                         
                         for row in _extraer_por_regex(text):
-                            key = (row["cedula"], row["valor"])
-                            # Solo agregamos si el regex encuentra MÁS instancias de las que las tablas detectaron
+                            key = (row["cedula"], row["prima_anual"])
                             if regex_counts[key] >= table_counts[key]:
-                                all_rows.append(row)
+                                all_raw_rows.append(row)
                             regex_counts[key] += 1
 
         except Exception as e:
             logger.error(f"Error procesando HDI: {e}")
             warnings.append(str(e))
 
-    # CONSOLIDACIÓN: Agrupar por cédula y sumar valores
+    # Agrupar por CERT
+    grupos_cert = collections.defaultdict(list)
+    for idx, r in enumerate(all_raw_rows):
+        cert_val = r.get("cert")
+        if not cert_val:
+            cert_val = f"dummy_{idx}"
+        grupos_cert[cert_val].append(r)
+
+    consolidated_rows: List[Dict[str, Any]] = []
+    for cert_val, members in grupos_cert.items():
+        # Encontrar el titular (tipo == "P")
+        titular = None
+        for m in members:
+            if m["tipo"] == "P":
+                titular = m
+                break
+        
+        # Si no hay titular, usamos el primer miembro del grupo y generamos una advertencia
+        if not titular:
+            titular = members[0]
+            warnings.append(
+                f"No se detectó un Titular (TIPO = 'P') para el grupo CERT '{cert_val}'. "
+                f"Se asumirá como titular a '{titular['nombre_asociado']}' y no se aplicará subsidio de empresa."
+            )
+            total_empleado = sum(m["prima_anual"] / 12 for m in members)
+            valor_colaborador = round(total_empleado, 2)
+            valor_rdc = 0.0
+            valor_total = valor_colaborador
+        else:
+            # Hay titular:
+            # 1. Prima titular: 76% colaborador, 24% empresa
+            prima_titular = titular["prima_anual"] / 12
+            valor_rdc = round(prima_titular * 0.24, 2)
+            valor_col_titular = round(prima_titular * 0.76, 2)
+            
+            # 2. Prima dependientes: 100% colaborador, 0% empresa
+            valor_col_dependents = sum(m["prima_anual"] / 12 for m in members if m is not titular)
+            
+            valor_colaborador = round(valor_col_titular + valor_col_dependents, 2)
+            valor_total = round(valor_rdc + valor_colaborador, 2)
+            
+        # Crear la fila consolidada asociada al Titular
+        obs = f"Grupo CERT {cert_val}"
+        if len(members) > 1:
+            nombres_dep = ", ".join(m["nombre_asociado"] for m in members if m is not titular)
+            obs += f" | Incluye dependientes: {nombres_dep}"
+            
+        consolidated_rows.append({
+            "cedula": titular["cedula"],
+            "nombre_asociado": titular["nombre_asociado"],
+            "empresa": titular.get("empresa", "REFRIDCOL"),
+            "concepto": titular["concepto"],
+            "valor": valor_total,
+            "valor_rdc": valor_rdc,
+            "valor_colaborador": valor_colaborador,
+            "observaciones": obs
+        })
+
+    # CONSOLIDACIÓN FINAL: Agrupar por cédula (si un Titular tiene más de un CERT)
     consolidated_dict: Dict[str, Dict[str, Any]] = {}
-    for row in all_rows:
+    for row in consolidated_rows:
         cedula = row["cedula"]
         if cedula in consolidated_dict:
             consolidated_dict[cedula]["valor"] += row["valor"]
+            consolidated_dict[cedula]["valor_rdc"] += row["valor_rdc"]
+            consolidated_dict[cedula]["valor_colaborador"] += row["valor_colaborador"]
+            if row["observaciones"]:
+                obs_prev = consolidated_dict[cedula].get("observaciones")
+                if obs_prev:
+                    consolidated_dict[cedula]["observaciones"] = f"{obs_prev} || {row['observaciones']}"
+                else:
+                    consolidated_dict[cedula]["observaciones"] = row["observaciones"]
         else:
-            # Copiamos para no mutar el original si fuera necesario
             consolidated_dict[cedula] = row.copy()
-    
-    all_rows = list(consolidated_dict.values())
+            
+    final_rows = list(consolidated_dict.values())
 
-    total_valor = sum(r["valor"] for r in all_rows)
+    # Redondear valores finales
+    for r in final_rows:
+        r["valor"] = round(r["valor"], 2)
+        r["valor_rdc"] = round(r["valor_rdc"], 2)
+        r["valor_colaborador"] = round(r["valor_colaborador"], 2)
+
+    total_valor = sum(r["valor"] for r in final_rows)
     summary = {
-        "total_asociados": len(all_rows),
-        "total_filas_consolidadas": len(all_rows),
+        "total_asociados": len(final_rows),
+        "total_filas_consolidadas": len(final_rows),
         "total_valor": round(total_valor, 2),
         "archivos_procesados": len(archivos_binarios),
     }
     
-    return all_rows, summary, warnings
+    return final_rows, summary, warnings
