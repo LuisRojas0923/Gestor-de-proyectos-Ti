@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useTicketDetail, Ticket } from '../hooks/useTicketDetail';
+import { useApi } from '../hooks/useApi';
 import { useAppContext } from '../context/AppContext';
 
 // V2 Components
@@ -10,7 +10,6 @@ import AnalystSidebarInfo from './ServicePortal/components/AnalystSidebarInfo';
 import AnalystSidebarTimeline from './ServicePortal/components/AnalystSidebarTimeline';
 import AnalystActionTabs from './ServicePortal/components/AnalystActionTabs';
 
-import { API_CONFIG } from '../config/api';
 import { useNotifications } from '../components/notifications/NotificationsContext';
 
 const TicketDetail: React.FC = () => {
@@ -18,6 +17,7 @@ const TicketDetail: React.FC = () => {
     const navigate = useNavigate();
     const { state } = useAppContext();
     const { addNotification } = useNotifications();
+    const { get: getDevelopments } = useApi<any[]>();
     const { user } = state;
     const [developments, setDevelopments] = useState<any[]>([]);
 
@@ -75,14 +75,14 @@ const TicketDetail: React.FC = () => {
     useEffect(() => {
         const fetchDevelopments = async () => {
             try {
-                const res = await axios.get(`${API_CONFIG.BASE_URL}/desarrollos/`);
-                setDevelopments(res.data as any[]);
+                const data = await getDevelopments('/desarrollos/');
+                setDevelopments(data ?? []);
             } catch (err) {
                 console.error("Error cargando desarrollos:", err);
             }
         };
         if (isAnalyst) fetchDevelopments();
-    }, [isAnalyst]);
+    }, [isAnalyst, getDevelopments]);
 
     if (isLoading) return <div className="p-10 text-center font-sans">Cargando ticket...</div>;
     if (error || !ticket) return <div className="p-10 text-center text-red-500 font-bold font-sans">{error || "Error"}</div>;
