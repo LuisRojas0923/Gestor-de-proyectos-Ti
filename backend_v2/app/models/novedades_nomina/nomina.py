@@ -58,6 +58,8 @@ class NominaRegistroNormalizado(SQLModel, table=True):
     cedula: str = Field(max_length=50, index=True)
     nombre_asociado: Optional[str] = Field(default=None, max_length=255)
     valor: float
+    valor_rdc: float = Field(default=0.0)
+    valor_colaborador: float = Field(default=0.0)
     empresa: str = Field(max_length=255)
     concepto: str = Field(max_length=255)
     

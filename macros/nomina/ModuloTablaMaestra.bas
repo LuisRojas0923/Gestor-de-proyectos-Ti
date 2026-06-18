@@ -93,6 +93,8 @@ Sub ExtraerTablaMaestra()
     sql = sql & "    SUM(CASE WHEN concepto = 'BENEFICIAR CREDITO' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BENEFICIAR.2Q CREDITO""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'BENEFICIAR OTROS DESCUENTOS' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BENEFICIAR.1Q OTROS DESC""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'BENEFICIAR OTROS DESCUENTOS' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BENEFICIAR.2Q OTROS DESC""," & vbCrLf
+    sql = sql & "    SUM(CASE WHEN concepto = 'BENEFICIAR PRIMA' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BENEFICIAR.1Q PRIMA""," & vbCrLf
+    sql = sql & "    SUM(CASE WHEN concepto = 'BENEFICIAR PRIMA' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BENEFICIAR.2Q PRIMA""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'BOGOTA LIBRANZA' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BOGOTÁ_LIBZ.1 QUINCENA""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'BOGOTA LIBRANZA' AND " & q2Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""BOGOTÁ_LIBZ.2 QUINCENA""," & vbCrLf
     sql = sql & "    SUM(CASE WHEN concepto = 'CAMPOSANTO' AND " & q1Check & " THEN ROUND(CAST((valor / 2.0) AS numeric), 2) ELSE 0 END) AS ""CAMPOSANTO.1 QUINCENA""," & vbCrLf

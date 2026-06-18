@@ -57,12 +57,40 @@ async def preview_grancoop(
 
     warnings_detalle = []
     if db_erp is not None:
+        from ....services.novedades_nomina.nomina_helper import NominaHelper
+        import logging
+        logger_route = logging.getLogger(__name__)
+
+        # 1. Resolver cédulas vacías por coincidencia de nombre
+        empleados_activos = EmpleadosService.obtener_todos_los_empleados_activos(db_erp)
+        nombres_resueltos = set()
+        for row in rows:
+            if not row.get("cedula"):
+                nombre_asoc = row.get("nombre_asociado", "")
+                cedula_resuelta = NominaHelper.buscar_cedula_por_nombre(nombre_asoc, empleados_activos)
+                if cedula_resuelta:
+                    row["cedula"] = cedula_resuelta
+                    row["observaciones"] = "Cédula resuelta por coincidencia de nombre en ERP."
+                    logger_route.info(f"Cédula resuelta por nombre para '{nombre_asoc}': {cedula_resuelta}")
+                    nombres_resueltos.add(nombre_asoc)
+                else:
+                    logger_route.warning(f"No se pudo resolver la cédula por nombre para: '{nombre_asoc}'")
+
+        # Filtrar de warnings_txt aquellos que fueron resueltos con éxito por nombre
+        warnings_txt = [
+            w for w in warnings_txt
+            if not any(f"'{n}'" in w for n in nombres_resueltos)
+        ]
+
         cedulas_sin_erp = set(mapa_excepciones.keys())
-        cedulas_para_erp = list(set(r["cedula"] for r in rows if r["cedula"] not in cedulas_sin_erp))
+        cedulas_para_erp = list(set(r["cedula"] for r in rows if r["cedula"] and r["cedula"] not in cedulas_sin_erp))
         mapa_erp = EmpleadosService.consultar_empleados_bulk(db_erp, cedulas_para_erp)
 
         for row in rows:
             ced = row["cedula"]
+            if not ced:
+                row["estado_erp"] = "NO ENCONTRADO"
+                continue
             if ced in mapa_excepciones: continue
             info = mapa_erp.get(ced)
             if info:
@@ -75,6 +103,9 @@ async def preview_grancoop(
         cedulas_ya = set()
         for row in rows:
             ced = row["cedula"]
+            if not ced:
+                warnings_detalle.append({"cedula": "SIN_CEDULA", "nombre": row.get("nombre_asociado", "Desconocido"), "motivo": "No se pudo resolver la cédula por nombre en ERP"})
+                continue
             if ced in cedulas_ya or ced in mapa_excepciones: continue
             cedulas_ya.add(ced)
             estado = row.get("estado_erp", "")
@@ -85,6 +116,7 @@ async def preview_grancoop(
         
         for row in rows:
             ced = row["cedula"]
+            if not ced: continue
             if ced in mapa_excepciones:
                 exc = mapa_excepciones[ced]
                 valor_orig = row["valor"]

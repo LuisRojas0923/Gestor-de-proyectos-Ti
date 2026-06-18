@@ -509,6 +509,7 @@ const ConceptoBadge: React.FC<{ concepto: string }> = ({ concepto }) => {
         'BENEFICIAR APORTE': 'success',
         'BENEFICIAR CREDITO': 'info',
         'BENEFICIAR OTROS DESCUENTOS': 'warning',
+        'BENEFICIAR PRIMA': 'success',
     };
     return (
         <Badge variant={variantMap[concepto] || 'default'} size="sm">

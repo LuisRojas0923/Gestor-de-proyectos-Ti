@@ -153,6 +153,14 @@ class NominaHelper:
 
             ciudad = (info_original.get("ciudadcontratacion", "") if info_original else "") or row.get("sucursal", "")
 
+            valor_rdc_final = row.get("valor_rdc", 0.0)
+            valor_colaborador_final = row.get("valor_colaborador", 0.0)
+            if valor_final == 0:
+                valor_rdc_final = 0.0
+                valor_colaborador_final = 0.0
+            elif valor_final != row["valor"]:
+                valor_colaborador_final = max(0.0, valor_final - valor_rdc_final)
+
             reg = NominaRegistroNormalizado(
                 archivo_id=archivo_id,
                 fecha_creacion=datetime.now(),
@@ -161,6 +169,8 @@ class NominaHelper:
                 cedula=cedula_final,
                 nombre_asociado=nombre_final,
                 valor=valor_final,
+                valor_rdc=valor_rdc_final,
+                valor_colaborador=valor_colaborador_final,
                 empresa=empresa_final,
                 concepto=concepto_final,
                 categoria_final=categoria,
@@ -170,7 +180,7 @@ class NominaHelper:
                 dias=row.get("dias", 0),
                 fila_origen=i + 1,
                 ciudad=ciudad or None,
-                observaciones=None,
+                observaciones=row.get("observaciones"),
             )
             session.add(reg)
             registros.append(reg)
@@ -268,6 +278,13 @@ class NominaHelper:
                 agrupado[key]["valor"] += fila["valor"]
                 if "VALOR" in agrupado[key]: agrupado[key]["VALOR"] += fila["VALOR"]
                 if "VALOR MES" in agrupado[key]: agrupado[key]["VALOR MES"] += fila.get("VALOR MES", 0)
+                
+                # Agrupación de aportes de empresa y colaborador
+                if "valor_rdc" in agrupado[key]: agrupado[key]["valor_rdc"] += fila.get("valor_rdc", 0)
+                if "VALOR_RDC" in agrupado[key]: agrupado[key]["VALOR_RDC"] += fila.get("VALOR_RDC", 0)
+                if "valor_colaborador" in agrupado[key]: agrupado[key]["valor_colaborador"] += fila.get("valor_colaborador", 0)
+                if "VALOR_COLABORADOR" in agrupado[key]: agrupado[key]["VALOR_COLABORADOR"] += fila.get("VALOR_COLABORADOR", 0)
+
                 agrupado[key]["horas"] += fila.get("horas", 0)
                 agrupado[key]["dias"] += fila.get("dias", 0)
                 if "HORAS" in agrupado[key]: agrupado[key]["HORAS"] += fila.get("HORAS", 0)
@@ -275,3 +292,76 @@ class NominaHelper:
             else:
                 agrupado[key] = fila.copy()
         return list(agrupado.values())
+
+    @staticmethod
+    def normalizar_nombre(nombre: str) -> str:
+        """Elimina acentos, eñes, mayúsculas y caracteres especiales de un nombre para comparación."""
+        if not nombre:
+            return ""
+        import unicodedata
+        # Pasar a mayúsculas y limpiar espacios múltiples
+        t = " ".join(nombre.split()).upper()
+        # Normalizar caracteres unicode (descomponer acentos)
+        t = "".join(
+            c for c in unicodedata.normalize('NFD', t)
+            if unicodedata.category(c) != 'Mn'
+        )
+        t = t.replace("Ñ", "N")
+        return t
+
+    @staticmethod
+    def buscar_cedula_por_nombre(nombre_buscado: str, lista_empleados: List[Dict]) -> Optional[str]:
+        """
+        Busca la cédula de un empleado en la lista del ERP por conjuntos de tokens del nombre.
+        Soporta desorden de nombres/apellidos y leves errores de digitación (umbral de coincidencia >= 75%).
+        """
+        if not nombre_buscado or not lista_empleados:
+            return None
+        
+        import re
+        from difflib import SequenceMatcher
+        
+        norm_buscado = NominaHelper.normalizar_nombre(nombre_buscado)
+        tokens_buscado = set(re.findall(r'\w+', norm_buscado))
+        if not tokens_buscado:
+            return None
+            
+        mejor_match = None
+        max_ratio = 0.0
+        
+        for emp in lista_empleados:
+            emp_nombre = emp.get("nombre") or emp.get("nombre_asociado") or ""
+            norm_emp = NominaHelper.normalizar_nombre(emp_nombre)
+            tokens_emp = set(re.findall(r'\w+', norm_emp))
+            if not tokens_emp:
+                continue
+                
+            # 1. Coincidencias exactas de tokens
+            exactas = tokens_buscado.intersection(tokens_emp)
+            
+            # 2. Encontrar tokens no coincidentes
+            unmatched_buscado = list(tokens_buscado - exactas)
+            unmatched_emp = list(tokens_emp - exactas)
+            
+            # 3. Intentar emparejar tokens no coincidentes de forma difusa (por ej. GARCUA -> GARCIA)
+            fuzzy_matches = 0
+            for tb in unmatched_buscado:
+                for te in unmatched_emp:
+                    sim = SequenceMatcher(None, tb, te).ratio()
+                    if sim >= 0.8:
+                        fuzzy_matches += 1
+                        unmatched_emp.remove(te)
+                        break
+                        
+            coincidencias_totales = len(exactas) + fuzzy_matches
+            total_tokens = max(len(tokens_buscado), len(tokens_emp))
+            ratio = coincidencias_totales / total_tokens if total_tokens > 0 else 0.0
+            
+            # Si supera el umbral del 75% y es mejor que el anterior
+            if ratio >= 0.75 and ratio > max_ratio:
+                max_ratio = ratio
+                mejor_match = emp
+                
+        if mejor_match:
+            return mejor_match.get("nrocedula") or mejor_match.get("cedula")
+        return None

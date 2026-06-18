@@ -125,6 +125,31 @@ class EmpleadosService:
         ]
 
     @staticmethod
+    def obtener_todos_los_empleados_activos(db_erp: Session) -> List[Dict]:
+        """Consulta todos los empleados activos en la base de datos del ERP"""
+        query = text("""
+            SELECT DISTINCT ON (E.nrocedula)
+                E.nrocedula      AS "nrocedula",
+                E.nombre::text   AS "nombre",
+                C.estado::text   AS "estado",
+                C.empresa::text  AS "empresa"
+            FROM establecimiento E
+            LEFT JOIN contrato C
+                ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+            WHERE C.estado = 'Activo'
+            ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST
+        """)
+        resultados = db_erp.execute(query).fetchall()
+        return [
+            {
+                "nrocedula": str(r.nrocedula).strip(),
+                "nombre": r.nombre,
+                "estado": r.estado or "Desconocido",
+                "empresa": r.empresa or ""
+            } for r in resultados
+        ]
+
+    @staticmethod
     async def sincronizar_solicitudes(db: Session):
         """Descarga solicitudes del ERP y las crea en la BD local"""
         solicitudes = await EmpleadosService.consultar_solicitudes_externas()

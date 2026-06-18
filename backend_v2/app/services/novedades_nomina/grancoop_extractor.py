@@ -199,8 +199,8 @@ def _procesar_bloque(
     """Procesa un bloque de asociado y genera las filas long."""
     cedula = _extraer_cedula(lineas_detalle)
     if not cedula:
-        warnings.append(f"No se encontró cédula para '{nombre}'")
-        return
+        warnings.append(f"Cédula no detectada en PDF para '{nombre}'. Se intentará resolver por nombre en ERP.")
+        cedula = ""
 
     totales = _parsear_totales(linea_totales)
 
