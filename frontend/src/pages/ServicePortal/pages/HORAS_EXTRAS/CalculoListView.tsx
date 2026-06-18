@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Title, Text, Button, MaterialCard, Input, Select } from '../../../../components/atoms';
+import { Title, Text, Button, MaterialCard, Input, Select, Badge } from '../../../../components/atoms';
 import { ArrowLeft, Search, RefreshCw } from 'lucide-react';
 import { listarCalculos } from '../../../../services/horasExtrasService';
 import type { CalculoSemanal } from '../../../../types/horasExtras';
@@ -8,13 +8,16 @@ import type { CalculoSemanal } from '../../../../types/horasExtras';
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
 
-const ESTADO_COLORS: Record<string, string> = {
-  BORRADOR: 'bg-slate-200 text-slate-800',
-  CONFIRMADO: 'bg-blue-100 text-blue-800',
-  PAGADO: 'bg-green-100 text-green-800',
-  COMPENSADO: 'bg-amber-100 text-amber-800',
-  ANULADO: 'bg-red-100 text-red-800',
+const ESTADO_VARIANTS: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
+  BORRADOR: 'default',
+  CONFIRMADO: 'info',
+  PAGADO: 'success',
+  COMPENSADO: 'warning',
+  ANULADO: 'error',
 };
+
+const labelClass = 'text-xs text-[var(--color-text-secondary)]';
+const valueClass = 'text-[var(--color-text-primary)]';
 
 const CalculoListView: React.FC = () => {
   const navigate = useNavigate();
@@ -82,7 +85,7 @@ const CalculoListView: React.FC = () => {
           <Select
             label="Estado"
             value={estado}
-            onChange={setEstado}
+            onChange={(e) => setEstado(e.target.value)}
             options={[
               { value: '', label: 'Todos' },
               { value: 'BORRADOR', label: 'Borrador' },
@@ -103,7 +106,7 @@ const CalculoListView: React.FC = () => {
 
       {calculos.length === 0 ? (
         <MaterialCard className="p-8 text-center">
-          <Text className="text-slate-500">
+          <Text className="text-[var(--color-text-secondary)]">
             {cargando ? 'Cargando...' : 'No hay cálculos para los filtros seleccionados.'}
           </Text>
         </MaterialCard>
@@ -114,33 +117,33 @@ const CalculoListView: React.FC = () => {
               key={c.id}
               onClick={() => navigate(`/service-portal/horas-extras/calculos/${c.id}`)}
               hoverable
-              className="p-4 cursor-pointer"
+              className="p-4 cursor-pointer border border-[var(--color-border)] hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-variant)]"
             >
               <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center">
                 <div>
-                  <Text className="text-xs text-slate-500">Cálculo</Text>
-                  <Text className="font-medium">#{c.id}</Text>
+                  <Text className={labelClass}>Cálculo</Text>
+                  <Text className={`font-medium ${valueClass}`}>#{c.id}</Text>
                 </div>
                 <div>
-                  <Text className="text-xs text-slate-500">Cédula</Text>
-                  <Text>{c.cedula}</Text>
+                  <Text className={labelClass}>Cédula</Text>
+                  <Text className={valueClass}>{c.cedula}</Text>
                 </div>
                 <div>
-                  <Text className="text-xs text-slate-500">Periodo</Text>
-                  <Text>{c.anio}-W{String(c.semana_iso).padStart(2, '0')}</Text>
+                  <Text className={labelClass}>Periodo</Text>
+                  <Text className={valueClass}>{c.anio}-W{String(c.semana_iso).padStart(2, '0')}</Text>
                 </div>
                 <div>
-                  <Text className="text-xs text-slate-500">Horas extras</Text>
-                  <Text>{c.total_horas_extras}h</Text>
+                  <Text className={labelClass}>Horas extras</Text>
+                  <Text className={valueClass}>{c.total_horas_extras}h</Text>
                 </div>
                 <div>
-                  <Text className="text-xs text-slate-500">Costo empresa</Text>
-                  <Text className="font-medium">{fmtCurrency(c.total_costo_empresa)}</Text>
+                  <Text className={labelClass}>Costo empresa</Text>
+                  <Text className={`font-medium ${valueClass}`}>{fmtCurrency(c.total_costo_empresa)}</Text>
                 </div>
                 <div>
-                  <Text className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${ESTADO_COLORS[c.estado] || 'bg-slate-100'} !m-0`}>
+                  <Badge size="sm" variant={ESTADO_VARIANTS[c.estado] ?? 'default'}>
                     {c.estado}
-                  </Text>
+                  </Badge>
                 </div>
               </div>
             </MaterialCard>

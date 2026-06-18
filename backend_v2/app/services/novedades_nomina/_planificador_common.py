@@ -65,7 +65,9 @@ async def _resolver_catalogo_y_factor(
             raise ValueError(
                 f"No hay factor prestacional vigente para nivel ARL '{nivel}'."
             )
-        factores[nivel] = float(f.factor)
+        factores[nivel] = float(
+            getattr(f, "factor", getattr(f, "factor_prestacional"))
+        )
 
     return catalogo, factores
 

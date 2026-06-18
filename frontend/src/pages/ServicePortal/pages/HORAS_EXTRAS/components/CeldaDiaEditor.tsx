@@ -112,14 +112,11 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
             value={novedadCodigo}
             onChange={(e) => setNovedadCodigo(e.target.value)}
             className="w-full mb-2"
-          >
-            <option value="">— Sin novedad —</option>
-            {CODIGOS_NOVEDAD.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </Select>
+            options={[
+              { value: '', label: '— Sin novedad —' },
+              ...CODIGOS_NOVEDAD.map((c) => ({ value: c, label: c })),
+            ]}
+          />
           {novedadCodigo && (
             <Textarea
               value={novedadObs}

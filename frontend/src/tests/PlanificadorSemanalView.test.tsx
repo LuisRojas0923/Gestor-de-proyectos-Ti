@@ -4,7 +4,8 @@
  * Cobertura:
  *  - SelectorEmpleados: render + busqueda contra mock
  *  - DefaultHorarioSemana: aplicar a todos
- *  - PlanificadorSemanalView: pre-calcular muestra totales
+ *  - PlanificadorSemanalView: aplica horario masivo y pre-calcula
+ *  - PlanificadorSemanalView: modal de empleados activos agrega empleados masivamente
  *  - PlanificadorSemanalView: guardar borrador llama endpoint
  *  - PlanificadorSemanalView: confirmar muestra OK/errores
  */
@@ -45,12 +46,29 @@ const wrapperRouter = (ui: React.ReactElement) =>
 
 const mockEmpleados = {
   items: [
-    { cedula: '123', nombre: 'Juan', cargo: 'Op', area: 'A', nivel_riesgo_arl: 'III', autoriza_he: true },
-    { cedula: '456', nombre: 'Maria', cargo: 'Op', area: 'A', nivel_riesgo_arl: 'III', autoriza_he: true },
+    { cedula: '123', nombre: 'Juan', cargo: 'Op', area: 'A', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true },
+    { cedula: '456', nombre: 'Maria', cargo: 'Op', area: 'A', quien_reporta: 'Lider Dos', nivel_riesgo_arl: 'III', autoriza_he: true },
+    { cedula: '789', nombre: 'Pedro', cargo: 'Op', area: 'B', quien_reporta: 'Lider Tres', nivel_riesgo_arl: 'III', autoriza_he: false },
   ],
-  total: 2,
+  total: 3,
   limit: 50,
   offset: 0,
+};
+
+const agregarEmpleadosActivos = async () => {
+  fireEvent.click(screen.getByRole('button', { name: /Empleados/i }));
+
+  await screen.findByRole('heading', { name: 'Empleados activos' });
+  await waitFor(() => {
+    expect(screen.getByText(/Juan/)).toBeTruthy();
+  });
+
+  fireEvent.click(screen.getByRole('button', { name: /Seleccionar visibles/i }));
+  fireEvent.click(screen.getByRole('button', { name: /Agregar seleccionados/i }));
+
+  await waitFor(() => {
+    expect(screen.queryByRole('heading', { name: 'Empleados activos' })).toBeNull();
+  });
 };
 
 describe('SelectorEmpleados', () => {
@@ -63,7 +81,7 @@ describe('SelectorEmpleados', () => {
     vi.unstubAllGlobals();
   });
 
-  it('renderiza y muestra empleados del ERP', async () => {
+  it('renderiza sin consultar ERP hasta que haya busqueda', async () => {
     const onToggle = vi.fn();
     const onLimpiar = vi.fn();
     wrapperRouter(
@@ -75,10 +93,8 @@ describe('SelectorEmpleados', () => {
       />,
     );
 
-    await waitFor(() => {
-      expect(screen.getByText(/Juan/)).toBeTruthy();
-      expect(screen.getByText(/Maria/)).toBeTruthy();
-    });
+    expect(screen.getByText(/Sin resultados/)).toBeTruthy();
+    expect(buscarEmpleadosERP).not.toHaveBeenCalled();
   });
 
   it('permite buscar empleados por texto', async () => {
@@ -196,21 +212,14 @@ describe('PlanificadorSemanalView', () => {
 
   it('renderiza con selector de semana', async () => {
     wrapperRouter(<PlanificadorSemanalView />);
-    expect(screen.getByText(/Planificador Semanal/)).toBeTruthy();
-    expect(screen.getByText(/Paso 1 — Selecciona empleados/)).toBeTruthy();
+    expect(screen.getByText(/Horas extras — planificación masiva/)).toBeTruthy();
+    expect(screen.getByText(/Horario masivo/)).toBeTruthy();
   });
 
   it('pre-calcular muestra totales en resumen', async () => {
     wrapperRouter(<PlanificadorSemanalView />);
 
-    // Esperar carga inicial de empleados
-    await waitFor(() => {
-      expect(screen.getByText(/Juan/)).toBeTruthy();
-    });
-
-    // Seleccionar un empleado
-    const checkbox = screen.getAllByRole('checkbox')[0];
-    fireEvent.click(checkbox);
+    await agregarEmpleadosActivos();
 
     // Click en pre-calcular (boton especifico, no "Pre-cálculo" en resumen)
     const preCalcularBtn = screen.getByRole('button', { name: /Pre-calcular/i });
@@ -223,19 +232,76 @@ describe('PlanificadorSemanalView', () => {
       { timeout: 3000 },
     );
 
-    // Esperar a que aparezca el resumen con el total
-    await screen.findByText('2.5h', {}, { timeout: 3000 });
+    // Esperar a que aparezca el total en tabla/resumen
+    const totales = await screen.findAllByText('2.5h', {}, { timeout: 3000 });
+    expect(totales.length).toBeGreaterThan(0);
+  });
+
+  it('aplica horario masivo antes de guardar', async () => {
+    wrapperRouter(<PlanificadorSemanalView />);
+
+    await agregarEmpleadosActivos();
+
+    const entrada = screen.getByDisplayValue('07:30');
+    fireEvent.change(entrada, { target: { value: '08:00' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Aplicar horario/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Guardar borrador/i }));
+
+    await waitFor(() => {
+      expect(guardarBorradorPlan).toHaveBeenCalled();
+      const callArg = (guardarBorradorPlan as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(callArg.empleados[0].dias[0].hora_entrada).toBe('08:00');
+    });
+  });
+
+  it('agrega empleados desde el modal de empleados activos', async () => {
+    (buscarEmpleadosERP as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({
+        items: [
+          ...mockEmpleados.items,
+          mockEmpleados.items[0], // duplicado por cedula, debe agregarse una sola vez
+        ],
+        total: 3,
+        limit: 100,
+        offset: 0,
+      });
+
+    wrapperRouter(<PlanificadorSemanalView />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Empleados/i }));
+
+    await screen.findByRole('heading', { name: 'Empleados activos' });
+    await waitFor(() => {
+      expect(buscarEmpleadosERP).toHaveBeenCalledWith(undefined, 100, 0, TOKEN, true);
+      expect(screen.getByText(/Juan/)).toBeTruthy();
+      expect(screen.getByText(/Lider Uno/)).toBeTruthy();
+      expect(screen.queryByText(/Pedro/)).toBeNull();
+    });
+
+    fireEvent.change(screen.getByDisplayValue('Autorizado HE: SI'), { target: { value: 'no' } });
+    await waitFor(() => {
+      expect(screen.getByText(/Pedro/)).toBeTruthy();
+      expect(screen.queryByText(/Juan/)).toBeNull();
+    });
+
+    fireEvent.change(screen.getByDisplayValue('Autorizado HE: NO'), { target: { value: 'si' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Seleccionar visibles/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Agregar seleccionados/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Guardar borrador/i }));
+
+    await waitFor(() => {
+      expect(guardarBorradorPlan).toHaveBeenCalled();
+      const callArg = (guardarBorradorPlan as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(callArg.empleados).toHaveLength(2);
+    });
   });
 
   it('guardar borrador llama endpoint con payload correcto', async () => {
     wrapperRouter(<PlanificadorSemanalView />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Juan/)).toBeTruthy();
-    });
-
-    const checkbox = screen.getAllByRole('checkbox')[0];
-    fireEvent.click(checkbox);
+    await agregarEmpleadosActivos();
 
     const guardarBtn = screen.getByRole('button', { name: /Guardar borrador/i });
     fireEvent.click(guardarBtn);
@@ -259,12 +325,7 @@ describe('PlanificadorSemanalView', () => {
 
     wrapperRouter(<PlanificadorSemanalView />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Juan/)).toBeTruthy();
-    });
-
-    const checkbox = screen.getAllByRole('checkbox')[0];
-    fireEvent.click(checkbox);
+    await agregarEmpleadosActivos();
 
     // Mock window.confirm
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
@@ -274,6 +335,8 @@ describe('PlanificadorSemanalView', () => {
 
     await waitFor(() => {
       expect(confirmarPlan).toHaveBeenCalled();
+      const callArg = (confirmarPlan as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(callArg.empleados[0].parametros).toBeUndefined();
     });
 
     confirmSpy.mockRestore();

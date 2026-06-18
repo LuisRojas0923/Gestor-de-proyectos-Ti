@@ -32,6 +32,7 @@ from ...models.novedades_nomina.schemas_horas_extras_planificador import (
     PlanBulkResponse,
     PlanConfirmarCalculoItem,
     PlanConfirmarEmpleadoIn,
+    PlanConfirmarParametros,
     PlanConfirmarRequest,
     PlanConfirmarResponse,
     PlanConfirmarResumen,
@@ -46,6 +47,10 @@ from ._planificador_common import (
 from .horas_extras_confirmacion import confirmar_pre_liquidacion
 
 logger = logging.getLogger(__name__)
+
+SALARIO_BASE_ESTIMADO = 3_000_000.0
+VALOR_HORA_ESTIMADO = 12_500.0
+NIVEL_RIESGO_DEFAULT = "III"
 
 
 # ===========================================================================
@@ -189,9 +194,12 @@ async def confirmar_plan(
 
     for emp_in in payload.empleados:
         try:
+            parametros = await _resolver_parametros_confirmacion(
+                session, emp_in, payload.semana
+            )
             # 1. Construir PreLiquidacionConfirmar con registro_diario
             detalles = await _construir_detalles_confirmacion(
-                session, emp_in, payload.semana
+                session, emp_in, payload.semana, parametros
             )
             confirm_payload = PreLiquidacionConfirmar(
                 cedula=emp_in.cedula,
@@ -199,13 +207,13 @@ async def confirmar_plan(
                 semana_iso=payload.semana.semana_iso,
                 fecha_inicio=payload.semana.fecha_inicio,
                 fecha_fin=payload.semana.fecha_fin,
-                nivel_riesgo_arl=emp_in.parametros.nivel_riesgo_arl,
-                factor_prestacional=emp_in.parametros.factor_prestacional,
-                salario_base_mensual=emp_in.parametros.salario_base_mensual,
-                valor_hora_ordinaria=emp_in.parametros.valor_hora_ordinaria,
+                nivel_riesgo_arl=parametros.nivel_riesgo_arl,
+                factor_prestacional=parametros.factor_prestacional,
+                salario_base_mensual=parametros.salario_base_mensual,
+                valor_hora_ordinaria=parametros.valor_hora_ordinaria,
                 detalles=detalles,
-                ot_id=emp_in.parametros.ot_id,
-                ot_codigo=emp_in.parametros.ot_codigo,
+                ot_id=parametros.ot_id,
+                ot_codigo=parametros.ot_codigo,
                 usuario_confirma=payload.usuario_confirma,
             )
             # 2. Llamar al motor actual
@@ -246,10 +254,53 @@ async def confirmar_plan(
     )
 
 
+async def _resolver_parametros_confirmacion(
+    session: AsyncSession,
+    emp_in: PlanConfirmarEmpleadoIn,
+    semana: PlanSemanaIn,
+) -> PlanConfirmarParametros:
+    """Resuelve parametros de calculo sin exponerlos en el frontend.
+
+    Cuando el payload trae parametros se respetan para compatibilidad. Si no,
+    se usan datos/cache del empleado y factores legales vigentes del backend.
+    """
+    if emp_in.parametros is not None:
+        return emp_in.parametros
+
+    horario = (await session.execute(
+        select(NominaHorarioPactado).where(NominaHorarioPactado.cedula == emp_in.cedula)
+    )).scalars().first()
+    if horario is not None:
+        autoriza = (
+            horario.autoriza_he_override
+            if horario.autoriza_he_override is not None
+            else horario.autoriza_he_default
+        )
+        if not autoriza:
+            raise ValueError("Empleado no autorizado para horas extras")
+        jornada_nocturna = bool(horario.es_jornada_nocturna)
+    else:
+        jornada_nocturna = False
+
+    _, factores = await _resolver_catalogo_y_factor(
+        session, semana.fecha_inicio, [NIVEL_RIESGO_DEFAULT]
+    )
+    return PlanConfirmarParametros(
+        nivel_riesgo_arl=NIVEL_RIESGO_DEFAULT,
+        factor_prestacional=factores[NIVEL_RIESGO_DEFAULT],
+        salario_base_mensual=SALARIO_BASE_ESTIMADO,
+        valor_hora_ordinaria=VALOR_HORA_ESTIMADO,
+        jornada_nocturna=jornada_nocturna,
+        ot_id=None,
+        ot_codigo=None,
+    )
+
+
 async def _construir_detalles_confirmacion(
     session: AsyncSession,
     emp_in: PlanConfirmarEmpleadoIn,
     semana: PlanSemanaIn,
+    parametros: PlanConfirmarParametros,
 ) -> List[ConfirmarDetalleItem]:
     """Convierte los dias del plan en ConfirmarDetalleItem para el motor.
 
@@ -258,11 +309,11 @@ async def _construir_detalles_confirmacion(
     """
     fecha_ref = semana.fecha_inicio
     catalogo, factores = await _resolver_catalogo_y_factor(
-        session, fecha_ref, [emp_in.parametros.nivel_riesgo_arl]
+        session, fecha_ref, [parametros.nivel_riesgo_arl]
     )
     cat_idx = {c["codigo"]: c for c in catalogo}
-    factor_prestacional = factores[emp_in.parametros.nivel_riesgo_arl]
-    valor_hora = emp_in.parametros.valor_hora_ordinaria
+    factor_prestacional = factores[parametros.nivel_riesgo_arl]
+    valor_hora = parametros.valor_hora_ordinaria
 
     detalles: List[ConfirmarDetalleItem] = []
     dias_idx = {d.dia_semana: d for d in emp_in.dias}
@@ -277,7 +328,7 @@ async def _construir_detalles_confirmacion(
         )
         _ht, _ho, horas_ext, codigo_he, _costo = _calcular_dia(
             horas_trab, codigos_nov,
-            emp_in.parametros.jornada_nocturna,
+            parametros.jornada_nocturna,
             cat_idx, factor_prestacional, valor_hora,
         )
         if horas_ext <= 0 or codigo_he is None:

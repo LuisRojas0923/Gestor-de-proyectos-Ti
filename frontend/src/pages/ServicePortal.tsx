@@ -58,7 +58,6 @@ import TablaMaestraView from './ServicePortal/pages/NOVEDADES_NOMINA/TablaMaestr
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
 import ComisionesView from './ServicePortal/pages/Comisiones';
-import HorasExtrasDashboard from './ServicePortal/pages/HORAS_EXTRAS/HorasExtrasDashboard';
 import PreLiquidacionView from './ServicePortal/pages/HORAS_EXTRAS/PreLiquidacionView';
 import CalculoListView from './ServicePortal/pages/HORAS_EXTRAS/CalculoListView';
 import CalculoDetailView from './ServicePortal/pages/HORAS_EXTRAS/CalculoDetailView';
@@ -419,7 +418,7 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="horas-extras" element={
                     <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <HorasExtrasDashboard />
+                        <PlanificadorSemanalView />
                     </ProtectedRoute>
                 } />
                 <Route path="horas-extras/pre-liquidacion" element={

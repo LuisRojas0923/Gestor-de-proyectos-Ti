@@ -1,23 +1,61 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Title, Text, Button, MaterialCard } from '../../../../components/atoms';
-import { ArrowLeft, Calculator, Calendar, CalendarDays, ClipboardList, Clock, History, Wallet, ListChecks } from 'lucide-react';
+import {
+  ArrowLeft,
+  Calculator,
+  Calendar,
+  CalendarDays,
+  ClipboardList,
+  Clock,
+  History,
+  ListChecks,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react';
 
-const ACCIONES = [
+type DashboardAction = {
+  id: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  to: string;
+};
+
+const ACCION_PRINCIPAL: DashboardAction = {
+  id: 'planificador',
+  title: 'Planificador Semanal',
+  description:
+    'Flujo recomendado para asignar horarios, registrar novedades, pre-calcular y confirmar la semana en bloque.',
+  icon: ListChecks,
+  to: '/service-portal/horas-extras/planificador',
+};
+
+const ACCIONES_FLUJO: DashboardAction[] = [
   {
-    id: 'planificador',
-    title: 'Planificador Semanal',
-    description: 'Asigna horario y novedades en bloque a un grupo de empleados. Pre-cálculo en vivo, borrador y confirmación al cierre de la semana.',
-    icon: ListChecks,
-    to: '/service-portal/horas-extras/planificador',
+    id: 'horario',
+    title: 'Horario Semanal',
+    description: 'Configura la jornada de cada empleado por día.',
+    icon: CalendarDays,
+    to: '/service-portal/horas-extras/horario',
+  },
+  {
+    id: 'novedades',
+    title: 'Novedades',
+    description: 'Registra licencias, vacaciones, incapacidades y ausencias.',
+    icon: ClipboardList,
+    to: '/service-portal/horas-extras/novedades',
   },
   {
     id: 'pre-liquidacion',
-    title: 'Calcular Pre-liquidación',
-    description: 'Calcula las horas extras semanales y el costo asociado a una OT.',
+    title: 'Pre-liquidación',
+    description: 'Calcula horas extras semanales y costo asociado a OT.',
     icon: Calculator,
     to: '/service-portal/horas-extras/pre-liquidacion',
   },
+];
+
+const ACCIONES_SEGUIMIENTO: DashboardAction[] = [
   {
     id: 'historial',
     title: 'Historial de Cálculos',
@@ -39,6 +77,9 @@ const ACCIONES = [
     icon: Clock,
     to: '/service-portal/horas-extras/costos-ot',
   },
+];
+
+const ACCIONES_CONFIGURACION: DashboardAction[] = [
   {
     id: 'festivos',
     title: 'Festivos Nacionales',
@@ -46,21 +87,68 @@ const ACCIONES = [
     icon: Calendar,
     to: '/service-portal/horas-extras/festivos',
   },
-  {
-    id: 'horario',
-    title: 'Horario Semanal',
-    description: 'Configura la jornada de cada empleado (entrada, salida, almuerzo por día).',
-    icon: CalendarDays,
-    to: '/service-portal/horas-extras/horario',
-  },
-  {
-    id: 'novedades',
-    title: 'Novedades (LIC, VAC, INC, AUS)',
-    description: 'Captura de licencias, vacaciones, incapacidades y ausencias para alimentar el motor de pre-liquidación.',
-    icon: ClipboardList,
-    to: '/service-portal/horas-extras/novedades',
-  },
 ];
+
+type HorasExtrasActionCardProps = DashboardAction & {
+  onNavigate: (to: string) => void;
+  featured?: boolean;
+};
+
+const HorasExtrasActionCard: React.FC<HorasExtrasActionCardProps> = ({
+  title,
+  description,
+  icon: Icon,
+  to,
+  onNavigate,
+  featured = false,
+}) => (
+  <MaterialCard
+    onClick={() => onNavigate(to)}
+    hoverable
+    className={featured ? 'p-7 cursor-pointer' : 'p-5 cursor-pointer'}
+  >
+    <div className={featured ? 'flex flex-col sm:flex-row gap-5' : 'flex items-start gap-4'}>
+      <div
+        className={
+          featured
+            ? 'w-14 h-14 rounded-2xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0'
+            : 'w-11 h-11 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0'
+        }
+      >
+        <Icon className={featured ? 'w-7 h-7 text-[var(--color-primary)]' : 'w-5 h-5 text-[var(--color-primary)]'} />
+      </div>
+      <div className="min-w-0">
+        <Text className={featured ? 'font-semibold text-xl block mb-2' : 'font-semibold text-base block mb-1'}>
+          {title}
+        </Text>
+        <Text className={featured ? 'text-sm text-slate-500 max-w-3xl' : 'text-sm text-slate-500'}>
+          {description}
+        </Text>
+      </div>
+    </div>
+  </MaterialCard>
+);
+
+type ActionSectionProps = {
+  title: string;
+  description: string;
+  actions: DashboardAction[];
+  onNavigate: (to: string) => void;
+};
+
+const ActionSection: React.FC<ActionSectionProps> = ({ title, description, actions, onNavigate }) => (
+  <section className="space-y-3">
+    <div>
+      <Text className="font-semibold text-lg block">{title}</Text>
+      <Text className="text-sm text-slate-500">{description}</Text>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {actions.map((action) => (
+        <HorasExtrasActionCard key={action.id} {...action} onNavigate={onNavigate} />
+      ))}
+    </div>
+  </section>
+);
 
 const HorasExtrasDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -83,25 +171,32 @@ const HorasExtrasDashboard: React.FC = () => {
         de horas, factores prestacionales ARL y pre-liquidación por OT.
       </Text>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {ACCIONES.map(({ id, title, description, icon: Icon, to }) => (
-          <MaterialCard
-            key={id}
-            onClick={() => navigate(to)}
-            hoverable
-            className="p-6 cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
-          >
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0">
-                <Icon className="w-6 h-6 text-[var(--color-primary)]" />
-              </div>
-              <div>
-                <Text className="font-semibold text-lg block mb-1">{title}</Text>
-                <Text className="text-sm text-slate-500">{description}</Text>
-              </div>
-            </div>
-          </MaterialCard>
-        ))}
+      <div className="space-y-8">
+        <section className="space-y-3">
+          <Text className="font-semibold text-lg block">Operación semanal</Text>
+          <HorasExtrasActionCard {...ACCION_PRINCIPAL} onNavigate={navigate} featured />
+        </section>
+
+        <ActionSection
+          title="Acciones del flujo"
+          description="Herramientas para preparar la semana antes de confirmar cálculos."
+          actions={ACCIONES_FLUJO}
+          onNavigate={navigate}
+        />
+
+        <ActionSection
+          title="Seguimiento y resultados"
+          description="Consulta estados, saldos y costos generados por la operación semanal."
+          actions={ACCIONES_SEGUIMIENTO}
+          onNavigate={navigate}
+        />
+
+        <ActionSection
+          title="Configuración"
+          description="Parámetros de calendario que alimentan el motor de cálculo."
+          actions={ACCIONES_CONFIGURACION}
+          onNavigate={navigate}
+        />
       </div>
     </div>
   );

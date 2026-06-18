@@ -40,7 +40,6 @@ from ....services.novedades_nomina.planificador_service import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/horas-extras",
     tags=["Nómina - Horas Extras"],
 )
 

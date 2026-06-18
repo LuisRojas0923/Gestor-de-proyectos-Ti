@@ -67,6 +67,20 @@ OT_DEFAULT = 9301
 OT_GLOBAL_OFF = 9302
 
 
+def test_planificador_routes_no_duplican_horas_extras():
+    from app.main import app
+
+    rutas = {getattr(route, "path", "") for route in app.routes}
+    assert (
+        "/api/v2/novedades-nomina/horas-extras/planificador/empleados-erp"
+        in rutas
+    )
+    assert (
+        "/api/v2/novedades-nomina/horas-extras/horas-extras/planificador/empleados-erp"
+        not in rutas
+    )
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -451,6 +465,34 @@ class TestConfirmarPlan:
             .where(NominaCalculoSemanal.cedula.in_([CEDULA_BASE, CEDULA_2]))
         )).scalar()
         assert count == 2
+
+    @pytest.mark.asyncio
+    async def test_confirma_sin_parametros_manual_frontend(self, db_session):
+        await _cleanup_all(db_session)
+        await _set_bolsa_global(db_session, True)
+
+        empleado_he = _make_empleado(
+            CEDULA_BASE,
+            entrada=time(7, 30),
+            salida=time(19, 0),
+            almuerzo=60,
+        )
+        payload = PlanConfirmarRequest(
+            semana=_make_semana(),
+            usuario_confirma="TEST-S7",
+            empleados=[
+                PlanConfirmarEmpleadoIn(
+                    cedula=CEDULA_BASE,
+                    dias=empleado_he.dias,
+                ),
+            ],
+        )
+
+        response = await confirmar_plan(db_session, payload)
+
+        assert response.resumen.ok_count == 1
+        assert response.resumen.error_count == 0
+        assert response.calculos[0].calculo_id is not None
 
     @pytest.mark.asyncio
     async def test_respeta_s6_bolsa_desactivada(self, db_session):

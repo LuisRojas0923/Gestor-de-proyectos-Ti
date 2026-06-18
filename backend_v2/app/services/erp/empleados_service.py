@@ -33,6 +33,41 @@ def _normalizar_nivel_riesgo(valor: Optional[str]) -> str:
     return "I"
 
 
+def _normalizar_bool(valor):
+    if valor is None:
+        return None
+    if isinstance(valor, bool):
+        return valor
+    if isinstance(valor, (int, float)):
+        return valor != 0
+    v = str(valor).strip().lower()
+    if v in {"true", "t", "1", "s", "si", "sí", "y", "yes"}:
+        return True
+    if v in {"false", "f", "0", "n", "no"}:
+        return False
+    return None
+
+
+def _existe_columna(db_erp: Session, tabla: str, columna: str) -> bool:
+    try:
+        query = text("""
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = ANY(current_schemas(false))
+                  AND lower(table_name) = :tabla
+                  AND lower(column_name) = :columna
+            ) AS existe
+        """)
+        row = db_erp.execute(
+            query,
+            {"tabla": tabla.lower(), "columna": columna.lower()},
+        ).first()
+        return bool(row.existe) if row else False
+    except Exception:
+        return False
+
+
 class EmpleadosService:
     """Lógica para la consulta de empleados y sincronización con el ERP externo"""
     
@@ -175,9 +210,29 @@ class EmpleadosService:
         if offset < 0:
             offset = 0
 
-        estado_join_filtro = (
-            "AND C.estado = 'Activo'" if solo_activos else ""
-        )
+        estado_join_filtro = "AND C.estado = 'Activo'" if solo_activos else ""
+        estado_where_filtro = "AND C.estado = 'Activo'" if solo_activos else ""
+        tiene_regional = _existe_columna(db_erp, "contrato", "regional")
+        tiene_contrato_numero = _existe_columna(db_erp, "contrato", "numerocontrato")
+        tiene_beneficio_autoriza = all([
+            tiene_contrato_numero,
+            _existe_columna(db_erp, "beneficio", "contrato"),
+            _existe_columna(db_erp, "beneficio", "autorizacionhorasextras"),
+        ])
+        tiene_beneficio_estado = _existe_columna(db_erp, "beneficio", "estado")
+
+        select_reporta = 'C.regional::text AS "quien_reporta"' if tiene_regional else 'NULL::text AS "quien_reporta"'
+        if tiene_beneficio_autoriza:
+            select_autoriza = 'B.autorizacionhorasextras AS "autoriza_he"'
+            estado_beneficio = "AND B.estado = 'Activo'" if tiene_beneficio_estado else ""
+            join_beneficio = f"""
+            LEFT JOIN beneficio B
+                ON TRIM(CAST(B.contrato AS TEXT)) = TRIM(CAST(C.numerocontrato AS TEXT))
+                {estado_beneficio}
+            """
+        else:
+            select_autoriza = 'NULL::boolean AS "autoriza_he"'
+            join_beneficio = ""
         where_clauses = ["1=1"]
         params = {"limit": limit, "offset": offset}
         if q:
@@ -189,21 +244,19 @@ class EmpleadosService:
         where_sql = " AND ".join(where_clauses)
 
         query = text(f"""
-            SELECT
+            SELECT DISTINCT ON (E.nrocedula)
                 E.nrocedula      AS "nrocedula",
                 E.nombre::text   AS "nombre",
                 C.cargo::text    AS "cargo",
                 C.area::text     AS "area",
-                C.riesgoarl::text AS "riesgoarl",
-                B.autorizahe     AS "autoriza_he"
+                {select_reporta},
+                {select_autoriza}
             FROM establecimiento E
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
                 {estado_join_filtro}
-            LEFT JOIN beneficio B
-                ON TRIM(CAST(B.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
-                AND B.estado = 'Activo'
-            WHERE {where_sql}
+            {join_beneficio}
+            WHERE {where_sql} {estado_where_filtro}
             ORDER BY E.nrocedula
             LIMIT :limit OFFSET :offset
         """)
@@ -215,7 +268,7 @@ class EmpleadosService:
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
                 {estado_join_filtro}
-            WHERE {where_sql}
+            WHERE {where_sql} {estado_where_filtro}
         """)
         total_row = db_erp.execute(count_query, params).first()
         total = int(total_row.total) if total_row else 0
@@ -227,8 +280,9 @@ class EmpleadosService:
                 "nombre": r.nombre,
                 "cargo": r.cargo,
                 "area": r.area,
-                "nivel_riesgo_arl": _normalizar_nivel_riesgo(r.riesgoarl),
-                "autoriza_he": bool(r.autoriza_he) if r.autoriza_he is not None else False,
+                "quien_reporta": r.quien_reporta,
+                "nivel_riesgo_arl": None,
+                "autoriza_he": _normalizar_bool(r.autoriza_he),
             })
         return {"items": items, "total": total}
 

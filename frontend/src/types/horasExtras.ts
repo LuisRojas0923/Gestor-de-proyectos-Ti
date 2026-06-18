@@ -456,6 +456,7 @@ export interface EmpleadoERPRead {
   nombre: string | null;
   cargo: string | null;
   area: string | null;
+  quien_reporta: string | null;
   nivel_riesgo_arl: string | null;
   autoriza_he: boolean | null;
 }
@@ -554,7 +555,7 @@ export interface PlanConfirmarParametros {
 }
 
 export interface PlanConfirmarEmpleadoIn extends PlanEmpleadoInBase {
-  parametros: PlanConfirmarParametros;
+  parametros?: PlanConfirmarParametros;
 }
 
 export interface PlanConfirmarRequest {

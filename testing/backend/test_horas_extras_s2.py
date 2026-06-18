@@ -30,6 +30,7 @@ from app.models.novedades_nomina.horas_extras import (
 from app.models.novedades_nomina.schemas_horas_extras import (
     PreLiquidacionConfirmar,
     ConfirmarDetalleItem,
+    CalculoSemanalRead,
 )
 from app.services.novedades_nomina.horas_extras_confirmacion import (
     confirmar_pre_liquidacion,
@@ -216,9 +217,13 @@ class TestIdempotencia:
             # Primera confirmación: OK
             await confirmar_pre_liquidacion(db_session, payload)
 
-            # Segunda confirmación: debe fallar
-            with pytest.raises(ValueError, match=r"Ya existe un cálculo"):
+            # Segunda confirmación: debe fallar con mensaje apto para usuario final.
+            with pytest.raises(ValueError) as excinfo:
                 await confirmar_pre_liquidacion(db_session, payload)
+            mensaje = str(excinfo.value)
+            assert "ya tiene un cálculo registrado" in mensaje
+            assert "PUT" not in mensaje
+            assert "id=" not in mensaje
         finally:
             await _cleanup(db_session, CEDULA_BASE)
 
@@ -441,6 +446,20 @@ class TestListarCalculos:
             await confirmar_pre_liquidacion(db_session, _payload())
             confirmados = await listar_calculos(db_session, estado="CONFIRMADO", limit=10)
             assert all(c.estado == "CONFIRMADO" for c in confirmados)
+        finally:
+            await _cleanup(db_session, CEDULA_BASE)
+
+    @pytest.mark.asyncio
+    async def test_lista_detalles_eager_loaded_para_response_model(self, db_session):
+        await _cleanup(db_session, CEDULA_BASE)
+        try:
+            await confirmar_pre_liquidacion(db_session, _payload())
+
+            resultados = await listar_calculos(db_session, cedula=CEDULA_BASE, limit=10)
+
+            assert len(resultados) == 1
+            serializado = CalculoSemanalRead.model_validate(resultados[0])
+            assert len(serializado.detalles) == 2
         finally:
             await _cleanup(db_session, CEDULA_BASE)
 

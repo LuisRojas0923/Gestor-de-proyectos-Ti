@@ -27,6 +27,7 @@ class EmpleadoERPRead(SQLModel):
     nombre: str
     cargo: Optional[str] = None
     area: Optional[str] = None
+    quien_reporta: Optional[str] = None
     nivel_riesgo_arl: Optional[str] = None
     autoriza_he: Optional[bool] = None
 
@@ -143,7 +144,7 @@ class PlanConfirmarParametros(SQLModel):
 
 class PlanConfirmarEmpleadoIn(PlanEmpleadoInBase):
     """Empleado con parametros de calculo."""
-    parametros: PlanConfirmarParametros
+    parametros: Optional[PlanConfirmarParametros] = None
 
 
 class PlanConfirmarRequest(SQLModel):

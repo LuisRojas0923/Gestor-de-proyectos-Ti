@@ -58,8 +58,9 @@ async def confirmar_pre_liquidacion(
     ).scalar_one_or_none()
     if existing is not None:
         raise ValueError(
-            f"Ya existe un cálculo para {payload.cedula} semana {payload.anio}-W{payload.semana_iso:02d} "
-            f"(id={existing.id}, estado={existing.estado}). Use PUT para actualizar estado."
+            f"Este empleado ya tiene un cálculo registrado para la semana "
+            f"{payload.anio}-W{payload.semana_iso:02d}. Para cambiarlo, revisa "
+            "el Historial y ajusta o anula el cálculo existente antes de confirmar de nuevo."
         )
 
     total_extras = sum(d.horas for d in payload.detalles)
@@ -293,7 +294,9 @@ async def listar_calculos(
     limit: int = 50,
     offset: int = 0,
 ):
-    stmt = select(NominaCalculoSemanal)
+    stmt = select(NominaCalculoSemanal).options(
+        selectinload(NominaCalculoSemanal.detalles)
+    )
     if cedula:
         stmt = stmt.where(NominaCalculoSemanal.cedula == cedula)
     if anio:
