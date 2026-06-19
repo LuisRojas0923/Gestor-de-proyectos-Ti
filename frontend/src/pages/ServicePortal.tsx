@@ -44,7 +44,6 @@ import PolizasVehiculosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/Poli
 import MedicinaPrepagadaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/MedicinaPrepagadaPreview';
 import OtrosGerenciaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/OtrosGerenciaPreview';
 import ControlDescuentosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosPreview';
-import ControlDescuentosDashboard from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosDashboard';
 import ControlDescuentosTabla from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosTabla';
 import ControlDescuentosConceptos from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosConceptos';
 import ControlDescuentosRegistro from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosRegistro';
@@ -68,6 +67,7 @@ import HorarioSemanaView from './ServicePortal/pages/HORAS_EXTRAS/HorarioSemanaV
 import NovedadesView from './ServicePortal/pages/HORAS_EXTRAS/NovedadesView';
 import NovedadFormView from './ServicePortal/pages/HORAS_EXTRAS/NovedadFormView';
 import PlanificadorSemanalView from './ServicePortal/pages/HORAS_EXTRAS/PlanificadorSemanalView';
+import EmpleadosActivosView from './ServicePortal/pages/HORAS_EXTRAS/EmpleadosActivosView';
 
 import {
     CategoryWrapper,
@@ -117,6 +117,10 @@ const ServicePortal: React.FC = () => {
         const success = await handleSendUserFeedback(e);
         if (success) navigate('/service-portal/mis-tickets');
     };
+
+    const horasExtrasProtegida = (element: React.ReactElement) => (
+        <ProtectedRoute moduleCode="nomina_horas_extras">{element}</ProtectedRoute>
+    );
 
     const onSelectReport = async (reporte: any) => {
         const rid = reporte.reporte_id;
@@ -416,71 +420,20 @@ const ServicePortal: React.FC = () => {
                     </ProtectedRoute>
                 } />
 
-                <Route path="horas-extras" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <PlanificadorSemanalView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/pre-liquidacion" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <PreLiquidacionView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/calculos" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <CalculoListView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/calculos/:calculoId" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <CalculoDetailView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/bolsa" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <BolsaView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/costos-ot" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <CostosOtView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/festivos" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <FestivosView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/horario" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <HorarioSemanaView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/horario/:cedula" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <HorarioSemanaView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/novedades" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <NovedadesView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/novedades/nueva" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <NovedadFormView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/novedades/:id" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <NovedadFormView />
-                    </ProtectedRoute>
-                } />
-                <Route path="horas-extras/planificador" element={
-                    <ProtectedRoute moduleCode="nomina_horas_extras">
-                        <PlanificadorSemanalView />
-                    </ProtectedRoute>
-                } />
+                <Route path="horas-extras" element={horasExtrasProtegida(<PlanificadorSemanalView />)} />
+                <Route path="horas-extras/pre-liquidacion" element={horasExtrasProtegida(<PreLiquidacionView />)} />
+                <Route path="horas-extras/calculos" element={horasExtrasProtegida(<CalculoListView />)} />
+                <Route path="horas-extras/calculos/:calculoId" element={horasExtrasProtegida(<CalculoDetailView />)} />
+                <Route path="horas-extras/bolsa" element={horasExtrasProtegida(<BolsaView />)} />
+                <Route path="horas-extras/empleados" element={horasExtrasProtegida(<EmpleadosActivosView />)} />
+                <Route path="horas-extras/costos-ot" element={horasExtrasProtegida(<CostosOtView />)} />
+                <Route path="horas-extras/festivos" element={horasExtrasProtegida(<FestivosView />)} />
+                <Route path="horas-extras/horario" element={horasExtrasProtegida(<HorarioSemanaView />)} />
+                <Route path="horas-extras/horario/:cedula" element={horasExtrasProtegida(<HorarioSemanaView />)} />
+                <Route path="horas-extras/novedades" element={horasExtrasProtegida(<NovedadesView />)} />
+                <Route path="horas-extras/novedades/nueva" element={horasExtrasProtegida(<NovedadFormView />)} />
+                <Route path="horas-extras/novedades/:id" element={horasExtrasProtegida(<NovedadFormView />)} />
+                <Route path="horas-extras/planificador" element={horasExtrasProtegida(<PlanificadorSemanalView />)} />
 
                 <Route path="inventario" element={
                     <ProtectedRoute moduleCode="inventario_2026">

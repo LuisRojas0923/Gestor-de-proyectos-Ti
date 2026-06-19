@@ -7,6 +7,7 @@
  */
 import React, { useMemo } from 'react';
 import { Text, Badge, Checkbox, MaterialCard } from '../../../../../components/atoms';
+import { Users } from 'lucide-react';
 import { labelDia } from '../utils/horarioUtils';
 import type {
   EmpleadoERPRead,
@@ -63,9 +64,13 @@ const TablaPlanificacion: React.FC<TablaPlanificacionProps> = ({
 
   if (empleados.length === 0) {
     return (
-      <MaterialCard className="p-8 text-center">
-        <Text className="text-sm text-[var(--color-text-secondary)]">
-          No hay empleados seleccionados. Busca empleados y marcalos con el check.
+      <MaterialCard className="p-8 text-center" role="status" aria-label="Planificador sin empleados seleccionados">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+          <Users className="h-6 w-6" />
+        </div>
+        <Text className="font-semibold block">Empieza seleccionando empleados</Text>
+        <Text className="mt-1 text-sm text-[var(--color-text-secondary)]">
+          Busca por cédula o nombre, marca los empleados autorizados y luego aplica el horario semanal.
         </Text>
       </MaterialCard>
     );
@@ -142,7 +147,7 @@ const TablaPlanificacion: React.FC<TablaPlanificacionProps> = ({
                       <button /* @audit-ok */
                         type="button"
                         onClick={() => onCeldaClick(emp.cedula, ds)}
-                        className={`w-full min-h-[58px] px-2 py-1 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)] transition-colors ${
+                        className={`w-full min-h-[58px] px-2 py-1 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 active:scale-[0.98] transition-all ${
                           hePorDia ? colorHE(he) : 'bg-[var(--color-surface)]'
                         }`}
                         aria-label={`Editar ${labelDia(ds)} de ${emp.cedula}`}

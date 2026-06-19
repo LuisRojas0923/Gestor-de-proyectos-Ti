@@ -249,6 +249,7 @@ class EmpleadosService:
                 E.nombre::text   AS "nombre",
                 C.cargo::text    AS "cargo",
                 C.area::text     AS "area",
+                C.ciudadcontratacion::text AS "ciudadcontratacion",
                 {select_reporta},
                 {select_autoriza}
             FROM establecimiento E
@@ -280,6 +281,7 @@ class EmpleadosService:
                 "nombre": r.nombre,
                 "cargo": r.cargo,
                 "area": r.area,
+                "ciudadcontratacion": r.ciudadcontratacion,
                 "quien_reporta": r.quien_reporta,
                 "nivel_riesgo_arl": None,
                 "autoriza_he": _normalizar_bool(r.autoriza_he),

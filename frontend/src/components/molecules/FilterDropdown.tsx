@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, X, ArrowUpAZ, ArrowDownAZ, Check } from 'lucide-react';
 import { Text, Button, Input } from '../atoms';
@@ -13,7 +13,7 @@ interface FilterDropdownProps {
     // API Compleja (Controlled mode)
     isOpen?: boolean;
     onClose?: () => void;
-    anchorRect?: { top: number; left: number; width: number } | DOMRect | null;
+    anchorRect?: { top: number; bottom?: number; left: number; width: number } | DOMRect | null;
     title?: string;
     type?: 'categorical' | 'numeric' | 'date';
 
@@ -78,17 +78,16 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
     const isSimpleMode = props.onFilterChange !== undefined;
     const effectiveIsOpen = isSimpleMode ? internalIsOpen : (isOpen || false);
 
-    // Unificar anchorRect
-    let effectiveAnchor: { top: number; left: number; width: number } | null = null;
-    if (isSimpleMode) {
-        effectiveAnchor = internalAnchor;
-    } else if (anchorRect) {
-        effectiveAnchor = {
-            top: anchorRect.top + window.scrollY,
-            left: anchorRect.left + window.scrollX,
+    const effectiveAnchor = useMemo(() => {
+        if (isSimpleMode) return internalAnchor;
+        if (!anchorRect) return null;
+        const isDomRectLike = 'bottom' in anchorRect && 'right' in anchorRect;
+        return {
+            top: isDomRectLike ? anchorRect.bottom : anchorRect.top,
+            left: anchorRect.left,
             width: anchorRect.width
         };
-    }
+    }, [isSimpleMode, internalAnchor, anchorRect]);
 
     const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
     const [maxHeight, setMaxHeight] = useState<string>('450px');
@@ -96,28 +95,32 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
     useEffect(() => {
         if (effectiveIsOpen && effectiveAnchor) {
             const windowHeight = window.innerHeight;
-            const spaceBelow = windowHeight - effectiveAnchor.top - 20;
+            const viewportMargin = 12;
+            const desiredMaxHeight = 450;
+            const spaceBelow = windowHeight - effectiveAnchor.top - viewportMargin;
+            const spaceAbove = effectiveAnchor.top - viewportMargin;
 
-            if (spaceBelow < 300 && effectiveAnchor.top > 300) {
+            if (spaceBelow < 300 && spaceAbove > spaceBelow) {
+                const height = Math.min(desiredMaxHeight, Math.max(220, spaceAbove - viewportMargin));
                 setPosition({
-                    top: effectiveAnchor.top - (triggerHeight + 8) - Math.min(400, effectiveAnchor.top - 40),
+                    top: Math.max(viewportMargin, effectiveAnchor.top - triggerHeight - height - 8),
                     left: effectiveAnchor.left
                 });
-                setMaxHeight(`${effectiveAnchor.top - 60}px`);
+                setMaxHeight(`${height}px`);
             } else {
                 setPosition({ top: effectiveAnchor.top + 4, left: effectiveAnchor.left });
-                setMaxHeight(`${Math.min(450, spaceBelow)}px`);
+                setMaxHeight(`${Math.min(desiredMaxHeight, Math.max(220, spaceBelow - 8))}px`);
             }
         }
-    }, [effectiveIsOpen, effectiveAnchor?.top, effectiveAnchor?.left, effectiveAnchor?.width, triggerHeight]);
+    }, [effectiveIsOpen, effectiveAnchor, triggerHeight]);
 
     const toggleSimple = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (triggerRef.current) {
             const rect = triggerRef.current.getBoundingClientRect();
             setInternalAnchor({
-                top: rect.bottom + window.scrollY,
-                left: rect.left + window.scrollX,
+                top: rect.bottom,
+                left: rect.left,
                 width: rect.width
             });
         }
@@ -135,6 +138,16 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [effectiveIsOpen, isSimpleMode, onClose]);
+
+    useEffect(() => {
+        const handleEscape = (event: KeyboardEvent) => {
+            if (!effectiveIsOpen || event.key !== 'Escape') return;
+            if (isSimpleMode) setInternalIsOpen(false);
+            else onClose?.();
+        };
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
     }, [effectiveIsOpen, isSimpleMode, onClose]);
 
     if (!effectiveIsOpen && isSimpleMode) {
@@ -201,10 +214,12 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         ? (currentOptions.length > 0 && currentSelected.length === currentOptions.length)
         : (propIsAllSelected ?? (currentOptions.length > 0 && currentSelected.length === currentOptions.length));
 
+    const maxDropdownWidth = Math.max(160, window.innerWidth - 24);
+    const dropdownWidth = Math.min(Math.max(effectiveAnchor.width, 280), maxDropdownWidth);
     const dynamicStyle: React.CSSProperties = {
         top: position.top,
-        left: Math.min(position.left, window.innerWidth - Math.max(effectiveAnchor.width, 280) - 20),
-        width: Math.max(effectiveAnchor.width, 280),
+        left: Math.max(12, Math.min(position.left, window.innerWidth - dropdownWidth - 12)),
+        width: dropdownWidth,
         maxHeight: maxHeight
     };
 

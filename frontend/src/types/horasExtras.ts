@@ -456,6 +456,7 @@ export interface EmpleadoERPRead {
   nombre: string | null;
   cargo: string | null;
   area: string | null;
+  ciudadcontratacion: string | null;
   quien_reporta: string | null;
   nivel_riesgo_arl: string | null;
   autoriza_he: boolean | null;

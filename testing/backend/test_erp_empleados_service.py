@@ -35,6 +35,7 @@ class _SesionFake:
                 nombre="Juan Perez",
                 cargo="Operario",
                 area="Produccion",
+                ciudadcontratacion="Bogota",
                 quien_reporta="Regional Norte" if ("contrato", "regional") in self.columnas_existentes else None,
                 autoriza_he=True if ("beneficio", "autorizacionhorasextras") in self.columnas_existentes else None,
             )
@@ -54,6 +55,7 @@ def test_listar_empleados_paginado_no_usa_columnas_opcionales_erp():
     assert "autorizacionhorasextras" not in sql_ejecutado
     assert "fechainicio" not in sql_ejecutado
     assert "beneficio" not in sql_ejecutado
+    assert "ciudadcontratacion" in sql_ejecutado
     assert respuesta == {
         "items": [
             {
@@ -61,6 +63,7 @@ def test_listar_empleados_paginado_no_usa_columnas_opcionales_erp():
                 "nombre": "Juan Perez",
                 "cargo": "Operario",
                 "area": "Produccion",
+                "ciudadcontratacion": "Bogota",
                 "quien_reporta": None,
                 "nivel_riesgo_arl": None,
                 "autoriza_he": None,

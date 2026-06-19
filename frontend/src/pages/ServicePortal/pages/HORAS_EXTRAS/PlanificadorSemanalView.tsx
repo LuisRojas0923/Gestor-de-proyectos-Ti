@@ -7,19 +7,16 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Title,
   Text,
   Button,
   MaterialCard,
   Input,
-  Spinner,
   Badge,
   Select,
   Textarea,
   Checkbox,
 } from '../../../../components/atoms';
 import {
-  ArrowLeft,
   Save,
   Calculator,
   CheckCircle2,
@@ -27,12 +24,8 @@ import {
   Copy,
   Eraser,
   ClipboardList,
-  History,
-  Wallet,
-  Calendar,
-  Clock,
-  Users,
 } from 'lucide-react';
+import Modal from '../../../../components/molecules/Modal';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import {
   guardarBorradorPlan,
@@ -51,9 +44,15 @@ import type {
 import SelectorEmpleados from './components/SelectorEmpleados';
 import TablaPlanificacion, { type PlanEmpleadoTabla } from './components/TablaPlanificacion';
 import CeldaDiaEditor from './components/CeldaDiaEditor';
-import EmpleadosActivosModal from './components/EmpleadosActivosModal';
 import ResumenPlan from './components/ResumenPlan';
+import PlanificadorHeader from './components/PlanificadorHeader';
 import { fechasDeSemanaIso, fechaIsoCorta, labelDia } from './utils/horarioUtils';
+import {
+  PLANIFICADOR_DRAFT_KEY,
+  leerBorradorPlanificador,
+  type PlanificadorDraft,
+  type ResultadoConfirmacion,
+} from './utils/planificadorDraft';
 
 const MAX_SELECCION = 200;
 const DIAS_SEMANA = [1, 2, 3, 4, 5, 6, 7];
@@ -71,16 +70,18 @@ const PlanificadorSemanalView: React.FC = () => {
   const navigate = useNavigate();
   const { addNotification } = useNotifications();
   const token = localStorage.getItem('token') || '';
+  const borradorInicial = useMemo(() => leerBorradorPlanificador(), []);
 
   const hoy = new Date();
-  const [anio, setAnio] = useState<number>(hoy.getUTCFullYear());
+  const [anio, setAnio] = useState<number>(borradorInicial?.anio ?? hoy.getUTCFullYear());
   const [semanaIso, setSemanaIso] = useState<number>(
-    Math.ceil(
-      ((hoy.getTime() - new Date(Date.UTC(hoy.getUTCFullYear(), 0, 1)).getTime()) / 86400000 +
-        new Date(Date.UTC(hoy.getUTCFullYear(), 0, 1)).getUTCDay() +
-        1) /
-        7,
-    ),
+    borradorInicial?.semanaIso ??
+      Math.ceil(
+        ((hoy.getTime() - new Date(Date.UTC(hoy.getUTCFullYear(), 0, 1)).getTime()) / 86400000 +
+          new Date(Date.UTC(hoy.getUTCFullYear(), 0, 1)).getUTCDay() +
+          1) /
+          7,
+      ),
   );
 
   const semana = useMemo<PlanSemanaIn>(() => {
@@ -95,25 +96,29 @@ const PlanificadorSemanalView: React.FC = () => {
 
   const fechasSemana = useMemo(() => fechasDeSemanaIso(anio, semanaIso), [anio, semanaIso]);
 
-  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
-  const [empleadosInfo, setEmpleadosInfo] = useState<Map<string, EmpleadoERPRead>>(new Map());
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set(borradorInicial?.seleccionados ?? []));
+  const [empleadosInfo, setEmpleadosInfo] = useState<Map<string, EmpleadoERPRead>>(
+    new Map(borradorInicial?.empleadosInfo ?? []),
+  );
   const [defaultDias] = useState<PlanDiaIn[]>(DIAS_SEMANA_INICIAL);
-  const [overrides, setOverrides] = useState<Map<string, PlanDiaIn[]>>(new Map());
-  const [diasDestino, setDiasDestino] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
-  const [plantillaEntrada, setPlantillaEntrada] = useState('07:30');
-  const [plantillaSalida, setPlantillaSalida] = useState('17:00');
-  const [plantillaAlmuerzo, setPlantillaAlmuerzo] = useState(60);
-  const [novedadMasiva, setNovedadMasiva] = useState('');
-  const [observacionMasiva, setObservacionMasiva] = useState('');
+  const [overrides, setOverrides] = useState<Map<string, PlanDiaIn[]>>(new Map(borradorInicial?.overrides ?? []));
+  const [diasDestino, setDiasDestino] = useState<Set<number>>(new Set(borradorInicial?.diasDestino ?? [1, 2, 3, 4, 5]));
+  const [plantillaEntrada, setPlantillaEntrada] = useState(borradorInicial?.plantillaEntrada ?? '07:30');
+  const [plantillaSalida, setPlantillaSalida] = useState(borradorInicial?.plantillaSalida ?? '17:00');
+  const [plantillaAlmuerzo, setPlantillaAlmuerzo] = useState(borradorInicial?.plantillaAlmuerzo ?? 60);
+  const [novedadMasiva, setNovedadMasiva] = useState(borradorInicial?.novedadMasiva ?? '');
+  const [observacionMasiva, setObservacionMasiva] = useState(borradorInicial?.observacionMasiva ?? '');
 
   const [celdaEdit, setCeldaEdit] = useState<{ cedula: string; diaSemana: number } | null>(null);
-  const [preCalculo, setPreCalculo] = useState<PlanPreCalculoResponse | null>(null);
+  const [preCalculo, setPreCalculo] = useState<PlanPreCalculoResponse | null>(borradorInicial?.preCalculo ?? null);
   const [preCalculando, setPreCalculando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
-  const [modalEmpleadosAbierto, setModalEmpleadosAbierto] = useState(false);
-  const [erroresConfirmacion, setErroresConfirmacion] = useState<Map<string, string>>(new Map());
-  const [resultado, setResultado] = useState<{ ok: number; error: number; he: number; costo: number } | null>(null);
+  const [confirmacionAbierta, setConfirmacionAbierta] = useState(false);
+  const [erroresConfirmacion, setErroresConfirmacion] = useState<Map<string, string>>(
+    new Map(borradorInicial?.erroresConfirmacion ?? []),
+  );
+  const [resultado, setResultado] = useState<ResultadoConfirmacion | null>(borradorInicial?.resultado ?? null);
 
   const empleadosPlan: PlanEmpleadoTabla[] = useMemo(() => {
     return Array.from(seleccionados).map((cedula) => ({
@@ -165,6 +170,28 @@ const PlanificadorSemanalView: React.FC = () => {
     setErroresConfirmacion(new Map());
     setResultado(null);
     setPreCalculo(null);
+    window.sessionStorage.removeItem(PLANIFICADOR_DRAFT_KEY);
+  };
+
+  const navegarAEmpleados = () => {
+    const draft: PlanificadorDraft = {
+      anio,
+      semanaIso,
+      seleccionados: Array.from(seleccionados),
+      empleadosInfo: Array.from(empleadosInfo.entries()),
+      overrides: Array.from(overrides.entries()),
+      diasDestino: Array.from(diasDestino),
+      plantillaEntrada,
+      plantillaSalida,
+      plantillaAlmuerzo,
+      novedadMasiva,
+      observacionMasiva,
+      preCalculo,
+      resultado,
+      erroresConfirmacion: Array.from(erroresConfirmacion.entries()),
+    };
+    window.sessionStorage.setItem(PLANIFICADOR_DRAFT_KEY, JSON.stringify(draft));
+    navigate('/service-portal/horas-extras/empleados');
   };
 
   const toggleDiaDestino = (dia: number) => {
@@ -307,9 +334,13 @@ const PlanificadorSemanalView: React.FC = () => {
     }
   };
 
-  const handleConfirmar = async () => {
+  const solicitarConfirmacion = () => {
     if (!validarSeleccion()) return;
-    if (!window.confirm(`¿Confirmar el plan para ${seleccionados.size} empleados?`)) return;
+    setConfirmacionAbierta(true);
+  };
+
+  const handleConfirmar = async () => {
+    setConfirmacionAbierta(false);
     setConfirmando(true);
     setResultado(null);
     setErroresConfirmacion(new Map());
@@ -328,6 +359,7 @@ const PlanificadorSemanalView: React.FC = () => {
         costo: r.resumen.total_costo,
       });
       if (r.resumen.error_count === 0) {
+        window.sessionStorage.removeItem(PLANIFICADOR_DRAFT_KEY);
         addNotification('success', `Plan confirmado: ${r.resumen.ok_count} cálculos generados`);
         setTimeout(() => navigate('/service-portal/horas-extras/calculos'), 1200);
       } else {
@@ -346,51 +378,18 @@ const PlanificadorSemanalView: React.FC = () => {
 
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto space-y-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex items-start gap-3">
-          <Button variant="secondary" onClick={() => navigate('/service-portal/inicio')} className="!p-2 !rounded-full" aria-label="Volver al inicio">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <Title level={2} className="!m-0">Horas extras — planificación masiva</Title>
-            <Text className="text-[var(--color-text-secondary)]">
-              Selecciona empleados, aplica horarios en bloque y confirma la semana desde una sola tabla.
-            </Text>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setModalEmpleadosAbierto(true)}><Users className="w-4 h-4 mr-1" />Empleados</Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/service-portal/horas-extras/calculos')}><History className="w-4 h-4 mr-1" />Historial</Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/service-portal/horas-extras/bolsa')}><Wallet className="w-4 h-4 mr-1" />Bolsa</Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/service-portal/horas-extras/festivos')}><Calendar className="w-4 h-4 mr-1" />Festivos</Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/service-portal/horas-extras/costos-ot')}><Clock className="w-4 h-4 mr-1" />Costos OT</Button>
-        </div>
-      </div>
-
-      <MaterialCard className="p-4 sticky top-2 z-30">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1">
-            <div>
-              <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Año</Text>
-              <Input type="number" value={anio} min={2020} max={2100} onChange={(e) => setAnio(Number(e.target.value) || anio)} />
-            </div>
-            <div>
-              <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Semana ISO</Text>
-              <Input type="number" value={semanaIso} min={1} max={53} onChange={(e) => setSemanaIso(Math.max(1, Math.min(53, Number(e.target.value) || semanaIso)))} />
-            </div>
-            <div className="col-span-2">
-              <Text className="text-xs text-[var(--color-text-secondary)]">Rango</Text>
-              <Text className="font-semibold">{semana.fecha_inicio} → {semana.fecha_fin}</Text>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 xl:justify-end">
-            <Badge variant="primary">{seleccionados.size} empleados</Badge>
-            {preCalculo && <Badge variant="info">HE est: {preCalculo.resumen.total_horas_extras.toFixed(1)}h</Badge>}
-            {preCalculo && <Badge variant="success">Costo: ${Math.round(preCalculo.resumen.total_costo_estimado).toLocaleString('es-CO')}</Badge>}
-            {resultado && <Badge variant={resultado.error ? 'warning' : 'success'}>{resultado.ok} OK / {resultado.error} errores</Badge>}
-          </div>
-        </div>
-      </MaterialCard>
+      <PlanificadorHeader
+        anio={anio}
+        semanaIso={semanaIso}
+        fechaInicio={semana.fecha_inicio}
+        fechaFin={semana.fecha_fin}
+        seleccionadosCount={seleccionados.size}
+        preCalculo={preCalculo}
+        resultado={resultado}
+        onAnioChange={setAnio}
+        onSemanaIsoChange={setSemanaIso}
+        onAbrirEmpleados={navegarAEmpleados}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-4">
         <SelectorEmpleados
@@ -445,8 +444,8 @@ const PlanificadorSemanalView: React.FC = () => {
               <Textarea value={observacionMasiva} onChange={(e) => setObservacionMasiva(e.target.value)} rows={2} placeholder="Observación para la novedad masiva" />
             )}
             <div className="flex flex-wrap gap-2 justify-end">
-              <Button variant="primary" onClick={aplicarHorarioMasivo} disabled={seleccionados.size === 0}><Copy className="w-4 h-4 mr-1" />Aplicar horario</Button>
-              <Button variant="secondary" onClick={agregarNovedadMasiva} disabled={seleccionados.size === 0 || !novedadMasiva}><ClipboardList className="w-4 h-4 mr-1" />Aplicar novedad</Button>
+              <Button variant="secondary" onClick={aplicarHorarioMasivo} disabled={seleccionados.size === 0}><Copy className="w-4 h-4 mr-1" />Aplicar horario</Button>
+              <Button variant="outline" onClick={agregarNovedadMasiva} disabled={seleccionados.size === 0 || !novedadMasiva}><ClipboardList className="w-4 h-4 mr-1" />Aplicar novedad</Button>
               <Button variant="ghost" onClick={limpiarDiasMasivo} disabled={seleccionados.size === 0}><Eraser className="w-4 h-4 mr-1" />Limpiar días</Button>
             </div>
           </div>
@@ -470,16 +469,13 @@ const PlanificadorSemanalView: React.FC = () => {
             Pre-calcula para revisar horas y costos antes de confirmar. La carga prestacional y datos propios del empleado se resuelven desde ERP/backend.
           </Text>
           <div className="flex flex-wrap gap-2 justify-end">
-            <Button variant="secondary" onClick={handlePreCalcular} disabled={preCalculando || seleccionados.size === 0}>
-              {preCalculando ? <Spinner size="sm" className="mr-1" /> : <Calculator className="w-4 h-4 mr-1" />}
+            <Button variant="secondary" onClick={handlePreCalcular} disabled={seleccionados.size === 0} loading={preCalculando} icon={Calculator}>
               Pre-calcular
             </Button>
-            <Button variant="secondary" onClick={handleGuardarBorrador} disabled={guardando || seleccionados.size === 0}>
-              {guardando ? <Spinner size="sm" className="mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+            <Button variant="outline" onClick={handleGuardarBorrador} disabled={seleccionados.size === 0} loading={guardando} icon={Save}>
               Guardar borrador
             </Button>
-            <Button variant="primary" onClick={handleConfirmar} disabled={confirmando || seleccionados.size === 0}>
-              {confirmando ? <Spinner size="sm" className="mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+            <Button variant="primary" onClick={solicitarConfirmacion} disabled={seleccionados.size === 0} loading={confirmando} icon={CheckCircle2}>
               Confirmar semana
             </Button>
           </div>
@@ -498,13 +494,30 @@ const PlanificadorSemanalView: React.FC = () => {
         />
       )}
 
-      <EmpleadosActivosModal
-        abierto={modalEmpleadosAbierto}
-        token={token}
-        seleccionados={seleccionados}
-        onCerrar={() => setModalEmpleadosAbierto(false)}
-        onAgregar={incluirEmpleados}
-      />
+      <Modal
+        isOpen={confirmacionAbierta}
+        onClose={() => setConfirmacionAbierta(false)}
+        title="Confirmar semana"
+        size="md"
+      >
+        <div className="space-y-4">
+          <Text className="text-sm text-[var(--color-text-secondary)]">
+            Se generarán los cálculos de horas extras para {seleccionados.size} empleados en la semana {semana.semana_iso} de {semana.anio}.
+          </Text>
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary)]/5 p-4">
+            <Text className="text-xs text-[var(--color-text-secondary)]">Rango a confirmar</Text>
+            <Text className="font-semibold text-[var(--color-primary)]">{semana.fecha_inicio} → {semana.fecha_fin}</Text>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="ghost" onClick={() => setConfirmacionAbierta(false)} disabled={confirmando}>
+              Revisar de nuevo
+            </Button>
+            <Button variant="primary" onClick={handleConfirmar} loading={confirmando} icon={CheckCircle2}>
+              Confirmar y guardar
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Text className="mt-6 text-xs text-[var(--color-text-secondary)] flex items-center gap-1">
         <FileText className="w-3 h-3" />

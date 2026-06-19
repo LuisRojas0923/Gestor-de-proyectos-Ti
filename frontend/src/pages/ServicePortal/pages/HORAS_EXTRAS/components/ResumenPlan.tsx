@@ -5,7 +5,7 @@
  * Diferencia visual entre pre-cálculo (gris) y confirmado (verde).
  */
 import React from 'react';
-import { Text } from '../../../../../components/atoms';
+import { Badge, MaterialCard, Text } from '../../../../../components/atoms';
 import type { PlanPreCalculoResponse } from '../../../../../types/horasExtras';
 
 interface ResumenPlanProps {
@@ -19,32 +19,35 @@ const fmtCOP = (n: number): string =>
 const ResumenPlan: React.FC<ResumenPlanProps> = ({ preCalculo, confirmado }) => {
   if (!preCalculo && !confirmado) {
     return (
-      <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 text-center text-sm text-slate-500">
-        Sin cálculo aún. Pulsa "Pre-calcular" para obtener el estimado en vivo.
-      </div>
+      <MaterialCard className="p-5 text-center" role="status" aria-label="Resumen sin cálculo">
+        <Badge variant="default" size="sm">Estimación pendiente</Badge>
+        <Text className="mt-2 text-sm text-[var(--color-text-secondary)]">
+          Pulsa "Pre-calcular" para revisar horas extras y costos antes de confirmar.
+        </Text>
+      </MaterialCard>
     );
   }
 
   return (
-    <div className="border border-slate-200 rounded-lg p-4 bg-white">
-      <Text className="font-semibold mb-2">Resumen del plan</Text>
+    <MaterialCard className="p-5">
+      <Text className="font-semibold mb-3 block">Resumen del plan</Text>
 
       {preCalculo && (
-        <div className="mb-3 p-3 rounded bg-slate-50">
-          <Text className="text-xs text-slate-500 mb-1">Pre-cálculo (en vivo, sin persistir)</Text>
+        <div className="mb-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary)]/5 p-4">
+          <Text className="text-xs text-[var(--color-text-secondary)] mb-2">Pre-cálculo en vivo, sin persistir</Text>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <Text className="text-xs text-slate-500">Empleados</Text>
+              <Text className="text-xs text-[var(--color-text-secondary)]">Empleados</Text>
               <Text className="text-lg font-semibold">{preCalculo.resumen.empleados_count}</Text>
             </div>
             <div>
-              <Text className="text-xs text-slate-500">Total HE</Text>
+              <Text className="text-xs text-[var(--color-text-secondary)]">Total HE</Text>
               <Text className="text-lg font-semibold">
                 {preCalculo.resumen.total_horas_extras.toFixed(1)}h
               </Text>
             </div>
             <div>
-              <Text className="text-xs text-slate-500">Costo estimado</Text>
+              <Text className="text-xs text-[var(--color-text-secondary)]">Costo estimado</Text>
               <Text className="text-lg font-semibold">
                 {fmtCOP(preCalculo.resumen.total_costo_estimado)}
               </Text>
@@ -54,37 +57,37 @@ const ResumenPlan: React.FC<ResumenPlanProps> = ({ preCalculo, confirmado }) => 
       )}
 
       {confirmado && (
-        <div className="p-3 rounded bg-emerald-50">
-          <Text className="text-xs text-emerald-700 mb-1">Confirmado (persistente)</Text>
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-light)]/40 p-4">
+          <Text className="text-xs text-[var(--color-primary)] mb-2">Confirmado y persistente</Text>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <Text className="text-xs text-emerald-700">OK</Text>
-              <Text className="text-lg font-semibold text-emerald-800">
+              <Text className="text-xs text-[var(--color-text-secondary)]">OK</Text>
+              <Text className="text-lg font-semibold text-[var(--color-primary)]">
                 {confirmado.ok}
               </Text>
             </div>
             <div>
-              <Text className="text-xs text-emerald-700">Errores</Text>
-              <Text className="text-lg font-semibold text-emerald-800">
+              <Text className="text-xs text-[var(--color-text-secondary)]">Errores</Text>
+              <Text className="text-lg font-semibold text-[var(--color-primary)]">
                 {confirmado.error}
               </Text>
             </div>
             <div>
-              <Text className="text-xs text-emerald-700">Total HE</Text>
-              <Text className="text-lg font-semibold text-emerald-800">
+              <Text className="text-xs text-[var(--color-text-secondary)]">Total HE</Text>
+              <Text className="text-lg font-semibold text-[var(--color-primary)]">
                 {confirmado.he.toFixed(1)}h
               </Text>
             </div>
             <div>
-              <Text className="text-xs text-emerald-700">Costo total</Text>
-              <Text className="text-lg font-semibold text-emerald-800">
+              <Text className="text-xs text-[var(--color-text-secondary)]">Costo total</Text>
+              <Text className="text-lg font-semibold text-[var(--color-primary)]">
                 {fmtCOP(confirmado.costo)}
               </Text>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </MaterialCard>
   );
 };
 
