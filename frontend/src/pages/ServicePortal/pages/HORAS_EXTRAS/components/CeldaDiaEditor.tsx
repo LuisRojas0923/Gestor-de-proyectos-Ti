@@ -3,7 +3,7 @@
  * de un día específico de un empleado.
  */
 import React, { useState } from 'react';
-import { Input, Button, Text, Select, Textarea } from '../../../../../components/atoms';
+import { Input, Button, Text, Select, Textarea, MaterialCard } from '../../../../../components/atoms';
 import { X, Save } from 'lucide-react';
 import { labelDia } from '../utils/horarioUtils';
 import type { PlanDiaIn, PlanNovedadIn } from '../../../../../types/horasExtras';
@@ -62,13 +62,13 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-5">
+      <MaterialCard className="w-full max-w-md p-5 shadow-xl">
         <div className="flex items-center justify-between mb-3">
           <div>
             <Text className="font-semibold">
               {cedula} — {labelDia(diaSemana)}
             </Text>
-            <Text className="text-xs text-slate-500">{fecha}</Text>
+            <Text className="text-xs text-[var(--color-text-secondary)]">{fecha}</Text>
           </div>
           <Button variant="ghost" size="sm" onClick={onCerrar} aria-label="Cerrar">
             <X className="w-4 h-4" />
@@ -77,7 +77,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
-            <Text className="text-xs text-slate-500 mb-1">Entrada</Text>
+            <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Entrada</Text>
             <Input
               type="time"
               value={entrada ?? ''}
@@ -85,7 +85,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
             />
           </div>
           <div>
-            <Text className="text-xs text-slate-500 mb-1">Salida</Text>
+            <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Salida</Text>
             <Input
               type="time"
               value={salida ?? ''}
@@ -93,7 +93,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
             />
           </div>
           <div className="col-span-2">
-            <Text className="text-xs text-slate-500 mb-1">Almuerzo (minutos)</Text>
+            <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Almuerzo (minutos)</Text>
             <Input
               type="number"
               min={0}
@@ -106,8 +106,8 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
           </div>
         </div>
 
-        <div className="border-t border-slate-100 pt-3 mb-3">
-          <Text className="text-xs text-slate-500 mb-1">Novedad (opcional)</Text>
+        <div className="border-t border-[var(--color-border)] pt-3 mb-3">
+          <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Novedad (opcional)</Text>
           <Select
             value={novedadCodigo}
             onChange={(e) => setNovedadCodigo(e.target.value)}
@@ -136,7 +136,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
             Guardar
           </Button>
         </div>
-      </div>
+      </MaterialCard>
     </div>
   );
 };

@@ -1,13 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, Users } from 'lucide-react';
-import { Badge, Button, Input, MaterialCard, Select, Text, Title } from '../../../../components/atoms';
+import { Badge, Button, Checkbox, Input, MaterialCard, Select, Text, Title } from '../../../../components/atoms';
 import { DataTable, type DataTableColumn } from '../../../../components/molecules/DataTable';
 import { buscarEmpleadosERP } from '../../../../services/horasExtrasService';
 import type { EmpleadoERPRead } from '../../../../types/horasExtras';
+import {
+  crearBorradorPlanificadorBase,
+  guardarBorradorPlanificadorLocal,
+  leerBorradorPlanificador,
+} from './utils/planificadorDraft';
 
 const LIMITE_PAGINA = 100;
 const MAX_PAGINAS = 20;
+const MAX_SELECCION = 200;
 const FILTRO_AUTORIZA_OPTIONS = [
   { value: 'si', label: 'Autorizado HE: SI' },
   { value: 'todos', label: 'Autorizado HE: Todos' },
@@ -40,8 +46,13 @@ const COLUMNAS_FILTRABLES = ['cedula', 'nombre_cargo', 'area', 'ciudadcontrataci
 const EmpleadosActivosView: React.FC = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token') || '';
+  const borradorInicial = useMemo(() => leerBorradorPlanificador(), []);
 
   const [empleados, setEmpleados] = useState<EmpleadoERPRead[]>([]);
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set(borradorInicial?.seleccionados ?? []));
+  const [empleadosInfo, setEmpleadosInfo] = useState<Map<string, EmpleadoERPRead>>(
+    new Map(borradorInicial?.empleadosInfo ?? []),
+  );
   const [busqueda, setBusqueda] = useState('');
   const [filtroAutoriza, setFiltroAutoriza] = useState('si');
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
@@ -124,7 +135,90 @@ const EmpleadosActivosView: React.FC = () => {
     });
   }, [empleadosBaseFiltrados, columnFilters, sortState]);
 
+  const empleadosVisiblesSeleccionables = useMemo(() => {
+    return empleadosFiltrados.filter((empleado) => empleado.autoriza_he === true && !seleccionados.has(empleado.cedula));
+  }, [empleadosFiltrados, seleccionados]);
+
+  const guardarSeleccion = useCallback((nextSeleccionados: Set<string>, nextEmpleadosInfo: Map<string, EmpleadoERPRead>) => {
+    const draft = leerBorradorPlanificador() ?? crearBorradorPlanificadorBase();
+    const empleadosInfoSeleccionados = Array.from(nextEmpleadosInfo.entries())
+      .filter(([cedula]) => nextSeleccionados.has(cedula));
+
+    guardarBorradorPlanificadorLocal({
+      ...draft,
+      seleccionados: Array.from(nextSeleccionados),
+      empleadosInfo: empleadosInfoSeleccionados,
+      preCalculo: null,
+      resultado: null,
+      erroresConfirmacion: [],
+    });
+  }, []);
+
+  const aplicarSeleccion = useCallback((nextSeleccionados: Set<string>, nextEmpleadosInfo: Map<string, EmpleadoERPRead>) => {
+    setSeleccionados(new Set(nextSeleccionados));
+    setEmpleadosInfo(new Map(nextEmpleadosInfo));
+    guardarSeleccion(nextSeleccionados, nextEmpleadosInfo);
+  }, [guardarSeleccion]);
+
+  const puedeSeleccionarEmpleado = useCallback((empleado: EmpleadoERPRead) => {
+    if (seleccionados.has(empleado.cedula)) return true;
+    return empleado.autoriza_he === true && seleccionados.size < MAX_SELECCION;
+  }, [seleccionados]);
+
+  const toggleEmpleado = useCallback((empleado: EmpleadoERPRead) => {
+    if (!puedeSeleccionarEmpleado(empleado)) return;
+
+    const nextSeleccionados = new Set(seleccionados);
+    const nextEmpleadosInfo = new Map(empleadosInfo);
+    if (nextSeleccionados.has(empleado.cedula)) {
+      nextSeleccionados.delete(empleado.cedula);
+      nextEmpleadosInfo.delete(empleado.cedula);
+    } else {
+      nextSeleccionados.add(empleado.cedula);
+      nextEmpleadosInfo.set(empleado.cedula, empleado);
+    }
+    aplicarSeleccion(nextSeleccionados, nextEmpleadosInfo);
+  }, [aplicarSeleccion, empleadosInfo, puedeSeleccionarEmpleado, seleccionados]);
+
+  const incluirVisibles = () => {
+    const nextSeleccionados = new Set(seleccionados);
+    const nextEmpleadosInfo = new Map(empleadosInfo);
+    for (const empleado of empleadosFiltrados) {
+      if (empleado.autoriza_he !== true || nextSeleccionados.size >= MAX_SELECCION) continue;
+      nextSeleccionados.add(empleado.cedula);
+      nextEmpleadosInfo.set(empleado.cedula, empleado);
+    }
+    aplicarSeleccion(nextSeleccionados, nextEmpleadosInfo);
+  };
+
+  const quitarVisibles = () => {
+    const visibles = new Set(empleadosFiltrados.map((empleado) => empleado.cedula));
+    const nextSeleccionados = new Set(Array.from(seleccionados).filter((cedula) => !visibles.has(cedula)));
+    const nextEmpleadosInfo = new Map(empleadosInfo);
+    visibles.forEach((cedula) => nextEmpleadosInfo.delete(cedula));
+    aplicarSeleccion(nextSeleccionados, nextEmpleadosInfo);
+  };
+
+  const limpiarSeleccion = () => {
+    aplicarSeleccion(new Set(), new Map());
+  };
+
   const columns = useMemo<DataTableColumn<EmpleadoERPRead>[]>(() => [
+    {
+      key: 'seleccionar',
+      label: 'Sel.',
+      minWidth: '72px',
+      centered: true,
+      render: (empleado) => (
+        <Checkbox
+          checked={seleccionados.has(empleado.cedula)}
+          onChange={() => toggleEmpleado(empleado)}
+          disabled={!puedeSeleccionarEmpleado(empleado)}
+          label=""
+          aria-label={`${seleccionados.has(empleado.cedula) ? 'Quitar' : 'Seleccionar'} ${empleado.cedula}${empleado.nombre ? ` - ${empleado.nombre}` : ''}`}
+        />
+      ),
+    },
     {
       key: 'cedula',
       label: 'Cédula',
@@ -204,7 +298,7 @@ const EmpleadosActivosView: React.FC = () => {
         )
       ),
     },
-  ], []);
+  ], [puedeSeleccionarEmpleado, seleccionados, toggleEmpleado]);
 
   const setColumnFilter = (columnKey: string, filter: Set<string>) => {
     setColumnFilters((prev) => ({ ...prev, [columnKey]: filter }));
@@ -246,6 +340,7 @@ const EmpleadosActivosView: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           <Badge variant="primary">{empleados.length} activos únicos</Badge>
           <Badge variant="default">{empleadosFiltrados.length} visibles</Badge>
+          <Badge variant="info">{seleccionados.size} / {MAX_SELECCION} seleccionados</Badge>
         </div>
       </div>
 
@@ -272,6 +367,28 @@ const EmpleadosActivosView: React.FC = () => {
           <Button variant="ghost" onClick={limpiarFiltros} disabled={!hayFiltrosActivos}>
             Limpiar filtros{filtrosActivos > 0 ? ` (${filtrosActivos})` : ''}
           </Button>
+        </div>
+      </MaterialCard>
+
+      <MaterialCard className="p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <Text className="font-semibold">Selección para el planificador</Text>
+            <Text variant="caption" className="text-[var(--color-text-secondary)]">
+              Marca empleados autorizados para HE. Al volver, el planificador recupera esta selección.
+            </Text>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" size="sm" onClick={incluirVisibles} disabled={empleadosVisiblesSeleccionables.length === 0 || seleccionados.size >= MAX_SELECCION}>
+              Incluir visibles
+            </Button>
+            <Button variant="ghost" size="sm" onClick={quitarVisibles} disabled={seleccionados.size === 0 || empleadosFiltrados.length === 0}>
+              Quitar visibles
+            </Button>
+            <Button variant="ghost" size="sm" onClick={limpiarSeleccion} disabled={seleccionados.size === 0}>
+              Limpiar selección
+            </Button>
+          </div>
         </div>
       </MaterialCard>
 

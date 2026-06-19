@@ -323,7 +323,7 @@ export function DataTable<T>({
                                 <div
                                     key={keyExtractor(row)}
                                     onClick={() => onRowClick?.(row)}
-                                    className="group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer"
+                                    className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
                                     onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
                                     onMouseLeave={onMouseLeaveRow}
                                 >

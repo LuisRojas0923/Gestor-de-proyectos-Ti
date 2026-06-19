@@ -43,7 +43,12 @@ import PlanificadorSemanalView from '../pages/ServicePortal/pages/HORAS_EXTRAS/P
 import EmpleadosActivosView from '../pages/ServicePortal/pages/HORAS_EXTRAS/EmpleadosActivosView';
 import SelectorEmpleados from '../pages/ServicePortal/pages/HORAS_EXTRAS/components/SelectorEmpleados';
 import DefaultHorarioSemana from '../pages/ServicePortal/pages/HORAS_EXTRAS/components/DefaultHorarioSemana';
-import { PLANIFICADOR_DRAFT_KEY } from '../pages/ServicePortal/pages/HORAS_EXTRAS/utils/planificadorDraft';
+import {
+  crearBorradorPlanificadorBase,
+  guardarBorradorPlanificadorLocal,
+  leerBorradorPlanificador,
+  PLANIFICADOR_DRAFT_KEY,
+} from '../pages/ServicePortal/pages/HORAS_EXTRAS/utils/planificadorDraft';
 import {
   buscarEmpleadosERP,
   preCalcularPlan,
@@ -51,7 +56,7 @@ import {
   confirmarPlan,
 } from '../services/horasExtrasService';
 
-const TOKEN = 'fake-token';
+const TOKEN = 'fake-token'; // @audit-ok: token dummy usado solo por mocks de tests
 
 const wrapperRouter = (ui: React.ReactElement) =>
   render(<MemoryRouter>{ui}</MemoryRouter>);
@@ -182,6 +187,36 @@ describe('DefaultHorarioSemana', () => {
   });
 });
 
+describe('planificadorDraft', () => {
+  afterEach(() => {
+    sessionStorage.clear();
+  });
+
+  it('guarda y lee el borrador local con valores normalizados', () => {
+    const draft = crearBorradorPlanificadorBase();
+    guardarBorradorPlanificadorLocal({
+      ...draft,
+      seleccionados: ['456'],
+      empleadosInfo: [['456', mockEmpleados.items[1]]],
+      plantillaEntrada: '08:00',
+    });
+
+    const leido = leerBorradorPlanificador();
+    expect(leido?.seleccionados).toEqual(['456']);
+    expect(leido?.empleadosInfo[0][1].ciudadcontratacion).toBe('Medellin');
+    expect(leido?.plantillaEntrada).toBe('08:00');
+  });
+
+  it('no rompe con JSON valido pero incompleto', () => {
+    sessionStorage.setItem(PLANIFICADOR_DRAFT_KEY, JSON.stringify({ empleadosInfo: {} }));
+
+    const leido = leerBorradorPlanificador();
+    expect(leido?.seleccionados).toEqual([]);
+    expect(leido?.empleadosInfo).toEqual([]);
+    expect(leido?.diasDestino).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
 describe('PlanificadorSemanalView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -220,6 +255,7 @@ describe('PlanificadorSemanalView', () => {
 
   afterEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('renderiza con selector de semana', async () => {
@@ -281,7 +317,7 @@ describe('PlanificadorSemanalView', () => {
     expect(draft.empleadosInfo).toHaveLength(2);
   });
 
-  it('muestra empleados activos con ciudad de contratacion y permite buscar por ciudad', async () => {
+  it('muestra empleados activos con ciudad de contratacion, permite buscar y seleccionar', async () => {
     (buscarEmpleadosERP as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ...mockEmpleados,
       limit: 100,
@@ -298,6 +334,67 @@ describe('PlanificadorSemanalView', () => {
     await waitFor(() => {
       expect(screen.getByText(/Maria/)).toBeTruthy();
       expect(screen.queryByText(/Juan/)).toBeNull();
+    });
+
+    fireEvent.click(screen.getByLabelText(/Seleccionar 456/i));
+
+    await waitFor(() => {
+      expect(screen.getByText(/1 \/ 200 seleccionados/)).toBeTruthy();
+      const draft = JSON.parse(window.sessionStorage.getItem(PLANIFICADOR_DRAFT_KEY) ?? '{}');
+      expect(draft.seleccionados).toEqual(['456']);
+      expect(draft.empleadosInfo[0][1].ciudadcontratacion).toBe('Medellin');
+    });
+  });
+
+  it('recupera en el planificador la seleccion hecha desde empleados activos', async () => {
+    (buscarEmpleadosERP as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ...mockEmpleados,
+      limit: 100,
+    });
+
+    const empleadosView = wrapperRouter(<EmpleadosActivosView />);
+
+    await screen.findByText('Ciudad contratación');
+    fireEvent.click(await screen.findByLabelText(/Seleccionar 456/i));
+    fireEvent.click(screen.getByLabelText('Volver al planificador'));
+
+    expect(navigateMock).toHaveBeenCalledWith('/service-portal/horas-extras');
+
+    empleadosView.unmount();
+    wrapperRouter(<PlanificadorSemanalView />);
+
+    expect(await screen.findByText(/1 \/ 200 seleccionados/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /Guardar borrador/i }));
+
+    await waitFor(() => {
+      expect(guardarBorradorPlan).toHaveBeenCalled();
+      const callArg = (guardarBorradorPlan as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(callArg.empleados[0].cedula).toBe('456');
+    });
+  });
+
+  it('permite quitar un empleado ya seleccionado aunque no autorice HE', async () => {
+    guardarBorradorPlanificadorLocal({
+      ...crearBorradorPlanificadorBase(),
+      seleccionados: ['789'],
+      empleadosInfo: [['789', mockEmpleados.items[2]]],
+    });
+    (buscarEmpleadosERP as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ...mockEmpleados,
+      limit: 100,
+    });
+
+    wrapperRouter(<EmpleadosActivosView />);
+
+    await screen.findByText('Ciudad contratación');
+    fireEvent.change(screen.getByDisplayValue('Autorizado HE: SI'), { target: { value: 'todos' } });
+    fireEvent.click(await screen.findByLabelText(/Quitar 789/i));
+
+    await waitFor(() => {
+      const draft = leerBorradorPlanificador();
+      expect(draft?.seleccionados).toEqual([]);
+      expect(draft?.empleadosInfo).toEqual([]);
     });
   });
 
