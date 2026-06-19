@@ -79,7 +79,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
           if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
             const systemNotif = new Notification(data.titulo, {
               body: data.mensaje,
-              icon: '/favicon.ico'
+              icon: '/favicon.svg'
             });
 
             systemNotif.onclick = () => {
