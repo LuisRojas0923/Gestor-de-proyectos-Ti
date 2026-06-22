@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { GitBranch, RefreshCw, Search, UserPlus, X, ArrowLeft } from 'lucide-react';
-import { ReactFlow, MiniMap, Controls, Background, Edge, Position, MarkerType, Handle, useNodesState, useEdgesState } from '@xyflow/react';
+import { GitBranch, RefreshCw, Search, UserPlus, X, ArrowLeft, Filter, ChevronDown } from 'lucide-react';
+import { ReactFlow, MiniMap, Controls, Background, Edge, Position, MarkerType, Handle, useNodesState, useEdgesState, ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import type { Node as FlowNode } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import * as dagre from 'dagre';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Badge, Button, Input, MaterialCard, Text, Title } from '../components/atoms';
+import { FilterDropdown } from '../components/molecules';
 import { useApi } from '../hooks/useApi';
 import { useAppContext } from '../context/AppContext';
 import { HierarchyNode, HierarchyRelation, HierarchyUser } from '../types/hierarchy';
@@ -14,12 +15,16 @@ import { HierarchyNode, HierarchyRelation, HierarchyUser } from '../types/hierar
 const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-const nodeWidth = 260;
-const nodeHeight = 130;
+const nodeWidth = 175;
+const nodeHeight = 60;
 
 const getLayoutedElements = (nodes: FlowNode[], edges: Edge[], direction = 'TB') => {
   const isHorizontal = direction === 'LR';
-  dagreGraph.setGraph({ rankdir: direction });
+  dagreGraph.setGraph({ 
+    rankdir: direction,
+    nodesep: 20, // Reducido para compactar horizontalmente
+    ranksep: 40, // Reducido para compactar verticalmente
+  });
 
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
@@ -31,6 +36,34 @@ const getLayoutedElements = (nodes: FlowNode[], edges: Edge[], direction = 'TB')
 
   dagre.layout(dagreGraph);
 
+  // Post-procesamiento para alinear verticalmente cadenas simples (padres con un único hijo directo)
+  const parentToChildren = new Map<string, string[]>();
+  edges.forEach((edge) => {
+    if (!parentToChildren.has(edge.source)) {
+      parentToChildren.set(edge.source, []);
+    }
+    parentToChildren.get(edge.source)!.push(edge.target);
+  });
+
+  let changed = true;
+  let safety = 0;
+  while (changed && safety < 10) {
+    changed = false;
+    nodes.forEach((node) => {
+      const children = parentToChildren.get(node.id) || [];
+      if (children.length === 1) {
+        const childId = children[0];
+        const dagreNode = dagreGraph.node(node.id);
+        const dagreChild = dagreGraph.node(childId);
+        if (dagreNode && dagreChild && dagreNode.x !== dagreChild.x) {
+          dagreNode.x = dagreChild.x;
+          changed = true;
+        }
+      }
+    });
+    safety++;
+  }
+
   const newNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
     return {
@@ -41,6 +74,9 @@ const getLayoutedElements = (nodes: FlowNode[], edges: Edge[], direction = 'TB')
         x: nodeWithPosition.x - nodeWidth / 2,
         y: nodeWithPosition.y - nodeHeight / 2,
       },
+      style: {
+        width: `${nodeWidth}px`,
+      }
     };
   });
 
@@ -54,7 +90,22 @@ const getInitials = (name: string) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-const CustomNodeComponent = ({ data, isConnectable }: any) => {
+const formatShortName = (fullName: string) => {
+  if (!fullName) return '';
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length <= 1) return fullName;
+  
+  // Formato ERP: APELLIDO1 APELLIDO2 NOMBRE1 [NOMBRE2]
+  if (parts.length === 3) {
+    return `${parts[2]} ${parts[0]}`;
+  } else if (parts.length >= 4) {
+    return `${parts[2]} ${parts[0]}`;
+  }
+  return `${parts[1]} ${parts[0]}`;
+};
+
+const CustomNodeComponent = (props: any) => {
+  const { data, isConnectable } = props;
   const { nodeData, level, selected, onSelect } = data;
   const user = nodeData.usuario;
   const isSelected = selected;
@@ -80,41 +131,77 @@ const CustomNodeComponent = ({ data, isConnectable }: any) => {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} isConnectable={isConnectable} className="w-3 h-3 border-2 border-[var(--color-surface)] bg-neutral-300 dark:bg-neutral-600" />
+      <Handle type="target" position={Position.Top} isConnectable={isConnectable} className="w-2 h-2 border-2 border-[var(--color-surface)] bg-neutral-300 dark:bg-neutral-600" />
       <MaterialCard
         onClick={() => onSelect(user.id)}
-        className={`p-3 min-w-[240px] max-w-[260px] cursor-pointer transition-all border-2 ${getLevelStyles(level, isSelected)}`}
-        elevation={isSelected ? 3 : 1}
+        className={`p-2 w-full cursor-pointer transition-all border ${getLevelStyles(level, isSelected)}`}
+        elevation={isSelected ? 2 : 1}
       >
-        <div className="flex flex-col items-center text-center gap-2">
-          {/* Initials Avatar */}
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center border shadow-sm ${getAvatarColors(level)}`}>
-            <Text variant="h6" weight="bold" className="!m-0 leading-none tracking-tight">{getInitials(user.nombre)}</Text>
+        <div className="flex items-center text-left gap-2">
+          {/* Initials Avatar - Compact */}
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm shrink-0 ${getAvatarColors(level)}`}>
+            <Text className="!text-[10px] font-bold !m-0 leading-none tracking-tight">{getInitials(user.nombre)}</Text>
           </div>
           
-          <div className="w-full">
-            <Text variant="body2" weight="bold" color="text-primary" className="w-full leading-tight uppercase truncate" title={user.nombre}>
-              {user.nombre}
+          <div className="w-full min-w-0">
+            <Text className="!text-[9.5px] font-bold leading-tight uppercase truncate block" title={user.nombre}>
+              {formatShortName(user.nombre)}
             </Text>
-            <Text variant="body2" weight="medium" color="text-secondary" className="w-full leading-tight opacity-90 truncate mt-0.5" title={user.cargo || user.rol}>
+            <Text className="!text-[8.5px] text-[var(--color-text-secondary)] leading-tight opacity-90 truncate block mt-0.5" title={user.cargo || user.rol}>
               {user.cargo || user.rol}
             </Text>
           </div>
-
-          <div className="mt-1 flex items-center justify-center gap-1 w-full">
-            <Badge variant={level === 0 ? 'primary' : 'default'} size="xs" className="!text-[9px] px-1.5 py-0 h-4.5 min-h-0 flex items-center font-bold">N{level + 1}</Badge>
-            {nodeData.subordinados?.length > 0 && (
-              <Badge variant="info" size="xs" className="!text-[9px] px-1.5 py-0 h-4.5 min-h-0 flex items-center font-bold">{nodeData.subordinados.length} dep.</Badge>
-            )}
-          </div>
         </div>
       </MaterialCard>
-      <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} className="w-3 h-3 border-2 border-[var(--color-surface)] bg-neutral-300 dark:bg-neutral-600" />
+      <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} className="w-2 h-2 border-2 border-[var(--color-surface)] bg-neutral-300 dark:bg-neutral-600" />
     </>
   );
 };
 
 const nodeTypes = { custom: CustomNodeComponent };
+
+const FlowWithFitView: React.FC<{
+  nodes: FlowNode[];
+  edges: Edge[];
+  onNodesChange: any;
+  onEdgesChange: any;
+  nodeTypes: any;
+  selectedDirectors: string[];
+}> = ({ nodes, edges, onNodesChange, onEdgesChange, nodeTypes, selectedDirectors }) => {
+  const { fitView } = useReactFlow();
+
+  useEffect(() => {
+    // Animación suave de recentrado al cambiar el filtro
+    const timer = setTimeout(() => {
+      void fitView({ duration: 400, padding: 0.1 });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [selectedDirectors, fitView]);
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      nodeTypes={nodeTypes}
+      fitView
+      attributionPosition="bottom-right"
+      minZoom={0.2}
+      maxZoom={2}
+    >
+      <Background color="#ccc" gap={16} />
+      <MiniMap 
+        nodeColor={(n: any) => {
+          if (n.data?.selected) return 'var(--color-primary)';
+          return '#94a3b8';
+        }}
+        maskColor="rgba(0,0,0, 0.05)"
+      />
+      <Controls />
+    </ReactFlow>
+  );
+};
 
 const OrganizationalHierarchy: React.FC = () => {
   const navigate = useNavigate();
@@ -129,7 +216,11 @@ const OrganizationalHierarchy: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedSuperiorId, setSelectedSuperiorId] = useState('');
   const [observacion, setObservacion] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterAnchorRect, setFilterAnchorRect] = useState<DOMRect | null>(null);
+  const [selectedDirectors, setSelectedDirectors] = useState<string[]>([]);
+  const [tempSelectedDirectors, setTempSelectedDirectors] = useState<string[]>([]);
+  const [filterSearchTerm, setFilterSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -215,22 +306,38 @@ const OrganizationalHierarchy: React.FC = () => {
     return tree.map(filterNode).filter((n): n is HierarchyNode => n !== null);
   }, [tree, reachableUsers]);
 
+  const directorOptions = useMemo(() => {
+    const directorsMap = new Map<string, string>();
+    const traverse = (node: HierarchyNode) => {
+      if (node.subordinados && node.subordinados.length > 0) {
+        directorsMap.set(node.usuario_id, node.usuario.nombre);
+      }
+      node.subordinados?.forEach(traverse);
+    };
+    accessibleTree.forEach(traverse);
+
+    return Array.from(directorsMap.entries()).map(([id, name]) => ({
+      value: id,
+      label: formatShortName(name),
+    })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [accessibleTree]);
+
   const filteredTree = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return accessibleTree;
+    if (selectedDirectors.length === 0) return accessibleTree;
 
-    const filterNodes = (nodes: HierarchyNode[]): HierarchyNode[] => nodes
-      .map((node) => ({ ...node, subordinados: filterNodes(node.subordinados || []) }))
-      .filter((node) => {
-        const text = [node.usuario.nombre, node.usuario.cargo, node.usuario.area, node.usuario.rol]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        return text.includes(term) || node.subordinados.length > 0;
+    const matchedNodes: HierarchyNode[] = [];
+    const findNodes = (nodes: HierarchyNode[]) => {
+      nodes.forEach((node) => {
+        if (selectedDirectors.includes(node.usuario_id)) {
+          matchedNodes.push(node);
+        } else {
+          findNodes(node.subordinados || []);
+        }
       });
-
-    return filterNodes(accessibleTree);
-  }, [searchTerm, accessibleTree]);
+    };
+    findNodes(accessibleTree);
+    return matchedNodes;
+  }, [selectedDirectors, accessibleTree]);
 
   // Preparar nodos para React Flow usando Dagre
   const { initialNodes, initialEdges } = useMemo(() => {
@@ -405,15 +512,29 @@ const OrganizationalHierarchy: React.FC = () => {
                 <Title variant="h6" weight="bold" color="text-primary" className="m-0 !text-sm">Árbol jerárquico</Title>
                 <Badge variant="info" size="xs" className="!text-[9px]">Visualización gráfica</Badge>
               </div>
-              <div className="w-full md:max-w-[200px] scale-90 origin-right">
-                <Input
-                  placeholder="Filtrar árbol..."
-                  icon={Search}
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  className="h-7"
-                  size="xs"
-                />
+              <div className="relative scale-90 origin-right">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={Filter}
+                  onClick={(e) => {
+                    setFilterAnchorRect(e.currentTarget.getBoundingClientRect());
+                    setTempSelectedDirectors([...selectedDirectors]);
+                    setFilterSearchTerm('');
+                    setIsFilterOpen(true);
+                  }}
+                  className="shadow-sm whitespace-nowrap"
+                >
+                  <Text as="span" className="inline-flex items-center gap-1.5">
+                    Filtrar por Superior
+                    {selectedDirectors.length > 0 && (
+                      <Badge variant="primary" size="xs" className="px-1.5 py-0.5 rounded-full !text-[9px]">
+                        {selectedDirectors.length}
+                      </Badge>
+                    )}
+                    <ChevronDown size={14} className="opacity-60 shrink-0" />
+                  </Text>
+                </Button>
               </div>
             </div>
           </div>
@@ -432,32 +553,51 @@ const OrganizationalHierarchy: React.FC = () => {
               </div>
             ) : (
               <div className="w-full h-[600px] relative z-10 rounded-xl overflow-hidden">
-                <ReactFlow
-                  nodes={flowNodes}
-                  edges={flowEdges}
-                  onNodesChange={onNodesChange}
-                  onEdgesChange={onEdgesChange}
-                  nodeTypes={nodeTypes}
-                  fitView
-                  attributionPosition="bottom-right"
-                  minZoom={0.2}
-                  maxZoom={2}
-                >
-                  <Background color="#ccc" gap={16} />
-                  <MiniMap 
-                    nodeColor={(n: any) => {
-                      if (n.data?.selected) return 'var(--color-primary)';
-                      return '#94a3b8';
-                    }}
-                    maskColor="rgba(0,0,0, 0.05)"
+                <ReactFlowProvider>
+                  <FlowWithFitView
+                    nodes={flowNodes}
+                    edges={flowEdges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    nodeTypes={nodeTypes}
+                    selectedDirectors={selectedDirectors}
                   />
-                  <Controls />
-                </ReactFlow>
+                </ReactFlowProvider>
               </div>
             )}
           </div>
         </MaterialCard>
       </div>
+
+      <FilterDropdown
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        anchorRect={filterAnchorRect}
+        title="Filtrar por Superior"
+        type="categorical"
+        options={directorOptions}
+        tempValue={tempSelectedDirectors}
+        searchTerm={filterSearchTerm}
+        onSearchChange={setFilterSearchTerm}
+        onToggleOption={(val) => {
+          setTempSelectedDirectors((prev) =>
+            prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]
+          );
+        }}
+        onSelectAll={() => {
+          const allIds = directorOptions.map((o) => o.value);
+          setTempSelectedDirectors((prev) =>
+            prev.length === allIds.length ? [] : allIds
+          );
+        }}
+        isAllSelected={directorOptions.length > 0 && tempSelectedDirectors.length === directorOptions.length}
+        onClearSelection={() => setTempSelectedDirectors([])}
+        onApply={() => {
+          setSelectedDirectors(tempSelectedDirectors);
+          setIsFilterOpen(false);
+        }}
+        placeholder="Buscar superior..."
+      />
     </div>
   );
 };
@@ -560,15 +700,7 @@ const AutocompleteUserField: React.FC<{
   );
 };
 
-const SummaryCard: React.FC<{ label: string; value: string; tone?: 'default' | 'warning' | 'success' }> = ({ label, value, tone = 'default' }) => (
-  <MaterialCard className="p-5" elevation={1}>
-    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wide">{label}</Text>
-    <div className="mt-2 flex items-end justify-between">
-      <Title variant="h3" weight="bold" color="text-primary">{value}</Title>
-      {tone !== 'default' && <Badge variant={tone} size="sm">{tone === 'warning' ? 'Revisar' : 'OK'}</Badge>}
-    </div>
-  </MaterialCard>
-);
+
 
 const EmptyState: React.FC = () => (
   <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
