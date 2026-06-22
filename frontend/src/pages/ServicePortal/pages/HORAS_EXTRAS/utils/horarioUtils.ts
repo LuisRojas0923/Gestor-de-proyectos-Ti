@@ -94,6 +94,25 @@ export const fechasDeSemanaIso = (anio: number, semanaIso: number): Date[] => {
  */
 export const fechaIsoCorta = (d: Date): string => d.toISOString().slice(0, 10);
 
+/** Obtiene año ISO y semana ISO desde una fecha YYYY-MM-DD. */
+export const semanaIsoDesdeFecha = (fechaIso: string): { anio: number; semanaIso: number } | null => {
+  const [year, month, day] = fechaIso.split('-').map(Number);
+  if (!year || !month || !day) return null;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (Number.isNaN(date.getTime())) return null;
+
+  const weekday = date.getUTCDay() || 7;
+  const thursday = new Date(date);
+  thursday.setUTCDate(date.getUTCDate() + 4 - weekday);
+
+  const isoYear = thursday.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+  const week = Math.ceil((((thursday.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+
+  return { anio: isoYear, semanaIso: week };
+};
+
 /**
  * S5''' — Determina si una fecha cae en el rango [inicio, fin] inclusivo.
  * Las fechas son strings YYYY-MM-DD.

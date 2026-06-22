@@ -8,7 +8,7 @@ interface ButtonProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
-  icon?: React.ElementType<React.SVGProps<SVGSVGElement>> | any;
+  icon?: React.ElementType<React.SVGProps<SVGSVGElement>>;
   iconPosition?: 'left' | 'right';
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void;

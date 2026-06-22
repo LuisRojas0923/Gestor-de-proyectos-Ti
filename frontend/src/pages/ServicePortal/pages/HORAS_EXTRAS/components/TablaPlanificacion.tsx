@@ -70,7 +70,7 @@ const TablaPlanificacion: React.FC<TablaPlanificacionProps> = ({
         </div>
         <Text className="font-semibold block">Empieza seleccionando empleados</Text>
         <Text className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          Busca por cédula o nombre, marca los empleados autorizados y luego aplica el horario semanal.
+          Usa el botón Empleados para marcar empleados autorizados y volver con la selección al planificador.
         </Text>
       </MaterialCard>
     );

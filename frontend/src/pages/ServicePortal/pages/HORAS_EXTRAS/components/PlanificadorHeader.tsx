@@ -19,8 +19,8 @@ interface PlanificadorHeaderProps {
   seleccionadosCount: number;
   preCalculo: PlanPreCalculoResponse | null;
   resultado: ResultadoConfirmacion | null;
-  onAnioChange: (anio: number) => void;
   onSemanaIsoChange: (semanaIso: number) => void;
+  onFechaReferenciaChange: (fechaIso: string) => void;
   onAbrirEmpleados: () => void;
 }
 
@@ -32,8 +32,8 @@ const PlanificadorHeader: React.FC<PlanificadorHeaderProps> = ({
   seleccionadosCount,
   preCalculo,
   resultado,
-  onAnioChange,
   onSemanaIsoChange,
+  onFechaReferenciaChange,
   onAbrirEmpleados,
 }) => {
   const navigate = useNavigate();
@@ -58,7 +58,7 @@ const PlanificadorHeader: React.FC<PlanificadorHeaderProps> = ({
                   <Sparkles className="w-3 h-3" /> Flujo semanal masivo
                 </Badge>
                 <div>
-                  <Title level={2} className="!m-0">Horas extras — planificación masiva</Title>
+                  <Title level={2} className="!m-0">Formulario de Horarios</Title>
                   <Text className="mt-2 text-[var(--color-text-secondary)]">
                     Selecciona empleados, aplica una plantilla de horario y valida horas/costos antes de confirmar la semana.
                   </Text>
@@ -88,31 +88,32 @@ const PlanificadorHeader: React.FC<PlanificadorHeaderProps> = ({
       </MaterialCard>
 
       <MaterialCard className="p-4 sticky top-2 z-30 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface)]/95">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-[120px_140px_minmax(220px,1fr)] xl:min-w-[620px]">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Input
-              type="number"
-              label="Año"
-              value={String(anio)}
-              min={2020}
-              max={2100}
-              onChange={(e) => onAnioChange(Number(e.target.value) || anio)}
+              type="date"
+              label="Fecha inicio"
+              value={fechaInicio}
+              onChange={(e) => onFechaReferenciaChange(e.target.value)}
+            />
+            <Input
+              type="date"
+              label="Fecha fin"
+              value={fechaFin}
+              onChange={(e) => onFechaReferenciaChange(e.target.value)}
             />
             <Input
               type="number"
               label="Semana ISO"
+              labelHint={`Año ${anio}`}
               value={String(semanaIso)}
               min={1}
               max={53}
               onChange={(e) => onSemanaIsoChange(Math.max(1, Math.min(53, Number(e.target.value) || semanaIso)))}
             />
-            <div className="col-span-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary)]/5 px-4 py-2 md:col-span-1">
-              <Text className="text-xs text-[var(--color-text-secondary)]">Rango activo</Text>
-              <Text className="font-semibold text-[var(--color-primary)]">{fechaInicio} → {fechaFin}</Text>
-            </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 xl:justify-end">
+          <div className="flex flex-wrap gap-2 xl:justify-end xl:pb-1">
             <Badge variant={haySeleccion ? 'primary' : 'default'}>{seleccionadosCount} empleados</Badge>
             {preCalculo ? <Badge variant="info">HE est: {preCalculo.resumen.total_horas_extras.toFixed(1)}h</Badge> : <Badge variant="default">Sin pre-cálculo</Badge>}
             {preCalculo && <Badge variant="success">Costo: ${Math.round(preCalculo.resumen.total_costo_estimado).toLocaleString('es-CO')}</Badge>}

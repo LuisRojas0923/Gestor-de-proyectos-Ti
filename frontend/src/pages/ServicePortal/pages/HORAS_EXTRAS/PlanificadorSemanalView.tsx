@@ -10,11 +10,9 @@ import {
   Text,
   Button,
   MaterialCard,
-  Input,
   Badge,
   Select,
   Textarea,
-  Checkbox,
 } from '../../../../components/atoms';
 import {
   Save,
@@ -41,12 +39,12 @@ import type {
   PlanPreCalculoResponse,
   PlanSemanaIn,
 } from '../../../../types/horasExtras';
-import SelectorEmpleados from './components/SelectorEmpleados';
 import TablaPlanificacion, { type PlanEmpleadoTabla } from './components/TablaPlanificacion';
 import CeldaDiaEditor from './components/CeldaDiaEditor';
 import ResumenPlan from './components/ResumenPlan';
 import PlanificadorHeader from './components/PlanificadorHeader';
-import { fechasDeSemanaIso, fechaIsoCorta, labelDia } from './utils/horarioUtils';
+import TimeClockPicker from './components/TimeClockPicker';
+import { fechasDeSemanaIso, fechaIsoCorta, labelDia, semanaIsoDesdeFecha } from './utils/horarioUtils';
 import {
   PLANIFICADOR_DRAFT_KEY,
   leerBorradorPlanificador,
@@ -57,6 +55,11 @@ import {
 const MAX_SELECCION = 200;
 const DIAS_SEMANA = [1, 2, 3, 4, 5, 6, 7];
 const CODIGOS_NOVEDAD = ['', 'INC', 'VAC', 'AUS', 'LIC'];
+const OPCIONES_ALMUERZO = [
+  { value: '30', label: '00:30' },
+  { value: '60', label: '1:00' },
+  { value: '90', label: '1:30' },
+];
 
 const DIAS_SEMANA_INICIAL: PlanDiaIn[] = DIAS_SEMANA.map((d) => ({
   dia_semana: d,
@@ -97,7 +100,7 @@ const PlanificadorSemanalView: React.FC = () => {
   const fechasSemana = useMemo(() => fechasDeSemanaIso(anio, semanaIso), [anio, semanaIso]);
 
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set(borradorInicial?.seleccionados ?? []));
-  const [empleadosInfo, setEmpleadosInfo] = useState<Map<string, EmpleadoERPRead>>(
+  const [empleadosInfo] = useState<Map<string, EmpleadoERPRead>>(
     new Map(borradorInicial?.empleadosInfo ?? []),
   );
   const [defaultDias] = useState<PlanDiaIn[]>(DIAS_SEMANA_INICIAL);
@@ -120,6 +123,25 @@ const PlanificadorSemanalView: React.FC = () => {
   );
   const [resultado, setResultado] = useState<ResultadoConfirmacion | null>(borradorInicial?.resultado ?? null);
 
+  const limpiarResultadosSemana = () => {
+    setPreCalculo(null);
+    setResultado(null);
+    setErroresConfirmacion(new Map());
+  };
+
+  const cambiarSemanaIso = (nextSemanaIso: number) => {
+    setSemanaIso(nextSemanaIso);
+    limpiarResultadosSemana();
+  };
+
+  const cambiarFechaReferencia = (fechaIso: string) => {
+    const next = semanaIsoDesdeFecha(fechaIso);
+    if (!next) return;
+    setAnio(next.anio);
+    setSemanaIso(next.semanaIso);
+    limpiarResultadosSemana();
+  };
+
   const empleadosPlan: PlanEmpleadoTabla[] = useMemo(() => {
     return Array.from(seleccionados).map((cedula) => ({
       cedula,
@@ -141,36 +163,6 @@ const PlanificadorSemanalView: React.FC = () => {
       return next;
     });
     setPreCalculo(null);
-  };
-
-  const toggleEmpleadoDetalle = (empleado: EmpleadoERPRead) => {
-    setEmpleadosInfo((prev) => new Map(prev).set(empleado.cedula, empleado));
-    toggleEmpleado(empleado.cedula);
-  };
-
-  const incluirEmpleados = (empleados: EmpleadoERPRead[]) => {
-    setSeleccionados((prev) => {
-      const next = new Set(prev);
-      for (const empleado of empleados) {
-        if (next.size >= MAX_SELECCION) break;
-        next.add(empleado.cedula);
-      }
-      return next;
-    });
-    setEmpleadosInfo((prev) => {
-      const next = new Map(prev);
-      empleados.forEach((empleado) => next.set(empleado.cedula, empleado));
-      return next;
-    });
-    setPreCalculo(null);
-  };
-
-  const limpiarSeleccion = () => {
-    setSeleccionados(new Set());
-    setErroresConfirmacion(new Map());
-    setResultado(null);
-    setPreCalculo(null);
-    window.sessionStorage.removeItem(PLANIFICADOR_DRAFT_KEY);
   };
 
   const navegarAEmpleados = () => {
@@ -386,71 +378,95 @@ const PlanificadorSemanalView: React.FC = () => {
         seleccionadosCount={seleccionados.size}
         preCalculo={preCalculo}
         resultado={resultado}
-        onAnioChange={setAnio}
-        onSemanaIsoChange={setSemanaIso}
+        onSemanaIsoChange={cambiarSemanaIso}
+        onFechaReferenciaChange={cambiarFechaReferencia}
         onAbrirEmpleados={navegarAEmpleados}
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-4">
-        <SelectorEmpleados
-          token={token}
-          seleccionados={seleccionados}
-          onToggle={toggleEmpleado}
-          onToggleEmpleado={toggleEmpleadoDetalle}
-          onIncluirEmpleados={incluirEmpleados}
-          onLimpiar={limpiarSeleccion}
-        />
+      <MaterialCard className="overflow-hidden border-[var(--color-primary)]/15 p-0">
+        <div className="border-b border-[var(--color-border)] bg-gradient-to-r from-[var(--color-primary)]/10 via-[var(--color-surface)] to-[var(--color-surface-variant)] px-4 py-3 md:px-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <Text className="font-semibold block">Horario masivo</Text>
+              <Text className="text-xs text-[var(--color-text-secondary)]">Plantilla semanal para aplicar entrada, salida, almuerzo y novedades en bloque.</Text>
+            </div>
+            <Badge variant={diasDestino.size > 0 ? 'primary' : 'default'} size="sm">{diasDestino.size} días destino</Badge>
+          </div>
+        </div>
 
-        <MaterialCard className="p-4">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-              <div>
-                <Text className="font-semibold block">Horario masivo</Text>
-                <Text className="text-xs text-[var(--color-text-secondary)]">Define entrada, salida, almuerzo y días. Luego aplícalo a todos los empleados marcados.</Text>
-              </div>
-              <Badge variant="default" size="sm">{diasDestino.size} días destino</Badge>
+        <div className="space-y-4 p-4 md:p-5">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-variant)]/50 p-3">
+              <Text className="text-xs font-medium text-[var(--color-text-secondary)] mb-2">Entrada</Text>
+              <TimeClockPicker label="Entrada" value={plantillaEntrada} onChange={(next) => setPlantillaEntrada(next ?? '')} />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div>
-                <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Entrada</Text>
-                <Input type="time" value={plantillaEntrada} onChange={(e) => setPlantillaEntrada(e.target.value)} />
-              </div>
-              <div>
-                <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Salida</Text>
-                <Input type="time" value={plantillaSalida} onChange={(e) => setPlantillaSalida(e.target.value)} />
-              </div>
-              <div>
-                <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Almuerzo</Text>
-                <Input type="number" min={0} max={240} value={plantillaAlmuerzo} onChange={(e) => setPlantillaAlmuerzo(Math.max(0, Math.min(240, Number(e.target.value) || 0)))} />
-              </div>
-              <div>
-                <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Novedad masiva</Text>
-                <Select
-                  value={novedadMasiva}
-                  onChange={(e) => setNovedadMasiva(e.target.value)}
-                  options={CODIGOS_NOVEDAD.map((codigo) => ({
-                    value: codigo,
-                    label: codigo || 'Sin novedad',
-                  }))}
-                />
-              </div>
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-variant)]/50 p-3">
+              <Text className="text-xs font-medium text-[var(--color-text-secondary)] mb-2">Salida</Text>
+              <TimeClockPicker label="Salida" value={plantillaSalida} onChange={(next) => setPlantillaSalida(next ?? '')} />
             </div>
-            <div className="flex flex-wrap gap-2">
-              {DIAS_SEMANA.map((dia) => (
-                <Checkbox key={dia} checked={diasDestino.has(dia)} onChange={() => toggleDiaDestino(dia)} label={labelDia(dia)} />
-              ))}
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-variant)]/50 p-3">
+              <Text className="text-xs font-medium text-[var(--color-text-secondary)] mb-2">Almuerzo</Text>
+              <Select
+                value={String(plantillaAlmuerzo)}
+                onChange={(e) => setPlantillaAlmuerzo(Number(e.target.value))}
+                options={OPCIONES_ALMUERZO}
+              />
             </div>
-            {novedadMasiva && (
-              <Textarea value={observacionMasiva} onChange={(e) => setObservacionMasiva(e.target.value)} rows={2} placeholder="Observación para la novedad masiva" />
-            )}
-            <div className="flex flex-wrap gap-2 justify-end">
-              <Button variant="secondary" onClick={aplicarHorarioMasivo} disabled={seleccionados.size === 0}><Copy className="w-4 h-4 mr-1" />Aplicar horario</Button>
-              <Button variant="outline" onClick={agregarNovedadMasiva} disabled={seleccionados.size === 0 || !novedadMasiva}><ClipboardList className="w-4 h-4 mr-1" />Aplicar novedad</Button>
-              <Button variant="ghost" onClick={limpiarDiasMasivo} disabled={seleccionados.size === 0}><Eraser className="w-4 h-4 mr-1" />Limpiar días</Button>
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-variant)]/50 p-3">
+              <Text className="text-xs font-medium text-[var(--color-text-secondary)] mb-2">Novedad masiva</Text>
+              <Select
+                value={novedadMasiva}
+                onChange={(e) => setNovedadMasiva(e.target.value)}
+                options={CODIGOS_NOVEDAD.map((codigo) => ({
+                  value: codigo,
+                  label: codigo || 'Sin novedad',
+                }))}
+              />
             </div>
           </div>
-        </MaterialCard>
-      </div>
+
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <Text className="text-xs font-medium text-[var(--color-text-secondary)]">Días a modificar</Text>
+              <Text className="text-[11px] text-[var(--color-text-secondary)]">Activa solo los días que recibirán la plantilla.</Text>
+            </div>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+              {DIAS_SEMANA.map((dia) => {
+                const activo = diasDestino.has(dia);
+                return (
+                  <Button
+                    key={dia}
+                    type="button"
+                    variant="custom"
+                    size="sm"
+                    rounded="full"
+                    onClick={() => toggleDiaDestino(dia)}
+                    className={`h-9 border ${activo
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-surface)] shadow-sm'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]'
+                    }`}
+                  >
+                    {labelDia(dia)}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+
+          {novedadMasiva && (
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+              <Text className="text-xs font-medium text-[var(--color-text-secondary)] mb-2">Observación para la novedad</Text>
+              <Textarea value={observacionMasiva} onChange={(e) => setObservacionMasiva(e.target.value)} rows={2} placeholder="Observación para la novedad masiva" />
+            </div>
+          )}
+
+          <div className="flex flex-col-reverse gap-2 border-t border-[var(--color-border)] pt-4 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={aplicarHorarioMasivo} disabled={seleccionados.size === 0}><Copy className="w-4 h-4 mr-1" />Aplicar horario</Button>
+            <Button variant="outline" onClick={agregarNovedadMasiva} disabled={seleccionados.size === 0 || !novedadMasiva}><ClipboardList className="w-4 h-4 mr-1" />Aplicar novedad</Button>
+            <Button variant="ghost" onClick={limpiarDiasMasivo} disabled={seleccionados.size === 0}><Eraser className="w-4 h-4 mr-1" />Limpiar días</Button>
+          </div>
+        </div>
+      </MaterialCard>
 
       <TablaPlanificacion
         empleados={empleadosPlan}

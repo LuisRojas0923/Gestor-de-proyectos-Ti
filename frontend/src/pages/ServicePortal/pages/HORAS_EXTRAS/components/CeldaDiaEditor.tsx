@@ -7,6 +7,7 @@ import { Input, Button, Text, Select, Textarea, MaterialCard } from '../../../..
 import { X, Save } from 'lucide-react';
 import { labelDia } from '../utils/horarioUtils';
 import type { PlanDiaIn, PlanNovedadIn } from '../../../../../types/horasExtras';
+import TimeClockPicker from './TimeClockPicker';
 
 const CODIGOS_NOVEDAD = ['INC', 'VAC', 'AUS', 'LIC'];
 
@@ -76,21 +77,13 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
-          <div>
+          <div className="col-span-2">
             <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Entrada</Text>
-            <Input
-              type="time"
-              value={entrada ?? ''}
-              onChange={(e) => setEntrada(e.target.value || null)}
-            />
+            <TimeClockPicker label="Entrada" value={entrada} onChange={setEntrada} presentation="inline" />
           </div>
-          <div>
+          <div className="col-span-2">
             <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Salida</Text>
-            <Input
-              type="time"
-              value={salida ?? ''}
-              onChange={(e) => setSalida(e.target.value || null)}
-            />
+            <TimeClockPicker label="Salida" value={salida} onChange={setSalida} presentation="inline" />
           </div>
           <div className="col-span-2">
             <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Almuerzo (minutos)</Text>
