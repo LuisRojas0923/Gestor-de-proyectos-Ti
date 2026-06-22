@@ -44,8 +44,10 @@ async def obtener_usuario_actual_db(
         if not cedula:
             raise HTTPException(401, "Token sin sujeto")
 
+        token_type = payload.get("token_type", "session")
+
         # ── Validacion especifica para tokens MCP ──
-        if payload.get("token_type") == "mcp":
+        if token_type == "mcp":
             jti = payload.get("jti")
             if not jti:
                 raise HTTPException(401, "Token MCP sin jti")
@@ -73,45 +75,25 @@ async def obtener_usuario_actual_db(
                     await db.commit()
                 except Exception:
                     await db.rollback()
+        elif token_type != "session":
+            raise HTTPException(401, "Tipo de token no permitido")
 
         usuario = await ServicioAuth.obtener_usuario_por_cedula(db, cedula)
 
         if not usuario:
-            # Usuario estándar: existe en ERP pero no persiste localmente (Rol usuario)
-            if not db_erp:
-                raise HTTPException(
-                    status_code=503,
-                    detail="Servicio ERP no disponible para validar perfil de usuario",
-                )
-            from app.services.erp.empleados_service import EmpleadosService
+            raise HTTPException(401, "Usuario no encontrado")
 
-            empleado = await EmpleadosService.obtener_empleado_por_cedula(
-                db_erp, cedula
-            )
-            if not empleado:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Usuario no encontrado en la base local ni en el ERP",
-                )
+        if not usuario.esta_activo:
+            raise HTTPException(401, "Usuario inactivo")
 
-            # Instanciar modelo en memoria para responder al Auth profile
-            usuario = Usuario(
-                id=f"USR-P-{cedula}",
-                cedula=cedula,
-                nombre=empleado.get("nombre", "Usuario Portal"),
-                hash_contrasena="N/A",
-                rol="usuario",  # Asumimos rol usuario para portal estándar
-                esta_activo=True,
-                area=empleado.get("area"),
-                cargo=empleado.get("cargo"),
-                sede=empleado.get("ciudadcontratacion"),
-                centrocosto=empleado.get("centrocosto"),
-                viaticante=bool(empleado.get("viaticante")),
-                baseviaticos=empleado.get("baseviaticos"),
+        if token_type == "session":
+            sesion_web = await ServicioAuth.obtener_sesion_web_activa_por_jti(
+                db,
+                jti=payload.get("jti"),
+                usuario_id=usuario.id,
             )
-            request.state.usuario_id = usuario.id
-            request.state.token_type = payload.get("token_type", "session")
-            return usuario
+            if not sesion_web:
+                raise HTTPException(401, "Sesion revocada o expirada")
 
         # Si el usuario es local y no tiene area/sede pero hay ERP disponible, sincronizar:
         if db_erp and (not usuario.area or not usuario.sede):
@@ -125,7 +107,7 @@ async def obtener_usuario_actual_db(
         request.state.usuario_id = usuario.id
         request.state.usuario_nombre = usuario.nombre
         request.state.usuario_rol = usuario.rol
-        request.state.token_type = payload.get("token_type", "session")
+        request.state.token_type = token_type
         return usuario
     except HTTPException:
         raise

@@ -216,6 +216,7 @@ async def login(
             datos={"sub": usuario.cedula, "rol": usuario.rol},
             last_ip=request.client.host if request.client else None,
         )
+        payload_token = ServicioAuth.obtener_payload_token(token_acceso) or {}
 
         await ServicioAuth.registrar_sesion(
             db=db,
@@ -225,6 +226,7 @@ async def login(
             rol_usuario=usuario.rol,
             direccion_ip=request.client.host if request.client else None,
             agente_usuario=request.headers.get("user-agent"),
+            jti=payload_token.get("jti"),
         )
 
         await _auditar_login(

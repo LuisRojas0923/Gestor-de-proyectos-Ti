@@ -34,36 +34,36 @@ async def registrar_sesion(
     `jwt_token_expire_minutes` cuando se registran tokens con vigencia
     personalizada (MCP: 30/90 dias).
     """
-    from app.database import AsyncSessionLocal
     from app.models.auth.usuario import Sesion
 
     try:
-        async with AsyncSessionLocal() as session:
-            ahora = get_bogota_now()
-            expira = ahora + (
-                tiempo_expiracion
-                if tiempo_expiracion
-                else timedelta(minutes=config.jwt_token_expire_minutes)
-            )
+        ahora = get_bogota_now()
+        expira = ahora + (
+            tiempo_expiracion
+            if tiempo_expiracion
+            else timedelta(minutes=config.jwt_token_expire_minutes)
+        )
 
-            nueva_sesion = Sesion(
-                usuario_id=usuario_id,
-                token_sesion=token_jwt,
-                nombre_usuario=nombre_usuario,
-                rol_usuario=rol_usuario,
-                direccion_ip=direccion_ip,
-                agente_usuario=agente_usuario,
-                expira_en=expira,
-                tipo_sesion=tipo_sesion,
-                jti=jti,
-                scope=scope,
-            )
-            session.add(nueva_sesion)
-            await session.commit()
+        nueva_sesion = Sesion(
+            usuario_id=usuario_id,
+            token_sesion=token_jwt,
+            nombre_usuario=nombre_usuario,
+            rol_usuario=rol_usuario,
+            direccion_ip=direccion_ip,
+            agente_usuario=agente_usuario,
+            expira_en=expira,
+            tipo_sesion=tipo_sesion,
+            jti=jti,
+            scope=scope,
+        )
+        db.add(nueva_sesion)
+        await db.commit()
     except Exception as e:
         import logging
 
-        logging.warning(f"No se pudo registrar sesion para {usuario_id}: {e}")
+        await db.rollback()
+        logging.error(f"No se pudo registrar sesion para {usuario_id}: {e}")
+        raise
 
 
 async def marcar_fin_sesion(db: AsyncSession, token_jwt: str) -> bool:
@@ -85,6 +85,36 @@ async def marcar_fin_sesion(db: AsyncSession, token_jwt: str) -> bool:
         logging.error(f"Error al cerrar sesion: {e}")
         await db.rollback()
         return False
+
+
+async def obtener_sesion_web_activa_por_jti(
+    db: AsyncSession,
+    *,
+    jti: str,
+    usuario_id: str,
+):
+    """Retorna la sesion web activa asociada a un JWT o None si fue revocada."""
+    from app.models.auth.usuario import Sesion
+
+    if not jti:
+        return None
+
+    resultado = await db.execute(
+        select(Sesion).where(
+            Sesion.jti == jti,
+            Sesion.usuario_id == usuario_id,
+            Sesion.tipo_sesion == "web",
+        )
+    )
+    sesion = resultado.scalars().first()
+    if not sesion:
+        return None
+
+    expira = sesion.expira_en.replace(tzinfo=None) if sesion.expira_en else None
+    if sesion.fin_sesion is not None or (expira and expira < get_bogota_now()):
+        return None
+
+    return sesion
 
 
 async def invalidar_sesiones_usuario(db: AsyncSession, usuario_id: str) -> int:

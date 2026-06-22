@@ -14,6 +14,7 @@ from app.core.config import obtener_configuracion
 from app.models.auth.usuario import Usuario, PermisoRol
 from app.services.erp import EmpleadosService
 from .sesion_service import (
+    obtener_sesion_web_activa_por_jti,
     registrar_sesion,
     marcar_fin_sesion,
     invalidar_sesiones_usuario,
@@ -465,3 +466,4 @@ class ServicioAuth:
     registrar_sesion = staticmethod(registrar_sesion)
     marcar_fin_sesion = staticmethod(marcar_fin_sesion)
     invalidar_sesiones_usuario = staticmethod(invalidar_sesiones_usuario)
+    obtener_sesion_web_activa_por_jti = staticmethod(obtener_sesion_web_activa_por_jti)
