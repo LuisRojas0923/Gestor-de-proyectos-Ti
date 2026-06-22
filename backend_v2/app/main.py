@@ -9,6 +9,7 @@ import os
 import subprocess
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 # Importaciones locales (Base de Datos y Servicios)
 from .database import init_db, AsyncSessionLocal
@@ -43,6 +44,10 @@ from .api.jerarquia import router as jerarquia_router
 from .api.notificaciones.router import router as notificaciones_router
 from .api.auditoria import router as auditoria_router
 from .core.middleware.auditoria_middleware import auditoria_http_middleware
+from .core.security_policy import (
+    es_operacion_publica_api,
+    middleware_api_v2_deny_by_default,
+)
 
 # Configurar logging centralizado
 logging.basicConfig(
@@ -167,6 +172,11 @@ async def middleware_auditoria_acciones(request, call_next):
 
 
 @app.middleware("http")
+async def middleware_seguridad_api_v2(request, call_next):
+    return await middleware_api_v2_deny_by_default(request, call_next)
+
+
+@app.middleware("http")
 async def cache_request_body_for_rate_limit(request, call_next):
     """Pre-corre `await request.body()` para los endpoints con rate limit
     que dependen del body (form/JSON con cedula). Esto puebla
@@ -243,6 +253,48 @@ async def raiz():
 async def verificar_salud():
     """Verificacion de salud del servicio (Disponible en raiz y bajo prefijo api/v2)"""
     return {"estado": "saludable", "version": VERSION_SISTEMA}
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    security_schemes = schema.setdefault("components", {}).setdefault("securitySchemes", {})
+    security_schemes.setdefault(
+        "OAuth2PasswordBearer",
+        {
+            "type": "oauth2",
+            "flows": {
+                "password": {
+                    "tokenUrl": "api/v2/auth/login",
+                    "scopes": {},
+                }
+            },
+        },
+    )
+
+    for path, methods in schema.get("paths", {}).items():
+        if not path.startswith("/api/v2"):
+            continue
+        for method, operation in methods.items():
+            method_upper = method.upper()
+            if method_upper not in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
+                continue
+            if es_operacion_publica_api(method_upper, path):
+                continue
+            operation.setdefault("security", [{"OAuth2PasswordBearer": []}])
+
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 
