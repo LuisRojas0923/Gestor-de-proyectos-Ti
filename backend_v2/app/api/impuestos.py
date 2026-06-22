@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.database import obtener_db
@@ -6,13 +6,20 @@ from app.models.auth.usuario import Usuario
 from app.api.auth.profile_router import obtener_usuario_actual_db
 from app.services.impuestos.exogena_service import ExogenaService
 from app.services.impuestos.certificado_service import CertificadoService
+from app.services.auditoria.snapshots import asignar_descarga_segura
 from app.models.impuestos.formato_2276 import Formato2276
 
 router = APIRouter(prefix="/impuestos", tags=["Impuestos"])
 
 @router.get("/template")
-async def descargar_plantilla():
+async def descargar_plantilla(request: Request):
     """Descarga el Excel en blanco con encabezados para el 2276"""
+    asignar_descarga_segura(
+        request,
+        entidad_tipo="plantilla_impuestos",
+        entidad_id="2276",
+        metadatos={"nombre_archivo": "Plantilla_2276.xlsx"},
+    )
     buffer = ExogenaService.get_template()
     return Response(
         content=buffer.getvalue(),
@@ -50,6 +57,7 @@ async def listar_años_disponibles(
 
 @router.get("/certificado-220/{ano}")
 async def descargar_pdf_220(
+    request: Request,
     ano: int,
     cedula_target: str = None, # Solo para contabilidad/admin
     db: AsyncSession = Depends(obtener_db),
@@ -75,8 +83,21 @@ async def descargar_pdf_220(
         raise HTTPException(status_code=404, detail="No se encontró información para el año y documento especificado")
 
     pdf_buffer = CertificadoService.generate_pdf_220(registro)
-    
+
     filename = f"Formato_220_{ano}_{cedula_a_buscar}.pdf"
+    asignar_descarga_segura(
+        request,
+        entidad_tipo="certificado_220",
+        entidad_id=str(ano),
+        metadatos={
+            "ano_gravable": ano,
+            "cedula_consultada": cedula_a_buscar,
+            "nombre_archivo": filename,
+            "descarga_tercero": bool(
+                cedula_target and cedula_target != usuario.cedula
+            ),
+        },
+    )
     return Response(
         content=pdf_buffer.getvalue(),
         media_type="application/pdf",

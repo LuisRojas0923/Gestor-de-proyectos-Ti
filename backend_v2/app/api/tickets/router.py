@@ -227,7 +227,9 @@ async def crear_ticket(
     """Crea un nuevo ticket de soporte delegando al servicio"""
     # Si hay sesión activa, forzar identidad para seguridad y consistencia
     if usuario_actual:
-        ticket.creador_id = str(usuario_actual.id)
+        from app.services.auth.servicio import id_creador_ticket_canonico
+
+        ticket.creador_id = id_creador_ticket_canonico(usuario_actual)
         ticket.nombre_creador = usuario_actual.nombre
         ticket.correo_creador = usuario_actual.correo
     

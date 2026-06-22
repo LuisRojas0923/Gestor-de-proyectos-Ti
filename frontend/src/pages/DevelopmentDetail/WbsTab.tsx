@@ -26,6 +26,25 @@ interface WbsTabProps {
 
 type WbsRow = WbsActivityTree & { _rowIndex: number };
 
+const getWbsOrderStorageKey = (developmentId: string) => `wbs_tasks_order_${developmentId}`;
+
+const loadStoredWbsOrder = (developmentId: string) => {
+    try {
+        const raw = localStorage.getItem(getWbsOrderStorageKey(developmentId));
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+    } catch {
+        return [];
+    }
+};
+
+const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number) => {
+    const next = [...items];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    return next;
+};
+
 const formatDate = (dateStr?: string) => {
     if (!dateStr) return '-';
     try {
@@ -59,6 +78,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null);
     const [errorModalOpen, setErrorModalOpen] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [customOrder, setCustomOrder] = useState<string[]>(() => loadStoredWbsOrder(developmentId));
     const stateMenuRef = useRef<HTMLDivElement>(null);
 
     const showError = (err: unknown, defaultMsg: string) => {
@@ -122,6 +142,36 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
 
     const flattenedFiltered = flattenTree(filteredData);
     const rowData: WbsRow[] = flattenedFiltered.map((n, i) => ({ ...n, _rowIndex: i + 1 }));
+
+    const hasActiveFilters = useMemo(
+        () => Object.values(filters).some(filter => filter && filter.size > 0),
+        [filters]
+    );
+
+    const orderedRowData = useMemo(() => {
+        if (customOrder.length === 0 || sortState?.key || hasActiveFilters) return rowData;
+        const orderMap = new Map(customOrder.map((id, index) => [id, index]));
+        const originalIndex = new Map(rowData.map((row, index) => [String(row.id), index]));
+        return [...rowData].sort((a, b) => {
+            const aOrder = orderMap.get(String(a.id));
+            const bOrder = orderMap.get(String(b.id));
+            if (aOrder !== undefined && bOrder !== undefined) return aOrder - bOrder;
+            if (aOrder !== undefined) return -1;
+            if (bOrder !== undefined) return 1;
+            return (originalIndex.get(String(a.id)) ?? 0) - (originalIndex.get(String(b.id)) ?? 0);
+        }).map((row, index) => ({ ...row, _rowIndex: index + 1 }));
+    }, [customOrder, hasActiveFilters, rowData, sortState?.key]);
+
+    const canReorderRows = orderedRowData.length > 1 && !sortState?.key && !hasActiveFilters;
+
+    const handleRowsReorder = useCallback((fromIndex: number, toIndex: number) => {
+        const reorderedVisible = moveItem(orderedRowData, fromIndex, toIndex).map(row => String(row.id));
+        const knownIds = rowData.map(row => String(row.id));
+        const hiddenIds = knownIds.filter(id => !reorderedVisible.includes(id));
+        const nextOrder = [...reorderedVisible, ...hiddenIds];
+        setCustomOrder(nextOrder);
+        localStorage.setItem(getWbsOrderStorageKey(developmentId), JSON.stringify(nextOrder));
+    }, [developmentId, orderedRowData, rowData]);
 
     useImperativeHandle(ref, () => ({
         handleAddRootTask: () => {
@@ -238,6 +288,10 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     useEffect(() => {
         void fetchTree();
         void fetchUsers();
+    }, [developmentId]);
+
+    useEffect(() => {
+        setCustomOrder(loadStoredWbsOrder(developmentId));
     }, [developmentId]);
 
     useEffect(() => {
@@ -426,8 +480,10 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                     {statsCards}
                     <DataTable<WbsRow>
                         columns={columns}
-                        data={rowData}
+                        data={orderedRowData}
                         keyExtractor={(row) => String(row.id)}
+                        isRowDraggable={canReorderRows}
+                        onRowsReorder={handleRowsReorder}
                         columnFilters={filters}
                         columnOptions={uniqueValues}
                         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}

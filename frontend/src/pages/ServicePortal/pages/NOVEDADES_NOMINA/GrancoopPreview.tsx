@@ -240,7 +240,7 @@ const GrancoopPreview: React.FC = () => {
                             <input id="file-upload" // @audit-ok
                                 type="file"
                                 multiple
-                                accept=".xlsx,.xls"
+                                accept=".pdf"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={handleFilesChange}
                             />
@@ -316,7 +316,7 @@ const GrancoopPreview: React.FC = () => {
 
                     {/* Warnings Text - Compact */}
                     {data.warnings.length > 0 && (
-                        <div className="flex-none bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3">
+                        <div className="flex-none bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3 max-h-32 overflow-y-auto">
                             <div className="flex items-center gap-2 mb-1">
                                 <AlertTriangle className="w-4 h-4 text-amber-600" />
                                 <Text weight="bold" size="xs" className="text-amber-800 dark:bg-amber-300">

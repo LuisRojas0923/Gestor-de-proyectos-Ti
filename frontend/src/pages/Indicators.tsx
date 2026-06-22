@@ -46,11 +46,11 @@ const Indicators: React.FC = () => {
   if (!data) return <div className="p-10 text-center">No se encontraron datos analíticos.</div>;
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-3 pb-6 -mt-6">
       {/* Header con Selección de Vista */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <Title variant="h1" weight="bold" color="text-primary" className="mb-2">
+          <Title variant="h1" weight="bold" color="text-primary" className="mb-1">
             Indicadores de Gestión TI (BI)
           </Title>
           <Text variant="body1" color="text-secondary" weight="medium">Panel analítico para la toma de decisiones basada en datos reales</Text>

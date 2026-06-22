@@ -287,4 +287,11 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": False,
         "descripcion": "Configuración de catálogos de UEN, Subcentro de Costos y Especialidad en el ERP.",
     },
+    {
+        "id": "auditoria_sistema",
+        "nombre": "Auditoría del Sistema",
+        "categoria": "panel",
+        "es_critico": True,
+        "descripcion": "Consulta de trazabilidad de acciones realizadas por usuarios en el sistema.",
+    },
 ]

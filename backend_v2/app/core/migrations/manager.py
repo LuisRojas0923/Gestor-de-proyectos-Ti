@@ -4,6 +4,7 @@ from sqlmodel import SQLModel
 from app.core.migrations.structural_blindaje import ejecutar_blindaje_estructural
 from app.core.migrations.saneamiento_secuencias import reparar_todas_las_secuencias
 from app.core.migrations.auditoria_evento_migration import crear_tabla_auditoria_evento
+from app.core.migrations.auditoria_acciones_migration import crear_tabla_auditoria_acciones
 
 # Importar todos los modelos para que SQLModel.metadata los registre
 import app.models.rrhh  # noqa: F401 — Requisición de Personal
@@ -42,6 +43,13 @@ async def init_db_process(async_engine, AsyncSessionLocal):
             await crear_tabla_auditoria_evento(conn)
         except Exception as e:
             logger.error(f"Error en migración auditoria_eventos: {e}")
+
+    # 3.6 Crear tabla auditoria_acciones_usuario (trazabilidad transversal)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tabla_auditoria_acciones(conn)
+        except Exception as e:
+            logger.error(f"Error en migración auditoria_acciones_usuario: {e}")
 
     # 4. Saneamiento de Datos (Inventario y otros)
     saneamientos = [

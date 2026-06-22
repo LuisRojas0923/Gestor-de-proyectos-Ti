@@ -8,6 +8,8 @@ interface ExpenseLine {
     fecha: string;
     observaciones: string;
     ot: string;
+    cliente?: string | null;
+    combinacionesCC?: Array<{ cliente?: string | null }>;
     cc: string;
     scc: string;
     valorConFactura: number;
@@ -406,10 +408,13 @@ export const generateExpenseReportPDF = async (
             // Descripción: Rubro + Observación. (En la imagen es Alimentación: Prueba)
             const desc = l.categoria ? `${l.categoria}: ${l.observaciones || ''}` : l.observaciones || '';
 
+            const cliente = l.cliente || l.combinacionesCC?.find(c => c.cliente)?.cliente || '';
+
             return [
                 fStr,
                 desc,
                 l.ot || '',
+                cliente,
                 l.cc || '',
                 l.scc || '',
                 `$   ${vcf.toLocaleString('es-CO')}`,
@@ -420,7 +425,7 @@ export const generateExpenseReportPDF = async (
 
         // Fila de TOTALES final
         tableData.push([
-            { content: 'TOTALES', colSpan: 5, styles: { halign: 'center', fillColor: navyBlue, textColor: 255, fontStyle: 'bold', lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 } },
+            { content: 'TOTALES', colSpan: 6, styles: { halign: 'center', fillColor: navyBlue, textColor: 255, fontStyle: 'bold', lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 } },
             { content: `$   ${totalConFactura.toLocaleString('es-CO')}`, styles: { halign: 'right', fillColor: navyBlue, textColor: 255, fontStyle: 'bold', lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 } },
             { content: `$   ${totalSinFactura.toLocaleString('es-CO')}`, styles: { halign: 'right', fillColor: navyBlue, textColor: 255, fontStyle: 'bold', lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 } },
             { content: `$   ${totalGastos.toLocaleString('es-CO')}`, styles: { halign: 'right', fillColor: navyBlue, textColor: 255, fontStyle: 'bold', lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 } }
@@ -430,13 +435,14 @@ export const generateExpenseReportPDF = async (
             startY: detailY,
             margin: { left: margin, right: margin },
             theme: 'grid',
-            headStyles: { fillColor: navyBlue, textColor: 255, halign: 'center', fontStyle: 'bold', fontSize: 8, cellPadding: 2, lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 },
-            bodyStyles: { fontSize: 8, cellPadding: 2, textColor: 0, lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 },
+            headStyles: { fillColor: navyBlue, textColor: 255, halign: 'center', fontStyle: 'bold', fontSize: 7, cellPadding: 1.5, lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 },
+            bodyStyles: { fontSize: 7, cellPadding: 1.5, textColor: 0, lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.2 },
             alternateRowStyles: { fillColor: [240, 240, 240] as [number, number, number] },
             head: [[
                 'FECHA\nREAL',
                 'DESCRIPCION',
                 'OT',
+                'CLIENTE',
                 'C. COSTO',
                 'S.C.\nCOSTO',
                 'VALOR CON\nFACTURA',
@@ -445,14 +451,15 @@ export const generateExpenseReportPDF = async (
             ]],
             body: tableData,
             columnStyles: {
-                0: { cellWidth: 18, halign: 'center' },
-                1: { cellWidth: 'auto' },
-                2: { cellWidth: 15, halign: 'center' },
-                3: { cellWidth: 15, halign: 'center' },
-                4: { cellWidth: 15, halign: 'center' },
-                5: { cellWidth: 25, halign: 'right' },
-                6: { cellWidth: 25, halign: 'right' },
-                7: { cellWidth: 25, halign: 'right', fontStyle: 'bold' }
+                0: { cellWidth: 16, halign: 'center' },
+                1: { cellWidth: 34 },
+                2: { cellWidth: 14, halign: 'center' },
+                3: { cellWidth: 38 },
+                4: { cellWidth: 13, halign: 'center' },
+                5: { cellWidth: 12, halign: 'center' },
+                6: { cellWidth: 22, halign: 'right' },
+                7: { cellWidth: 22, halign: 'right' },
+                8: { cellWidth: 22, halign: 'right', fontStyle: 'bold' }
             }
         });
 

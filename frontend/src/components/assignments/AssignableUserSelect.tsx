@@ -30,6 +30,7 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
   const triggerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = React.useId();
 
   useEffect(() => {
     const loadTeam = async () => {
@@ -93,15 +94,18 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Focus input when dropdown opens
+  // Focus input when dropdown opens and after portal coordinates are ready.
   useEffect(() => {
-    if (open && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 50);
+    if (open && coords) {
+      const focusTimer = window.setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
+      return () => window.clearTimeout(focusTimer);
     }
     if (!open) {
       setSearch('');
     }
-  }, [open]);
+  }, [open, coords]);
 
   const filteredOptions = search.trim()
     ? options.filter(o =>
@@ -141,8 +145,18 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
         ref={triggerRef}
         role="button"
         tabIndex={loading ? -1 : 0}
-        onClick={() => !loading && setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        onClick={() => !loading && setOpen(true)}
+        onFocus={() => {
+          if (!loading) setOpen(true);
+        }}
         onKeyDown={e => {
+          if (e.key === 'Escape') {
+            setOpen(false);
+            return;
+          }
           if (!loading && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault();
             setOpen(o => !o);
@@ -180,7 +194,9 @@ export const AssignableUserSelect: React.FC<AssignableUserSelectProps> = ({
       {/* Dropdown */}
       {open && coords && createPortal(
         <div
+          id={listboxId}
           ref={dropdownRef}
+          role="listbox"
           style={{ // @audit-ok
             position: 'absolute',
             top: `${coords.top}px`,

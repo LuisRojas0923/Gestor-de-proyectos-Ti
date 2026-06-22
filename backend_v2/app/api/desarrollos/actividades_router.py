@@ -4,7 +4,7 @@ API de Actividades (WBS) - Backend V2
 
 from decimal import Decimal
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from app.database import obtener_db
@@ -25,6 +25,12 @@ from app.services.desarrollos.estado_service import propagar_estado_en_progreso,
 from app.services.desarrollos.actividad_delete_service import (
     obtener_hijos_preview,
     eliminar_actividad_cascade,
+)
+from app.services.auditoria.snapshots import (
+    asignar_actualizacion_segura,
+    asignar_creacion_segura,
+    asignar_eliminacion_segura,
+    modelo_a_dict_auditoria,
 )
 
 router = APIRouter()
@@ -63,7 +69,10 @@ def actividad_a_arbol(actividad: Actividad) -> ActividadArbol:
 
 @router.post("/", response_model=ActividadLeer)
 async def crear_actividad(
-    actividad_in: ActividadCrear, db: AsyncSession = Depends(obtener_db)
+    request: Request,
+    actividad_in: ActividadCrear,
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Crea una nueva actividad (puede ser raíz o subactividad si recibe parent_id)"""
     try:
@@ -111,6 +120,10 @@ async def crear_actividad(
             except Exception as e_notif:
                 import logging
                 logging.getLogger(__name__).warning(f"Error creando notificación de actividad: {e_notif}")
+
+        request.state.auditoria_entidad_tipo = "actividad"
+        request.state.auditoria_entidad_id = str(nueva_act.id)
+        asignar_creacion_segura(request, nueva_act)
 
         return nueva_act
     except Exception as e:
@@ -231,6 +244,7 @@ async def obtener_actividad(
 
 @router.patch("/{actividad_id}", response_model=ActividadLeer)
 async def actualizar_actividad(
+    request: Request,
     actividad_id: int,
     actividad_in: ActividadActualizar,
     db: AsyncSession = Depends(obtener_db),
@@ -244,6 +258,8 @@ async def actualizar_actividad(
 
         if not act_db:
             raise HTTPException(status_code=404, detail="Actividad no encontrada")
+
+        snapshot_antes = modelo_a_dict_auditoria(act_db)
 
         # Validar permisos de edición (PATCH) — sin bypass de roles
         subordinados = await JerarquiaService.obtener_ids_y_nombres_subordinados(db, usuario.id)
@@ -329,6 +345,10 @@ async def actualizar_actividad(
             except Exception as e_notif:
                 import logging
                 logging.getLogger(__name__).warning(f"Error creando notificación de reasignación de actividad: {e_notif}")
+
+        request.state.auditoria_entidad_tipo = "actividad"
+        request.state.auditoria_entidad_id = str(act_db.id)
+        asignar_actualizacion_segura(request, snapshot_antes, act_db)
 
         return act_db
     except HTTPException:
@@ -424,6 +444,7 @@ class EliminarConfirmResponse(BaseModel):
 
 @router.delete("/{actividad_id}", response_model=EliminarConfirmResponse)
 async def eliminar_actividad(
+    request: Request,
     actividad_id: int,
     db: AsyncSession = Depends(obtener_db),
     usuario: Usuario = Depends(obtener_usuario_actual_db),
@@ -445,6 +466,7 @@ async def eliminar_actividad(
 
         parent_id_original = act_db.parent_id
         desarrollo_id = act_db.desarrollo_id
+        snapshot_antes = modelo_a_dict_auditoria(act_db)
         count = await eliminar_actividad_cascade(db, actividad_id)
 
         if parent_id_original is not None:
@@ -458,6 +480,10 @@ async def eliminar_actividad(
 
         await recalcular_progreso_desarrollo(db, desarrollo_id)
         await db.commit()
+
+        request.state.auditoria_entidad_tipo = "actividad"
+        request.state.auditoria_entidad_id = str(actividad_id)
+        asignar_eliminacion_segura(request, snapshot_antes)
 
         return EliminarConfirmResponse(eliminadas=count)
     except HTTPException:

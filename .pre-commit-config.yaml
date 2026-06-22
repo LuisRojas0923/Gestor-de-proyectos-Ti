@@ -40,3 +40,10 @@ repos:
         entry: python scripts/structure_check_frontend.py
         language: system
         files: ^frontend/.*\.([tj]sx?)$
+
+      - id: audit-coverage-check
+        name: Audit Coverage Enforcer
+        entry: python scripts/audit_coverage_check.py
+        language: system
+        pass_filenames: false
+        files: ^backend_v2/app/core/(rbac_manifest|auditoria_manifest)\.py$

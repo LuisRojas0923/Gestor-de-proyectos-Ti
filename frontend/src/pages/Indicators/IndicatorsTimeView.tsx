@@ -14,28 +14,35 @@ interface Props {
 
 const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }) => {
     return (
-        <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Minutos de Atención por Área (Barra Simple) */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)]">
-                    <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Minutos de Atención por Área</Title>
-                    <div className="h-[350px] w-full">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
+                    <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Minutos de Atención por Área</Title>
+                    <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                            <BarChart data={areaStats || []}>
+                            <BarChart data={areaStats || []} margin={{ bottom: 25 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                                <XAxis dataKey="area" tick={{ fontSize: 10 }} />
+                                <XAxis 
+                                    dataKey="area" 
+                                    tick={{ fontSize: 9, fill: 'var(--color-text-secondary)' }} 
+                                    interval={0}
+                                    angle={-35}
+                                    textAnchor="end"
+                                    height={60}
+                                />
                                 <YAxis />
                                 <Tooltip />
-                                <Bar dataKey="cantidad" fill="var(--deep-navy)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="avg_atencion" fill="var(--deep-navy)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
                 {/* Minutos Promedio en Atender y de Atención (Cards) */}
-                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)]">
-                    <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Minutos Promedio: Atender vs Atención</Title>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
+                    <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Minutos Promedio: Atender vs Atención</Title>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                         {(causaStats || []).map((stat, i) => (
                             <div key={`${stat.id || stat.cedula || 'stat'}-${i}`} className="bg-[var(--color-surface-variant)] p-4 rounded-3xl border border-[var(--color-border)] shadow-sm hover:shadow-md transition-shadow">
                                 <Text variant="body2" weight="bold" color="text-primary" className="mb-3 block line-clamp-1">
@@ -49,7 +56,7 @@ const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }
                                             </div>
                                             <Text variant="caption" weight="bold" className="uppercase tracking-wider opacity-60 !text-[9px]">Atender</Text>
                                         </div>
-                                        <Text variant="body2" weight="bold">{stat.avg_atender}m</Text>
+                                        <Text variant="body2" weight="bold">{stat.avg_atender?.toLocaleString('es-CO')} min</Text>
                                     </div>
                                     <div className="flex justify-between items-center p-2.5 bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)]">
                                         <div className="flex items-center gap-2">
@@ -58,7 +65,7 @@ const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }
                                             </div>
                                             <Text variant="caption" weight="bold" className="uppercase tracking-wider opacity-60 !text-[9px]">Atención</Text>
                                         </div>
-                                        <Text variant="body2" weight="bold">{stat.avg_atencion}m</Text>
+                                        <Text variant="body2" weight="bold">{stat.avg_atencion?.toLocaleString('es-CO')} min</Text>
                                     </div>
                                 </div>
                             </div>
@@ -68,9 +75,9 @@ const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }
             </div>
 
             {/* Solicitudes por Fecha (Línea) */}
-            <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)]">
-                <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Solicitudes por Fecha</Title>
-                <div className="h-[300px] w-full">
+            <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
+                <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Solicitudes por Fecha</Title>
+                <div className="h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <LineChart data={timeline || []}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
@@ -84,9 +91,9 @@ const IndicatorsTimeView: React.FC<Props> = ({ areaStats, timeline, causaStats }
             </div>
 
             {/* Tiempo de Solicitud por Fecha (Línea) */}
-            <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 shadow-xl border border-[var(--color-border)]">
-                <Title variant="h4" weight="bold" color="text-primary" className="mb-4 md:mb-6 text-lg md:text-xl">Tiempo de Solicitud por Fecha (Min)</Title>
-                <div className="h-[300px] w-full">
+            <div className="bg-[var(--color-surface)] rounded-[1.5rem] md:rounded-[2.5rem] p-3 md:p-4 shadow-xl border border-[var(--color-border)]">
+                <Title variant="h4" weight="bold" color="text-primary" className="mb-3 text-lg md:text-xl">Tiempo de Solicitud por Fecha (Min)</Title>
+                <div className="h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <LineChart data={timeline || []}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />

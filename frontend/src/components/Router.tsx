@@ -19,6 +19,7 @@ import RoomsPage from '../pages/RoomsPage';
 import ControlTower from '../pages/ControlTower';
 import WbsTemplatesAdmin from '../pages/WbsTemplatesAdmin/WbsTemplatesAdmin';
 import InventarioAdmin from '../pages/InventarioAdmin/InventarioAdmin';
+import AuditoriaSistemaPage from '../pages/AuditoriaSistema';
 import { CorporateLinesManager } from '../pages/CorporateLines/CorporateLinesManager';
 import Layout from './layout/Layout';
 import ProtectedRoute from './auth/ProtectedRoute';
@@ -54,6 +55,7 @@ const AppRouter: React.FC = () => {
           <Route path="admin/control-tower" element={<ProtectedRoute moduleCode="control-tower"><ControlTower /></ProtectedRoute>} />
           <Route path="admin/wbs-templates" element={<ProtectedRoute allowedRoles={['admin']}><WbsTemplatesAdmin /></ProtectedRoute>} />
           <Route path="admin/inventario" element={<ProtectedRoute moduleCode="inventario_anual"><InventarioAdmin /></ProtectedRoute>} />
+          <Route path="admin/auditoria" element={<ProtectedRoute moduleCode="auditoria_sistema"><AuditoriaSistemaPage /></ProtectedRoute>} />
           <Route path="design-catalog" element={<ProtectedRoute moduleCode="design-catalog"><DesignSystemCatalog /></ProtectedRoute>} />
           <Route path="lineas-corporativas" element={<ProtectedRoute moduleCode="lineas_corporativas"><CorporateLinesManager /></ProtectedRoute>} />
         </Route>

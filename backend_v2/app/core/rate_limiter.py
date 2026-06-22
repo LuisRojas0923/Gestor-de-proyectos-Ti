@@ -106,7 +106,11 @@ def _read_cedula_from_cached_body(request: Request) -> str:
     Soporta `application/x-www-form-urlencoded`, `application/json` y
     `multipart/form-data` (campo `username` o `cedula`).
     """
-    body = getattr(request, "_body", None) or b""
+    body = (
+        getattr(request, "_body", None)
+        or request.scope.get("rate_limit_body", b"")
+        or b""
+    )
     if not body:
         return ""
     content_type = (request.headers.get("content-type") or "").lower()
@@ -147,7 +151,11 @@ def _resolve_body_identity(request: Request, *, anon_prefix: str = "anon") -> st
     cedula = _read_cedula_from_cached_body(request)
     if cedula:
         return cedula
-    body = getattr(request, "_body", None) or b""
+    body = (
+        getattr(request, "_body", None)
+        or request.scope.get("rate_limit_body", b"")
+        or b""
+    )
     content_type = request.headers.get("content-type", "")
     if body:
         identity = f"body:{hashlib.sha256(body).hexdigest()[:16]}"

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { Text, Button } from '../atoms';
 import { FilterDropdown } from './FilterDropdown';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 
 export interface DataTableColumn<T> {
     key: string;
@@ -36,6 +36,8 @@ export interface DataTableProps<T> {
     onMouseEnterRow?: (row: T, event: React.MouseEvent) => void;
     onMouseLeaveRow?: () => void;
     bodyRef?: React.RefObject<HTMLDivElement>;
+    isRowDraggable?: boolean;
+    onRowsReorder?: (fromIndex: number, toIndex: number) => void;
 
     columnFilters?: Record<string, Set<string>>;
     columnOptions?: Record<string, string[]>;
@@ -69,6 +71,8 @@ export function DataTable<T>({
     onMouseEnterRow,
     onMouseLeaveRow,
     bodyRef,
+    isRowDraggable = false,
+    onRowsReorder,
     columnFilters = {},
     columnOptions = {},
     onFilterChange,
@@ -88,11 +92,14 @@ export function DataTable<T>({
     const [filterSearchTerm, setFilterSearchTerm] = useState('');
     const [activeSubFilter, setActiveSubFilter] = useState<string | null>(null);
     const [tempSubFilters, setTempSubFilters] = useState<Record<string, Set<string>>>({});
+    const [draggedRowIndex, setDraggedRowIndex] = useState<number | null>(null);
+    const [dragOverRowIndex, setDragOverRowIndex] = useState<number | null>(null);
     const headerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     const bodyGridRef = useRef<HTMLDivElement>(null);
     const headerGridRef = useRef<HTMLDivElement>(null);
 
     const gridTemplateColumns = [
+        ...(isRowDraggable ? ['minmax(36px, 36px)'] : []),
         ...columns.map(col =>
             col.flex
                 ? `minmax(${col.minWidth ?? 'min-content'}, 1fr)`
@@ -203,6 +210,12 @@ export function DataTable<T>({
         ? (tempSubFilters[activeSubFilter]?.size ?? 0) === getFilterOptions(activeSubFilter).length
         : false;
 
+    const moveRowWithKeyboard = (rowIndex: number, direction: -1 | 1) => {
+        const targetIndex = rowIndex + direction;
+        if (targetIndex < 0 || targetIndex >= data.length) return;
+        onRowsReorder?.(rowIndex, targetIndex);
+    };
+
     return (
         <div className={`relative flex flex-col overflow-x-auto overflow-y-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm ${maxHeight} ${minHeight} ${className}`}>
 
@@ -261,6 +274,11 @@ export function DataTable<T>({
                         ref={headerGridRef}
                         className={`shrink-0 bg-[var(--deep-navy)] border-b border-[var(--deep-navy)] overflow-hidden z-20 ${headerClassName}`}
                     >
+                        {isRowDraggable && (
+                            <div className="flex items-center justify-center py-2.5 px-2 border-r border-white/10">
+                                <GripVertical size={13} className="text-white/70" />
+                            </div>
+                        )}
                         {columns.map((col) => (
                             <Button
                                 key={col.key}
@@ -319,16 +337,88 @@ export function DataTable<T>({
                             }}
                             className="overflow-y-auto custom-scrollbar"
                         >
-                            {data.map((row) => (
+                            {data.map((row, rowIndex) => (
                                 <div
+                                    data-datatable-row="true"
                                     key={keyExtractor(row)}
                                     onClick={() => onRowClick?.(row)}
-                                    className="group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors cursor-pointer"
+                                    onDragOver={(e) => {
+                                        if (!isRowDraggable || draggedRowIndex === null) return;
+                                        e.preventDefault();
+                                        if (dragOverRowIndex !== rowIndex) setDragOverRowIndex(rowIndex);
+                                    }}
+                                    onDrop={(e) => {
+                                        if (!isRowDraggable || draggedRowIndex === null) return;
+                                        e.preventDefault();
+                                        if (draggedRowIndex !== rowIndex) onRowsReorder?.(draggedRowIndex, rowIndex);
+                                        setDraggedRowIndex(null);
+                                        setDragOverRowIndex(null);
+                                    }}
+                                    className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-all duration-200 cursor-pointer ${dragOverRowIndex === rowIndex ? 'my-1 bg-[var(--color-primary)]/8 ring-1 ring-inset ring-[var(--color-primary)]/25 before:absolute before:-top-1 before:left-3 before:right-3 before:h-0.5 before:rounded-full before:bg-[var(--color-primary)] before:shadow-sm before:content-[""]' : ''} ${draggedRowIndex === rowIndex ? 'scale-[0.985] border-dashed bg-[var(--color-surface-variant)]/50 opacity-35 ring-1 ring-inset ring-[var(--color-primary)]/25' : ''}`}
                                     onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
                                     onMouseLeave={onMouseLeaveRow}
                                 >
                                     {showRowIndicator && (
                                         <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
+                                    )}
+                                    {isRowDraggable && (
+                                        <div className="flex items-center justify-center py-3 px-2 min-w-0">
+                                            <Button
+                                                variant="custom"
+                                                size="xs"
+                                                type="button"
+                                                draggable
+                                                aria-label={`Mover fila ${rowIndex + 1}. Usa flecha arriba o abajo para reordenar.`}
+                                                title="Arrastrar para ordenar"
+                                                onClick={(e) => e.stopPropagation()}
+                                                onKeyDown={(e) => {
+                                                    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    moveRowWithKeyboard(rowIndex, e.key === 'ArrowUp' ? -1 : 1);
+                                                }}
+                                                onDragStart={(e) => {
+                                                    e.stopPropagation();
+                                                    setDraggedRowIndex(rowIndex);
+                                                    e.dataTransfer.effectAllowed = 'move';
+                                                    e.dataTransfer.setData('text/plain', keyExtractor(row));
+
+                                                    const sourceRow = e.currentTarget.closest('[data-datatable-row]') as HTMLElement | null;
+                                                    if (sourceRow) {
+                                                        const dragImage = sourceRow.cloneNode(true) as HTMLElement;
+                                                        const gridTemplate = bodyGridRef.current
+                                                            ? window.getComputedStyle(bodyGridRef.current).gridTemplateColumns
+                                                            : window.getComputedStyle(sourceRow).gridTemplateColumns;
+                                                        dragImage.style.position = 'fixed';
+                                                        dragImage.style.top = '-1000px';
+                                                        dragImage.style.left = '-1000px';
+                                                        dragImage.style.display = 'grid';
+                                                        dragImage.style.gridTemplateColumns = gridTemplate;
+                                                        dragImage.style.width = `${sourceRow.offsetWidth}px`;
+                                                        dragImage.style.pointerEvents = 'none';
+                                                        dragImage.style.opacity = '0.35';
+                                                        dragImage.style.transform = 'scale(0.985)';
+                                                        dragImage.style.boxShadow = 'none';
+                                                        dragImage.style.background = 'var(--color-surface-variant)';
+                                                        dragImage.style.borderTop = '1px solid var(--color-border)';
+                                                        dragImage.style.borderBottom = '1px solid var(--color-border)';
+                                                        dragImage.style.borderRadius = '0';
+                                                        dragImage.style.overflow = 'hidden';
+                                                        dragImage.style.zIndex = '9999';
+                                                        document.body.appendChild(dragImage);
+                                                        e.dataTransfer.setDragImage?.(dragImage, 18, 18);
+                                                        window.setTimeout(() => dragImage.remove(), 0);
+                                                    }
+                                                }}
+                                                onDragEnd={() => {
+                                                    setDraggedRowIndex(null);
+                                                    setDragOverRowIndex(null);
+                                                }}
+                                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] hover:text-[var(--color-primary)] cursor-grab active:cursor-grabbing transition-colors"
+                                            >
+                                                <GripVertical size={15} />
+                                            </Button>
+                                        </div>
                                     )}
                                     {columns.map((col) => (
                                         <div

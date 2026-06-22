@@ -16,6 +16,12 @@ const baseProps = {
   onOpenCreateModal: () => {},
   selectedStatus: null as string | null,
   onStatusSelect: () => {},
+  reviewedCount: 0,
+  clearReviewed: () => {},
+  loadedCount: 5,
+  hasMore: false,
+  loadingMore: false,
+  onLoadMore: () => {},
 };
 
 const renderWithRouter = (props: React.ComponentProps<typeof MyDevelopmentsHeader>) =>

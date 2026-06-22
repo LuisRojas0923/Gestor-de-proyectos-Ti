@@ -171,6 +171,8 @@ async def ejecutar_blindaje_estructural(conn):
 
     # 9. Otros (Formato 2276, etc.)
     await safe_execute(conn, 'ALTER TABLE formato_2276 ADD COLUMN IF NOT EXISTS entidad_informante VARCHAR(10)')
+    await safe_execute(conn, 'ALTER TABLE nomina_registros_normalizados ADD COLUMN IF NOT EXISTS valor_rdc FLOAT DEFAULT 0.0')
+    await safe_execute(conn, 'ALTER TABLE nomina_registros_normalizados ADD COLUMN IF NOT EXISTS valor_colaborador FLOAT DEFAULT 0.0')
 
     # 9.1 Notificaciones de Usuario
     await safe_execute(
