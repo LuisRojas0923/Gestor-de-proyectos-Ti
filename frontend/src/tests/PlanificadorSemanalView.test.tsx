@@ -83,7 +83,7 @@ const agregarEmpleadosActivos = async () => {
   await screen.findByLabelText('Seleccionar 123');
   fireEvent.click(screen.getByRole('button', { name: /Incluir visibles/i }));
   await waitFor(() => {
-    expect(screen.getByText(/2 \/ 200 seleccionados/)).toBeTruthy();
+    expect(screen.getByText(/2 empleados/)).toBeTruthy();
   });
 };
 
@@ -363,7 +363,7 @@ describe('PlanificadorSemanalView', () => {
     empleadosView.unmount();
     wrapperRouter(<PlanificadorSemanalView />);
 
-    expect(await screen.findByText(/1 \/ 200 seleccionados/)).toBeTruthy();
+    expect(await screen.findByText(/1 empleados/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: /Guardar borrador/i }));
 

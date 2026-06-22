@@ -6,7 +6,7 @@
  * respuestas enormes al backend.
  */
 import React, { useEffect, useState } from 'react';
-import { Input, Button, Text, Spinner, Checkbox, MaterialCard, Badge } from '../../../../../components/atoms';
+import { Input, Button, Text, Spinner, Checkbox, MaterialCard } from '../../../../../components/atoms';
 import { Search, ChevronDown } from 'lucide-react';
 import { buscarEmpleadosERP } from '../../../../../services/horasExtrasService';
 import type { EmpleadoERPRead } from '../../../../../types/horasExtras';
@@ -99,18 +99,6 @@ const SelectorEmpleados: React.FC<SelectorEmpleadosProps> = ({
 
   return (
     <MaterialCard className="p-4">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-3">
-        <div>
-          <Text className="font-semibold block">Empleados</Text>
-          <Text className="text-xs text-[var(--color-text-secondary)]">
-            Busca por cedula o nombre y marca quienes van a trabajar en la semana.
-          </Text>
-        </div>
-        <Badge variant="primary" size="sm">
-          {seleccionados.size} / {MAX_SELECCION} seleccionados
-        </Badge>
-      </div>
-
       <div className="flex flex-col gap-2 md:flex-row md:items-center mb-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" />
