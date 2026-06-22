@@ -12,6 +12,7 @@ from sqlmodel import select as sqlmodel_select
 
 from app.models.rrhh.solicitud_personal import RequisicionPersonal, EstadoRP
 from app.models.rrhh.catalogos import AprobadorAreaRP, AreaRP
+from app.models.auth.usuario import Usuario, RelacionUsuario
 from app.models.rrhh.historial import (
     HistorialRequisicion,
     RequisicionEquipoOficina,
@@ -291,6 +292,11 @@ async def aprobar_gerente(
         gerente_nombre, gerente_email, observacion,
     )
 
+    try:
+        await _crear_vacantes_en_jerarquia(db, req)
+    except Exception as e:
+        logger.error(f"[Vacantes] Error al crear vacantes para {req.rp}: {str(e)}")
+
     await db.commit()
     await db.refresh(req)
     logger.info(f"[RP] {req.rp} APROBADA POR GERENCIA por {gerente_email}")
@@ -485,6 +491,10 @@ async def actualizar_estado_gh(
     if nuevo_estado in (EstadoRP.CERRADA, EstadoRP.CANCELADA):
         req.fecha_cierre = datetime.utcnow()
         req.observacion_cierre = observacion
+        try:
+            await _limpiar_vacantes_en_jerarquia(db, req)
+        except Exception as e:
+            logger.error(f"[Vacantes] Error al limpiar vacantes para {req.rp}: {str(e)}")
 
     await registrar_historial(
         db, req.id, estado_anterior, nuevo_estado,
@@ -540,6 +550,11 @@ async def cancelar_requisicion_gh(
         db, req.id, estado_anterior, EstadoRP.CANCELADA,
         responsable_nombre, responsable_email, observacion.strip(),
     )
+
+    try:
+        await _limpiar_vacantes_en_jerarquia(db, req)
+    except Exception as e:
+        logger.error(f"[Vacantes] Error al limpiar vacantes para {req.rp}: {str(e)}")
 
     await db.commit()
     await db.refresh(req)
@@ -607,3 +622,72 @@ async def marcar_vista_gh(
         logger.info(f"[RP] {req.rp} marcada como vista/recibida por GH")
     
     return req
+
+
+async def _crear_vacantes_en_jerarquia(db: AsyncSession, req: RequisicionPersonal):
+    """Crea usuarios virtuales (vacantes) y sus relaciones en el organigrama."""
+    if not req.correo_solicitante:
+        logger.warning(f"[Vacantes] Requisición {req.rp} no tiene correo de solicitante.")
+        return
+        
+    res_solicitante = await db.execute(
+        sqlmodel_select(Usuario).where(Usuario.correo == req.correo_solicitante)
+    )
+    solicitante = res_solicitante.scalar_one_or_none()
+    if not solicitante:
+        logger.warning(f"[Vacantes] Solicitante con correo {req.correo_solicitante} no encontrado en la tabla de usuarios.")
+        return
+
+    for i in range(1, req.numero_personas_requeridas + 1):
+        vacante_id = f"VAC-{req.rp}-{i}"
+        
+        res_vacante = await db.execute(
+            sqlmodel_select(Usuario).where(Usuario.id == vacante_id)
+        )
+        vacante = res_vacante.scalar_one_or_none()
+        
+        if not vacante:
+            vacante = Usuario(
+                id=vacante_id,
+                cedula=vacante_id,
+                nombre=f"[VACANTE] {req.cargo_nombre or 'Cargo no definido'}",
+                cargo=req.cargo_nombre,
+                area=req.area_nombre,
+                rol="usuario",
+                esta_activo=True,
+                hash_contrasena="*disabled*",
+            )
+            db.add(vacante)
+            await db.flush()
+
+            relacion = RelacionUsuario(
+                usuario_id=vacante_id,
+                superior_id=solicitante.id,
+                tipo_relacion="lineal",
+                esta_activa=True
+            )
+            db.add(relacion)
+            logger.info(f"[Vacantes] Creada vacante {vacante_id} reportando a {solicitante.id}")
+
+
+async def _limpiar_vacantes_en_jerarquia(db: AsyncSession, req: RequisicionPersonal):
+    """Inactiva los usuarios virtuales de vacante asociados a la RP."""
+    if not req.rp:
+        return
+        
+    prefix = f"VAC-{req.rp}-%"
+    await db.execute(
+        text(
+            "UPDATE relaciones_usuarios SET esta_activa = False "
+            "WHERE usuario_id LIKE :prefix"
+        ),
+        {"prefix": prefix}
+    )
+    await db.execute(
+        text(
+            "UPDATE usuarios SET esta_activo = False "
+            "WHERE id LIKE :prefix"
+        ),
+        {"prefix": prefix}
+    )
+    logger.info(f"[Vacantes] Limpieza ejecutada para vacantes de {req.rp}")

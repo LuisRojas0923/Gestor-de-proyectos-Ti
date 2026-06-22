@@ -92,6 +92,7 @@ const getInitials = (name: string) => {
 
 const formatShortName = (fullName: string) => {
   if (!fullName) return '';
+  if (fullName.startsWith('[VACANTE]')) return fullName;
   const parts = fullName.trim().split(/\s+/);
   if (parts.length <= 1) return fullName;
   
@@ -109,9 +110,11 @@ const CustomNodeComponent = (props: any) => {
   const { nodeData, level, selected, onSelect } = data;
   const user = nodeData.usuario;
   const isSelected = selected;
+  const isVacancy = user.id.startsWith('VAC-');
   
   const getLevelStyles = (lvl: number, isSelected: boolean) => {
     if (isSelected) return '!border-[var(--color-primary)] bg-[var(--color-primary)]/10 shadow-md scale-105';
+    if (isVacancy) return 'border-dashed border-2 border-neutral-400 dark:border-neutral-600 bg-neutral-50/30 dark:bg-neutral-800/10 opacity-80 hover:opacity-100 transition-opacity';
     switch (lvl) {
       case 0: return 'border-primary-500/30 bg-gradient-to-br from-primary-500/5 to-primary-600/10 dark:from-primary-900/20 dark:to-primary-800/10';
       case 1: return 'border-indigo-500/30 bg-gradient-to-br from-indigo-500/5 to-indigo-600/10 dark:from-indigo-900/20 dark:to-indigo-800/10';
@@ -121,6 +124,7 @@ const CustomNodeComponent = (props: any) => {
   };
 
   const getAvatarColors = (lvl: number) => {
+    if (isVacancy) return 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 border-neutral-300 dark:border-neutral-700';
     switch (lvl) {
       case 0: return 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 border-primary-200 dark:border-primary-800';
       case 1: return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800';
@@ -140,11 +144,15 @@ const CustomNodeComponent = (props: any) => {
         <div className="flex items-center text-left gap-2">
           {/* Initials Avatar - Compact */}
           <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm shrink-0 ${getAvatarColors(level)}`}>
-            <Text className="!text-[10px] font-bold !m-0 leading-none tracking-tight">{getInitials(user.nombre)}</Text>
+            {isVacancy ? (
+              <UserPlus size={14} className="opacity-80" />
+            ) : (
+              <Text className="!text-[10px] font-bold !m-0 leading-none tracking-tight">{getInitials(user.nombre)}</Text>
+            )}
           </div>
           
           <div className="w-full min-w-0">
-            <Text className="!text-[9.5px] font-bold leading-tight uppercase truncate block" title={user.nombre}>
+            <Text className={`!text-[9.5px] font-bold leading-tight uppercase truncate block ${isVacancy ? 'text-neutral-500 dark:text-neutral-400 italic font-semibold' : ''}`} title={user.nombre}>
               {formatShortName(user.nombre)}
             </Text>
             <Text className="!text-[8.5px] text-[var(--color-text-secondary)] leading-tight opacity-90 truncate block mt-0.5" title={user.cargo || user.rol}>
