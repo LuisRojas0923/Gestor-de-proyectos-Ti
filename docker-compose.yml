@@ -26,6 +26,7 @@ services:
       - ./backend_v2:/app
       - ./backend_v2/uploads:/app/uploads
       - ./GestionTi_SoporteFiles:/app/storage/attachments
+      - deepface_weights:/root/.deepface
     depends_on:
       db:
         condition: service_healthy
@@ -109,3 +110,4 @@ networks:
 
 volumes:
   postgres_data:
+  deepface_weights:

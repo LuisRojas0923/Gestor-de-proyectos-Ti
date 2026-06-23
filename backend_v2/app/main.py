@@ -42,6 +42,7 @@ from .api.lineas_corporativas.router import router as lineas_corporativas_router
 from .api.jerarquia import router as jerarquia_router
 from .api.notificaciones.router import router as notificaciones_router
 from .api.auditoria import router as auditoria_router
+from .api.biometria import router as biometria_router
 from .core.middleware.auditoria_middleware import auditoria_http_middleware
 
 # Configurar logging centralizado
@@ -303,6 +304,11 @@ app.include_router(
     auditoria_router,
     prefix=f"{api_prefix}/auditoria",
     tags=["Auditoria"],
+)
+app.include_router(
+    biometria_router,
+    prefix=f"{api_prefix}/biometria",
+    tags=["Biometría Facial"],
 )
 
 # Consolidated developments-activities endpoint and number-mapped endpoint

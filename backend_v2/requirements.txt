@@ -32,3 +32,8 @@ msoffcrypto-tool==5.0.1
 redis==5.0.1
 slowapi==0.1.9
 limits==3.13.0
+
+# --- Biometría e Inteligencia Artificial ---
+deepface==0.0.86
+tf-keras==2.16.0
+opencv-python-headless==4.9.0.80
