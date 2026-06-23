@@ -208,12 +208,13 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
 
         <div className="md:col-span-2">
           <FormField
-            label="Nombre obra / proyecto"
-            name="nombre_obra_proyecto"
-            value={form.nombre_obra_proyecto}
-            onChange={e => update('nombre_obra_proyecto', e.target.value)}
-            icon={Briefcase}
-            isRequired
+            label="OT (Orden de Trabajo)"
+            name="ot"
+            value={form.ot}
+            onChange={e => update('ot', e.target.value)}
+            icon={Hash}
+            placeholder="Ej: OT-20260001"
+            isRequired={false}
           />
         </div>
 
@@ -230,23 +231,22 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
 
         <div className="md:col-span-2">
           <FormField
+            label="Nombre obra / proyecto"
+            name="nombre_obra_proyecto"
+            value={form.nombre_obra_proyecto}
+            onChange={e => update('nombre_obra_proyecto', e.target.value)}
+            icon={Briefcase}
+            isRequired
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <FormField
             label="Encargado en sitio"
             name="encargado_sitio"
             value={form.encargado_sitio}
             onChange={e => update('encargado_sitio', e.target.value)}
             icon={HardHat}
-            isRequired={false}
-          />
-        </div>
-
-        <div className="md:col-span-1">
-          <FormField
-            label="OT (Orden de Trabajo)"
-            name="ot"
-            value={form.ot}
-            onChange={e => update('ot', e.target.value)}
-            icon={Hash}
-            placeholder="Ej: OT-20260001"
             isRequired={false}
           />
         </div>
@@ -312,7 +312,7 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
           />
         </div>
 
-        <div className="md:col-span-3 relative">
+        <div className="md:col-span-2 relative">
           <div className="mb-1 flex justify-between items-baseline gap-2">
             <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
               Centro de costo <Text as="span" color="error" className="ml-1">*</Text>
