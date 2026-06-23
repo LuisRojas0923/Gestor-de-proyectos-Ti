@@ -28,6 +28,13 @@ class RequisicionesService:
         return [dict(r) for r in resultado]
 
     @staticmethod
+    def validar_y_obtener_ot(db_erp: Session, ot: str) -> Optional[Dict[str, Any]]:
+        """Busca una OT en la tabla basegeneralcostos y retorna el cliente y estado si existe."""
+        query = "SELECT cliente, estado FROM basegeneralcostos WHERE orden = :ot LIMIT 1"
+        resultado = db_erp.execute(text(query), {"ot": ot.strip()}).mappings().first()
+        return dict(resultado) if resultado else None
+
+    @staticmethod
     def obtener_catalogo_producto(
         db_erp: Session,
         busqueda: Optional[str] = None,

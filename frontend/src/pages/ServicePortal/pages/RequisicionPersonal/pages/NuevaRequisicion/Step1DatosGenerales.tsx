@@ -6,12 +6,14 @@ import { FormField, TextAreaField } from '../../../Common';
 import type { FormularioRP } from '../../types/requisicion.types';
 import { DIVIPOLA } from '../../constants/divipola';
 import { CentroCostoService, CostCenterItem } from '../../../../../../services/CentroCostoService';
+import { validarOT } from '../../services/requisicionService';
 
 interface Props {
   form: FormularioRP;
   update: <K extends keyof FormularioRP>(k: K, v: FormularioRP[K]) => void;
   correoSolicitante: string;
   nombreSolicitante: string;
+  setBloquearSiguiente?: (bloquear: boolean) => void;
 }
 
 const AutocompleteField = ({
@@ -85,7 +87,53 @@ const AutocompleteField = ({
   );
 };
 
-const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante, nombreSolicitante }) => {
+const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante, nombreSolicitante, setBloquearSiguiente }) => {
+
+  // Validación de OT (Orden de Trabajo)
+  const [validatingOt, setValidatingOt] = useState(false);
+  const [otError, setOtError] = useState<string | null>(null);
+
+  const realizarValidacionOT = async (otValor: string) => {
+    if (!otValor || otValor.trim() === '' || otValor.trim().toUpperCase() === 'N/A') {
+      setOtError(null);
+      if (setBloquearSiguiente) setBloquearSiguiente(false);
+      return;
+    }
+
+    setValidatingOt(true);
+    setOtError(null);
+    try {
+      const res = await validarOT(otValor);
+      if (res.encontrado) {
+        if (res.terminada) {
+          setOtError(`La orden de trabajo "${otValor}" está TERMINADA en el ERP. No se puede continuar.`);
+          if (setBloquearSiguiente) setBloquearSiguiente(true);
+        } else {
+          setOtError(null);
+          if (setBloquearSiguiente) setBloquearSiguiente(false);
+          if (res.cliente) {
+            update('nombre_obra_proyecto', res.cliente.toUpperCase());
+          }
+        }
+      } else {
+        setOtError(null);
+        if (setBloquearSiguiente) setBloquearSiguiente(false);
+      }
+    } catch (err) {
+      console.error('Error validando OT:', err);
+      setOtError(null);
+      if (setBloquearSiguiente) setBloquearSiguiente(false);
+    } finally {
+      setValidatingOt(false);
+    }
+  };
+
+  // Validar OT inicial si ya tiene valor
+  useEffect(() => {
+    if (form.ot) {
+      realizarValidacionOT(form.ot);
+    }
+  }, []);
 
   // Autocomplete Centro de costo
   const [combinations, setCombinations] = useState<{ code: string; label: string }[]>([]);
@@ -211,11 +259,27 @@ const Step1DatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante,
             label="OT (Orden de Trabajo)"
             name="ot"
             value={form.ot}
-            onChange={e => update('ot', e.target.value)}
+            onChange={e => {
+              update('ot', e.target.value);
+              setOtError(null);
+              if (setBloquearSiguiente) setBloquearSiguiente(false);
+            }}
+            onBlur={e => realizarValidacionOT(e.target.value)}
             icon={Hash}
             placeholder="Ej: OT-20260001"
             isRequired={false}
           />
+          {otError && (
+            <div className="mt-2 p-2.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl text-xs text-red-700 dark:text-red-400 font-semibold flex items-start gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+              <span className="text-red-600 dark:text-red-400 font-bold select-none">⚠</span>
+              <span>{otError}</span>
+            </div>
+          )}
+          {validatingOt && (
+            <div className="mt-1.5 text-[11px] text-slate-500 font-medium animate-pulse">
+              Validando OT en el ERP...
+            </div>
+          )}
         </div>
 
         <div className="md:col-span-2">

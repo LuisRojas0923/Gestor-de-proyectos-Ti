@@ -31,6 +31,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
   const [areaNombre, setAreaNombre] = useState('');
   const [cargoNombre, setCargoNombre] = useState('');
   const [enviado, setEnviado] = useState(false);
+  const [bloquearSiguiente, setBloquearSiguiente] = useState(false);
   const [aprobadores, setAprobadores] = useState<AprobadorRP[]>([]);
 
   useEffect(() => {
@@ -88,7 +89,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
             </div>
           )}
           <div className={isModificacionSalarial ? "pointer-events-none opacity-60" : ""}>
-            <Step1DatosGenerales {...props} correoSolicitante={correoSolicitante} nombreSolicitante={nombreSolicitante} />
+            <Step1DatosGenerales {...props} correoSolicitante={correoSolicitante} nombreSolicitante={nombreSolicitante} setBloquearSiguiente={setBloquearSiguiente} />
             <Step2AreaCargo {...props} />
             <Step3Causal {...props} aprobadores={aprobadores} />
             <Step4Requisitos {...props} />
@@ -191,7 +192,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
               onClick={siguiente}
               icon={ArrowRight}
               iconPosition="right"
-              disabled={loading}
+              disabled={loading || bloquearSiguiente}
             >
               Siguiente
             </Button>

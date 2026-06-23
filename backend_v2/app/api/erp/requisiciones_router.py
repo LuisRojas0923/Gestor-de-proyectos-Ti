@@ -35,6 +35,36 @@ def obtener_ots(
         raise HTTPException(status_code=500, detail="Error consultando OTS en el ERP")
 
 
+@router.get("/validar-ot")
+def validar_ot(
+    ot: str,
+    db_erp: Optional[Session] = Depends(obtener_erp_db_opcional),
+):
+    """Valida una OT en el ERP y obtiene la obra/cliente y el estado"""
+    if db_erp is None:
+        raise HTTPException(status_code=503, detail="Servicio ERP no disponible")
+
+    try:
+        resultado = RequisicionesService.validar_y_obtener_ot(db_erp, ot)
+        if resultado:
+            estado_val = (resultado.get("estado") or "").strip().upper()
+            return {
+                "encontrado": True,
+                "cliente": resultado.get("cliente") or "",
+                "estado": resultado.get("estado") or "",
+                "terminada": estado_val == "TERMINADO",
+            }
+        return {
+            "encontrado": False,
+            "cliente": "",
+            "estado": "",
+            "terminada": False,
+        }
+    except Exception as e:
+        print(f"ERROR ERP validar_ot: {e}")
+        raise HTTPException(status_code=500, detail="Error al validar la OT en el ERP")
+
+
 @router.get("/catalogo", response_model=List[CatalogoProducto])
 def obtener_catalogo(
     busqueda: Optional[str] = None,

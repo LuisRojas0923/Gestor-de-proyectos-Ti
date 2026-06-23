@@ -259,3 +259,7 @@ export const getMetricasCedula = (): Promise<MetricasCedulaItem[]> =>
 
 export const getConsolidadoCandidatos = (): Promise<ConsolidadoRPItem[]> =>
   axios.get(`${BASE}/requisiciones/metricas/consolidado`, authHeaders()).then(r => r.data);
+
+export const validarOT = (ot: string): Promise<{ encontrado: boolean; cliente: string; estado: string; terminada: boolean }> =>
+  axios.get(`${API_CONFIG.BASE_URL}/erp/requisiciones/validar-ot?ot=${encodeURIComponent(ot)}`, authHeaders()).then(r => r.data);
+

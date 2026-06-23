@@ -24,8 +24,9 @@ export const StatusBadge: React.FC<{ status: TicketStatus | string }> = ({ statu
 export const FormField: React.FC<{
     label: string, name: string, type?: any, isRequired?: boolean,
     placeholder?: string, value?: string, defaultValue?: string | number, readOnly?: boolean, icon?: LucideIcon,
-    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void, min?: string | number, max?: string | number
-}> = ({ label, name, type = 'text', isRequired = true, placeholder, value, defaultValue, readOnly = false, icon, onChange, min, max }) => (
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void, min?: string | number, max?: string | number,
+    onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void
+}> = ({ label, name, type = 'text', isRequired = true, placeholder, value, defaultValue, readOnly = false, icon, onChange, min, max, onBlur }) => (
     <Input
         label={label}
         labelHint={placeholder}
@@ -40,6 +41,7 @@ export const FormField: React.FC<{
         onChange={onChange}
         min={min}
         max={max}
+        onBlur={onBlur}
     />
 );
 
