@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 MODEL_NAME = os.getenv('DEEPFACE_MODEL', 'Facenet512')
-DETECTOR_BACKEND = os.getenv('DEEPFACE_DETECTOR', 'retinaface')
+DETECTOR_BACKEND = os.getenv('DEEPFACE_DETECTOR', 'mtcnn')
 THRESHOLD = float(os.getenv('MATCH_THRESHOLD', '0.35'))
 ANTI_SPOOFING = os.getenv('ANTI_SPOOFING', '1').lower() in ('1', 'true', 'yes')
 
@@ -67,7 +67,6 @@ async def enrolar_rostro(
             detector_backend=DETECTOR_BACKEND,
             enforce_detection=True,
             align=True,
-            anti_spoofing=ANTI_SPOOFING,
         )
     except ValueError as e:
         msg = str(e)
@@ -75,6 +74,7 @@ async def enrolar_rostro(
             raise HTTPException(status_code=403, detail="Anti-spoofing: No se detectó una persona real.")
         raise HTTPException(status_code=422, detail="No se detectó un rostro en la imagen.")
     except Exception as e:
+        logger.exception("Error procesando la imagen en enrolar_rostro")
         raise HTTPException(status_code=500, detail=f"Error procesando la imagen: {str(e)}")
         
     embedding_norm = l2_normalize(embedding_objs[0]['embedding'])
@@ -157,7 +157,6 @@ async def marcar_asistencia(
             detector_backend=DETECTOR_BACKEND,
             enforce_detection=True,
             align=True,
-            anti_spoofing=ANTI_SPOOFING,
         )
     except ValueError as e:
         msg = str(e)
@@ -165,6 +164,7 @@ async def marcar_asistencia(
             raise HTTPException(status_code=403, detail="Anti-spoofing: No se detectó una persona real.")
         raise HTTPException(status_code=422, detail="No se detectó un rostro claro en la imagen.")
     except Exception as e:
+        logger.exception("Error en validacion biometrica en marcar_asistencia")
         raise HTTPException(status_code=500, detail=f"Error en validación biométrica: {str(e)}")
         
     verification_emb = np.array(l2_normalize(embedding_objs[0]['embedding']), dtype=np.float64)
@@ -183,7 +183,7 @@ async def marcar_asistencia(
     try:
         registro = RegistroAsistencia(
             usuario_id=usuario_actual.id,
-            zona_id=data.zona_id,
+            zona_id=data.zona_id if data.zona_id else None,
             match_exitoso=match_exitoso,
             nivel_confianza=confidence,
             latitud_marcada=data.latitud,
