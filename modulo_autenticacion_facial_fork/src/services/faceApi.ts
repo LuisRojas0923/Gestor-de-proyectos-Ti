@@ -24,8 +24,8 @@ const SERVER_PORT = 8000;
 const REQUEST_TIMEOUT = 120000;
 
 function getServerHost(): string {
-  // Dirección por defecto del portal de servicios en producción de Refridcol
-  return 'http://portalservicios.refridcol.com/api/v2';
+  // Dirección del portal de pruebas
+  return 'http://192.168.0.21:8082/api/v2';
 }
 
 let API_BASE = getServerHost();

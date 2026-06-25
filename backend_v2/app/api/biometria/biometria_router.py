@@ -7,6 +7,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -102,6 +103,18 @@ async def enrolar_rostro(
                 activo=True
             )
             db.add(nuevo_rostro)
+            
+        # Guardar la foto fisica en el servidor
+        storage_dir = "storage/perfiles"
+        os.makedirs(storage_dir, exist_ok=True)
+        filename = f"{usuario_actual.id}.jpg"
+        file_path = os.path.join(storage_dir, filename)
+        # cv2 usa BGR por defecto, por lo que imwrite lo guarda correctamente
+        cv2.imwrite(file_path, img)
+        
+        # Actualizar el avatar del usuario en la base de datos
+        usuario_actual.url_avatar = f"/api/v2/biometria/foto/{filename}"
+        db.add(usuario_actual)
             
         await db.commit()
     except Exception as e:
@@ -249,3 +262,18 @@ async def obtener_asistencias(
             "timestamp": r.creado_en.isoformat() if r.creado_en else None
         } for r in registros
     ]
+
+@router.get("/foto/{filename}", summary="Obtener foto de perfil del servidor")
+async def obtener_foto(filename: str):
+    """
+    Sirve la imagen de perfil guardada durante el enrolamiento.
+    Esta URL se guarda en el campo url_avatar del Usuario.
+    """
+    # Evitar directory traversal attacks
+    safe_filename = os.path.basename(filename)
+    file_path = os.path.join("storage/perfiles", safe_filename)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Foto de perfil no encontrada")
+        
+    return FileResponse(file_path)
