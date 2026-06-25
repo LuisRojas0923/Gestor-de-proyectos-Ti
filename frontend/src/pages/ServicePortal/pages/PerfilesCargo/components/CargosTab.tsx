@@ -15,6 +15,11 @@ interface CargosTabProps {
   setSuccessMsg: (msg: string | null) => void;
 }
 
+interface CargoTableData extends CargoRP {
+  area_nombre: string;
+  director_nombre: string;
+}
+
 const CargosTab: React.FC<CargosTabProps> = ({
   cargos,
   loadingCargos,
@@ -32,7 +37,7 @@ const CargosTab: React.FC<CargosTabProps> = ({
   const [mostrarTodosDirectoresNuevo, setMostrarTodosDirectoresNuevo] = useState(false);
 
   // --- Estados del Formulario (Editar) ---
-  const [editingCargo, setEditingCargo] = useState<CargoRP | null>(null);
+  const [editingCargo, setEditingCargo] = useState<CargoTableData | null>(null);
   const [editCargoNombre, setEditCargoNombre] = useState('');
   const [editCargoAreaId, setEditCargoAreaId] = useState<string>('');
   const [editCargoSuperiorId, setEditCargoSuperiorId] = useState<string>('');
@@ -100,15 +105,21 @@ const CargosTab: React.FC<CargosTabProps> = ({
   };
 
   // --- Filtrado local ---
-  const cargosFiltrados = useMemo(() => {
-    return cargos.filter((c) => {
-      if (filtroArea === 'todos') return true;
-      return c.area_id === Number(filtroArea);
-    });
-  }, [cargos, filtroArea]);
+  const cargosFiltrados = useMemo<CargoTableData[]>(() => {
+    return cargos
+      .filter((c) => {
+        if (filtroArea === 'todos') return true;
+        return c.area_id === Number(filtroArea);
+      })
+      .map((c) => ({
+        ...c,
+        area_nombre: getAreaNombre(c.area_id),
+        director_nombre: getDirectorNombre(c.cargo_superior_id),
+      }));
+  }, [cargos, filtroArea, areas, aprobadores]);
 
   // --- Definición de Columnas ---
-  const columns = useMemo<ColumnDef<CargoRP>[]>(() => [
+  const columns = useMemo<ColumnDef<CargoTableData>[]>(() => [
     {
       header: 'Cargo',
       accessorKey: 'nombre',
@@ -117,17 +128,17 @@ const CargosTab: React.FC<CargosTabProps> = ({
     },
     {
       header: 'Área',
-      accessorKey: 'area_id',
+      accessorKey: 'area_nombre',
       align: 'left',
-      cell: (row) => <Text as="span" className="text-sm text-slate-600 dark:text-slate-400 uppercase">{getAreaNombre(row.area_id)}</Text>,
+      cell: (row) => <Text as="span" className="text-sm text-slate-600 dark:text-slate-400 uppercase">{row.area_nombre}</Text>,
     },
     {
       header: 'Reporta a Director',
-      accessorKey: 'cargo_superior_id',
+      accessorKey: 'director_nombre',
       align: 'left',
       cell: (row) => (
         <Text as="span" className="text-sm text-indigo-700 dark:text-indigo-400 font-medium uppercase">
-          {getDirectorNombre(row.cargo_superior_id)}
+          {row.director_nombre}
         </Text>
       ),
     },
