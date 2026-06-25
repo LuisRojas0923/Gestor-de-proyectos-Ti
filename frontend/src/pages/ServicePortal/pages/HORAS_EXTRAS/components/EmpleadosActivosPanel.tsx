@@ -305,25 +305,26 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
           <Button
             type="button"
             variant="custom"
+            size="xs"
             disabled={!estaSeleccionado}
             onClick={() => onCeldaClick(empleado.cedula, diaSemana)}
             aria-label={estaSeleccionado ? `Editar ${labelDia(diaSemana)} de ${empleado.cedula}` : `Selecciona ${empleado.cedula} para editar ${labelDia(diaSemana)}`}
-            className={`w-full min-h-[58px] rounded-xl border border-[var(--color-border)] px-2 py-1 text-[var(--color-text-primary)] transition-all ${
+            className={`w-full min-h-[52px] rounded-xl border border-[var(--color-border)] !px-2 !py-1 text-[var(--color-text-primary)] transition-all ${
               estaSeleccionado
                 ? `${calculado ? colorHE(he) : 'bg-[var(--color-surface)]'} hover:border-[var(--color-primary)] active:scale-[0.98]`
                 : 'bg-[var(--color-surface-variant)]/40 text-[var(--color-text-secondary)] opacity-70'
             }`}
           >
-            <Text as="span" className="block text-center text-[10px] leading-tight font-semibold">
+            <Text as="span" variant="caption" color="inherit" weight="semibold" className="block text-center !text-[11px] leading-tight tabular-nums tracking-[-0.01em]">
               {dia?.hora_entrada?.slice(0, 5) ?? '—'}/{dia?.hora_salida?.slice(0, 5) ?? '—'}
             </Text>
-            <Text as="span" className="block text-center text-[10px] opacity-70">{dia?.minutos_almuerzo ?? 0}m</Text>
+            <Text as="span" variant="caption" color="inherit" weight="medium" className="mt-0.5 block text-center !text-[10px] leading-none opacity-70 tabular-nums">{dia?.minutos_almuerzo ?? 0}m</Text>
             {dia && dia.novedades.length > 0 && (
               <Badge className="!text-[9px] !px-1 !py-0 mt-0.5">
                 {dia.novedades[0].codigo_novedad}
               </Badge>
             )}
-            {calculado && he > 0 && <Text as="span" className="block text-center text-[10px] font-semibold mt-0.5">+{he.toFixed(1)}h</Text>}
+            {calculado && he > 0 && <Text as="span" variant="caption" color="inherit" weight="semibold" className="mt-0.5 block text-center !text-[10px] leading-none tabular-nums">+{he.toFixed(1)}h</Text>}
           </Button>
         );
       },
