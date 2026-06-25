@@ -276,6 +276,7 @@ export default function DashboardScreen() {
               profileName={item.profileName}
               zoneName={item.zone.name}
               formattedDate={formatCheckInDate(item.timestamp)}
+              evidenciaUrl={item.evidenciaUrl}
             />
           ))
         )}

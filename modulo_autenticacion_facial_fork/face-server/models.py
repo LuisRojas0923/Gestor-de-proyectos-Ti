@@ -12,6 +12,7 @@ class Usuario(SQLModel, table=True):
     password_hash: Optional[str] = Field(default=None, max_length=255)
     nombre: str = Field(max_length=255)
     rol: str = Field(default="usuario", max_length=50)
+    foto_perfil_url: Optional[str] = Field(default=None, max_length=500)
 
 class EmbeddingFacial(SQLModel, table=True):
     __tablename__ = "embeddings_faciales"
@@ -45,6 +46,7 @@ class RegistroAsistencia(SQLModel, table=True):
     nivel_confianza: float = Field(default=0.0)
     latitud_marcada: Optional[float] = Field(default=0.0)
     longitud_marcada: Optional[float] = Field(default=0.0)
+    evidencia_url: Optional[str] = Field(default=None, max_length=500)
     
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("now()")}

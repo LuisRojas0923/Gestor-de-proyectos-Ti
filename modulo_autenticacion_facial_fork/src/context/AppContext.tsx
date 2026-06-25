@@ -228,7 +228,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             timestamp: r.timestamp || new Date().toISOString()
           },
           location: r.location,
-          timestamp: r.timestamp || new Date().toISOString()
+          timestamp: r.timestamp || new Date().toISOString(),
+          evidenciaUrl: r.evidenciaUrl || undefined
         };
       });
       setCheckIns(mappedCheckIns);

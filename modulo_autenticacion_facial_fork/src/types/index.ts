@@ -26,6 +26,7 @@ export interface FaceProfile {
   id: string;
   name: string;
   photoUris: string[]; // stored photo URIs
+  photoUrl?: string; // URL de la foto de perfil en el servidor
   createdAt: string;
   updatedAt: string;
 }
@@ -45,6 +46,7 @@ export interface CheckIn {
   verification: VerificationResult;
   location: LatLng;
   timestamp: string;
+  evidenciaUrl?: string; // URL de la foto de evidencia en el servidor
 }
 
 // App state

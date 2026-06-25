@@ -7,6 +7,7 @@ from collections import defaultdict
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from deepface import DeepFace
 from pydantic import BaseModel
@@ -29,6 +30,12 @@ DETECTOR_BACKEND = os.getenv('DEEPFACE_DETECTOR', 'retinaface')
 THRESHOLD = float(os.getenv('MATCH_THRESHOLD', '0.35'))
 PORT = int(os.getenv('PORT', 5005))
 ANTI_SPOOFING = os.getenv('ANTI_SPOOFING', '1').lower() in ('1', 'true', 'yes')
+
+# --- Configuración de almacenamiento de imágenes ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STORAGE_DIR = os.path.join(BASE_DIR, 'storage')
+PERFILES_DIR = os.path.join(STORAGE_DIR, 'perfiles')
+ASISTENCIAS_DIR = os.path.join(STORAGE_DIR, 'asistencias')
 
 # --- Escudo Anti Fuerza Bruta ---
 login_attempts = defaultdict(list)
@@ -63,6 +70,11 @@ async def lifespan(app: FastAPI):
     print('Inicializando base de datos...')
     create_db_and_tables()
     
+    # Crear carpetas de almacenamiento de imágenes
+    os.makedirs(PERFILES_DIR, exist_ok=True)
+    os.makedirs(ASISTENCIAS_DIR, exist_ok=True)
+    print(f'  [OK] Carpetas de almacenamiento creadas: {STORAGE_DIR}')
+    
     print('Pre-cargando modelo DeepFace y detector...')
     try:
         dummy = np.zeros((224, 224, 3), dtype=np.uint8)
@@ -80,6 +92,10 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="GeoFace API", lifespan=lifespan)
+
+# Montar archivos estáticos para servir las fotos guardadas
+os.makedirs(STORAGE_DIR, exist_ok=True)
+app.mount("/fotos", StaticFiles(directory=STORAGE_DIR), name="fotos")
 
 app.add_middleware(
     CORSMiddleware,
@@ -135,7 +151,8 @@ def login(data: LoginRequest, request: Request, session: Session = Depends(get_s
             'id': user.id,
             'username': user.username,
             'nombre': user.nombre,
-            'rol': user.rol
+            'rol': user.rol,
+            'foto_perfil_url': user.foto_perfil_url
         })
     except Exception as e:
         return JSONResponse(status_code=500, content={'error': f'Error de servidor: {str(e)}'})
@@ -186,7 +203,8 @@ def get_users(admin_id: str, session: Session = Depends(get_session)):
                     'username': u.username or f"user_{u.id}",
                     'displayName': u.nombre,
                     'role': u.rol,
-                    'createdAt': None
+                    'createdAt': None,
+                    'fotoPerfilUrl': u.foto_perfil_url
                 }
                 for u in users
             ]
@@ -214,7 +232,8 @@ def get_user(user_id: str, session: Session = Depends(get_session)):
             'username': user.username or f"user_{user.id}",
             'displayName': user.nombre,
             'role': user.rol,
-            'createdAt': None
+            'createdAt': None,
+            'fotoPerfilUrl': user.foto_perfil_url
         })
     except Exception as e:
         return JSONResponse(status_code=500, content={'error': str(e)})
@@ -275,15 +294,29 @@ def represent(data: RepresentRequest, session: Session = Depends(get_session)):
     except Exception as e:
         return JSONResponse(status_code=500, content={'error': f'Error en DeepFace: {str(e)}'})
 
+    # --- Guardar la foto de perfil en disco ---
+    foto_perfil_url = None
+    try:
+        foto_filename = f"{data.user_id}.jpg"
+        foto_path = os.path.join(PERFILES_DIR, foto_filename)
+        cv2.imwrite(foto_path, img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        foto_perfil_url = f"/fotos/perfiles/{foto_filename}"
+        print(f'  [OK] Foto de perfil guardada: {foto_path}')
+    except Exception as e:
+        print(f'  [WARN] No se pudo guardar la foto de perfil: {e}')
+
     try:
         # Simular que el usuario existe en la DB o crearlo con el nombre real
         user = session.exec(select(Usuario).where(Usuario.id == data.user_id)).first()
         if not user:
-            user = Usuario(id=data.user_id, nombre=data.user_name or f"Usuario {data.user_id}")
+            user = Usuario(id=data.user_id, nombre=data.user_name or f"Usuario {data.user_id}", foto_perfil_url=foto_perfil_url)
             session.add(user)
             session.commit()
-        elif data.user_name:
-            user.nombre = data.user_name
+        else:
+            if data.user_name:
+                user.nombre = data.user_name
+            if foto_perfil_url:
+                user.foto_perfil_url = foto_perfil_url
             session.add(user)
             session.commit()
 
@@ -300,7 +333,7 @@ def represent(data: RepresentRequest, session: Session = Depends(get_session)):
         session.rollback()
         return JSONResponse(status_code=500, content={'error': f'Error de base de datos: {str(e)}'})
 
-    return JSONResponse(content={'status': 'ok', 'message': 'Rostro registrado en base de datos correctamente'})
+    return JSONResponse(content={'status': 'ok', 'message': 'Rostro registrado en base de datos correctamente', 'foto_perfil_url': foto_perfil_url})
 
 @app.post('/v1/verify')
 def verify(data: VerifyRequest, session: Session = Depends(get_session)):
@@ -348,6 +381,18 @@ def verify(data: VerifyRequest, session: Session = Depends(get_session)):
     confidence = round(max(0.0, min(100.0, (1.0 - distance) * 100.0)), 2)
     is_match = bool(distance <= THRESHOLD)
 
+    # --- Guardar la foto de evidencia del check-in en disco ---
+    evidencia_url = None
+    try:
+        timestamp_str = time.strftime('%Y%m%d_%H%M%S')
+        evidencia_filename = f"{data.user_id}_{timestamp_str}.jpg"
+        evidencia_path = os.path.join(ASISTENCIAS_DIR, evidencia_filename)
+        cv2.imwrite(evidencia_path, image_input, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        evidencia_url = f"/fotos/asistencias/{evidencia_filename}"
+        print(f'  [OK] Evidencia de check-in guardada: {evidencia_path}')
+    except Exception as e:
+        print(f'  [WARN] No se pudo guardar la evidencia: {e}')
+
     try:
         lat = data.latitude if data.latitude is not None else 0.0
         lon = data.longitude if data.longitude is not None else 0.0
@@ -367,7 +412,8 @@ def verify(data: VerifyRequest, session: Session = Depends(get_session)):
             match_exitoso=is_match,
             nivel_confianza=confidence,
             latitud_marcada=lat,
-            longitud_marcada=lon
+            longitud_marcada=lon,
+            evidencia_url=evidencia_url
         )
         session.add(registro)
         session.commit()
@@ -379,7 +425,8 @@ def verify(data: VerifyRequest, session: Session = Depends(get_session)):
         'verified': is_match,
         'distance': round(float(distance), 6),
         'confidence': confidence,
-        'threshold': THRESHOLD
+        'threshold': THRESHOLD,
+        'evidencia_url': evidencia_url
     })
 
 @app.get('/v1/check-ins/{user_id}')
@@ -401,7 +448,8 @@ def get_check_ins(user_id: str, session: Session = Depends(get_session)):
                     'isMatch': r.match_exitoso,
                     'confidence': r.nivel_confianza,
                     'timestamp': r.creado_en.isoformat() if r.creado_en else None,
-                    'location': {'latitude': r.latitud_marcada, 'longitude': r.longitud_marcada}
+                    'location': {'latitude': r.latitud_marcada, 'longitude': r.longitud_marcada},
+                    'evidenciaUrl': r.evidencia_url
                 }
                 for r in registros
             ]

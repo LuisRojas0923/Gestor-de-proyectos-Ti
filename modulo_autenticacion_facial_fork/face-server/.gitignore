@@ -7,3 +7,4 @@ env/
 dummy.txt
 .deepface/
 weights/
+storage/

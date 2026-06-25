@@ -17,8 +17,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar el código fuente
 COPY . .
 
+# Crear carpetas de almacenamiento de imágenes
+RUN mkdir -p /app/storage/perfiles /app/storage/asistencias
+
 # Exponer el puerto
 EXPOSE 5005
+
+# Volumen para persistir las fotos fuera del contenedor
+VOLUME ["/app/storage"]
 
 # Comando de inicio
 CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "5005"]

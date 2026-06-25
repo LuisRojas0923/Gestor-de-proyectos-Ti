@@ -1,8 +1,9 @@
 import React, { memo } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants';
 import { styles } from '../styles/index.styles';
+import { getServerAddress } from '../services/faceApi';
 
 interface CheckInItemProps {
   isMatch: boolean;
@@ -10,27 +11,54 @@ interface CheckInItemProps {
   profileName: string;
   zoneName: string;
   formattedDate: string;
+  evidenciaUrl?: string;
 }
 
-export default memo(function CheckInItem({ isMatch, confidence, profileName, zoneName, formattedDate }: CheckInItemProps) {
+function buildFullUrl(relativeUrl?: string): string | null {
+  if (!relativeUrl) return null;
+  // Obtener la base del servidor (ej: http://192.168.40.84:8000/api/v2)
+  // y quitar el /api/v2 para obtener el host base
+  const apiBase = getServerAddress();
+  const baseUrl = apiBase.replace(/\/api\/v2\/?$/, '');
+  return `${baseUrl}${relativeUrl}`;
+}
+
+export default memo(function CheckInItem({ isMatch, confidence, profileName, zoneName, formattedDate, evidenciaUrl }: CheckInItemProps) {
+  const fullEvidenciaUrl = buildFullUrl(evidenciaUrl);
+
   return (
     <View style={styles.checkInCard}>
-      <View
-        style={[
-          styles.checkInAvatar,
-          {
-            backgroundColor: isMatch
-              ? 'rgba(0, 184, 148, 0.15)'
-              : 'rgba(255, 118, 117, 0.15)',
-          },
-        ]}
-      >
-        <Ionicons
-          name={isMatch ? 'checkmark-circle' : 'close-circle'}
-          size={24}
-          color={isMatch ? COLORS.success : COLORS.danger}
+      {fullEvidenciaUrl ? (
+        <Image
+          source={{ uri: fullEvidenciaUrl }}
+          style={[
+            styles.checkInAvatar,
+            {
+              borderWidth: 2,
+              borderColor: isMatch
+                ? 'rgba(0, 184, 148, 0.5)'
+                : 'rgba(255, 118, 117, 0.5)',
+            },
+          ]}
         />
-      </View>
+      ) : (
+        <View
+          style={[
+            styles.checkInAvatar,
+            {
+              backgroundColor: isMatch
+                ? 'rgba(0, 184, 148, 0.15)'
+                : 'rgba(255, 118, 117, 0.15)',
+            },
+          ]}
+        >
+          <Ionicons
+            name={isMatch ? 'checkmark-circle' : 'close-circle'}
+            size={24}
+            color={isMatch ? COLORS.success : COLORS.danger}
+          />
+        </View>
+      )}
       <View style={styles.checkInInfo}>
         <Text style={styles.checkInName}>{profileName}</Text>
         <Text style={styles.checkInTime}>

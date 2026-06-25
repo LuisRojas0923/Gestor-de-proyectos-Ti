@@ -5,11 +5,19 @@ import { COLORS } from '../constants';
 import { styles } from '../styles/profiles.styles';
 import type { FaceProfile } from '../types';
 import { getInitials } from '../utils/format';
+import { getServerAddress } from '../services/faceApi';
 
 const AVATAR_COLORS = ['#6C5CE7', '#00CEC9', '#FD79A8', '#FDCB6E', '#E17055'];
 
 function getAvatarColor(id: string): string {
   return AVATAR_COLORS[parseInt(id.slice(-1), 16) % AVATAR_COLORS.length];
+}
+
+function buildFullUrl(relativeUrl?: string): string | null {
+  if (!relativeUrl) return null;
+  const apiBase = getServerAddress();
+  const baseUrl = apiBase.replace(/\/api\/v2\/?$/, '');
+  return `${baseUrl}${relativeUrl}`;
 }
 
 interface ProfileCardProps {
@@ -20,12 +28,14 @@ interface ProfileCardProps {
 
 export default memo(function ProfileCard({ profile, onUpdatePhoto, onDelete }: ProfileCardProps) {
   const avatarColor = getAvatarColor(profile.id);
-  const hasPhoto = profile.photoUris && profile.photoUris.length > 0;
+  const hasLocalPhoto = profile.photoUris && profile.photoUris.length > 0;
+  const serverPhotoUrl = buildFullUrl(profile.photoUrl);
+  const photoSource = serverPhotoUrl || (hasLocalPhoto ? profile.photoUris[0] : null);
 
   return (
     <View style={styles.profileCard}>
-      {hasPhoto ? (
-        <Image source={{ uri: profile.photoUris[0] }} style={styles.avatarImage} />
+      {photoSource ? (
+        <Image source={{ uri: photoSource }} style={styles.avatarImage} />
       ) : (
         <View style={[styles.avatar, { backgroundColor: avatarColor + '25' }]}>
           <Text style={[styles.avatarText, { color: avatarColor }]}>
