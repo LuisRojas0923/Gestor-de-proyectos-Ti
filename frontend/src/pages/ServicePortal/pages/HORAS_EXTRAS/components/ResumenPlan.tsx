@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { Badge, MaterialCard, Text } from '../../../../../components/atoms';
-import type { PlanPreCalculoResponse } from '../../../../../types/horasExtras';
+import type { PlanPreCalculoResponse } from '../../../../../types/horasExtrasPlanificador';
 
 interface ResumenPlanProps {
   preCalculo: PlanPreCalculoResponse | null;

@@ -9,7 +9,7 @@ import React from 'react';
 import { Input, Button, Text } from '../../../../../components/atoms';
 import { Copy } from 'lucide-react';
 import { labelDia } from '../utils/horarioUtils';
-import type { PlanDiaIn } from '../../../../../types/horasExtras';
+import type { PlanDiaIn } from '../../../../../types/horasExtrasPlanificador';
 
 interface DefaultHorarioSemanaProps {
   dias: PlanDiaIn[];

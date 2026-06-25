@@ -37,6 +37,7 @@ Ubicación: `testing/backend/`
 | **Eliminación Actividades** | `test_actividad_delete.py` | Eliminación en cascada de actividades y limpieza de validaciones asociadas. | ✅ PASSED |
 | **Prioridad Desarrollos** | `test_desarrollo_prioridad.py` | Ciclo CRUD de prioridades en desarrollos. | ✅ PASSED |
 | **Notificaciones** | `test_notificaciones.py` | Ciclo CRUD de notificaciones persistentes de usuario. | ✅ PASSED |
+| **Horas Extras S8 OT/CC** | `test_horas_extras_s8_ot_mano_obra.py` | Consulta ERP `basegeneralcostos`, maximo 3 OT por empleado/dia, validacion de reparto y distribucion de costo por OT. | ✅ PASSED |
 
 ### 2. Rendimiento (Locust)
 Ubicación: `testing/backend/load_test.py`

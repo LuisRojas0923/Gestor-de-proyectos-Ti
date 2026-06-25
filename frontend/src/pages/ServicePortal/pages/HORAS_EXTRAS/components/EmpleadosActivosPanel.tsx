@@ -4,7 +4,7 @@ import { Badge, Button, Checkbox, MaterialCard, Text } from '../../../../../comp
 import Callout from '../../../../../components/molecules/Callout';
 import { DataTable, type DataTableColumn } from '../../../../../components/molecules/DataTable';
 import { buscarEmpleadosERP } from '../../../../../services/horasExtrasService';
-import type { EmpleadoERPRead, PlanDiaIn, PlanPreCalculoResponse } from '../../../../../types/horasExtras';
+import type { EmpleadoERPRead, PlanDiaIn, PlanPreCalculoResponse } from '../../../../../types/horasExtrasPlanificador';
 import { labelDia } from '../utils/horarioUtils';
 
 const LIMITE_PAGINA = 100;
@@ -301,6 +301,7 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
         const dia = diasEmpleado.find((item) => item.dia_semana === diaSemana);
         const he = idxPreCalculo.dias.get(empleado.cedula)?.get(diaSemana) ?? 0;
         const calculado = idxPreCalculo.dias.has(empleado.cedula);
+        const totalOt = dia?.asignaciones_ot?.length ?? 0;
         return (
           <Button
             type="button"
@@ -322,6 +323,11 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
             {dia && dia.novedades.length > 0 && (
               <Badge className="!text-[9px] !px-1 !py-0 mt-0.5">
                 {dia.novedades[0].codigo_novedad}
+              </Badge>
+            )}
+            {totalOt > 0 && (
+              <Badge className="!text-[9px] !px-1 !py-0 mt-0.5">
+                {totalOt} OT
               </Badge>
             )}
             {calculado && he > 0 && <Text as="span" variant="caption" color="inherit" weight="semibold" className="mt-0.5 block text-center !text-[10px] leading-none tabular-nums">+{he.toFixed(1)}h</Text>}

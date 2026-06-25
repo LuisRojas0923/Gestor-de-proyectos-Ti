@@ -16,11 +16,12 @@ AST Security Auditor (RELIABILITY: API/DB Sin Control).
 import logging
 from typing import List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...models.novedades_nomina.horas_extras import NominaHorarioPactado
 from ...models.novedades_nomina.horas_extras_horario_dia import NominaHorarioPactadoDia
+from ...models.novedades_nomina.planificador_dia_ot import NominaPlanificadorDiaOt
 from ...models.novedades_nomina.schemas_horas_extras import (
     ConfirmarDetalleItem,
     NovedadEventoCreate,
@@ -36,6 +37,7 @@ from ...models.novedades_nomina.schemas_horas_extras_planificador import (
     PlanConfirmarRequest,
     PlanConfirmarResponse,
     PlanConfirmarResumen,
+    PlanDiaIn,
     PlanEmpleadoInBase,
     PlanSemanaIn,
 )
@@ -45,6 +47,8 @@ from ._planificador_common import (
     _resolver_catalogo_y_factor,
 )
 from .horas_extras_confirmacion import confirmar_pre_liquidacion
+from .planificador_costos_ot import distribuir_costos_ot_plan
+from .planificador_ot import validar_asignaciones_ot_dia
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +137,7 @@ async def _guardar_un_empleado(
 
     # 2. Upsert de cada dia (PK cedula+dia_semana)
     for d in emp_in.dias:
+        validar_asignaciones_ot_dia(d)
         stmt_d = select(NominaHorarioPactadoDia).where(
             NominaHorarioPactadoDia.cedula == cedula,
             NominaHorarioPactadoDia.dia_semana == d.dia_semana,
@@ -151,6 +156,7 @@ async def _guardar_un_empleado(
                 hora_salida=d.hora_salida,
                 minutos_almuerzo=d.minutos_almuerzo,
             ))
+        await _guardar_asignaciones_ot_dia(session, cedula, semana, d)
     await session.flush()
 
     # 3. Insert de novedades (estado BORRADOR). No upsert: cada novedad
@@ -169,6 +175,39 @@ async def _guardar_un_empleado(
             await crear_novedad_evento(session, payload_nov, usuario_id)
 
     await session.flush()
+
+
+async def _guardar_asignaciones_ot_dia(
+    session: AsyncSession,
+    cedula: str,
+    semana: PlanSemanaIn,
+    dia: PlanDiaIn,
+) -> None:
+    """Reemplaza asignaciones OT/CC del empleado para una semana y dia."""
+    await session.execute(
+        delete(NominaPlanificadorDiaOt).where(
+            NominaPlanificadorDiaOt.anio == semana.anio,
+            NominaPlanificadorDiaOt.semana_iso == semana.semana_iso,
+            NominaPlanificadorDiaOt.cedula == cedula,
+            NominaPlanificadorDiaOt.dia_semana == dia.dia_semana,
+        )
+    )
+    for asignacion in dia.asignaciones_ot:
+        session.add(NominaPlanificadorDiaOt(
+            anio=semana.anio,
+            semana_iso=semana.semana_iso,
+            cedula=cedula,
+            dia_semana=dia.dia_semana,
+            orden=asignacion.orden.strip(),
+            cc=asignacion.cc,
+            scc=asignacion.scc,
+            sub_indice=asignacion.sub_indice,
+            categoria_sub_indice=asignacion.categoria_sub_indice,
+            descripcion=asignacion.descripcion,
+            vr_contratado=asignacion.vr_contratado,
+            horas=asignacion.horas,
+            porcentaje=asignacion.porcentaje,
+        ))
 
 
 # ===========================================================================
@@ -197,10 +236,15 @@ async def confirmar_plan(
             parametros = await _resolver_parametros_confirmacion(
                 session, emp_in, payload.semana
             )
+            for dia in emp_in.dias:
+                validar_asignaciones_ot_dia(dia)
+                await _guardar_asignaciones_ot_dia(session, emp_in.cedula.strip(), payload.semana, dia)
+            await session.flush()
             # 1. Construir PreLiquidacionConfirmar con registro_diario
             detalles = await _construir_detalles_confirmacion(
                 session, emp_in, payload.semana, parametros
             )
+            tiene_asignaciones_ot = any(d.asignaciones_ot for d in emp_in.dias)
             confirm_payload = PreLiquidacionConfirmar(
                 cedula=emp_in.cedula,
                 anio=payload.semana.anio,
@@ -212,18 +256,21 @@ async def confirmar_plan(
                 salario_base_mensual=parametros.salario_base_mensual,
                 valor_hora_ordinaria=parametros.valor_hora_ordinaria,
                 detalles=detalles,
-                ot_id=parametros.ot_id,
-                ot_codigo=parametros.ot_codigo,
+                ot_id=None if tiene_asignaciones_ot else parametros.ot_id,
+                ot_codigo=None if tiene_asignaciones_ot else parametros.ot_codigo,
                 usuario_confirma=payload.usuario_confirma,
             )
             # 2. Llamar al motor actual
             resultado = await confirmar_pre_liquidacion(session, confirm_payload)
+            costo_ot_ids = await distribuir_costos_ot_plan(
+                session, emp_in, payload.semana, parametros, resultado.get("calculo_id")
+            )
             calculos.append(PlanConfirmarCalculoItem(
                 cedula=emp_in.cedula,
                 calculo_id=resultado.get("calculo_id"),
                 bolsa_id=resultado.get("bolsa_id"),
                 horas_acreditadas_bolsa=resultado.get("horas_acreditadas_bolsa", 0.0),
-                costo_ot_id=resultado.get("costo_ot_id"),
+                costo_ot_id=(costo_ot_ids[0] if costo_ot_ids else resultado.get("costo_ot_id")),
                 bolsa_habilitada_en_confirmacion=resultado.get(
                     "bolsa_habilitada_en_confirmacion", True
                 ),
@@ -322,6 +369,7 @@ async def _construir_detalles_confirmacion(
         d = dias_idx.get(dia_semana)
         if d is None:
             continue
+        validar_asignaciones_ot_dia(d)
         codigos_nov = [n.codigo_novedad for n in d.novedades]
         horas_trab = _horas_trabajadas_dia(
             d.hora_entrada, d.hora_salida, d.minutos_almuerzo

@@ -32,7 +32,7 @@ import type {
   PlanEmpleadoInBase,
   PlanPreCalculoResponse,
   PlanSemanaIn,
-} from '../../../../types/horasExtras';
+} from '../../../../types/horasExtrasPlanificador';
 import CeldaDiaEditor from './components/CeldaDiaEditor';
 import ResumenPlan from './components/ResumenPlan';
 import PlanificadorHeader from './components/PlanificadorHeader';
@@ -62,7 +62,14 @@ const DIAS_SEMANA_INICIAL: PlanDiaIn[] = DIAS_SEMANA.map((d) => ({
   hora_salida: d <= 5 ? '17:00' : null,
   minutos_almuerzo: d <= 5 ? 60 : 0,
   novedades: [],
+  asignaciones_ot: [],
 }));
+
+const normalizarDiasPlan = (dias: PlanDiaIn[]): PlanDiaIn[] =>
+  dias.map((dia) => ({
+    ...dia,
+    asignaciones_ot: dia.asignaciones_ot ?? [],
+  }));
 
 interface PlanEmpleadoTabla extends PlanEmpleadoInBase {
   empleado?: EmpleadoERPRead;
@@ -163,7 +170,7 @@ const PlanificadorSemanalView: React.FC = () => {
     return Array.from(seleccionados).map((cedula) => ({
       cedula,
       empleado: empleadosInfo.get(cedula),
-      dias: overrides.get(cedula) ?? defaultDias,
+      dias: normalizarDiasPlan(overrides.get(cedula) ?? defaultDias),
     }));
   }, [seleccionados, empleadosInfo, defaultDias, overrides]);
 
@@ -251,6 +258,7 @@ const PlanificadorSemanalView: React.FC = () => {
       hora_entrada: plantillaEntrada || null,
       hora_salida: plantillaSalida || null,
       minutos_almuerzo: Math.max(0, Math.min(240, plantillaAlmuerzo || 0)),
+      asignaciones_ot: dia.asignaciones_ot ?? [],
     }));
     addNotification('success', 'Horario aplicado a los empleados seleccionados.');
   };
@@ -262,6 +270,7 @@ const PlanificadorSemanalView: React.FC = () => {
       hora_salida: null,
       minutos_almuerzo: 0,
       novedades: [],
+      asignaciones_ot: [],
     }));
     addNotification('info', 'Días limpiados para los empleados seleccionados.');
   };

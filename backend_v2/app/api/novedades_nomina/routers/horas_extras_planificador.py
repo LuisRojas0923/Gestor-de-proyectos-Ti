@@ -23,6 +23,7 @@ from ....database import obtener_db, obtener_erp_db_opcional
 from ....models.auth.usuario import Usuario
 from ....models.novedades_nomina.schemas_horas_extras_planificador import (
     EmpleadoERPListResponse,
+    OtManoObraListResponse,
     PlanBulkRequest,
     PlanBulkResponse,
     PlanConfirmarRequest,
@@ -31,6 +32,7 @@ from ....models.novedades_nomina.schemas_horas_extras_planificador import (
 )
 from ....services.auth.servicio import ServicioAuth
 from ....services.erp.empleados_service import EmpleadosService
+from ....services.erp.ordenes_trabajo_service import OrdenesTrabajoService
 from ....services.novedades_nomina.planificador_service import (
     confirmar_plan,
     guardar_borrador_plan,
@@ -87,6 +89,31 @@ async def listar_empleados_erp(
     except Exception as e:
         logger.exception("Error listando empleados ERP: %s", e)
         raise HTTPException(status_code=500, detail="Error al consultar empleados del ERP")
+
+
+# ---------------------------------------------------------------------------
+# GET /planificador/ots-mano-obra
+# ---------------------------------------------------------------------------
+
+@router.get("/planificador/ots-mano-obra", response_model=OtManoObraListResponse)
+async def listar_ots_mano_obra(
+    q: Optional[str] = Query(None, description="Filtro sobre orden, descripcion, CC, SCC, subindice o cliente"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db_erp = Depends(obtener_erp_db_opcional),
+    _: Usuario = Depends(requiere_permiso_he),
+):
+    """Lista combinaciones OT/CC del ERP clasificadas como mano de obra."""
+    if db_erp is None:
+        raise HTTPException(status_code=503, detail="Conexion con ERP no disponible")
+    try:
+        resultado = OrdenesTrabajoService.listar_ot_mano_obra(
+            db_erp, q=q, limit=limit, offset=offset
+        )
+        return OtManoObraListResponse(**resultado)
+    except Exception as e:
+        logger.exception("Error listando OT/CC de M.O. ERP: %s", e)
+        raise HTTPException(status_code=500, detail="Error al consultar OT/CC del ERP")
 
 
 # ---------------------------------------------------------------------------

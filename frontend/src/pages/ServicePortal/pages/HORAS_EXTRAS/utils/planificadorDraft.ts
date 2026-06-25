@@ -1,4 +1,4 @@
-import type { EmpleadoERPRead, PlanDiaIn, PlanPreCalculoResponse } from '../../../../../types/horasExtras';
+import type { EmpleadoERPRead, PlanDiaIn, PlanPreCalculoResponse } from '../../../../../types/horasExtrasPlanificador';
 
 export const PLANIFICADOR_DRAFT_KEY = 'horas_extras_planificador_draft';
 

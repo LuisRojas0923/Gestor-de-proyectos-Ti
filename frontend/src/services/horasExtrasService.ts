@@ -38,13 +38,16 @@ import type {
   BolsaOverrideOTIn,
   BolsaOverrideOTOut,
   BolsaGlobalConfigIn,
+} from '../types/horasExtras';
+import type {
   EmpleadoERPListResponse,
+  OtManoObraListResponse,
   PlanBulkRequest,
   PlanBulkResponse,
-  PlanPreCalculoResponse,
   PlanConfirmarRequest,
   PlanConfirmarResponse,
-} from '../types/horasExtras';
+  PlanPreCalculoResponse,
+} from '../types/horasExtrasPlanificador';
 
 const BASE = `${API_CONFIG.BASE_URL}/novedades-nomina/horas-extras`;
 
@@ -418,6 +421,19 @@ export async function buscarEmpleadosERP(
 ): Promise<EmpleadoERPListResponse> {
   const qs = buildQuery({ q: query, limit, offset, solo_activos: soloActivos });
   return request<EmpleadoERPListResponse>(`/planificador/empleados-erp${qs}`, {
+    method: 'GET',
+    token,
+  });
+}
+
+export async function buscarOtManoObra(
+  query: string | undefined,
+  limit: number,
+  offset: number,
+  token: string,
+): Promise<OtManoObraListResponse> {
+  const qs = buildQuery({ q: query, limit, offset });
+  return request<OtManoObraListResponse>(`/planificador/ots-mano-obra${qs}`, {
     method: 'GET',
     token,
   });

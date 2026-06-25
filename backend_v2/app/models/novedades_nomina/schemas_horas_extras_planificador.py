@@ -40,6 +40,26 @@ class EmpleadoERPListResponse(SQLModel):
     offset: int
 
 
+class OtManoObraRead(SQLModel):
+    """Combinacion OT/centro de costo disponible en basegeneralcostos."""
+    orden: str
+    cc: Optional[str] = None
+    scc: Optional[str] = None
+    sub_indice: Optional[str] = None
+    categoria_sub_indice: str
+    descripcion: Optional[str] = None
+    vr_contratado: Optional[float] = None
+    estado: Optional[str] = None
+    cliente: Optional[str] = None
+
+
+class OtManoObraListResponse(SQLModel):
+    items: List[OtManoObraRead]
+    total: int
+    limit: int
+    offset: int
+
+
 # ---------------------------------------------------------------------------
 # Plan semanal — input
 # ---------------------------------------------------------------------------
@@ -60,6 +80,19 @@ class PlanNovedadIn(SQLModel):
     observaciones: Optional[str] = Field(default=None, max_length=500)
 
 
+class PlanAsignacionOtIn(SQLModel):
+    """Asignacion de una combinacion OT/CC a un empleado en un dia."""
+    orden: str = Field(min_length=1, max_length=50)
+    cc: Optional[str] = Field(default=None, max_length=50)
+    scc: Optional[str] = Field(default=None, max_length=50)
+    sub_indice: Optional[str] = Field(default=None, max_length=50)
+    categoria_sub_indice: str = Field(min_length=1, max_length=50)
+    descripcion: Optional[str] = Field(default=None, max_length=500)
+    vr_contratado: Optional[float] = Field(default=None, ge=0.0)
+    horas: Optional[float] = Field(default=None, ge=0.0, le=24.0)
+    porcentaje: Optional[float] = Field(default=None, ge=0.0, le=100.0)
+
+
 class PlanDiaIn(SQLModel):
     """Jornada REAL de un dia (formato reloj HH:MM)."""
     dia_semana: int = Field(ge=1, le=7, description="1=Lunes .. 7=Domingo")
@@ -67,6 +100,7 @@ class PlanDiaIn(SQLModel):
     hora_salida: Optional[time] = None
     minutos_almuerzo: int = Field(default=0, ge=0, le=240)
     novedades: List[PlanNovedadIn] = Field(default_factory=list)
+    asignaciones_ot: List[PlanAsignacionOtIn] = Field(default_factory=list, max_length=3)
 
 
 class PlanEmpleadoInBase(SQLModel):

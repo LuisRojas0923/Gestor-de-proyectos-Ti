@@ -28,6 +28,7 @@ from ._planificador_common import (
     _resolver_catalogo_y_factor,
 )
 from .horas_extras_calculo import DIVISOR_HORA_ORDINARIA
+from .planificador_ot import validar_asignaciones_ot_dia
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,7 @@ async def pre_calcular_plan(
                     ))
                     continue
 
+                validar_asignaciones_ot_dia(dia_in)
                 codigos_nov = [n.codigo_novedad for n in dia_in.novedades]
                 horas_trab = _horas_trabajadas_dia(
                     dia_in.hora_entrada, dia_in.hora_salida, dia_in.minutos_almuerzo

@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, History, Users, Wallet } from 'lucide-react';
 import { Badge, Button, Input, MaterialCard, Text, Title } from '../../../../../components/atoms';
-import type { PlanPreCalculoResponse } from '../../../../../types/horasExtras';
+import type { PlanPreCalculoResponse } from '../../../../../types/horasExtrasPlanificador';
 
 interface ResultadoConfirmacion {
   ok: number;
