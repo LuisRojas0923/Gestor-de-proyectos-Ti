@@ -1,4 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
+
+import ContextMenuExcepcion from './components/ContextMenuExcepcion';
+import ModalVincularExcepcion from './components/ModalVincularExcepcion';
 import { Title, Text, Button, Select, Input, Badge } from '../../../../components/atoms';
 import { FilePicker } from '../../../../components/molecules';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +55,50 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat('es-CO', {
 const PlanillasRegionales1QPreview: React.FC = () => {
     const navigate = useNavigate();
     const { addNotification } = useNotifications();
+
+    // --- Estado para menú contextual y modal de excepciones ---
+    const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; record: any } | null>(null);
+    const [modalRegistro, setModalRegistro] = useState<any | null>(null);
+
+    const handleContextMenu = (e: React.MouseEvent, record: any) => {
+        e.preventDefault();
+        setCtxMenu({ x: e.clientX, y: e.clientY, record });
+    };
+
+    const handleVinculado = (registroId: number | string, _excepcionId: number) => {
+        if (!data) return;
+        const [cedula, concepto] = String(registroId).split('-');
+        setData({
+            ...data,
+            rows: data.rows.map(r => 
+                (r.cedula === cedula && r.concepto === concepto)
+                    ? { ...r, estado_erp: 'EXCEPTUADO' } 
+                    : r
+            )
+        });
+        addNotification('success', 'Excepción vinculada exitosamente. Actualice la tabla o vuelva a procesar.');
+    };
+
+    const handleDesvincular = async (registroId: number | string) => {
+        if (!data) return;
+        const [cedula, concepto] = String(registroId).split('-');
+        try {
+            await axios.delete(`${API_CONFIG.BASE_URL}/novedades-nomina/excepciones/vincular-dinamico`, {
+                data: { cedula, concepto, mes, anio, subcategoria: "PLANILLAS" }
+            });
+            setData({
+                ...data,
+                rows: data.rows.map(r => 
+                    (r.cedula === cedula && r.concepto === concepto)
+                        ? { ...r, estado_erp: 'OK' } 
+                        : r
+                )
+            });
+            addNotification('info', 'Excepción removida del registro.');
+        } catch (e) {
+            addNotification('error', 'No se pudo remover la excepción.');
+        }
+    };
 
     const [mes, setMes] = useState(new Date().getMonth() + 1);
     const [anio, setAnio] = useState(new Date().getFullYear());
@@ -382,7 +429,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                             </thead>
                                             <tbody className="divide-y divide-amber-100 dark:divide-amber-800">
                                                 {warningsDetalle.map((w: WarningDetalle, i: number) => (
-                                                    <tr key={`${w.cedula || 'warn'}-${i}`} className="hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                                                    <tr onContextMenu={(e) => handleContextMenu(e, row)} key={`${w.cedula || 'warn'}-${i}`} className={`hover:bg-amber-50 dark:hover:bg-amber-900/20 cursor-context-menu ${row.estado_erp === "EXCEPTUADO" ? "bg-slate-100/80 opacity-60 line-through" : ""}`}>
                                                         <td className="p-2"><Text size="xs" className="font-mono uppercase">{w.cedula}</Text></td>
                                                         <td className="p-2"><Text size="xs" className="uppercase">{w.nombre}</Text></td>
                                                         <td className="p-2"><Badge variant={w.motivo.includes('EXCEPCION') ? 'warning' : 'error'} size="xs">{w.motivo}</Badge></td>
@@ -474,7 +521,7 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                         {filteredRows.map((row: PlanillaRow, i: number) => (
-                                            <tr key={`${row.cedula || 'row'}-${i}`} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                            <tr onContextMenu={(e) => handleContextMenu(e, row)} key={`${row.cedula || 'row'}-${i}`} className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-context-menu ${row.estado_erp === "EXCEPTUADO" ? "bg-slate-100/80 opacity-60 line-through" : ""}`}>
                                                 <td className="p-2 text-slate-400 font-mono w-12 border-r border-slate-50 text-center">{i + 1}</td>
                                                 <td className="p-2 font-mono border-r border-slate-50 text-center">{row.cedula}</td>
                                                 <td className="p-2 border-r border-slate-50 text-left pl-4">{row.nombre}</td>
@@ -506,8 +553,29 @@ const PlanillasRegionales1QPreview: React.FC = () => {
                     </div>
                 )}
             </div>
+        
+            {/* Menú contextual clic derecho */}
+            <ContextMenuExcepcion
+                x={ctxMenu?.x ?? 0}
+                y={ctxMenu?.y ?? 0}
+                visible={!!ctxMenu}
+                tieneExcepcion={ctxMenu?.record?.estado_erp === 'EXCEPTUADO' || String(ctxMenu?.record?.estado_erp).includes('EXCEPCION')}
+                onVincular={() => { setModalRegistro(ctxMenu?.record); setCtxMenu(null); }}
+                onDesvincular={() => { if (ctxMenu?.record) handleDesvincular(`${ctxMenu.record.cedula}-${ctxMenu.record.concepto}`); setCtxMenu(null); }}
+                onClose={() => setCtxMenu(null)}
+            />
+
+            {/* Modal de vinculación dinámica */}
+            <ModalVincularExcepcion
+                visible={!!modalRegistro}
+                registro={modalRegistro}
+                mes={mes}
+                anio={anio}
+                subcategoria="PLANILLAS"
+                onClose={() => setModalRegistro(null)}
+                onVinculado={handleVinculado}
+            />
         </div>
     );
 };
-
 export default PlanillasRegionales1QPreview;

@@ -174,10 +174,10 @@ class NominaHelper:
             if estado_val == estado_default:
                 if not info_original:
                     estado_val = "SIN_ESTABLECIMIENTO"
-                    valor_final = 0 # No se contabiliza si no está en ERP y no hay excepción
+                    # valor_final = 0 # Eliminado para que se contabilice el valor de la factura
                 elif str(info_original.get("estado", "")).strip().upper() != "ACTIVO":
                     estado_val = "RETIRADO"
-                    valor_final = 0 # No se contabiliza si está retirado y no hay excepción
+                    # valor_final = 0 # Eliminado para que se contabilice el valor de la factura
 
             ciudad = (info_original.get("ciudadcontratacion", "") if info_original else "") or row.get("sucursal", "")
 

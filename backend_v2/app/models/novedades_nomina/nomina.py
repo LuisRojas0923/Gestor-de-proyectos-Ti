@@ -74,6 +74,7 @@ class NominaRegistroNormalizado(SQLModel, table=True):
     
     fila_origen: int
     observaciones: Optional[str] = Field(default=None)
+    excepcion_aplicada_id: Optional[int] = Field(default=None, foreign_key="nomina_excepciones.id")
     
     archivo: NominaArchivo = Relationship(back_populates="registros_normalizados")
 

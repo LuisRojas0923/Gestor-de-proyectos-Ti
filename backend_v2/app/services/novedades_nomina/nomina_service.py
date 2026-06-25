@@ -190,11 +190,9 @@ class NominaService:
                         "motivo": r.estado_validacion
                     })
                 
-                # REGLA: No mostrar en tabla principal si está retirado o sin establecimiento (ya están en warnings)
-                # A menos que sea una excepción autorizada
-                if r.estado_validacion in ["RETIRADO", "SIN_ESTABLECIMIENTO", "EXCEPCION_EXONERADO"]:
-                    continue
-                    
+                # REGLA OMITIDA: Ahora mostramos todos los registros en la tabla principal
+                # independientemente de su estado, para que el usuario pueda aplicarles
+                # excepciones dando clic derecho y sus valores sigan siendo contabilizados.
                 filas_frontend.append(base_item)
 
             # Agrupar por cédula: sumar valores cuando múltiples registros comparten cédula final
@@ -292,11 +290,7 @@ class NominaService:
                         "motivo": f.estado_validacion
                     })
                 
-                # REGLA: No mostrar en tabla principal si está retirado o sin establecimiento
-                if f.estado_validacion in ["RETIRADO", "SIN_ESTABLECIMIENTO", "EXCEPCION_EXONERADO"]:
-                    if subcat_clean != "COMISIONES":
-                        continue
-                    
+                # REGLA OMITIDA: Mostramos todos los registros en la tabla principal.
                 filas_frontend.append(base_item)
 
             # Agrupar por cédula: sumar valores cuando múltiples registros comparten cédula final
