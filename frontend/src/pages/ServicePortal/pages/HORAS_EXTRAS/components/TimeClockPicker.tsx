@@ -9,6 +9,8 @@ interface TimeClockPickerProps {
   onChange: (value: string | null) => void;
   disabled?: boolean;
   presentation?: 'modal' | 'inline';
+  triggerClassName?: string;
+  showIcon?: boolean;
 }
 
 type PickerMode = 'hora' | 'minuto';
@@ -59,6 +61,8 @@ const TimeClockPicker: React.FC<TimeClockPickerProps> = ({
   onChange,
   disabled = false,
   presentation = 'modal',
+  triggerClassName = '',
+  showIcon = true,
 }) => {
   const [{ hora, minuto }, setDraft] = useState(() => parseTime(value));
   const [open, setOpen] = useState(false);
@@ -188,9 +192,9 @@ const TimeClockPicker: React.FC<TimeClockPickerProps> = ({
         disabled={disabled}
         onClick={abrir}
         aria-label={`${label}: ${value || 'Sin hora'}`}
-        className="h-10 justify-between rounded-2xl border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[var(--color-text-primary)] hover:bg-[var(--color-surface-variant)]"
+        className={`h-10 justify-between rounded-2xl border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[var(--color-text-primary)] hover:bg-[var(--color-surface-variant)] ${triggerClassName}`}
       >
-        <Clock className="mr-2 h-4 w-4 text-[var(--color-text-secondary)]" />
+        {showIcon && <Clock className="mr-2 h-4 w-4 text-[var(--color-text-secondary)]" />}
         {value || '--:--'}
       </Button>
 
