@@ -48,7 +48,7 @@ export default memo(function ProfileCard({ profile, onUpdatePhoto, onDelete }: P
         <View style={styles.profileMeta}>
           <View style={styles.metaItem}>
             <Ionicons name="camera-outline" size={13} color={COLORS.textMuted} />
-            <Text style={styles.metaText}>{hasPhoto ? '1 foto' : 'sin fotos'}</Text>
+            <Text style={styles.metaText}>{!!photoSource ? '1 foto' : 'sin fotos'}</Text>
           </View>
           <View style={styles.metaDot} />
           <View style={styles.metaItem}>

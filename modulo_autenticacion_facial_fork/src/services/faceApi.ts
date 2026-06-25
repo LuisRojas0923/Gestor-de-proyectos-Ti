@@ -204,7 +204,7 @@ export async function verifyFace(
   const image = await photoToBase64(photoUri);
   return request<VerifyResponse>('/biometria/asistencia', {
     image,
-    zona_id: null,
+    zona_id: zoneId ? parseInt(zoneId) : null,
     latitud: latitude || 0.0,
     longitud: longitude || 0.0
   });
