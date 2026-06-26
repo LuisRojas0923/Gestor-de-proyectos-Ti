@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Title, Text, Button, Input, Badge, Select } from '../../../../../components/atoms';
-import { Search, ShieldOff, X, User, CreditCard } from 'lucide-react';
+import { Search, ShieldOff, X, User, CreditCard, Info } from 'lucide-react';
 import axios from 'axios';
 import { API_CONFIG } from '../../../../../config/api';
 

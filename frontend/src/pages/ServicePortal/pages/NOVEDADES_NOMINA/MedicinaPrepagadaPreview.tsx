@@ -81,7 +81,7 @@ const MedicinaPrepagadaPreview: React.FC = () => {
         const [cedula, concepto] = String(registroId).split('-');
         try {
             await axios.delete(`${API_CONFIG.BASE_URL}/novedades-nomina/excepciones/vincular-dinamico`, {
-                data: { cedula, concepto, mes, anio, subcategoria: "MEDICINA" }
+                data: { cedula, concepto, mes, anio, subcategoria: "MEDICINA PREPAGADA" }
             });
             setData({
                 ...data,
@@ -544,7 +544,7 @@ const MedicinaPrepagadaPreview: React.FC = () => {
                 registro={modalRegistro}
                 mes={mes}
                 anio={anio}
-                subcategoria="MEDICINA"
+                subcategoria="MEDICINA PREPAGADA"
                 onClose={() => setModalRegistro(null)}
                 onVinculado={handleVinculado}
             />

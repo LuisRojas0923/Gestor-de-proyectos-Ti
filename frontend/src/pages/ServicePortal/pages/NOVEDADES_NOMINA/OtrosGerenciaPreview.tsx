@@ -85,7 +85,7 @@ const OtrosGerenciaPreview: React.FC = () => {
         const [cedula, concepto] = String(registroId).split('-');
         try {
             await axios.delete(`${API_CONFIG.BASE_URL}/novedades-nomina/excepciones/vincular-dinamico`, {
-                data: { cedula, concepto, mes, anio, subcategoria: "OTROS" }
+                data: { cedula, concepto, mes, anio, subcategoria: "OTROS GERENCIA" }
             });
             setData({
                 ...data,
@@ -500,7 +500,7 @@ const OtrosGerenciaPreview: React.FC = () => {
                 registro={modalRegistro}
                 mes={mes}
                 anio={anio}
-                subcategoria="OTROS"
+                subcategoria="OTROS GERENCIA"
                 onClose={() => setModalRegistro(null)}
                 onVinculado={handleVinculado}
             />

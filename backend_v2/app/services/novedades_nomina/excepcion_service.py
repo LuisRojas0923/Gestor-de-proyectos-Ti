@@ -18,7 +18,25 @@ class ExcepcionService:
             or_(NominaExcepcion.fecha_fin == None, NominaExcepcion.fecha_fin >= now)
         )
         if subcategoria:
-            stmt = stmt.where(NominaExcepcion.subcategoria == subcategoria)
+            subcats = [subcategoria]
+            if subcategoria == "MEDICINA PREPAGADA":
+                subcats.append("MEDICINA")
+            elif subcategoria == "SEGUROS HDI":
+                subcats.append("SEGUROS")
+            elif subcategoria == "POLIZAS VEHICULOS":
+                subcats.append("POLIZAS")
+            elif subcategoria == "OTROS GERENCIA":
+                subcats.append("OTROS")
+            elif subcategoria == "OCCIDENTE LIBRANZA":
+                subcats.append("OCCIDENTE")
+            elif subcategoria == "DAVIVIENDA LIBRANZA":
+                subcats.append("DAVIVIENDA")
+            elif subcategoria == "BOGOTA LIBRANZA":
+                subcats.append("BOGOTA")
+            elif "PLANILLAS" in subcategoria:
+                subcats.append("PLANILLAS")
+            
+            stmt = stmt.where(NominaExcepcion.subcategoria.in_(subcats))
         
         result = await session.execute(stmt)
         return result.scalars().all()
