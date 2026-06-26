@@ -21,9 +21,9 @@ from app.models.biometria.biometria_models import EmbeddingFacial, RegistroAsist
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-MODEL_NAME = os.getenv('DEEPFACE_MODEL', 'Facenet512')
-DETECTOR_BACKEND = os.getenv('DEEPFACE_DETECTOR', 'mtcnn')
-THRESHOLD = float(os.getenv('MATCH_THRESHOLD', '0.35'))
+MODEL_NAME = os.getenv('DEEPFACE_MODEL', 'Facenet')
+DETECTOR_BACKEND = os.getenv('DEEPFACE_DETECTOR', 'opencv')
+THRESHOLD = float(os.getenv('MATCH_THRESHOLD', '0.40'))
 ANTI_SPOOFING = os.getenv('ANTI_SPOOFING', '1').lower() in ('1', 'true', 'yes')
 
 def preload_models():
@@ -216,9 +216,21 @@ async def marcar_asistencia(
         cv2.imwrite(file_path, img)
         evidencia_url = f"/api/v2/biometria/evidencia/{filename}"
 
+        safe_zona_id = None
+        if data.zona_id is not None:
+            # Validar que zona_id no sea un timestamp gigante generado localmente por el frontend
+            # MAX_INT para PostgreSQL (INT4) es 2147483647
+            if data.zona_id <= 2147483647:
+                # Opcional: verificar si existe la zona en DB para evitar error de FK
+                # Si estamos usando las zonas de la app y no de la DB, simplemente la ignoramos o la validamos
+                from app.models.biometria.biometria_models import ZonaTrabajo
+                zona_exist = await db.execute(select(ZonaTrabajo).where(ZonaTrabajo.id == data.zona_id))
+                if zona_exist.scalar_one_or_none():
+                    safe_zona_id = data.zona_id
+
         registro = RegistroAsistencia(
             usuario_id=usuario_actual.id,
-            zona_id=data.zona_id if data.zona_id else None,
+            zona_id=safe_zona_id,
             match_exitoso=match_exitoso,
             nivel_confianza=confidence,
             latitud_marcada=data.latitud,
