@@ -39,7 +39,7 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({ isOpen, onClose, onSa
                             <RefreshCw size={24} />
                         </div>
                         <Title variant="h4" weight="bold">Sincronizar desde Solid ERP</Title>
-                        <Text color="text-secondary">Ingresa la cédula del analista para importar sus datos directamente desde el sistema de nómina.</Text>
+                        <Text color="text-secondary">Ingresa la cédula del usuario para importar sus datos directamente desde el sistema de nómina.</Text>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -56,7 +56,7 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({ isOpen, onClose, onSa
                             <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
                                 <Text variant="caption" className="text-blue-700 dark:text-blue-300 flex items-start gap-2">
                                     <Shield size={14} className="mt-0.5 shrink-0" />
-                                    <Text as="span" color="inherit">Al registrar la cédula, el sistema validará que el empleado esté activo en el ERP y creará su cuenta automáticamente con el rol de analista.</Text>
+                                    <Text as="span" color="inherit">Al registrar la cédula, el sistema validará que el empleado esté activo en el ERP y creará su cuenta automáticamente con el rol de usuario estándar.</Text>
                                 </Text>
                             </div>
                         </div>

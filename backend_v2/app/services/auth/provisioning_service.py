@@ -41,7 +41,7 @@ async def crear_analista_desde_erp(
         nombre=datos_erp["nombre"],
         correo=correo_erp,
         hash_contrasena=hash_pwd,
-        rol="analyst",
+        rol="usuario",
         esta_activo=True,
         area=datos_erp.get("area"),
         cargo=datos_erp.get("cargo"),
