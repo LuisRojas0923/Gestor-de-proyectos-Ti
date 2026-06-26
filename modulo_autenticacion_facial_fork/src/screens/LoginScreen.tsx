@@ -285,7 +285,7 @@ export default function LoginScreen() {
               </View>
               <TextInput
                 style={styles.modalInput}
-                placeholder="Ej: 192.168.0.21 o 192.168.0.21:8001"
+                placeholder="Ej: 192.168.0.21 o 192.168.0.21:8000"
                 placeholderTextColor={COLORS.textMuted}
                 value={serverIp}
                 onChangeText={setServerIp}

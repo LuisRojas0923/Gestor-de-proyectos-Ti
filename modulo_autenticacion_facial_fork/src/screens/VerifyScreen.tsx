@@ -109,7 +109,7 @@ export default function VerifyScreen() {
         showErrorBanner(
           'cloud-offline-outline',
           'Servidor No Disponible',
-          'El servidor de reconocimiento facial no esta en ejecucion. Inicia el servidor Python.',
+          'No se pudo conectar con el servidor principal. Verifica que el backend esté en ejecución en el puerto 8000.',
           COLORS.warning
         );
         return;
