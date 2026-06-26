@@ -20,12 +20,12 @@ if (Platform.OS !== 'web') {
   FileSystem = require('expo-file-system/legacy');
 }
 
-const SERVER_PORT = 8000;
+const SERVER_PORT = 8001;
 const REQUEST_TIMEOUT = 120000;
 
 function getServerHost(): string {
-  // Dirección del portal de pruebas
-  return 'http://192.168.0.21:8082/api/v2';
+  // Dirección directa al backend de prueba en puerto 8001
+  return 'http://192.168.0.21:8001/api/v2';
 }
 
 let API_BASE = getServerHost();

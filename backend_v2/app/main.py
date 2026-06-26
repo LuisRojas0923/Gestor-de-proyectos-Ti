@@ -228,6 +228,13 @@ async def startup_event():
         iniciar_loop_verificador_compromisos(intervalo_horas=12)
     )
 
+    # 5. Pre-cargar modelos matematicos de Biometria Facial en segundo plano
+    from app.api.biometria.biometria_router import preload_models
+    asyncio.create_task(
+        asyncio.to_thread(preload_models)
+    )
+
+
 
 @app.get("/")
 async def raiz():

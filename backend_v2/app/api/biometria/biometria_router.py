@@ -26,6 +26,19 @@ DETECTOR_BACKEND = os.getenv('DEEPFACE_DETECTOR', 'mtcnn')
 THRESHOLD = float(os.getenv('MATCH_THRESHOLD', '0.35'))
 ANTI_SPOOFING = os.getenv('ANTI_SPOOFING', '1').lower() in ('1', 'true', 'yes')
 
+def preload_models():
+    """Precarga el modelo y detector de DeepFace en memoria para evitar demoras en la primera peticion."""
+    logger.info(f"Pre-cargando modelos de DeepFace: {MODEL_NAME} con detector {DETECTOR_BACKEND}...")
+    try:
+        DeepFace.build_model(MODEL_NAME)
+        # Hacemos una representacion simulada para calentar el detector
+        dummy_img = np.zeros((224, 224, 3), dtype=np.uint8)
+        DeepFace.represent(img_path=dummy_img, model_name=MODEL_NAME, detector_backend=DETECTOR_BACKEND, enforce_detection=False)
+        logger.info("Modelos de DeepFace pre-cargados exitosamente en memoria.")
+    except Exception as e:
+        logger.error(f"Error durante la precarga de modelos DeepFace: {e}")
+
+
 class BiometriaRequest(BaseModel):
     image: str
 

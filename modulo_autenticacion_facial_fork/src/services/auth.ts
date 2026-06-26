@@ -41,7 +41,7 @@ async function secureRemoveItem(key: string): Promise<void> {
   }
 }
 
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 5000): Promise<Response> {
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 15000): Promise<Response> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   
@@ -68,7 +68,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout 
 
 export async function getStoredAccounts(adminId: string): Promise<UserAccount[]> {
   try {
-    const res = await fetchWithTimeout(`${getServerAddress()}/v1/users?admin_id=${adminId}`);
+    const res = await fetchWithTimeout(`${getServerAddress()}/auth/analistas`);
     if (!res.ok) throw new Error('Error de red o acceso denegado');
     const data = await res.json();
     return data.users as UserAccount[];
