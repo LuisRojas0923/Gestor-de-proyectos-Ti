@@ -207,13 +207,23 @@ async def marcar_asistencia(
     
     # Registrar log en base de datos
     try:
+        # Guardar la evidencia física en el servidor
+        import time
+        storage_dir = "storage/asistencias"
+        os.makedirs(storage_dir, exist_ok=True)
+        filename = f"{usuario_actual.id}_{int(time.time())}.jpg"
+        file_path = os.path.join(storage_dir, filename)
+        cv2.imwrite(file_path, img)
+        evidencia_url = f"/api/v2/biometria/evidencia/{filename}"
+
         registro = RegistroAsistencia(
             usuario_id=usuario_actual.id,
             zona_id=data.zona_id if data.zona_id else None,
             match_exitoso=match_exitoso,
             nivel_confianza=confidence,
             latitud_marcada=data.latitud,
-            longitud_marcada=data.longitud
+            longitud_marcada=data.longitud,
+            evidencia_url=evidencia_url
         )
         db.add(registro)
         await db.commit()
@@ -231,7 +241,8 @@ async def marcar_asistencia(
     return {
         "status": "success",
         "message": "Asistencia registrada correctamente",
-        "confidence": confidence
+        "confidence": confidence,
+        "evidenciaUrl": evidencia_url
     }
 
 @router.get("/asistencias", summary="Obtener historial de asistencias")
@@ -272,21 +283,21 @@ async def obtener_asistencias(
                 "latitude": r.latitud_marcada,
                 "longitude": r.longitud_marcada
             },
-            "timestamp": r.creado_en.isoformat() if r.creado_en else None
+            "timestamp": r.creado_en.isoformat() if r.creado_en else None,
+            "evidenciaUrl": r.evidencia_url
         } for r in registros
     ]
 
 @router.get("/foto/{filename}", summary="Obtener foto de perfil del servidor")
 async def obtener_foto(filename: str):
-    """
-    Sirve la imagen de perfil guardada durante el enrolamiento.
-    Esta URL se guarda en el campo url_avatar del Usuario.
-    """
-    # Evitar directory traversal attacks
-    safe_filename = os.path.basename(filename)
-    file_path = os.path.join("storage/perfiles", safe_filename)
-    
+    file_path = f"storage/perfiles/{filename}"
     if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Foto de perfil no encontrada")
-        
+        raise HTTPException(status_code=404, detail="Foto no encontrada")
+    return FileResponse(file_path)
+
+@router.get("/evidencia/{filename}", summary="Obtener evidencia fotográfica de asistencia")
+async def obtener_evidencia(filename: str):
+    file_path = f"storage/asistencias/{filename}"
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Evidencia fotográfica no encontrada")
     return FileResponse(file_path)

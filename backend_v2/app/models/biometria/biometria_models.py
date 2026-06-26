@@ -36,6 +36,7 @@ class RegistroAsistencia(SQLModel, table=True):
     nivel_confianza: float = Field(default=0.0)
     latitud_marcada: float
     longitud_marcada: float
+    evidencia_url: Optional[str] = Field(default=None, max_length=255)
     
     creado_en: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("now()")}
