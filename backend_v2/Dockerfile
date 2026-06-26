@@ -19,7 +19,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Instalar dependencias de Python
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --prefix=/install -r requirements.txt
+    --mount=type=cache,target=/root/.cache/uv \
+    pip install uv && uv pip install --system --prefix=/install -r requirements.txt
 
 
 # --- Stage 2: Runtime ---
