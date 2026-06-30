@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -135,6 +136,16 @@ export default function EnrollScreen() {
           <View style={[styles.cornerMarker, styles.cornerBL]} />
           <View style={[styles.cornerMarker, styles.cornerBR]} />
         </View>
+
+        {isCapturing && (
+          <View style={{ position: 'absolute', bottom: 150, alignItems: 'center', zIndex: 30 }}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <View style={{ width: 140, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, marginTop: 12, overflow: 'hidden' }}>
+              <View style={{ width: '60%', height: '100%', backgroundColor: COLORS.primary }} />
+            </View>
+            <Text style={{ color: COLORS.text, marginTop: 8, fontSize: 14, fontWeight: 'bold' }}>Guardando perfil...</Text>
+          </View>
+        )}
       </CameraView>
 
       <View style={styles.bottomControls}>

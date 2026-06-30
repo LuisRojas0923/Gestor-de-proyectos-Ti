@@ -20,12 +20,12 @@ if (Platform.OS !== 'web') {
   FileSystem = require('expo-file-system/legacy');
 }
 
-const SERVER_PORT = 8000;
+const DEFAULT_SERVER_PORT = 8001;
 const REQUEST_TIMEOUT = 120000;
 
 function getServerHost(): string {
-  // Dirección directa al backend de prueba en puerto 8000
-  return 'http://192.168.0.21:8000/api/v2';
+  // Dirección por defecto (puedes cambiarla si no usas esta red local)
+  return `http://192.168.0.21:${DEFAULT_SERVER_PORT}/api/v2`;
 }
 
 let API_BASE = getServerHost();
@@ -36,19 +36,17 @@ export function setServerAddress(input: string) {
     address = `http://${address}`;
   }
   
-  // Si es una IP simple o localhost sin puerto, agregar el puerto por defecto (8000)
+  // Comprobar si la dirección tiene puerto o es dominio
   const cleanAddress = address.replace('://', '');
   const hasPort = /:\d+/.test(cleanAddress);
-  
-  // Comprobar si la dirección IP (o host) contiene letras (es un dominio/túnel)
-  const hostPart = address.replace(/^https?:\/\//, '').split('/')[0].split(':')[0];
+  const hostPart = cleanAddress.split('/')[0].split(':')[0];
   const isDomain = /[a-zA-Z]/.test(hostPart);
   
   if (!hasPort && !isDomain) {
-    address = `${address}:${SERVER_PORT}`;
+    // Usar el puerto 8001 por defecto para desarrollo/pruebas locales
+    address = `${address}:${DEFAULT_SERVER_PORT}`;
   }
   
-  // Asegurar que termina con /api/v2
   if (!address.endsWith('/api/v2')) {
     address = address.replace(/\/$/, '') + '/api/v2';
   }

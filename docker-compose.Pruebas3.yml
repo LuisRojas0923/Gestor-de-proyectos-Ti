@@ -36,6 +36,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./GestionTi_SoporteFiles_Pruebas3:/app/storage/attachments
+      - deepface_weights_pruebas3:/root/.deepface
     depends_on:
       - db
       - redis
@@ -83,3 +84,4 @@ networks:
 
 volumes:
   postgres_data_pruebas3:
+  deepface_weights_pruebas3:

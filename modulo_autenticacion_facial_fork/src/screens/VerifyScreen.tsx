@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Animated,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -99,8 +100,8 @@ export default function VerifyScreen() {
       setIsCapturing(true);
 
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.7,
-        skipProcessing: false,
+        quality: 0.3,
+        skipProcessing: true,
       });
 
       const online = await healthCheck();
@@ -327,6 +328,20 @@ export default function VerifyScreen() {
           <Text style={styles.guideText}>
             {isCapturing ? 'Analizando rostro...' : 'Posiciona tu rostro dentro del óvalo'}
           </Text>
+          {isCapturing && (
+            <View style={{ marginTop: 15, alignItems: 'center' }}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <View style={{ width: 120, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, marginTop: 12, overflow: 'hidden' }}>
+                <Animated.View style={{
+                  width: '50%',
+                  height: '100%',
+                  backgroundColor: COLORS.primary,
+                  transform: [{ translateX: bannerAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 60] }) }] // Reutilizamos un valor animado para darle efecto
+                }} />
+              </View>
+              <Text style={{ color: COLORS.textSecondary, marginTop: 8, fontSize: 12 }}>Procesando imagen...</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.cameraOverlayBottom} />
