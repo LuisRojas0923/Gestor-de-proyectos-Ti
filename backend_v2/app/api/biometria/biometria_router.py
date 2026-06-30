@@ -156,7 +156,7 @@ async def marcar_asistencia(
         logger.error(f"Error buscando embedding facial: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error de base de datos al buscar el perfil facial."
+            detail=f"Error de base de datos al buscar el perfil facial: {str(e)}"
         )
     
     if not perfil:
@@ -217,9 +217,13 @@ async def marcar_asistencia(
                 # Opcional: verificar si existe la zona en DB para evitar error de FK
                 # Si estamos usando las zonas de la app y no de la DB, simplemente la ignoramos o la validamos
                 from app.models.biometria.biometria_models import ZonaTrabajo
-                zona_exist = await db.execute(select(ZonaTrabajo).where(ZonaTrabajo.id == zona_id))
-                if zona_exist.scalar_one_or_none():
-                    safe_zona_id = zona_id
+                try:
+                    zona_exist = await db.execute(select(ZonaTrabajo).where(ZonaTrabajo.id == zona_id))
+                    if zona_exist.scalar_one_or_none():
+                        safe_zona_id = zona_id
+                except Exception as e:
+                    logger.warning(f"Error al validar ZonaTrabajo (posiblemente la tabla no existe): {str(e)}")
+                    safe_zona_id = None
 
         registro = RegistroAsistencia(
             usuario_id=usuario_actual.id,
@@ -237,7 +241,7 @@ async def marcar_asistencia(
         logger.error(f"Error registrando logs de asistencia: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error de base de datos al registrar la asistencia."
+            detail=f"Error de base de datos al registrar la asistencia: {str(e)}"
         )
     
     if not match_exitoso:

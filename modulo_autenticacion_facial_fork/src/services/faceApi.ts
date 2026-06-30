@@ -115,7 +115,12 @@ async function request<T>(path: string, body: unknown = null, timeout = REQUEST_
       signal: controller.signal,
     };
     if (body !== null && method !== 'GET') {
-      fetchOptions.body = JSON.stringify(body);
+      if (body instanceof FormData) {
+        delete headers['Content-Type'];
+        fetchOptions.body = body;
+      } else {
+        fetchOptions.body = JSON.stringify(body);
+      }
     }
 
     const res = await fetch(`${API_BASE}${path}`, fetchOptions);
@@ -188,8 +193,14 @@ async function photoToBase64(photoUri: string): Promise<string> {
 }
 
 export async function enrollFace(photoUri: string, userId: string, userName?: string): Promise<void> {
-  const image = await photoToBase64(photoUri);
-  await request<unknown>('/biometria/enrolar', { image, user_id: userId, user_name: userName });
+  const formData = new FormData();
+  formData.append('image', {
+    uri: photoUri,
+    name: 'photo.jpg',
+    type: 'image/jpeg'
+  } as any);
+  
+  await request<unknown>('/biometria/enrolar', formData);
 }
 
 export async function verifyFace(
@@ -199,13 +210,19 @@ export async function verifyFace(
   latitude?: number,
   longitude?: number
 ): Promise<VerifyResponse> {
-  const image = await photoToBase64(photoUri);
-  return request<VerifyResponse>('/biometria/asistencia', {
-    image,
-    zona_id: zoneId ? parseInt(zoneId) : null,
-    latitud: latitude || 0.0,
-    longitud: longitude || 0.0
-  });
+  const formData = new FormData();
+  formData.append('image', {
+    uri: photoUri,
+    name: 'photo.jpg',
+    type: 'image/jpeg'
+  } as any);
+  formData.append('latitud', (latitude || 0.0).toString());
+  formData.append('longitud', (longitude || 0.0).toString());
+  if (zoneId) {
+    formData.append('zona_id', zoneId.toString());
+  }
+
+  return request<VerifyResponse>('/biometria/asistencia', formData);
 }
 
 export async function getCheckIns(userId: string): Promise<any[]> {
