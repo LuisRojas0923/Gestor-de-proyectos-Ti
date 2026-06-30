@@ -6,7 +6,7 @@ import os
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, Form, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,21 +39,15 @@ def preload_models():
         logger.error(f"Error durante la precarga de modelos DeepFace: {e}")
 
 
-class BiometriaRequest(BaseModel):
-    image: str
-
-def load_image_from_base64(img_str: str):
+def load_image_from_bytes(file_bytes: bytes):
     try:
-        if ',' in img_str:
-            img_str = img_str.split(',')[1]
-        img_bytes = base64.b64decode(img_str)
-        arr = np.frombuffer(img_bytes, np.uint8)
+        arr = np.frombuffer(file_bytes, np.uint8)
         img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
         if img is None:
             raise ValueError("La imagen está corrupta o vacía")
         return img
     except Exception as e:
-        raise ValueError(f"Error decodificando Base64: {str(e)}")
+        raise ValueError(f"Error decodificando imagen: {str(e)}")
 
 def l2_normalize(embedding: list):
     emb = np.array(embedding, dtype=np.float64)
@@ -64,12 +58,13 @@ def l2_normalize(embedding: list):
 
 @router.post("/enrolar", summary="Enrolar rostro del empleado")
 async def enrolar_rostro(
-    data: BiometriaRequest,
+    image: UploadFile = File(...),
     usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
     db: AsyncSession = Depends(obtener_db)
 ):
     try:
-        img = load_image_from_base64(data.image)
+        file_bytes = await image.read()
+        img = load_image_from_bytes(file_bytes)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
         
@@ -140,15 +135,12 @@ async def enrolar_rostro(
         
     return {"status": "success", "message": "Rostro enrolado correctamente"}
 
-class AsistenciaRequest(BaseModel):
-    image: str
-    latitud: float
-    longitud: float
-    zona_id: Optional[int] = None
-
 @router.post("/asistencia", summary="Validar biometria y registrar asistencia")
 async def marcar_asistencia(
-    data: AsistenciaRequest,
+    image: UploadFile = File(...),
+    latitud: float = Form(...),
+    longitud: float = Form(...),
+    zona_id: Optional[int] = Form(None),
     usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
     db: AsyncSession = Depends(obtener_db)
 ):
@@ -171,7 +163,8 @@ async def marcar_asistencia(
         raise HTTPException(status_code=404, detail="El usuario no tiene un rostro enrolado.")
         
     try:
-        img = load_image_from_base64(data.image)
+        file_bytes = await image.read()
+        img = load_image_from_bytes(file_bytes)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
         
@@ -217,24 +210,24 @@ async def marcar_asistencia(
         evidencia_url = f"/api/v2/biometria/evidencia/{filename}"
 
         safe_zona_id = None
-        if data.zona_id is not None:
+        if zona_id is not None:
             # Validar que zona_id no sea un timestamp gigante generado localmente por el frontend
             # MAX_INT para PostgreSQL (INT4) es 2147483647
-            if data.zona_id <= 2147483647:
+            if zona_id <= 2147483647:
                 # Opcional: verificar si existe la zona en DB para evitar error de FK
                 # Si estamos usando las zonas de la app y no de la DB, simplemente la ignoramos o la validamos
                 from app.models.biometria.biometria_models import ZonaTrabajo
-                zona_exist = await db.execute(select(ZonaTrabajo).where(ZonaTrabajo.id == data.zona_id))
+                zona_exist = await db.execute(select(ZonaTrabajo).where(ZonaTrabajo.id == zona_id))
                 if zona_exist.scalar_one_or_none():
-                    safe_zona_id = data.zona_id
+                    safe_zona_id = zona_id
 
         registro = RegistroAsistencia(
             usuario_id=usuario_actual.id,
             zona_id=safe_zona_id,
             match_exitoso=match_exitoso,
             nivel_confianza=confidence,
-            latitud_marcada=data.latitud,
-            longitud_marcada=data.longitud,
+            latitud_marcada=latitud,
+            longitud_marcada=longitud,
             evidencia_url=evidencia_url
         )
         db.add(registro)

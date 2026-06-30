@@ -1,1 +1,0 @@
-export const EXPECTED_EMBEDDING_DIM = 512;
