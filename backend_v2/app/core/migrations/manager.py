@@ -17,6 +17,22 @@ async def init_db_process(async_engine, AsyncSessionLocal):
     async with async_engine.begin() as conn:
         try:
             await conn.run_sync(SQLModel.metadata.create_all)
+            
+            # Migración automática para la tabla biométrica en caso de que ya existiera sin la nueva columna
+            try:
+                # Se añaden todas las columnas que pudieron haber sido agregadas después de la creación inicial de la tabla
+                migraciones = [
+                    "ALTER TABLE registros_asistencia ADD COLUMN IF NOT EXISTS evidencia_url VARCHAR(255);",
+                    "ALTER TABLE registros_asistencia ADD COLUMN IF NOT EXISTS latitud_marcada FLOAT DEFAULT 0.0;",
+                    "ALTER TABLE registros_asistencia ADD COLUMN IF NOT EXISTS longitud_marcada FLOAT DEFAULT 0.0;",
+                    "ALTER TABLE registros_asistencia ADD COLUMN IF NOT EXISTS nivel_confianza FLOAT DEFAULT 0.0;",
+                    "ALTER TABLE registros_asistencia ADD COLUMN IF NOT EXISTS match_exitoso BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE registros_asistencia ADD COLUMN IF NOT EXISTS zona_id INTEGER;",
+                ]
+                for query in migraciones:
+                    await conn.execute(text(query))
+            except Exception as inner_e:
+                logger.warning(f"No se pudo alterar registros_asistencia (puede que la tabla aún no exista o ya tenga la columna): {inner_e}")
         except Exception as e:
             logger.warning(f"Error concurrente en create_all: {e}")
 
