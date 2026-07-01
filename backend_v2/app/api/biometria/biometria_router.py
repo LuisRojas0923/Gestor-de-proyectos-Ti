@@ -208,13 +208,13 @@ async def marcar_asistencia(
     
     # Registrar log en base de datos
     try:
-        # Guardar la evidencia física en el servidor
+        # Guardar la evidencia física en el servidor sin bloquear el hilo principal
         import time
         storage_dir = "storage/asistencias"
-        os.makedirs(storage_dir, exist_ok=True)
+        await asyncio.to_thread(os.makedirs, storage_dir, exist_ok=True)
         filename = f"{usuario_actual.id}_{int(time.time())}.jpg"
         file_path = os.path.join(storage_dir, filename)
-        cv2.imwrite(file_path, img)
+        await asyncio.to_thread(cv2.imwrite, file_path, img)
         evidencia_url = f"/api/v2/biometria/evidencia/{filename}"
 
         safe_zona_id = None

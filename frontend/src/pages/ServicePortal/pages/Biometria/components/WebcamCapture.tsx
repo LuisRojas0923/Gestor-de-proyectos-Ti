@@ -51,17 +51,28 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({ onCapture, isLoading = fa
             const video = videoRef.current;
             const canvas = canvasRef.current;
             
-            // Establecer el tamaño del canvas al tamaño del video
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            // Optimización: Limitar la altura máxima a 720p (HD) para evitar enviar fotos 4K o 1080p pesadas
+            const MAX_HEIGHT = 720;
+            let width = video.videoWidth;
+            let height = video.videoHeight;
+            
+            if (height > MAX_HEIGHT) {
+                const ratio = width / height;
+                height = MAX_HEIGHT;
+                width = height * ratio;
+            }
+            
+            // Establecer el tamaño del canvas al nuevo tamaño optimizado
+            canvas.width = width;
+            canvas.height = height;
             
             const context = canvas.getContext('2d');
             if (context) {
-                // Dibujar el frame actual del video en el canvas
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                // Dibujar el frame actual del video en el canvas escalado
+                context.drawImage(video, 0, 0, width, height);
                 
-                // Mostrar vista previa local con base64
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                // Mostrar vista previa local con base64 (Calidad 0.7 es perfecta para pantallas)
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
                 setCapturedImage(dataUrl); 
                 
                 // Extraer el archivo binario (Blob) para enviar
@@ -73,7 +84,7 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({ onCapture, isLoading = fa
                         console.error("Error al generar el Blob de la imagen");
                         setError("Error al capturar la imagen. Intenta de nuevo.");
                     }
-                }, 'image/jpeg', 0.8);
+                }, 'image/jpeg', 0.7);
             }
         }
     }, [onCapture, stopCamera]);

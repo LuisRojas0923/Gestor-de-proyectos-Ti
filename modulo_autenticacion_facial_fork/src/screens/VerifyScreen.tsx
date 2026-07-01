@@ -104,18 +104,6 @@ export default function VerifyScreen() {
         skipProcessing: true,
       });
 
-      const online = await healthCheck();
-      if (!online) {
-        setIsCapturing(false);
-        showErrorBanner(
-          'cloud-offline-outline',
-          'Servidor No Disponible',
-          'No se pudo conectar con el servidor principal. Verifica que el backend esté en ejecución en el puerto 8000.',
-          COLORS.warning
-        );
-        return;
-      }
-
       if (!currentUser || !currentUserProfile) {
         setIsCapturing(false);
         showErrorBanner(
