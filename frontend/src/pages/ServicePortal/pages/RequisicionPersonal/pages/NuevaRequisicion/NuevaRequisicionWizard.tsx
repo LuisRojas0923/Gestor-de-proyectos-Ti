@@ -164,8 +164,18 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
         </div>
       )}
 
-      {/* PASO 1: FORMULARIO */}
-      {pasoActual === 1 && (
+      <style>{`
+        .nueva-req-form .text-base { font-size: 14px !important; line-height: 20px !important; }
+        .nueva-req-form .text-sm { font-size: 12px !important; line-height: 16px !important; }
+        .nueva-req-form .text-xs { font-size: 10px !important; line-height: 14px !important; }
+        .nueva-req-form .text-\\[11px\\] { font-size: 9px !important; }
+        .nueva-req-form .text-\\[10px\\] { font-size: 8px !important; }
+        .nueva-req-form .text-lg { font-size: 16px !important; }
+      `}</style>
+
+      <div className="nueva-req-form">
+        {/* PASO 1: FORMULARIO */}
+        {pasoActual === 1 && (
         <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
           {isModificacionSalarial && (
             <div className="p-4 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center gap-2">
@@ -175,8 +185,8 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
           )}
 
           {/* SECCIÓN 1 */}
-          <section className={`bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden shadow-sm ${isModificacionSalarial ? "pointer-events-none opacity-60" : ""}`}>
-            <div className="bg-slate-50 dark:bg-neutral-800/50 px-6 py-4 border-b border-[var(--color-border)]">
+          <section className={`bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-visible shadow-sm ${isModificacionSalarial ? "pointer-events-none opacity-60" : ""}`}>
+            <div className="bg-slate-50 dark:bg-neutral-800/50 px-6 py-4 border-b border-[var(--color-border)] rounded-t-2xl">
               <Title variant="h6" className="text-[var(--color-primary)] flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">1</span>
                 DATOS GENERALES Y UBICACIÓN
@@ -188,8 +198,8 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
           </section>
 
           {/* SECCIÓN 2 */}
-          <section className={`bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden shadow-sm ${isModificacionSalarial ? "pointer-events-none opacity-60" : ""}`}>
-            <div className="bg-slate-50 dark:bg-neutral-800/50 px-6 py-4 border-b border-[var(--color-border)]">
+          <section className={`bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-visible shadow-sm ${isModificacionSalarial ? "pointer-events-none opacity-60" : ""}`}>
+            <div className="bg-slate-50 dark:bg-neutral-800/50 px-6 py-4 border-b border-[var(--color-border)] rounded-t-2xl">
               <Title variant="h6" className="text-[var(--color-primary)] flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">2</span>
                 ÁREA, CARGO Y PERFIL
@@ -201,8 +211,8 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
           </section>
 
           {/* SECCIÓN 3 */}
-          <section className={`bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden shadow-sm ${isModificacionSalarial ? "pointer-events-none opacity-60" : ""}`}>
-            <div className="bg-slate-50 dark:bg-neutral-800/50 px-6 py-4 border-b border-[var(--color-border)]">
+          <section className={`bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-visible shadow-sm ${isModificacionSalarial ? "pointer-events-none opacity-60" : ""}`}>
+            <div className="bg-slate-50 dark:bg-neutral-800/50 px-6 py-4 border-b border-[var(--color-border)] rounded-t-2xl">
               <Title variant="h6" className="text-[var(--color-primary)] flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">3</span>
                 EQUIPOS Y DOTACIÓN
@@ -310,6 +320,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
             </>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

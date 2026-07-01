@@ -40,20 +40,25 @@ export const SeccionResumenConfirmacion: React.FC<Props> = ({
             <MapPin className="w-4 h-4 text-[var(--color-primary)]" />
             <Title variant="subtitle2" weight="bold">Datos Generales y Ubicación</Title>
           </div>
-          <div className="p-4 grid grid-cols-2 gap-3">
+          <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Fila 1 */}
             <SummaryItem label="Solicitante" value={nombreSolicitante} />
             <SummaryItem label="Correo" value={correoSolicitante} />
             <SummaryItem label="Ubicación" value={`${form.municipio}, ${form.departamento}`} />
+            
+            {/* Fila 2 */}
             <SummaryItem label="Orden de Trabajo (OT)" value={form.ot} />
             <SummaryItem label="Nombre Obra / Proyecto" value={form.nombre_obra_proyecto} />
             <SummaryItem label="Dirección Obra" value={form.direccion_obra_proyecto} />
+            
+            {/* Fila 3 */}
             <SummaryItem label="Encargado en sitio" value={form.encargado_sitio} />
             <SummaryItem label="N° Personas" value={form.numero_personas_requeridas} />
             <SummaryItem label="TSA" value={form.tsa} />
+            
+            {/* Fila 4 */}
             <SummaryItem label="Duración" value={form.duracion_obra_contrato} />
-            <div className="col-span-2">
-              <SummaryItem label="Fecha probable de ingreso" value={form.fecha_probable_ingreso} />
-            </div>
+            <SummaryItem label="Fecha probable de ingreso" value={form.fecha_probable_ingreso} />
           </div>
         </div>
 

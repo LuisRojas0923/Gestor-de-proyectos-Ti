@@ -50,57 +50,55 @@ export const SeccionCondicionesContratacion: React.FC<Props> = ({ form, update, 
   const isTipoContratoBloqueado = isModificacionSalarial || form.modalidad_contratacion === 'AGENCIA TEMPORAL' || form.modalidad_contratacion === 'APRENDIZ CONVENIO SENA';
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="md:col-span-1">
-          <FormField
-            label="Salario asignado (COP)"
-            name="salario_asignado"
-            type="text"
-            value={form.salario_asignado}
-            onChange={e => handleNumericChange('salario_asignado', e.target.value)}
-            placeholder="Ej: 2.500.000"
-            icon={DollarSign}
-            isRequired={true}
-          />
-        </div>
-        <div className="md:col-span-1">
-          <Select
-            label="¿Tiene horas extras?"
-            name="horas_extras"
-            value={form.horas_extras}
-            onChange={e => update('horas_extras', e.target.value as 'SI' | 'NO')}
-            icon={Clock}
-            options={[{ value: 'NO', label: 'NO' }, { value: 'SI', label: 'SÍ' }]}
-            disabled={isModificacionSalarial}
-            required
-          />
-        </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 items-start">
+      <div className="col-span-1">
+        <FormField
+          label="Salario asignado (COP)"
+          name="salario_asignado"
+          type="text"
+          value={form.salario_asignado}
+          onChange={e => handleNumericChange('salario_asignado', e.target.value)}
+          placeholder="Ej: 2.500.000"
+          icon={DollarSign}
+          isRequired={true}
+        />
+      </div>
+      
+      <div className="col-span-1">
+        <Select
+          label="¿Tiene horas extras?"
+          name="horas_extras"
+          value={form.horas_extras}
+          onChange={e => update('horas_extras', e.target.value as 'SI' | 'NO')}
+          icon={Clock}
+          options={[{ value: 'NO', label: 'NO' }, { value: 'SI', label: 'SÍ' }]}
+          disabled={isModificacionSalarial}
+          required
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="md:col-span-1">
-          <Select
-            label="Modalidad de contratación"
-            name="modalidad_contratacion"
-            value={form.modalidad_contratacion}
-            onChange={e => handleModalidadChange(e.target.value)}
-            options={MODALIDADES}
-            disabled={isModificacionSalarial}
-            required
-          />
-        </div>
-        <div className="md:col-span-1">
-          <Select
-            label="Tipo de contratación"
-            name="tipo_contratacion"
-            value={form.tipo_contratacion}
-            onChange={e => update('tipo_contratacion', e.target.value)}
-            options={TIPOS_CONTRATO}
-            disabled={isTipoContratoBloqueado}
-            required
-          />
-        </div>
+      <div className="col-span-1">
+        <Select
+          label="Modalidad de contratación"
+          name="modalidad_contratacion"
+          value={form.modalidad_contratacion}
+          onChange={e => handleModalidadChange(e.target.value)}
+          options={MODALIDADES}
+          disabled={isModificacionSalarial}
+          required
+        />
+      </div>
+      
+      <div className="col-span-1">
+        <Select
+          label="Tipo de contratación"
+          name="tipo_contratacion"
+          value={form.tipo_contratacion}
+          onChange={e => update('tipo_contratacion', e.target.value)}
+          options={TIPOS_CONTRATO}
+          disabled={isTipoContratoBloqueado}
+          required
+        />
       </div>
     </div>
   );

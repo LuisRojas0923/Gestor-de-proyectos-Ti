@@ -41,18 +41,17 @@ const AutocompleteObjectField = ({
   };
 
   const handleBlur = () => {
-    setTimeout(() => {
-      setShowDropdown(false);
-      // Validamos si lo que escribió corresponde a un cargo válido
-      const match = options.find(o => o.label.toLowerCase() === searchTerm.toLowerCase());
-      if (match) {
-        setSearchTerm(match.label);
-        onChange(match.value);
-      } else {
-        setSearchTerm('');
-        onChange('');
-      }
-    }, 200);
+    // Al quitar el setTimeout, evitamos problemas de closure con searchTerm.
+    // Usamos onMouseDown en lugar de onClick en los botones para que el evento se dispare antes de perder el foco.
+    setShowDropdown(false);
+    const match = options.find(o => o.label.toLowerCase() === searchTerm.toLowerCase());
+    if (match) {
+      setSearchTerm(match.label);
+      onChange(match.value);
+    } else {
+      setSearchTerm('');
+      onChange('');
+    }
   };
 
   return (
@@ -79,7 +78,10 @@ const AutocompleteObjectField = ({
                 variant="custom"
                 key={o.value}
                 type="button"
-                onClick={() => handleSelect(o.value, o.label)}
+                onMouseDown={(e) => {
+                  e.preventDefault(); // Evita que se dispare el onBlur antes del click
+                  handleSelect(o.value, o.label);
+                }}
                 className="w-full !justify-start px-4 py-3 bg-white dark:bg-neutral-800 hover:bg-slate-50 dark:hover:bg-neutral-700 transition-colors rounded-none"
               >
                 <Text as="span" className="font-bold text-sm text-[var(--color-text-primary)]">{o.label}</Text>

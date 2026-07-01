@@ -195,6 +195,55 @@ const AsyncOTAutocompleteField = ({
   );
 };
 
+const RadioCheckGroup = ({
+  label, name, value, onChange, options, required, labelHint
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: { label: string; value: string }[];
+  required?: boolean;
+  labelHint?: string;
+}) => {
+  return (
+    <div className="flex flex-col gap-1.5 h-full justify-start">
+      <label className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-1">
+        {label}
+        {required && <span className="text-red-500">*</span>}
+        {labelHint && <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1 truncate" title={labelHint}>{labelHint}</span>}
+      </label>
+      <div className="flex flex-wrap gap-4 mt-2">
+        {options.map((opt) => {
+          const isSelected = value === opt.value;
+          return (
+            <label
+              key={opt.value}
+              className="flex items-center gap-2 cursor-pointer group"
+              onClick={() => onChange(opt.value)}
+            >
+              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                isSelected 
+                  ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' 
+                  : 'bg-white border-slate-300 dark:border-slate-600 group-hover:border-[var(--color-primary)]'
+              }`}>
+                {isSelected && (
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className={`text-sm font-medium transition-colors ${isSelected ? 'text-[var(--color-text-primary)]' : 'text-slate-600 dark:text-slate-400 group-hover:text-[var(--color-text-primary)]'}`}>
+                {opt.label}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export const SeccionDatosGenerales: React.FC<Props> = ({ form, update, correoSolicitante, nombreSolicitante, setBloquearEnvio }) => {
   const [validatingOt, setValidatingOt] = useState(false);
   const [otError, setOtError] = useState<string | null>(null);
@@ -357,13 +406,12 @@ export const SeccionDatosGenerales: React.FC<Props> = ({ form, update, correoSol
         </div>
 
         <div className="col-span-1">
-          <Select
+          <RadioCheckGroup
             label="TSA"
             name="tsa"
             value={form.tsa}
-            onChange={e => update('tsa', e.target.value)}
+            onChange={val => update('tsa', val)}
             options={[
-              { value: '', label: 'SELECCIONAR...' },
               { value: 'APLICA', label: 'APLICA' },
               { value: 'NO APLICA', label: 'NO APLICA' },
             ]}
@@ -373,13 +421,12 @@ export const SeccionDatosGenerales: React.FC<Props> = ({ form, update, correoSol
         </div>
 
         <div className="col-span-1">
-          <Select
+          <RadioCheckGroup
             label="Duración"
             name="duracion_obra_contrato"
             value={form.duracion_obra_contrato}
-            onChange={e => update('duracion_obra_contrato', e.target.value)}
+            onChange={val => update('duracion_obra_contrato', val)}
             options={[
-              { value: '', label: 'SELECCIONAR...' },
               { value: '2 MESES', label: '2 MESES' },
               { value: 'MÁS DE 2 MESES', label: 'MÁS DE 2 MESES' },
             ]}
