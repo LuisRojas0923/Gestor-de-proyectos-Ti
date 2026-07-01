@@ -11,7 +11,7 @@ import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'biometria' | 'biometria-admin') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'biometria') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -178,18 +178,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         {
             key: 'biometria',
             canSee: true,
-            title: "Autenticación Facial",
-            description: "Registra tu asistencia mediante reconocimiento facial.",
+            title: ['admin'].includes(userRole) ? "Biometría y Asistencia" : "Autenticación Facial",
+            description: ['admin'].includes(userRole) ? "Registra tu asistencia, audita registros y administra zonas de geocerca." : "Registra tu asistencia mediante reconocimiento facial.",
             icon: <ScanFace className="w-8 h-8 text-[var(--color-primary)]" />,
             onClick: () => onNavigate('biometria')
-        },
-        {
-            key: 'biometria-admin',
-            canSee: ['admin'].includes(userRole),
-            title: "Admin Biometría",
-            description: "Gestiona zonas de geocerca y audita las asistencias.",
-            icon: <MapPin className="w-8 h-8 text-blue-600" />,
-            onClick: () => onNavigate('biometria-admin')
         }
     ];
 
