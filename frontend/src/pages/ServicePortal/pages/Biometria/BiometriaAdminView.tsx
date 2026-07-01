@@ -42,6 +42,12 @@ const BiometriaAdminView: React.FC = () => {
     // States for Asistencias
     const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
     const [isLoadingAsistencias, setIsLoadingAsistencias] = useState(false);
+    const [searchCedula, setSearchCedula] = useState('');
+
+    const filteredAsistencias = useMemo(() => {
+        if (!searchCedula.trim()) return asistencias;
+        return asistencias.filter(a => a.userId.toLowerCase().includes(searchCedula.toLowerCase().trim()));
+    }, [asistencias, searchCedula]);
 
     const fetchZonas = async () => {
         setIsLoadingZonas(true);
@@ -116,6 +122,30 @@ const BiometriaAdminView: React.FC = () => {
             console.error("Error deleting zona", error);
             addNotification('error', 'Error al eliminar la zona');
         }
+    };
+
+    const handleGetCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            addNotification('error', 'Tu navegador no soporta geolocalización');
+            return;
+        }
+        
+        addNotification('info', 'Obteniendo ubicación...');
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setNewZona(prev => ({
+                    ...prev,
+                    latitud: position.coords.latitude.toString(),
+                    longitud: position.coords.longitude.toString()
+                }));
+                addNotification('success', 'Ubicación obtenida correctamente');
+            },
+            (error) => {
+                console.error("Error getting location", error);
+                addNotification('error', 'No se pudo obtener la ubicación. Verifica los permisos.');
+            },
+            { enableHighAccuracy: true }
+        );
     };
 
     const openGoogleMaps = (lat: number, lng: number) => {
@@ -240,11 +270,19 @@ const BiometriaAdminView: React.FC = () => {
             {/* Tab Content: Asistencias */}
             {activeTab === 'asistencias' && (
                 <MaterialCard className="p-4 md:p-6 overflow-hidden">
+                    <div className="mb-4">
+                        <Input 
+                            placeholder="Buscar por cédula (ej. USR-123)..." 
+                            value={searchCedula}
+                            onChange={(e) => setSearchCedula(e.target.value)}
+                            className="max-w-xs"
+                        />
+                    </div>
                     {isLoadingAsistencias ? (
                         <div className="flex justify-center p-8"><Spinner size="lg" /></div>
                     ) : (
                         <DataTable 
-                            data={asistencias} 
+                            data={filteredAsistencias} 
                             columns={columnsAsistencias} 
                             keyExtractor={(row) => row.id.toString()}
                         />
@@ -266,6 +304,16 @@ const BiometriaAdminView: React.FC = () => {
                                     onChange={(e) => setNewZona({...newZona, nombre: e.target.value})}
                                     required
                                 />
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm" 
+                                    icon={MapPin}
+                                    onClick={handleGetCurrentLocation}
+                                    className="w-full text-sm"
+                                >
+                                    Usar mi ubicación actual
+                                </Button>
                                 <Input 
                                     label="Latitud"
                                     placeholder="Ej. 4.6097"

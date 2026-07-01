@@ -99,6 +99,14 @@ const BiometriaDashboard: React.FC = () => {
     }, [location, zonas]);
 
     const handleCapture = async (blobImage: Blob) => {
+        // Validación de Geocerca
+        if (!isEnrolling && zonas.length > 0 && !nearestZone) {
+            addNotification('warning', 'Estás fuera de la zona de registro.');
+            setResult('error');
+            setResultMessage('Acércate a una zona de registro permitida para marcar tu asistencia.');
+            return;
+        }
+
         setIsLoading(true);
         setResult(null);
         setResultMessage('');
