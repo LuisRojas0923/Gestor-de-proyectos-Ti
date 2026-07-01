@@ -5,6 +5,96 @@ import { TextAreaField } from '../../../Common';
 import type { FormularioRP, AreaRP, CargoRP, AprobadorRP } from '../../types/requisicion.types';
 import { getAreas, getCargos } from '../../services/requisicionService';
 import { CentroCostoService } from '../../../../../../services/CentroCostoService';
+import { ModalSimuladorCentroCosto } from './ModalSimuladorCentroCosto';
+
+const AutocompleteObjectField = ({
+  label, name, value, onChange, options, placeholder, icon, disabled = false, required = false, labelHint
+}: {
+  label: string, name: string, value: string, onChange: (val: string) => void, options: {value: string, label: string}[], placeholder: string, icon: any, disabled?: boolean, required?: boolean, labelHint?: string
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!value) {
+      setSearchTerm('');
+    } else {
+      const match = options.find(o => o.value === value);
+      if (match) setSearchTerm(match.label);
+    }
+  }, [value, options]);
+
+  const filtered = options
+    .filter(o => o.label.toLowerCase().includes(searchTerm.toLowerCase()))
+    .slice(0, 50);
+
+  const handleSelect = (val: string, lbl: string) => {
+    setSearchTerm(lbl);
+    setShowDropdown(false);
+    onChange(val);
+  };
+
+  const handleInputChange = (val: string) => {
+    setSearchTerm(val);
+    setShowDropdown(true);
+    // No disparamos onChange('') aquí para permitir que el usuario escriba sin que el useEffect blanquee el input.
+  };
+
+  const handleBlur = () => {
+    setTimeout(() => {
+      setShowDropdown(false);
+      // Validamos si lo que escribió corresponde a un cargo válido
+      const match = options.find(o => o.label.toLowerCase() === searchTerm.toLowerCase());
+      if (match) {
+        setSearchTerm(match.label);
+        onChange(match.value);
+      } else {
+        setSearchTerm('');
+        onChange('');
+      }
+    }, 200);
+  };
+
+  return (
+    <div className="relative flex-1">
+      <Input
+        label={label}
+        name={name}
+        value={searchTerm}
+        onChange={e => handleInputChange(e.target.value)}
+        onFocus={() => setShowDropdown(true)}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        icon={icon}
+        autoComplete="off"
+        labelHint={labelHint}
+      />
+      {showDropdown && !disabled && (
+        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-[var(--color-border)] rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-[var(--color-border)] transition-all">
+          {filtered.length > 0 ? (
+            filtered.map(o => (
+              <Button
+                variant="custom"
+                key={o.value}
+                type="button"
+                onClick={() => handleSelect(o.value, o.label)}
+                className="w-full !justify-start px-4 py-3 bg-white dark:bg-neutral-800 hover:bg-slate-50 dark:hover:bg-neutral-700 transition-colors rounded-none"
+              >
+                <Text as="span" className="font-bold text-sm text-[var(--color-text-primary)]">{o.label}</Text>
+              </Button>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-xs text-red-500 font-medium">
+              No hay coincidencias
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface Props {
   form: FormularioRP;
@@ -36,6 +126,12 @@ export const SeccionAreaCargo: React.FC<Props> = ({ form, update, aprobadores })
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedBreakdown, setSelectedBreakdown] = useState<string>('');
+  
+  // Datos para el simulador
+  const [uens, setUens] = useState<any[]>([]);
+  const [subcentros, setSubcentros] = useState<any[]>([]);
+  const [especialidades, setEspecialidades] = useState<any[]>([]);
+  const [isSimuladorOpen, setIsSimuladorOpen] = useState(false);
 
   // Cargar áreas
   useEffect(() => {
@@ -52,6 +148,10 @@ export const SeccionAreaCargo: React.FC<Props> = ({ form, update, aprobadores })
       const activeUens = u.filter(x => x.activo);
       const activeSubcentros = s.filter(x => x.activo);
       const activeEspecialidades = e.filter(x => x.activo);
+
+      setUens(activeUens);
+      setSubcentros(activeSubcentros);
+      setEspecialidades(activeEspecialidades);
 
       const list: { code: string; label: string }[] = [];
       activeUens.forEach(uen => {
@@ -107,10 +207,7 @@ export const SeccionAreaCargo: React.FC<Props> = ({ form, update, aprobadores })
     ...areas.map(a => ({ value: String(a.id), label: a.nombre })),
   ];
 
-  const cargoOptions = [
-    { value: '', label: loadingCargos ? 'CARGANDO CARGOS...' : 'SELECCIONAR CARGO...' },
-    ...cargos.map(c => ({ value: String(c.id), label: c.nombre.toUpperCase() })),
-  ];
+  const cargoOptions = cargos.map(c => ({ value: String(c.id), label: c.nombre.toUpperCase() }));
 
   const directoresDelArea = aprobadores.filter(
     a => a.activo && a.area_id === form.area_id
@@ -161,14 +258,13 @@ export const SeccionAreaCargo: React.FC<Props> = ({ form, update, aprobadores })
             <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
               Centro de costo <Text as="span" color="error" className="ml-1">*</Text>
             </Text>
-            <a
-              href="/service-portal/centro-costos?tab=combinador"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] md:text-xs text-[var(--color-primary)] hover:underline font-medium text-right whitespace-nowrap"
+            <button
+              type="button"
+              onClick={() => setIsSimuladorOpen(true)}
+              className="text-[11px] md:text-xs text-[var(--color-primary)] hover:underline font-medium text-right whitespace-nowrap bg-transparent border-none cursor-pointer"
             >
               ¿No lo conoce? Simulador aquí
-            </a>
+            </button>
           </div>
           <Input
             name="centro_costo"
@@ -238,13 +334,14 @@ export const SeccionAreaCargo: React.FC<Props> = ({ form, update, aprobadores })
         </div>
 
         <div className="md:col-span-2">
-          <Select
+          <AutocompleteObjectField
             label="Cargo solicitado"
             name="cargo_id"
             value={form.cargo_id ? String(form.cargo_id) : ''}
-            onChange={e => update('cargo_id', e.target.value ? Number(e.target.value) : null)}
+            onChange={val => update('cargo_id', val ? Number(val) : null)}
             icon={Briefcase}
             options={cargoOptions}
+            placeholder={loadingCargos ? 'Cargando cargos...' : 'Escribe para buscar el cargo...'}
             disabled={!form.area_id || loadingCargos}
             required
             labelHint="Si el cargo no se encuentra dentro de las opciones, por favor diríjase al área de Gestión Humana."
@@ -311,6 +408,18 @@ export const SeccionAreaCargo: React.FC<Props> = ({ form, update, aprobadores })
         placeholder="Experiencia, formación, conocimientos técnicos, certificaciones, competencias y condiciones especiales requeridas..."
         rows={5}
         isRequired={true}
+      />
+
+      <ModalSimuladorCentroCosto
+        isOpen={isSimuladorOpen}
+        onClose={() => setIsSimuladorOpen(false)}
+        uens={uens}
+        subcentros={subcentros}
+        especialidades={especialidades}
+        onSelect={(codigo, label) => {
+          handleCCSelect(codigo, label);
+          setIsSimuladorOpen(false);
+        }}
       />
     </div>
   );
