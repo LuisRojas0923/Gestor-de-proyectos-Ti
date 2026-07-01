@@ -1,7 +1,6 @@
-// Paso 4: Requisitos del nuevo colaborador
 import React from 'react';
 import { Monitor, Smartphone, Package, Code } from 'lucide-react';
-import { Input, Select, Text, Title } from '../../../../../../components/atoms';
+import { Input, Select, Text } from '../../../../../../components/atoms';
 import { TextAreaField } from '../../../Common';
 import type { FormularioRP } from '../../types/requisicion.types';
 
@@ -65,14 +64,12 @@ const SiNoSelect: React.FC<{
   />
 );
 
-const Step4Requisitos: React.FC<Props> = ({ form, update }) => (
+export const SeccionEquiposDotacion: React.FC<Props> = ({ form, update }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-8">
-    {/* Columna Izquierda: Equipos */}
     <div className="space-y-8">
-      {/* Equipos de oficina */}
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="md:col-span-1">
+          <div className="md:col-span-2">
             <SiNoSelect label="¿Necesita equipos de oficina?" name="necesita_equipos_oficina"
               value={form.necesita_equipos_oficina}
               onChange={v => { update('necesita_equipos_oficina', v); if (v === 'NO') update('equipos_oficina', []); }}
@@ -86,10 +83,9 @@ const Step4Requisitos: React.FC<Props> = ({ form, update }) => (
         )}
       </div>
 
-      {/* Equipos tecnológicos */}
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="md:col-span-1">
+          <div className="md:col-span-2">
             <SiNoSelect label="¿Necesita equipos tecnológicos?" name="necesita_equipos_tecnologicos"
               value={form.necesita_equipos_tecnologicos}
               onChange={v => { update('necesita_equipos_tecnologicos', v); if (v === 'NO') update('equipos_tecnologicos', []); }}
@@ -104,12 +100,10 @@ const Step4Requisitos: React.FC<Props> = ({ form, update }) => (
       </div>
     </div>
 
-    {/* Columna Derecha: SIMCARD y Programas */}
     <div className="space-y-8">
-      {/* SIMCARD */}
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="md:col-span-1">
+          <div className="md:col-span-2">
             <SiNoSelect label="¿Requiere SIMCARD?" name="requiere_simcard"
               value={form.requiere_simcard}
               onChange={v => { update('requiere_simcard', v); if (v === 'NO') update('tipo_plan_simcard', ''); }}
@@ -119,7 +113,7 @@ const Step4Requisitos: React.FC<Props> = ({ form, update }) => (
         </div>
         {form.requiere_simcard === 'SI' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="md:col-span-1">
+            <div className="md:col-span-2">
               <Select label="Tipo de plan SIMCARD" name="tipo_plan_simcard"
                 value={form.tipo_plan_simcard}
                 onChange={e => update('tipo_plan_simcard', e.target.value)}
@@ -131,10 +125,9 @@ const Step4Requisitos: React.FC<Props> = ({ form, update }) => (
         )}
       </div>
 
-      {/* Programas especiales */}
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="md:col-span-1">
+          <div className="md:col-span-2">
             <SiNoSelect label="¿Requiere programas especiales?" name="requiere_programas_especiales"
               value={form.requiere_programas_especiales}
               onChange={v => { update('requiere_programas_especiales', v); if (v === 'NO') update('programas_especiales', ''); }}
@@ -155,4 +148,4 @@ const Step4Requisitos: React.FC<Props> = ({ form, update }) => (
   </div>
 );
 
-export default Step4Requisitos;
+export default SeccionEquiposDotacion;

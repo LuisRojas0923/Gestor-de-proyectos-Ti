@@ -14,12 +14,17 @@ class RequisicionesService:
         db_erp: Session, busqueda: Optional[str] = None, limit: int = 100
     ):
         """Obtiene el listado de OTS (Ordenes de Trabajo) para el autocompletado del formulario."""
-        query = "SELECT * FROM otsistemasolicitudes"
+        query = "SELECT * FROM otsistemasolicitudes o"
         params: Dict[str, Any] = {}
+        
+        where_clauses = ["EXISTS (SELECT 1 FROM basegeneralcostos b WHERE b.orden = o.orden AND UPPER(COALESCE(b.estado, '')) != 'TERMINADO')"]
 
         if busqueda:
-            query += " WHERE orden ILIKE :busqueda OR cliente ILIKE :busqueda OR especialidad ILIKE :busqueda"
+            where_clauses.append("(o.orden ILIKE :busqueda OR o.cliente ILIKE :busqueda OR o.especialidad ILIKE :busqueda)")
             params["busqueda"] = f"%{busqueda}%"
+            
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
 
         query += " LIMIT :limit"
         params["limit"] = limit

@@ -1,6 +1,6 @@
 // Detalle completo de una Requisición de Personal
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, MessageCircle, Send } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Send, MapPin, Layers, DollarSign, Package } from 'lucide-react';
 import { Button, Title, Text, Input } from '../../../../../components/atoms';
 import RPStatusBadge from '../components/RPStatusBadge';
 import RPTimeline from '../components/RPTimeline';
@@ -12,12 +12,16 @@ interface Props {
   onBack: () => void;
 }
 
-const Fila: React.FC<{ label: string; valor?: string | number | null }> = ({ label, valor }) => (
-  <div className="grid grid-cols-2 gap-4 py-2.5 border-b border-[var(--color-border)] last:border-0">
-    <Text variant="caption" color="primary">{label}</Text>
-    <Text variant="body" className="font-medium">{valor || '—'}</Text>
-  </div>
-);
+const SummaryItem = ({ label, value, highlight = false }: { label: string; value: React.ReactNode; highlight?: boolean }) => {
+  return (
+    <div className={`p-3 rounded-lg ${highlight ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30' : 'bg-slate-50 dark:bg-neutral-800/50'}`}>
+      <Text variant="caption" className="text-slate-500 dark:text-slate-400 font-medium mb-1 block uppercase text-[10px] tracking-wider">{label}</Text>
+      <Text variant="body2" className={`font-semibold ${highlight ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}`}>
+        {value || <span className="text-slate-400 italic font-normal">—</span>}
+      </Text>
+    </div>
+  );
+};
 
 const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
   const [req, setReq] = useState<RequisicionRP | null>(null);
@@ -92,68 +96,87 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Columna principal */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Sección 1 */}
-          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6">
-            <Title variant="h6" weight="bold" className="mb-4 text-[var(--color-text-secondary)] uppercase tracking-wider text-xs">
-              Datos Generales
-            </Title>
-            <Fila label="Ubicación" valor={req.departamento && req.municipio ? `${req.departamento} — ${req.municipio}` : '—'} />
-            <Fila label="OT" valor={req.ot} />
-            <Fila label="Obra / Proyecto" valor={req.nombre_obra_proyecto} />
-            <Fila label="Dirección" valor={req.direccion_obra_proyecto} />
-            <Fila label="Encargado en sitio" valor={req.encargado_sitio} />
-            <Fila label="N° personas requeridas" valor={req.numero_personas_requeridas} />
-            <Fila label="TSA" valor={req.tsa} />
-            <Fila label="Duración" valor={req.duracion_obra_contrato} />
-            <Fila label="Fecha probable ingreso" valor={req.fecha_probable_ingreso} />
-            <Fila label="Centro de costo" valor={req.centro_costo} />
-          </div>
-
-          {/* Perfil requerido */}
-          {req.perfil_requerido && (
-            <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6">
-              <Title variant="h6" weight="bold" className="mb-3 text-[var(--color-text-secondary)] uppercase tracking-wider text-xs">
-                Perfil Requerido
-              </Title>
-              <Text variant="body" className="whitespace-pre-wrap">{req.perfil_requerido}</Text>
+        <div className="lg:col-span-2 flex flex-col gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* BLOQUE 1: DATOS GENERALES */}
+            <div className="bg-white dark:bg-neutral-900 border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-slate-50 dark:bg-neutral-800/80 px-4 py-3 border-b border-[var(--color-border)] flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[var(--color-primary)]" />
+                <Title variant="subtitle2" weight="bold">Datos Generales y Ubicación</Title>
+              </div>
+              <div className="p-4 grid grid-cols-2 gap-3">
+                <SummaryItem label="Ubicación" value={req.departamento && req.municipio ? `${req.municipio}, ${req.departamento}` : '—'} />
+                <SummaryItem label="Orden de Trabajo (OT)" value={req.ot} />
+                <SummaryItem label="Nombre Obra / Proyecto" value={req.nombre_obra_proyecto} />
+                <SummaryItem label="Dirección Obra" value={req.direccion_obra_proyecto} />
+                <SummaryItem label="Encargado en sitio" value={req.encargado_sitio} />
+                <SummaryItem label="N° Personas" value={req.numero_personas_requeridas} />
+                <SummaryItem label="TSA" value={req.tsa} />
+                <SummaryItem label="Duración" value={req.duracion_obra_contrato} />
+                <div className="col-span-2">
+                  <SummaryItem label="Fecha probable de ingreso" value={req.fecha_probable_ingreso} />
+                </div>
+              </div>
             </div>
-          )}
 
-          {/* Área, cargo, causal */}
-          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6">
-            <Title variant="h6" weight="bold" className="mb-4 text-[var(--color-text-secondary)] uppercase tracking-wider text-xs">
-              Área, Cargo y Causal
-            </Title>
-            <Fila label="Área" valor={req.area_nombre} />
-            <Fila label="Cargo" valor={req.cargo_nombre} />
-            <Fila label="Causal" valor={req.causal_requisicion} />
-            {req.otra_causal && <Fila label="Detalle causal" valor={req.otra_causal} />}
-          </div>
+            {/* BLOQUE 2: ÁREA, CARGO Y PERFIL */}
+            <div className="bg-white dark:bg-neutral-900 border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-slate-50 dark:bg-neutral-800/80 px-4 py-3 border-b border-[var(--color-border)] flex items-center gap-2">
+                <Layers className="w-4 h-4 text-[var(--color-primary)]" />
+                <Title variant="subtitle2" weight="bold">Área, Cargo y Causal</Title>
+              </div>
+              <div className="p-4 grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <SummaryItem label="Centro de costo" value={req.centro_costo} />
+                </div>
+                <SummaryItem label="Área" value={req.area_nombre} />
+                <SummaryItem label="Cargo Solicitado" value={req.cargo_nombre} />
+                <SummaryItem label="Causal de Requisición" value={req.causal_requisicion} />
+                {req.otra_causal && (
+                  <SummaryItem label="Otra causal" value={req.otra_causal} />
+                )}
+                <div className="col-span-2">
+                  <SummaryItem label="Perfil Requerido" value={req.perfil_requerido} />
+                </div>
+              </div>
+            </div>
 
-          {/* Contratación */}
-          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6">
-            <Title variant="h6" weight="bold" className="mb-4 text-[var(--color-text-secondary)] uppercase tracking-wider text-xs">
-              Contratación
-            </Title>
-            <Fila label="Salario" valor={salarioFormateado} />
-            <Fila label="Horas extras" valor={req.horas_extras} />
-            <Fila label="Modalidad" valor={req.modalidad_contratacion} />
-            <Fila label="Tipo de contrato" valor={req.tipo_contratacion} />
-            <Fila label="Auxilio movilización" valor={formatCOP(req.auxilio_movilizacion)} />
-            <Fila label="Auxilio alimentación" valor={formatCOP(req.auxilio_alimentacion)} />
-            <Fila label="Auxilio vivienda" valor={formatCOP(req.auxilio_vivienda)} />
-          </div>
+            {/* BLOQUE 3: CONTRATACIÓN Y AUXILIOS */}
+            <div className="bg-white dark:bg-neutral-900 border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-slate-50 dark:bg-neutral-800/80 px-4 py-3 border-b border-[var(--color-border)] flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-[var(--color-primary)]" />
+                <Title variant="subtitle2" weight="bold">Condiciones de Contratación y Auxilios</Title>
+              </div>
+              <div className="p-4 grid grid-cols-2 gap-3">
+                <SummaryItem label="Salario Asignado" value={salarioFormateado} />
+                <SummaryItem label="¿Horas Extras?" value={req.horas_extras} />
+                <SummaryItem label="Modalidad" value={req.modalidad_contratacion} />
+                <SummaryItem label="Tipo de Contrato" value={req.tipo_contratacion} />
+                <div className="col-span-2 grid grid-cols-3 gap-3 pt-2 border-t border-[var(--color-border)]">
+                  <SummaryItem label="Movilización" value={formatCOP(req.auxilio_movilizacion)} />
+                  <SummaryItem label="Alimentación" value={formatCOP(req.auxilio_alimentacion)} />
+                  <SummaryItem label="Vivienda" value={formatCOP(req.auxilio_vivienda)} />
+                </div>
+              </div>
+            </div>
 
-          {/* Equipos */}
-          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6">
-            <Title variant="h6" weight="bold" className="mb-4 text-[var(--color-text-secondary)] uppercase tracking-wider text-xs">
-              Equipos y Dotación
-            </Title>
-            <Fila label="Equipos de oficina" valor={req.equipos_oficina?.map(e => e.equipo).join(', ') || '—'} />
-            <Fila label="Equipos tecnológicos" valor={req.equipos_tecnologicos?.map(e => e.equipo).join(', ') || '—'} />
-            <Fila label="SIMCARD" valor={req.requiere_simcard === 'SI' ? `Sí — ${req.tipo_plan_simcard}` : 'No'} />
-            <Fila label="Programas especiales" valor={req.programas_especiales || (req.requiere_programas_especiales === 'NO' ? 'No' : undefined)} />
+            {/* BLOQUE 4: EQUIPOS Y DOTACIÓN */}
+            <div className="bg-white dark:bg-neutral-900 border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-slate-50 dark:bg-neutral-800/80 px-4 py-3 border-b border-[var(--color-border)] flex items-center gap-2">
+                <Package className="w-4 h-4 text-[var(--color-primary)]" />
+                <Title variant="subtitle2" weight="bold">Equipos e Implementos</Title>
+              </div>
+              <div className="p-4 grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <SummaryItem label="Equipos de Oficina" value={req.equipos_oficina?.length ? req.equipos_oficina.map(e => e.equipo).join(', ') : 'NO REQUERIDO'} />
+                </div>
+                <div className="col-span-2">
+                  <SummaryItem label="Equipos Tecnológicos" value={req.equipos_tecnologicos?.length ? req.equipos_tecnologicos.map(e => e.equipo).join(', ') : 'NO REQUERIDO'} />
+                </div>
+                <SummaryItem label="SIMCARD" value={req.requiere_simcard === 'SI' ? req.tipo_plan_simcard : 'NO'} />
+                <SummaryItem label="Programas Especiales" value={req.requiere_programas_especiales === 'SI' ? req.programas_especiales : 'NO'} />
+              </div>
+            </div>
           </div>
 
           {/* Comentarios */}

@@ -176,6 +176,12 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
               globalFilterText={searchText}
               onGlobalFilterChange={setSearchText}
               exportFileName="mis_requisiciones_rp.csv"
+              customSort={(a, b) => {
+                const dateA = a.fecha_radicacion ? new Date(a.fecha_radicacion).getTime() : 0;
+                const dateB = b.fecha_radicacion ? new Date(b.fecha_radicacion).getTime() : 0;
+                if (dateB !== dateA) return dateB - dateA;
+                return (b.id || 0) - (a.id || 0);
+              }}
             />
           </div>
         </div>

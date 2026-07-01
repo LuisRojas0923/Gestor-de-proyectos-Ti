@@ -1,7 +1,6 @@
-// Paso 5: Condiciones de Contratación
 import React from 'react';
-import { DollarSign, FileText, Clock } from 'lucide-react';
-import { Select, Title } from '../../../../../../components/atoms';
+import { DollarSign, Clock } from 'lucide-react';
+import { Select } from '../../../../../../components/atoms';
 import { FormField } from '../../../Common';
 import type { FormularioRP } from '../../types/requisicion.types';
 
@@ -26,14 +25,11 @@ interface Props {
   isModificacionSalarial?: boolean;
 }
 
-const Step5Contratacion: React.FC<Props> = ({ form, update, isModificacionSalarial }) => {
-  const handleNumericChange = (
-    campo: 'salario_asignado' | 'auxilio_movilizacion' | 'auxilio_alimentacion' | 'auxilio_vivienda',
-    rawValue: string
-  ) => {
+export const SeccionCondicionesContratacion: React.FC<Props> = ({ form, update, isModificacionSalarial }) => {
+  const handleNumericChange = (campo: 'salario_asignado', rawValue: string) => {
     const cleanValue = rawValue.replace(/\D/g, '');
     if (!cleanValue) {
-      update(campo, campo === 'salario_asignado' ? '' : '0');
+      update(campo, '');
       return;
     }
     const formatted = Number(cleanValue).toLocaleString('de-DE');
@@ -55,7 +51,7 @@ const Step5Contratacion: React.FC<Props> = ({ form, update, isModificacionSalari
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="md:col-span-1">
           <FormField
             label="Salario asignado (COP)"
@@ -65,10 +61,10 @@ const Step5Contratacion: React.FC<Props> = ({ form, update, isModificacionSalari
             onChange={e => handleNumericChange('salario_asignado', e.target.value)}
             placeholder="Ej: 2.500.000"
             icon={DollarSign}
-            isRequired
+            isRequired={true}
           />
         </div>
-        <div className="md:col-span-1 md:col-start-3">
+        <div className="md:col-span-1">
           <Select
             label="¿Tiene horas extras?"
             name="horas_extras"
@@ -82,8 +78,7 @@ const Step5Contratacion: React.FC<Props> = ({ form, update, isModificacionSalari
         </div>
       </div>
 
-      {/* Modalidad y tipo */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="md:col-span-1">
           <Select
             label="Modalidad de contratación"
@@ -95,7 +90,7 @@ const Step5Contratacion: React.FC<Props> = ({ form, update, isModificacionSalari
             required
           />
         </div>
-        <div className="md:col-span-1 md:col-start-3">
+        <div className="md:col-span-1">
           <Select
             label="Tipo de contratación"
             name="tipo_contratacion"
@@ -107,57 +102,8 @@ const Step5Contratacion: React.FC<Props> = ({ form, update, isModificacionSalari
           />
         </div>
       </div>
-
-      {/* Auxilios */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="md:col-span-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="md:col-span-1">
-              <FormField
-                label="Movilización"
-                name="auxilio_movilizacion"
-                type="text"
-                value={form.auxilio_movilizacion}
-                onChange={e => handleNumericChange('auxilio_movilizacion', e.target.value)}
-                icon={DollarSign}
-                placeholder="0"
-              />
-            </div>
-          </div>
-        </div>
-        <div className="md:col-span-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="md:col-span-1">
-              <FormField
-                label="Alimentación"
-                name="auxilio_alimentacion"
-                type="text"
-                value={form.auxilio_alimentacion}
-                onChange={e => handleNumericChange('auxilio_alimentacion', e.target.value)}
-                icon={DollarSign}
-                placeholder="0"
-              />
-            </div>
-          </div>
-        </div>
-        <div className="md:col-span-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="md:col-span-1">
-              <FormField
-                label="Vivienda"
-                name="auxilio_vivienda"
-                type="text"
-                value={form.auxilio_vivienda}
-                onChange={e => handleNumericChange('auxilio_vivienda', e.target.value)}
-                icon={DollarSign}
-                placeholder="0"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
 
-export default Step5Contratacion;
+export default SeccionCondicionesContratacion;

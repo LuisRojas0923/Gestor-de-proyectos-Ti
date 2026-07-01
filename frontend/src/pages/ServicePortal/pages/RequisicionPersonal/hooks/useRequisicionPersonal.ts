@@ -2,23 +2,11 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { FORMULARIO_INICIAL, FormularioRP } from '../types/requisicion.types';
 import * as api from '../services/requisicionService';
 
-export interface WizardStep {
-  id: number;
-  titulo: string;
-  descripcion: string;
-}
-
-export const PASOS: WizardStep[] = [
-  { id: 1, titulo: 'Formulario Completo',       descripcion: 'Diligenciamiento de todos los datos requeridos' },
-  { id: 2, titulo: 'Confirmación',              descripcion: 'Revise y declare los datos antes de enviar'             },
-];
-
 export function useRequisicionPersonal(
   correoSolicitante: string,
   nombreSolicitante: string,
   requisicionIdInicial?: number
 ) {
-  const [pasoActual, setPasoActual] = useState(1);
   const [form, setForm] = useState<FormularioRP>(FORMULARIO_INICIAL);
   const [requisicionId, setRequisicionId] = useState<number | undefined>(requisicionIdInicial);
   const [loading, setLoading] = useState(false);
@@ -31,8 +19,6 @@ export function useRequisicionPersonal(
     setRequisicionId(requisicionIdInicial);
   }, [requisicionIdInicial]);
 
-  const totalPasos = PASOS.length;
-
   const updateField = useCallback(<K extends keyof FormularioRP>(
     campo: K, valor: FormularioRP[K]
   ) => {
@@ -44,10 +30,6 @@ export function useRequisicionPersonal(
     }
     setForm(prev => ({ ...prev, [campo]: finalValue }));
   }, []);
-
-  const irAPaso = useCallback((paso: number) => {
-    if (paso >= 1 && paso <= totalPasos) setPasoActual(paso);
-  }, [totalPasos]);
 
   const formatThousands = (val: any): string => {
     if (val === null || val === undefined || val === '') return '';
@@ -102,78 +84,69 @@ export function useRequisicionPersonal(
     }
   }, [form, correoSolicitante, nombreSolicitante]);
 
-  const validarPaso = useCallback((paso: number): boolean => {
-    switch (paso) {
-      case 1:
-        // Datos generales
-        if (!(
-          form.departamento &&
-          form.municipio &&
-          form.nombre_obra_proyecto?.trim() &&
-          form.numero_personas_requeridas >= 1 &&
-          form.tsa &&
-          form.duracion_obra_contrato &&
-          form.fecha_probable_ingreso &&
-          form.centro_costo?.trim()
-        )) return false;
+  const validarFormulario = useCallback((): {valido: boolean, errores: string[]} => {
+    const errores: string[] = [];
 
-        // Área y Cargo
-        if (!(form.area_id && form.cargo_id)) return false;
+    // DATOS GENERALES Y UBICACIÓN
+    if (!form.departamento) errores.push("Departamento");
+    if (!form.municipio) errores.push("Municipio");
+    if (!form.ot?.trim()) errores.push("OT (Orden de Trabajo)");
+    if (!form.direccion_obra_proyecto?.trim()) errores.push("Dirección de obra o proyecto");
+    if (!form.nombre_obra_proyecto?.trim()) errores.push("Nombre obra / proyecto");
+    if (!form.encargado_sitio?.trim()) errores.push("Encargado en sitio");
+    if (form.numero_personas_requeridas < 1) errores.push("N° personas requeridas (mínimo 1)");
+    if (!form.tsa) errores.push("TSA");
+    if (!form.duracion_obra_contrato?.trim()) errores.push("Duración");
+    if (!form.fecha_probable_ingreso) errores.push("Fecha de ingreso");
 
-        // Causal
-        if (!form.causal_requisicion) return false;
-        if (form.causal_requisicion === 'OTRO' && !form.otra_causal?.trim()) return false;
-        if (!form.aprobador_id) return false;
+    // ÁREA, CARGO Y PERFIL
+    if (!form.centro_costo?.trim()) errores.push("Centro de costo");
+    if (!form.area_id) errores.push("Área");
+    if (!form.cargo_id) errores.push("Cargo solicitado");
+    if (!form.causal_requisicion) errores.push("Causal de requisición");
+    if (form.causal_requisicion === 'OTRO' && !form.otra_causal?.trim()) errores.push("Otra causal especificada");
+    if (!form.perfil_requerido?.trim()) errores.push("Perfil Requerido");
 
-        // Requisitos
-        if (form.necesita_equipos_oficina === 'SI' && form.equipos_oficina.length === 0) return false;
-        if (form.necesita_equipos_tecnologicos === 'SI' && form.equipos_tecnologicos.length === 0) return false;
-        if (form.requiere_simcard === 'SI' && !form.tipo_plan_simcard) return false;
-        if (form.requiere_programas_especiales === 'SI' && !form.programas_especiales?.trim()) return false;
+    // EQUIPOS Y DOTACIÓN
+    if (!form.necesita_equipos_oficina) errores.push("¿Necesita equipos de oficina?");
+    if (form.necesita_equipos_oficina === 'SI' && form.equipos_oficina.length === 0) errores.push("Detalle de equipos de oficina");
+    
+    if (!form.requiere_simcard) errores.push("¿Requiere SIMCARD?");
+    if (form.requiere_simcard === 'SI' && !form.tipo_plan_simcard?.trim()) errores.push("Tipo de plan SIMCARD");
+    
+    if (!form.necesita_equipos_tecnologicos) errores.push("¿Necesita equipos tecnológicos?");
+    if (form.necesita_equipos_tecnologicos === 'SI' && form.equipos_tecnologicos.length === 0) errores.push("Detalle de equipos tecnológicos");
+    
+    if (!form.requiere_programas_especiales) errores.push("¿Requiere programas especiales?");
+    if (form.requiere_programas_especiales === 'SI' && !form.programas_especiales?.trim()) errores.push("Detalle de programas especiales");
 
-        // Contratación
-        if (!(
-          form.salario_asignado?.trim() &&
-          form.horas_extras &&
-          form.modalidad_contratacion &&
-          form.tipo_contratacion
-        )) return false;
+    // CONDICIONES DE CONTRATACIÓN
+    if (!form.salario_asignado?.trim()) errores.push("Salario asignado (COP)");
+    if (!form.horas_extras) errores.push("¿Tiene horas extras?");
+    if (!form.modalidad_contratacion?.trim()) errores.push("Modalidad de contratación");
+    if (!form.tipo_contratacion?.trim()) errores.push("Tipo de contratación");
 
-        return true;
-      default:
-        return true;
-    }
+    // AUXILIOS
+    if (!form.auxilio_movilizacion?.trim()) errores.push("Movilización (Ingresa 0 si no aplica)");
+    if (!form.auxilio_alimentacion?.trim()) errores.push("Alimentación (Ingresa 0 si no aplica)");
+    if (!form.auxilio_vivienda?.trim()) errores.push("Vivienda (Ingresa 0 si no aplica)");
+
+    if (!form.aprobador_id) errores.push("Aprobador de Área");
+
+    return { valido: errores.length === 0, errores };
   }, [form]);
-
-  const siguiente = useCallback(async () => {
-    setError(null);
-    if (!validarPaso(pasoActual)) {
-      setError('Por favor diligencie todos los campos obligatorios del paso actual.');
-      return;
-    }
-    if (pasoActual < totalPasos) {
-      setPasoActual(p => p + 1);
-      try {
-        const cleanPayload = cleanFormPayload(form);
-        const req = await api.guardarBorrador(
-          cleanPayload as any, correoSolicitante, nombreSolicitante, requisicionIdRef.current
-        );
-        requisicionIdRef.current = req.id;
-        setRequisicionId(req.id);
-      } catch (e) {
-        console.warn('Error al auto-guardar borrador:', e);
-      }
-    }
-  }, [pasoActual, totalPasos, form, correoSolicitante, nombreSolicitante, validarPaso]);
-
-  const anterior = useCallback(() => {
-    if (pasoActual > 1) setPasoActual(p => p - 1);
-  }, [pasoActual]);
 
   const enviarAAprobacion = useCallback(async (): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
+      const validacion = validarFormulario();
+      if (!validacion.valido) {
+        setError(`Faltan campos obligatorios: ${validacion.errores.join(', ')}`);
+        setLoading(false);
+        return false;
+      }
+
       // 1. Guardar la versión más reciente del formulario primero
       const cleanPayload = cleanFormPayload(form);
       const req = await api.guardarBorrador(
@@ -192,7 +165,7 @@ export function useRequisicionPersonal(
     } finally {
       setLoading(false);
     }
-  }, [form, correoSolicitante, nombreSolicitante]);
+  }, [form, correoSolicitante, nombreSolicitante, validarFormulario]);
 
   const cargarRequisicion = useCallback(async (id: number) => {
     setLoading(true);
@@ -242,8 +215,8 @@ export function useRequisicionPersonal(
   }, []);
 
   return {
-    pasoActual, totalPasos, form, loading, error, requisicionId,
-    updateField, irAPaso, siguiente, anterior,
-    guardarBorrador, enviarAAprobacion, cargarRequisicion,
+    form, loading, error, requisicionId, setError,
+    updateField, guardarBorrador, enviarAAprobacion, cargarRequisicion, validarFormulario
   };
 }
+

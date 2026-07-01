@@ -263,3 +263,6 @@ export const getConsolidadoCandidatos = (): Promise<ConsolidadoRPItem[]> =>
 export const validarOT = (ot: string): Promise<{ encontrado: boolean; cliente: string; estado: string; terminada: boolean }> =>
   axios.get(`${API_CONFIG.BASE_URL}/erp/requisiciones/validar-ot?ot=${encodeURIComponent(ot)}`, authHeaders()).then(r => r.data);
 
+export const buscarOTs = (busqueda: string): Promise<any[]> =>
+  axios.get(`${API_CONFIG.BASE_URL}/erp/requisiciones/ots?busqueda=${encodeURIComponent(busqueda)}&limit=20`, authHeaders()).then(r => r.data);
+
