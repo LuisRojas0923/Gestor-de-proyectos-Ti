@@ -117,6 +117,12 @@ export const API_ENDPOINTS = {
   // Reportes
   REPORTS_PORTAL_DETAILED: '/desarrollos/informe-detallado-casos-portal',
 
+  // Biometría
+  BIOMETRIA_VERIFY: '/biometria/asistencia',
+  BIOMETRIA_ENROLAR: '/biometria/enrolar',
+  BIOMETRIA_ZONAS: '/biometria/zonas',
+  BIOMETRIA_ASISTENCIAS: '/biometria/asistencias',
+
   // ERP
   ERP_SOLICITUDES: '/erp/solicitudes',
   ERP_EMPLEADO: (id: string) => `/erp/empleado/${id}`,

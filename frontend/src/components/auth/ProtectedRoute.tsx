@@ -25,7 +25,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
 
     // 1. Validación por módulo (RBAC Dinámico)
     // El Dashboard administrativo y la Torre de Control están permitidos para roles administrativos.
-    if ((moduleCode === 'dashboard' || moduleCode === 'control-tower') && isAdminRole) {
+    if ((moduleCode === 'dashboard' || moduleCode === 'control-tower' || moduleCode === 'biometria') && isAdminRole) {
         return <>{children}</>;
     }
 

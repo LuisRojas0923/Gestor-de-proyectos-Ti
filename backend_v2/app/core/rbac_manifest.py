@@ -101,6 +101,13 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "es_critico": False,
         "descripcion": "Módulo para la consulta de certificados laborales, desprendibles de nómina y documentación de retenciones.",
     },
+    {
+        "id": "biometria",
+        "nombre": "Autenticación Facial",
+        "categoria": "portal",
+        "es_critico": True,
+        "descripcion": "Módulo para enrolamiento y verificación biométrica facial para control de asistencia.",
+    },
 
     # --- CATEGORÍA: ANALISTAS (Herramientas de Operación TI) ---
     {

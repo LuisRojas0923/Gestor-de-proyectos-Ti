@@ -16,7 +16,7 @@ from deepface import DeepFace
 from app.database import obtener_db
 from app.api.auth.router import obtener_usuario_actual_db
 from app.models.auth.usuario import Usuario
-from app.models.biometria.biometria_models import EmbeddingFacial, RegistroAsistencia
+from app.models.biometria.biometria_models import EmbeddingFacial, RegistroAsistencia, ZonaTrabajo
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -216,7 +216,6 @@ async def marcar_asistencia(
             if zona_id <= 2147483647:
                 # Opcional: verificar si existe la zona en DB para evitar error de FK
                 # Si estamos usando las zonas de la app y no de la DB, simplemente la ignoramos o la validamos
-                from app.models.biometria.biometria_models import ZonaTrabajo
                 try:
                     zona_exist = await db.execute(select(ZonaTrabajo).where(ZonaTrabajo.id == zona_id))
                     if zona_exist.scalar_one_or_none():
@@ -310,3 +309,76 @@ async def obtener_evidencia(filename: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Evidencia fotográfica no encontrada")
     return FileResponse(file_path)
+
+
+class ZonaCreate(BaseModel):
+    nombre: str
+    latitud: float
+    longitud: float
+    radio: float
+
+@router.get("/zonas", summary="Listar Zonas de Trabajo")
+async def listar_zonas(
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
+    db: AsyncSession = Depends(obtener_db)
+):
+    try:
+        stmt = select(ZonaTrabajo)
+        result = await db.execute(stmt)
+        zonas = result.scalars().all()
+        return zonas
+    except Exception as e:
+        logger.error(f"Error consultando zonas de trabajo: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error consultando zonas.")
+
+@router.post("/zonas", summary="Crear Zona de Trabajo")
+async def crear_zona(
+    zona: ZonaCreate,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
+    db: AsyncSession = Depends(obtener_db)
+):
+    if usuario_actual.rol != "admin":
+        raise HTTPException(status_code=403, detail="No tienes permisos para crear zonas.")
+        
+    try:
+        nueva_zona = ZonaTrabajo(
+            nombre=zona.nombre,
+            latitud=zona.latitud,
+            longitud=zona.longitud,
+            radio=zona.radio
+        )
+        db.add(nueva_zona)
+        await db.commit()
+        await db.refresh(nueva_zona)
+        return {"status": "success", "zona": nueva_zona}
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error creando zona de trabajo: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error creando zona.")
+
+@router.delete("/zonas/{zona_id}", summary="Eliminar Zona de Trabajo")
+async def eliminar_zona(
+    zona_id: int,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
+    db: AsyncSession = Depends(obtener_db)
+):
+    if usuario_actual.rol != "admin":
+        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar zonas.")
+        
+    try:
+        stmt = select(ZonaTrabajo).where(ZonaTrabajo.id == zona_id)
+        result = await db.execute(stmt)
+        zona = result.scalar_one_or_none()
+        
+        if not zona:
+            raise HTTPException(status_code=404, detail="Zona no encontrada.")
+            
+        await db.delete(zona)
+        await db.commit()
+        return {"status": "success", "message": "Zona eliminada correctamente."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error eliminando zona de trabajo: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error eliminando zona.")

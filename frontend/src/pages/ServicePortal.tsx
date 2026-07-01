@@ -58,6 +58,8 @@ import TablaMaestraView from './ServicePortal/pages/NOVEDADES_NOMINA/TablaMaestr
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
 import ComisionesView from './ServicePortal/pages/Comisiones';
+import BiometriaDashboard from './ServicePortal/pages/Biometria/BiometriaDashboard';
+import BiometriaAdminView from './ServicePortal/pages/Biometria/BiometriaAdminView';
 
 import {
     CategoryWrapper,
@@ -199,6 +201,8 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'contabilidad') navigate('/service-portal/gestion-humana');
                             else if (v === 'gestion_actividades') navigate('/service-portal/gestion-actividades');
                             else if (v === 'comisiones') navigate('/service-portal/comisiones');
+                            else if (v === 'biometria') navigate('/service-portal/biometria');
+                            else if (v === 'biometria-admin') navigate('/service-portal/biometria-admin');
                         }}
                     />
                 } />
@@ -432,6 +436,18 @@ const ServicePortal: React.FC = () => {
                         }}
                         onBack={() => navigate('/service-portal/inicio')}
                     />
+                } />
+
+                <Route path="biometria" element={
+                    <ProtectedRoute>
+                        <BiometriaDashboard />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="biometria-admin" element={
+                    <ProtectedRoute moduleCode="biometria">
+                        <BiometriaAdminView />
+                    </ProtectedRoute>
                 } />
 
                 <Route path="desarrollos" element={
