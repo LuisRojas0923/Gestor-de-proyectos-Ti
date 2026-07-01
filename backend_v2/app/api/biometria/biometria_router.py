@@ -76,7 +76,11 @@ async def enrolar_rostro(
             detector_backend=DETECTOR_BACKEND,
             enforce_detection=True,
             align=True,
+            anti_spoofing=True,
         )
+        
+        if not embedding_objs[0].get('is_real', True):
+            raise HTTPException(status_code=403, detail="Anti-spoofing: Intento de suplantación detectado (Foto/Pantalla).")
     except ValueError as e:
         msg = str(e)
         if "Spoof detected" in msg:
@@ -176,7 +180,11 @@ async def marcar_asistencia(
             detector_backend=DETECTOR_BACKEND,
             enforce_detection=True,
             align=True,
+            anti_spoofing=True,
         )
+        
+        if not embedding_objs[0].get('is_real', True):
+            raise HTTPException(status_code=403, detail="Anti-spoofing: Intento de suplantación detectado (Foto/Pantalla).")
     except ValueError as e:
         msg = str(e)
         if "Spoof detected" in msg:
