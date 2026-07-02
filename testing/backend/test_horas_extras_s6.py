@@ -207,12 +207,12 @@ async def _crear_override(db_session, ot_id: int, habilitada: bool, motivo: str 
 
 class TestResolverBolsaHabilitada:
     @pytest.mark.asyncio
-    async def test_sin_datos_devuelve_default_true(self, db_session):
-        """Sin parametro legal ni override: default True preserva comportamiento."""
+    async def test_sin_datos_devuelve_default_false(self, db_session):
+        """Sin politica formal ni override: default seguro desactiva la bolsa."""
         await _limpiar_global(db_session)
         await _limpiar_overrides(db_session, OT_DEFAULT)
         habilitada, fuente = await resolver_bolsa_habilitada(db_session, OT_DEFAULT)
-        assert habilitada is True
+        assert habilitada is False
         assert fuente == "DEFAULT"
 
     @pytest.mark.asyncio

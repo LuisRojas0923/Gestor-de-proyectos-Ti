@@ -4,79 +4,84 @@ import { useNotifications } from '../components/notifications/NotificationsConte
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 import DashboardView from './ServicePortal/pages/DashboardView';
-import TicketListView from './ServicePortal/pages/TicketListView';
-import SuccessView from './ServicePortal/pages/SuccessView';
-import ExpenseLegalization from './ServicePortal/pages/ExpenseLegalization';
-import AreaSelectionView from './ServicePortal/pages/AreaSelectionView';
-import ViaticosManagement from './ServicePortal/pages/ViaticosManagement';
-import AccountStatement from './ServicePortal/pages/AccountStatement';
-import DirectorExpensePanel from './ServicePortal/pages/DirectorExpensePanel';
-import TransitReportsView from './ServicePortal/pages/TransitReportsView';
-import ReservaSalasView from './ServicePortal/pages/ReservaSalasView';
-import RequestPortalView from './ServicePortal/pages/Requests/RequestPortalView';
-import AlmacenSubAreaView from './ServicePortal/pages/Requests/AlmacenSubAreaView';
-import AlmacenFormView from './ServicePortal/pages/Requests/AlmacenFormView';
-import MisRequisicionesView from './ServicePortal/pages/Requests/MisRequisicionesView';
-import InventarioView from './ServicePortal/pages/Inventario';
-import GestionHumanaPortal from './ServicePortal/pages/GestionHumana';
-import Formato2276DataTable from './ServicePortal/pages/GestionHumana/Formato2276DataTable';
-import GestionActividadesView from './ServicePortal/pages/GestionActividadesView';
-import MyDevelopments from './MyDevelopments';
-import DevelopmentDetail from './DevelopmentDetail';
-
-import OrganizationalHierarchy from './OrganizationalHierarchy';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
+import RouteLoadingFallback from '../components/common/RouteLoadingFallback';
 import PortalLayout from './ServicePortal/PortalLayout';
-import NominaDashboard from './ServicePortal/pages/NOVEDADES_NOMINA/NominaDashboard';
-import NominaUploadView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaUploadView';
-import NominaPreviewView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaPreviewView';
-import NominaSummaryView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaSummaryView';
-import NominaHistorialView from './ServicePortal/pages/NOVEDADES_NOMINA/NominaHistorialView';
-import GrancoopPreview from './ServicePortal/pages/NOVEDADES_NOMINA/GrancoopPreview';
-import BeneficiarPreview from './ServicePortal/pages/NOVEDADES_NOMINA/BeneficiarPreview';
-import HdiPreview from './ServicePortal/pages/NOVEDADES_NOMINA/HdiPreview';
-import BogotaLibranzaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/BogotaLibranzaPreview';
-import DaviviendaLibranzaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/DaviviendaLibranzaPreview';
-import OccidenteLibranzaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/OccidenteLibranzaPreview';
-import CamposantoPreview from './ServicePortal/pages/NOVEDADES_NOMINA/CamposantoPreview';
-import RecordarPreview from './ServicePortal/pages/NOVEDADES_NOMINA/RecordarPreview';
-import PolizasVehiculosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/PolizasVehiculosPreview';
-import MedicinaPrepagadaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/MedicinaPrepagadaPreview';
-import OtrosGerenciaPreview from './ServicePortal/pages/NOVEDADES_NOMINA/OtrosGerenciaPreview';
-import ControlDescuentosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosPreview';
-import ControlDescuentosTabla from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosTabla';
-import ControlDescuentosConceptos from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosConceptos';
-import ControlDescuentosRegistro from './ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosRegistro';
-import CelularesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/CelularesPreview';
-import RetencionesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/RetencionesPreview';
-import EmbargosPreview from './ServicePortal/pages/NOVEDADES_NOMINA/EmbargosPreview';
-import ExcepcionesPreview from './ServicePortal/pages/NOVEDADES_NOMINA/ExcepcionesPreview';
-import PlanillasRegionales1QPreview from './ServicePortal/pages/NOVEDADES_NOMINA/PlanillasRegionales1QPreview';
-import PlanillasRegionales2QPreview from './ServicePortal/pages/NOVEDADES_NOMINA/PlanillasRegionales2QPreview';
-import TablaMaestraView from './ServicePortal/pages/NOVEDADES_NOMINA/TablaMaestraView';
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
-import ComisionesView from './ServicePortal/pages/Comisiones';
-import PreLiquidacionView from './ServicePortal/pages/HORAS_EXTRAS/PreLiquidacionView';
-import CalculoListView from './ServicePortal/pages/HORAS_EXTRAS/CalculoListView';
-import CalculoDetailView from './ServicePortal/pages/HORAS_EXTRAS/CalculoDetailView';
-import BolsaView from './ServicePortal/pages/HORAS_EXTRAS/BolsaView';
-import CostosOtView from './ServicePortal/pages/HORAS_EXTRAS/CostosOtView';
-import FestivosView from './ServicePortal/pages/HORAS_EXTRAS/FestivosView';
-import HorarioSemanaView from './ServicePortal/pages/HORAS_EXTRAS/HorarioSemanaView';
-import NovedadesView from './ServicePortal/pages/HORAS_EXTRAS/NovedadesView';
-import NovedadFormView from './ServicePortal/pages/HORAS_EXTRAS/NovedadFormView';
-import PlanificadorSemanalView from './ServicePortal/pages/HORAS_EXTRAS/PlanificadorSemanalView';
-import EmpleadosActivosView from './ServicePortal/pages/HORAS_EXTRAS/EmpleadosActivosView';
-
-import {
-    CategoryWrapper,
-    TicketFormWrapper,
-    TicketDetailWrapper
-} from './ServicePortal/PortalWrappers';
 import { useServicePortal } from './ServicePortal/hooks/useServicePortal';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
+
+const TicketListView = React.lazy(() => import('./ServicePortal/pages/TicketListView'));
+const SuccessView = React.lazy(() => import('./ServicePortal/pages/SuccessView'));
+const ExpenseLegalization = React.lazy(() => import('./ServicePortal/pages/ExpenseLegalization'));
+const AreaSelectionView = React.lazy(() => import('./ServicePortal/pages/AreaSelectionView'));
+const ViaticosManagement = React.lazy(() => import('./ServicePortal/pages/ViaticosManagement'));
+const AccountStatement = React.lazy(() => import('./ServicePortal/pages/AccountStatement'));
+const DirectorExpensePanel = React.lazy(() => import('./ServicePortal/pages/DirectorExpensePanel'));
+const TransitReportsView = React.lazy(() => import('./ServicePortal/pages/TransitReportsView'));
+const ReservaSalasView = React.lazy(() => import('./ServicePortal/pages/ReservaSalasView'));
+const RequestPortalView = React.lazy(() => import('./ServicePortal/pages/Requests/RequestPortalView'));
+const AlmacenSubAreaView = React.lazy(() => import('./ServicePortal/pages/Requests/AlmacenSubAreaView'));
+const AlmacenFormView = React.lazy(() => import('./ServicePortal/pages/Requests/AlmacenFormView'));
+const MisRequisicionesView = React.lazy(() => import('./ServicePortal/pages/Requests/MisRequisicionesView'));
+const InventarioView = React.lazy(() => import('./ServicePortal/pages/Inventario'));
+const GestionHumanaPortal = React.lazy(() => import('./ServicePortal/pages/GestionHumana'));
+const Formato2276DataTable = React.lazy(() => import('./ServicePortal/pages/GestionHumana/Formato2276DataTable'));
+const GestionActividadesView = React.lazy(() => import('./ServicePortal/pages/GestionActividadesView'));
+const MyDevelopments = React.lazy(() => import('./MyDevelopments'));
+const DevelopmentDetail = React.lazy(() => import('./DevelopmentDetail'));
+const OrganizationalHierarchy = React.lazy(() => import('./OrganizationalHierarchy'));
+const NominaDashboard = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/NominaDashboard'));
+const NominaUploadView = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/NominaUploadView'));
+const NominaPreviewView = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/NominaPreviewView'));
+const NominaSummaryView = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/NominaSummaryView'));
+const NominaHistorialView = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/NominaHistorialView'));
+const GrancoopPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/GrancoopPreview'));
+const BeneficiarPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/BeneficiarPreview'));
+const HdiPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/HdiPreview'));
+const BogotaLibranzaPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/BogotaLibranzaPreview'));
+const DaviviendaLibranzaPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/DaviviendaLibranzaPreview'));
+const OccidenteLibranzaPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/OccidenteLibranzaPreview'));
+const CamposantoPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/CamposantoPreview'));
+const RecordarPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/RecordarPreview'));
+const PolizasVehiculosPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/PolizasVehiculosPreview'));
+const MedicinaPrepagadaPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/MedicinaPrepagadaPreview'));
+const OtrosGerenciaPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/OtrosGerenciaPreview'));
+const ControlDescuentosPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosPreview'));
+const ControlDescuentosTabla = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosTabla'));
+const ControlDescuentosConceptos = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosConceptos'));
+const ControlDescuentosRegistro = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/ControlDescuentosRegistro'));
+const CelularesPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/CelularesPreview'));
+const RetencionesPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/RetencionesPreview'));
+const EmbargosPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/EmbargosPreview'));
+const ExcepcionesPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/ExcepcionesPreview'));
+const PlanillasRegionales1QPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/PlanillasRegionales1QPreview'));
+const PlanillasRegionales2QPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/PlanillasRegionales2QPreview'));
+const TablaMaestraView = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/TablaMaestraView'));
+const ComisionesView = React.lazy(() => import('./ServicePortal/pages/Comisiones'));
+const PreLiquidacionView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/PreLiquidacionView'));
+const CalculoListView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/CalculoListView'));
+const CalculoDetailView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/CalculoDetailView'));
+const BolsaView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/BolsaView'));
+const CostosOtView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/CostosOtView'));
+const FestivosView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/FestivosView'));
+const HorarioSemanaView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/HorarioSemanaView'));
+const ConfiguracionHorasExtrasView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/ConfiguracionHorasExtrasView'));
+const NovedadesView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/NovedadesView'));
+const NovedadFormView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/NovedadFormView'));
+const PlanificadorSemanalView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/PlanificadorSemanalView'));
+const EmpleadosActivosView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/EmpleadosActivosView'));
+const CategoryWrapper = React.lazy(() =>
+    import('./ServicePortal/PortalWrappers').then((module) => ({ default: module.CategoryWrapper })),
+);
+const TicketFormWrapper = React.lazy(() =>
+    import('./ServicePortal/PortalWrappers').then((module) => ({ default: module.TicketFormWrapper })),
+);
+const TicketDetailWrapper = React.lazy(() =>
+    import('./ServicePortal/PortalWrappers').then((module) => ({ default: module.TicketDetailWrapper })),
+);
 
 const ServicePortal: React.FC = () => {
     const navigate = useNavigate();
@@ -186,6 +191,7 @@ const ServicePortal: React.FC = () => {
                 />
             )}
             
+            <React.Suspense fallback={<RouteLoadingFallback />}>
             <Routes>
                 <Route index element={<Navigate to="/service-portal/inicio" replace />} />
 
@@ -428,6 +434,7 @@ const ServicePortal: React.FC = () => {
                 <Route path="horas-extras/empleados" element={horasExtrasProtegida(<EmpleadosActivosView />)} />
                 <Route path="horas-extras/costos-ot" element={horasExtrasProtegida(<CostosOtView />)} />
                 <Route path="horas-extras/festivos" element={horasExtrasProtegida(<FestivosView />)} />
+                <Route path="horas-extras/configuracion" element={horasExtrasProtegida(<ConfiguracionHorasExtrasView />)} />
                 <Route path="horas-extras/horario" element={horasExtrasProtegida(<HorarioSemanaView />)} />
                 <Route path="horas-extras/horario/:cedula" element={horasExtrasProtegida(<HorarioSemanaView />)} />
                 <Route path="horas-extras/novedades" element={horasExtrasProtegida(<NovedadesView />)} />
@@ -486,6 +493,7 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="*" element={<Navigate to="/service-portal/inicio" replace />} />
             </Routes>
+            </React.Suspense>
 
             {/* Modal de Actualización de Correo Corporativo - Forzado para creación de tickets */}
             <EmailUpdateModal 

@@ -29,6 +29,7 @@ from ...models.novedades_nomina.schemas_horas_extras import (
 from .horas_extras_calculo import calcular_pre_liquidacion
 from .festivos_service import listar_festivos
 from .horas_extras_novedades import listar_novedades
+from .horas_extras_parametros import obtener_reglas_calculo
 
 logger = logging.getLogger(__name__)
 
@@ -164,8 +165,15 @@ async def ejecutar_pre_liquidacion(
             f"No hay factor prestacional vigente para nivel ARL '{input_data.nivel_riesgo_arl}'."
         )
 
+    reglas_calculo = await obtener_reglas_calculo(session)
+
     # La autorización se resuelve en el router (que inyecta advertencia al cliente).
-    return calcular_pre_liquidacion(input_data, catalogo, factor_obj.factor_prestacional)
+    return calcular_pre_liquidacion(
+        input_data,
+        catalogo,
+        factor_obj.factor_prestacional,
+        reglas_calculo,
+    )
 
 
 def _aplicar_registro_diario(input_data: PreLiquidacionInput) -> PreLiquidacionInput:
@@ -202,7 +210,7 @@ def _aplicar_registro_diario(input_data: PreLiquidacionInput) -> PreLiquidacionI
         )
         if minutos_brutos < 0:
             raise ValueError(
-                f"registro_diario[{i + 1}]: hora_salida debe ser posterior a hora_entrada"
+                f"registro_diario[{i + 1}]: turno que cruza medianoche debe partirse en dos dias"
             )
         minutos_efectivos = minutos_brutos - r.minutos_almuerzo
         nuevas_horas.append(round(max(0.0, minutos_efectivos / 60.0), 2))

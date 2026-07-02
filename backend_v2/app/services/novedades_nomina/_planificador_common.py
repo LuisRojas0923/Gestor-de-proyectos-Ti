@@ -20,6 +20,14 @@ _DIA_NOMBRES = {
     1: "LUNES", 2: "MARTES", 3: "MIERCOLES",
     4: "JUEVES", 5: "VIERNES", 6: "SABADO", 7: "DOMINGO",
 }
+CODIGOS_NOVEDAD_SUPRESION_PLAN = {"VAC", "LIC", "INC", "AUS"}
+FACTOR_PRESTACIONAL_DEFAULT = 0.52436
+CATALOGO_HE_DEFAULT = {
+    "HED": {"codigo": "HED", "factor_hora_ordinaria": 1.25, "acredita_bolsa": True, "descuenta_bolsa": True, "unidad": "HORAS"},
+    "HEN": {"codigo": "HEN", "factor_hora_ordinaria": 1.75, "acredita_bolsa": True, "descuenta_bolsa": True, "unidad": "HORAS"},
+    "HEFD": {"codigo": "HEFD", "factor_hora_ordinaria": 2.05, "acredita_bolsa": True, "descuenta_bolsa": True, "unidad": "HORAS"},
+    "HEFN": {"codigo": "HEFN", "factor_hora_ordinaria": 2.55, "acredita_bolsa": True, "descuenta_bolsa": True, "unidad": "HORAS"},
+}
 
 
 def _horas_trabajadas_dia(
@@ -57,14 +65,23 @@ async def _resolver_catalogo_y_factor(
         }
         for r in catalogo_rows
     ]
+    codigos_catalogo = {item["codigo"] for item in catalogo}
+    for codigo, item in CATALOGO_HE_DEFAULT.items():
+        if codigo not in codigos_catalogo:
+            logger.warning("Catálogo HE sin código '%s'; se usa factor default.", codigo)
+            catalogo.append(item)
 
     factores: Dict[str, float] = {}
     for nivel in set(niveles_riesgo):
         f = await obtener_factor_por_nivel(session, nivel, fecha_referencia)
         if f is None:
-            raise ValueError(
-                f"No hay factor prestacional vigente para nivel ARL '{nivel}'."
+            logger.warning(
+                "No hay factor prestacional vigente para nivel ARL '%s'; se usa default %s.",
+                nivel,
+                FACTOR_PRESTACIONAL_DEFAULT,
             )
+            factores[nivel] = FACTOR_PRESTACIONAL_DEFAULT
+            continue
         factores[nivel] = float(
             getattr(f, "factor", getattr(f, "factor_prestacional"))
         )
@@ -84,12 +101,14 @@ def _calcular_dia(
 
     Returns (horas_trab, horas_ord, horas_ext, codigo_he, costo_estimado).
     """
+    if any(c in CODIGOS_NOVEDAD_SUPRESION_PLAN for c in novedades):
+        return 0.0, 0.0, 0.0, None, 0.0
+
     horas_ord = min(horas_dia, HORAS_ORDINARIAS_DIARIAS)
     horas_ext = max(0.0, horas_dia - HORAS_ORDINARIAS_DIARIAS)
     codigo_he: Optional[str] = None
     costo = 0.0
     if horas_ext > 0:
-        # Si hay novedades declaradas en este dia, NO se computan HE (es dia libre).
         # Si jornada nocturna, inferir HEN; en caso contrario, HED.
         if not novedades:
             codigos_candidatos = ["HEN" if jornada_nocturna else "HED"]

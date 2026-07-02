@@ -6,6 +6,8 @@ import TimeClockPicker from './TimeClockPicker';
 import { labelDia } from '../utils/horarioUtils';
 
 interface HorarioMasivoCardProps {
+  compacto?: boolean;
+  ocultarAcciones?: boolean;
   diasSemana: number[];
   diasDestino: Set<number>;
   seleccionadosCount: number;
@@ -27,9 +29,10 @@ interface HorarioMasivoCardProps {
   onLimpiarDias: () => void;
 }
 
-const chipClass = 'flex h-8 min-w-0 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 shadow-sm';
+const chipClass = 'flex h-9 min-w-0 items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/90 px-2.5 shadow-sm';
 const chipLabelClass = 'shrink-0 text-[10px] font-semibold text-[var(--color-text-secondary)]';
 const chipPickerClass = '!h-6 !justify-center !rounded-full !border-none !bg-transparent !px-0 !text-[12px] !font-semibold !text-[var(--color-text-primary)] !shadow-none hover:!bg-transparent focus:!ring-0 focus:!ring-offset-0';
+const actionButtonClass = 'h-8 rounded-full !px-3 text-xs';
 
 interface ChipSelectOption {
   value: string;
@@ -134,6 +137,8 @@ const ChipSelect: React.FC<ChipSelectProps> = ({ value, options, ariaLabel, clas
 };
 
 const HorarioMasivoCard: React.FC<HorarioMasivoCardProps> = ({
+  compacto = false,
+  ocultarAcciones = false,
   diasSemana,
   diasDestino,
   seleccionadosCount,
@@ -155,12 +160,27 @@ const HorarioMasivoCard: React.FC<HorarioMasivoCardProps> = ({
   onLimpiarDias,
 }) => {
   const sinEmpleados = seleccionadosCount === 0;
+  const toolbarClass = compacto
+    ? 'mt-2 border-t border-[var(--color-border)]/70 pt-3'
+    : 'border-b border-[var(--color-border)] bg-[var(--color-surface-variant)]/25 p-2.5';
+  const observacionClass = compacto
+    ? 'mt-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-2.5'
+    : 'border-b border-[var(--color-border)] bg-[var(--color-surface)] p-2.5';
+  const layoutClass = compacto
+    ? 'flex flex-col gap-2.5'
+    : 'flex flex-col gap-2 2xl:flex-row 2xl:items-center 2xl:justify-between';
+  const controlesClass = compacto
+    ? 'flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2'
+    : 'flex min-w-0 flex-wrap items-center gap-2';
+  const accionesClass = compacto
+    ? 'flex flex-wrap items-center justify-end gap-2 border-t border-[var(--color-border)]/60 pt-2.5'
+    : 'grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap 2xl:justify-end';
 
   return (
     <div>
-      <div className="bg-gradient-to-r from-[var(--color-primary)]/10 via-[var(--color-surface)] to-[var(--color-surface-variant)] p-2">
-        <div className="flex flex-col gap-2 2xl:flex-row 2xl:items-center 2xl:justify-between">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+      <div className={toolbarClass}>
+        <div className={layoutClass}>
+          <div className={controlesClass}>
             <div className={`${chipClass} min-w-[104px]`}>
               <Text className={chipLabelClass}>Entrada</Text>
               <div className="min-w-[42px] flex-1">
@@ -231,16 +251,18 @@ const HorarioMasivoCard: React.FC<HorarioMasivoCardProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 2xl:justify-end">
-            <Button variant="secondary" size="sm" onClick={onAplicarHorario} disabled={sinEmpleados}><Copy className="w-4 h-4 mr-1" />Aplicar</Button>
-            <Button variant="outline" size="sm" onClick={onAgregarNovedad} disabled={sinEmpleados || !novedadMasiva}><ClipboardList className="w-4 h-4 mr-1" />Novedad</Button>
-            <Button variant="ghost" size="sm" onClick={onLimpiarDias} disabled={sinEmpleados}><Eraser className="w-4 h-4 mr-1" />Limpiar</Button>
-          </div>
+          {!ocultarAcciones && (
+            <div className={accionesClass}>
+              <Button variant="secondary" size="sm" onClick={onAplicarHorario} disabled={sinEmpleados} className={actionButtonClass}><Copy className="w-4 h-4 mr-1" />Aplicar</Button>
+              <Button variant="outline" size="sm" onClick={onAgregarNovedad} disabled={sinEmpleados || !novedadMasiva} className={actionButtonClass}><ClipboardList className="w-4 h-4 mr-1" />Novedad</Button>
+              <Button variant="ghost" size="sm" onClick={onLimpiarDias} disabled={sinEmpleados} className={actionButtonClass}><Eraser className="w-4 h-4 mr-1" />Limpiar</Button>
+            </div>
+          )}
         </div>
       </div>
 
         {novedadMasiva && (
-          <div className="border-t border-[var(--color-border)] bg-[var(--color-surface)] p-2">
+          <div className={observacionClass}>
             <Text className="mb-1 text-[10px] font-medium text-[var(--color-text-secondary)]">Observación para la novedad</Text>
             <Textarea value={observacionMasiva} onChange={(e) => onObservacionMasivaChange(e.target.value)} rows={2} placeholder="Observación para la novedad masiva" />
           </div>

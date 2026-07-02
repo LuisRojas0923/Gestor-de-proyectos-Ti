@@ -2,7 +2,7 @@
 Tests del Sprint S2 — Engine de confirmación y persistencia.
 
 Cobertura:
-  - confirmar_pre_liquidacion (happy path: cálculo + bolsa + UPSERT costo_ot)
+  - confirmar_pre_liquidacion (happy path: cálculo sin bolsa por defecto + UPSERT costo_ot)
   - Idempotencia: confirmar 2 veces la misma (cedula, anio, semana) → 409
   - _acreditar_bolsa: solo acredita códigos con acredita_bolsa=True
   - _acreditar_bolsa: acumula en bolsa existente a través de confirmaciones
@@ -26,6 +26,7 @@ from app.models.novedades_nomina.horas_extras import (
     NominaCostoOt,
     NominaHorarioPactado,
     NominaCatalogoNovedad,
+    NominaParametroLegal,
 )
 from app.models.novedades_nomina.schemas_horas_extras import (
     PreLiquidacionConfirmar,
@@ -49,6 +50,7 @@ ANIO = 2026
 SEMANA = 25
 OT_ID = 9001
 OT_CODIGO = "OT-TEST-S2-001"
+CODIGO_GLOBAL_BOLSA = "BOLSA_GLOBAL_HABILITADA"
 
 
 def _detalle(codigo, horas, factor, valor_bruto):
@@ -132,6 +134,32 @@ async def _cleanup(db_session, cedula: str, anio: int = ANIO, semana: int = SEMA
     await db_session.commit()
 
 
+async def _set_bolsa_global(db_session, habilitada: bool):
+    await db_session.execute(
+        delete(NominaParametroLegal).where(NominaParametroLegal.codigo == CODIGO_GLOBAL_BOLSA)
+    )
+    db_session.add(
+        NominaParametroLegal(
+            codigo=CODIGO_GLOBAL_BOLSA,
+            nombre="Habilitar bolsa de horas (global)",
+            valor="true" if habilitada else "false",
+            tipo_dato="BOOLEANO",
+            norma_soporte="Politica interna - test S2",
+            vigente_desde=date.today(),
+            estado="VIGENTE",
+            observaciones="test S2",
+        )
+    )
+    await db_session.commit()
+
+
+async def _limpiar_bolsa_global(db_session):
+    await db_session.execute(
+        delete(NominaParametroLegal).where(NominaParametroLegal.codigo == CODIGO_GLOBAL_BOLSA)
+    )
+    await db_session.commit()
+
+
 # Select necesario para subquery de cleanup
 from sqlmodel import select
 
@@ -142,7 +170,7 @@ from sqlmodel import select
 
 class TestConfirmarPreLiquidacionHappyPath:
     @pytest.mark.asyncio
-    async def test_crea_calculo_detalle_bolsa_y_costo_ot(self, db_session):
+    async def test_crea_calculo_detalle_y_costo_ot_sin_bolsa_por_default(self, db_session):
         await _cleanup(db_session, CEDULA_BASE)
 
         # Sembrar horario (requisito para contexto)
@@ -161,9 +189,10 @@ class TestConfirmarPreLiquidacionHappyPath:
 
             # Resultado: IDs presentes
             assert resultado["calculo_id"] is not None
-            assert resultado["bolsa_id"] is not None
-            assert resultado["horas_acreditadas_bolsa"] == pytest.approx(3.0)  # HED 2h + HEN 1h
-            assert len(resultado["movimientos_bolsa"]) == 1
+            assert resultado["bolsa_id"] is None
+            assert resultado["horas_acreditadas_bolsa"] == 0.0
+            assert resultado["movimientos_bolsa"] == []
+            assert resultado["bolsa_habilitada_en_confirmacion"] is False
             assert resultado["costo_ot_id"] is not None
 
             # Verificar persistencia del cálculo
@@ -174,16 +203,6 @@ class TestConfirmarPreLiquidacionHappyPath:
             assert calc.total_horas_extras == pytest.approx(3.0)
             assert calc.total_valor_bruto == pytest.approx(53_125.0)
             assert len(calc.detalles) == 2
-
-            # Verificar bolsa
-            bolsa = (
-                await db_session.execute(
-                    select(NominaBolsaHoras).where(NominaBolsaHoras.cedula == CEDULA_BASE)
-                )
-            ).scalar_one()
-            assert bolsa.horas_acreditadas == pytest.approx(3.0)
-            assert bolsa.horas_consumidas == 0.0
-            assert bolsa.horas_pagadas == 0.0
 
             # Verificar costo_ot
             costo = (
@@ -255,6 +274,7 @@ class TestAcreditarBolsa:
     async def test_solo_acredita_codigos_que_acreditan_bolsa(self, db_session):
         """VAC, LIC, PNR, AUS NO deben acreditar bolsa; solo HE sí."""
         await _cleanup(db_session, CEDULA_BASE)
+        await _set_bolsa_global(db_session, True)
         try:
             # Detalles mixtos: HED (acredita) + VAC (no acredita)
             detalles_mixtos = [
@@ -279,11 +299,13 @@ class TestAcreditarBolsa:
             calc = await obtener_calculo_completo(db_session, resultado["calculo_id"])
             assert any(d.codigo_novedad == "VAC" for d in calc.detalles)
         finally:
+            await _limpiar_bolsa_global(db_session)
             await _cleanup(db_session, CEDULA_BASE)
 
     @pytest.mark.asyncio
     async def test_crea_bolsa_si_no_existe(self, db_session):
         await _cleanup(db_session, CEDULA_BASE)
+        await _set_bolsa_global(db_session, True)
         try:
             resultado = await confirmar_pre_liquidacion(db_session, _payload())
             assert resultado["bolsa_id"] is not None
@@ -294,6 +316,7 @@ class TestAcreditarBolsa:
             ).scalar_one()
             assert bolsa.cedula == CEDULA_BASE
         finally:
+            await _limpiar_bolsa_global(db_session)
             await _cleanup(db_session, CEDULA_BASE)
 
     @pytest.mark.asyncio
@@ -301,6 +324,7 @@ class TestAcreditarBolsa:
         """Semana 25 acredita 3h, semana 26 acredita 1h → bolsa = 4h."""
         await _cleanup(db_session, CEDULA_BASE, semana=SEMANA)
         await _cleanup(db_session, CEDULA_BASE, semana=SEMANA + 1)
+        await _set_bolsa_global(db_session, True)
         try:
             await confirmar_pre_liquidacion(
                 db_session,
@@ -320,6 +344,7 @@ class TestAcreditarBolsa:
             ).scalar_one()
             assert bolsa.horas_acreditadas == pytest.approx(4.0)
         finally:
+            await _limpiar_bolsa_global(db_session)
             await _cleanup(db_session, CEDULA_BASE, semana=SEMANA)
             await _cleanup(db_session, CEDULA_BASE, semana=SEMANA + 1)
 
@@ -432,7 +457,9 @@ class TestListarCalculos:
                     detalles=[_detalle("HED", 1.0, 1.25, 15_625.0)],
                 ),
             )
-            r25 = await listar_calculos(db_session, anio=ANIO, semana_iso=SEMANA)
+            r25 = await listar_calculos(
+                db_session, cedula=CEDULA_BASE, anio=ANIO, semana_iso=SEMANA
+            )
             assert len(r25) == 1
             assert r25[0].semana_iso == SEMANA
         finally:

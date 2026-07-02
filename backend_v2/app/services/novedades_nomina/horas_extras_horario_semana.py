@@ -39,7 +39,7 @@ async def _asegurar_horario_padre(session: AsyncSession, cedula: str) -> None:
     padre = NominaHorarioPactado(
         cedula=cedula,
         minutos_jornada_ordinaria=480,
-        horas_semana_ordinaria=48.0,
+        horas_semana_ordinaria=42.0,
         es_jornada_nocturna=False,
         autoriza_he_default=False,
         fuente_sincronizacion="MANUAL",

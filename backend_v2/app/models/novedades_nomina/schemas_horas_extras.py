@@ -1,12 +1,4 @@
-"""
-Schemas Pydantic/SQLModel para el módulo de Horas Extras y Pre-liquidación.
-
-Convención del proyecto: usar `SQLModel` con `ConfigDict(from_attributes=True)`
-para que las respuestas se serialicen directo desde los modelos ORM.
-
-Los schemas de horario semanal editable (S5'') viven en
-``schemas_horario_semana`` y se re-exportan aquí por compatibilidad.
-"""
+"""Schemas Pydantic/SQLModel para Horas Extras y Pre-liquidación."""
 import enum
 from datetime import date, datetime, time
 from typing import Optional, List
@@ -29,6 +21,12 @@ from .schemas_horas_extras_bolsa import (  # noqa: F401  (re-exports)
     BolsaOverrideOTIn,
     BolsaOverrideOTOut,
     BolsaGlobalConfigIn,
+)
+from .schemas_horas_extras_parametros import (  # noqa: F401  (re-exports)
+    ParametroCalculoRead,
+    ParametroCalculoUpdate,
+    ParametrosCalculoRead,
+    ParametrosCalculoUpdateRequest,
 )
 
 

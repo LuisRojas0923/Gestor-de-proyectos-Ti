@@ -38,6 +38,37 @@ export interface NovedadCatalogo {
 }
 
 // ---------------------------------------------------------------------------
+// Parámetros editables de cálculo
+// ---------------------------------------------------------------------------
+
+export interface ParametroCalculo {
+  codigo: string;
+  nombre: string;
+  valor: string;
+  tipo_dato: 'NUMERICO' | 'TEXTO' | 'JSON' | 'BOOLEANO' | 'FECHA' | 'HORA';
+  norma_soporte: string | null;
+  grupo: string;
+  editable: boolean;
+  vigente_desde: string;
+  vigente_hasta: string | null;
+  observaciones: string | null;
+}
+
+export interface ParametrosCalculoResponse {
+  parametros: ParametroCalculo[];
+}
+
+export interface ParametroCalculoUpdate {
+  codigo: string;
+  valor: string;
+  observaciones?: string | null;
+}
+
+export interface ParametrosCalculoUpdateRequest {
+  parametros: ParametroCalculoUpdate[];
+}
+
+// ---------------------------------------------------------------------------
 // Horario y autorización HE
 // ---------------------------------------------------------------------------
 

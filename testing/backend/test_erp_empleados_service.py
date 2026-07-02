@@ -86,3 +86,25 @@ def test_listar_empleados_paginado_incluye_autorizacion_y_reporta_si_existen():
 
     assert respuesta["items"][0]["quien_reporta"] == "Regional Norte"
     assert respuesta["items"][0]["autoriza_he"] is True
+
+
+def test_listar_empleados_paginado_busca_en_campos_operativos_erp():
+    sesion = _SesionFake(columnas_existentes={
+        ("contrato", "regional"),
+        ("contrato", "numerocontrato"),
+        ("beneficio", "contrato"),
+        ("beneficio", "autorizacionhorasextras"),
+    })
+
+    EmpleadosService.listar_empleados_paginado(sesion, q="produccion", limit=25, offset=0)
+
+    sql_ejecutado = "\n".join(
+        sql for sql, _params in sesion.queries if "from establecimiento" in sql.lower()
+    ).lower()
+    assert "e.nombre::text ilike :q" in sql_ejecutado
+    assert "c.cargo::text ilike :q" in sql_ejecutado
+    assert "c.area::text ilike :q" in sql_ejecutado
+    assert "c.ciudadcontratacion::text ilike :q" in sql_ejecutado
+    assert "c.regional::text ilike :q" in sql_ejecutado
+    assert "autorizacionhorasextras" in sql_ejecutado
+    assert any(params.get("q") == "%produccion%" for _sql, params in sesion.queries)

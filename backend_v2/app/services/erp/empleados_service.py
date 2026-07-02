@@ -236,9 +236,18 @@ class EmpleadosService:
         where_clauses = ["1=1"]
         params = {"limit": limit, "offset": offset}
         if q:
-            where_clauses.append(
-                "(CAST(E.nrocedula AS TEXT) ILIKE :q OR E.nombre::text ILIKE :q)"
-            )
+            campos_busqueda = [
+                "CAST(E.nrocedula AS TEXT) ILIKE :q",
+                "E.nombre::text ILIKE :q",
+                "C.cargo::text ILIKE :q",
+                "C.area::text ILIKE :q",
+                "C.ciudadcontratacion::text ILIKE :q",
+            ]
+            if tiene_regional:
+                campos_busqueda.append("C.regional::text ILIKE :q")
+            if tiene_beneficio_autoriza:
+                campos_busqueda.append("CAST(B.autorizacionhorasextras AS TEXT) ILIKE :q")
+            where_clauses.append(f"({' OR '.join(campos_busqueda)})")
             params["q"] = f"%{q.strip()}%"
 
         where_sql = " AND ".join(where_clauses)
@@ -269,6 +278,7 @@ class EmpleadosService:
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
                 {estado_join_filtro}
+            {join_beneficio}
             WHERE {where_sql} {estado_where_filtro}
         """)
         total_row = db_erp.execute(count_query, params).first()

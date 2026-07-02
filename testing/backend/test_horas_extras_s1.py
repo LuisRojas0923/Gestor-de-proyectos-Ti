@@ -3,10 +3,10 @@ Tests unitarios del Sprint S1 — Service layer y pre-liquidación.
 
 Cobertura:
   - calcular_pre_liquidacion (función pura, sin DB)
-    * jornada normal con HE
+    * jornada semanal con HE
     * jornada nocturna (HEN automático)
     * múltiples códigos por día
-    * topes legales (2h/día, 12h/semana)
+    * topes legales como advertencia (2h/día, 12h/semana)
     * códigos desconocidos se omiten con advertencia
     * carga prestacional por nivel ARL
   - Distribución equitativa de horas por código
@@ -50,7 +50,7 @@ def _input(horas_por_dia, **overrides):
     base = {
         "cedula": "1234567890",
         "anio": 2026,
-        "semana_iso": 25,
+        "semana_iso": 30,
         "horas_por_dia": horas_por_dia,
         "salario_base_mensual": 3_000_000,
         "nivel_riesgo_arl": "III",
@@ -65,8 +65,8 @@ def _input(horas_por_dia, **overrides):
 
 class TestCalculoBasico:
     def test_sin_horas_extras_total_cero(self):
-        """Jornada exacta de 8h/día no genera extras."""
-        horas = [8.0] * 7
+        """Jornada semanal exacta de 42h no genera extras."""
+        horas = [8.4, 8.4, 8.4, 8.4, 8.4, 0.0, 0.0]
         r = calcular_pre_liquidacion(_input(horas), CATALOGO_TEST, FACTOR_OP)
         assert r.total_horas_extras == 0.0
         assert r.total_valor_bruto == 0.0
@@ -74,17 +74,16 @@ class TestCalculoBasico:
         assert r.advertencias == []
 
     def test_jornada_normal_con_1h_extra_cada_dia(self):
-        """8h ordinarias + 1h extra diurna por día, 7 días."""
-        horas = [9.0] * 7
+        """45h semanales generan 3h extra diurnas por revision semanal."""
+        horas = [9.0, 9.0, 9.0, 9.0, 9.0, 0.0, 0.0]
         r = calcular_pre_liquidacion(_input(horas), CATALOGO_TEST, FACTOR_OP)
 
-        # 1h * 7 días = 7h extras
-        assert r.total_horas_extras == 7.0
+        assert r.total_horas_extras == 3.0
 
-        # valor_hora = 3_000_000 / 240 = 12_500
-        # HED = 1.25, valor_bruto = 7 * 12500 * 1.25 = 109_375
-        assert r.valor_hora_ordinaria == 12_500
-        assert r.total_valor_bruto == pytest.approx(7 * 12_500 * 1.25, rel=1e-6)
+        # valor_hora = 3_000_000 / 210 segun respuesta GH vigente desde 2026-07-16
+        valor_hora = 3_000_000 / 210
+        assert r.valor_hora_ordinaria == pytest.approx(valor_hora, rel=1e-6)
+        assert r.total_valor_bruto == pytest.approx(3 * valor_hora * 1.25, rel=1e-6)
         # carga = valor_bruto * 0.52436
         assert r.total_carga_prestacional == pytest.approx(
             r.total_valor_bruto * FACTOR_OP, rel=1e-6
@@ -95,37 +94,37 @@ class TestCalculoBasico:
 
     def test_inferencia_HEN_cuando_jornada_nocturna(self):
         """Si es_jornada_nocturna=True y no se declaran códigos, se asume HEN (1.75)."""
-        horas = [9.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]  # 1h extra el lunes
+        horas = [9.0, 9.0, 9.0, 9.0, 9.0, 0.0, 0.0]
         r = calcular_pre_liquidacion(
             _input(horas, es_jornada_nocturna=True), CATALOGO_TEST, FACTOR_OP
         )
         # Debe usar HEN (1.75) en lugar de HED (1.25)
-        assert r.total_horas_extras == 1.0
+        assert r.total_horas_extras == 3.0
         assert r.detalles[0].codigo_novedad == "HEN"
         assert r.detalles[0].factor_hora_ordinaria == 1.75
 
     def test_codigos_explicitos_se_respetan(self):
         """Si el usuario declara HED explícitamente en jornada nocturna, se respeta HED."""
-        horas = [9.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]
+        horas = [9.0, 9.0, 9.0, 9.0, 9.0, 0.0, 0.0]
         codigos = [["HED"], [], [], [], [], [], []]
         r = calcular_pre_liquidacion(
             _input(horas, codigos_por_dia=codigos, es_jornada_nocturna=True),
             CATALOGO_TEST,
             FACTOR_OP,
         )
-        assert r.detalles[0].codigo_novedad == "HED"
+        assert any(d.codigo_novedad == "HED" for d in r.detalles)
 
     def test_dia_sin_horas_extras_se_omite(self):
-        """Un día con 6h (menos de 8h) no genera extras."""
-        horas = [8.0, 8.0, 8.0, 6.0, 8.0, 8.0, 8.0]
+        """Una semana de 42h compensa dias de menor y mayor jornada."""
+        horas = [8.0, 8.0, 8.0, 6.0, 8.0, 4.0, 0.0]
         r = calcular_pre_liquidacion(_input(horas), CATALOGO_TEST, FACTOR_OP)
         assert r.total_horas_extras == 0.0
 
-    def test_dia_con_10h_genera_2h_extras(self):
-        """10h trabajadas = 8 ordinarias + 2 extras."""
-        horas = [10.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]
+    def test_semana_con_43h_genera_1h_extra(self):
+        """La HE se determina por exceso semanal, no solo por día de 10h."""
+        horas = [10.0, 8.0, 8.0, 8.0, 9.0, 0.0, 0.0]
         r = calcular_pre_liquidacion(_input(horas), CATALOGO_TEST, FACTOR_OP)
-        assert r.total_horas_extras == 2.0
+        assert r.total_horas_extras == 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -134,23 +133,22 @@ class TestCalculoBasico:
 
 class TestTopesLegales:
     def test_tope_diario_2h_genera_advertencia(self):
-        """Si un día tiene >2h extras, se trunca a 2h y se advierte."""
-        horas = [11.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]  # 3h extras el lunes
+        """Si un día tiene >2h extras, se advierte sin truncar automáticamente."""
+        horas = [16.0, 16.0, 16.0, 0.0, 0.0, 0.0, 0.0]
         r = calcular_pre_liquidacion(_input(horas), CATALOGO_TEST, FACTOR_OP)
-        assert r.total_horas_extras == 2.0  # truncado
+        assert r.total_horas_extras == 6.0
         assert any("tope diario" in a for a in r.advertencias)
 
     def test_tope_semanal_12h_genera_advertencia(self):
         """Si la suma semanal >12h, se genera advertencia (no se trunca)."""
-        horas = [9.0] * 7  # 7h extras (no excede)
+        horas = [9.0, 9.0, 9.0, 9.0, 9.0, 0.0, 0.0]
         r = calcular_pre_liquidacion(_input(horas), CATALOGO_TEST, FACTOR_OP)
-        assert r.total_horas_extras == 7.0
+        assert r.total_horas_extras == 3.0
         assert not any("Total semanal" in a for a in r.advertencias)
 
-        # 7 días * 2h = 14h excede 12h semanal
         horas_13 = [10.0] * 7
         r2 = calcular_pre_liquidacion(_input(horas_13), CATALOGO_TEST, FACTOR_OP)
-        assert r2.total_horas_extras == 14.0
+        assert r2.total_horas_extras == 28.0
         assert any("Total semanal" in a and "12h" in a for a in r2.advertencias)
 
 
@@ -161,20 +159,20 @@ class TestTopesLegales:
 class TestMultiplesCodigos:
     def test_multiples_codigos_reparten_horas(self):
         """Si un día tiene [HED, HEN], las horas se reparten 50/50."""
-        horas = [10.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]  # 2h extras el lunes
+        horas = [10.0, 8.0, 8.0, 8.0, 9.0, 0.0, 0.0]
         codigos = [["HED", "HEN"], [], [], [], [], [], []]
         r = calcular_pre_liquidacion(
             _input(horas, codigos_por_dia=codigos), CATALOGO_TEST, FACTOR_OP
         )
-        # 2h / 2 = 1h a cada uno
+        # 1h / 2 = 0.5h a cada uno
         assert len(r.detalles) == 2
         horas_por_codigo = {d.codigo_novedad: d.horas for d in r.detalles}
-        assert horas_por_codigo["HED"] == pytest.approx(1.0)
-        assert horas_por_codigo["HEN"] == pytest.approx(1.0)
+        assert horas_por_codigo["HED"] == pytest.approx(0.5)
+        assert horas_por_codigo["HEN"] == pytest.approx(0.5)
 
     def test_codigo_desconocido_genera_advertencia(self):
         """Códigos fuera del catálogo no fallan; se omiten con warning."""
-        horas = [9.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]
+        horas = [10.0, 8.0, 8.0, 8.0, 9.0, 0.0, 0.0]
         codigos = [["INVENTADO"], [], [], [], [], [], []]
         r = calcular_pre_liquidacion(
             _input(horas, codigos_por_dia=codigos), CATALOGO_TEST, FACTOR_OP
@@ -185,13 +183,13 @@ class TestMultiplesCodigos:
     def test_codigos_mixtos_validos_e_invalidos(self):
         """Si se pasa un código válido y uno inválido, el válido toma todas las horas
         (porque es el único válido) y se advierte sobre el inválido."""
-        horas = [10.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]
+        horas = [10.0, 8.0, 8.0, 8.0, 9.0, 0.0, 0.0]
         codigos = [["HED", "INVENTADO"], [], [], [], [], [], []]
         r = calcular_pre_liquidacion(
             _input(horas, codigos_por_dia=codigos), CATALOGO_TEST, FACTOR_OP
         )
-        # Como solo HED es válido, recibe las 2h
-        assert any(d.codigo_novedad == "HED" and d.horas == 2.0 for d in r.detalles)
+        # Como solo HED es válido, recibe la hora semanal extra.
+        assert any(d.codigo_novedad == "HED" and d.horas == 1.0 for d in r.detalles)
         # Y debe haber advertencia sobre INVENTADO
         assert any("INVENTADO" in a for a in r.advertencias)
 
@@ -324,8 +322,8 @@ class TestConstantes:
         assert HORAS_ORDINARIAS_DIARIAS == 8
 
     def test_divisor_hora_ordinaria(self):
-        """CST Art. 144: salario mensual / 30 / 8 = / 240."""
-        assert DIVISOR_HORA_ORDINARIA == 240
+        """Respuesta GH: 210 horas mensuales desde 2026-07-16."""
+        assert DIVISOR_HORA_ORDINARIA == 210
 
     def test_tope_diario_2_horas(self):
         """CST Art. 161: máximo 2 horas extras diarias."""

@@ -1,35 +1,39 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import Chat from '../pages/Chat';
-import Dashboard from '../pages/Dashboard';
-import Indicators from '../pages/Indicators';
-import MyDevelopments from '../pages/MyDevelopments';
-import DevelopmentDetail from '../pages/DevelopmentDetail';
-import Reports from '../pages/Reports';
-import Settings from '../pages/Settings';
-import ServicePortal from '../pages/ServicePortal';
-
-import OrganizationalHierarchy from '../pages/OrganizationalHierarchy';
-import TicketDetail from '../pages/TicketDetail';
-import TicketManagement from '../pages/TicketManagement';
-import DesignSystemCatalog from '../pages/DesignSystemCatalog';
-import Login from '../pages/Login';
-import UserAdmin from '../pages/UserAdmin';
-import RoomsPage from '../pages/RoomsPage';
-import ControlTower from '../pages/ControlTower';
-import WbsTemplatesAdmin from '../pages/WbsTemplatesAdmin/WbsTemplatesAdmin';
-import InventarioAdmin from '../pages/InventarioAdmin/InventarioAdmin';
-import AuditoriaSistemaPage from '../pages/AuditoriaSistema';
-import { CorporateLinesManager } from '../pages/CorporateLines/CorporateLinesManager';
 import Layout from './layout/Layout';
 import ProtectedRoute from './auth/ProtectedRoute';
-import VerifyEmailPage from '../pages/VerifyEmail/VerifyEmailPage';
-import ResetPasswordPage from '../pages/ResetPassword/ResetPasswordPage';
+import RouteLoadingFallback from './common/RouteLoadingFallback';
+
+const Chat = React.lazy(() => import('../pages/Chat'));
+const Dashboard = React.lazy(() => import('../pages/Dashboard'));
+const Indicators = React.lazy(() => import('../pages/Indicators'));
+const MyDevelopments = React.lazy(() => import('../pages/MyDevelopments'));
+const DevelopmentDetail = React.lazy(() => import('../pages/DevelopmentDetail'));
+const Reports = React.lazy(() => import('../pages/Reports'));
+const Settings = React.lazy(() => import('../pages/Settings'));
+const ServicePortal = React.lazy(() => import('../pages/ServicePortal'));
+const OrganizationalHierarchy = React.lazy(() => import('../pages/OrganizationalHierarchy'));
+const TicketDetail = React.lazy(() => import('../pages/TicketDetail'));
+const TicketManagement = React.lazy(() => import('../pages/TicketManagement'));
+const DesignSystemCatalog = React.lazy(() => import('../pages/DesignSystemCatalog'));
+const Login = React.lazy(() => import('../pages/Login'));
+const UserAdmin = React.lazy(() => import('../pages/UserAdmin'));
+const RoomsPage = React.lazy(() => import('../pages/RoomsPage'));
+const ControlTower = React.lazy(() => import('../pages/ControlTower'));
+const WbsTemplatesAdmin = React.lazy(() => import('../pages/WbsTemplatesAdmin/WbsTemplatesAdmin'));
+const InventarioAdmin = React.lazy(() => import('../pages/InventarioAdmin/InventarioAdmin'));
+const AuditoriaSistemaPage = React.lazy(() => import('../pages/AuditoriaSistema'));
+const CorporateLinesManager = React.lazy(() =>
+  import('../pages/CorporateLines/CorporateLinesManager').then((module) => ({ default: module.CorporateLinesManager })),
+);
+const VerifyEmailPage = React.lazy(() => import('../pages/VerifyEmail/VerifyEmailPage'));
+const ResetPasswordPage = React.lazy(() => import('../pages/ResetPassword/ResetPasswordPage'));
 
 const AppRouter: React.FC = () => {
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<RouteLoadingFallback />}>
+        <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -74,7 +78,8 @@ const AppRouter: React.FC = () => {
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 };

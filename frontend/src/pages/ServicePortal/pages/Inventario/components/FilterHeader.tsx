@@ -1,4 +1,5 @@
-import { Text, MultiSelect } from '../../../../../components/atoms';
+import { Text } from '../../../../../components/atoms';
+import { MultiSelect } from '../../../../../components/atoms/MultiSelect';
 
 interface FilterHeaderProps {
     label: string;

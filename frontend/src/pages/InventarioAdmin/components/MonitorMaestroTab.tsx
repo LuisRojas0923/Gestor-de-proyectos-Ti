@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useTransition, useCallback, useDeferredValue, useEffect, useRef } from 'react';
-import { Text, Button, Badge, MultiSelect } from '../../../components/atoms';
+import { Text, Button, Badge } from '../../../components/atoms';
+import { MultiSelect } from '../../../components/atoms/MultiSelect';
 import { CheckCircle2, Search, Filter } from 'lucide-react';
 import { FixedSizeList as List } from 'react-window';
 

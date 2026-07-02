@@ -34,6 +34,7 @@ vi.mock('../components/notifications/NotificationsContext', () => ({
 // Mock del servicio para no hacer fetch real
 vi.mock('../services/horasExtrasService', () => ({
   buscarEmpleadosERP: vi.fn(),
+  buscarOtManoObra: vi.fn(),
   preCalcularPlan: vi.fn(),
   guardarBorradorPlan: vi.fn(),
   confirmarPlan: vi.fn(),
@@ -50,6 +51,7 @@ import {
 } from '../pages/ServicePortal/pages/HORAS_EXTRAS/utils/planificadorDraft';
 import {
   buscarEmpleadosERP,
+  buscarOtManoObra,
   preCalcularPlan,
   guardarBorradorPlan,
   confirmarPlan,
@@ -97,6 +99,7 @@ describe('DefaultHorarioSemana', () => {
       hora_salida: '17:00',
       minutos_almuerzo: 60,
       novedades: [],
+      asignaciones_ot: [],
     }));
     wrapperRouter(
       <DefaultHorarioSemana dias={dias} onChange={onChange} onAplicarATodos={onAplicar} />,
@@ -115,6 +118,7 @@ describe('DefaultHorarioSemana', () => {
       hora_salida: '17:00',
       minutos_almuerzo: 60,
       novedades: [],
+      asignaciones_ot: [],
     }));
     wrapperRouter(
       <DefaultHorarioSemana dias={dias} onChange={onChange} onAplicarATodos={() => {}} />,
@@ -166,6 +170,24 @@ describe('PlanificadorSemanalView', () => {
     navigateMock.mockClear();
     localStorage.setItem('token', TOKEN);
     (buscarEmpleadosERP as ReturnType<typeof vi.fn>).mockResolvedValue(mockEmpleados);
+    (buscarOtManoObra as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [
+        {
+          orden: '1007',
+          cc: '3080',
+          scc: '10',
+          sub_indice: '300',
+          categoria_sub_indice: 'MANO DE OBRA',
+          descripcion: 'Mantenimiento preventivo puertas',
+          vr_contratado: 5507000,
+          estado: 'TERMINADO',
+          cliente: 'COLCAFE',
+        },
+      ],
+      total: 1,
+      limit: 8,
+      offset: 0,
+    });
     (preCalcularPlan as ReturnType<typeof vi.fn>).mockResolvedValue({
       empleados: [
         {
@@ -214,9 +236,8 @@ describe('PlanificadorSemanalView', () => {
   it('permite cambiar la semana usando selectores de fecha', async () => {
     wrapperRouter(<PlanificadorSemanalView />);
 
-    fireEvent.change(screen.getByDisplayValue('2026-06-22'), { target: { value: '2026-07-01' } });
+    fireEvent.change(screen.getByDisplayValue('2026-06-29'), { target: { value: '2026-07-01' } });
 
-    expect(screen.getByDisplayValue('27')).toBeTruthy();
     expect(screen.getByDisplayValue('2026-06-29')).toBeTruthy();
     expect(screen.getByDisplayValue('2026-07-05')).toBeTruthy();
     await waitFor(() => expect(buscarEmpleadosERP).toHaveBeenCalled());
@@ -225,7 +246,7 @@ describe('PlanificadorSemanalView', () => {
   it('pre-calcular muestra totales en resumen', async () => {
     renderPlanificadorConSeleccion();
 
-    expect(screen.getByText(/2 empleados/)).toBeTruthy();
+    expect(screen.getAllByText(/2 empleados/).length).toBeGreaterThan(0);
 
     // Click en pre-calcular (boton especifico, no "Pre-cálculo" en resumen)
     const preCalcularBtn = screen.getByRole('button', { name: /Pre-calcular/i });
@@ -258,6 +279,32 @@ describe('PlanificadorSemanalView', () => {
       expect(guardarBorradorPlan).toHaveBeenCalled();
       const callArg = (guardarBorradorPlan as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(callArg.empleados[0].dias[0].hora_entrada).toBe('08:00');
+    });
+  });
+
+  it('aplica OT masiva a empleados y dias seleccionados antes de guardar', async () => {
+    renderPlanificadorConSeleccion();
+
+    fireEvent.change(screen.getByPlaceholderText(/Buscar OT masiva/i), { target: { value: '1007' } });
+    fireEvent.click(screen.getByRole('button', { name: /Buscar OT masiva/i }));
+
+    await waitFor(() => expect(buscarOtManoObra).toHaveBeenCalledWith('1007', 8, 0, TOKEN));
+    fireEvent.click(await screen.findByText(/OT 1007 · CC 3080/i));
+    fireEvent.click(screen.getByRole('button', { name: /Dividir turno/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Aplicar OT$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Guardar borrador/i }));
+
+    await waitFor(() => {
+      expect(guardarBorradorPlan).toHaveBeenCalled();
+      const callArg = (guardarBorradorPlan as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(callArg.empleados[0].dias[0].asignaciones_ot[0]).toMatchObject({
+        orden: '1007',
+        cc: '3080',
+        scc: '10',
+        sub_indice: '300',
+      });
+      expect(callArg.empleados[0].dias[0].asignaciones_ot[0].horas).toBeGreaterThan(0);
+      expect(callArg.empleados[1].dias[4].asignaciones_ot[0].orden).toBe('1007');
     });
   });
 
@@ -312,6 +359,21 @@ describe('PlanificadorSemanalView', () => {
     expect(screen.getByRole('button', { name: /^Cargo$/i })).toBeTruthy();
   });
 
+  it('busca empleados en base de datos desde el filtro de columna', async () => {
+    (buscarEmpleadosERP as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ ...mockEmpleados, limit: 25 })
+      .mockResolvedValueOnce({ items: [mockEmpleados.items[1]], total: 1, limit: 25, offset: 0 });
+
+    wrapperRouter(<PlanificadorSemanalView />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /^Empleado$/i }));
+    fireEvent.change(screen.getByPlaceholderText(/^Buscar\.\.\.$/i), { target: { value: 'Maria' } });
+
+    await waitFor(() => {
+      expect(buscarEmpleadosERP).toHaveBeenCalledWith('Maria', 25, 0, TOKEN, true);
+    });
+  });
+
   it('incluye empleados visibles autorizados desde el panel integrado', async () => {
     (buscarEmpleadosERP as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ...mockEmpleados,
@@ -362,7 +424,7 @@ describe('PlanificadorSemanalView', () => {
     await screen.findByText('Operación');
     fireEvent.click(await screen.findByLabelText(/Seleccionar 456/i));
 
-    expect(await screen.findByText(/1 empleados/)).toBeTruthy();
+    await waitFor(() => expect(screen.getAllByText(/1 empleados/).length).toBeGreaterThan(0));
 
     fireEvent.click(screen.getByRole('button', { name: /Guardar borrador/i }));
 

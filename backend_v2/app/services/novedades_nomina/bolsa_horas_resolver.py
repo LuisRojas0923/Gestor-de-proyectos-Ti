@@ -32,7 +32,7 @@ async def resolver_bolsa_habilitada(
     Prioridad:
       1. Override vigente por OT (estado=ACTIVO, vigente_hasta nulo o futuro).
       2. Parametro legal global vigente (codigo=BOLSA_GLOBAL_HABILITADA).
-      3. Default seguro True (preserva comportamiento historico).
+      3. Default seguro False: bolsa desactivada sin politica formal.
     """
     ahora = datetime.now()
 
@@ -66,5 +66,5 @@ async def resolver_bolsa_habilitada(
     if param is not None and (param.vigente_hasta is None or param.vigente_hasta >= hoy):
         return (param.valor or "").strip().lower() == "true", "PARAMETRO_LEGAL"
 
-    # 3. Default seguro: activa
-    return True, "DEFAULT"
+    # 3. Default seguro: inactiva hasta confirmacion formal de Nomina/GH.
+    return False, "DEFAULT"

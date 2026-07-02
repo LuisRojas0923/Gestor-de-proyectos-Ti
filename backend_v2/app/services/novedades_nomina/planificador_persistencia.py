@@ -42,10 +42,11 @@ from ...models.novedades_nomina.schemas_horas_extras_planificador import (
     PlanSemanaIn,
 )
 from ._planificador_common import (
-    _calcular_dia,
+    CODIGOS_NOVEDAD_SUPRESION_PLAN,
     _horas_trabajadas_dia,
     _resolver_catalogo_y_factor,
 )
+from .horas_extras_calculo import _calcular_horas_extras_semanales, _parametros_jornada_semana
 from .horas_extras_confirmacion import confirmar_pre_liquidacion
 from .planificador_costos_ot import distribuir_costos_ot_plan
 from .planificador_ot import validar_asignaciones_ot_dia
@@ -361,24 +362,39 @@ async def _construir_detalles_confirmacion(
     cat_idx = {c["codigo"]: c for c in catalogo}
     factor_prestacional = factores[parametros.nivel_riesgo_arl]
     valor_hora = parametros.valor_hora_ordinaria
+    horas_semana_ordinaria, _divisor = _parametros_jornada_semana(
+        semana.anio,
+        semana.semana_iso,
+    )
 
     detalles: List[ConfirmarDetalleItem] = []
     dias_idx = {d.dia_semana: d for d in emp_in.dias}
+    datos_dias = []
 
     for dia_semana in range(1, 8):
         d = dias_idx.get(dia_semana)
         if d is None:
+            datos_dias.append((dia_semana, 0.0, []))
             continue
         validar_asignaciones_ot_dia(d)
         codigos_nov = [n.codigo_novedad for n in d.novedades]
         horas_trab = _horas_trabajadas_dia(
             d.hora_entrada, d.hora_salida, d.minutos_almuerzo
         )
-        _ht, _ho, horas_ext, codigo_he, _costo = _calcular_dia(
-            horas_trab, codigos_nov,
-            parametros.jornada_nocturna,
-            cat_idx, factor_prestacional, valor_hora,
-        )
+        if any(c in CODIGOS_NOVEDAD_SUPRESION_PLAN for c in codigos_nov):
+            horas_trab = 0.0
+        datos_dias.append((dia_semana, horas_trab, codigos_nov))
+
+    extras_por_dia = _calcular_horas_extras_semanales(
+        [d[1] for d in datos_dias],
+        horas_semana_ordinaria,
+    )
+
+    for idx, (_dia_semana, _horas_trab, codigos_nov) in enumerate(datos_dias):
+        horas_ext = extras_por_dia[idx]
+        codigo_he = None
+        if horas_ext > 0 and not codigos_nov:
+            codigo_he = "HEN" if parametros.jornada_nocturna else "HED"
         if horas_ext <= 0 or codigo_he is None:
             continue
         cat = cat_idx[codigo_he]

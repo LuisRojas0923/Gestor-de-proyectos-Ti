@@ -1,22 +1,7 @@
-/**
- * PlanificadorSemanalView — workspace masivo de horas extras.
- *
- * Flujo principal: buscar empleados, seleccionarlos, aplicar horarios en bloque,
- * ajustar celdas excepcionales y confirmar la semana desde una sola pantalla.
- */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  Text,
-  Button,
-  MaterialCard,
-} from '../../../../components/atoms';
-import {
-  Save,
-  Calculator,
-  CheckCircle2,
-  FileText,
-} from 'lucide-react';
+import { Text, Button, MaterialCard } from '../../../../components/atoms';
+import { Save, Calculator, CheckCircle2, FileText } from 'lucide-react';
 import Modal from '../../../../components/molecules/Modal';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import {
@@ -27,6 +12,7 @@ import {
 import type {
   EmpleadoERPRead,
   PlanBulkRequest,
+  PlanAsignacionOtIn,
   PlanConfirmarRequest,
   PlanDiaIn,
   PlanEmpleadoInBase,
@@ -37,8 +23,18 @@ import CeldaDiaEditor from './components/CeldaDiaEditor';
 import ResumenPlan from './components/ResumenPlan';
 import PlanificadorHeader from './components/PlanificadorHeader';
 import HorarioMasivoCard from './components/HorarioMasivoCard';
+import AsignacionOtMasivaCard from './components/AsignacionOtMasivaCard';
 import EmpleadosActivosPanel from './components/EmpleadosActivosPanel';
 import { fechasDeSemanaIso, fechaIsoCorta, semanaIsoDesdeFecha } from './utils/horarioUtils';
+import {
+  CODIGOS_NOVEDAD,
+  DIAS_SEMANA,
+  DIAS_SEMANA_INICIAL,
+  MAX_SELECCION,
+  OPCIONES_ALMUERZO,
+  calcularHorasTurno,
+  normalizarDiasPlan,
+} from './utils/planificadorSemanalUtils';
 import {
   PLANIFICADOR_DRAFT_KEY,
   guardarBorradorPlanificadorLocal,
@@ -46,30 +42,6 @@ import {
   type PlanificadorDraft,
   type ResultadoConfirmacion,
 } from './utils/planificadorDraft';
-
-const MAX_SELECCION = 200;
-const DIAS_SEMANA = [1, 2, 3, 4, 5, 6, 7];
-const CODIGOS_NOVEDAD = ['', 'INC', 'VAC', 'AUS', 'LIC'];
-const OPCIONES_ALMUERZO = [
-  { value: '30', label: '00:30' },
-  { value: '60', label: '1:00' },
-  { value: '90', label: '1:30' },
-];
-
-const DIAS_SEMANA_INICIAL: PlanDiaIn[] = DIAS_SEMANA.map((d) => ({
-  dia_semana: d,
-  hora_entrada: d <= 5 ? '07:30' : null,
-  hora_salida: d <= 5 ? '17:00' : null,
-  minutos_almuerzo: d <= 5 ? 60 : 0,
-  novedades: [],
-  asignaciones_ot: [],
-}));
-
-const normalizarDiasPlan = (dias: PlanDiaIn[]): PlanDiaIn[] =>
-  dias.map((dia) => ({
-    ...dia,
-    asignaciones_ot: dia.asignaciones_ot ?? [],
-  }));
 
 interface PlanEmpleadoTabla extends PlanEmpleadoInBase {
   empleado?: EmpleadoERPRead;
@@ -134,6 +106,33 @@ const PlanificadorSemanalView: React.FC = () => {
     new Map(borradorInicial?.erroresConfirmacion ?? []),
   );
   const [resultado, setResultado] = useState<ResultadoConfirmacion | null>(borradorInicial?.resultado ?? null);
+  const borradorPendienteRef = useRef<PlanificadorDraft | null>(null);
+  const guardadoBorradorTimerRef = useRef<number | null>(null);
+
+  const vaciarGuardadoBorradorPendiente = useCallback(() => {
+    if (guardadoBorradorTimerRef.current !== null) {
+      window.clearTimeout(guardadoBorradorTimerRef.current);
+      guardadoBorradorTimerRef.current = null;
+    }
+    if (!borradorPendienteRef.current) return;
+    guardarBorradorPlanificadorLocal(borradorPendienteRef.current);
+    borradorPendienteRef.current = null;
+  }, []);
+
+  const programarGuardadoBorrador = useCallback((draft: PlanificadorDraft) => {
+    borradorPendienteRef.current = draft;
+    if (guardadoBorradorTimerRef.current !== null) {
+      window.clearTimeout(guardadoBorradorTimerRef.current);
+    }
+    guardadoBorradorTimerRef.current = window.setTimeout(vaciarGuardadoBorradorPendiente, 150);
+  }, [vaciarGuardadoBorradorPendiente]);
+
+  useEffect(() => vaciarGuardadoBorradorPendiente, [vaciarGuardadoBorradorPendiente]);
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', vaciarGuardadoBorradorPendiente);
+    return () => window.removeEventListener('beforeunload', vaciarGuardadoBorradorPendiente);
+  }, [vaciarGuardadoBorradorPendiente]);
 
   const desplazarATablaEmpleados = useCallback(() => {
     const target = tablaEmpleadosRef.current;
@@ -151,11 +150,6 @@ const PlanificadorSemanalView: React.FC = () => {
     setPreCalculo(null);
     setResultado(null);
     setErroresConfirmacion(new Map());
-  };
-
-  const cambiarSemanaIso = (nextSemanaIso: number) => {
-    setSemanaIso(nextSemanaIso);
-    limpiarResultadosSemana();
   };
 
   const cambiarFechaReferencia = (fechaIso: string) => {
@@ -208,16 +202,12 @@ const PlanificadorSemanalView: React.FC = () => {
     setPreCalculo(null);
     setResultado(null);
     setErroresConfirmacion(new Map());
-    guardarBorradorPlanificadorLocal({
+    programarGuardadoBorrador({
       ...crearDraftActual(nextSeleccionados, nextEmpleadosInfo),
       preCalculo: null,
       resultado: null,
       erroresConfirmacion: [],
     });
-  };
-
-  const enfocarTablaEmpleados = () => {
-    desplazarATablaEmpleados();
   };
 
   const toggleDiaDestino = (dia: number) => {
@@ -261,6 +251,22 @@ const PlanificadorSemanalView: React.FC = () => {
       asignaciones_ot: dia.asignaciones_ot ?? [],
     }));
     addNotification('success', 'Horario aplicado a los empleados seleccionados.');
+  };
+
+  const aplicarOtMasiva = (asignaciones: PlanAsignacionOtIn[]) => {
+    if (asignaciones.length === 0) {
+      addNotification('error', 'Agrega al menos una OT para aplicar.');
+      return;
+    }
+    actualizarDiasSeleccionados((dia) => ({
+      ...dia,
+      asignaciones_ot: asignaciones.map((asignacion) => ({
+        ...asignacion,
+        horas: Number(asignacion.horas) || 0,
+        porcentaje: null,
+      })),
+    }));
+    addNotification('success', `OT aplicada a ${seleccionados.size} empleados en ${diasDestino.size} días.`);
   };
 
   const limpiarDiasMasivo = () => {
@@ -414,30 +420,43 @@ const PlanificadorSemanalView: React.FC = () => {
         seleccionadosCount={seleccionados.size}
         preCalculo={preCalculo}
         resultado={resultado}
-        onSemanaIsoChange={cambiarSemanaIso}
         onFechaReferenciaChange={cambiarFechaReferencia}
-        onAbrirEmpleados={enfocarTablaEmpleados}
+        horarioSinEmpleados={seleccionados.size === 0}
+        novedadMasivaActiva={!!novedadMasiva}
+        onAplicarHorario={aplicarHorarioMasivo}
+        onAgregarNovedad={agregarNovedadMasiva}
+        onLimpiarDias={limpiarDiasMasivo}
+        controlesHorario={(
+          <HorarioMasivoCard
+            compacto
+            ocultarAcciones
+            diasSemana={DIAS_SEMANA}
+            diasDestino={diasDestino}
+            seleccionadosCount={seleccionados.size}
+            plantillaEntrada={plantillaEntrada}
+            plantillaSalida={plantillaSalida}
+            plantillaAlmuerzo={plantillaAlmuerzo}
+            novedadMasiva={novedadMasiva}
+            observacionMasiva={observacionMasiva}
+            codigosNovedad={CODIGOS_NOVEDAD}
+            opcionesAlmuerzo={OPCIONES_ALMUERZO}
+            onPlantillaEntradaChange={setPlantillaEntrada}
+            onPlantillaSalidaChange={setPlantillaSalida}
+            onPlantillaAlmuerzoChange={setPlantillaAlmuerzo}
+            onNovedadMasivaChange={setNovedadMasiva}
+            onObservacionMasivaChange={setObservacionMasiva}
+            onToggleDiaDestino={toggleDiaDestino}
+            onAplicarHorario={aplicarHorarioMasivo}
+            onAgregarNovedad={agregarNovedadMasiva}
+            onLimpiarDias={limpiarDiasMasivo}
+          />
+        )}
       >
-        <HorarioMasivoCard
-          diasSemana={DIAS_SEMANA}
-          diasDestino={diasDestino}
+        <AsignacionOtMasivaCard
           seleccionadosCount={seleccionados.size}
-          plantillaEntrada={plantillaEntrada}
-          plantillaSalida={plantillaSalida}
-          plantillaAlmuerzo={plantillaAlmuerzo}
-          novedadMasiva={novedadMasiva}
-          observacionMasiva={observacionMasiva}
-          codigosNovedad={CODIGOS_NOVEDAD}
-          opcionesAlmuerzo={OPCIONES_ALMUERZO}
-          onPlantillaEntradaChange={setPlantillaEntrada}
-          onPlantillaSalidaChange={setPlantillaSalida}
-          onPlantillaAlmuerzoChange={setPlantillaAlmuerzo}
-          onNovedadMasivaChange={setNovedadMasiva}
-          onObservacionMasivaChange={setObservacionMasiva}
-          onToggleDiaDestino={toggleDiaDestino}
-          onAplicarHorario={aplicarHorarioMasivo}
-          onAgregarNovedad={agregarNovedadMasiva}
-          onLimpiarDias={limpiarDiasMasivo}
+          diasDestinoCount={diasDestino.size}
+          horasTurnoPlantilla={calcularHorasTurno(plantillaEntrada, plantillaSalida, plantillaAlmuerzo)}
+          onAplicar={aplicarOtMasiva}
         />
       </PlanificadorHeader>
 

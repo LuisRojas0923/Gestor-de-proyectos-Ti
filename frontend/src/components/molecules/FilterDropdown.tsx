@@ -40,6 +40,7 @@ interface FilterDropdownProps {
     subFilters?: { key: string; label: string }[];
     activeSubFilter?: string;
     onSubFilterChange?: (key: string) => void;
+    isSearching?: boolean;
 }
 
 export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
@@ -67,6 +68,7 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         activeSubFilter,
         onSubFilterChange,
         onClearSelection,
+        isSearching = false,
     } = props;
 
     const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -331,6 +333,11 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                         </div>
 
                         <div className="py-1">
+                            {isSearching && (
+                                <Text variant="caption" className="block px-3 py-2 text-[11px] text-[var(--color-text-secondary)]">
+                                    Consultando base de datos...
+                                </Text>
+                            )}
                             {filteredOptions.map(opt => (
                                 <div key={opt.value} onClick={() => handleToggle(opt.value)} className="flex items-center gap-2 px-3 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/10 cursor-pointer">
                                     <div className={`w-4 h-4 rounded border flex items-center justify-center ${currentSelected.includes(opt.value) ? 'bg-primary-500 border-primary-500' : 'border-slate-300 dark:border-slate-600'}`}>
@@ -339,6 +346,11 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
                                     <Text variant="caption" className="text-[11px] truncate">{opt.label || '(Vacío)'}</Text>
                                 </div>
                             ))}
+                            {!isSearching && filteredOptions.length === 0 && (
+                                <Text variant="caption" className="block px-3 py-2 text-[11px] text-[var(--color-text-secondary)]">
+                                    Sin resultados. Escribe para buscar en la base de datos.
+                                </Text>
+                            )}
                         </div>
                     </>
                 ) : (

@@ -87,6 +87,7 @@ from .horas_extras_novedades import router as novedades_subrouter
 from .horas_extras_horario_semana import router as horario_semana_subrouter
 from .horas_extras_bolsa import router as bolsa_subrouter
 from .horas_extras_planificador import router as planificador_subrouter
+from .horas_extras_parametros import router as parametros_subrouter
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +104,8 @@ router.include_router(novedades_subrouter)
 router.include_router(bolsa_subrouter)
 # S7 — Sub-router de planificador semanal
 router.include_router(planificador_subrouter)
+# S9 — Sub-router de parámetros de cálculo editables
+router.include_router(parametros_subrouter)
 
 MODULO_HE = "nomina_horas_extras"
 
@@ -117,7 +120,6 @@ async def requiere_permiso_he(
     return usuario
 
 
-# ---------------------------------------------------------------------------
 # Catálogo de novedades
 # ---------------------------------------------------------------------------
 @router.get("/catalogo", response_model=List[NovedadCatalogoRead])
@@ -193,7 +195,7 @@ async def obtener_autorizacion_efectiva(
             cedula=cedula,
             autoriza_he=False,
             fuente="SIN_DATOS",
-            horas_semana_ordinaria=48.0,
+            horas_semana_ordinaria=42.0,
             minutos_jornada_ordinaria=480,
             es_jornada_nocturna=False,
         )

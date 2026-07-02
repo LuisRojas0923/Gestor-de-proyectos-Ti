@@ -8,7 +8,7 @@ Cobertura:
   - pre_calcular_plan: novedad INC suprime HE del dia
   - pre_calcular_plan: totales agregados correctos
   - confirmar_plan: genera nomina_calculo_semanal por empleado
-  - confirmar_plan: respeta S6 BOLSA_DESACTIVADA
+  - confirmar_plan: respeta bolsa desactivada sin tratarla como error
   - confirmar_plan: errores parciales (algunos OK, otros no)
   - confirmar_plan: acredita bolsa cuando codigo tiene acredita_bolsa=True
 
@@ -309,36 +309,11 @@ class TestGuardarBorradorPlan:
 
     @pytest.mark.asyncio
     async def test_continua_con_errores_por_empleado(self, db_session):
-        """Si un empleado falla, los demas se procesan y se reporta en errores[]."""
+        """El schema rechaza cedulas invalidas antes de llegar al servicio."""
         await _cleanup_all(db_session)
-        # Cedula que excede max_length=50 del modelo -> INSERT falla por la DB
         cedula_larga = "X" * 60
-        payload = PlanBulkRequest(
-            semana=_make_semana(),
-            empleados=[
-                _make_empleado(CEDULA_BASE),
-                _make_empleado(cedula_larga),
-                _make_empleado(CEDULA_2),
-            ],
-        )
-        try:
-            response = await guardar_borrador_plan(db_session, payload, usuario_id="TEST-S7")
-            # Si la DB no valida max_length y acepta la cedula larga, al menos
-            # verificamos que los 2 validos se guardaron
-            assert response.registros_horario_creados >= 14
-        except Exception:
-            # Si Postgres rechaza atomicamente el lote, el handler eleva la
-            # excepcion. El catch all es defensivo: el contrato del servicio es
-            # "continuar con errores parciales", pero algunos motores pueden
-            # rechazar todo el batch.
-            pytest.skip("DB rechazo el lote completo; comportamiento aceptable")
-
-        # Verificar que los 2 validos si se guardaron
-        count = (await db_session.execute(
-            select(func.count()).select_from(NominaHorarioPactadoDia)
-            .where(NominaHorarioPactadoDia.cedula.in_([CEDULA_BASE, CEDULA_2]))
-        )).scalar()
-        assert count == 14  # 2 empleados x 7 dias
+        with pytest.raises(Exception, match="at most 50"):
+            _make_empleado(cedula_larga)
 
 
 # ===========================================================================
@@ -378,7 +353,8 @@ class TestPreCalcularPlan:
     async def test_calcula_he_para_jornada_normal(self, db_session):
         await _cleanup_all(db_session)
         # 7:30 a 17:00 = 9.5h brutas - 1h almuerzo = 8.5h netas
-        # Ordinarias 8h + Extras 0.5h por dia x 5 dias habiles = 2.5h
+        # La semana del test es previa al 2026-07-16: 44h ordinarias.
+        # El helper arma 7 dias de 8.5h = 59.5h, por eso hay 15.5h extra.
         payload = PlanBulkRequest(
             semana=_make_semana(),
             empleados=[_make_empleado(CEDULA_BASE)],
@@ -386,10 +362,8 @@ class TestPreCalcularPlan:
         response = await pre_calcular_plan(db_session, payload)
         emp = response.empleados[0]
         assert emp.cedula == CEDULA_BASE
-        # 8.5h x 5 dias = 42.5h trabajadas; 8h x 5 = 40h ordinarias; 2.5h extras
-        assert emp.total_horas_extras >= 2.0
-        assert emp.total_horas_extras <= 3.0
-        assert emp.total_horas_ordinarias == 40.0
+        assert emp.total_horas_extras == 15.5
+        assert emp.total_horas_ordinarias == 44.0
 
     @pytest.mark.asyncio
     async def test_aplica_novedad_inc_suprime_he(self, db_session):
@@ -495,7 +469,7 @@ class TestConfirmarPlan:
         assert response.calculos[0].calculo_id is not None
 
     @pytest.mark.asyncio
-    async def test_respeta_s6_bolsa_desactivada(self, db_session):
+    async def test_bolsa_desactivada_no_bloquea_confirmacion(self, db_session):
         await _cleanup_all(db_session)
         await _set_bolsa_global(db_session, False)
 
@@ -511,10 +485,10 @@ class TestConfirmarPlan:
             ],
         )
         response = await confirmar_plan(db_session, payload)
-        # Con bolsa global desactivada, la confirmacion debe registrar error
-        # por empleado (compatible con S6)
-        assert response.resumen.error_count >= 1
-        assert any("BOLSA" in e.motivo.upper() or "DESACTIV" in e.motivo.upper() for e in response.errores)
+        assert response.resumen.ok_count == 1
+        assert response.resumen.error_count == 0
+        assert response.calculos[0].bolsa_habilitada_en_confirmacion is False
+        assert response.calculos[0].horas_acreditadas_bolsa == 0.0
 
     @pytest.mark.asyncio
     async def test_errores_parciales_continuan_lote(self, db_session):

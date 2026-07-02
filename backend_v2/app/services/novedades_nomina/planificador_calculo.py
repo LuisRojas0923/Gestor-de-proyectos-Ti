@@ -22,12 +22,16 @@ from ...models.novedades_nomina.schemas_horas_extras_planificador import (
     PlanPreCalculoResumen,
 )
 from ._planificador_common import (
+    CODIGOS_NOVEDAD_SUPRESION_PLAN,
     _DIA_NOMBRES,
-    _calcular_dia,
     _horas_trabajadas_dia,
     _resolver_catalogo_y_factor,
 )
-from .horas_extras_calculo import DIVISOR_HORA_ORDINARIA
+from .horas_extras_calculo import (
+    _calcular_horas_extras_semanales,
+    _parametros_jornada_semana,
+)
+from .horas_extras_parametros import obtener_reglas_calculo
 from .planificador_ot import validar_asignaciones_ot_dia
 
 logger = logging.getLogger(__name__)
@@ -44,6 +48,7 @@ async def pre_calcular_plan(
     niveles = ["III"]  # Default; se sobreescribira por empleado
     catalogo, factores = await _resolver_catalogo_y_factor(session, fecha_ref, niveles)
     cat_idx = {c["codigo"]: c for c in catalogo}
+    reglas_calculo = await obtener_reglas_calculo(session)
 
     empleados_out: List[PlanPreCalculoEmpleado] = []
     total_he_global = 0.0
@@ -57,7 +62,12 @@ async def pre_calcular_plan(
 
             # Salario por defecto 3M (caso test comun); el real vendra del ERP.
             salario_default = 3_000_000.0
-            valor_hora = salario_default / DIVISOR_HORA_ORDINARIA
+            horas_semana_ordinaria, divisor_hora = _parametros_jornada_semana(
+                payload.semana.anio,
+                payload.semana.semana_iso,
+                reglas_calculo,
+            )
+            valor_hora = salario_default / divisor_hora
 
             total_trab = 0.0
             total_ord = 0.0
@@ -67,17 +77,12 @@ async def pre_calcular_plan(
 
             # Indexar dias por dia_semana (rellenar con 0 si falta)
             dias_idx = {d.dia_semana: d for d in emp_in.dias}
+            datos_dias = []
 
             for dia_semana in range(1, 8):
                 dia_in = dias_idx.get(dia_semana)
                 if dia_in is None:
-                    detalle_dias.append(PlanPreCalculoDetalleDia(
-                        dia=_DIA_NOMBRES[dia_semana],
-                        dia_semana=dia_semana,
-                        horas_trabajadas=0.0,
-                        horas_ordinarias=0.0,
-                        horas_extras=0.0,
-                    ))
+                    datos_dias.append((dia_semana, 0.0, []))
                     continue
 
                 validar_asignaciones_ot_dia(dia_in)
@@ -85,14 +90,27 @@ async def pre_calcular_plan(
                 horas_trab = _horas_trabajadas_dia(
                     dia_in.hora_entrada, dia_in.hora_salida, dia_in.minutos_almuerzo
                 )
-                horas_dia, horas_ord, horas_ext, codigo_he, costo = _calcular_dia(
-                    horas_trab,
-                    codigos_nov,
-                    False,  # jornada_nocturna: S7 se enviara en payload en S7.2 ext
-                    cat_idx,
-                    factor_prestacional,
-                    valor_hora,
-                )
+                if any(c in CODIGOS_NOVEDAD_SUPRESION_PLAN for c in codigos_nov):
+                    horas_trab = 0.0
+                datos_dias.append((dia_semana, horas_trab, codigos_nov))
+
+            extras_por_dia = _calcular_horas_extras_semanales(
+                [d[1] for d in datos_dias],
+                horas_semana_ordinaria,
+                reglas_calculo.horas_ordinarias_diarias,
+            )
+
+            for idx, (dia_semana, horas_trab, codigos_nov) in enumerate(datos_dias):
+                horas_ext = extras_por_dia[idx]
+                horas_ord = max(0.0, horas_trab - horas_ext)
+                codigo_he = None
+                costo = 0.0
+                if horas_ext > 0 and not codigos_nov:
+                    codigo_he = "HED"
+                    cat = cat_idx[codigo_he]
+                    valor_bruto = horas_ext * valor_hora * cat["factor_hora_ordinaria"]
+                    costo = valor_bruto + (valor_bruto * factor_prestacional)
+
                 total_trab += horas_trab
                 total_ord += horas_ord
                 total_ext += horas_ext

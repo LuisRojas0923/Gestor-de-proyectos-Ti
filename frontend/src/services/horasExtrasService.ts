@@ -38,6 +38,8 @@ import type {
   BolsaOverrideOTIn,
   BolsaOverrideOTOut,
   BolsaGlobalConfigIn,
+  ParametrosCalculoResponse,
+  ParametrosCalculoUpdateRequest,
 } from '../types/horasExtras';
 import type {
   EmpleadoERPListResponse,
@@ -104,6 +106,27 @@ export async function listarCatalogo(
   token: string,
 ): Promise<NovedadCatalogo[]> {
   return request<NovedadCatalogo[]>(`/catalogo${buildQuery(params)}`, { token });
+}
+
+// ---------------------------------------------------------------------------
+// Parámetros editables de cálculo
+// ---------------------------------------------------------------------------
+
+export async function obtenerParametrosCalculo(
+  token: string,
+): Promise<ParametrosCalculoResponse> {
+  return request<ParametrosCalculoResponse>('/parametros-calculo', { token });
+}
+
+export async function actualizarParametrosCalculo(
+  payload: ParametrosCalculoUpdateRequest,
+  token: string,
+): Promise<ParametrosCalculoResponse> {
+  return request<ParametrosCalculoResponse>('/parametros-calculo', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+    token,
+  });
 }
 
 // ---------------------------------------------------------------------------

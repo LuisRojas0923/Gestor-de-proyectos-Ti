@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { Text, Button } from '../atoms';
 import { FilterDropdown } from './FilterDropdown';
 import { ArrowUp, ArrowDown } from 'lucide-react';
@@ -35,11 +35,14 @@ export interface DataTableProps<T> {
 
     onMouseEnterRow?: (row: T, event: React.MouseEvent) => void;
     onMouseLeaveRow?: () => void;
-    bodyRef?: React.RefObject<HTMLDivElement>;
+    bodyRef?: React.MutableRefObject<HTMLDivElement | null>;
 
     columnFilters?: Record<string, Set<string>>;
     columnOptions?: Record<string, string[]>;
     onFilterChange?: (columnKey: string, filter: Set<string>) => void;
+    remoteFilterSearch?: boolean;
+    isFilterSearching?: boolean;
+    onFilterSearchChange?: (columnKey: string, subFilterKey: string, searchTerm: string) => void;
 
     activeSortKey?: string | null;
     activeSortDir?: 'asc' | 'desc' | null;
@@ -55,6 +58,69 @@ export interface DataTableProps<T> {
     minHeight?: string;
     className?: string;
 }
+
+interface DataTableRowProps<T> {
+    row: T;
+    columns: DataTableColumn<T>[];
+    rowKey: string;
+    showRowIndicator: boolean;
+    rowIndicatorColor: string;
+    onRowClick?: (row: T) => void;
+    renderRowActions?: (row: T) => React.ReactNode;
+    onMouseEnterRow?: (row: T, event: React.MouseEvent) => void;
+    onMouseLeaveRow?: () => void;
+}
+
+const DataTableRowInner = <T,>({
+    row,
+    columns,
+    showRowIndicator,
+    rowIndicatorColor,
+    onRowClick,
+    renderRowActions,
+    onMouseEnterRow,
+    onMouseLeaveRow,
+}: DataTableRowProps<T>) => (
+    <div
+        onClick={() => onRowClick?.(row)}
+        className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+        onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
+        onMouseLeave={onMouseLeaveRow}
+    >
+        {showRowIndicator && (
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
+        )}
+        {columns.map((col) => (
+            <div
+                key={col.key}
+                className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
+            >
+                {col.render ? col.render(row) : (
+                    <Text variant="caption" className="truncate">
+                        {String((row as Record<string, unknown>)[col.key] ?? '')}
+                    </Text>
+                )}
+            </div>
+        ))}
+        {renderRowActions && (
+            <div className="flex items-center justify-center py-3 px-4 gap-2">
+                {renderRowActions(row)}
+            </div>
+        )}
+    </div>
+);
+
+const MemoDataTableRow = React.memo(DataTableRowInner, (prev, next) => (
+    prev.row === next.row
+    && prev.columns === next.columns
+    && prev.rowKey === next.rowKey
+    && prev.showRowIndicator === next.showRowIndicator
+    && prev.rowIndicatorColor === next.rowIndicatorColor
+    && prev.onRowClick === next.onRowClick
+    && prev.renderRowActions === next.renderRowActions
+    && prev.onMouseEnterRow === next.onMouseEnterRow
+    && prev.onMouseLeaveRow === next.onMouseLeaveRow
+)) as typeof DataTableRowInner;
 
 export function DataTable<T>({
     columns,
@@ -72,6 +138,9 @@ export function DataTable<T>({
     columnFilters = {},
     columnOptions = {},
     onFilterChange,
+    remoteFilterSearch = false,
+    isFilterSearching = false,
+    onFilterSearchChange,
     activeSortKey,
     activeSortDir,
     onSort,
@@ -92,14 +161,14 @@ export function DataTable<T>({
     const bodyGridRef = useRef<HTMLDivElement>(null);
     const headerGridRef = useRef<HTMLDivElement>(null);
 
-    const gridTemplateColumns = [
+    const gridTemplateColumns = useMemo(() => [
         ...columns.map(col =>
             col.flex
                 ? `minmax(${col.minWidth ?? 'min-content'}, 1fr)`
                 : `minmax(${col.minWidth ?? 'min-content'}, ${col.maxWidth ?? 'auto'})`
         ),
         ...(renderRowActions ? [`minmax(${actionsMinWidth}, auto)`] : []),
-    ].join(' ');
+    ].join(' '), [actionsMinWidth, columns, renderRowActions]);
 
     useLayoutEffect(() => {
         if (headerGridRef.current) {
@@ -122,7 +191,7 @@ export function DataTable<T>({
         const observer = new ResizeObserver(sync);
         if (bodyGridRef.current) observer.observe(bodyGridRef.current);
         return () => observer.disconnect();
-    }, [data, columns, renderRowActions, gridTemplateColumns]);
+    }, [data.length, isLoading, renderRowActions, gridTemplateColumns]);
 
     const toggleFilter = useCallback((key: string) => {
         const el = headerRefs.current[key];
@@ -182,10 +251,20 @@ export function DataTable<T>({
         setActiveSubFilter(null);
     }, [activeFilter, tempSubFilters, onFilterChange, columns]);
 
-    const getFilterOptions = useCallback((key: string) =>
-        (columnOptions[key] || [])
-            .filter(o => o.toLowerCase().includes(filterSearchTerm.toLowerCase()))
-            .map(opt => ({ value: opt, label: opt })), [columnOptions, filterSearchTerm]);
+    const getFilterOptions = useCallback((key: string) => {
+        const options = columnOptions[key] || [];
+        const filtered = remoteFilterSearch
+            ? options
+            : options.filter(o => o.toLowerCase().includes(filterSearchTerm.toLowerCase()));
+        return filtered.map(opt => ({ value: opt, label: opt }));
+    }, [columnOptions, filterSearchTerm, remoteFilterSearch]);
+
+    const handleFilterSearchChange = useCallback((value: string) => {
+        setFilterSearchTerm(value);
+        if (activeFilter && activeSubFilter) {
+            onFilterSearchChange?.(activeFilter, activeSubFilter, value);
+        }
+    }, [activeFilter, activeSubFilter, onFilterSearchChange]);
 
     const hasFilterActive = useCallback((key: string) => {
         const col = columns.find(c => c.key === key);
@@ -199,8 +278,9 @@ export function DataTable<T>({
         return !!(f && f.size > 0);
     }, [columnFilters, columns]);
 
+    const activeFilterOptionsCount = activeSubFilter ? getFilterOptions(activeSubFilter).length : 0;
     const isAllSelected = activeFilter && activeSubFilter
-        ? (tempSubFilters[activeSubFilter]?.size ?? 0) === getFilterOptions(activeSubFilter).length
+        ? activeFilterOptionsCount > 0 && (tempSubFilters[activeSubFilter]?.size ?? 0) === activeFilterOptionsCount
         : false;
 
     return (
@@ -215,7 +295,7 @@ export function DataTable<T>({
                     title={columns.find(c => c.key === activeFilter)?.label}
                     type="categorical"
                     searchTerm={filterSearchTerm}
-                    onSearchChange={setFilterSearchTerm}
+                    onSearchChange={handleFilterSearchChange}
                     onSelectAll={() => {
                         if (!activeSubFilter) return;
                         setTempSubFilters(prev => {
@@ -242,7 +322,9 @@ export function DataTable<T>({
                     onSubFilterChange={(subKey) => {
                         setActiveSubFilter(subKey);
                         setFilterSearchTerm('');
+                        if (activeFilter) onFilterSearchChange?.(activeFilter, subKey, '');
                     }}
+                    isSearching={isFilterSearching}
                 />
             )}
 
@@ -315,40 +397,27 @@ export function DataTable<T>({
                         <div
                             ref={(el) => {
                                 (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-                                if (bodyRef) (bodyRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                                if (bodyRef) bodyRef.current = el;
                             }}
                             className="overflow-y-auto custom-scrollbar"
                         >
-                            {data.map((row) => (
-                                <div
-                                    key={keyExtractor(row)}
-                                    onClick={() => onRowClick?.(row)}
-                                    className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
-                                    onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
-                                    onMouseLeave={onMouseLeaveRow}
-                                >
-                                    {showRowIndicator && (
-                                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
-                                    )}
-                                    {columns.map((col) => (
-                                        <div
-                                            key={col.key}
-                                            className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
-                                        >
-                                            {col.render ? col.render(row) : (
-                                                <Text variant="caption" className="truncate">
-                                                    {String((row as Record<string, unknown>)[col.key] ?? '')}
-                                                </Text>
-                                            )}
-                                        </div>
-                                    ))}
-                                    {renderRowActions && (
-                                        <div className="flex items-center justify-center py-3 px-4 gap-2">
-                                            {renderRowActions(row)}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                            {data.map((row) => {
+                                const rowKey = keyExtractor(row);
+                                return (
+                                    <MemoDataTableRow
+                                        key={rowKey}
+                                        row={row}
+                                        rowKey={rowKey}
+                                        columns={columns}
+                                        showRowIndicator={showRowIndicator}
+                                        rowIndicatorColor={rowIndicatorColor}
+                                        onRowClick={onRowClick}
+                                        renderRowActions={renderRowActions}
+                                        onMouseEnterRow={onMouseEnterRow}
+                                        onMouseLeaveRow={onMouseLeaveRow}
+                                    />
+                                );
+                            })}
                         </div>
                     )}
                 </>

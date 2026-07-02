@@ -240,7 +240,7 @@ class TestAplicarRegistroDiario:
         out = _aplicar_registro_diario(inp)
         assert out.horas_por_dia == [0.0] * 7
 
-    def test_rechaza_salida_anterior_a_entrada(self):
+    def test_turno_cruzado_debe_partirse_en_dos_dias(self):
         inp = self._input()
         inp.registro_diario = [
             RegistroDiarioInput(dia_semana=i, hora_entrada=time(8, 0), hora_salida=time(17, 0), minutos_almuerzo=0)
@@ -249,7 +249,7 @@ class TestAplicarRegistroDiario:
         inp.registro_diario[2] = RegistroDiarioInput(
             dia_semana=3, hora_entrada=time(17, 0), hora_salida=time(8, 0), minutos_almuerzo=0
         )
-        with pytest.raises(ValueError, match="posterior a hora_entrada"):
+        with pytest.raises(ValueError, match="partirse en dos dias"):
             _aplicar_registro_diario(inp)
 
     def test_rechaza_si_no_hay_7_dias(self):
