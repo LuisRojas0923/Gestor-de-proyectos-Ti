@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import basicSsl from '@vitejs/plugin-basic-ssl';
 
 const buildSha = process.env.BUILD_SHA ?? 'dev';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), basicSsl()],
   define: {
     __APP_BUILD_ID__: JSON.stringify(buildSha),
   },

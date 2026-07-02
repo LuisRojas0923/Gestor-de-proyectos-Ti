@@ -53,8 +53,8 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({ onCapture, isLoading = fa
             
             // Optimización: Limitar la altura máxima a 720p (HD) para evitar enviar fotos 4K o 1080p pesadas
             const MAX_HEIGHT = 720;
-            let width = video.videoWidth;
-            let height = video.videoHeight;
+            let width = video.videoWidth || video.clientWidth || 640;
+            let height = video.videoHeight || video.clientHeight || 480;
             
             if (height > MAX_HEIGHT) {
                 const ratio = width / height;
@@ -62,9 +62,9 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({ onCapture, isLoading = fa
                 width = height * ratio;
             }
             
-            // Establecer el tamaño del canvas al nuevo tamaño optimizado
-            canvas.width = width;
-            canvas.height = height;
+            // Establecer el tamaño del canvas asegurando que sean números enteros y mayores a 0
+            canvas.width = Math.max(1, Math.floor(width));
+            canvas.height = Math.max(1, Math.floor(height));
             
             const context = canvas.getContext('2d');
             if (context) {
