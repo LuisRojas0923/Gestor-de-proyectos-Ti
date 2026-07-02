@@ -47,10 +47,11 @@ export default function EnrollScreen() {
       setIsCapturing(false);
       router.replace('/(tabs)');
       
-    } catch (error) {
+    } catch (error: any) {
       setIsCapturing(false);
       console.error(error);
-      alert('Error al capturar la foto. Inténtalo de nuevo.');
+      const msg = error.message || 'Error desconocido';
+      alert(`Error al capturar la foto: ${msg}`);
     }
   };
 

@@ -4,6 +4,8 @@ import numpy as np
 import cv2
 import os
 import logging
+import io
+from PIL import Image, ImageOps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, File, Form, UploadFile
@@ -41,13 +43,27 @@ def preload_models():
 
 def load_image_from_bytes(file_bytes: bytes):
     try:
-        arr = np.frombuffer(file_bytes, np.uint8)
-        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        if img is None:
+        # Usar PIL para leer la imagen y aplicar la rotación EXIF automáticamente
+        # Esto soluciona que las fotos tomadas en vertical desde la app móvil no salgan giradas
+        img_pil = Image.open(io.BytesIO(file_bytes))
+        img_pil = ImageOps.exif_transpose(img_pil)
+        
+        # Convertir a numpy array
+        arr = np.array(img_pil)
+        
+        # Convertir colores a BGR que usa OpenCV
+        if len(arr.shape) == 3 and arr.shape[2] == 3:
+            img = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+        elif len(arr.shape) == 3 and arr.shape[2] == 4:
+            img = cv2.cvtColor(arr, cv2.COLOR_RGBA2BGR)
+        else:
+            img = arr # asume escala de grises
+            
+        if img is None or img.size == 0:
             raise ValueError("La imagen está corrupta o vacía")
         return img
     except Exception as e:
-        raise ValueError(f"Error decodificando imagen: {str(e)}")
+        raise ValueError(f"Error decodificando imagen con PIL: {str(e)}")
 
 def l2_normalize(embedding: list):
     emb = np.array(embedding, dtype=np.float64)
