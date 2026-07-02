@@ -85,18 +85,27 @@ async def enrolar_rostro(
         raise HTTPException(status_code=400, detail=str(e))
         
     try:
-        embedding_objs = await asyncio.to_thread(
-            DeepFace.represent,
+        represent_kwargs = dict(
             img_path=img,
             model_name=MODEL_NAME,
             detector_backend=DETECTOR_BACKEND,
             enforce_detection=True,
             align=True,
-            anti_spoofing=True,
         )
+        if ANTI_SPOOFING:
+            represent_kwargs['anti_spoofing'] = True
         
-        if not embedding_objs[0].get('is_real', True):
+        try:
+            embedding_objs = await asyncio.to_thread(DeepFace.represent, **represent_kwargs)
+        except TypeError:
+            # Versión de DeepFace sin soporte para anti_spoofing
+            represent_kwargs.pop('anti_spoofing', None)
+            embedding_objs = await asyncio.to_thread(DeepFace.represent, **represent_kwargs)
+        
+        if ANTI_SPOOFING and not embedding_objs[0].get('is_real', True):
             raise HTTPException(status_code=403, detail="Anti-spoofing: Intento de suplantación detectado (Foto/Pantalla).")
+    except HTTPException:
+        raise
     except ValueError as e:
         msg = str(e)
         if "Spoof detected" in msg:
@@ -189,18 +198,26 @@ async def marcar_asistencia(
         raise HTTPException(status_code=400, detail=str(e))
         
     try:
-        embedding_objs = await asyncio.to_thread(
-            DeepFace.represent,
+        represent_kwargs = dict(
             img_path=img,
             model_name=MODEL_NAME,
             detector_backend=DETECTOR_BACKEND,
             enforce_detection=True,
             align=True,
-            anti_spoofing=True,
         )
+        if ANTI_SPOOFING:
+            represent_kwargs['anti_spoofing'] = True
         
-        if not embedding_objs[0].get('is_real', True):
+        try:
+            embedding_objs = await asyncio.to_thread(DeepFace.represent, **represent_kwargs)
+        except TypeError:
+            represent_kwargs.pop('anti_spoofing', None)
+            embedding_objs = await asyncio.to_thread(DeepFace.represent, **represent_kwargs)
+        
+        if ANTI_SPOOFING and not embedding_objs[0].get('is_real', True):
             raise HTTPException(status_code=403, detail="Anti-spoofing: Intento de suplantación detectado (Foto/Pantalla).")
+    except HTTPException:
+        raise
     except ValueError as e:
         msg = str(e)
         if "Spoof detected" in msg:
