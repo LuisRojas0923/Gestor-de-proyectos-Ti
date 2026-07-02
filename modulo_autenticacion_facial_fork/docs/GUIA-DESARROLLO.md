@@ -1,32 +1,38 @@
-# Guía de Desarrollo - GeoFace
+# Guía de Desarrollo - GeoFace (Módulo Móvil)
 
 ## Requisitos Previos
 
 - **Node.js** ≥ 18
-- **Python** ≥ 3.9 (para servidor DeepFace)
 - **Expo CLI** (`npm install -g expo-cli`) o `npx expo`
-- **Dispositivo/Emulador** Android o iOS (la web no tiene cámara real)
+- **Dispositivo/Emulador** Android o iOS (la versión web no soporta la cámara nativa correctamente)
+- Acceso a la red del servidor central (`backend_v2`) corriendo localmente o en entorno de pruebas.
 
 ## Inicio Rápido
 
-### 1. Servidor DeepFace (OBLIGATORIO para reconocimiento facial)
+### 1. Levantar el Backend Central (OBLIGATORIO)
+
+La aplicación móvil depende del servidor principal para procesar el reconocimiento facial. Desde la raíz del proyecto principal:
 
 ```bash
-cd face-server
-pip install -r requirements.txt   # ~500MB de descarga en primera ejecución
-python server.py                  # Descarga modelo Facenet512 (~500MB)
-```
+# Recomendado: Usar Docker
+docker compose up --build
 
-El servidor inicia en `http://0.0.0.0:5005`. La primera ejecución descarga los pesos del modelo (30-60 segundos).
+# O manualmente (desde /backend_v2):
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+*(Asegúrate de que la IA descargue sus modelos la primera vez que se ejecute).*
 
 ### 2. App Móvil
+
+Dentro de esta carpeta (`modulo_autenticacion_facial_fork`):
 
 ```bash
 npm install
 npx expo start
 ```
 
-Escanea el QR con Expo Go en tu dispositivo, o presiona `a` para Android emulator / `i` para iOS simulator.
+Escanea el QR con Expo Go en tu dispositivo físico (deben estar en la misma red WiFi), o presiona `a` para abrir el emulador de Android / `i` para el simulador de iOS.
 
 ## Comandos Útiles
 
@@ -35,9 +41,8 @@ Escanea el QR con Expo Go en tu dispositivo, o presiona `a` para Android emulato
 | `npm start` | Inicia servidor Expo |
 | `npm run android` | Inicia en Android |
 | `npm run ios` | Inicia en iOS |
-| `npm run web` | Inicia en web (sin cámara) |
 | `npx tsc --noEmit` | Verifica tipos TypeScript |
-| `cd face-server && python server.py` | Inicia servidor facial |
+| `eas build -p android --profile preview` | Generar el APK para pruebas |
 
 ## Convenciones de Código
 
@@ -65,54 +70,40 @@ Escanea el QR con Expo Go en tu dispositivo, o presiona `a` para Android emulato
 ### Manejo de Errores
 - API calls (`faceApi.ts`) envueltas en try/catch
 - Mostrar errores con `Alert.alert()` (UI en español)
-- Errores de conexión: mensaje claro "Servidor No Disponible" con instrucciones
-- Usar `FaceApiError` para errores del servidor
-
-## Estructura para Nuevas Funcionalidades
-
-1. Agregar tipos en `src/types/index.ts`
-2. Agregar servicio en `src/services/`
-3. Agregar utilidad en `src/utils/` si aplica
-4. Crear componente en `src/components/` (si es reutilizable)
-5. Crear/actualizar screen en `src/screens/`
-6. Actualizar layout/ruta en `app/` si es necesario
+- Errores de conexión: mensaje claro "Servidor No Disponible" indicando revisar la IP en Ajustes.
 
 ## Consideraciones Importantes
 
-### Embeddings Faciales
-- **Solo vectores 512D** son válidos (Facenet512)
-- Perfiles con 128D (legacy) se filtran automáticamente en VerifyScreen
-- Si el servidor está offline al crear un perfil, `faceDescriptor` queda como `null`
-- Un perfil sin embedding no puede ser verificado
+### Reconocimiento Facial
+- El celular ya no procesa los embeddings matemáticos (vectores). Todo se envía mediante `FormData` (la foto física) a FastAPI.
+- Es vital no enviar imágenes de 10 Megabytes; la cámara de Expo debe configurarse en una calidad media/baja (`quality: 0.5`) para evitar saturar la RAM del servidor central.
 
 ### Geolocalización
-- El GPS se inicia automáticamente al abrir la app
-- El tracking continúa mientras la app está en foreground
-- La zona se calcula contra TODAS las geocercas configuradas
-- Sin zonas configuradas → `isInZone` siempre es `false`
+- El GPS se inicia automáticamente al abrir la app.
+- El tracking continúa mientras la app está en foreground.
+- La zona se calcula contra TODAS las geocercas configuradas.
+- Sin zonas configuradas → `isInZone` siempre es `false` (bloquea el check-in).
 
 ### Estado Global
 - No usar estado global para UI temporal (modales, formularios)
-- Solo usar AppContext para datos persistentes (profiles, zones, checkIns, threshold)
+- Solo usar AppContext para datos persistentes (perfiles locales, zonas, configuraciones)
 - El estado de ubicación se actualiza automáticamente via `useLocation` hook
 
 ## Pruebas y Validación
 
-1. `npx tsc --noEmit` → verificar tipos
-2. Probar con servidor encendido → flujo completo
-3. Probar con servidor apagado → mensaje de error
-4. Probar fuera de zona → bloqueo correcto
-5. Probar con/sin perfiles registrados
-6. Probar umbral muy alto (99%) → falsos negativos esperados
+1. `npx tsc --noEmit` → verificar tipos.
+2. Probar con servidor encendido (IP configurada en Ajustes) → flujo completo.
+3. Probar con servidor apagado → debe atrapar el error sin crashear.
+4. Probar fuera de zona → bloqueo correcto del botón de la cámara.
+5. Probar con/sin permisos de cámara y ubicación.
 
 ## Troubleshooting
 
 | Problema | Solución |
 |---|---|
-| "No se pudo conectar" | Verificar que `python server.py` esté corriendo |
-| "Dimensión de embedding incorrecta" | Re-registrar perfil con servidor encendido |
-| "No se detectó un rostro" | Mejorar iluminación, rostro de frente, sin obstrucciones |
-| Expo Go no conecta al servidor | Ambos dispositivos en misma red WiFi |
-| Error 500 en servidor | Revisar logs del servidor Python |
+| "No se pudo conectar al servidor" | Revisa que la IP en la pestaña Ajustes de la App coincida con la IP de tu PC (`ipconfig`). |
+| "OOMKilled en Servidor" | El backend se quedó sin memoria RAM procesando DeepFace. Reinicia Docker. |
+| "No se detectó un rostro" | La foto salió oscura o borrosa. Repetir foto. |
+| Expo Go no conecta | Verifica que el PC y el celular estén conectados exactamente a la misma red WiFi (No usar VPNs). |
 | TypeScript errors | `npx tsc --noEmit` para diagnóstico |
-| Permisos de cámara/locación | Ir a Ajustes del dispositivo → Apps → GeoFace → Permisos |
+| Permisos de cámara/locación | Ir a Ajustes del celular → Apps → Expo Go/GeoFace → Permisos |
