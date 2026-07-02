@@ -1,20 +1,20 @@
 // Detalle completo de una Requisición de Personal
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, MessageCircle, Send, MapPin, Layers, DollarSign, Package } from 'lucide-react';
-import { Button, Title, Text, Input } from '../../../../../components/atoms';
+import { ArrowLeft, MapPin, Layers, DollarSign, Package } from 'lucide-react';
+import { Button, Title, Text } from '../../../../../components/atoms';
 import RPStatusBadge from '../components/RPStatusBadge';
 import RPTimeline from '../components/RPTimeline';
 import type { RequisicionRP } from '../types/requisicion.types';
-import { getDetalleRequisicion, agregarComentario } from '../services/requisicionService';
+import { getDetalleRequisicion } from '../services/requisicionService';
 
 interface Props {
   requisicionId: number;
   onBack: () => void;
 }
 
-const SummaryItem = ({ label, value, highlight = false }: { label: string; value: React.ReactNode; highlight?: boolean }) => {
+const SummaryItem = ({ label, value, highlight = false, className = '' }: { label: string; value: React.ReactNode; highlight?: boolean; className?: string }) => {
   return (
-    <div className={`p-3 rounded-lg ${highlight ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30' : 'bg-slate-50 dark:bg-neutral-800/50'}`}>
+    <div className={`p-3 rounded-lg ${highlight ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30' : 'bg-slate-50 dark:bg-neutral-800/50'} ${className}`}>
       <Text variant="caption" className="text-slate-500 dark:text-slate-400 font-medium mb-1 block uppercase text-[10px] tracking-wider">{label}</Text>
       <Text variant="body2" className={`font-semibold ${highlight ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}`}>
         {value || <span className="text-slate-400 italic font-normal">—</span>}
@@ -26,8 +26,6 @@ const SummaryItem = ({ label, value, highlight = false }: { label: string; value
 const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
   const [req, setReq] = useState<RequisicionRP | null>(null);
   const [loading, setLoading] = useState(true);
-  const [comentario, setComentario] = useState('');
-  const [enviandoComentario, setEnviandoComentario] = useState(false);
 
   const cargar = () => {
     setLoading(true);
@@ -38,18 +36,6 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
   };
 
   useEffect(() => { cargar(); }, [requisicionId]);
-
-  const handleComentario = async () => {
-    if (!comentario.trim() || !req) return;
-    setEnviandoComentario(true);
-    try {
-      await agregarComentario(requisicionId, comentario, 'Usuario', 'usuario@refridcol.com');
-      setComentario('');
-      cargar();
-    } finally {
-      setEnviandoComentario(false);
-    }
-  };
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
@@ -63,10 +49,31 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
     return `$${val.toLocaleString('de-DE')}`;
   };
 
+  const formatFecha = (fecha: string | null | undefined) => {
+    if (!fecha) return '—';
+    return new Date(fecha).toLocaleString('es-CO', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+      timeZone: 'America/Bogota',
+    });
+  };
+
   const salarioFormateado = formatCOP(req.salario_asignado);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 detalle-req-view">
+      <style>
+        {`
+          .detalle-req-view .text-base { font-size: 14px; }
+          .detalle-req-view .text-sm { font-size: 12px; }
+          .detalle-req-view .text-xs { font-size: 10px; }
+          .detalle-req-view .text-\\[11px\\] { font-size: 9px; }
+          .detalle-req-view .text-\\[10px\\] { font-size: 8px; }
+          .detalle-req-view input, 
+          .detalle-req-view select, 
+          .detalle-req-view textarea { font-size: 12px; }
+        `}
+      </style>
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
         <div className="flex items-center gap-4">
@@ -84,19 +91,10 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
           </div>
         </div>
       </div>
-
-      <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 text-sm space-y-1 shadow-sm">
-        <Text color="primary">
-          Solicitado por: <strong>{req.nombre_solicitante}</strong> ({req.correo_solicitante})
-        </Text>
-        <Text variant="caption" color="primary" className="block">
-          Radicado: {req.fecha_radicacion ? new Date(req.fecha_radicacion).toLocaleDateString('es-CO') : '—'}
-        </Text>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Columna principal */}
-        <div className="lg:col-span-2 flex flex-col gap-3">
+        <div className="lg:col-span-4 flex flex-col gap-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* BLOQUE 1: DATOS GENERALES */}
             <div className="bg-white dark:bg-neutral-900 border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
@@ -104,18 +102,18 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
                 <MapPin className="w-4 h-4 text-[var(--color-primary)]" />
                 <Title variant="subtitle2" weight="bold">Datos Generales y Ubicación</Title>
               </div>
-              <div className="p-4 grid grid-cols-2 gap-3">
-                <SummaryItem label="Ubicación" value={req.departamento && req.municipio ? `${req.municipio}, ${req.departamento}` : '—'} />
-                <SummaryItem label="Orden de Trabajo (OT)" value={req.ot} />
-                <SummaryItem label="Nombre Obra / Proyecto" value={req.nombre_obra_proyecto} />
-                <SummaryItem label="Dirección Obra" value={req.direccion_obra_proyecto} />
-                <SummaryItem label="Encargado en sitio" value={req.encargado_sitio} />
-                <SummaryItem label="N° Personas" value={req.numero_personas_requeridas} />
-                <SummaryItem label="TSA" value={req.tsa} />
-                <SummaryItem label="Duración" value={req.duracion_obra_contrato} />
-                <div className="col-span-2">
-                  <SummaryItem label="Fecha probable de ingreso" value={req.fecha_probable_ingreso} />
-                </div>
+              <div className="p-4 grid grid-cols-12 gap-3">
+                <SummaryItem className="col-span-12 sm:col-span-5" label="Ubicación" value={req.departamento && req.municipio ? `${req.municipio}, ${req.departamento}` : '—'} />
+                <SummaryItem className="col-span-12 sm:col-span-2" label="OT" value={req.ot} />
+                <SummaryItem className="col-span-12 sm:col-span-5" label="Nombre Obra / Proyecto" value={req.nombre_obra_proyecto} />
+                
+                <SummaryItem className="col-span-12 sm:col-span-5" label="Dirección Obra" value={req.direccion_obra_proyecto} />
+                <SummaryItem className="col-span-12 sm:col-span-5" label="Encargado en sitio" value={req.encargado_sitio} />
+                <SummaryItem className="col-span-12 sm:col-span-2" label="N° Personas" value={req.numero_personas_requeridas} />
+                
+                <SummaryItem className="col-span-12 sm:col-span-4" label="TSA" value={req.tsa} />
+                <SummaryItem className="col-span-12 sm:col-span-4" label="Duración" value={req.duracion_obra_contrato} />
+                <SummaryItem className="col-span-12 sm:col-span-4" label="Fecha probable de ingreso" value={req.fecha_probable_ingreso} />
               </div>
             </div>
 
@@ -126,15 +124,18 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
                 <Title variant="subtitle2" weight="bold">Área, Cargo y Causal</Title>
               </div>
               <div className="p-4 grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <SummaryItem label="Centro de costo" value={req.centro_costo} />
-                </div>
+                <SummaryItem label="Centro de costo" value={req.centro_costo} />
                 <SummaryItem label="Área" value={req.area_nombre} />
+                
                 <SummaryItem label="Cargo Solicitado" value={req.cargo_nombre} />
                 <SummaryItem label="Causal de Requisición" value={req.causal_requisicion} />
+                
                 {req.otra_causal && (
-                  <SummaryItem label="Otra causal" value={req.otra_causal} />
+                  <div className="col-span-2">
+                    <SummaryItem label="Otra causal" value={req.otra_causal} />
+                  </div>
                 )}
+                
                 <div className="col-span-2">
                   <SummaryItem label="Perfil Requerido" value={req.perfil_requerido} />
                 </div>
@@ -179,42 +180,6 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
             </div>
           </div>
 
-          {/* Comentarios */}
-          <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <MessageCircle className="w-4 h-4 text-[var(--color-primary)]" />
-              <Title variant="h6" weight="bold" className="text-[var(--color-text-secondary)] uppercase tracking-wider text-xs">
-                Comentarios
-              </Title>
-            </div>
-            {req.comentarios?.map(c => (
-              <div key={c.id} className="mb-3 p-3 bg-[var(--color-surface-secondary)] rounded-xl">
-                <div className="flex items-center justify-between mb-1">
-                  <Text variant="caption" className="font-semibold">{c.usuario_nombre}</Text>
-                  <Text variant="caption" color="primary">{c.fecha_comentario ? new Date(c.fecha_comentario).toLocaleString('es-CO') : ''}</Text>
-                </div>
-                <Text variant="body">{c.comentario}</Text>
-              </div>
-            ))}
-            <div className="flex gap-2 mt-3 items-end">
-              <div className="flex-1">
-                <Input
-                  className="!mb-0"
-                  placeholder="Escribir comentario..."
-                  value={comentario}
-                  onChange={e => setComentario(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleComentario(); } }}
-                />
-              </div>
-              <Button
-                variant="primary"
-                onClick={handleComentario}
-                disabled={enviandoComentario || !comentario.trim()}
-                loading={enviandoComentario}
-                icon={Send}
-              />
-            </div>
-          </div>
         </div>
 
         {/* Columna lateral — historial + aprobador */}

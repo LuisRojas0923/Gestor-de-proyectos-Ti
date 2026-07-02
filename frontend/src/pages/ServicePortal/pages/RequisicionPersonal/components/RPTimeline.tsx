@@ -27,6 +27,7 @@ const formatFecha = (fecha: string | null) => {
   return new Date(fecha).toLocaleString('es-CO', {
     day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
+    timeZone: 'America/Bogota',
   });
 };
 
@@ -53,17 +54,17 @@ const RPTimeline: React.FC<RPTimelineProps> = ({ historial }) => {
                   {iconoEstado(evento.estado_nuevo)}
                 </div>
                 <div className="min-w-0 flex-1 pt-1">
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col gap-0.5">
                     <Text variant="body" className="font-semibold text-[var(--color-text-primary)]">
                       {evento.estado_nuevo.replace(/_/g, ' ')}
                     </Text>
                     <Text variant="caption" color="primary">
+                      Por: <strong>{evento.usuario_nombre}</strong>
+                    </Text>
+                    <Text variant="caption" className="text-slate-500 mt-0.5 flex items-center gap-1">
                       {formatFecha(evento.fecha_evento)}
                     </Text>
                   </div>
-                  <Text variant="caption" color="primary">
-                    Por: <strong>{evento.usuario_nombre}</strong>
-                  </Text>
                   {evento.observacion && (
                     <div className="mt-1 rounded-md bg-[var(--color-surface-secondary)] px-3 py-2">
                       <Text variant="caption" color="primary" className="italic">

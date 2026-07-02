@@ -20,7 +20,7 @@ class HistorialRequisicion(SQLModel, table=True):
     usuario_email: str = Field(max_length=255)
     observacion: Optional[str] = Field(default=None)
     fecha_evento: Optional[datetime] = Field(
-        default=None, sa_column_kwargs={"server_default": "now()"}
+        default_factory=datetime.utcnow
     )
 
 

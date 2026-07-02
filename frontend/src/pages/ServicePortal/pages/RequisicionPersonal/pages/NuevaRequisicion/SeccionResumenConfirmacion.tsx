@@ -13,11 +13,11 @@ interface Props {
   aprobadorNombre: string;
 }
 
-const SummaryItem = ({ label, value, highlight = false }: { label: string; value: string | number | string[]; highlight?: boolean }) => {
+const SummaryItem = ({ label, value, highlight = false, className = '' }: { label: string; value: string | number | string[]; highlight?: boolean; className?: string }) => {
   const displayValue = Array.isArray(value) ? value.join(', ') : value;
   
   return (
-    <div className={`p-3 rounded-lg ${highlight ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30' : 'bg-slate-50 dark:bg-neutral-800/50'}`}>
+    <div className={`py-1.5 px-3 rounded-lg ${highlight ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30' : 'bg-slate-50 dark:bg-neutral-800/50'} ${className}`}>
       <Text variant="caption" className="text-slate-500 dark:text-slate-400 font-medium mb-1 block uppercase text-[10px] tracking-wider">{label}</Text>
       <Text variant="body2" className={`font-semibold ${highlight ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}`}>
         {displayValue || <span className="text-slate-400 italic font-normal">No especificado</span>}
@@ -40,25 +40,22 @@ export const SeccionResumenConfirmacion: React.FC<Props> = ({
             <MapPin className="w-4 h-4 text-[var(--color-primary)]" />
             <Title variant="subtitle2" weight="bold">Datos Generales y Ubicación</Title>
           </div>
-          <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-4 grid grid-cols-12 gap-3">
             {/* Fila 1 */}
-            <SummaryItem label="Solicitante" value={nombreSolicitante} />
-            <SummaryItem label="Correo" value={correoSolicitante} />
-            <SummaryItem label="Ubicación" value={`${form.municipio}, ${form.departamento}`} />
+            <SummaryItem className="col-span-12 sm:col-span-6" label="Solicitante" value={nombreSolicitante} />
+            <SummaryItem className="col-span-12 sm:col-span-6" label="Ubicación" value={`${form.municipio}, ${form.departamento}`} />
             
             {/* Fila 2 */}
-            <SummaryItem label="Orden de Trabajo (OT)" value={form.ot} />
-            <SummaryItem label="Nombre Obra / Proyecto" value={form.nombre_obra_proyecto} />
-            <SummaryItem label="Dirección Obra" value={form.direccion_obra_proyecto} />
+            <SummaryItem className="col-span-12 sm:col-span-2" label="OT" value={form.ot} />
+            <SummaryItem className="col-span-12 sm:col-span-4" label="Nombre Obra / Proyecto" value={form.nombre_obra_proyecto} />
+            <SummaryItem className="col-span-12 sm:col-span-3" label="Dirección Obra" value={form.direccion_obra_proyecto} />
+            <SummaryItem className="col-span-12 sm:col-span-3" label="Encargado en sitio" value={form.encargado_sitio} />
             
             {/* Fila 3 */}
-            <SummaryItem label="Encargado en sitio" value={form.encargado_sitio} />
-            <SummaryItem label="N° Personas" value={form.numero_personas_requeridas} />
-            <SummaryItem label="TSA" value={form.tsa} />
-            
-            {/* Fila 4 */}
-            <SummaryItem label="Duración" value={form.duracion_obra_contrato} />
-            <SummaryItem label="Fecha probable de ingreso" value={form.fecha_probable_ingreso} />
+            <SummaryItem className="col-span-12 sm:col-span-2" label="N° Personas" value={form.numero_personas_requeridas} />
+            <SummaryItem className="col-span-12 sm:col-span-3" label="TSA" value={form.tsa} />
+            <SummaryItem className="col-span-12 sm:col-span-3" label="Duración" value={form.duracion_obra_contrato} />
+            <SummaryItem className="col-span-12 sm:col-span-4" label="Fecha probable de ingreso" value={form.fecha_probable_ingreso} />
           </div>
         </div>
 
@@ -68,22 +65,21 @@ export const SeccionResumenConfirmacion: React.FC<Props> = ({
             <Layers className="w-4 h-4 text-[var(--color-primary)]" />
             <Title variant="subtitle2" weight="bold">Área, Cargo y Aprobación</Title>
           </div>
-          <div className="p-4 grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <SummaryItem label="Centro de costo" value={form.centro_costo} />
-            </div>
-            <SummaryItem label="Área" value={areaNombre} />
-            <SummaryItem label="Cargo Solicitado" value={cargoNombre} />
-            <SummaryItem label="Causal de Requisición" value={form.causal_requisicion} />
+          <div className="p-4 grid grid-cols-12 gap-3">
+            {/* Fila 1 */}
+            <SummaryItem className="col-span-12 sm:col-span-4" label="Centro de costo" value={form.centro_costo} />
+            <SummaryItem className="col-span-12 sm:col-span-4" label="Área" value={areaNombre} />
+            <SummaryItem className="col-span-12 sm:col-span-4" label="Cargo Solicitado" value={cargoNombre} />
+            
+            {/* Fila 2 */}
+            <SummaryItem className={`col-span-12 ${form.causal_requisicion === 'OTRO' ? 'sm:col-span-4' : 'sm:col-span-5'}`} label="Causal de Requisición" value={form.causal_requisicion} />
             {form.causal_requisicion === 'OTRO' && (
-              <SummaryItem label="Otra causal" value={form.otra_causal} />
+              <SummaryItem className="col-span-12 sm:col-span-4" label="Otra causal" value={form.otra_causal} />
             )}
-            <div className="col-span-2">
-              <SummaryItem label="Director Aprobador" value={aprobadorNombre} />
-            </div>
-            <div className="col-span-2">
-              <SummaryItem label="Perfil Requerido" value={form.perfil_requerido} />
-            </div>
+            <SummaryItem className={`col-span-12 ${form.causal_requisicion === 'OTRO' ? 'sm:col-span-4' : 'sm:col-span-7'}`} label="Director Aprobador" value={aprobadorNombre} />
+            
+            {/* Fila 3 */}
+            <SummaryItem className="col-span-12" label="Perfil Requerido" value={form.perfil_requerido} />
           </div>
         </div>
 

@@ -95,8 +95,8 @@ export const ModalSimuladorCentroCosto: React.FC<ModalSimuladorCentroCostoProps>
                     </th>
                   </tr>
                   <tr className="bg-blue-600 text-white text-xs font-semibold uppercase sticky top-8 z-10 shadow-sm">
-                    <th className="py-1.5 px-3 w-16 text-center">COD</th>
-                    <th className="py-1.5 px-3">UEN</th>
+                    <th className="py-2.5 px-3 w-16 text-center">COD</th>
+                    <th className="py-2.5 px-3">UEN</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -112,8 +112,8 @@ export const ModalSimuladorCentroCosto: React.FC<ModalSimuladorCentroCostoProps>
                       }`}
                       onClick={() => setSelUen(x.codigo)}
                     >
-                      <td className="py-1.5 px-3 font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{x.codigo}</td>
-                      <td className="py-1.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{x.codigo}</td>
+                      <td className="py-2.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -130,8 +130,8 @@ export const ModalSimuladorCentroCosto: React.FC<ModalSimuladorCentroCostoProps>
                     </th>
                   </tr>
                   <tr className="bg-blue-600 text-white text-xs font-semibold uppercase sticky top-8 z-10 shadow-sm">
-                    <th className="py-1.5 px-3 w-16 text-center">COD</th>
-                    <th className="py-1.5 px-3">PROCESOS / GASTOS</th>
+                    <th className="py-2.5 px-3 w-16 text-center">COD</th>
+                    <th className="py-2.5 px-3">PROCESOS / GASTOS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -147,8 +147,8 @@ export const ModalSimuladorCentroCosto: React.FC<ModalSimuladorCentroCostoProps>
                       }`}
                       onClick={() => setSelSubcentro(x.codigo)}
                     >
-                      <td className="py-1.5 px-3 font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{x.codigo}</td>
-                      <td className="py-1.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{x.codigo}</td>
+                      <td className="py-2.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -165,8 +165,8 @@ export const ModalSimuladorCentroCosto: React.FC<ModalSimuladorCentroCostoProps>
                     </th>
                   </tr>
                   <tr className="bg-blue-600 text-white text-xs font-semibold uppercase sticky top-8 z-10 shadow-sm">
-                    <th className="py-1.5 px-3 w-16 text-center">COD</th>
-                    <th className="py-1.5 px-3">ESPECIALIDAD</th>
+                    <th className="py-2.5 px-3 w-16 text-center">COD</th>
+                    <th className="py-2.5 px-3">ESPECIALIDAD</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -182,8 +182,8 @@ export const ModalSimuladorCentroCosto: React.FC<ModalSimuladorCentroCostoProps>
                       }`}
                       onClick={() => setSelEspecialidad(x.codigo)}
                     >
-                      <td className="py-1.5 px-3 font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{x.codigo}</td>
-                      <td className="py-1.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{x.codigo}</td>
+                      <td className="py-2.5 px-3 text-[var(--color-text-primary)]">{x.nombre}</td>
                     </tr>
                   ))}
                 </tbody>

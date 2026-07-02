@@ -159,6 +159,21 @@ class HistorialOut(BaseModel):
     class Config:
         from_attributes = True
 
+    @staticmethod
+    def _fmt(dt: datetime | None) -> str | None:
+        if dt is None:
+            return None
+        # Si no tiene timezone, asumir UTC y agregar Z
+        if dt.tzinfo is None:
+            return dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+        return dt.isoformat()
+
+    def model_post_init(self, __context):
+        # Normalizar: forzar que la fecha salga con Z para que el frontend la trate como UTC
+        if self.fecha_evento and self.fecha_evento.tzinfo is None:
+            from datetime import timezone
+            object.__setattr__(self, 'fecha_evento', self.fecha_evento.replace(tzinfo=timezone.utc))
+
 
 class ComentarioOut(BaseModel):
     id: int
