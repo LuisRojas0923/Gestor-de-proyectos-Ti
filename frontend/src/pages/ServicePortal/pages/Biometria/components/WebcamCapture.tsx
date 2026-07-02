@@ -75,17 +75,16 @@ const WebcamCapture: React.FC<WebcamCaptureProps> = ({ onCapture, isLoading = fa
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
                 setCapturedImage(dataUrl); 
                 
-                // Extraer el archivo binario (Blob) para enviar usando fetch para mayor compatibilidad mvil
-                fetch(dataUrl)
-                    .then(res => res.blob())
-                    .then(blob => {
+                // Extraer el archivo binario (Blob) para enviar
+                canvas.toBlob((blob) => {
+                    if (blob) {
                         stopCamera();
                         onCapture(blob);
-                    })
-                    .catch(err => {
-                        console.error("Error al generar el Blob de la imagen", err);
+                    } else {
+                        console.error("Error al generar el Blob de la imagen");
                         setError("Error al capturar la imagen. Intenta de nuevo.");
-                    });
+                    }
+                }, 'image/jpeg', 0.7);
             }
         }
     }, [onCapture, stopCamera]);
