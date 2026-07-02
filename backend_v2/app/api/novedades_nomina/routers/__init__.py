@@ -15,6 +15,7 @@ from .excepciones import router as excepciones_router
 from .novedades import router as novedades_router
 from .tabla_maestra import router as tabla_maestra_router
 from .comisiones import router as comisiones_router
+from .horas_extras import router as horas_extras_router
 
 # Router Agregador de Cooperativas
 cooperativas_router = APIRouter()
@@ -40,13 +41,14 @@ descuentos_router.include_router(desc_control_router)
 descuentos_router.include_router(desc_otros_router)
 
 __all__ = [
-    "cooperativas_router", 
-    "libranzas_router", 
-    "funebres_router", 
-    "otros_router", 
-    "descuentos_router", 
-    "excepciones_router", 
-    "novedades_router", 
-    "tabla_maestra_router", 
-    "comisiones_router"
+    "cooperativas_router",
+    "libranzas_router",
+    "funebres_router",
+    "otros_router",
+    "descuentos_router",
+    "excepciones_router",
+    "novedades_router",
+    "tabla_maestra_router",
+    "comisiones_router",
+    "horas_extras_router",
 ]

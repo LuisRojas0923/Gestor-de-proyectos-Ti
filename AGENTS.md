@@ -42,7 +42,7 @@ Full-stack project management system with Python backend (FastAPI, SQLAlchemy as
 
 ## Subagentes disponibles (opencode harness)
 
-El arnés de opencode expone 8 subagentes especializados en `.opencode/agent/`. Cada uno es de solo lectura y debe invocarse segun el alcance del trabajo (consultar `harness-router` para recomendacion, pero invocacion directa obligatoria):
+El arnés de opencode expone 10 subagentes especializados en `.opencode/agent/`. Cada uno es de solo lectura y debe invocarse segun el alcance del trabajo (consultar `harness-router` para recomendacion, pero invocacion directa obligatoria):
 
 - `harness-router` — recomienda la matriz de subagentes segun alcance. Read-only, no aprueba ni invoca.
 - `scope-reviewer` — valida alcance y subagentes requeridos.
@@ -52,6 +52,8 @@ El arnés de opencode expone 8 subagentes especializados en `.opencode/agent/`. 
 - `docs-tests-reviewer` — revisa `docs/`, `testing/`, bitacora, ADRs, MER, evidencia de tests.
 - `security-rbac-reviewer` — revisa auth, RBAC, secrets, schemas, PII, infra.
 - `error-memory` — memoria persistente de errores y decisiones (`errors_memory.json` + `.opencode/memory/`).
+- `graphify-searcher` — búsqueda read-only sobre `graphify-out/` (2928 nodos). Usa `graphify query/path/explain` antes de Glob/Grep. Modelo: `opencode-go/deepseek-v4-flash`.
+- `deepseek-searcher` — versión experimental A/B de `graphify-searcher` con el mismo modelo. **NO** para routing de producción; invocar manualmente.
 
 Reportes no triviales se persisten en `docs/reviews/{plans,builds}/` usando las plantillas de `docs/reviews/templates/`.
 
@@ -75,6 +77,7 @@ Antes de revisar o implementar con subagentes, leer:
 - `py -3.12 -m graphify` **no** lee `.env` solo; usar `graphify_from_env.py` o exportar variables a mano.
 - Salida esperada: `graphify-out/GRAPH_REPORT.md` y `graphify-out/graph.json` (directorio ignorado por git).
 - Los **subagentes read-only** solo consumen artefactos existentes; no ejecutan el pipeline.
+- **Búsqueda en el grafo**: invocar `@graphify-searcher` (200-500 tokens por query) en lugar de `grep -r` (5-15k tokens). Si necesitas comparar comportamiento del modelo, invoca `@deepseek-searcher` (experimental A/B, no producción).
 - Detalle: `docs/GUIA_DESARROLLO.md` sección 6.
 
 ### Descubrimiento externo (find-skills)
@@ -86,3 +89,9 @@ Antes de revisar o implementar con subagentes, leer:
 ### Push a remoto
 
 - `skill_git_controlled_push`: no hacer `git push` sin instrucción explícita del usuario.
+
+### Configuración del arnés
+
+- `opencode.json` (raíz): config global — `instructions`, `skills.paths`, agentes del sistema, `watcher.ignore`, MCP `context7` habilitado.
+- `.mcp.json` (raíz): declaración a nivel proyecto de servidores MCP (`@upstash/context7-mcp@latest`) para descubrimiento de nuevos contribuidores.
+- TrazaEco-Core tiene la referencia completa; al añadir plugins o MCP servers nuevos, mantener ambos archivos sincronizados.

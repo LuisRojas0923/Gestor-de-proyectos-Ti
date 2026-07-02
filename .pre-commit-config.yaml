@@ -35,6 +35,12 @@ repos:
         language: system
         files: ^frontend/.*\.([tj]sx)$
 
+      - id: dark-mode-token-check
+        name: Frontend Dark Mode Token Enforcer
+        entry: python scripts/dark_mode_token_check.py
+        language: system
+        files: ^frontend/src/.*\.([tj]sx?)$
+
       - id: structure-check-frontend
         name: Frontend Structure Auditor
         entry: python scripts/structure_check_frontend.py

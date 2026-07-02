@@ -37,6 +37,9 @@ Ubicación: `testing/backend/`
 | **Eliminación Actividades** | `test_actividad_delete.py` | Eliminación en cascada de actividades y limpieza de validaciones asociadas. | ✅ PASSED |
 | **Prioridad Desarrollos** | `test_desarrollo_prioridad.py` | Ciclo CRUD de prioridades en desarrollos. | ✅ PASSED |
 | **Notificaciones** | `test_notificaciones.py` | Ciclo CRUD de notificaciones persistentes de usuario. | ✅ PASSED |
+| **Horas Extras S8 OT/CC** | `test_horas_extras_s8_ot_mano_obra.py` | Consulta ERP `basegeneralcostos`, maximo 3 OT por empleado/dia, validacion de reparto y distribucion de costo por OT. | ✅ PASSED |
+| **Horas Extras S9 Reglas GH** | `test_horas_extras_s9_reglas_gh.py` | Reglas confirmadas por Gestion Humana: jornada semanal 42h/210h desde 2026-07-16, compensacion semanal, nocturna 19:00-06:00 y turnos cruzados en dos dias. | ✅ PASSED |
+| **Horas Extras Parametros Calculo** | `test_horas_extras_parametros_calculo.py` | Consulta y edicion de reglas vigentes en `nomina_parametros_legales`; valida que el calculo use parametros editados. | ✅ PASSED |
 
 ### 2. Rendimiento (Locust)
 Ubicación: `testing/backend/load_test.py`

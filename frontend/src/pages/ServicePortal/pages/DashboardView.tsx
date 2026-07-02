@@ -11,7 +11,7 @@ import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 interface DashboardViewProps {
     user: any;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'biometria') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'biometria' | 'horas_extras') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -102,6 +102,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         permissions.includes('comisiones') ||
         ['admin', 'director'].includes(userRole)
     );
+
+    const canSeeHorasExtras = moduleStatus['nomina_horas_extras'] !== false && (
+        permissions.includes('nomina_horas_extras') ||
+        ['admin', 'director'].includes(userRole)
+    );
     const cards = [
         {
             key: 'solicitudes',
@@ -150,6 +155,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
             description: "Cálculo y procesamiento de comisiones para el personal.",
             icon: <img src={imgComisiones} alt="Gestión de Comisiones" className="w-full h-full object-contain p-1" />,
             onClick: () => onNavigate('comisiones')
+        },
+        {
+            key: 'horas_extras',
+            canSee: canSeeHorasExtras,
+            title: "Horas Extras y Pre-liquidación",
+            description: "Cálculo semanal de HE, bolsa de horas y costos por OT.",
+            icon: <img src={imgNovedadesNomina} alt="Horas Extras" className="w-full h-full object-contain p-1" />,
+            onClick: () => onNavigate('horas_extras')
         },
         {
             key: 'inventario',

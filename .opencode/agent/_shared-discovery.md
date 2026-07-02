@@ -57,6 +57,8 @@ Desde la sesión 2026-06-03, los subagentes tienen permisos ampliados para ejecu
 | `docs-tests-reviewer` | `docs/reviews/builds/`, `docs/bitacora/`, `errors_memory.json`, `.opencode/memory/`, `graphify-out/` | `git status`, `git log`, `git diff`, `ls`, `cat`, `python -m pytest --collect-only` | network, `docker compose`, build, exec |
 | `security-rbac-reviewer` | `docs/reviews/builds/` (write report) | `git status`, `git log`, `git diff`, `git show`, `ls`, `cat`, `grep` (read-only) | network, write fuera de reports, `docker compose` |
 | `error-memory` | `errors_memory.json`, `.opencode/memory/*.json` (write) | `ls`, `cat`, `mkdir -p`, `wc -l` (read/struct) | network, `git`, `docker`, `npm` |
+| `graphify-searcher` | DENY | `graphify query/path/explain/check-update .` desde raíz, `ls`, `cat`, `wc -l` (read); resto: `bash: ask` | network, write, `docker`, `pip`, `npm`, `git push` |
+| `deepseek-searcher` | DENY | igual que `graphify-searcher` (experimental A/B) | network, write, `docker`, `pip`, `npm`, `git push` |
 
 ### Reglas globales
 
@@ -88,6 +90,7 @@ Estos comandos están pre-autorizados para todos los subagentes con `bash: allow
 - **Mobile**: lectura de `modulo_actividades_fork/INSTRUCCIONES_FORK.md`
 - **Docs**: lectura de `docs/bitacora/`, `docs/decisions/`
 - **Security**: `grep -rn "pattern" path` para buscar patrones peligrosos
+- **Graph searchers** (`graphify-searcher`, `deepseek-searcher`): `graphify query/path/explain/check-update .` desde la raíz del repo. **Nunca** ejecutar `graphify update .` — solo recomendar al orquestador cuando el grafo esté stale.
 
 ## 7. Memoria persistente
 

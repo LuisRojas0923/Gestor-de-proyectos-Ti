@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { Text, Button } from '../atoms';
 import { FilterDropdown } from './FilterDropdown';
 import { ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
@@ -35,13 +35,16 @@ export interface DataTableProps<T> {
 
     onMouseEnterRow?: (row: T, event: React.MouseEvent) => void;
     onMouseLeaveRow?: () => void;
-    bodyRef?: React.RefObject<HTMLDivElement>;
+    bodyRef?: React.MutableRefObject<HTMLDivElement | null>;
     isRowDraggable?: boolean;
     onRowsReorder?: (fromIndex: number, toIndex: number) => void;
 
     columnFilters?: Record<string, Set<string>>;
     columnOptions?: Record<string, string[]>;
     onFilterChange?: (columnKey: string, filter: Set<string>) => void;
+    remoteFilterSearch?: boolean;
+    isFilterSearching?: boolean;
+    onFilterSearchChange?: (columnKey: string, subFilterKey: string, searchTerm: string) => void;
 
     activeSortKey?: string | null;
     activeSortDir?: 'asc' | 'desc' | null;
@@ -57,6 +60,69 @@ export interface DataTableProps<T> {
     minHeight?: string;
     className?: string;
 }
+
+interface DataTableRowProps<T> {
+    row: T;
+    columns: DataTableColumn<T>[];
+    rowKey: string;
+    showRowIndicator: boolean;
+    rowIndicatorColor: string;
+    onRowClick?: (row: T) => void;
+    renderRowActions?: (row: T) => React.ReactNode;
+    onMouseEnterRow?: (row: T, event: React.MouseEvent) => void;
+    onMouseLeaveRow?: () => void;
+}
+
+const DataTableRowInner = <T,>({
+    row,
+    columns,
+    showRowIndicator,
+    rowIndicatorColor,
+    onRowClick,
+    renderRowActions,
+    onMouseEnterRow,
+    onMouseLeaveRow,
+}: DataTableRowProps<T>) => (
+    <div
+        onClick={() => onRowClick?.(row)}
+        className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+        onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
+        onMouseLeave={onMouseLeaveRow}
+    >
+        {showRowIndicator && (
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
+        )}
+        {columns.map((col) => (
+            <div
+                key={col.key}
+                className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
+            >
+                {col.render ? col.render(row) : (
+                    <Text variant="caption" className="truncate">
+                        {String((row as Record<string, unknown>)[col.key] ?? '')}
+                    </Text>
+                )}
+            </div>
+        ))}
+        {renderRowActions && (
+            <div className="flex items-center justify-center py-3 px-4 gap-2">
+                {renderRowActions(row)}
+            </div>
+        )}
+    </div>
+);
+
+const MemoDataTableRow = React.memo(DataTableRowInner, (prev, next) => (
+    prev.row === next.row
+    && prev.columns === next.columns
+    && prev.rowKey === next.rowKey
+    && prev.showRowIndicator === next.showRowIndicator
+    && prev.rowIndicatorColor === next.rowIndicatorColor
+    && prev.onRowClick === next.onRowClick
+    && prev.renderRowActions === next.renderRowActions
+    && prev.onMouseEnterRow === next.onMouseEnterRow
+    && prev.onMouseLeaveRow === next.onMouseLeaveRow
+)) as typeof DataTableRowInner;
 
 export function DataTable<T>({
     columns,
@@ -76,6 +142,9 @@ export function DataTable<T>({
     columnFilters = {},
     columnOptions = {},
     onFilterChange,
+    remoteFilterSearch = false,
+    isFilterSearching = false,
+    onFilterSearchChange,
     activeSortKey,
     activeSortDir,
     onSort,
@@ -98,7 +167,7 @@ export function DataTable<T>({
     const bodyGridRef = useRef<HTMLDivElement>(null);
     const headerGridRef = useRef<HTMLDivElement>(null);
 
-    const gridTemplateColumns = [
+    const gridTemplateColumns = useMemo(() => [
         ...(isRowDraggable ? ['minmax(36px, 36px)'] : []),
         ...columns.map(col =>
             col.flex
@@ -106,7 +175,7 @@ export function DataTable<T>({
                 : `minmax(${col.minWidth ?? 'min-content'}, ${col.maxWidth ?? 'auto'})`
         ),
         ...(renderRowActions ? [`minmax(${actionsMinWidth}, auto)`] : []),
-    ].join(' ');
+    ].join(' '), [actionsMinWidth, columns, isRowDraggable, renderRowActions]);
 
     useLayoutEffect(() => {
         if (headerGridRef.current) {
@@ -129,7 +198,7 @@ export function DataTable<T>({
         const observer = new ResizeObserver(sync);
         if (bodyGridRef.current) observer.observe(bodyGridRef.current);
         return () => observer.disconnect();
-    }, [data, columns, renderRowActions, gridTemplateColumns]);
+    }, [data.length, isLoading, renderRowActions, gridTemplateColumns]);
 
     const toggleFilter = useCallback((key: string) => {
         const el = headerRefs.current[key];
@@ -189,10 +258,20 @@ export function DataTable<T>({
         setActiveSubFilter(null);
     }, [activeFilter, tempSubFilters, onFilterChange, columns]);
 
-    const getFilterOptions = useCallback((key: string) =>
-        (columnOptions[key] || [])
-            .filter(o => o.toLowerCase().includes(filterSearchTerm.toLowerCase()))
-            .map(opt => ({ value: opt, label: opt })), [columnOptions, filterSearchTerm]);
+    const getFilterOptions = useCallback((key: string) => {
+        const options = columnOptions[key] || [];
+        const filtered = remoteFilterSearch
+            ? options
+            : options.filter(o => o.toLowerCase().includes(filterSearchTerm.toLowerCase()));
+        return filtered.map(opt => ({ value: opt, label: opt }));
+    }, [columnOptions, filterSearchTerm, remoteFilterSearch]);
+
+    const handleFilterSearchChange = useCallback((value: string) => {
+        setFilterSearchTerm(value);
+        if (activeFilter && activeSubFilter) {
+            onFilterSearchChange?.(activeFilter, activeSubFilter, value);
+        }
+    }, [activeFilter, activeSubFilter, onFilterSearchChange]);
 
     const hasFilterActive = useCallback((key: string) => {
         const col = columns.find(c => c.key === key);
@@ -206,8 +285,9 @@ export function DataTable<T>({
         return !!(f && f.size > 0);
     }, [columnFilters, columns]);
 
+    const activeFilterOptionsCount = activeSubFilter ? getFilterOptions(activeSubFilter).length : 0;
     const isAllSelected = activeFilter && activeSubFilter
-        ? (tempSubFilters[activeSubFilter]?.size ?? 0) === getFilterOptions(activeSubFilter).length
+        ? activeFilterOptionsCount > 0 && (tempSubFilters[activeSubFilter]?.size ?? 0) === activeFilterOptionsCount
         : false;
 
     const moveRowWithKeyboard = (rowIndex: number, direction: -1 | 1) => {
@@ -228,7 +308,7 @@ export function DataTable<T>({
                     title={columns.find(c => c.key === activeFilter)?.label}
                     type="categorical"
                     searchTerm={filterSearchTerm}
-                    onSearchChange={setFilterSearchTerm}
+                    onSearchChange={handleFilterSearchChange}
                     onSelectAll={() => {
                         if (!activeSubFilter) return;
                         setTempSubFilters(prev => {
@@ -255,7 +335,9 @@ export function DataTable<T>({
                     onSubFilterChange={(subKey) => {
                         setActiveSubFilter(subKey);
                         setFilterSearchTerm('');
+                        if (activeFilter) onFilterSearchChange?.(activeFilter, subKey, '');
                     }}
+                    isSearching={isFilterSearching}
                 />
             )}
 
@@ -333,112 +415,130 @@ export function DataTable<T>({
                         <div
                             ref={(el) => {
                                 (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-                                if (bodyRef) (bodyRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                                if (bodyRef) bodyRef.current = el;
                             }}
                             className="overflow-y-auto custom-scrollbar"
                         >
-                            {data.map((row, rowIndex) => (
-                                <div
-                                    data-datatable-row="true"
-                                    key={keyExtractor(row)}
-                                    onClick={() => onRowClick?.(row)}
-                                    onDragOver={(e) => {
-                                        if (!isRowDraggable || draggedRowIndex === null) return;
-                                        e.preventDefault();
-                                        if (dragOverRowIndex !== rowIndex) setDragOverRowIndex(rowIndex);
-                                    }}
-                                    onDrop={(e) => {
-                                        if (!isRowDraggable || draggedRowIndex === null) return;
-                                        e.preventDefault();
-                                        if (draggedRowIndex !== rowIndex) onRowsReorder?.(draggedRowIndex, rowIndex);
-                                        setDraggedRowIndex(null);
-                                        setDragOverRowIndex(null);
-                                    }}
-                                    className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-all duration-200 cursor-pointer ${dragOverRowIndex === rowIndex ? 'my-1 bg-[var(--color-primary)]/8 ring-1 ring-inset ring-[var(--color-primary)]/25 before:absolute before:-top-1 before:left-3 before:right-3 before:h-0.5 before:rounded-full before:bg-[var(--color-primary)] before:shadow-sm before:content-[""]' : ''} ${draggedRowIndex === rowIndex ? 'scale-[0.985] border-dashed bg-[var(--color-surface-variant)]/50 opacity-35 ring-1 ring-inset ring-[var(--color-primary)]/25' : ''}`}
-                                    onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
-                                    onMouseLeave={onMouseLeaveRow}
-                                >
-                                    {showRowIndicator && (
-                                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
-                                    )}
-                                    {isRowDraggable && (
-                                        <div className="flex items-center justify-center py-3 px-2 min-w-0">
-                                            <Button
-                                                variant="custom"
-                                                size="xs"
-                                                type="button"
-                                                draggable
-                                                aria-label={`Mover fila ${rowIndex + 1}. Usa flecha arriba o abajo para reordenar.`}
-                                                title="Arrastrar para ordenar"
-                                                onClick={(e) => e.stopPropagation()}
-                                                onKeyDown={(e) => {
-                                                    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    moveRowWithKeyboard(rowIndex, e.key === 'ArrowUp' ? -1 : 1);
-                                                }}
-                                                onDragStart={(e) => {
-                                                    e.stopPropagation();
-                                                    setDraggedRowIndex(rowIndex);
-                                                    e.dataTransfer.effectAllowed = 'move';
-                                                    e.dataTransfer.setData('text/plain', keyExtractor(row));
-
-                                                    const sourceRow = e.currentTarget.closest('[data-datatable-row]') as HTMLElement | null;
-                                                    if (sourceRow) {
-                                                        const dragImage = sourceRow.cloneNode(true) as HTMLElement;
-                                                        const gridTemplate = bodyGridRef.current
-                                                            ? window.getComputedStyle(bodyGridRef.current).gridTemplateColumns
-                                                            : window.getComputedStyle(sourceRow).gridTemplateColumns;
-                                                        dragImage.style.position = 'fixed';
-                                                        dragImage.style.top = '-1000px';
-                                                        dragImage.style.left = '-1000px';
-                                                        dragImage.style.display = 'grid';
-                                                        dragImage.style.gridTemplateColumns = gridTemplate;
-                                                        dragImage.style.width = `${sourceRow.offsetWidth}px`;
-                                                        dragImage.style.pointerEvents = 'none';
-                                                        dragImage.style.opacity = '0.35';
-                                                        dragImage.style.transform = 'scale(0.985)';
-                                                        dragImage.style.boxShadow = 'none';
-                                                        dragImage.style.background = 'var(--color-surface-variant)';
-                                                        dragImage.style.borderTop = '1px solid var(--color-border)';
-                                                        dragImage.style.borderBottom = '1px solid var(--color-border)';
-                                                        dragImage.style.borderRadius = '0';
-                                                        dragImage.style.overflow = 'hidden';
-                                                        dragImage.style.zIndex = '9999';
-                                                        document.body.appendChild(dragImage);
-                                                        e.dataTransfer.setDragImage?.(dragImage, 18, 18);
-                                                        window.setTimeout(() => dragImage.remove(), 0);
-                                                    }
-                                                }}
-                                                onDragEnd={() => {
-                                                    setDraggedRowIndex(null);
-                                                    setDragOverRowIndex(null);
-                                                }}
-                                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] hover:text-[var(--color-primary)] cursor-grab active:cursor-grabbing transition-colors"
-                                            >
-                                                <GripVertical size={15} />
-                                            </Button>
-                                        </div>
-                                    )}
-                                    {columns.map((col) => (
+                            {data.map((row, rowIndex) => {
+                                const rowKey = keyExtractor(row);
+                                if (isRowDraggable) {
+                                    return (
                                         <div
-                                            key={col.key}
-                                            className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
+                                            data-datatable-row="true"
+                                            key={rowKey}
+                                            onClick={() => onRowClick?.(row)}
+                                            onDragOver={(e) => {
+                                                if (draggedRowIndex === null) return;
+                                                e.preventDefault();
+                                                if (dragOverRowIndex !== rowIndex) setDragOverRowIndex(rowIndex);
+                                            }}
+                                            onDrop={(e) => {
+                                                if (draggedRowIndex === null) return;
+                                                e.preventDefault();
+                                                if (draggedRowIndex !== rowIndex) onRowsReorder?.(draggedRowIndex, rowIndex);
+                                                setDraggedRowIndex(null);
+                                                setDragOverRowIndex(null);
+                                            }}
+                                            className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-all duration-200 ${onRowClick ? 'cursor-pointer' : ''} ${dragOverRowIndex === rowIndex ? 'my-1 bg-[var(--color-primary)]/8 ring-1 ring-inset ring-[var(--color-primary)]/25 before:absolute before:-top-1 before:left-3 before:right-3 before:h-0.5 before:rounded-full before:bg-[var(--color-primary)] before:shadow-sm before:content-[""]' : ''} ${draggedRowIndex === rowIndex ? 'scale-[0.985] border-dashed bg-[var(--color-surface-variant)]/50 opacity-35 ring-1 ring-inset ring-[var(--color-primary)]/25' : ''}`}
+                                            onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
+                                            onMouseLeave={onMouseLeaveRow}
                                         >
-                                            {col.render ? col.render(row) : (
-                                                <Text variant="caption" className="truncate">
-                                                    {String((row as Record<string, unknown>)[col.key] ?? '')}
-                                                </Text>
+                                            {showRowIndicator && (
+                                                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${rowIndicatorColor}`} />
+                                            )}
+                                            <div className="flex items-center justify-center py-3 px-2 min-w-0">
+                                                <Button
+                                                    variant="custom"
+                                                    size="xs"
+                                                    type="button"
+                                                    draggable
+                                                    aria-label={`Mover fila ${rowIndex + 1}. Usa flecha arriba o abajo para reordenar.`}
+                                                    title="Arrastrar para ordenar"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        moveRowWithKeyboard(rowIndex, e.key === 'ArrowUp' ? -1 : 1);
+                                                    }}
+                                                    onDragStart={(e) => {
+                                                        e.stopPropagation();
+                                                        setDraggedRowIndex(rowIndex);
+                                                        e.dataTransfer.effectAllowed = 'move';
+                                                        e.dataTransfer.setData('text/plain', rowKey);
+
+                                                        const sourceRow = e.currentTarget.closest('[data-datatable-row]') as HTMLElement | null;
+                                                        if (sourceRow) {
+                                                            const dragImage = sourceRow.cloneNode(true) as HTMLElement;
+                                                            const gridTemplate = bodyGridRef.current
+                                                                ? window.getComputedStyle(bodyGridRef.current).gridTemplateColumns
+                                                                : window.getComputedStyle(sourceRow).gridTemplateColumns;
+                                                            dragImage.style.position = 'fixed';
+                                                            dragImage.style.top = '-1000px';
+                                                            dragImage.style.left = '-1000px';
+                                                            dragImage.style.display = 'grid';
+                                                            dragImage.style.gridTemplateColumns = gridTemplate;
+                                                            dragImage.style.width = `${sourceRow.offsetWidth}px`;
+                                                            dragImage.style.pointerEvents = 'none';
+                                                            dragImage.style.opacity = '0.35';
+                                                            dragImage.style.transform = 'scale(0.985)';
+                                                            dragImage.style.boxShadow = 'none';
+                                                            dragImage.style.background = 'var(--color-surface-variant)';
+                                                            dragImage.style.borderTop = '1px solid var(--color-border)';
+                                                            dragImage.style.borderBottom = '1px solid var(--color-border)';
+                                                            dragImage.style.borderRadius = '0';
+                                                            dragImage.style.overflow = 'hidden';
+                                                            dragImage.style.zIndex = '9999';
+                                                            document.body.appendChild(dragImage);
+                                                            e.dataTransfer.setDragImage?.(dragImage, 18, 18);
+                                                            window.setTimeout(() => dragImage.remove(), 0);
+                                                        }
+                                                    }}
+                                                    onDragEnd={() => {
+                                                        setDraggedRowIndex(null);
+                                                        setDragOverRowIndex(null);
+                                                    }}
+                                                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] hover:text-[var(--color-primary)] cursor-grab active:cursor-grabbing transition-colors"
+                                                >
+                                                    <GripVertical size={15} />
+                                                </Button>
+                                            </div>
+                                            {columns.map((col) => (
+                                                <div
+                                                    key={col.key}
+                                                    className={`flex items-center ${col.centered ? 'justify-center' : ''} py-3 px-4 min-w-0 ${col.cellClassName ?? ''}`}
+                                                >
+                                                    {col.render ? col.render(row) : (
+                                                        <Text variant="caption" className="truncate">
+                                                            {String((row as Record<string, unknown>)[col.key] ?? '')}
+                                                        </Text>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {renderRowActions && (
+                                                <div className="flex items-center justify-center py-3 px-4 gap-2">
+                                                    {renderRowActions(row)}
+                                                </div>
                                             )}
                                         </div>
-                                    ))}
-                                    {renderRowActions && (
-                                        <div className="flex items-center justify-center py-3 px-4 gap-2">
-                                            {renderRowActions(row)}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                                    );
+                                }
+
+                                return (
+                                    <MemoDataTableRow
+                                        key={rowKey}
+                                        row={row}
+                                        rowKey={rowKey}
+                                        columns={columns}
+                                        showRowIndicator={showRowIndicator}
+                                        rowIndicatorColor={rowIndicatorColor}
+                                        onRowClick={onRowClick}
+                                        renderRowActions={renderRowActions}
+                                        onMouseEnterRow={onMouseEnterRow}
+                                        onMouseLeaveRow={onMouseLeaveRow}
+                                    />
+                                );
+                            })}
                         </div>
                     )}
                 </>

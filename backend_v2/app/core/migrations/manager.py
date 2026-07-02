@@ -5,6 +5,18 @@ from app.core.migrations.structural_blindaje import ejecutar_blindaje_estructura
 from app.core.migrations.saneamiento_secuencias import reparar_todas_las_secuencias
 from app.core.migrations.auditoria_evento_migration import crear_tabla_auditoria_evento
 from app.core.migrations.auditoria_acciones_migration import crear_tabla_auditoria_acciones
+from app.core.migrations.horas_extras_migration import (
+    crear_tablas_horas_extras,
+    crear_tabla_workflow_evento,
+    crear_tabla_festivo_calendario,
+    crear_tabla_novedad_evento,
+    crear_tabla_horario_pactado_dia,
+)
+from app.core.migrations.horas_extras_migration_s6 import (
+    agregar_ot_a_calculo_semanal,
+    crear_tabla_bolsa_ot_override,
+)
+from app.core.migrations.horas_extras_migration_s8 import crear_tabla_planificador_dia_ot
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +76,62 @@ async def init_db_process(async_engine, AsyncSessionLocal):
         except Exception as e:
             logger.error(f"Error en migración auditoria_acciones_usuario: {e}")
 
+    # 3.7 Crear tablas del módulo Horas Extras y Novedades (S0 sprint)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tablas_horas_extras(conn)
+        except Exception as e:
+            logger.error(f"Error en migración horas_extras: {e}")
+
+    # 3.8 Crear tabla de eventos de workflow de cálculo (S4 sprint)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tabla_workflow_evento(conn)
+        except Exception as e:
+            logger.error(f"Error en migración workflow_evento (S4): {e}")
+
+    # 3.9 Crear tabla de festivos del calendario (S5' sprint)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tabla_festivo_calendario(conn)
+        except Exception as e:
+            logger.error(f"Error en migración festivo_calendario (S5'): {e}")
+
+    # 3.10 Crear tabla de eventos de novedades (S5 sprint)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tabla_novedad_evento(conn)
+        except Exception as e:
+            logger.error(f"Error en migración nomina_novedad_evento (S5): {e}")
+
+    # 3.11 Crear tabla de detalle diario del horario pactado (S5'' sprint)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tabla_horario_pactado_dia(conn)
+        except Exception as e:
+            logger.error(f"Error en migración nomina_horario_pactado_dia (S5''): {e}")
+
+    # 3.12 Agregar ot_id/ot_codigo a nomina_calculo_semanal (Fix S4)
+    async with async_engine.begin() as conn:
+        try:
+            await agregar_ot_a_calculo_semanal(conn)
+        except Exception as e:
+            logger.error(f"Error en migración agregar_ot_a_calculo_semanal (Fix S4): {e}")
+
+    # 3.13 Crear tabla nomina_bolsa_ot_override (S6 sprint)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tabla_bolsa_ot_override(conn)
+        except Exception as e:
+            logger.error(f"Error en migración nomina_bolsa_ot_override (S6): {e}")
+
+    # 3.14 Crear tabla de asignaciones OT/CC por dia (S8 sprint)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tabla_planificador_dia_ot(conn)
+        except Exception as e:
+            logger.error(f"Error en migración nomina_planificador_dia_ot (S8): {e}")
+
     # 4. Saneamiento de Datos (Inventario y otros)
     saneamientos = [
         "UPDATE conteoinventario SET estado = 'PENDIENTE' WHERE estado IS NULL;",
@@ -79,6 +147,14 @@ async def init_db_process(async_engine, AsyncSessionLocal):
 
     # 4. Semillado de Datos Maestros (Admin, Salas)
     await ejecutar_seeds(AsyncSessionLocal)
+
+    # 5. Seeds del módulo Horas Extras (catálogo + factores ARL + parámetros legales)
+    try:
+        from app.services.novedades_nomina.seed_horas_extras import seed_horas_extras_completo
+        await seed_horas_extras_completo()
+        logger.info("Seeds de Horas Extras cargados.")
+    except Exception as e:
+        logger.error(f"Error cargando seeds de horas extras: {e}")
 
 async def ejecutar_seeds(AsyncSessionLocal):
     """Ejecuta los semilleros de datos necesarios"""

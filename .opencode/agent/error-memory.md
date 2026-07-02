@@ -28,8 +28,8 @@ You can execute without confirmation:
 - `ls`, `cat`, `wc -l` (read files)
 - `mkdir -p .opencode/memory` (create directory if missing)
 - File write via the `write`/`edit` tool to:
-  - `errors_memory.json` (root)
-  - `.opencode/memory/<subagent>.json`
+- `errors_memory.json` (root)
+- `.opencode/memory/<subagent>.json`
 
 You CANNOT:
 

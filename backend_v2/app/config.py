@@ -80,6 +80,9 @@ class Configuracion(BaseSettings):
     notion_api_key: Optional[str] = None
     notion_database_id: Optional[str] = None
 
+    # Calendarific (festivos). Si está vacía se usa fallback Ley Emiliani.
+    calendarific_api_key: Optional[str] = None
+
     class Config:
         # Buscamos el .env en la raíz del proyecto (un nivel arriba de backend_v2)
         # o en la carpeta actual de ejecución.

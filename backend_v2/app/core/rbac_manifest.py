@@ -274,6 +274,13 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "descripcion": "Carga y procesamiento de novedades de personal (incapacidades, horas extra, recargos) destinadas al sistema de nómina SOLID.",
     },
     {
+        "id": "nomina_horas_extras",
+        "nombre": "Nómina — Horas Extras y Pre-liquidación",
+        "categoria": "portal",
+        "es_critico": True,
+        "descripcion": "Cálculo automático de horas extras según normatividad colombiana, gestión de bolsa de horas, factores prestacionales ARL y pre-liquidación por OT.",
+    },
+    {
         "id": "auditoria_sistema",
         "nombre": "Auditoría del Sistema",
         "categoria": "panel",

@@ -234,7 +234,11 @@ async def startup_event():
         asyncio.to_thread(preload_models)
     )
 
-
+    # 6. Refrescamiento diario del cache de horario_pactado desde el ERP (a las 02:00)
+    from app.services.novedades_nomina.horas_extras_batch import iniciar_loop_refrescamiento_diario
+    asyncio.create_task(
+        iniciar_loop_refrescamiento_diario(hora_objetivo=2)
+    )
 
 @app.get("/")
 async def raiz():

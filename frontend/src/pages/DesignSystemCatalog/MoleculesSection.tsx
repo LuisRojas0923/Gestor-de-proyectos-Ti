@@ -11,10 +11,10 @@ import {
     MaterialMetricCard,
     MaterialSearchBar,
     MetricCard,
-    ProviderSelector,
-    FilterDropdown
+    ProviderSelector
 } from '../../components/molecules';
 import ApiDebug from '../../components/molecules/ApiDebug';
+import { FilterDropdown } from '../../components/molecules/FilterDropdown';
 import { CheckCircle, Star } from 'lucide-react';
 import { useNotifications } from '../../components/notifications/NotificationsContext';
 

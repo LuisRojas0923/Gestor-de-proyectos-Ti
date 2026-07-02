@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Title, Text, Button, MaterialCard, Input, Select } from '../../../../components/atoms';
-import { FilterDropdown } from '../../../../components/molecules';
+import { FilterDropdown } from '../../../../components/molecules/FilterDropdown';
 import { useAppContext } from '../../../../context/AppContext';
 import { ArrowLeft, Search, FileSpreadsheet, Filter } from 'lucide-react';
 import { ImpuestosService } from '../../../../services/ImpuestosService';

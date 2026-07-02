@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { ChevronDown, Filter } from 'lucide-react';
 import { Text } from './Text';
-import { FilterDropdown } from '../molecules';
+import { FilterDropdown } from '../molecules/FilterDropdown';
 
 interface MultiSelectOption {
     value: string;

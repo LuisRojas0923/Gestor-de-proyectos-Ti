@@ -12,9 +12,32 @@
     "review <files>": "Review docs/tests files or diffs",
     "checklist <scope>": "Return the relevant subset of the docs/tests checklist"
   },
-  "review_history": [],
+  "review_history": [
+    {
+      "date": "2026-06-19",
+      "scope": "horas-extras-seleccion-empleados-planificador-draft",
+      "outcome": "blocked",
+      "findings": {
+        "high": 1,
+        "medium": 1,
+        "low": 1
+      },
+      "test_coverage_observations": "La prueba nueva cubre escritura del borrador desde EmpleadosActivosView y limpia sessionStorage en afterEach, pero no valida el round-trip de regreso a PlanificadorSemanalView ni tiene pruebas directas para planificadorDraft. Vitest no ejecutado por permisos del subagente."
+    },
+    {
+      "date": "2026-06-19",
+      "scope": "horas-extras-round-trip-planificador-draft",
+      "outcome": "approved_with_risks",
+      "findings": {
+        "high": 0,
+        "medium": 1,
+        "low": 3
+      },
+      "test_coverage_observations": "La cobertura agregada valida el round-trip EmpleadosActivosView -> sessionStorage -> PlanificadorSemanalView -> guardar con cedula 456, y pruebas directas de guardar/leer e incompleto JSON para planificadorDraft. Vitest no ejecutado por permisos del subagente; requiere evidencia del implementador."
+    }
+  ],
   "stats": {
-    "total_reviews": 0,
-    "last_review": null
+    "total_reviews": 2,
+    "last_review": "2026-06-19"
   }
 }
