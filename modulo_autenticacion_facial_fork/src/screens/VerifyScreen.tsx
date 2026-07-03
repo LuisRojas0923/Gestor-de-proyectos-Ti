@@ -6,6 +6,7 @@ import {
   Animated,
   Platform,
   ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -317,17 +318,14 @@ export default function VerifyScreen() {
             {isCapturing ? 'Analizando rostro...' : 'Posiciona tu rostro dentro del óvalo'}
           </Text>
           {isCapturing && (
-            <View style={{ marginTop: 15, alignItems: 'center' }}>
+            <View style={localStyles.capturingContainer}>
               <ActivityIndicator size="large" color={COLORS.primary} />
-              <View style={{ width: 120, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, marginTop: 12, overflow: 'hidden' }}>
-                <Animated.View style={{
-                  width: '50%',
-                  height: '100%',
-                  backgroundColor: COLORS.primary,
+              <View style={localStyles.progressBarBg}>
+                <Animated.View style={[localStyles.progressBarFill, {
                   transform: [{ translateX: bannerAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 60] }) }] // Reutilizamos un valor animado para darle efecto
-                }} />
+                }]} />
               </View>
-              <Text style={{ color: COLORS.textSecondary, marginTop: 8, fontSize: 12 }}>Procesando imagen...</Text>
+              <Text style={localStyles.processingText}>Procesando imagen...</Text>
             </View>
           )}
         </View>
@@ -424,3 +422,10 @@ export default function VerifyScreen() {
     </View>
   );
 }
+
+const localStyles = StyleSheet.create({
+  capturingContainer: { marginTop: 15, alignItems: 'center' },
+  progressBarBg: { width: 120, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, marginTop: 12, overflow: 'hidden' },
+  progressBarFill: { width: '50%', height: '100%', backgroundColor: COLORS.primary },
+  processingText: { color: COLORS.textSecondary, marginTop: 8, fontSize: 12 },
+});

@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -154,7 +155,7 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Animated.View style={{ opacity: fadeAnim }}>
+          <Animated.View style={[{ opacity: fadeAnim }]}>
             {/* Logo & Title */}
             <View style={styles.logoContainer}>
               <View style={styles.logoCircle}>
@@ -319,7 +320,7 @@ export default function LoginScreen() {
             
             {/* Close button at the top right of modal or we can add a Cancel button. Let's add a close icon */}
             <TouchableOpacity 
-              style={{ position: 'absolute', top: 12, right: 12 }} 
+              style={localStyles.closeModalBtn} 
               onPress={closeServerSettings}
             >
               <Ionicons name="close" size={24} color={COLORS.textMuted} />
@@ -330,3 +331,7 @@ export default function LoginScreen() {
     </View>
   );
 }
+
+const localStyles = StyleSheet.create({
+  closeModalBtn: { position: 'absolute', top: 12, right: 12 },
+});

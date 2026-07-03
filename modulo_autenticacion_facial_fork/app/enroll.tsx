@@ -37,7 +37,7 @@ export default function EnrollScreen() {
       setIsCapturing(true);
 
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.7,
+        quality: 0.5,
         skipProcessing: false,
       });
 
@@ -101,14 +101,14 @@ export default function EnrollScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerGlass}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 8 }}>
-          <Text style={{ color: COLORS.text, fontSize: 22, fontWeight: 'bold' }}>Tu Foto de Perfil</Text>
+        <View style={styles.headerTopRow}>
+          <Text style={styles.headerTitleInline}>Tu Foto de Perfil</Text>
           <TouchableOpacity 
             onPress={async () => {
               await logout();
               router.replace('/login');
             }}
-            style={{ padding: 4 }}
+            style={styles.logoutBtn}
           >
             <Ionicons name="log-out-outline" size={28} color={COLORS.danger} />
           </TouchableOpacity>
@@ -139,12 +139,12 @@ export default function EnrollScreen() {
         </View>
 
         {isCapturing && (
-          <View style={{ position: 'absolute', bottom: 150, alignItems: 'center', zIndex: 30 }}>
+          <View style={styles.savingOverlay}>
             <ActivityIndicator size="large" color={COLORS.primary} />
-            <View style={{ width: 140, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, marginTop: 12, overflow: 'hidden' }}>
-              <View style={{ width: '60%', height: '100%', backgroundColor: COLORS.primary }} />
+            <View style={styles.progressBarBg}>
+              <View style={styles.progressBarFill} />
             </View>
-            <Text style={{ color: COLORS.text, marginTop: 8, fontSize: 14, fontWeight: 'bold' }}>Guardando perfil...</Text>
+            <Text style={styles.savingText}>Guardando perfil...</Text>
           </View>
         )}
       </CameraView>
@@ -175,7 +175,7 @@ export default function EnrollScreen() {
               </View>
             </View>
           </TouchableOpacity>
-          <View style={{ width: 50 }} />
+          <View style={styles.spacer} />
         </View>
       </View>
     </View>
@@ -199,6 +199,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     alignItems: 'center',
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 8,
+  },
+  headerTitleInline: {
+    color: COLORS.text,
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  logoutBtn: {
+    padding: 4,
   },
   headerTitle: {
     color: COLORS.text,
@@ -383,5 +398,33 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  savingOverlay: {
+    position: 'absolute',
+    bottom: 150,
+    alignItems: 'center',
+    zIndex: 30,
+  },
+  progressBarBg: {
+    width: 140,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 2,
+    marginTop: 12,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    width: '60%',
+    height: '100%',
+    backgroundColor: COLORS.primary,
+  },
+  savingText: {
+    color: COLORS.text,
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  spacer: {
+    width: 50,
   },
 });

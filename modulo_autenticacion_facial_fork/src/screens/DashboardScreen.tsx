@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StyleSheet,
 } from 'react-native';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -142,7 +143,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
 
-            <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={localStyles.rowGap10}>
               <TouchableOpacity
                 style={[
                   styles.trackingToggle,
@@ -244,12 +245,12 @@ export default function DashboardScreen() {
 
         {/* Recent Check-ins */}
         <View style={styles.sectionHeader}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={localStyles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Registros Recientes</Text>
             {currentUser?.role === 'admin' && checkIns.length > 0 && (
               <TouchableOpacity
                 onPress={() => exportCheckInsToCSV(checkIns)}
-                style={{ padding: 6, backgroundColor: 'rgba(0, 210, 255, 0.15)', borderRadius: 8, marginLeft: 4 }}
+                style={localStyles.exportBtn}
                 accessibilityLabel="Descargar Reporte Excel/CSV"
               >
                 <Ionicons name="download-outline" size={18} color={COLORS.primaryLight} />
@@ -263,7 +264,7 @@ export default function DashboardScreen() {
 
         {checkIns.length === 0 ? (
           <View style={styles.checkInCard}>
-            <Text style={{ color: COLORS.textMuted, fontSize: 14, flex: 1, textAlign: 'center', paddingVertical: 8 }}>
+            <Text style={localStyles.emptyText}>
               Sin registros recientes
             </Text>
           </View>
@@ -284,3 +285,10 @@ export default function DashboardScreen() {
     </View>
   );
 }
+
+const localStyles = StyleSheet.create({
+  rowGap10: { flexDirection: 'row', gap: 10 },
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  exportBtn: { padding: 6, backgroundColor: 'rgba(0, 210, 255, 0.15)', borderRadius: 8, marginLeft: 4 },
+  emptyText: { color: COLORS.textMuted, fontSize: 14, flex: 1, textAlign: 'center', paddingVertical: 8 },
+});

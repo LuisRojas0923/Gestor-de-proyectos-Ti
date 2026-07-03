@@ -239,32 +239,30 @@ const BiometriaAdminView: React.FC = () => {
 
             {/* Tabs */}
             <div className="flex space-x-1 border-b border-slate-200 dark:border-neutral-700">
-                <button
+                <Button
+                    variant="custom"
                     onClick={() => setActiveTab('asistencias')}
-                    className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                    icon={UserCheck}
+                    className={`px-4 py-2 border-b-2 transition-colors rounded-none ${
                         activeTab === 'asistencias'
                             ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
                             : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                     }`}
                 >
-                    <div className="flex items-center gap-2">
-                        <UserCheck className="w-4 h-4" />
-                        Historial de Asistencias
-                    </div>
-                </button>
-                <button
+                    Historial de Asistencias
+                </Button>
+                <Button
+                    variant="custom"
                     onClick={() => setActiveTab('zonas')}
-                    className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                    icon={MapPin}
+                    className={`px-4 py-2 border-b-2 transition-colors rounded-none ${
                         activeTab === 'zonas'
                             ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
                             : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                     }`}
                 >
-                    <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Gestión de Zonas
-                    </div>
-                </button>
+                    Gestión de Zonas
+                </Button>
             </div>
 
             {/* Tab Content: Asistencias */}

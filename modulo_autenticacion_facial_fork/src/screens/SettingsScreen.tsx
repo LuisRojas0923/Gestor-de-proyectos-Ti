@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
+  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { showAlert } from '../utils/alert';
@@ -47,42 +48,21 @@ const ZoneItem = memo(({ zone, onDelete }: { zone: Zone, onDelete: (id: string, 
 ));
 
 const AccountItem = memo(({ account, currentUser, onDelete }: { account: UserAccount, currentUser: UserAccount | null, onDelete: (id: string, name: string) => void }) => (
-  <View
-    style={{
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: COLORS.card,
-      borderRadius: BORDER_RADIUS.lg,
-      borderWidth: 1,
-      borderColor: COLORS.cardBorder,
-      padding: SPACING.md,
-      marginBottom: 10,
-    }}
-  >
-    <View style={{ flex: 1 }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 4 }}>
+  <View style={localStyles.accountItem}>
+    <View style={localStyles.accountItemFlex}>
+      <Text style={localStyles.accountItemName}>
         {account.displayName}
       </Text>
-      <Text style={{ fontSize: 12, color: COLORS.textMuted }}>
+      <Text style={localStyles.accountItemUsername}>
         @{account.username}
       </Text>
     </View>
 
     <View
-      style={{
-        backgroundColor: account.role === 'admin' ? 'rgba(108, 92, 231, 0.15)' : 'rgba(0, 206, 201, 0.15)',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: BORDER_RADIUS.sm,
-        marginRight: SPACING.sm,
-      }}
+      style={account.role === 'admin' ? localStyles.roleBadgeAdmin : localStyles.roleBadgeUser}
     >
       <Text
-        style={{
-          fontSize: 11,
-          fontWeight: '600',
-          color: account.role === 'admin' ? COLORS.primaryLight : COLORS.accent,
-        }}
+        style={account.role === 'admin' ? localStyles.roleBadgeAdminText : localStyles.roleBadgeUserText}
       >
         {account.role === 'admin' ? 'Admin' : 'Usuario'}
       </Text>
@@ -90,14 +70,7 @@ const AccountItem = memo(({ account, currentUser, onDelete }: { account: UserAcc
 
     {account.id !== currentUser?.id && (
       <TouchableOpacity
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          backgroundColor: 'rgba(255, 118, 117, 0.1)',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
+        style={localStyles.deleteAccountBtn}
         accessibilityLabel={`Eliminar usuario ${account.displayName}`}
         onPress={() => onDelete(account.id, account.displayName)}
       >
@@ -386,23 +359,12 @@ export default function SettingsScreen() {
             ))}
 
             <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                paddingVertical: 14,
-                borderRadius: 14,
-                borderWidth: 1.5,
-                borderColor: COLORS.cardBorder,
-                borderStyle: 'dashed',
-                gap: 8,
-                marginTop: 4,
-              }}
+              style={localStyles.addUserBtn}
               onPress={() => setUserModalVisible(true)}
               activeOpacity={0.8}
             >
               <Ionicons name="person-add-outline" size={20} color={COLORS.primary} />
-              <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.primary }}>Agregar Usuario</Text>
+              <Text style={localStyles.addUserBtnText}>Agregar Usuario</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -482,33 +444,15 @@ export default function SettingsScreen() {
 
         {/* Section: Logout */}
         <TouchableOpacity
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(255, 118, 117, 0.1)',
-            borderRadius: BORDER_RADIUS.lg,
-            borderWidth: 1,
-            borderColor: 'rgba(255, 118, 117, 0.25)',
-            padding: SPACING.md,
-            marginBottom: SPACING.sm,
-            gap: 10,
-          }}
+          style={localStyles.logoutBtn}
           onPress={logout}
           activeOpacity={0.8}
         >
           <Ionicons name="log-out-outline" size={22} color={COLORS.danger} />
-          <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.danger }}>Cerrar Sesión</Text>
+          <Text style={localStyles.logoutBtnText}>Cerrar Sesión</Text>
         </TouchableOpacity>
         {currentUser?.displayName && (
-          <Text
-            style={{
-              textAlign: 'center',
-              fontSize: 12,
-              color: COLORS.textMuted,
-              marginBottom: SPACING.lg,
-            }}
-          >
+          <Text style={localStyles.connectedAsText}>
             Conectado como: {currentUser.displayName}
           </Text>
         )}
@@ -555,9 +499,9 @@ export default function SettingsScreen() {
               <Text style={styles.useLocationBtnText}>Obtener ubicación GPS actual</Text>
             </TouchableOpacity>
 
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-              <View style={[styles.inputContainer, { flex: 1, marginBottom: 0 }]}>
-                <Text style={{ color: COLORS.textMuted, fontSize: 13, marginRight: 4 }}>Lat:</Text>
+            <View style={localStyles.rowGap12}>
+              <View style={[styles.inputContainer, localStyles.inputFlexRow]}>
+                <Text style={localStyles.inputLabel}>Lat:</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="0.00000"
@@ -568,8 +512,8 @@ export default function SettingsScreen() {
                 />
               </View>
 
-              <View style={[styles.inputContainer, { flex: 1, marginBottom: 0 }]}>
-                <Text style={{ color: COLORS.textMuted, fontSize: 13, marginRight: 4 }}>Lng:</Text>
+              <View style={[styles.inputContainer, localStyles.inputFlexRow]}>
+                <Text style={localStyles.inputLabel}>Lng:</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="0.00000"
@@ -581,7 +525,7 @@ export default function SettingsScreen() {
               </View>
             </View>
 
-            <View style={[styles.inputContainer, { marginBottom: 24 }]}>
+            <View style={[styles.inputContainer, localStyles.inputContainerMargin]}>
               <Ionicons name="analytics-outline" size={20} color={COLORS.textMuted} />
               <TextInput
                 style={styles.input}
@@ -678,53 +622,25 @@ export default function SettingsScreen() {
             </View>
 
             {/* Role selector */}
-            <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: SPACING.sm, fontWeight: '600' }}>
+            <Text style={localStyles.roleLabel}>
               Rol del usuario
             </Text>
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: SPACING.lg }}>
+            <View style={localStyles.roleRow}>
               <TouchableOpacity
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: BORDER_RADIUS.md,
-                  backgroundColor: newUserRole === 'admin' ? 'rgba(108, 92, 231, 0.2)' : COLORS.surfaceLight,
-                  borderWidth: 1.5,
-                  borderColor: newUserRole === 'admin' ? COLORS.primary : COLORS.glassBorder,
-                  alignItems: 'center',
-                }}
+                style={newUserRole === 'admin' ? localStyles.roleOptionAdminActive : localStyles.roleOptionAdminInactive}
                 onPress={() => setNewUserRole('admin')}
                 activeOpacity={0.8}
               >
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '700',
-                    color: newUserRole === 'admin' ? COLORS.primaryLight : COLORS.textMuted,
-                  }}
-                >
+                <Text style={newUserRole === 'admin' ? localStyles.roleTextAdminActive : localStyles.roleTextAdminInactive}>
                   Administrador
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: BORDER_RADIUS.md,
-                  backgroundColor: newUserRole === 'user' ? 'rgba(0, 206, 201, 0.2)' : COLORS.surfaceLight,
-                  borderWidth: 1.5,
-                  borderColor: newUserRole === 'user' ? COLORS.accent : COLORS.glassBorder,
-                  alignItems: 'center',
-                }}
+                style={newUserRole === 'user' ? localStyles.roleOptionUserActive : localStyles.roleOptionUserInactive}
                 onPress={() => setNewUserRole('user')}
                 activeOpacity={0.8}
               >
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '700',
-                    color: newUserRole === 'user' ? COLORS.accent : COLORS.textMuted,
-                  }}
-                >
+                <Text style={newUserRole === 'user' ? localStyles.roleTextUserActive : localStyles.roleTextUserInactive}>
                   Usuario
                 </Text>
               </TouchableOpacity>
@@ -757,3 +673,97 @@ export default function SettingsScreen() {
     </View>
   );
 }
+
+const localStyles = StyleSheet.create({
+  accountItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    padding: SPACING.md,
+    marginBottom: 10,
+  },
+  accountItemFlex: { flex: 1 },
+  accountItemName: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 4 },
+  accountItemUsername: { fontSize: 12, color: COLORS.textMuted },
+  roleBadgeAdmin: {
+    backgroundColor: 'rgba(108, 92, 231, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.sm,
+    marginRight: SPACING.sm,
+  },
+  roleBadgeUser: {
+    backgroundColor: 'rgba(0, 206, 201, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.sm,
+    marginRight: SPACING.sm,
+  },
+  roleBadgeAdminText: { fontSize: 11, fontWeight: '600', color: COLORS.primaryLight },
+  roleBadgeUserText: { fontSize: 11, fontWeight: '600', color: COLORS.accent },
+  deleteAccountBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 118, 117, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addUserBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: COLORS.cardBorder,
+    borderStyle: 'dashed',
+    gap: 8,
+    marginTop: 4,
+  },
+  addUserBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 118, 117, 0.1)',
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 118, 117, 0.25)',
+    padding: SPACING.md,
+    marginBottom: SPACING.sm,
+    gap: 10,
+  },
+  logoutBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.danger },
+  connectedAsText: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.lg,
+  },
+  rowGap12: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  inputFlexRow: { flex: 1, marginBottom: 0 },
+  inputLabel: { color: COLORS.textMuted, fontSize: 13, marginRight: 4 },
+  inputContainerMargin: { marginBottom: 24 },
+  roleLabel: { fontSize: 13, color: COLORS.textSecondary, marginBottom: SPACING.sm, fontWeight: '600' },
+  roleRow: { flexDirection: 'row', gap: 12, marginBottom: SPACING.lg },
+  roleOptionAdminActive: {
+    flex: 1, paddingVertical: 12, borderRadius: BORDER_RADIUS.md, backgroundColor: 'rgba(108, 92, 231, 0.2)', borderWidth: 1.5, borderColor: COLORS.primary, alignItems: 'center'
+  },
+  roleOptionAdminInactive: {
+    flex: 1, paddingVertical: 12, borderRadius: BORDER_RADIUS.md, backgroundColor: COLORS.surfaceLight, borderWidth: 1.5, borderColor: COLORS.glassBorder, alignItems: 'center'
+  },
+  roleOptionUserActive: {
+    flex: 1, paddingVertical: 12, borderRadius: BORDER_RADIUS.md, backgroundColor: 'rgba(0, 206, 201, 0.2)', borderWidth: 1.5, borderColor: COLORS.accent, alignItems: 'center'
+  },
+  roleOptionUserInactive: {
+    flex: 1, paddingVertical: 12, borderRadius: BORDER_RADIUS.md, backgroundColor: COLORS.surfaceLight, borderWidth: 1.5, borderColor: COLORS.glassBorder, alignItems: 'center'
+  },
+  roleTextAdminActive: { fontSize: 14, fontWeight: '700', color: COLORS.primaryLight },
+  roleTextAdminInactive: { fontSize: 14, fontWeight: '700', color: COLORS.textMuted },
+  roleTextUserActive: { fontSize: 14, fontWeight: '700', color: COLORS.accent },
+  roleTextUserInactive: { fontSize: 14, fontWeight: '700', color: COLORS.textMuted },
+});
