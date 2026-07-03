@@ -1,8 +1,8 @@
-# GeoFace - Sistema de Asistencia Inteligente
+# GeoFace - Sistema de Asistencia Inteligente (Módulo Móvil)
 
 ## Descripción General
 
-GeoFace es una aplicación móvil (React Native / Expo) que combina **geolocalización** y **reconocimiento facial** para registrar asistencia de personas. El usuario debe estar físicamente dentro de una zona geográfica designada (geocerca) y tomarse una selfie para que el sistema verifique su identidad mediante DeepFace.
+GeoFace es el módulo móvil (React Native / Expo) que combina **geolocalización** y **reconocimiento facial** para registrar la asistencia del personal. El usuario debe estar físicamente dentro de una zona geográfica designada (geocerca) y tomarse una selfie para que el sistema central verifique su identidad mediante Inteligencia Artificial (DeepFace).
 
 ## Stack Tecnológico
 
@@ -10,124 +10,91 @@ GeoFace es una aplicación móvil (React Native / Expo) que combina **geolocaliz
 |---|---|
 | **Frontend móvil** | React Native + Expo SDK 55 |
 | **Navegación** | Expo Router (file-based routing) |
-| **Reconocimiento facial** | DeepFace (Facenet512) en servidor Python Flask |
-| **Almacenamiento local** | AsyncStorage + expo-file-system/legacy |
+| **Reconocimiento facial** | DeepFace integrado en Backend Central (`backend_v2` - FastAPI) |
+| **Base de Datos (Vectores)** | PostgreSQL (SQLModel) en servidor central |
 | **Geolocalización** | expo-location (GPS) |
 | **Cámara** | expo-camera (CameraView moderna) |
-| **Idioma UI** | Español (es-MX) |
+| **Idioma UI** | Español |
 
 ## Funcionalidades Principales
 
 ### 1. Dashboard (Inicio)
-- Estado del GPS (activo/inactivo) con animación de pulso
-- Indicador de zona (dentro/fuera de geocerca)
-- Estadísticas: distancia a zona, latitud y longitud actual
-- Botón "Verificar Identidad" (solo habilitado si está dentro de zona)
-- Historial de check-ins recientes
-- Inicia tracking GPS automáticamente al abrir la app
+- Estado del GPS (activo/inactivo) con animación de pulso.
+- Indicador de zona (dentro/fuera de geocerca).
+- Estadísticas: distancia a zona, latitud y longitud actual.
+- Botón "Verificar Identidad" (solo habilitado si está dentro de zona).
+- Historial de check-ins recientes (en caché local).
+- Inicia tracking GPS automáticamente al abrir la app.
 
-### 2. Perfiles
-- CRUD completo de personas (agregar, actualizar foto, eliminar)
-- Captura de foto desde cámara o galería
-- Al crear/actualizar un perfil, se envía la foto al servidor DeepFace para extraer el embedding facial (vector 512D)
-- La foto se guarda localmente en `expo-file-system/legacy` y el embedding en AsyncStorage
+### 2. Perfiles y Enrolamiento
+- La aplicación permite capturar el rostro base del empleado.
+- Al crear/actualizar un perfil, la foto se envía al servidor central (FastAPI).
+- El servidor extrae las características matemáticas (embedding facial) y las guarda de forma segura en PostgreSQL.
+- **Diferencia clave:** El celular ya no almacena ni procesa la biometría, actuando únicamente como cliente de captura.
 
 ### 3. Verificación Facial (Check-in)
-- **1:N automático**: no se selecciona persona manualmente
-- Toma una selfie → la envía al servidor → el servidor compara contra TODOS los embeddings guardados
-- Si la coincidencia supera el umbral configurado (>75% por defecto), se registra el check-in exitoso
-- **Requisito obligatorio**: el usuario debe estar dentro de una geocerca (valida GPS antes de abrir la cámara)
-- Muestra resultado con foto, nombre, barra de confianza y metadatos
+- Toma una selfie → la envía al servidor central como `FormData` junto a las coordenadas GPS.
+- El servidor la compara exclusivamente contra el perfil del usuario autenticado (Verificación 1:1).
+- Si la coincidencia supera el umbral configurado de similitud, el servidor registra la asistencia en base de datos y guarda la evidencia física.
+- **Requisito obligatorio:** El usuario debe estar dentro de una geocerca. La app lo valida localmente, y el servidor audita las coordenadas recibidas.
 
 ### 4. Configuración (Ajustes)
-- Gestión de zonas de verificación (geocercas): agregar, eliminar
-- Permite autocompletar coordenadas desde la ubicación GPS actual
-- Ajuste del umbral de coincidencia facial (50% - 99%)
-- Exportar historial de check-ins a CSV
-- Limpiar historial de asistencia
+- Permite configurar la dirección IP o URL del servidor central (Backend V2).
+- Gestión de zonas de verificación locales.
 
 ## Flujo de Check-in Completo
 
-1. Usuario abre la app → GPS inicia automáticamente
-2. Usuario se dirige a la zona designada
-3. Dashboard muestra "En Zona ✓"
-4. Usuario presiona "Verificar Identidad"
-5. VerifyScreen valida que está dentro de zona (si no, muestra mensaje)
-6. Usuario se toma una selfie
-7. App envía la foto al servidor Flask (`/v1/verify`)
-8. Servidor compara con todos los embeddings (512D Facenet512)
-9. Si hay match y distancia ≤ 0.35 → check-in exitoso
-10. Se guarda el registro en AsyncStorage con: persona, zona, resultado, ubicación, timestamp
-11. Se muestra ResultOverlay con el resultado
+1. Usuario abre la app → GPS inicia automáticamente.
+2. Usuario se dirige a la zona de trabajo designada.
+3. Dashboard muestra "En Zona ✓".
+4. Usuario presiona "Verificar Identidad".
+5. VerifyScreen valida que está dentro de zona (si no, bloquea la acción).
+6. Usuario se toma una selfie.
+7. App envía la foto y coordenadas al servidor FastAPI (`POST /api/v2/biometria/asistencia`).
+8. Servidor procesa la imagen, endereza EXIF y ejecuta DeepFace.
+9. Si hay match biométrico → check-in exitoso en servidor.
+10. La app recibe respuesta HTTP 200, guarda un registro en caché local para mostrar al usuario.
+11. Se muestra ResultOverlay con el estado de "Identidad Verificada".
 
 ## Estados y Validaciones
 
-- **GPS inactivo**: no se puede hacer check-in
-- **Fuera de zona**: no se puede hacer check-in (muestra distancia a zona más cercana)
-- **Sin perfiles**: muestra pantalla informativa y botón para ir a Perfiles
-- **Perfiles sin embedding 512D**: se filtran automáticamente (los antiguos de 128D no son válidos)
-- **Servidor offline**: alerta con instrucciones para iniciar el servidor Python
-- **Sin rostro detectado**: el servidor responde error 422, la app muestra alerta
+- **GPS inactivo:** No se puede hacer check-in.
+- **Fuera de zona:** No se puede hacer check-in (muestra distancia a zona más cercana).
+- **Servidor offline/IP incorrecta:** Alerta de error de red.
+- **Error Biométrico:** El servidor responde con error HTTP si el rostro no coincide, está borroso, o si se detecta un intento de fraude (Anti-Spoofing).
 
-## Endpoints del Servidor DeepFace
+## Endpoints del Servidor Central Consumidos
 
 | Endpoint | Método | Descripción |
 |---|---|---|
-| `/v1/represent` | POST | Extrae embedding facial de una imagen |
-| `/v1/verify` | POST | Compara selfie contra embeddings guardados (1:N) |
-| `/v1/health` | GET | Health check del servidor |
+| `/api/v2/biometria/enrolar` | POST | Enrola un nuevo rostro para el usuario en la BD central |
+| `/api/v2/biometria/asistencia` | POST | Compara selfie contra el rostro guardado y registra asistencia |
+| `/api/v2/biometria/asistencias` | GET | (Opcional) Obtener el historial oficial de asistencias |
 
-## Estructura de Archivos
+## Estructura de Archivos Móvil
 
 ```
-geo-face-app/
+modulo_autenticacion_facial_fork/
 ├── app/                          # Expo Router (file-based routing)
 │   ├── _layout.tsx               # Layout root (AppProvider)
 │   └── (tabs)/
-│       ├── _layout.tsx           # Tabs navigation (4 tabs)
+│       ├── _layout.tsx           # Tabs navigation
 │       ├── index.tsx             # → DashboardScreen
 │       ├── profiles.tsx          # → ProfilesScreen
 │       ├── verify.tsx            # → VerifyScreen
-│       ├── settings.tsx          # → SettingsScreen
-│       └── location-test.tsx     # Pantalla de prueba GPS
+│       └── settings.tsx          # → SettingsScreen
 ├── src/
-│   ├── components/               # Componentes reutilizables
-│   │   ├── ProfileCard.tsx       # Tarjeta de perfil (avatar, nombre, acciones)
-│   │   ├── ResultOverlay.tsx     # Overlay de resultado de verificación
-│   │   ├── StatsCard.tsx         # Tarjeta de estadística (ícono + valor + etiqueta)
-│   │   └── CheckInItem.tsx       # Fila de check-in en el historial
+│   ├── components/               # Componentes reutilizables UI
 │   ├── screens/                  # Pantallas principales
-│   │   ├── DashboardScreen.tsx
-│   │   ├── ProfilesScreen.tsx
-│   │   ├── VerifyScreen.tsx
-│   │   └── SettingsScreen.tsx
-│   ├── context/
-│   │   └── AppContext.tsx         # Estado global (profiles, checkins, zones)
-│   ├── hooks/
-│   │   └── useLocation.ts        # Hook de geolocalización
-│   ├── services/
-│   │   ├── faceApi.ts            # Cliente HTTP para servidor DeepFace
-│   │   ├── storage.ts            # AsyncStorage + file-system
-│   │   └── location.ts           # expo-location helpers
-│   ├── styles/                   # StyleSheets por pantalla
-│   ├── types/
-│   │   └── index.ts              # Interfaces TypeScript
-│   ├── utils/
-│   │   ├── format.ts             # getInitials, formatTime, formatDate, formatCheckInDate
-│   │   ├── face.ts               # Constantes: EXPECTED_EMBEDDING_DIM, FACE_SERVER_PORT
-│   │   └── geo.ts                # calculateDistance, isPointInZone, findNearestZone, formatDistance
-│   └── constants/
-│       └── index.ts              # COLORS, SPACING, BORDER_RADIUS, FONT_SIZES
-├── face-server/                  # Servidor Python Flask + DeepFace
-│   ├── server.py                 # 3 endpoints de reconocimiento facial
-│   ├── requirements.txt          # flask, deepface, numpy, opencv-python, Pillow
-│   ├── .env                      # Variables de entorno (modelo, detector, puerto)
-│   └── start.bat                 # Script de inicio para Windows
-├── docs/                         # Documentación
+│   ├── context/                  # Estado global (React Context)
+│   ├── hooks/                    # Hook de geolocalización
+│   ├── services/                 # Clientes HTTP (faceApi.ts)
+│   ├── styles/                   # StyleSheets
+│   ├── types/                    # Interfaces TypeScript
+│   └── utils/                    # Utilidades de distancias y formateos
+├── docs/                         # Documentación técnica
 │   ├── CONTEXTO.md               # Este archivo
-│   ├── ARQUITECTURA.md           # Arquitectura técnica detallada
-│   └── GUIA-DESARROLLO.md        # Guía para desarrolladores
-├── AGENTS.md                     # Instrucciones para la IA
+│   └── ARQUITECTURA.md           # Arquitectura detallada
 ├── app.json                      # Configuración Expo
 └── package.json
 ```
