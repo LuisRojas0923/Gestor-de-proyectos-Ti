@@ -1,6 +1,6 @@
 // Detalle completo de una Requisición de Personal
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, MapPin, Layers, DollarSign, Package } from 'lucide-react';
+import { ArrowLeft, MapPin, Layers, DollarSign, Package, Printer } from 'lucide-react';
 import { Button, Title, Text } from '../../../../../components/atoms';
 import RPStatusBadge from '../components/RPStatusBadge';
 import RPTimeline from '../components/RPTimeline';
@@ -90,6 +90,15 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
             </Text>
           </div>
         </div>
+        {/* Botón imprimir */}
+        <button
+          onClick={() => window.open(`/service-portal/requisicion-personal/print/${requisicionId}`, '_blank')}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-[var(--color-border)] bg-white dark:bg-neutral-900 hover:bg-slate-50 dark:hover:bg-neutral-800 hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] transition-all duration-150 shadow-sm"
+          title="Imprimir Requisición"
+        >
+          <Printer className="w-3.5 h-3.5" />
+          Imprimir
+        </button>
       </div>
       {/* Main Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -137,7 +146,7 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
                 )}
                 
                 <div className="col-span-2">
-                  <SummaryItem label="Perfil Requerido" value={req.perfil_requerido} />
+                  <SummaryItem label="Perfil O" value={req.perfil_requerido} />
                 </div>
               </div>
             </div>

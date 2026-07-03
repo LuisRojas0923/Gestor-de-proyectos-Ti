@@ -4,11 +4,13 @@ import { Button, Title, Text } from '../../../../../components/atoms';
 import { getDashboard } from '../services/requisicionService';
 import type { DashboardRP } from '../types/requisicion.types';
 import { ESTADO_COLORES, ESTADO_LABELS } from '../types/requisicion.types';
+import MisRequisicionesRP from './MisRequisicionesRP';
 
 interface Props {
   user: any;
   onNueva: () => void;
-  onMisRequisiciones: () => void;
+  onVer: (id: number) => void;
+  onEditar: (id: number) => void;
   onAprobaciones: () => void;
   onVolver: () => void;
 }
@@ -26,7 +28,7 @@ const ICONOS: Record<string, React.ElementType> = {
   CANCELADA: XCircle,
 };
 
-const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onAprobaciones, onVolver }) => {
+const DashboardRP: React.FC<Props> = ({ user, onNueva, onVer, onEditar, onAprobaciones, onVolver }) => {
   const [dashboard, setDashboard] = useState<DashboardRP | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -126,14 +128,6 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
             >
               Nueva Requisición
             </Button>
-            <Button
-              onClick={onMisRequisiciones}
-              variant="outline"
-              icon={List}
-              className="px-6 py-3 rounded-xl bg-[var(--color-surface)] border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold h-12 text-slate-700 dark:text-slate-350"
-            >
-              Mis Solicitudes
-            </Button>
             {esAprobador && (
               <Button
                 onClick={onAprobaciones}
@@ -174,16 +168,16 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
           {summaryCards.map(({ label, count, colores, icon: Icon }) => (
             <div
               key={label}
-              className={`rounded-2xl p-5 ${colores.bg} border border-transparent flex flex-col items-center justify-center text-center gap-2 shadow-sm`}
+              className={`rounded-xl p-3 ${colores.bg} border border-transparent flex flex-col items-center justify-center text-center gap-1 shadow-sm`}
             >
-              <Icon className={`w-6 h-6 mb-2 ${colores.text}`} />
-              <div className={`text-3xl font-black ${colores.text} leading-none`}>
+              <Icon className={`w-5 h-5 mb-1 ${colores.text}`} />
+              <div className={`text-2xl font-black ${colores.text} leading-none`}>
                 {count}
               </div>
               <Text
                 variant="caption"
                 align="center"
-                className={`mt-2 font-bold uppercase tracking-wider ${colores.text}`}
+                className={`mt-1 font-bold uppercase tracking-wider text-[9px] ${colores.text}`}
               >
                 {label}
               </Text>
@@ -191,6 +185,23 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onMisRequisiciones, onApr
           ))}
         </div>
       )}
+
+      {/* Tabla de Mis Solicitudes integrada */}
+      <div className="mt-8">
+        <div className="mb-4">
+          <Title variant="h5" weight="bold" className="text-slate-800 dark:text-slate-200">
+            Mis Solicitudes
+          </Title>
+        </div>
+        <MisRequisicionesRP
+          hideHeader={true}
+          correoSolicitante={user?.email}
+          nombreSolicitante={user?.name}
+          onNueva={onNueva}
+          onVer={onVer}
+          onEditar={onEditar}
+        />
+      </div>
     </div>
   );
 };

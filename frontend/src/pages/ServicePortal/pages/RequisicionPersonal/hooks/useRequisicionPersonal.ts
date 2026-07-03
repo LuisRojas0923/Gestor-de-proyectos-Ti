@@ -105,7 +105,6 @@ export function useRequisicionPersonal(
     if (!form.cargo_id) errores.push("Cargo solicitado");
     if (!form.causal_requisicion) errores.push("Causal de requisición");
     if (form.causal_requisicion === 'OTRO' && !form.otra_causal?.trim()) errores.push("Otra causal especificada");
-    if (!form.perfil_requerido?.trim()) errores.push("Perfil Requerido");
 
     // EQUIPOS Y DOTACIÓN
     if (!form.necesita_equipos_oficina) errores.push("¿Necesita equipos de oficina?");

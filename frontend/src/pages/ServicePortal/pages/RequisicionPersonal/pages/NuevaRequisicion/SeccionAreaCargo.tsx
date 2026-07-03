@@ -403,13 +403,13 @@ export const SeccionAreaCargo: React.FC<Props> = ({ form, update, aprobadores })
       </div>
 
       <TextAreaField
-        label="Perfil Requerido"
+        label="Perfil O"
         name="perfil_requerido"
         value={form.perfil_requerido}
         onChange={e => update('perfil_requerido', e.target.value)}
-        placeholder="Experiencia, formación, conocimientos técnicos, certificaciones, competencias y condiciones especiales requeridas..."
+        placeholder=""
         rows={5}
-        isRequired={true}
+        isRequired={false}
       />
 
       <ModalSimuladorCentroCosto

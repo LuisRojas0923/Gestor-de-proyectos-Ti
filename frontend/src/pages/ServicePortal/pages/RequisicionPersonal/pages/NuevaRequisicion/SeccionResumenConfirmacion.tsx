@@ -79,7 +79,7 @@ export const SeccionResumenConfirmacion: React.FC<Props> = ({
             <SummaryItem className={`col-span-12 ${form.causal_requisicion === 'OTRO' ? 'sm:col-span-4' : 'sm:col-span-7'}`} label="Director Aprobador" value={aprobadorNombre} />
             
             {/* Fila 3 */}
-            <SummaryItem className="col-span-12" label="Perfil Requerido" value={form.perfil_requerido} />
+            <SummaryItem className="col-span-12" label="Perfil O" value={form.perfil_requerido} />
           </div>
         </div>
 

@@ -60,6 +60,10 @@ const PrintRequisicionRP: React.FC = () => {
                         (Number(req.auxilio_alimentacion) || 0) + 
                         (Number(req.auxilio_vivienda) || 0);
 
+  // Estados que se consideran completamente aprobados por gerencia
+  const estadosAprobados = ['APROBADA', 'EN_PROCESO_SELECCION', 'CERRADA'];
+  const faltaAprobacion = !estadosAprobados.includes(req.estado);
+
   const printContent = (
     <div className="bg-white min-h-screen text-black print-wrapper">
       <style>
@@ -100,6 +104,39 @@ const PrintRequisicionRP: React.FC = () => {
           Imprimir Documento
         </button>
       </div>
+
+      {/* Marca de agua: solo si falta aprobación gerencial */}
+      {faltaAprobacion && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              transform: 'rotate(-45deg)',
+              fontSize: '72px',
+              fontWeight: 900,
+              color: 'black',
+              opacity: 0.12,
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              letterSpacing: '4px',
+              fontFamily: 'sans-serif',
+              border: '8px solid black',
+              padding: '16px 32px',
+            }}
+          >
+            FALTA APROBACION
+          </div>
+        </div>
+      )}
 
       <div className="max-w-[215.9mm] mx-auto px-2 sm:px-4 pt-6 pb-4 font-sans bg-white">
         {/* Cabecera / Logo */}

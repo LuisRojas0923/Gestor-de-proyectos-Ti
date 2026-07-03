@@ -33,30 +33,21 @@ const RequisicionPersonalRouter: React.FC<RequisicionPersonalRouterProps> = ({ u
           <DashboardRP
             user={user}
             onNueva={() => goTo('nueva')}
-            onMisRequisiciones={() => goTo('mis-requisiciones')}
+            onVer={(id) => goTo(`detalle/${id}`)}
+            onEditar={(id) => goTo(`editar/${id}`)}
             onAprobaciones={() => goTo('aprobaciones')}
             onVolver={() => navigate('/service-portal')}
           />
         } />
 
-        {/* Mis requisiciones (solicitante) */}
-        <Route path="mis-requisiciones" element={
-          <MisRequisicionesRP
-            correoSolicitante={user.email}
-            nombreSolicitante={user.name}
-            onNueva={() => goTo('nueva')}
-            onVer={(id) => goTo(`detalle/${id}`)}
-            onEditar={(id) => goTo(`editar/${id}`)}
-            onVolver={() => goTo('')}
-          />
-        } />
+
 
         {/* Nueva requisición — wizard */}
         <Route path="nueva" element={
           <NuevaRequisicionWizard
             correoSolicitante={user.email}
             nombreSolicitante={user.name}
-            onSuccess={() => goTo('mis-requisiciones')}
+            onSuccess={() => goTo('')}
             onBack={() => goTo('')}
           />
         } />
@@ -100,8 +91,8 @@ const EditarRequisicion: React.FC<{ user: UserData; goTo: (p: string) => void }>
     <NuevaRequisicionWizard
       correoSolicitante={user.email}
       nombreSolicitante={user.name}
-      onSuccess={() => goTo('mis-requisiciones')}
-      onBack={() => goTo('mis-requisiciones')}
+      onSuccess={() => goTo('')}
+      onBack={() => goTo('')}
       requisicionIdEditar={id ? Number(id) : undefined}
     />
   );
