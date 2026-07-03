@@ -15,9 +15,34 @@
     "review <files>": "Review security/RBAC surface for files or diffs",
     "checklist <scope>": "Return the relevant subset of the security checklist"
   },
-  "review_history": [],
+  "review_history": [
+    {
+      "date": "2026-07-03",
+      "scope": "biometria-engine",
+      "outcome": "blocked",
+      "findings_by_severity": {
+        "BLOQUEANTE": 1,
+        "ALTO": 0,
+        "MEDIO": 1,
+        "BAJO": 2
+      },
+      "cwe_references": ["CWE-200", "CWE-359", "CWE-284"]
+    },
+    {
+      "date": "2026-07-03",
+      "scope": "mobile-geoface-backend-url",
+      "outcome": "approved_with_risks",
+      "findings_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 2,
+        "MEDIO": 3,
+        "BAJO": 2
+      },
+      "cwe_references": ["CWE-319", "CWE-522", "CWE-200", "CWE-598", "CWE-770", "CWE-20", "CWE-284"]
+    }
+  ],
   "stats": {
-    "total_reviews": 0,
-    "last_review": null
+    "total_reviews": 2,
+    "last_review": "2026-07-03 mobile-geoface-backend-url approved_with_risks"
   }
 }

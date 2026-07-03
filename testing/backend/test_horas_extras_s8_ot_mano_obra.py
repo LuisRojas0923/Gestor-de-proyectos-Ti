@@ -164,7 +164,13 @@ async def test_confirmar_plan_distribuye_costo_en_multiples_ot(db_session):
         empleados=[
             PlanConfirmarEmpleadoIn(
                 cedula=CEDULA,
-                dias=[dia],
+                dias=[
+                    dia,
+                    PlanDiaIn(dia_semana=2, hora_entrada=time(7, 30), hora_salida=time(17, 0), minutos_almuerzo=60, novedades=[]),
+                    PlanDiaIn(dia_semana=3, hora_entrada=time(7, 30), hora_salida=time(17, 0), minutos_almuerzo=60, novedades=[]),
+                    PlanDiaIn(dia_semana=4, hora_entrada=time(7, 30), hora_salida=time(17, 0), minutos_almuerzo=60, novedades=[]),
+                    PlanDiaIn(dia_semana=5, hora_entrada=time(7, 30), hora_salida=time(17, 0), minutos_almuerzo=60, novedades=[]),
+                ],
                 parametros=PlanConfirmarParametros(
                     nivel_riesgo_arl="III",
                     factor_prestacional=0.52436,

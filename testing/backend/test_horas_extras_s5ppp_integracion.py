@@ -96,6 +96,27 @@ async def _insertar_novedad_confirmada(
     fecha_fin: date,
     cedula: str = CEDULA,
 ) -> None:
+    catalogo = (
+        await db_session.execute(
+            select(NominaCatalogoNovedad).where(NominaCatalogoNovedad.codigo == codigo)
+        )
+    ).scalar_one_or_none()
+    if catalogo is None:
+        db_session.add(NominaCatalogoNovedad(
+            codigo=codigo,
+            descripcion_corta=f"Novedad test {codigo}",
+            descripcion_larga=f"Novedad creada por test S5PPP para {codigo}",
+            categoria="HORA_EXTRA" if codigo.startswith("HE") or codigo == "HED" else "AUSENTISMO",
+            subcategoria="TEST",
+            factor_hora_ordinaria=1.25 if codigo == "HED" else 1.0,
+            acredita_bolsa=codigo == "HED",
+            descuenta_bolsa=codigo == "HED",
+            requiere_autorizacion=False,
+            unidad="HORAS",
+            estado="ACTIVO",
+            vigente_desde=date(2026, 1, 1),
+        ))
+        await db_session.flush()
     n = NominaNovedadEvento(
         cedula=cedula,
         codigo_novedad=codigo,

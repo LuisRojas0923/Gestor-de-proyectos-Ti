@@ -11,9 +11,32 @@
     "review <files>": "Review mobile files or diffs",
     "checklist <scope>": "Return the relevant subset of the mobile review checklist"
   },
-  "review_history": [],
+  "review_history": [
+    {
+      "date": "2026-07-03",
+      "scope": "geoface-backend-url-config",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 2,
+        "low": 2
+      }
+    },
+    {
+      "date": "2026-07-03",
+      "scope": "geoface-backend-biometrico-build",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 2,
+        "low": 2
+      }
+    }
+  ],
   "stats": {
-    "total_reviews": 0,
-    "last_review": null
+    "total_reviews": 2,
+    "last_review": "2026-07-03"
   }
 }

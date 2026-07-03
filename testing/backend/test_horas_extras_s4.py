@@ -32,6 +32,7 @@ from app.models.novedades_nomina.horas_extras import (
     NominaBolsaHorasMovimiento,
     NominaCostoOt,
     NominaHorarioPactado,
+    NominaParametroLegal,
 )
 from app.models.novedades_nomina.schemas_horas_extras import (
     PreLiquidacionConfirmar,
@@ -56,6 +57,7 @@ ANIO = 2026
 SEMANA = 30
 OT_ID = 9101
 OT_CODIGO = "OT-TEST-S4-001"
+CODIGO_GLOBAL_BOLSA = "BOLSA_GLOBAL_HABILITADA"
 
 
 def _detalle(codigo, horas, factor, valor_bruto):
@@ -132,11 +134,41 @@ async def _cleanup(db_session, cedula: str, anio: int = ANIO, semana: int = SEMA
     await db_session.execute(
         delete(NominaHorarioPactado).where(NominaHorarioPactado.cedula == cedula)
     )
+    await db_session.execute(
+        delete(NominaParametroLegal).where(NominaParametroLegal.codigo == CODIGO_GLOBAL_BOLSA)
+    )
+    await db_session.commit()
+
+
+async def _set_bolsa_global(db_session, habilitada: bool) -> None:
+    existente = (
+        await db_session.execute(
+            select(NominaParametroLegal).where(NominaParametroLegal.codigo == CODIGO_GLOBAL_BOLSA)
+        )
+    ).scalar_one_or_none()
+    if existente is not None:
+        existente.valor = "true" if habilitada else "false"
+        existente.estado = "VIGENTE"
+        existente.vigente_hasta = None
+        db_session.add(existente)
+    else:
+        db_session.add(NominaParametroLegal(
+            codigo=CODIGO_GLOBAL_BOLSA,
+            nombre="Habilitar bolsa de horas (global)",
+            valor="true" if habilitada else "false",
+            tipo_dato="BOOLEANO",
+            norma_soporte="Politica interna - test S4",
+            vigente_desde=date.today(),
+            vigente_hasta=None,
+            estado="VIGENTE",
+            observaciones="test S4",
+        ))
     await db_session.commit()
 
 
 async def _crear_calculo_test(db_session, cedula=CEDULA_BASE, detalles=None):
     """Helper: sembrar horario y crear cálculo confirmado, retornando el ID."""
+    await _set_bolsa_global(db_session, True)
     horario = NominaHorarioPactado(
         cedula=cedula,
         minutos_jornada_ordinaria=480,

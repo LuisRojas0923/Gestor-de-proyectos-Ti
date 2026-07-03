@@ -13,10 +13,11 @@ from ...models.novedades_nomina.schemas_horas_extras_planificador import (
     PlanSemanaIn,
 )
 from ._planificador_common import (
-    _calcular_dia,
+    CODIGOS_NOVEDAD_SUPRESION_PLAN,
     _horas_trabajadas_dia,
     _resolver_catalogo_y_factor,
 )
+from .horas_extras_calculo import _calcular_horas_extras_semanales, _parametros_jornada_semana
 
 
 def _ot_id_desde_orden(orden: str) -> int:
@@ -43,19 +44,39 @@ async def distribuir_costos_ot_plan(
     )
     cat_idx = {c["codigo"]: c for c in catalogo}
     factor_prestacional = factores[parametros.nivel_riesgo_arl]
+    horas_semana_ordinaria, _divisor = _parametros_jornada_semana(
+        semana.anio,
+        semana.semana_iso,
+    )
+    dias_idx = {d.dia_semana: d for d in emp_in.dias}
+    datos_dias = []
+
+    for dia_semana in range(1, 8):
+        dia = dias_idx.get(dia_semana)
+        if dia is None:
+            datos_dias.append((None, 0.0, []))
+            continue
+        codigos_nov = [n.codigo_novedad for n in dia.novedades]
+        horas_trab = _horas_trabajadas_dia(
+            dia.hora_entrada, dia.hora_salida, dia.minutos_almuerzo
+        )
+        if any(c in CODIGOS_NOVEDAD_SUPRESION_PLAN for c in codigos_nov):
+            horas_trab = 0.0
+        datos_dias.append((dia, horas_trab, codigos_nov))
+
+    extras_por_dia = _calcular_horas_extras_semanales(
+        [d[1] for d in datos_dias],
+        horas_semana_ordinaria,
+    )
     ids: List[int] = []
 
-    for d in emp_in.dias:
-        if not d.asignaciones_ot:
+    for idx, (d, _horas_trab, codigos_nov) in enumerate(datos_dias):
+        if d is None or not d.asignaciones_ot:
             continue
-        codigos_nov = [n.codigo_novedad for n in d.novedades]
-        horas_trab = _horas_trabajadas_dia(d.hora_entrada, d.hora_salida, d.minutos_almuerzo)
-        _ht, _ho, horas_ext, codigo_he, _costo = _calcular_dia(
-            horas_trab, codigos_nov, parametros.jornada_nocturna,
-            cat_idx, factor_prestacional, parametros.valor_hora_ordinaria,
-        )
-        if horas_ext <= 0 or codigo_he is None:
+        horas_ext = extras_por_dia[idx]
+        if horas_ext <= 0 or codigos_nov:
             continue
+        codigo_he = "HEN" if parametros.jornada_nocturna else "HED"
         total_horas_asignadas = sum(a.horas or 0 for a in d.asignaciones_ot)
         if total_horas_asignadas <= 0:
             continue

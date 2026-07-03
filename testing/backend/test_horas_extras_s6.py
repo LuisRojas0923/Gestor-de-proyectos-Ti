@@ -149,26 +149,30 @@ async def _setup_horario(db_session, cedula: str):
 async def _set_global(db_session, habilitada: bool):
     """Crea/actualiza el parametro legal global de bolsa."""
     hoy = date.today()
-    stmt_prev = select(NominaParametroLegal).where(
-        NominaParametroLegal.codigo == CODIGO_GLOBAL,
-        NominaParametroLegal.vigente_hasta.is_(None),
-    )
-    prev = (await db_session.execute(stmt_prev)).scalars().first()
-    if prev is not None:
-        prev.vigente_hasta = hoy
-        db_session.add(prev)
-    nuevo = NominaParametroLegal(
-        codigo=CODIGO_GLOBAL,
-        nombre="Habilitar bolsa de horas (global)",
-        valor="true" if habilitada else "false",
-        tipo_dato="BOOLEANO",
-        norma_soporte="Politica interna — test S6",
-        vigente_desde=hoy,
-        vigente_hasta=None,
-        estado="VIGENTE",
-        observaciones="test S6",
-    )
-    db_session.add(nuevo)
+    existente = (
+        await db_session.execute(
+            select(NominaParametroLegal).where(NominaParametroLegal.codigo == CODIGO_GLOBAL)
+        )
+    ).scalars().first()
+    if existente is not None:
+        existente.valor = "true" if habilitada else "false"
+        existente.vigente_desde = hoy
+        existente.vigente_hasta = None
+        existente.estado = "VIGENTE"
+        existente.observaciones = "test S6"
+        db_session.add(existente)
+    else:
+        db_session.add(NominaParametroLegal(
+            codigo=CODIGO_GLOBAL,
+            nombre="Habilitar bolsa de horas (global)",
+            valor="true" if habilitada else "false",
+            tipo_dato="BOOLEANO",
+            norma_soporte="Politica interna — test S6",
+            vigente_desde=hoy,
+            vigente_hasta=None,
+            estado="VIGENTE",
+            observaciones="test S6",
+        ))
     await db_session.commit()
 
 
