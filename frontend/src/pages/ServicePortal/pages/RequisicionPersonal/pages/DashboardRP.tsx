@@ -141,7 +141,7 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onVer, onEditar, onAproba
           </div>
 
           {/* Total de Requisiciones (Derecha) */}
-          <div className="lg:col-span-4 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-slate-850 dark:border-indigo-950/40">
+          <div className="lg:col-span-4 h-[76px] bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-slate-850 dark:border-indigo-950/40">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-white/10 text-indigo-300 flex items-center justify-center shrink-0">
                 <Briefcase className="w-5 h-5" />
@@ -168,16 +168,16 @@ const DashboardRP: React.FC<Props> = ({ user, onNueva, onVer, onEditar, onAproba
           {summaryCards.map(({ label, count, colores, icon: Icon }) => (
             <div
               key={label}
-              className={`rounded-xl p-3 ${colores.bg} border border-transparent flex flex-col items-center justify-center text-center gap-1 shadow-sm`}
+              className={`h-[76px] rounded-xl px-2 py-1 ${colores.bg} border border-transparent flex flex-col items-center justify-center text-center shadow-sm`}
             >
-              <Icon className={`w-5 h-5 mb-1 ${colores.text}`} />
-              <div className={`text-2xl font-black ${colores.text} leading-none`}>
+              <Icon className={`w-4 h-4 mb-0.5 ${colores.text}`} />
+              <div className={`text-xl font-black ${colores.text} leading-none`}>
                 {count}
               </div>
               <Text
                 variant="caption"
                 align="center"
-                className={`mt-1 font-bold uppercase tracking-wider text-[9px] ${colores.text}`}
+                className={`mt-0.5 font-bold uppercase tracking-wider text-[9px] leading-tight ${colores.text}`}
               >
                 {label}
               </Text>
