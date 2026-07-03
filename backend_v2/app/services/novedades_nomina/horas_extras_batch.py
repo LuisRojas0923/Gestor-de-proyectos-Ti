@@ -3,7 +3,7 @@ Job batch diario para refrescar el cache de horario_pactado desde el ERP.
 
 Decisión E1: se ejecuta una vez al día a las 02:00 hora local.
 Refresca:
-  - nomina_horario_pactado.autoriza_he_default  ← beneficio.autorizahe (ERP)
+  - nomina_horario_pactado.autoriza_he_default  ← beneficio.autorizacionhorasextras (ERP)
   - nomina_horario_pactado.sincronizado_en      ← timestamp
   - nomina_horario_pactado.fuente_sincronizacion ← 'ERP'
 
@@ -33,14 +33,14 @@ async def refrescar_horario_pactado_empleado(cedula: str) -> bool:
             text("""
                 SELECT DISTINCT ON (E.nrocedula)
                     E.nrocedula,
-                    B.autorizahe,
+                    B.autorizacionhorasextras AS autoriza_he,
                     C.riesgoarl
                 FROM establecimiento E
                 LEFT JOIN contrato C
                     ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
                     AND C.estado = 'Activo'
                 LEFT JOIN beneficio B
-                    ON TRIM(CAST(B.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+                    ON TRIM(CAST(B.contrato AS TEXT)) = TRIM(CAST(C.numerocontrato AS TEXT))
                     AND B.estado = 'Activo'
                 WHERE TRIM(CAST(E.nrocedula AS TEXT)) = :cedula
                 ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST
@@ -51,7 +51,7 @@ async def refrescar_horario_pactado_empleado(cedula: str) -> bool:
     if not row:
         return False
 
-    autoriza_he = bool(row.autorizahe) if row.autorizahe is not None else False
+    autoriza_he = bool(row.autoriza_he) if row.autoriza_he is not None else False
     nivel_riesgo = _normalizar_nivel_riesgo(row.riesgoarl)
 
     async with AsyncSessionLocal() as session:

@@ -17,6 +17,12 @@ services:
       - ALGORITHM=${ALGORITHM}
       - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES} # [CONTROLADO]
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - BIOMETRIA_ENGINE_URL=http://biometria-engine:8010
+      - BIOMETRIA_ENGINE_TOKEN=${BIOMETRIA_ENGINE_TOKEN:-}
+      - BIOMETRIA_ENGINE_TIMEOUT_SECONDS=${BIOMETRIA_ENGINE_TIMEOUT_SECONDS:-30}
+      - DEEPFACE_MODEL=${DEEPFACE_MODEL:-Facenet}
+      - DEEPFACE_DETECTOR=${DEEPFACE_DETECTOR:-opencv}
+      - MATCH_THRESHOLD=${MATCH_THRESHOLD:-0.40}
       - TRUSTED_PROXY_IPS=${TRUSTED_PROXY_IPS:-}
       - SYNC_EXTERNAL_URL=${SYNC_EXTERNAL_URL}
       - FRONTEND_URL=http://${FRONTEND_HOST:-localhost}
@@ -26,7 +32,6 @@ services:
       - ./backend_v2:/app
       - ./backend_v2/uploads:/app/uploads
       - ./GestionTi_SoporteFiles:/app/storage/attachments
-      - deepface_weights:/root/.deepface
     depends_on:
       db:
         condition: service_healthy
@@ -35,6 +40,30 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload # Modo Desarrollo
     networks:
       - app-network
+      - biometria-internal
+
+  biometria-engine:
+    build:
+      context: ./biometria_engine
+      dockerfile: Dockerfile
+    expose:
+      - "8010"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DEEPFACE_MODEL=${DEEPFACE_MODEL:-Facenet}
+      - DEEPFACE_DETECTOR=${DEEPFACE_DETECTOR:-opencv}
+      - ANTI_SPOOFING=${ANTI_SPOOFING:-1}
+      - BIOMETRIA_ENGINE_TOKEN=${BIOMETRIA_ENGINE_TOKEN:-}
+    volumes:
+      - deepface_weights:/root/.deepface
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8010/health', timeout=5).read()\""]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - biometria-internal
 
   redis:
     image: redis:alpine
@@ -107,6 +136,9 @@ services:
 networks:
   app-network:
     driver: bridge
+  biometria-internal:
+    driver: bridge
+    internal: true
 
 volumes:
   postgres_data:

@@ -228,11 +228,9 @@ async def startup_event():
         iniciar_loop_verificador_compromisos(intervalo_horas=12)
     )
 
-    # 5. Pre-cargar modelos matematicos de Biometria Facial en segundo plano
-    from app.api.biometria.biometria_router import preload_models
-    asyncio.create_task(
-        asyncio.to_thread(preload_models)
-    )
+    # 5. Validar configuracion del motor biometrico interno sin cargar TensorFlow en backend
+    from app.services.biometria.biometria_engine_client import obtener_config_engine
+    obtener_config_engine().validar_token_inicio()
 
     # 6. Refrescamiento diario del cache de horario_pactado desde el ERP (a las 02:00)
     from app.services.novedades_nomina.horas_extras_batch import iniciar_loop_refrescamiento_diario

@@ -1,18 +1,27 @@
 from types import SimpleNamespace
 
+import pytest
+
 from app.services.erp.empleados_service import EmpleadosService
+from app.services.novedades_nomina import horas_extras_batch
+
+
+_SIN_FILA = object()
 
 
 class _ResultadoFake:
-    def __init__(self, rows=None, total=0, existe=False):
+    def __init__(self, rows=None, total=0, existe=False, row=_SIN_FILA):
         self._rows = rows or []
         self._total = total
         self._existe = existe
+        self._row = row
 
     def fetchall(self):
         return self._rows
 
     def first(self):
+        if self._row is not _SIN_FILA:
+            return self._row
         return SimpleNamespace(total=self._total, existe=self._existe)
 
 
@@ -40,6 +49,48 @@ class _SesionFake:
                 autoriza_he=True if ("beneficio", "autorizacionhorasextras") in self.columnas_existentes else None,
             )
         ])
+
+
+class _SesionEmpleadoPorCedulaFake:
+    def __init__(self):
+        self.queries = []
+
+    def execute(self, query, params):
+        sql = str(query)
+        self.queries.append((sql, params))
+        return _ResultadoFake(row=SimpleNamespace(
+            nrocedula="123",
+            nombre="Juan Perez",
+            cargo="Operario",
+            area="Produccion",
+            estado="Activo",
+            empresa="Empresa",
+            ciudadcontratacion="Bogota",
+            viaticante=False,
+            baseviaticos=0,
+            centrocosto="100",
+            jefe="Jefe",
+            fecharetiro=None,
+            riesgoarl="Riesgo I 0.522%",
+            autoriza_he=True,
+            correocorporativo="juan@example.com",
+        ))
+
+
+class _SessionErpContextFake:
+    def __init__(self):
+        self.queries = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def execute(self, query, params):
+        sql = str(query)
+        self.queries.append((sql, params))
+        return _ResultadoFake(row=None)
 
 
 def test_listar_empleados_paginado_no_usa_columnas_opcionales_erp():
@@ -71,6 +122,37 @@ def test_listar_empleados_paginado_no_usa_columnas_opcionales_erp():
         ],
         "total": 1,
     }
+
+
+@pytest.mark.asyncio
+async def test_obtener_empleado_por_cedula_usa_beneficio_por_contrato():
+    sesion = _SesionEmpleadoPorCedulaFake()
+
+    respuesta = await EmpleadosService.obtener_empleado_por_cedula(sesion, "123")
+
+    sql_ejecutado = "\n".join(sql for sql, _params in sesion.queries).lower()
+    assert respuesta["autoriza_he"] is True
+    assert "b.autorizacionhorasextras" in sql_ejecutado
+    assert "b.contrato" in sql_ejecutado
+    assert "c.numerocontrato" in sql_ejecutado
+    assert "b.establecimiento" not in sql_ejecutado
+    assert "b.autorizahe" not in sql_ejecutado
+
+
+@pytest.mark.asyncio
+async def test_refrescar_horario_pactado_usa_beneficio_por_contrato(monkeypatch):
+    sesion = _SessionErpContextFake()
+    monkeypatch.setattr(horas_extras_batch, "SessionErp", lambda: sesion)
+
+    respuesta = await horas_extras_batch.refrescar_horario_pactado_empleado("123")
+
+    sql_ejecutado = "\n".join(sql for sql, _params in sesion.queries).lower()
+    assert respuesta is False
+    assert "b.autorizacionhorasextras" in sql_ejecutado
+    assert "b.contrato" in sql_ejecutado
+    assert "c.numerocontrato" in sql_ejecutado
+    assert "b.establecimiento" not in sql_ejecutado
+    assert "b.autorizahe" not in sql_ejecutado
 
 
 def test_listar_empleados_paginado_incluye_autorizacion_y_reporta_si_existen():

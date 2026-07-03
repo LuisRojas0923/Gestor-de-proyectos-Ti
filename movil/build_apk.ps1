@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$SourceDir = "c:\Users\amejoramiento2\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\modulo_autenticacion_facial_fork"
+$SourceDir = $PSScriptRoot
 $TempDir = "C:\temp_build"
 
 Write-Host "=================================================="
@@ -47,7 +47,7 @@ try {
     if ($BuildStatus -eq 0) {
         Write-Host "Build completado con exito!"
         $ApkSource = "$TempDir\android\app\build\outputs\apk\release\app-release.apk"
-        $ApkDest = "c:\Users\amejoramiento2\Desktop\Gestor de proyectos\Gestor-de-proyectos-Ti\app-release.apk"
+        $ApkDest = Join-Path (Split-Path $SourceDir -Parent) "app-release.apk"
         
         Copy-Item -Path $ApkSource -Destination $ApkDest -Force
         Write-Host "APK guardado exitosamente en: $ApkDest"

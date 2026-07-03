@@ -81,7 +81,7 @@ export default function LoginScreen() {
   const handleTestConnection = async () => {
     if (!serverIp.trim()) return;
     setTestingConnection(true);
-    // Temporary set to test
+    const previousAddress = getServerAddress();
     setServerAddress(serverIp.trim());
     try {
       const isUp = await healthCheck();
@@ -93,6 +93,7 @@ export default function LoginScreen() {
     } catch (e) {
       Alert.alert('Error', 'Ocurrió un error al intentar conectar.');
     } finally {
+      setServerAddress(previousAddress);
       setTestingConnection(false);
     }
   };
@@ -285,7 +286,7 @@ export default function LoginScreen() {
               </View>
               <TextInput
                 style={styles.modalInput}
-                placeholder="Ej: 192.168.0.21 o 192.168.0.21:8000"
+                placeholder="Ej: IP_LAN o IP_LAN:8000"
                 placeholderTextColor={COLORS.textMuted}
                 value={serverIp}
                 onChangeText={setServerIp}

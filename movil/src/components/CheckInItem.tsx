@@ -16,8 +16,7 @@ interface CheckInItemProps {
 
 function buildFullUrl(relativeUrl?: string): string | null {
   if (!relativeUrl) return null;
-  // Obtener la base del servidor (ej: http://192.168.40.84:8000/api/v2)
-  // y quitar el /api/v2 para obtener el host base
+  // Obtener la base del servidor configurado y quitar /api/v2.
   const apiBase = getServerAddress();
   const baseUrl = apiBase.replace(/\/api\/v2\/?$/, '');
   return `${baseUrl}${relativeUrl}`;

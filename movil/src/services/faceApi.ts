@@ -1,7 +1,8 @@
-import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+
+declare const process: { env?: Record<string, string | undefined> };
 
 async function getActiveSessionToken(): Promise<string | null> {
   try {
@@ -20,39 +21,55 @@ if (Platform.OS !== 'web') {
   FileSystem = require('expo-file-system/legacy');
 }
 
-const DEFAULT_SERVER_PORT = 8001;
-const REQUEST_TIMEOUT = 120000;
+const DEFAULT_SERVER_PORT = 8000;
+const DEFAULT_SERVER_HOST = process.env?.EXPO_PUBLIC_API_HOST;
+const REQUEST_TIMEOUT = 30000;
 
 function getServerHost(): string {
-  // Dirección por defecto (puedes cambiarla si no usas esta red local)
-  return `http://192.168.0.21:${DEFAULT_SERVER_PORT}/api/v2`;
+  if (!DEFAULT_SERVER_HOST) {
+    throw new Error('Configura EXPO_PUBLIC_API_HOST en movil/.env');
+  }
+  return `http://${DEFAULT_SERVER_HOST}:${DEFAULT_SERVER_PORT}/api/v2`;
 }
 
 let API_BASE = getServerHost();
 
-export function setServerAddress(input: string) {
+function normalizeServerAddress(input: string): string {
   let address = input.trim();
   if (!address.startsWith('http://') && !address.startsWith('https://')) {
     address = `http://${address}`;
   }
-  
-  // Comprobar si la dirección tiene puerto o es dominio
-  const cleanAddress = address.replace('://', '');
-  const hasPort = /:\d+/.test(cleanAddress);
-  const hostPart = cleanAddress.split('/')[0].split(':')[0];
-  const isDomain = /[a-zA-Z]/.test(hostPart);
-  
-  if (!hasPort && !isDomain) {
-    // Usar el puerto 8001 por defecto para desarrollo/pruebas locales
-    address = `${address}:${DEFAULT_SERVER_PORT}`;
+
+  try {
+    const parsed = new URL(address);
+    const isIpAddress = /^\d{1,3}(\.\d{1,3}){3}$/.test(parsed.hostname);
+
+    if (!parsed.port && isIpAddress) {
+      parsed.port = String(DEFAULT_SERVER_PORT);
+    } else if (parsed.port === '8001') {
+      parsed.port = String(DEFAULT_SERVER_PORT);
+    }
+
+    const cleanPath = parsed.pathname.replace(/\/+$/, '');
+    if (!cleanPath || cleanPath === '/') {
+      parsed.pathname = '/api/v2';
+    } else if (cleanPath.endsWith('/api/v2')) {
+      parsed.pathname = cleanPath;
+    } else {
+      parsed.pathname = `${cleanPath}/api/v2`;
+    }
+
+    return parsed.toString().replace(/\/$/, '');
+  } catch {
+    if (!address.endsWith('/api/v2')) {
+      address = address.replace(/\/$/, '') + '/api/v2';
+    }
+    return address;
   }
-  
-  if (!address.endsWith('/api/v2')) {
-    address = address.replace(/\/$/, '') + '/api/v2';
-  }
-  
-  API_BASE = address;
-  console.log('API_BASE configured to:', API_BASE);
+}
+
+export function setServerAddress(input: string) {
+  API_BASE = normalizeServerAddress(input);
 }
 
 export function getServerAddress(): string {
@@ -63,7 +80,11 @@ export async function loadServerAddress(): Promise<void> {
   try {
     const savedIp = await AsyncStorage.getItem('@server_ip');
     if (savedIp) {
-      setServerAddress(savedIp);
+      const normalizedAddress = normalizeServerAddress(savedIp);
+      setServerAddress(normalizedAddress);
+      if (normalizedAddress !== savedIp) {
+        await AsyncStorage.setItem('@server_ip', normalizedAddress);
+      }
     }
   } catch (error) {
     console.error('Failed to load server IP:', error);
@@ -72,8 +93,9 @@ export async function loadServerAddress(): Promise<void> {
 
 export async function saveAndSetServerAddress(hostname: string): Promise<void> {
   try {
-    await AsyncStorage.setItem('@server_ip', hostname);
-    setServerAddress(hostname);
+    const normalizedAddress = normalizeServerAddress(hostname);
+    await AsyncStorage.setItem('@server_ip', normalizedAddress);
+    setServerAddress(normalizedAddress);
   } catch (error) {
     console.error('Failed to save server IP:', error);
   }
@@ -226,7 +248,7 @@ export async function verifyFace(
 }
 
 export async function getCheckIns(userId: string): Promise<any[]> {
-  return request<any[]>(`/biometria/asistencias?usuario_id=${userId}`, null, REQUEST_TIMEOUT, 'GET');
+  return request<any[]>(`/biometria/asistencias?usuario_id=${encodeURIComponent(userId)}`, null, REQUEST_TIMEOUT, 'GET');
 }
 
 export async function getAllCheckIns(): Promise<any[]> {

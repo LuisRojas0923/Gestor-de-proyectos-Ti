@@ -1,5 +1,45 @@
 # Modelo Entidad-Relación (MER) Completo
 
+## Tablas Biométricas
+
+Estas tablas pertenecen al backend principal. El servicio `biometria-engine` no tiene acceso directo a base de datos.
+
+### `embeddings_faciales`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del perfil facial. |
+| `usuario_id` | varchar(50), FK `usuarios.id`, unique | Usuario propietario del embedding activo. |
+| `embedding` | JSONB | Vector facial normalizado. No debe registrarse en logs. |
+| `activo` | boolean | Indica si el perfil facial esta vigente. |
+| `creado_en` | timestamp | Fecha de creacion. |
+
+### `registros_asistencia`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del registro de asistencia. |
+| `usuario_id` | varchar(50), FK `usuarios.id` | Usuario autenticado que intento registrar asistencia. |
+| `zona_id` | integer, FK `zonas_trabajo.id`, nullable | Zona validada si aplica. |
+| `match_exitoso` | boolean | Resultado de comparacion facial. |
+| `nivel_confianza` | float | Confianza calculada por backend. |
+| `latitud_marcada` | float | Latitud reportada por el cliente. |
+| `longitud_marcada` | float | Longitud reportada por el cliente. |
+| `evidencia_url` | varchar(255), nullable | URL protegida de evidencia fotografica. |
+| `creado_en` | timestamp | Fecha del registro. |
+
+### `zonas_trabajo`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador de zona. |
+| `nombre` | varchar(100) | Nombre de la zona. |
+| `latitud` | float | Coordenada central. |
+| `longitud` | float | Coordenada central. |
+| `radio` | float | Radio permitido en metros. |
+
+---
+
 ### 🏗️ Diagrama del Sistema de Gestión de Proyectos TI
 
 ```

@@ -6,7 +6,7 @@ Integrar de forma segura el modulo de autenticacion facial importado desde `Aute
 
 ## Estado Inicial
 
-- El codigo externo fue copiado en `modulo_autenticacion_facial_fork/` como modulo aislado.
+- El codigo externo fue copiado en `movil/` como modulo aislado.
 - La copia excluye historial Git, configuraciones de IDE, agentes, `graphify-out`, dependencias instaladas y archivos `.env` reales.
 - El fork contiene una app Expo/React Native y un servicio Python con FastAPI, DeepFace y PostgreSQL.
 - El analisis inicial detecto divergencias criticas entre cliente, backend, contrato API y documentacion.
@@ -106,7 +106,7 @@ Descartar del fork:
 
 ## Fase 5: Adaptacion De La App Movil
 
-Mantener la app Expo en `modulo_autenticacion_facial_fork/` hasta decidir si queda como producto movil separado.
+Mantener la app Expo en `movil/` como producto movil separado.
 
 Cambios requeridos:
 

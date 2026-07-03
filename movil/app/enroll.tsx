@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -44,14 +44,14 @@ export default function EnrollScreen() {
       // Call addProfile with the new signature: addProfile(id, name, photoUri)
       await addProfile(currentUser.id, currentUser.displayName, photo.uri);
 
-      setIsCapturing(false);
       router.replace('/(tabs)');
       
     } catch (error: any) {
-      setIsCapturing(false);
       console.error(error);
       const msg = error.message || 'Error desconocido';
       alert(`Error al capturar la foto: ${msg}`);
+    } finally {
+      setIsCapturing(false);
     }
   };
 

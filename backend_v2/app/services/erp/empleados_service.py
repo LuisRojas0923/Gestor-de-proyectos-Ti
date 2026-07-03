@@ -94,14 +94,14 @@ class EmpleadosService:
                 C.jefe::text        AS "jefe",
                 C.fecharetiro       AS "fecharetiro",
                 C.riesgoarl::text   AS "riesgoarl",
-                B.autorizahe        AS "autoriza_he",
+                B.autorizacionhorasextras AS "autoriza_he",
                 E.correocorporativo
             FROM establecimiento E
             LEFT JOIN contrato C
                 ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
                 {estado_filtro}
             LEFT JOIN beneficio B
-                ON TRIM(CAST(B.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+                ON TRIM(CAST(B.contrato AS TEXT)) = TRIM(CAST(C.numerocontrato AS TEXT))
                 AND B.estado = 'Activo'
             WHERE TRIM(CAST(E.nrocedula AS TEXT)) = :cedula
             ORDER BY E.nrocedula, C.fechainicio DESC NULLS LAST

@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { useApp } from '../context/AppContext';
 import { COLORS } from '../constants';
 import { styles } from '../styles/verify.styles';
-import { verifyFace, FaceApiError, healthCheck } from '../services/faceApi';
+import { verifyFace, FaceApiError } from '../services/faceApi';
 import { useAuth } from '../context/AuthContext';
 import ResultOverlay from '../components/ResultOverlay';
 
@@ -105,7 +105,6 @@ export default function VerifyScreen() {
       });
 
       if (!currentUser || !currentUserProfile) {
-        setIsCapturing(false);
         showErrorBanner(
           'people-outline',
           'Usuario No Registrado',
@@ -122,8 +121,6 @@ export default function VerifyScreen() {
         currentLocation?.latitude || 0, 
         currentLocation?.longitude || 0
       );
-
-      setIsCapturing(false);
 
       const confidence = serverResult.confidence || 0;
       // El backend arroja un error 401 si no coincide, por lo tanto si llega a este punto es exitoso
@@ -152,7 +149,6 @@ export default function VerifyScreen() {
       });
 
     } catch (error: unknown) {
-      setIsCapturing(false);
       const msg = error instanceof FaceApiError ? error.message : '';
 
       // Detectar error de anti-spoofing
@@ -179,6 +175,8 @@ export default function VerifyScreen() {
         );
       }
       console.error(error);
+    } finally {
+      setIsCapturing(false);
     }
   };
 

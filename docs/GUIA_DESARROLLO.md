@@ -244,3 +244,33 @@ El monorepo completo (~900 archivos) es grande; prefiere subcarpetas o el script
 ### 6.5 Integración con subagentes
 
 Ver `.opencode/agent/_shared-discovery.md` y `docs/decisions/ADR-006-protocolo-descubrimiento-agentes.md`. Los revisores **leen** `GRAPH_REPORT.md`; no ejecutan el pipeline si tienen `bash: deny`.
+
+---
+
+## 7. Motor Biométrico Interno
+
+La biometría facial usa dos servicios separados:
+
+- `backend`: API pública en `:8000`, dueña de JWT, RBAC, usuario actual, auditoría, persistencia y decisión final.
+- `biometria-engine`: servicio interno Docker con DeepFace/OpenCV/TensorFlow. No publica puerto al host y no recibe JWT ni datos personales.
+
+Variables relevantes:
+
+```env
+BIOMETRIA_ENGINE_URL=http://biometria-engine:8010
+BIOMETRIA_ENGINE_TOKEN=<secreto-interno>
+BIOMETRIA_ENGINE_TIMEOUT_SECONDS=30
+DEEPFACE_MODEL=Facenet
+DEEPFACE_DETECTOR=opencv
+MATCH_THRESHOLD=0.40
+```
+
+Validaciones útiles:
+
+```powershell
+docker compose ps
+docker compose exec backend python -c "import httpx; print(httpx.get('http://biometria-engine:8010/health').json())"
+docker compose exec biometria-engine python -c "import cv2; from deepface import DeepFace; import tf_keras; print('ok')"
+```
+
+Desde la app móvil se usa siempre el backend principal por IP LAN del host, por ejemplo `http://192.168.40.163:8000/api/v2` en la red local actual. Configura esa IP en `movil/.env` con `EXPO_PUBLIC_API_HOST=192.168.40.163`. El móvil nunca debe llamar directo a `biometria-engine`.

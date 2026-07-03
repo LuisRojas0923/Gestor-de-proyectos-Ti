@@ -170,6 +170,12 @@ async def ejecutar_blindaje_estructural(conn):
         "CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario_leido ON notificaciones_usuario(usuario_id, leido)"
     )
 
+    # 10. Biometria facial
+    await safe_execute(
+        conn,
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_embeddings_faciales_usuario_id ON embeddings_faciales(usuario_id)"
+    )
+
     # 10. Migración de estados de actividades y desarrollos
     await migrar_estados_actividades(conn)
 
