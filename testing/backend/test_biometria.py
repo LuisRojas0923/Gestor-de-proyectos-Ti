@@ -62,3 +62,50 @@ async def test_reset_rostro_forbidden(async_client: AsyncClient, normal_user_tok
     stmt = select(EmbeddingFacial).where(EmbeddingFacial.usuario_id == normal_user.id)
     result = await test_db.execute(stmt)
     assert result.scalar_one_or_none() is not None
+
+async def test_obtener_asistencias_con_datos_usuario(async_client: AsyncClient, admin_token_headers: dict, test_db: AsyncSession, admin_user: Usuario):
+    from app.models.biometria.biometria_models import RegistroAsistencia
+    # Setup: Create a dummy checkin record
+    registro = RegistroAsistencia(
+        usuario_id=admin_user.id,
+        zona_id=None,
+        match_exitoso=True,
+        nivel_confianza=98.5,
+        latitud_marcada=4.6097,
+        longitud_marcada=-74.0817,
+        evidencia_url="/api/v2/biometria/evidencia/123.jpg"
+    )
+    test_db.add(registro)
+    await test_db.commit()
+
+    # Act
+    response = await async_client.get("/api/v2/biometria/asistencias", headers=admin_token_headers)
+    
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) > 0
+    assert data[0]["userName"] == admin_user.nombre
+    assert data[0]["userCedula"] == admin_user.cedula
+
+async def test_obtener_evidencia_subcarpeta_autorizacion(async_client: AsyncClient, admin_token_headers: dict, normal_user_token_headers: dict, normal_user: Usuario, admin_user: Usuario):
+    # Act: normal user tries to access admin's evidence -> 403
+    response = await async_client.get(f"/api/v2/biometria/evidencia/{admin_user.id}/test.jpg", headers=normal_user_token_headers)
+    assert response.status_code == 403
+
+    # Act: normal user tries to access their own evidence -> 404 (file doesn't physically exist, but passing auth check)
+    response = await async_client.get(f"/api/v2/biometria/evidencia/{normal_user.id}/test.jpg", headers=normal_user_token_headers)
+    assert response.status_code == 404
+
+    # Act: admin tries to access normal user's evidence -> 404 (auth check passed because of admin role)
+    response = await async_client.get(f"/api/v2/biometria/evidencia/{normal_user.id}/test.jpg", headers=admin_token_headers)
+    assert response.status_code == 404
+
+async def test_obtener_evidencia_legacy(async_client: AsyncClient, normal_user_token_headers: dict, normal_user: Usuario):
+    # Act: access legacy path with another user's prefix -> 403
+    response = await async_client.get("/api/v2/biometria/evidencia/admin_123.jpg", headers=normal_user_token_headers)
+    assert response.status_code == 403
+
+    # Act: access legacy path with own prefix -> 404 (file doesn't exist, but auth check passed)
+    response = await async_client.get(f"/api/v2/biometria/evidencia/{normal_user.id}_123.jpg", headers=normal_user_token_headers)
+    assert response.status_code == 404

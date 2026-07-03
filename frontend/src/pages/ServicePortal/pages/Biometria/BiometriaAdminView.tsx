@@ -4,7 +4,7 @@ import { DataTable } from '../../../../components/molecules/DataTable';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import { API_CONFIG, API_ENDPOINTS } from '../../../../config/api';
 import axios from 'axios';
-import { MapPin, Plus, Trash2, CheckCircle, XCircle, Map, UserCheck } from 'lucide-react';
+import { MapPin, Plus, Trash2, CheckCircle, XCircle, Map, UserCheck, Folder, ArrowLeft } from 'lucide-react';
 
 interface Zona {
     id: number;
@@ -39,15 +39,58 @@ const BiometriaAdminView: React.FC = () => {
     const [newZona, setNewZona] = useState({ nombre: '', latitud: '', longitud: '', radio: '100' });
     const [isCreating, setIsCreating] = useState(false);
 
+    interface UserFolder {
+        userId: string;
+        userName: string;
+        userCedula: string;
+        recordsCount: number;
+        lastActivity: string;
+        records: Asistencia[];
+    }
+
     // States for Asistencias
     const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
     const [isLoadingAsistencias, setIsLoadingAsistencias] = useState(false);
     const [searchCedula, setSearchCedula] = useState('');
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-    const filteredAsistencias = useMemo(() => {
-        if (!searchCedula.trim()) return asistencias;
-        return asistencias.filter(a => a.userId.toLowerCase().includes(searchCedula.toLowerCase().trim()));
-    }, [asistencias, searchCedula]);
+    const userFolders = useMemo<UserFolder[]>(() => {
+        const groups: { [key: string]: UserFolder } = {};
+        asistencias.forEach(a => {
+            const key = a.userId;
+            if (!groups[key]) {
+                groups[key] = {
+                    userId: a.userId,
+                    userName: (a as any).userName || 'Usuario Desconocido',
+                    userCedula: (a as any).userCedula || a.userId,
+                    recordsCount: 0,
+                    lastActivity: a.timestamp,
+                    records: []
+                };
+            }
+            groups[key].records.push(a);
+            groups[key].recordsCount += 1;
+            if (new Date(a.timestamp) > new Date(groups[key].lastActivity)) {
+                groups[key].lastActivity = a.timestamp;
+            }
+        });
+        return Object.values(groups).sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());
+    }, [asistencias]);
+
+    const filteredFolders = useMemo(() => {
+        if (!searchCedula.trim()) return userFolders;
+        const q = searchCedula.toLowerCase().trim();
+        return userFolders.filter(f => 
+            f.userName.toLowerCase().includes(q) || 
+            f.userCedula.toLowerCase().includes(q) ||
+            f.userId.toLowerCase().includes(q)
+        );
+    }, [userFolders, searchCedula]);
+
+    const selectedFolder = useMemo(() => {
+        if (!selectedUserId) return null;
+        return userFolders.find(f => f.userId === selectedUserId) || null;
+    }, [userFolders, selectedUserId]);
 
     const fetchZonas = async () => {
         setIsLoadingZonas(true);
@@ -168,7 +211,7 @@ const BiometriaAdminView: React.FC = () => {
         {
             key: 'userId',
             label: 'Usuario',
-            render: (row: any) => <Text className="font-medium">{row.userId}</Text>
+            render: (row: any) => <Text className="font-medium">{row.userName || row.userId}</Text>
         },
         {
             key: 'isMatch',
@@ -267,25 +310,97 @@ const BiometriaAdminView: React.FC = () => {
 
             {/* Tab Content: Asistencias */}
             {activeTab === 'asistencias' && (
-                <MaterialCard className="p-4 md:p-6 overflow-hidden">
-                    <div className="mb-4">
-                        <Input 
-                            placeholder="Buscar por cédula (ej. USR-123)..." 
-                            value={searchCedula}
-                            onChange={(e) => setSearchCedula(e.target.value)}
-                            className="max-w-xs"
-                        />
-                    </div>
-                    {isLoadingAsistencias ? (
-                        <div className="flex justify-center p-8"><Spinner size="lg" /></div>
+                <div className="space-y-4">
+                    {selectedUserId ? (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    icon={ArrowLeft}
+                                    onClick={() => setSelectedUserId(null)}
+                                >
+                                    Volver
+                                </Button>
+                                <div className="flex items-center gap-1 text-sm text-slate-500 dark:text-neutral-400">
+                                    <Folder className="w-4 h-4 text-blue-500" />
+                                    <Text className="font-semibold text-slate-700 dark:text-slate-200">
+                                        {selectedFolder?.userName} (C.C. {selectedFolder?.userCedula})
+                                    </Text>
+                                </div>
+                            </div>
+                            <MaterialCard className="p-4 md:p-6 overflow-hidden">
+                                {isLoadingAsistencias ? (
+                                    <div className="flex justify-center p-8"><Spinner size="lg" /></div>
+                                ) : (
+                                    <DataTable 
+                                        data={selectedFolder?.records || []} 
+                                        columns={columnsAsistencias} 
+                                        keyExtractor={(row) => row.id.toString()}
+                                    />
+                                )}
+                            </MaterialCard>
+                        </div>
                     ) : (
-                        <DataTable 
-                            data={filteredAsistencias} 
-                            columns={columnsAsistencias} 
-                            keyExtractor={(row) => row.id.toString()}
-                        />
+                        <MaterialCard className="p-4 md:p-6">
+                            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="max-w-xs w-full">
+                                    <Input 
+                                        placeholder="Buscar por nombre o cédula..." 
+                                        value={searchCedula}
+                                        onChange={(e) => setSearchCedula(e.target.value)}
+                                    />
+                                </div>
+                                <Text variant="caption" color="text-secondary" className="font-semibold">
+                                    Total: {filteredFolders.length} carpetas de empleados
+                                </Text>
+                            </div>
+                            
+                            {isLoadingAsistencias ? (
+                                <div className="flex justify-center p-8"><Spinner size="lg" /></div>
+                            ) : filteredFolders.length === 0 ? (
+                                <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-neutral-700 rounded-lg">
+                                    <Folder className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+                                    <Text color="text-secondary" className="font-medium">
+                                        No se encontraron carpetas de asistencias.
+                                    </Text>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {filteredFolders.map(folder => (
+                                        <div 
+                                            key={folder.userId} 
+                                            onClick={() => setSelectedUserId(folder.userId)}
+                                            className="p-4 hover:shadow-md transition-all cursor-pointer border border-slate-200 dark:border-neutral-700 hover:border-blue-400 dark:hover:border-blue-500 rounded-xl bg-slate-50/50 dark:bg-neutral-800/40 flex flex-col justify-between group"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 rounded-xl group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
+                                                    <Folder className="w-8 h-8 fill-blue-500/10" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <Title variant="subtitle2" weight="bold" className="truncate text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                        {folder.userName}
+                                                    </Title>
+                                                    <Text variant="caption" color="text-secondary" className="block truncate font-medium">
+                                                        C.C. {folder.userCedula}
+                                                    </Text>
+                                                </div>
+                                            </div>
+                                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-neutral-850 flex justify-between items-center text-xs text-slate-400">
+                                                <Badge variant="info" className="text-[10px]">
+                                                    {folder.recordsCount} {folder.recordsCount === 1 ? 'registro' : 'registros'}
+                                                </Badge>
+                                                <Text variant="caption" className="text-[10px] text-slate-400 dark:text-neutral-500 font-medium">
+                                                    Último: {new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short' }).format(new Date(folder.lastActivity))}
+                                                </Text>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </MaterialCard>
                     )}
-                </MaterialCard>
+                </div>
             )}
 
             {/* Tab Content: Zonas */}

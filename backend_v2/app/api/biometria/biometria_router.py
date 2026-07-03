@@ -33,42 +33,38 @@ async def requiere_admin_biometria(
         raise HTTPException(status_code=403, detail="No tienes permisos para esta acción en biometría.")
     return usuario
 
+def obtener_ruta_segura(base_path: str, *parts: str) -> str:
+    base = os.path.abspath(base_path)
+    target = os.path.abspath(os.path.join(base, *[os.path.basename(p) for p in parts]))
+    if not target.startswith(base):
+        raise HTTPException(status_code=400, detail="Path traversal detectado")
+    return target
+
 MODEL_NAME = os.getenv('DEEPFACE_MODEL', 'Facenet')
 DETECTOR_BACKEND = os.getenv('DEEPFACE_DETECTOR', 'opencv')
 THRESHOLD = float(os.getenv('MATCH_THRESHOLD', '0.40'))
 ANTI_SPOOFING = os.getenv('ANTI_SPOOFING', '1').lower() in ('1', 'true', 'yes')
 
 def preload_models():
-    """Precarga el modelo y detector de DeepFace en memoria para evitar demoras en la primera peticion."""
-    logger.info(f"Pre-cargando modelos de DeepFace: {MODEL_NAME} con detector {DETECTOR_BACKEND}...")
+    logger.info(f"Pre-cargando modelos: {MODEL_NAME} con detector {DETECTOR_BACKEND}...")
     try:
         DeepFace.build_model(MODEL_NAME)
-        # Hacemos una representacion simulada para calentar el detector
         dummy_img = np.zeros((224, 224, 3), dtype=np.uint8)
         DeepFace.represent(img_path=dummy_img, model_name=MODEL_NAME, detector_backend=DETECTOR_BACKEND, enforce_detection=False)
-        logger.info("Modelos de DeepFace pre-cargados exitosamente en memoria.")
+        logger.info("Modelos pre-cargados exitosamente en memoria.")
     except Exception as e:
-        logger.error(f"Error durante la precarga de modelos DeepFace: {e}")
-
+        logger.error(f"Error precarga DeepFace: {e}")
 
 def load_image_from_bytes(file_bytes: bytes):
     try:
-        # Usar PIL para leer la imagen y aplicar la rotación EXIF automáticamente
-        # Esto soluciona que las fotos tomadas en vertical desde la app móvil no salgan giradas
-        img_pil = Image.open(io.BytesIO(file_bytes))
-        img_pil = ImageOps.exif_transpose(img_pil)
-        
-        # Convertir a numpy array
+        img_pil = ImageOps.exif_transpose(Image.open(io.BytesIO(file_bytes)))
         arr = np.array(img_pil)
-        
-        # Convertir colores a BGR que usa OpenCV
         if len(arr.shape) == 3 and arr.shape[2] == 3:
             img = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
         elif len(arr.shape) == 3 and arr.shape[2] == 4:
             img = cv2.cvtColor(arr, cv2.COLOR_RGBA2BGR)
         else:
-            img = arr # asume escala de grises
-            
+            img = arr
         if img is None or img.size == 0:
             raise ValueError("La imagen está corrupta o vacía")
         return img
@@ -78,9 +74,7 @@ def load_image_from_bytes(file_bytes: bytes):
 def l2_normalize(embedding: list):
     emb = np.array(embedding, dtype=np.float64)
     norm = np.linalg.norm(emb)
-    if norm > 0:
-        emb = emb / norm
-    return emb.tolist()
+    return (emb / norm).tolist() if norm > 0 else emb.tolist()
 
 @router.post("/enrolar", summary="Enrolar rostro del empleado")
 async def enrolar_rostro(
@@ -153,11 +147,11 @@ async def enrolar_rostro(
             
         # Guardar la foto fisica en el servidor
         storage_dir = "storage/perfiles"
-        os.makedirs(storage_dir, exist_ok=True)
+        await asyncio.to_thread(os.makedirs, storage_dir, exist_ok=True)
         filename = f"{usuario_actual.id}.jpg"
         file_path = os.path.join(storage_dir, filename)
         # cv2 usa BGR por defecto, por lo que imwrite lo guarda correctamente
-        cv2.imwrite(file_path, img)
+        await asyncio.to_thread(cv2.imwrite, file_path, img)
         
         # Actualizar el avatar del usuario en la base de datos
         usuario_actual.url_avatar = f"/api/v2/biometria/foto/{filename}"
@@ -251,14 +245,15 @@ async def marcar_asistencia(
     
     # Registrar log en base de datos
     try:
-        # Guardar la evidencia física en el servidor sin bloquear el hilo principal
-        import time
-        storage_dir = "storage/asistencias"
+        # Guardar la evidencia física en el servidor en subcarpeta por usuario
+        import time, uuid
+        safe_usuario_id = os.path.basename(usuario_actual.id)
+        storage_dir = os.path.join("storage", "asistencias", safe_usuario_id)
         await asyncio.to_thread(os.makedirs, storage_dir, exist_ok=True)
-        filename = f"{usuario_actual.id}_{int(time.time())}.jpg"
+        filename = f"{int(time.time())}_{uuid.uuid4().hex[:8]}.jpg"
         file_path = os.path.join(storage_dir, filename)
         await asyncio.to_thread(cv2.imwrite, file_path, img)
-        evidencia_url = f"/api/v2/biometria/evidencia/{filename}"
+        evidencia_url = f"/api/v2/biometria/evidencia/{safe_usuario_id}/{filename}"
 
         safe_zona_id = None
         if zona_id is not None:
@@ -320,13 +315,13 @@ async def obtener_asistencias(
         target_id = usuario_id if usuario_id else None
 
     try:
-        stmt = select(RegistroAsistencia)
+        stmt = select(RegistroAsistencia, Usuario.nombre, Usuario.cedula).join(Usuario, RegistroAsistencia.usuario_id == Usuario.id)
         if target_id:
             stmt = stmt.where(RegistroAsistencia.usuario_id == target_id)
         
         stmt = stmt.order_by(RegistroAsistencia.creado_en.desc())
         result = await db.execute(stmt)
-        registros = result.scalars().all()
+        registros = result.all()
     except Exception as e:
         logger.error(f"Error consultando historial de asistencias: {str(e)}")
         raise HTTPException(
@@ -336,17 +331,19 @@ async def obtener_asistencias(
     
     return [
         {
-            "id": r.id,
-            "userId": r.usuario_id,
-            "zoneId": str(r.zona_id) if r.zona_id else None,
-            "isMatch": r.match_exitoso,
-            "confidence": r.nivel_confianza,
+            "id": r[0].id,
+            "userId": r[0].usuario_id,
+            "userName": r[1],
+            "userCedula": r[2],
+            "zoneId": str(r[0].zona_id) if r[0].zona_id else None,
+            "isMatch": r[0].match_exitoso,
+            "confidence": r[0].nivel_confianza,
             "location": {
-                "latitude": r.latitud_marcada,
-                "longitude": r.longitud_marcada
+                "latitude": r[0].latitud_marcada,
+                "longitude": r[0].longitud_marcada
             },
-            "timestamp": r.creado_en.isoformat() if r.creado_en else None,
-            "evidenciaUrl": r.evidencia_url
+            "timestamp": r[0].creado_en.isoformat() if r[0].creado_en else None,
+            "evidenciaUrl": r[0].evidencia_url
         } for r in registros
     ]
 
@@ -355,20 +352,42 @@ async def obtener_foto(
     filename: str,
     usuario_actual: Usuario = Depends(obtener_usuario_actual_db)
 ):
-    safe_filename = os.path.basename(filename)
-    file_path = f"storage/perfiles/{safe_filename}"
-    if not os.path.exists(file_path):
+    file_path = obtener_ruta_segura("storage/perfiles", filename)
+    if not os.path.exists(file_path) or os.path.isdir(file_path):
         raise HTTPException(status_code=404, detail="Foto no encontrada")
     return FileResponse(file_path)
 
-@router.get("/evidencia/{filename}", summary="Obtener evidencia fotográfica de asistencia")
+@router.get("/evidencia/{usuario_id}/{filename}", summary="Obtener evidencia fotográfica de asistencia por usuario")
+async def obtener_evidencia_subcarpeta(
+    usuario_id: str,
+    filename: str,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
+    db: AsyncSession = Depends(obtener_db)
+):
+    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario_actual.rol)
+    es_admin = "user-admin" in permisos or "admin_usuarios" in permisos or "panel_maestro" in permisos
+    if usuario_actual.id != usuario_id and not es_admin:
+        raise HTTPException(status_code=403, detail="No tienes permiso para acceder a esta evidencia.")
+        
+    file_path = obtener_ruta_segura("storage/asistencias", usuario_id, filename)
+    if not os.path.exists(file_path) or os.path.isdir(file_path):
+        raise HTTPException(status_code=404, detail="Evidencia fotográfica no encontrada")
+    return FileResponse(file_path)
+
+@router.get("/evidencia/{filename}", summary="Obtener evidencia fotográfica de asistencia (legacy)")
 async def obtener_evidencia(
     filename: str,
-    usuario_actual: Usuario = Depends(obtener_usuario_actual_db)
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
+    db: AsyncSession = Depends(obtener_db)
 ):
-    safe_filename = os.path.basename(filename)
-    file_path = f"storage/asistencias/{safe_filename}"
-    if not os.path.exists(file_path):
+    user_id_part = filename.split('_')[0] if '_' in filename else None
+    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario_actual.rol)
+    es_admin = "user-admin" in permisos or "admin_usuarios" in permisos or "panel_maestro" in permisos
+    if not es_admin and (not user_id_part or usuario_actual.id != user_id_part):
+        raise HTTPException(status_code=403, detail="No tienes permiso para acceder a esta evidencia.")
+        
+    file_path = obtener_ruta_segura("storage/asistencias", filename)
+    if not os.path.exists(file_path) or os.path.isdir(file_path):
         raise HTTPException(status_code=404, detail="Evidencia fotográfica no encontrada")
     return FileResponse(file_path)
 
@@ -387,8 +406,7 @@ async def listar_zonas(
     try:
         stmt = select(ZonaTrabajo)
         result = await db.execute(stmt)
-        zonas = result.scalars().all()
-        return zonas
+        return result.scalars().all()
     except Exception as e:
         logger.error(f"Error consultando zonas de trabajo: {str(e)}")
         raise HTTPException(status_code=500, detail="Error consultando zonas.")
@@ -400,12 +418,7 @@ async def crear_zona(
     db: AsyncSession = Depends(obtener_db)
 ):
     try:
-        nueva_zona = ZonaTrabajo(
-            nombre=zona.nombre,
-            latitud=zona.latitud,
-            longitud=zona.longitud,
-            radio=zona.radio
-        )
+        nueva_zona = ZonaTrabajo(**zona.model_dump())
         db.add(nueva_zona)
         await db.commit()
         await db.refresh(nueva_zona)
