@@ -9,11 +9,12 @@ interface UserEditorProps {
     onSave: (updatedUser: User) => Promise<boolean>;
     onUnlock?: (userId: string) => Promise<boolean>;
     onResetPassword?: (userId: string) => Promise<boolean>;
+    onResetBiometrics?: (userId: string) => Promise<boolean>;
     onCancel: () => void;
     isSaving: boolean;
 }
 
-const UserEditor: React.FC<UserEditorProps> = ({ user, onSave, onUnlock, onResetPassword, onCancel, isSaving }) => {
+const UserEditor: React.FC<UserEditorProps> = ({ user, onSave, onUnlock, onResetPassword, onResetBiometrics, onCancel, isSaving }) => {
     const [editedUser, setEditedUser] = useState<User>(user);
 
     useEffect(() => {
@@ -115,6 +116,35 @@ const UserEditor: React.FC<UserEditorProps> = ({ user, onSave, onUnlock, onReset
                             icon={Lock}
                         >
                             Resetear Contraseña
+                        </Button>
+                    </div>
+                )}
+
+                {onResetBiometrics && (
+                    <div className="bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+                                <Shield size={18} />
+                            </div>
+                            <div>
+                                <Text variant="body2" weight="bold" color="text-primary">Biometría Facial</Text>
+                                <Text variant="caption" color="text-secondary" className="opacity-60">
+                                    Fuerza a este usuario a enrolarse de nuevo.
+                                </Text>
+                            </div>
+                        </div>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="w-full text-xs font-bold !rounded-xl !bg-orange-600 hover:!bg-orange-700 !text-white border-none"
+                            onClick={() => {
+                                if (window.confirm(`¿Está seguro de borrar el perfil biométrico de ${editedUser.nombre}? El usuario deberá tomarse una nueva foto en la app móvil la próxima vez que intente registrar asistencia.`)) {
+                                    onResetBiometrics(editedUser.id);
+                                }
+                            }}
+                            icon={Shield}
+                        >
+                            Resetear Rostro
                         </Button>
                     </div>
                 )}

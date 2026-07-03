@@ -50,6 +50,7 @@ export default function VerifyScreen() {
     locationState,
     threshold,
     addCheckIn,
+    deleteProfile,
   } = useApp();
 
   const {
@@ -155,6 +156,15 @@ export default function VerifyScreen() {
     } catch (error: unknown) {
       setIsCapturing(false);
       const msg = error instanceof FaceApiError ? error.message : '';
+
+      // Interceptar error 404 de "Reset Rostro"
+      if (msg.toLowerCase().includes('no tiene un rostro enrolado')) {
+        if (currentUser?.id) {
+          await deleteProfile(currentUser.id);
+        }
+        router.replace('/enroll');
+        return;
+      }
 
       // Detectar error de anti-spoofing
       if (msg.toLowerCase().includes('anti-spoofing') || msg.toLowerCase().includes('persona real')) {

@@ -160,6 +160,21 @@ export const useUserAdmin = () => {
         }
     };
 
+    const handleResetBiometrics = async (userId: string) => {
+        setIsSaving(true);
+        try {
+            await del(`/biometria/admin/reset-rostro/${userId}`);
+            addNotification('success', 'Perfil biométrico eliminado. El usuario deberá enrolarse nuevamente.');
+            return true;
+        } catch (error: any) {
+            const detail = error?.response?.data?.detail || 'Error al eliminar el rostro del usuario';
+            addNotification('error', detail);
+            return false;
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const searchFilteredUsers = useMemo(() => {
         return users.filter(u =>
             u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -209,6 +224,7 @@ export const useUserAdmin = () => {
         handleDeleteRole,
         handleUnlockRateLimit,
         handleResetPassword,
+        handleResetBiometrics,
         isCreateModalOpen,
         setIsCreateModalOpen,
         activeTab,

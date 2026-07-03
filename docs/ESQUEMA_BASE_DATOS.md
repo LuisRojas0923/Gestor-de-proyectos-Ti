@@ -284,6 +284,9 @@ CREATE INDEX idx_milestones_dev_status ON milestones(development_id, status);
 - `chat_sessions` - Sesiones de chat
 - `chat_messages` - Mensajes del chat
 - `system_settings` - Configuraciones del sistema
+- `embeddings_faciales` - Vectores biométricos (Biometría Facial)
+- `zonas_trabajo` - Geocercas (Biometría Facial)
+- `registros_asistencia` - Check-ins (Biometría Facial)
 
 ### 🔄 Flujo de Datos Completo
 

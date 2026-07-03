@@ -19,9 +19,19 @@ from app.database import obtener_db
 from app.api.auth.router import obtener_usuario_actual_db
 from app.models.auth.usuario import Usuario
 from app.models.biometria.biometria_models import EmbeddingFacial, RegistroAsistencia, ZonaTrabajo
+from app.services.auth.servicio import ServicioAuth
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+async def requiere_admin_biometria(
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
+) -> Usuario:
+    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
+    if "user-admin" not in permisos and "admin_usuarios" not in permisos and "panel_maestro" not in permisos:
+        raise HTTPException(status_code=403, detail="No tienes permisos para esta acción en biometría.")
+    return usuario
 
 MODEL_NAME = os.getenv('DEEPFACE_MODEL', 'Facenet')
 DETECTOR_BACKEND = os.getenv('DEEPFACE_DETECTOR', 'opencv')
@@ -300,8 +310,11 @@ async def obtener_asistencias(
     usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
     db: AsyncSession = Depends(obtener_db)
 ):
+    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario_actual.rol)
+    es_admin = "user-admin" in permisos or "admin_usuarios" in permisos or "panel_maestro" in permisos
+    
     # Si no es admin, solo puede ver sus propios registros
-    if usuario_actual.rol != "admin":
+    if not es_admin:
         target_id = usuario_actual.id
     else:
         target_id = usuario_id if usuario_id else None
@@ -338,15 +351,23 @@ async def obtener_asistencias(
     ]
 
 @router.get("/foto/{filename}", summary="Obtener foto de perfil del servidor")
-async def obtener_foto(filename: str):
-    file_path = f"storage/perfiles/{filename}"
+async def obtener_foto(
+    filename: str,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db)
+):
+    safe_filename = os.path.basename(filename)
+    file_path = f"storage/perfiles/{safe_filename}"
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Foto no encontrada")
     return FileResponse(file_path)
 
 @router.get("/evidencia/{filename}", summary="Obtener evidencia fotográfica de asistencia")
-async def obtener_evidencia(filename: str):
-    file_path = f"storage/asistencias/{filename}"
+async def obtener_evidencia(
+    filename: str,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db)
+):
+    safe_filename = os.path.basename(filename)
+    file_path = f"storage/asistencias/{safe_filename}"
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Evidencia fotográfica no encontrada")
     return FileResponse(file_path)
@@ -375,12 +396,9 @@ async def listar_zonas(
 @router.post("/zonas", summary="Crear Zona de Trabajo")
 async def crear_zona(
     zona: ZonaCreate,
-    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
+    usuario_actual: Usuario = Depends(requiere_admin_biometria),
     db: AsyncSession = Depends(obtener_db)
 ):
-    if usuario_actual.rol != "admin":
-        raise HTTPException(status_code=403, detail="No tienes permisos para crear zonas.")
-        
     try:
         nueva_zona = ZonaTrabajo(
             nombre=zona.nombre,
@@ -400,12 +418,9 @@ async def crear_zona(
 @router.delete("/zonas/{zona_id}", summary="Eliminar Zona de Trabajo")
 async def eliminar_zona(
     zona_id: int,
-    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
+    usuario_actual: Usuario = Depends(requiere_admin_biometria),
     db: AsyncSession = Depends(obtener_db)
 ):
-    if usuario_actual.rol != "admin":
-        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar zonas.")
-        
     try:
         stmt = select(ZonaTrabajo).where(ZonaTrabajo.id == zona_id)
         result = await db.execute(stmt)
@@ -423,3 +438,47 @@ async def eliminar_zona(
         await db.rollback()
         logger.error(f"Error eliminando zona de trabajo: {str(e)}")
         raise HTTPException(status_code=500, detail="Error eliminando zona.")
+
+@router.delete("/admin/reset-rostro/{usuario_id}", summary="Resetear rostro de usuario")
+async def reset_rostro_usuario(
+    usuario_id: str,
+    usuario_actual: Usuario = Depends(requiere_admin_biometria),
+    db: AsyncSession = Depends(obtener_db)
+):
+    try:
+        stmt = select(EmbeddingFacial).where(EmbeddingFacial.usuario_id == usuario_id)
+        result = await db.execute(stmt)
+        rostro = result.scalar_one_or_none()
+        
+        if not rostro:
+            raise HTTPException(status_code=404, detail="El usuario no tiene un rostro enrolado.")
+            
+        await db.delete(rostro)
+        
+        # Reset url_avatar in Usuario
+        stmt_u = select(Usuario).where(Usuario.id == usuario_id)
+        result_u = await db.execute(stmt_u)
+        user_db = result_u.scalar_one_or_none()
+        if user_db:
+            user_db.url_avatar = None
+            db.add(user_db)
+            
+        await db.commit()
+        
+        # Sanitize usuario_id
+        safe_usuario_id = os.path.basename(usuario_id)
+        file_path = f"storage/perfiles/{safe_usuario_id}.jpg"
+        if os.path.exists(file_path):
+            try:
+                import asyncio
+                await asyncio.to_thread(os.remove, file_path)
+            except Exception as e:
+                logger.warning(f"No se pudo eliminar el archivo físico de perfil {file_path}: {e}")
+            
+        return {"status": "success", "message": "Perfil biométrico eliminado correctamente."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error eliminando rostro: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error eliminando perfil biométrico.")

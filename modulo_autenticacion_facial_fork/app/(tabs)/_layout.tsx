@@ -73,17 +73,7 @@ export default function TabLayout() {
           // Todos ven Ajustes
         }}
       />
-      <Tabs.Screen
-        name="location-test"
-        options={{
-          title: 'Ubicación',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="compass" size={size} color={color} />
-          ),
-          // Solo admins ven Ubicación
-          href: isAdmin ? undefined : null,
-        }}
-      />
+
     </Tabs>
   );
 }
