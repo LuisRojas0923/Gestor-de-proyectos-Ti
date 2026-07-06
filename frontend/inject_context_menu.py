@@ -60,7 +60,7 @@ def inject_file(filepath):
         if (!data) return;
         const [cedula, concepto] = String(registroId).split('-');
         try {{
-            await axios.delete(`${{API_CONFIG.BASE_URL}}/novedades-nomina/excepciones/vincular-dinamico`, {{
+            await axios.delete(`${{API_CONFIG.BASE_URL}}/novedades-nomina/excepciones/vincular-dinamico`, {{  # [CONTROLADO]
                 data: {{ cedula, concepto, mes, anio, subcategoria: "{subcategoria}" }}
             }});
             setData({{

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Title, Text, Button, Badge, Select, Input } from '../../../../components/atoms';
 import { MaterialCard } from '../../../../components/atoms';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -70,11 +70,7 @@ const NominaHistorialView: React.FC = () => {
     // Paginación
     const [page, setPage] = useState(0);
 
-    useEffect(() => {
-        fetchHistorial();
-    }, [mesFiltro, añoFiltro, subcategoriaFiltro, page]);
-
-    const fetchHistorial = async () => {
+    const fetchHistorial = useCallback(async () => {
         setIsLoading(true);
         try {
             const params: Record<string, string | number> = {
@@ -93,7 +89,11 @@ const NominaHistorialView: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [page, mesFiltro, añoFiltro, subcategoriaFiltro]);
+
+    useEffect(() => {
+        fetchHistorial();
+    }, [fetchHistorial]);
 
     const handleDownload = async (archivo: ArchivoHistorial) => {
         try {

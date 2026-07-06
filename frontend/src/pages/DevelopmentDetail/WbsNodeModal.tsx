@@ -42,12 +42,19 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
     const [fechaInicioReal, setFechaInicioReal] = useState('');
     const [fechaFinReal, setFechaFinReal] = useState('');
 
-    useEffect(() => {
+    const [prevEstado, setPrevEstado] = useState(estado);
+    const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+    const [prevEditNode, setPrevEditNode] = useState(editNode);
+
+    if (estado !== prevEstado) {
+        setPrevEstado(estado);
         if (estado === 'Completada') setAvance(100);
         else if (estado !== 'En Proceso' && estado !== 'Pausa') setAvance(0);
-    }, [estado]);
+    }
 
-    useEffect(() => {
+    if (isOpen !== prevIsOpen || editNode !== prevEditNode) {
+        setPrevIsOpen(isOpen);
+        setPrevEditNode(editNode);
         if (isOpen) {
             setStep(1);
             if (editNode) {
@@ -84,7 +91,7 @@ export const WbsNodeModal: React.FC<WbsNodeModalProps> = ({
                 setFechaFinReal('');
             }
         }
-    }, [isOpen, editNode]);
+    }
 
     if (!isOpen) return null;
 

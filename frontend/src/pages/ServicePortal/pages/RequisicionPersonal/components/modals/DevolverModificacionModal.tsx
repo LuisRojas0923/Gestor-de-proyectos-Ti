@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, AlertCircle } from 'lucide-react';
-import { Button, Text, Title } from '../../../../../../components/atoms';
+import { Button, Text, Title , Textarea} from '../../../../../../components/atoms';
 import { RequisicionRP } from '../../types/requisicion.types';
 
 interface Props {
@@ -30,19 +30,19 @@ const DevolverModificacionModal: React.FC<Props> = ({
               Solicitar Modificación Salarial
             </Title>
           </div>
-          <button onClick={onClose} className="p-1 rounded-xl hover:bg-black/5 text-amber-700 transition-colors">
+          <Button variant="custom" onClick={onClose} className="p-1 rounded-xl hover:bg-black/5 text-amber-700 transition-colors">
             <X className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
 
         <div className="p-6 space-y-4">
           <Text>
-            Estás a punto de devolver la requisición <span className="font-bold">{requisicion.rp}</span> al solicitante para que modifique los valores de contratación (Salario, Movilización, Alimentación o Vivienda).
+            Estás a punto de devolver la requisición <Text as="span" color="inherit" className="font-bold">{requisicion.rp}</Text> al solicitante para que modifique los valores de contratación (Salario, Movilización, Alimentación o Vivienda).
           </Text>
 
           <div className="space-y-1.5">
-            <Text variant="small" weight="bold">Motivo de la solicitud <span className="text-rose-500">*</span></Text>
-            <textarea
+            <Text variant="small" weight="bold">Motivo de la solicitud <Text as="span" color="inherit" className="text-rose-500">*</Text></Text>
+            <Textarea
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               placeholder="Explica por qué se requiere ajustar la oferta salarial..."

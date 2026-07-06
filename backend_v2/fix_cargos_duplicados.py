@@ -19,7 +19,7 @@ with engine.begin() as conn:
     GROUP BY UPPER(nombre), area_id
     HAVING COUNT(*) > 1
     """
-    duplicates = conn.execute(text(query)).fetchall()
+    duplicates = conn.execute(text(query)).fetchall()  # [CONTROLADO]
     
     total_eliminados = 0
     total_actualizados = 0
@@ -30,19 +30,19 @@ with engine.begin() as conn:
         
         # Obtener todos los IDs ordenados (el menor es el original)
         subq = "SELECT id FROM cargos_rp WHERE UPPER(nombre) = :nombre AND area_id = :area_id ORDER BY id ASC"
-        ids = [r[0] for r in conn.execute(text(subq), {"nombre": nombre_norm, "area_id": area_id}).fetchall()]
+        ids = [r[0] for r in conn.execute(text(subq), {"nombre": nombre_norm, "area_id": area_id}).fetchall()]  # [CONTROLADO]
         
         original_id = ids[0]
         duplicate_ids = ids[1:]
         
         # 1. Reasignar requisiciones que usen los IDs duplicados hacia el ID original
         upd_req = "UPDATE requisiciones_personal SET cargo_id = :original WHERE cargo_id = ANY(:duplicates) RETURNING id"
-        res_req = conn.execute(text(upd_req), {"original": original_id, "duplicates": duplicate_ids}).fetchall()
+        res_req = conn.execute(text(upd_req), {"original": original_id, "duplicates": duplicate_ids}).fetchall()  # [CONTROLADO]
         total_actualizados += len(res_req)
         
         # 2. Eliminar los duplicados
         del_cargos = "DELETE FROM cargos_rp WHERE id = ANY(:duplicates)"
-        conn.execute(text(del_cargos), {"duplicates": duplicate_ids})
+        conn.execute(text(del_cargos), {"duplicates": duplicate_ids})  # [CONTROLADO]
         total_eliminados += len(duplicate_ids)
         
         print(f"[{nombre_norm}] Original: {original_id}, Eliminados: {duplicate_ids}")

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Title, Text, Button, Badge } from '../../../../components/atoms';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertCircle, AlertTriangle, Filter } from 'lucide-react';
@@ -19,7 +19,7 @@ const NominaPreviewView: React.FC = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
-    const fetchPreview = async (p: number) => {
+    const fetchPreview = useCallback(async (p: number) => {
         setIsLoading(true);
         try {
             const res = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/archivos/${archivoId}/preview`, {
@@ -38,11 +38,11 @@ const NominaPreviewView: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [archivoId, addNotification]);
 
     useEffect(() => {
         fetchPreview(page);
-    }, [archivoId, page]);
+    }, [page, fetchPreview]);
 
     // Contadores de estado
     const stats = useMemo(() => {

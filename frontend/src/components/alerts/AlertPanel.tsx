@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Calendar, Search, Users } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
@@ -26,7 +26,7 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('pendientes_en_curso');
 
-  const loadActivities = async () => {
+  const loadActivities = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -53,11 +53,11 @@ const AlertPanel: React.FC<AlertPanelProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, statusFilter, developmentId, get]);
 
   useEffect(() => {
     loadActivities();
-  }, [statusFilter, developmentId, limit]);
+  }, [loadActivities]);
 
   const getStatusColor = (status: string) => {
     const s = (status || '').toLowerCase();

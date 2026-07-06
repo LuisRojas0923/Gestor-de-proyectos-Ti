@@ -54,7 +54,7 @@ const AgregarCandidatoModal: React.FC<Props> = ({
           </div>
           <div className="space-y-1">
             <Text variant="caption" className="font-semibold text-xs text-[var(--color-text-secondary)]">
-              Cédula <span className="text-red-500">*</span>
+              Cédula <Text as="span" color="inherit" className="text-red-500">*</Text>
             </Text>
             <Input
               required

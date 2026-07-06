@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { Button, Title, Text, MaterialCard } from '../atoms';
 
@@ -8,7 +8,7 @@ const ApiDebug: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const testApi = async () => {
+  const testApi = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -23,11 +23,11 @@ const ApiDebug: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [api]);
 
   useEffect(() => {
     testApi();
-  }, []);
+  }, [testApi]);
 
   return (
     <MaterialCard className="p-6">

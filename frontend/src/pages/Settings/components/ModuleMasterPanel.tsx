@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Power, Box, Users, Shield, RefreshCw, AlertTriangle, Package, Plus, X, Save } from 'lucide-react';
 import { Title, Text, MaterialCard, Button, Switch, Badge, Input, Select } from '../../../components/atoms';
 import { useApi } from '../../../hooks/useApi';
@@ -36,7 +36,7 @@ const ModuleMasterPanel: React.FC<ModuleMasterPanelProps> = ({ adminPassword, on
         es_critico: false
     });
 
-    const fetchModules = async () => {
+    const fetchModules = useCallback(async () => {
         setIsLoading(true);
         try {
             const data = await get('/config/modulos') as Module[];
@@ -53,11 +53,11 @@ const ModuleMasterPanel: React.FC<ModuleMasterPanelProps> = ({ adminPassword, on
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [get, post, addNotification]);
 
     useEffect(() => {
         fetchModules();
-    }, []);
+    }, [fetchModules]);
 
     const handleToggle = async (module: Module) => {
         setIsActionInProgress(module.id);

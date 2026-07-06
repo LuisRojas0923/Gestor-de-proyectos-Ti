@@ -90,27 +90,24 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
         };
     }
 
-    const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-    const [maxHeight, setMaxHeight] = useState<string>('450px');
+    let position: { top: number; left: number } | null = null;
+    let maxHeight: string = '450px';
 
-    // Calcular posición reactiva
-    useEffect(() => {
-        if (effectiveIsOpen && effectiveAnchor) {
-            const windowHeight = window.innerHeight;
-            const spaceBelow = windowHeight - effectiveAnchor.top - 20;
+    if (effectiveIsOpen && effectiveAnchor) {
+        const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+        const spaceBelow = windowHeight - effectiveAnchor.top - 20;
 
-            if (spaceBelow < 300 && effectiveAnchor.top > 300) {
-                setPosition({
-                    top: effectiveAnchor.top - (triggerHeight + 8) - Math.min(400, effectiveAnchor.top - 40),
-                    left: effectiveAnchor.left
-                });
-                setMaxHeight(`${effectiveAnchor.top - 60}px`);
-            } else {
-                setPosition({ top: effectiveAnchor.top + 4, left: effectiveAnchor.left });
-                setMaxHeight(`${Math.min(450, spaceBelow)}px`);
-            }
+        if (spaceBelow < 300 && effectiveAnchor.top > 300) {
+            position = {
+                top: effectiveAnchor.top - (triggerHeight + 8) - Math.min(400, effectiveAnchor.top - 40),
+                left: effectiveAnchor.left
+            };
+            maxHeight = `${effectiveAnchor.top - 60}px`;
+        } else {
+            position = { top: effectiveAnchor.top + 4, left: effectiveAnchor.left };
+            maxHeight = `${Math.min(450, spaceBelow)}px`;
         }
-    }, [effectiveIsOpen, effectiveAnchor?.top, effectiveAnchor?.left, effectiveAnchor?.width, triggerHeight]);
+    }
 
     // Actualizar posición al hacer scroll (capturando todos los contenedores) o resize
     useEffect(() => {
@@ -127,12 +124,15 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = (props) => {
             }
         };
 
-        handleScrollOrResize();
+        const initialTimer = setTimeout(() => {
+            handleScrollOrResize();
+        }, 0);
 
         window.addEventListener('scroll', handleScrollOrResize, { capture: true, passive: true });
         window.addEventListener('resize', handleScrollOrResize, { passive: true });
 
         return () => {
+            clearTimeout(initialTimer);
             window.removeEventListener('scroll', handleScrollOrResize, { capture: true });
             window.removeEventListener('resize', handleScrollOrResize);
         };

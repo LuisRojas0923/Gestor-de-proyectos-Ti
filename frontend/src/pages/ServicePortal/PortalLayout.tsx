@@ -30,11 +30,14 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({ children, user, onHome, onL
 
     const isInventario = location.pathname.includes('/inventario');
 
-    useEffect(() => {
+    const [prevEmailNeedsUpdate, setPrevEmailNeedsUpdate] = useState(user?.emailNeedsUpdate);
+    
+    if (user?.emailNeedsUpdate !== prevEmailNeedsUpdate) {
+        setPrevEmailNeedsUpdate(user?.emailNeedsUpdate);
         if (user?.emailNeedsUpdate) {
             setIsEmailModalOpen(true);
         }
-    }, [user?.emailNeedsUpdate]);
+    }
 
     const handleLogoClick = useCallback(() => {
         if (fromAdmin) {

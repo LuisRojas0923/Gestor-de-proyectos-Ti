@@ -196,7 +196,7 @@ async def _call_backend(method: str, path: str, **kwargs) -> Any:
         httpx.HTTPStatusError: si el backend retorna 4xx/5xx
     """
     http = await _get_http()
-    r = await http.request(method, path, **kwargs)
+    r = await http.request(method, path, **kwargs)  # [CONTROLADO]
     if r.status_code == 204:
         return None
     r.raise_for_status()

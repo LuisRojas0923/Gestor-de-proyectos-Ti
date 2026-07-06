@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Title, Text, Button, Select, Input } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Send, RefreshCw, Layers } from 'lucide-react';
@@ -16,7 +16,7 @@ const NominaSummaryView: React.FC = () => {
     const [año, setAño] = useState(new Date().getFullYear());
     const [isExporting, setIsExporting] = useState(false);
 
-    const fetchSummary = async () => {
+    const fetchSummary = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/subcategorias/resumen?mes=${mes}&año=${año}`);
@@ -27,11 +27,11 @@ const NominaSummaryView: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [mes, año, addNotification]);
 
     useEffect(() => {
         fetchSummary();
-    }, [mes, año]);
+    }, [fetchSummary]);
 
     const handleExport = async () => {
         setIsExporting(true);

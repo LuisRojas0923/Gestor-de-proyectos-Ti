@@ -335,8 +335,8 @@ def t18_http_client_usa_bearer_token():
     mod = _cargar_modulo(env={"GPM_TOKEN": token, "GPM_JWT_SECRET": secret})
     mod._http = None
     http = asyncio.run(mod._get_http())
-    auth = http.headers.get("Authorization", "")
-    token_name_hdr = http.headers.get("X-MCP-Token-Name", "")
+    auth = http.headers.get("Authorization", "")  # [CONTROLADO]
+    token_name_hdr = http.headers.get("X-MCP-Token-Name", "")  # [CONTROLADO]
     ok = auth == f"Bearer {token}" and token_name_hdr == ""
     print(f"{'OK' if ok else 'FAIL'} T18 http_headers: Authorization={auth[:30]}..., X-MCP-Token-Name={token_name_hdr!r}")
     mod._http = None
@@ -348,7 +348,7 @@ def t19_http_client_token_name_en_header():
     mod = _cargar_modulo(env={"GPM_TOKEN_NAME": "gpm_mcp_test_xyz"})
     mod._http = None
     http = asyncio.run(mod._get_http())
-    name_hdr = http.headers.get("X-MCP-Token-Name", "")
+    name_hdr = http.headers.get("X-MCP-Token-Name", "")  # [CONTROLADO]
     ok = name_hdr == "gpm_mcp_test_xyz"
     print(f"{'OK' if ok else 'FAIL'} T19 token_name_header: {name_hdr!r}")
     mod._http = None

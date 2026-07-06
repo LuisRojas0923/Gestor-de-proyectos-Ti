@@ -39,18 +39,14 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const otInputContainerRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
-
     useEffect(() => {
         if (isSearchingOT === linea.id && otInputContainerRef.current) {
             const updatePosition = () => {
-                if (!otInputContainerRef.current) return;
+                if (!otInputContainerRef.current || !dropdownRef.current) return;
                 const rect = otInputContainerRef.current.getBoundingClientRect();
-                setDropdownPosition({
-                    top: rect.bottom,
-                    left: rect.left,
-                    width: Math.max(400, rect.width)
-                });
+                dropdownRef.current.style.top = `${rect.bottom}px`;
+                dropdownRef.current.style.left = `${rect.left}px`;
+                dropdownRef.current.style.width = `${Math.max(400, rect.width)}px`;
             };
 
             updatePosition();
@@ -72,14 +68,6 @@ const ExpenseLineItem: React.FC<ExpenseLineItemProps> = ({
             };
         }
     }, [isSearchingOT, linea.id, ots.length]);
-
-    useEffect(() => {
-        if (isSearchingOT === linea.id && dropdownRef.current) {
-            dropdownRef.current.style.top = `${dropdownPosition.top}px`;
-            dropdownRef.current.style.left = `${dropdownPosition.left}px`;
-            dropdownRef.current.style.width = `${dropdownPosition.width}px`;
-        }
-    }, [dropdownPosition, isSearchingOT, linea.id]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;

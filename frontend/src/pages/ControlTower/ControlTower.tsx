@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Activity,
     Users,
@@ -50,7 +50,7 @@ const ControlTower: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [autoRefresh, setAutoRefresh] = useState(true);
 
-    const fetchStatus = async () => {
+    const fetchStatus = useCallback(async () => {
         try {
             const [statusData, sessionsData] = await Promise.all([
                 get('/panel-control/torre-control/estado'),
@@ -65,7 +65,7 @@ const ControlTower: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [get, addNotification]);
 
     useEffect(() => {
         fetchStatus();
@@ -74,7 +74,7 @@ const ControlTower: React.FC = () => {
             interval = setInterval(fetchStatus, 15000); // 15 segundos
         }
         return () => clearInterval(interval);
-    }, [autoRefresh]);
+    }, [autoRefresh, fetchStatus]);
 
     const getCpuColor = (load: number) => {
         if (load > 8) return 'text-red-600 dark:text-red-400';

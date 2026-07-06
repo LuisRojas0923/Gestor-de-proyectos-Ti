@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { CheckCircle2, RefreshCw, ShieldCheck, XCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge, Button, MaterialCard, Text, Textarea, Title } from '../components/atoms';
@@ -15,7 +15,7 @@ const AssignmentValidations: React.FC = () => {
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [observacion, setObservacion] = useState('');
 
-  const fetchValidations = async () => {
+  const fetchValidations = useCallback(async () => {
     setLoading(true);
     try {
       const data = await get('/validaciones-asignacion?estado=pendiente');
@@ -26,11 +26,11 @@ const AssignmentValidations: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [get]);
 
   useEffect(() => {
     void fetchValidations();
-  }, []);
+  }, [fetchValidations]);
 
   const resolveValidation = async (id: number, estado: 'aprobada' | 'rechazada') => {
     setSavingId(id);

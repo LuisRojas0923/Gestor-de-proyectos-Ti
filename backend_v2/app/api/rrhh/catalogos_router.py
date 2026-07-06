@@ -410,7 +410,7 @@ async def listar_causales_descarte(solo_activas: bool = True, db: AsyncSession =
 async def crear_causal_descarte(payload: CausalDescarteCreate, db: AsyncSession = Depends(obtener_db)):
     causal_norm = payload.causal.strip()
     # Check if exists
-    res = await db.execute(select(CausalDescarteRP).where(CausalDescarteRP.causal == causal_norm))
+    res = await db.execute(select(CausalDescarteRP).where(CausalDescarteRP.causal == causal_norm))  # [CONTROLADO]
     if res.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Esta causal ya existe.")
     

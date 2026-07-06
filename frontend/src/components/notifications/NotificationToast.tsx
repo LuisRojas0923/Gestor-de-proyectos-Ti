@@ -59,7 +59,7 @@ export const NotificationToast: React.FC<ToastNotificationProps> = ({ id, type, 
           progressClasses: 'bg-gray-500'
         };
     }
-  }, [type, darkMode]);
+  }, [type]);
 
   const handleDismiss = useCallback(() => {
     setShowContent(false);

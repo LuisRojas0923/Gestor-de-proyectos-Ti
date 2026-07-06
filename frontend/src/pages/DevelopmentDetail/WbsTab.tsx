@@ -13,6 +13,18 @@ import { useColumnFilters } from '../../hooks/useColumnFilters';
 import { DataTable } from '../../components/molecules/DataTable';
 import { WbsActivityTree } from '../../types/wbs';
 import { getWbsColumns } from './components/WbsColumns';
+import { 
+    getWbsOrderStorageKey, 
+    loadStoredWbsOrder, 
+    moveItem, 
+    formatDate, 
+    flattenTree, 
+    getAvanceDeTarea, 
+    getStatusChipClass, 
+    getAvanceChipClass,
+    getColumnAccessors
+} from './utils/wbsUtils';
+
 
 export interface WbsTabRef {
     handleAddRootTask: () => void;
@@ -26,34 +38,6 @@ interface WbsTabProps {
 
 type WbsRow = WbsActivityTree & { _rowIndex: number };
 
-const getWbsOrderStorageKey = (developmentId: string) => `wbs_tasks_order_${developmentId}`;
-
-const loadStoredWbsOrder = (developmentId: string) => {
-    try {
-        const raw = localStorage.getItem(getWbsOrderStorageKey(developmentId));
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
-    } catch {
-        return [];
-    }
-};
-
-const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number) => {
-    const next = [...items];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    return next;
-};
-
-const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '-';
-    try {
-        const [y, m, d] = dateStr.split('T')[0].split('-');
-        return `${d}/${m}/${y}`;
-    } catch {
-        return dateStr;
-    }
-};
 
 
 
@@ -81,11 +65,11 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const [customOrder, setCustomOrder] = useState<string[]>(() => loadStoredWbsOrder(developmentId));
     const stateMenuRef = useRef<HTMLDivElement>(null);
 
-    const showError = (err: unknown, defaultMsg: string) => {
+    const showError = useCallback((err: unknown, defaultMsg: string) => {
         const msg = err instanceof Error ? err.message : defaultMsg;
         setErrorMessage(msg);
         setErrorModalOpen(true);
-    };
+    }, []);
 
     const getLider = useCallback((node: WbsActivityTree) => {
         const id = node.asignado_a_id || node.responsable_id;
@@ -97,39 +81,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         if (!id) return '-';
         return userMap.get(id) ?? id;
     }, [userMap]);
-
-    const flattenTree = useCallback((nodes: WbsActivityTree[]): WbsActivityTree[] => {
-        const result: WbsActivityTree[] = [];
-        for (const node of nodes) {
-            result.push(node);
-            if (node.subactividades?.length) {
-                result.push(...flattenTree(node.subactividades));
-            }
-        }
-        return result;
-    }, []);
-
-    const columnAccessors = useMemo(() => ({
-        index: (node: WbsActivityTree) => {
-            // Buscamos el nodo en el árbol aplanado original para obtener su índice real
-            const flat = flattenTree(tree);
-            const idx = flat.findIndex(n => n.id === node.id);
-            return idx !== -1 ? String(idx + 1) : '(Draf)';
-        },
-        titulo: (node: WbsActivityTree) => node.titulo,
-        titulo_titulo: (node: WbsActivityTree) => node.titulo,
-        titulo_descripcion: (node: WbsActivityTree) => node.descripcion || '(Vacío)',
-        porcentaje_avance: (node: WbsActivityTree) => `${node.porcentaje_avance}%`,
-        estado: (node: WbsActivityTree) => node.estado,
-        notas_seguimiento: (node: WbsActivityTree) => node.seguimiento || '(Sin seguimiento)',
-        notas_compromiso: (node: WbsActivityTree) => node.compromiso || '(Sin compromiso)',
-        lider: (node: WbsActivityTree) => getLider(node),
-        lider_supervisor: (node: WbsActivityTree) => getUserName(node.responsable_id) || '(Sin asignar)',
-        lider_ejecutor: (node: WbsActivityTree) => getUserName(node.asignado_a_id) || '(Sin asignar)',
-        validacion: (node: WbsActivityTree) => node.estado_validacion || 'sin_validar',
-        fecha_inicio_estimada: (node: WbsActivityTree) => formatDate(node.fecha_inicio_estimada || node.fecha_inicio_real),
-        fecha_fin_estimada: (node: WbsActivityTree) => formatDate(node.fecha_fin_estimada || node.fecha_fin_real),
-    }), [tree, flattenTree, getLider, getUserName]);
+    const columnAccessors = useMemo(() => getColumnAccessors(tree, getLider, getUserName), [tree, getLider, getUserName]);
 
     const {
         filters,
@@ -183,14 +135,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         }
     }), []);
 
-    const getAvanceDeTarea = (estado: string): number => {
-        const s = (estado || '').toLowerCase();
-        if (s.includes('complet')) return 100;
-        if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 50;
-        if (s.includes('pausa')) return 50; // Pausa preserva el peso parcial
-        return 0;
-    };
-
     const allFlat = flattenTree(tree);
     const totalAvance = allFlat.reduce((sum, n) => sum + Number(n.porcentaje_avance ?? 0), 0);
     const avgProgress = allFlat.length ? Math.round(totalAvance / allFlat.length) : 0;
@@ -201,25 +145,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         return acc;
     }, {});
 
-    const getStatusChipClass = (status: string) => {
-        const s = status.toLowerCase();
-        if (s.includes('complet'))  return 'text-green-700 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50';
-        if (s.includes('progreso') || s.includes('curso')) return 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50';
-        if (s.includes('pendiente')) return 'text-red-700 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50';
-        if (s.includes('pausa'))    return 'text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50';
-        if (s.includes('cancel'))   return 'text-neutral-600 bg-neutral-100 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
-        return 'text-neutral-600 bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
-    };
-
-    const getAvanceChipClass = (pct: number) => {
-        if (pct >= 100) return 'text-green-700 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50';
-        if (pct >= 75)  return 'text-blue-700 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/50';
-        if (pct >= 50)  return 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50';
-        if (pct >= 25)  return 'text-orange-700 bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50';
-        return 'text-red-700 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50';
-    };
-
-    const handleQuickAction = async (id: number, action: 'play' | 'pause' | 'finish', currentNode: WbsActivityTree) => {
+    const handleQuickAction = useCallback(async (id: number, action: 'play' | 'pause' | 'finish', currentNode: WbsActivityTree) => {
         let payload: Partial<WbsActivityTree> = {};
         const now = new Date().toISOString().split('T')[0];
 
@@ -245,9 +171,9 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             console.error(`Error applying quick action ${action}:`, error);
             showError(error, `Error al aplicar la acción rápida ${action} en la actividad.`);
         }
-    };
+    }, [fetchTree, patch, showError]);
 
-    const handleEstadoChange = async (id: number, newEstado: string) => {
+    const handleEstadoChange = useCallback(async (id: number, newEstado: string) => {
         try {
             const payload: Record<string, unknown> = { estado: newEstado };
             if (newEstado === 'Completada') {
@@ -260,9 +186,9 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             console.error('Error changing estado:', error);
             showError(error, 'Error al cambiar el estado de la actividad.');
         }
-    };
+    }, [fetchTree, patch, showError]);
 
-    const fetchTree = async () => {
+    const fetchTree = useCallback(async () => {
         setLoading(true);
         try {
             const data = await get(`/actividades/desarrollo/${developmentId}/arbol`);
@@ -272,7 +198,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         } finally {
             setLoading(false);
         }
-    };
+    }, [developmentId, get]);
 
     const fetchUsers = useCallback(async () => {
         try {
@@ -288,7 +214,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     useEffect(() => {
         void fetchTree();
         void fetchUsers();
-    }, [developmentId]);
+    }, [developmentId, fetchTree, fetchUsers]);
 
     useEffect(() => {
         setCustomOrder(loadStoredWbsOrder(developmentId));
@@ -300,7 +226,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         const totalProg = flat.reduce((sum, n) => sum + getAvanceDeTarea(n.estado), 0);
         const pct = flat.length ? Math.round(totalProg / flat.length) : 0;
         void put(`/desarrollos/${developmentId}`, { porcentaje_progreso: pct });
-    }, [tree, developmentId]);
+    }, [tree, developmentId, put]);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -321,12 +247,12 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         }
     }, [popoverPos]);
 
-    const handleEditTask = (node: WbsActivityTree) => {
+    const handleEditTask = useCallback((node: WbsActivityTree) => {
         setModalEditNode(node);
         setIsModalOpen(true);
-    };
+    }, []);
 
-    const handleCopyTask = async (node: WbsActivityTree) => {
+    const handleCopyTask = useCallback(async (node: WbsActivityTree) => {
         try {
             await post('/actividades/', {
                 desarrollo_id: node.desarrollo_id,
@@ -348,7 +274,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             console.error('Error copying task:', err);
             showError(err, 'Error al copiar la actividad.');
         }
-    };
+    }, [fetchTree, post, showError]);
 
     const handleModalClose = () => {
         setIsModalOpen(false);
@@ -366,7 +292,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         }
     };
 
-    const handleDeleteClick = async (id: number) => {
+    const handleDeleteClick = useCallback(async (id: number) => {
         try {
             const preview = await get(`/actividades/${id}/preview`);
             setDeletePreview(preview as typeof deletePreview);
@@ -375,7 +301,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
             console.error('Error fetching delete preview:', error);
             showError(error, 'Error al obtener la vista previa de eliminación.');
         }
-    };
+    }, [get, showError]);
 
     const handleConfirmDelete = async () => {
         if (!deletePreview) return;
@@ -390,7 +316,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         }
     };
 
-    const handleResolveValidation = async (id: number, estado: 'aprobada' | 'rechazada') => {
+    const handleResolveValidation = useCallback(async (id: number, estado: 'aprobada' | 'rechazada') => {
         if (resolvingIds.has(id)) return;
         setResolvingIds(prev => new Set([...prev, id]));
         try {
@@ -405,7 +331,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         } finally {
             setResolvingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
         }
-    };
+    }, [fetchTree, post, resolvingIds, showError]);
 
     const columns = useMemo(() => getWbsColumns({
         getUserName,

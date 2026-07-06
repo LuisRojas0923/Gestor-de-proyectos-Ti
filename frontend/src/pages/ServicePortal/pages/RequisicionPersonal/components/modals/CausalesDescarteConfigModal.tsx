@@ -102,9 +102,9 @@ const CausalesDescarteConfigModal: React.FC<Props> = ({ onClose }) => {
               Administra las opciones disponibles al descartar un candidato.
             </Text>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-[var(--color-border)] transition-colors">
+          <Button variant="custom" onClick={onClose} className="p-2 rounded-full hover:bg-[var(--color-border)] transition-colors">
             <X className="w-5 h-5 text-[var(--color-text-secondary)]" />
-          </button>
+          </Button>
         </div>
 
         <div className="p-6 overflow-y-auto flex-1 space-y-6 bg-[var(--color-surface-subtle)]">
@@ -180,17 +180,17 @@ const CausalesDescarteConfigModal: React.FC<Props> = ({ onClose }) => {
                       <td className="p-4 text-right flex justify-end gap-2">
                         {editandoId === c.id ? (
                           <>
-                            <button onClick={() => guardarEdicion(c)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg" title="Guardar">
+                            <Button variant="custom" onClick={() => guardarEdicion(c)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg" title="Guardar">
                               <Save className="w-4 h-4" />
-                            </button>
-                            <button onClick={cancelarEdicion} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg" title="Cancelar">
+                            </Button>
+                            <Button variant="custom" onClick={cancelarEdicion} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg" title="Cancelar">
                               <XCircle className="w-4 h-4" />
-                            </button>
+                            </Button>
                           </>
                         ) : (
-                          <button onClick={() => iniciarEdicion(c)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Editar">
+                          <Button variant="custom" onClick={() => iniciarEdicion(c)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Editar">
                             <Edit2 className="w-4 h-4" />
-                          </button>
+                          </Button>
                         )}
                       </td>
                     </tr>

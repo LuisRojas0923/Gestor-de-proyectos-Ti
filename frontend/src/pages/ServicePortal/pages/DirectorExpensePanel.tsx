@@ -67,7 +67,7 @@ const DirectorExpensePanel: React.FC<DirectorExpensePanelProps> = ({ onBack, onS
         }
     }, [get]);
 
-    useEffect(() => { fetchLegalizaciones(); }, []);
+    useEffect(() => { fetchLegalizaciones(); }, [fetchLegalizaciones]);
 
 
     // Áreas únicas para filtro

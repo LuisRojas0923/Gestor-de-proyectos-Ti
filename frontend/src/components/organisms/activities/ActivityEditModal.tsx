@@ -44,8 +44,14 @@ export const ActivityEditModal: React.FC<ActivityEditModalProps> = ({
     endDate: undefined,
   });
 
+  const [prevActivity, setPrevActivity] = useState(activity);
+  const [prevForm, setPrevForm] = useState(form);
+
   // Inicializar configuración de seguimiento basada en la actividad existente
-  useEffect(() => {
+  if (activity !== prevActivity || form !== prevForm) {
+    setPrevActivity(activity);
+    setPrevForm(form);
+    
     if (activity?.follow_up_config) {
       setFollowUpConfig(activity.follow_up_config);
     } else if (form?.next_follow_up_at) {
@@ -58,7 +64,7 @@ export const ActivityEditModal: React.FC<ActivityEditModalProps> = ({
         endDate: undefined,
       });
     }
-  }, [activity, form]);
+  }
 
   if (!activity || !form) return null;
 

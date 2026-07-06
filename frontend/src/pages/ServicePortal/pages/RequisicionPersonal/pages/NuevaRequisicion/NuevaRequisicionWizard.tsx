@@ -43,7 +43,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
 
   useEffect(() => {
     if (requisicionIdEditar) cargarRequisicion(requisicionIdEditar);
-  }, [requisicionIdEditar]);
+  }, [requisicionIdEditar, cargarRequisicion]);
 
   // Actualizar nombres desnormalizados para el resumen
   useEffect(() => {
@@ -68,14 +68,20 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
     }
   }, [form.cargo_id, form.area_id]);
 
-  useEffect(() => {
+  const [prevAprobadorId, setPrevAprobadorId] = useState(form.aprobador_id);
+  const [prevAprobadores, setPrevAprobadores] = useState(aprobadores);
+
+  if (form.aprobador_id !== prevAprobadorId || aprobadores !== prevAprobadores) {
+    setPrevAprobadorId(form.aprobador_id);
+    setPrevAprobadores(aprobadores);
     if (form.aprobador_id && aprobadores.length > 0) {
       const a = aprobadores.find(x => x.id === form.aprobador_id);
       if (a) setAprobadorNombre(`${a.nombre_aprobador.toUpperCase()} (${a.email_aprobador.toLowerCase()})`);
+      else setAprobadorNombre('');
     } else {
       setAprobadorNombre('');
     }
-  }, [form.aprobador_id, aprobadores]);
+  }
 
   const handleGuardarBorrador = async () => {
     const ok = await guardarBorrador();
@@ -143,14 +149,14 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 ${pasoActual === 1 ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white' : 'border-emerald-500 bg-emerald-500 text-white'}`}>
               {pasoActual > 1 ? '✓' : '1'}
             </div>
-            <span className="text-xs">Formulario</span>
+            <Text as="span" color="inherit" className="text-xs">Formulario</Text>
           </div>
           <div className="w-8 h-[2px] bg-slate-200 dark:bg-slate-700 rounded-full" />
           <div className={`flex items-center gap-2 ${pasoActual === 2 ? 'text-[var(--color-primary)] font-bold' : 'text-slate-400'}`}>
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 ${pasoActual === 2 ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white' : 'border-slate-300 dark:border-slate-600'}`}>
               2
             </div>
-            <span className="text-xs">Resumen</span>
+            <Text as="span" color="inherit" className="text-xs">Resumen</Text>
           </div>
         </div>
       </div>
@@ -179,7 +185,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
         <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
           {isModificacionSalarial && (
             <div className="p-4 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center gap-2">
-              <span className="font-bold text-amber-900">Modificación Salarial:</span>
+              <Text as="span" color="inherit" className="font-bold text-amber-900">Modificación Salarial:</Text>
               Solo puedes editar Salario, Movilización, Alimentación y Vivienda. Los demás campos están bloqueados.
             </div>
           )}
@@ -188,7 +194,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
           <section className={`bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-visible shadow-sm ${isModificacionSalarial ? "pointer-events-none opacity-60" : ""}`}>
             <div className="bg-slate-50 dark:bg-neutral-800/50 px-6 py-4 border-b border-[var(--color-border)] rounded-t-2xl">
               <Title variant="h6" className="text-[var(--color-primary)] flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">1</span>
+                <Text as="span" color="inherit" className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">1</Text>
                 DATOS GENERALES Y UBICACIÓN
               </Title>
             </div>
@@ -201,7 +207,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
           <section className={`bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-visible shadow-sm ${isModificacionSalarial ? "pointer-events-none opacity-60" : ""}`}>
             <div className="bg-slate-50 dark:bg-neutral-800/50 px-6 py-4 border-b border-[var(--color-border)] rounded-t-2xl">
               <Title variant="h6" className="text-[var(--color-primary)] flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">2</span>
+                <Text as="span" color="inherit" className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">2</Text>
                 ÁREA, CARGO Y PERFIL
               </Title>
             </div>
@@ -214,7 +220,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
           <section className={`bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-visible shadow-sm ${isModificacionSalarial ? "pointer-events-none opacity-60" : ""}`}>
             <div className="bg-slate-50 dark:bg-neutral-800/50 px-6 py-4 border-b border-[var(--color-border)] rounded-t-2xl">
               <Title variant="h6" className="text-[var(--color-primary)] flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">3</span>
+                <Text as="span" color="inherit" className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">3</Text>
                 EQUIPOS Y DOTACIÓN
               </Title>
             </div>
@@ -227,7 +233,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
           <section className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden shadow-sm">
             <div className="bg-slate-50 dark:bg-neutral-800/50 px-6 py-4 border-b border-[var(--color-border)]">
               <Title variant="h6" className="text-[var(--color-primary)] flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">4</span>
+                <Text as="span" color="inherit" className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">4</Text>
                 CONDICIONES DE CONTRATACIÓN
               </Title>
             </div>
@@ -240,7 +246,7 @@ const NuevaRequisicionWizard: React.FC<NuevaRequisicionWizardProps> = ({
           <section className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden shadow-sm">
             <div className="bg-slate-50 dark:bg-neutral-800/50 px-6 py-4 border-b border-[var(--color-border)]">
               <Title variant="h6" className="text-[var(--color-primary)] flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">5</span>
+                <Text as="span" color="inherit" className="w-6 h-6 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold">5</Text>
                 AUXILIOS
               </Title>
             </div>

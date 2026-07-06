@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Eye, CheckCircle, XCircle, Clock, Users, Briefcase, RefreshCw, ArrowLeft, Send, AlertTriangle, RotateCcw } from 'lucide-react';
 import { Button, Text, Textarea, Title } from '../../../../../components/atoms';
 import { getBandejaGerente, aprobarGerente, rechazarGerente, devolverGerente } from '../services/requisicionService';
@@ -22,26 +22,27 @@ const BandejaGerenciaExpress: React.FC<Props> = ({ onVolver }) => {
   const [observacion, setObservacion] = useState('');
   const [procesando, setProcesando] = useState(false);
 
-  const cargar = () => {
+  const cargar = useCallback(() => {
     setLoading(true);
     getBandejaGerente()
       .then((data) => {
         setRequisiciones(data);
         // Mantener seleccionada o tomar la primera si hay
-        if (data.length > 0) {
-          const yaSeleccionada = data.find(r => r.id === seleccionada?.id);
-          setSeleccionada(yaSeleccionada || data[0]);
-        } else {
-          setSeleccionada(null);
-        }
+        setSeleccionada((prev) => {
+          if (data.length > 0) {
+            const yaSeleccionada = data.find(r => r.id === prev?.id);
+            return yaSeleccionada || data[0];
+          }
+          return null;
+        });
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     cargar();
-  }, []);
+  }, [cargar]);
 
   const handleEjecutarAccion = async () => {
     if (!modal) return;

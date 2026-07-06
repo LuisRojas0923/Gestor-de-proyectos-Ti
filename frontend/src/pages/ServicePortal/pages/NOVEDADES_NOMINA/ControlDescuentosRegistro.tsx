@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Title, Text, Button, Input, Select, Badge } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Database, Trash2, Edit2, CheckCircle2, Clock, Settings2 } from 'lucide-react';
@@ -63,7 +63,7 @@ const ControlDescuentosRegistro: React.FC = () => {
 
     // ── Data Fetching ────────────────────────────────────────────────────────────
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setIsLoadingTable(true);
         try {
             const [resConceptos, resRegistros] = await Promise.all([
@@ -78,11 +78,11 @@ const ControlDescuentosRegistro: React.FC = () => {
         } finally {
             setIsLoadingTable(false);
         }
-    };
+    }, [addNotification]);
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [fetchData]);
 
     // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -138,7 +138,7 @@ const ControlDescuentosRegistro: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = useCallback(async (id: number) => {
         if (!window.confirm('¿Estás seguro de eliminar este registro?')) return;
         try {
             await axios.delete(`${API_CONFIG.BASE_URL}/novedades-nomina/control_descuentos/registro/${id}`);
@@ -147,9 +147,9 @@ const ControlDescuentosRegistro: React.FC = () => {
         } catch (err) {
             addNotification('error', 'No se pudo eliminar el registro');
         }
-    };
+    }, [addNotification, fetchData]);
 
-    const handleEdit = (reg: RegistroActivo) => {
+    const handleEdit = useCallback((reg: RegistroActivo) => {
         setFormData({
             id: reg.id,
             cedula: reg.cedula,
@@ -164,7 +164,7 @@ const ControlDescuentosRegistro: React.FC = () => {
             observaciones: ''
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    }, []);
 
     const resetForm = () => {
         setFormData({
@@ -232,7 +232,7 @@ const ControlDescuentosRegistro: React.FC = () => {
                 </div>
             )
         }
-    ], []);
+    ], [handleEdit, handleDelete]);
 
     return (
         <div className="max-w-[1600px] mx-auto animate-in fade-in duration-500 flex flex-col h-[calc(100vh-170px)] overflow-hidden space-y-4 px-2">

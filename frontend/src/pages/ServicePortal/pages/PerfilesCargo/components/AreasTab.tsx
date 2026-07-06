@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Plus, Edit2 } from 'lucide-react';
 import { Button, Input, Subtitle, Text } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
@@ -38,8 +38,11 @@ const AreasTab: React.FC<AreasTabProps> = ({
     }
   };
 
-  const handleGuardarEdit = async (area: AreaRP) => {
-    if (!editAreaNombre.trim()) return;
+  const handleGuardarEdit = useCallback(async (area: AreaRP) => {
+    if (!editAreaNombre.trim()) {
+      setErrorMsg('El nombre del área no puede estar vacío');
+      return;
+    }
     try {
       setErrorMsg(null);
       await onActualizarArea(area, editAreaNombre.trim(), area.activo);
@@ -47,9 +50,9 @@ const AreasTab: React.FC<AreasTabProps> = ({
     } catch (err: any) {
       setErrorMsg(err.message || 'Error al actualizar área');
     }
-  };
+  }, [editAreaNombre, onActualizarArea, setErrorMsg]);
 
-  const handleToggleActivo = async (area: AreaRP) => {
+  const handleToggleActivo = useCallback(async (area: AreaRP) => {
     try {
       setErrorMsg(null);
       await onActualizarArea(area, area.nombre, !area.activo);
@@ -57,7 +60,7 @@ const AreasTab: React.FC<AreasTabProps> = ({
     } catch (err: any) {
       setErrorMsg(err.message || 'Error al cambiar estado del área');
     }
-  };
+  }, [onActualizarArea, setErrorMsg, setSuccessMsg]);
 
   const columns = useMemo<ColumnDef<AreaRP>[]>(() => [
     {
@@ -75,12 +78,11 @@ const AreasTab: React.FC<AreasTabProps> = ({
           <Input
             value={editAreaNombre}
             onChange={(e) => setEditAreaNombre(e.target.value)}
-            size="xs"
             className="w-full"
             autoFocus
           />
         ) : (
-          <Text weight="semibold" className="text-slate-800 dark:text-slate-200">{row.nombre}</Text>
+          <Text weight="medium" className="text-slate-800 dark:text-slate-200">{row.nombre}</Text>
         )
       ),
     },
@@ -89,39 +91,36 @@ const AreasTab: React.FC<AreasTabProps> = ({
       accessorKey: 'activo',
       align: 'center',
       cell: (row) => (
-        <Text as="span" className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          row.activo
-            ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
-            : 'bg-red-50 text-red-800 dark:bg-red-950/30 dark:text-red-300'
-        }`}>
-          <Text as="span" className={`w-1.5 h-1.5 rounded-full ${row.activo ? 'bg-emerald-500' : 'bg-red-500'}`} />
+        <Badge
+          variant={row.activo ? 'success' : 'surface'}
+          className={row.activo ? '' : 'text-slate-500 dark:text-slate-400'}
+        >
           {row.activo ? 'Activo' : 'Inactivo'}
-        </Text>
+        </Badge>
       ),
     },
     {
       header: 'Acciones',
-      accessorKey: 'acciones',
-      align: 'right',
-      enableColumnFilter: false,
+      accessorKey: 'id',
+      align: 'center',
       cell: (row) => (
         editingArea?.id === row.id ? (
-          <div className="flex gap-2 justify-end">
-            <Button size="sm" onClick={() => handleGuardarEdit(row)}>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20" onClick={() => handleGuardarEdit(row)}>
               Guardar
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setEditingArea(null)}>
+            <Button variant="ghost" size="sm" className="text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800" onClick={() => setEditingArea(null)}>
               Cancelar
             </Button>
           </div>
         ) : (
-          <div className="flex gap-2 justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { setEditingArea(row); setEditAreaNombre(row.nombre); }}
-              icon={Edit2}
-            />
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20" onClick={() => {
+              setEditingArea(row);
+              setEditAreaNombre(row.nombre);
+            }}>
+              Editar
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -134,7 +133,7 @@ const AreasTab: React.FC<AreasTabProps> = ({
         )
       ),
     }
-  ], [editingArea, editAreaNombre, onActualizarArea]);
+  ], [editingArea, editAreaNombre, handleGuardarEdit, handleToggleActivo]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

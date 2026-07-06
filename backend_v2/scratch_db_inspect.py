@@ -15,7 +15,7 @@ async def main():
             NominaRegistroNormalizado.mes_fact == 6,
             NominaRegistroNormalizado.año_fact == 2026
         ).limit(10)
-        result = await session.execute(stmt)
+        result = await session.execute(stmt)  # [CONTROLADO]
         regs = result.scalars().all()
         print("REGISTROS DE SEGUROS HDI EN 6/2026:")
         for r in regs:

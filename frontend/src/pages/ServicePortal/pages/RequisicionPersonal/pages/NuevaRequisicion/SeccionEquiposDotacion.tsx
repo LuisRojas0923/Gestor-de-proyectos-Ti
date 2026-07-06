@@ -76,16 +76,16 @@ const RadioCheckGroup = ({
 }) => {
   return (
     <div className="flex flex-col gap-1.5 h-full justify-start mt-2">
-      <label className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-1">
+      <Text as="label" color="inherit" className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-1">
         {label}
-        {required && <span className="text-red-500">*</span>}
-        {labelHint && <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1 truncate" title={labelHint}>{labelHint}</span>}
-      </label>
+        {required && <Text as="span" color="inherit" className="text-red-500">*</Text>}
+        {labelHint && <Text as="span" color="inherit" className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1 truncate" title={labelHint}>{labelHint}</Text>}
+      </Text>
       <div className="flex flex-col gap-3 mt-1">
         {options.map((opt) => {
           const isSelected = value === opt.value;
           return (
-            <label
+            <Text as="label" color="inherit"
               key={opt.value}
               className="flex items-center gap-2 cursor-pointer group"
               onClick={() => onChange(opt.value)}
@@ -101,10 +101,10 @@ const RadioCheckGroup = ({
                   </svg>
                 )}
               </div>
-              <span className={`text-sm font-medium transition-colors ${isSelected ? 'text-[var(--color-text-primary)]' : 'text-slate-600 dark:text-slate-400 group-hover:text-[var(--color-text-primary)]'}`}>
+              <Text as="span" color="inherit" className={`text-sm font-medium transition-colors ${isSelected ? 'text-[var(--color-text-primary)]' : 'text-slate-600 dark:text-slate-400 group-hover:text-[var(--color-text-primary)]'}`}>
                 {opt.label}
-              </span>
-            </label>
+              </Text>
+            </Text>
           );
         })}
       </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { Title, Text, Button, MaterialCard } from '../../components/atoms';
 import { Plus, ListTodo } from 'lucide-react';
@@ -17,7 +17,7 @@ export const WbsTemplatesAdmin: React.FC = () => {
     const [modalEditNode, setModalEditNode] = useState<WbsActivityTree | null>(null);
     const [modalParentId, setModalParentId] = useState<number | null>(null);
 
-    const fetchTemplates = async () => {
+    const fetchTemplates = useCallback(async () => {
         setLoading(true);
         try {
             const data = await get('/desarrollos/plantillas/raices');
@@ -27,11 +27,11 @@ export const WbsTemplatesAdmin: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [get]);
 
     useEffect(() => {
         fetchTemplates();
-    }, []);
+    }, [fetchTemplates]);
 
     const handleCreateTemplate = () => {
         setSelectedTemplate(null);

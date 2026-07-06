@@ -17,7 +17,7 @@ const SummaryItem = ({ label, value, highlight = false, className = '' }: { labe
     <div className={`p-3 rounded-lg ${highlight ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30' : 'bg-slate-50 dark:bg-neutral-800/50'} ${className}`}>
       <Text variant="caption" className="text-slate-500 dark:text-slate-400 font-medium mb-1 block uppercase text-[10px] tracking-wider">{label}</Text>
       <Text variant="body2" className={`font-semibold ${highlight ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}`}>
-        {value || <span className="text-slate-400 italic font-normal">—</span>}
+        {value || <Text as="span" color="inherit" className="text-slate-400 italic font-normal">—</Text>}
       </Text>
     </div>
   );
@@ -27,15 +27,15 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
   const [req, setReq] = useState<RequisicionRP | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const cargar = () => {
+  const cargar = useCallback(() => {
     setLoading(true);
     getDetalleRequisicion(requisicionId)
       .then(setReq)
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, [requisicionId]);
 
-  useEffect(() => { cargar(); }, [requisicionId]);
+  useEffect(() => { cargar(); }, [cargar]);
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
@@ -91,14 +91,14 @@ const DetalleRequisicion: React.FC<Props> = ({ requisicionId, onBack }) => {
           </div>
         </div>
         {/* Botón imprimir */}
-        <button
+        <Button variant="custom"
           onClick={() => window.open(`/service-portal/requisicion-personal/print/${requisicionId}`, '_blank')}
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 border border-[var(--color-border)] bg-white dark:bg-neutral-900 hover:bg-slate-50 dark:hover:bg-neutral-800 hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] transition-all duration-150 shadow-sm"
           title="Imprimir Requisición"
         >
           <Printer className="w-3.5 h-3.5" />
           Imprimir
-        </button>
+        </Button>
       </div>
       {/* Main Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

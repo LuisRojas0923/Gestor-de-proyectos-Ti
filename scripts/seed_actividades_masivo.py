@@ -173,7 +173,7 @@ def parse_date(val: Optional[str]) -> Optional[date]:
 
 
 def validar_desarrollo(cur, desarrollo_id: str) -> bool:
-    cur.execute("SELECT id FROM desarrollos WHERE id = %s", (desarrollo_id,))
+    cur.execute("SELECT id FROM desarrollos WHERE id = %s", (desarrollo_id,))  # [CONTROLADO]
     return cur.fetchone() is not None
 
 

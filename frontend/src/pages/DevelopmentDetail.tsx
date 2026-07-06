@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useApi } from '../hooks/useApi';
@@ -88,7 +88,7 @@ const DevelopmentDetail: React.FC = () => {
     return value;
   };
 
-  const loadDevelopment = async () => {
+  const loadDevelopment = useCallback(async () => {
     if (!developmentId) return;
     setLoading(true);
     try {
@@ -99,12 +99,11 @@ const DevelopmentDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [developmentId, get]);
 
   useEffect(() => {
     loadDevelopment();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [developmentId, get]);
+  }, [loadDevelopment]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

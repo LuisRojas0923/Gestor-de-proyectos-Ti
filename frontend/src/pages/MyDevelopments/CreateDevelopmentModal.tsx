@@ -97,7 +97,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
             }
         };
         if (isOpen) fetchHierarchy();
-    }, [isOpen]);
+    }, [isOpen, get]);
 
     // ── Derivaciones jerárquicas ──────────────────────────────────────────
     const superiorId = useMemo(() =>

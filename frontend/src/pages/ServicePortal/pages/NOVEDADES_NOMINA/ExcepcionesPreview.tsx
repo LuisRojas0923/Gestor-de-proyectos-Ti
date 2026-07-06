@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Title, Text, Button, Select, Input, Badge, Checkbox } from '../../../../components/atoms';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Minus, Trash2, History, AlertTriangle, User, Calendar, CreditCard, DollarSign, ShieldOff, Percent } from 'lucide-react';
@@ -70,7 +70,7 @@ const ExcepcionesPreview: React.FC = () => {
         return parseFloat(val.replace(/\./g, '')) || 0;
     };
 
-    const fetchExcepciones = async () => {
+    const fetchExcepciones = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/excepciones/`);
@@ -81,9 +81,9 @@ const ExcepcionesPreview: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [addNotification]);
 
-    const fetchCatalog = async () => {
+    const fetchCatalog = useCallback(async () => {
         try {
             const res = await axios.get(`${API_CONFIG.BASE_URL}/novedades-nomina/catalogo`);
             if (res.data) {
@@ -102,13 +102,13 @@ const ExcepcionesPreview: React.FC = () => {
             console.error("Error fetching catalog:", err);
             addNotification('error', 'No se pudo cargar el listado de subcategorías');
         }
-    };
+    }, [addNotification, formData.subcategoria]);
 
     useEffect(() => {
         window.scrollTo({ top: 0 });
         fetchExcepciones();
         fetchCatalog();
-    }, []);
+    }, [fetchExcepciones, fetchCatalog]);
 
     const handleValidate = async () => {
         if (!formData.cedula) {
@@ -196,7 +196,7 @@ const ExcepcionesPreview: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = useCallback(async (id: number) => {
         if (!window.confirm('¿Estás seguro de eliminar esta excepción?')) return;
         try {
             await axios.delete(`${API_CONFIG.BASE_URL}/novedades-nomina/excepciones/${id}`);
@@ -205,7 +205,7 @@ const ExcepcionesPreview: React.FC = () => {
         } catch (err) {
             addNotification('error', 'Error al eliminar');
         }
-    };
+    }, [addNotification, fetchExcepciones]);
 
     const columns = useMemo<ColumnDef<Excepcion>[]>(() => [
         { header: 'CÉDULA', accessorKey: 'cedula', align: 'center', cell: (row) => (
@@ -234,7 +234,7 @@ const ExcepcionesPreview: React.FC = () => {
                 </Button>
             </div>
         )}
-    ], []);
+    ], [handleDelete]);
 
     return (
         <div className="max-w-[1400px] mx-auto space-y-6 animate-in fade-in duration-500 pb-12">

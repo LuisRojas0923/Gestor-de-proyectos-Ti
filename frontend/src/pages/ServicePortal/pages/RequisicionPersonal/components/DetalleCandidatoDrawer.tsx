@@ -25,7 +25,7 @@ export const FilaCandidatoCompacta: React.FC<FilaCandidatoCompactaProps> = ({ it
   const isParalelo   = item.postulaciones_activas > 1;
 
   return (
-    <button
+    <Button variant="custom"
       onClick={onSelect}
       className="w-full flex items-center justify-between p-4 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-indigo-500 hover:shadow-md transition-all rounded-xl text-left gap-4 group animate-in fade-in duration-200"
     >
@@ -40,14 +40,14 @@ export const FilaCandidatoCompacta: React.FC<FilaCandidatoCompactaProps> = ({ it
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {isParalelo && (
-          <span className="flex items-center gap-1 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Paralelo
-          </span>
+          <Text as="span" color="inherit" className="flex items-center gap-1 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-bold">
+            <Text as="span" color="inherit" className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Paralelo
+          </Text>
         )}
         {isRecurrente && (
-          <span className="flex items-center gap-1 text-[10px] bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full font-bold">
+          <Text as="span" color="inherit" className="flex items-center gap-1 text-[10px] bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full font-bold">
             {item.total_postulaciones} RPs
-          </span>
+          </Text>
         )}
         {item.contratado ? (
           <Badge variant="success" size="xs">Contratado</Badge>
@@ -56,7 +56,7 @@ export const FilaCandidatoCompacta: React.FC<FilaCandidatoCompactaProps> = ({ it
         )}
         <X className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors rotate-45" />
       </div>
-    </button>
+    </Button>
   );
 };
 
@@ -109,11 +109,11 @@ export const DetalleCandidatoDrawer: React.FC<DetalleCandidatoDrawerProps> = ({ 
               <div className="mt-1 flex justify-center items-center relative h-7">
                 {item.contratado ? (
                   <>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping absolute" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 relative" />
+                    <Text as="span" color="inherit" className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping absolute" />
+                    <Text as="span" color="inherit" className="w-2.5 h-2.5 rounded-full bg-emerald-500 relative" />
                   </>
                 ) : (
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                  <Text as="span" color="inherit" className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
                 )}
               </div>
             </div>
@@ -142,9 +142,9 @@ export const DetalleCandidatoDrawer: React.FC<DetalleCandidatoDrawerProps> = ({ 
                     {/* Timeline Step Card */}
                     <div className="bg-white dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-indigo-500/30 hover:shadow-sm transition-all space-y-3">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded">
+                        <Text as="span" color="inherit" className="font-mono text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded">
                           {h.rp}
-                        </span>
+                        </Text>
                         {estadoBadge(h.estado_candidato)}
                       </div>
 
@@ -154,21 +154,21 @@ export const DetalleCandidatoDrawer: React.FC<DetalleCandidatoDrawerProps> = ({ 
                         </Text>
                         
                         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400">
-                          <span className="flex items-center gap-1">
+                          <Text as="span" color="inherit" className="flex items-center gap-1">
                             <Building2 className="w-3.5 h-3.5 shrink-0" />
                             {h.area || 'N/A'}
-                          </span>
-                          <span className="flex items-center gap-1">
+                          </Text>
+                          <Text as="span" color="inherit" className="flex items-center gap-1">
                             <MapPin className="w-3.5 h-3.5 shrink-0" />
                             {h.ciudad || 'N/A'}
-                          </span>
+                          </Text>
                         </div>
                       </div>
 
                       {h.empresa_temporal && (
                         <div className="text-xs bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                           <Briefcase className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                          <span>Temporal: <strong>{h.empresa_temporal}</strong></span>
+                          <Text as="span" color="inherit">Temporal: <strong>{h.empresa_temporal}</strong></Text>
                         </div>
                       )}
 

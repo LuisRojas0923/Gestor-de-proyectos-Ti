@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
@@ -60,7 +60,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ autoRefresh = true }) => {
         return () => clearTimeout(timer);
     }, []);
 
-    const fetchHistorial = async () => {
+    const fetchHistorial = useCallback(async () => {
         try {
             const result = await get('/panel-control/torre-control/historial?horas=24');
             if (Array.isArray(result)) {
@@ -71,7 +71,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ autoRefresh = true }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [get]);
 
     useEffect(() => {
         fetchHistorial();
@@ -80,7 +80,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ autoRefresh = true }) => {
             interval = setInterval(fetchHistorial, 60000);
         }
         return () => clearInterval(interval);
-    }, [autoRefresh]);
+    }, [autoRefresh, fetchHistorial]);
 
     if (loading) {
         return (

@@ -15,14 +15,19 @@ const AutocompleteObjectField = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
 
-  useEffect(() => {
+  const [prevValue, setPrevValue] = useState(value);
+  const [prevOptions, setPrevOptions] = useState(options);
+
+  if (value !== prevValue || options !== prevOptions) {
+    setPrevValue(value);
+    setPrevOptions(options);
     if (!value) {
       setSearchTerm('');
     } else {
       const match = options.find(o => o.value === value);
       if (match) setSearchTerm(match.label);
     }
-  }, [value, options]);
+  }
 
   const filtered = options
     .filter(o => o.label.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -202,7 +207,7 @@ export const SeccionAreaCargo: React.FC<Props> = ({ form, update, aprobadores })
         prevAreaIdRef.current = null;
       }
     }
-  }, [form.area_id]);
+  }, [form.area_id, update]);
 
   const areaOptions = [
     { value: '', label: 'SELECCIONAR ÁREA...' },
@@ -260,13 +265,13 @@ export const SeccionAreaCargo: React.FC<Props> = ({ form, update, aprobadores })
             <Text as="label" variant="body2" weight="medium" color="text-primary" className="block">
               Centro de costo <Text as="span" color="error" className="ml-1">*</Text>
             </Text>
-            <button
+            <Button variant="custom"
               type="button"
               onClick={() => setIsSimuladorOpen(true)}
               className="text-[11px] md:text-xs text-[var(--color-primary)] hover:underline font-medium text-right whitespace-nowrap bg-transparent border-none cursor-pointer"
             >
               ¿No lo conoce? Simulador aquí
-            </button>
+            </Button>
           </div>
           <Input
             name="centro_costo"

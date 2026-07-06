@@ -44,9 +44,9 @@ export const ModalSimuladorCentroCosto: React.FC<ModalSimuladorCentroCostoProps>
             <Text as="h3" variant="h3" className="font-bold text-[var(--color-text-primary)]">Simulador de Centro de Costos</Text>
             <Text as="p" variant="body2" className="text-[var(--color-text-secondary)]">Seleccione la UEN, el Proceso y la Especialidad para generar el código.</Text>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-full hover:bg-slate-200 dark:hover:bg-neutral-700">
+          <Button variant="custom" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-full hover:bg-slate-200 dark:hover:bg-neutral-700">
             <X size={24} />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}

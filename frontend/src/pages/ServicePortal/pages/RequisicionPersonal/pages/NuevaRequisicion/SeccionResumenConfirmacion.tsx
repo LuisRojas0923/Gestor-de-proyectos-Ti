@@ -20,7 +20,7 @@ const SummaryItem = ({ label, value, highlight = false, className = '' }: { labe
     <div className={`py-1.5 px-3 rounded-lg ${highlight ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30' : 'bg-slate-50 dark:bg-neutral-800/50'} ${className}`}>
       <Text variant="caption" className="text-slate-500 dark:text-slate-400 font-medium mb-1 block uppercase text-[10px] tracking-wider">{label}</Text>
       <Text variant="body2" className={`font-semibold ${highlight ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}`}>
-        {displayValue || <span className="text-slate-400 italic font-normal">No especificado</span>}
+        {displayValue || <Text as="span" color="inherit" className="text-slate-400 italic font-normal">No especificado</Text>}
       </Text>
     </div>
   );
@@ -134,15 +134,15 @@ export const SeccionResumenConfirmacion: React.FC<Props> = ({
             </Text>
           </div>
           <div className="flex items-center">
-            <label className="flex items-center gap-2.5 cursor-pointer px-4 py-2.5 bg-white dark:bg-neutral-800 rounded-lg border border-emerald-200 shadow-sm hover:border-emerald-400 transition-colors">
+            <Text as="label" color="inherit" className="flex items-center gap-2.5 cursor-pointer px-4 py-2.5 bg-white dark:bg-neutral-800 rounded-lg border border-emerald-200 shadow-sm hover:border-emerald-400 transition-colors">
               <Input
                 type="checkbox"
                 className="w-4 h-4 accent-emerald-600 rounded border-emerald-300"
                 checked={form.confirmacion}
                 onChange={e => update('confirmacion', e.target.checked)}
               />
-              <span className="font-bold text-sm text-emerald-700 dark:text-emerald-400">DECLARO Y ACEPTO</span>
-            </label>
+              <Text as="span" color="inherit" className="font-bold text-sm text-emerald-700 dark:text-emerald-400">DECLARO Y ACEPTO</Text>
+            </Text>
           </div>
         </div>
       </section>

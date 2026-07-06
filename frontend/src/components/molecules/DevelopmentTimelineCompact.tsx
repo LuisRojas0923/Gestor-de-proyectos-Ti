@@ -84,7 +84,7 @@ const DevelopmentTimelineCompact: React.FC<DevelopmentTimelineCompactProps> = ({
     };
 
     loadCycleFlow();
-  }, [developmentId]);
+  }, [developmentId, api]);
 
   // Función para mapear iconos según el código de etapa
   const getStageIcon = (stageCode: string): LucideIcon => {

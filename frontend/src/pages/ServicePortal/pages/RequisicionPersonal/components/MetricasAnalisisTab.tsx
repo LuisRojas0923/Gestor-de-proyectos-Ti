@@ -11,6 +11,14 @@ interface MetricasAnalisisTabProps {
   consolidado: ConsolidadoRPItem[];
 }
 
+const BG_COLORES_ESTADO: Record<string, string> = {
+  CONTRATADO: 'bg-emerald-500',
+  APLICA: 'bg-indigo-500',
+  NO_APLICA: 'bg-rose-500',
+  POR_EVALUAR: 'bg-amber-500',
+  DEFAULT: 'bg-slate-400'
+};
+
 const COLORES_ESTADO: Record<string, string> = {
   CONTRATADO: '#10b981', // emerald-500
   APLICA: '#6366f1',     // indigo-500
@@ -290,9 +298,8 @@ export const MetricasAnalisisTab: React.FC<MetricasAnalisisTabProps> = ({ consol
                   {datosEstado.map((entry) => (
                     <div key={entry.name} className="flex items-center justify-between text-xs border-b border-slate-50 dark:border-slate-800 pb-1 last:border-0">
                       <div className="flex items-center gap-2">
-                        <span 
-                          className="w-2.5 h-2.5 rounded-full shrink-0" 
-                          style={{ backgroundColor: COLORES_ESTADO[entry.key] || COLORES_ESTADO.DEFAULT }} 
+                        <Text as="span" color='inherit' 
+                          className={`w-2.5 h-2.5 rounded-full shrink-0 ${BG_COLORES_ESTADO[entry.key] || BG_COLORES_ESTADO.DEFAULT}`}
                         />
                         <Text size="xs" weight="medium" className="text-slate-600 dark:text-slate-300">{entry.name}</Text>
                       </div>

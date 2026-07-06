@@ -63,7 +63,7 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
   const [devolviendo, setDevolviendo] = useState(false);
 
 
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     setCargando(true);
     try {
       const [rt, cand, st, tt, causales] = await Promise.all([
@@ -84,12 +84,12 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
     } finally {
       setCargando(false);
     }
-  };
+  }, [requisicion.id]);
 
   useEffect(() => {
     cargarDatos();
     marcarVistaGH(requisicion.id).catch(() => {});
-  }, [requisicion.id]);
+  }, [requisicion.id, cargarDatos]);
 
   useEffect(() => {
     if (mostrarAgregarCand && asignadas.length > 0) {

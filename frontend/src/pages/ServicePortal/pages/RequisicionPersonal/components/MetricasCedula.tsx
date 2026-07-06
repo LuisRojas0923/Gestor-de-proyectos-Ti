@@ -141,7 +141,7 @@ const MetricasCedula: React.FC = () => {
           { id: 'consolidado', label: 'Consolidado RP', icon: Users },
           { id: 'analisis', label: 'Análisis de Candidatos', icon: BarChart2 },
         ] as { id: Tab; label: string; icon: React.FC<any> }[]).map(({ id, label, icon: Icon }) => (
-          <button
+          <Button variant="custom"
             key={id}
             onClick={() => setTab(id)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
@@ -152,7 +152,7 @@ const MetricasCedula: React.FC = () => {
           >
             <Icon className="w-4 h-4" />
             {label}
-          </button>
+          </Button>
         ))}
         <div className="ml-auto pb-1">
           <Button variant="ghost" icon={RefreshCw} onClick={cargar} disabled={loading} className="text-xs">
@@ -314,14 +314,14 @@ const MetricasCedula: React.FC = () => {
                         <td className="p-2 font-mono font-bold text-indigo-600 dark:text-indigo-400 border-r border-slate-100 dark:border-slate-800 text-center">{row.rp}</td>
                         <td className="p-2 border-r border-slate-100 dark:border-slate-800 text-left pl-4 font-medium text-[var(--color-text-primary)]">
                           {row.cedula ? (
-                            <button
+                            <Button variant="custom"
                               onClick={() => handleSelectCandidato(row.cedula, row.nombre_candidato)}
                               className="text-left font-bold text-indigo-650 dark:text-indigo-400 hover:underline hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
                             >
                               {row.nombre_candidato}
-                            </button>
+                            </Button>
                           ) : (
-                            <span>{row.nombre_candidato}</span>
+                            <Text as="span" color="inherit">{row.nombre_candidato}</Text>
                           )}
                         </td>
                         <td className="p-2 font-mono border-r border-slate-100 dark:border-slate-800 text-center">{row.cedula ?? '—'}</td>

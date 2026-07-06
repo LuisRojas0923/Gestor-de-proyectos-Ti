@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Plus, Edit2 } from 'lucide-react';
 import { Button, Input, Select, Subtitle, Text } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
@@ -47,18 +47,18 @@ const CargosTab: React.FC<CargosTabProps> = ({
   const [filtroArea, setFiltroArea] = useState<string>('todos');
   const [searchText, setSearchText] = useState('');
 
-  const getAreaNombre = (areaId: number) => {
+  const getAreaNombre = useCallback((areaId: number) => {
     const area = areas.find((a) => a.id === areaId);
     return area ? area.nombre : `Área ${areaId}`;
-  };
+  }, [areas]);
 
-  const getDirectorNombre = (aprobadorId?: number | null) => {
+  const getDirectorNombre = useCallback((aprobadorId?: number | null) => {
     if (!aprobadorId) return 'Ninguno';
     const aprobador = aprobadores.find((a) => a.id === aprobadorId);
     return aprobador
       ? `${aprobador.nombre_aprobador} (${getAreaNombre(aprobador.area_id)})`
       : `Director ${aprobadorId}`;
-  };
+  }, [aprobadores, getAreaNombre]);
 
   const handleCrearSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +94,7 @@ const CargosTab: React.FC<CargosTabProps> = ({
     }
   };
 
-  const handleToggleEstado = async (cargo: CargoRP) => {
+  const handleToggleEstado = useCallback(async (cargo: CargoRP) => {
     try {
       setErrorMsg(null);
       await onActualizarCargo(cargo.id, { activo: !cargo.activo });
@@ -102,7 +102,7 @@ const CargosTab: React.FC<CargosTabProps> = ({
     } catch (err: any) {
       setErrorMsg(err.message || 'Error al modificar estado del cargo');
     }
-  };
+  }, [onActualizarCargo, setErrorMsg, setSuccessMsg]);
 
   // --- Filtrado local ---
   const cargosFiltrados = useMemo<CargoTableData[]>(() => {
@@ -116,7 +116,7 @@ const CargosTab: React.FC<CargosTabProps> = ({
         area_nombre: getAreaNombre(c.area_id),
         director_nombre: getDirectorNombre(c.cargo_superior_id),
       }));
-  }, [cargos, filtroArea, areas, aprobadores]);
+  }, [cargos, filtroArea, getAreaNombre, getDirectorNombre]);
 
   // --- Definición de Columnas ---
   const columns = useMemo<ColumnDef<CargoTableData>[]>(() => [
@@ -187,7 +187,7 @@ const CargosTab: React.FC<CargosTabProps> = ({
         </div>
       ),
     },
-  ], [areas, aprobadores, onActualizarCargo]);
+  ], [handleToggleEstado]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

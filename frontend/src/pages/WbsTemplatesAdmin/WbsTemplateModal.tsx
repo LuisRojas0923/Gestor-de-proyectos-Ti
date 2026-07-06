@@ -27,7 +27,12 @@ export const WbsTemplateModal: React.FC<WbsTemplateModalProps> = ({
 
     const isDarkMode = document.documentElement.classList.contains('dark');
 
-    useEffect(() => {
+    const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+    const [prevEditNode, setPrevEditNode] = useState(editNode);
+
+    if (isOpen !== prevIsOpen || editNode !== prevEditNode) {
+        setPrevIsOpen(isOpen);
+        setPrevEditNode(editNode);
         if (isOpen) {
             if (editNode) {
                 setNombrePlantilla(editNode.nombre_plantilla || '');
@@ -41,7 +46,7 @@ export const WbsTemplateModal: React.FC<WbsTemplateModalProps> = ({
                 setHorasEstimadas(0);
             }
         }
-    }, [isOpen, editNode]);
+    }
 
     if (!isOpen) return null;
 

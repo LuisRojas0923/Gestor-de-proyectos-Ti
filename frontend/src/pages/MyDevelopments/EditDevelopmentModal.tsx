@@ -103,7 +103,7 @@ const EditDevelopmentModal: React.FC<EditDevelopmentModalProps> = ({
             }
         };
         fetchHierarchy();
-    }, []);
+    }, [get]);
 
     // ── Derivaciones jerárquicas ───────────────────────────────────────────
     const superiorId = useMemo(() =>

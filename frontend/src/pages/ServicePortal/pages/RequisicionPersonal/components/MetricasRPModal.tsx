@@ -41,7 +41,8 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
   // Años disponibles (desde el primer registro hasta hoy)
   const aniosDisponibles = useMemo(() => {
     const set = new Set<number>();
-    set.add(now.getFullYear());
+    const currentYear = new Date().getFullYear();
+    set.add(currentYear);
     requisiciones.forEach(r => {
       const d = fmt(r.fecha_decision_gerente);
       if (d) set.add(d.getFullYear());
@@ -202,7 +203,7 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
         <div className="flex items-center gap-3">
           {/* Toggle tabs */}
           <div className="flex items-center gap-1 bg-[var(--color-background)] border border-[var(--color-border)] rounded-xl p-1">
-            <button
+            <Button variant="custom"
               onClick={() => setTabActiva('globales')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
                 tabActiva === 'globales'
@@ -212,8 +213,8 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
             >
               <BarChart2 className="w-4 h-4" />
               Métricas Globales
-            </button>
-            <button
+            </Button>
+            <Button variant="custom"
               onClick={() => setTabActiva('cedula')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
                 tabActiva === 'cedula'
@@ -223,7 +224,7 @@ const MetricasRPModal: React.FC<MetricasRPModalProps> = ({ isOpen, onClose, requ
             >
               <Fingerprint className="w-4 h-4" />
               Métricas por Cédula
-            </button>
+            </Button>
           </div>
           {/* Filtro Mes/Año solo en tab globales */}
           {tabActiva === 'globales' && (

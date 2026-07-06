@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Title, Text, Button, MaterialCard, Input, Select } from '../../../../components/atoms';
 import { FilterDropdown } from '../../../../components/molecules';
@@ -58,7 +58,7 @@ const Formato2276DataTable: React.FC<Formato2276DataTableProps> = ({ onBack }) =
 
     const isContabilidad = user?.role === 'contabilidad' || user?.role === 'admin' || user?.role === 'admin_sistemas';
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const res = await ImpuestosService.getRegistrosExogena(selectedYear ? Number(selectedYear) : undefined);
@@ -68,13 +68,13 @@ const Formato2276DataTable: React.FC<Formato2276DataTableProps> = ({ onBack }) =
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedYear, addNotification]);
 
     useEffect(() => {
         if (isContabilidad) {
             fetchData();
         }
-    }, [selectedYear, isContabilidad]);
+    }, [isContabilidad, fetchData]);
 
     const filteredData = useMemo(() => {
         if (!isContabilidad) return [];

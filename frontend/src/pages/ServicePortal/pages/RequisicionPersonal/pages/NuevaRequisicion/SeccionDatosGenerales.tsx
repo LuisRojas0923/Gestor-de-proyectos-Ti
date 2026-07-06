@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { MapPin, Briefcase, User, Hash, Calendar, HardHat } from 'lucide-react';
 import { Button, Input, Select, Text } from '../../../../../../components/atoms';
 import { FormField } from '../../../Common';
@@ -95,15 +95,17 @@ const AsyncOTAutocompleteField = ({
   const [options, setOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
     setSearchTerm(value);
-  }, [value]);
+  }
 
   useEffect(() => {
     if (!showDropdown) return;
     if (searchTerm === 'N/A') {
-      setOptions(['N/A']);
-      return;
+      const immediateTimer = setTimeout(() => setOptions(['N/A']), 0);
+      return () => clearTimeout(immediateTimer);
     }
     
     const timeout = setTimeout(async () => {
@@ -161,8 +163,8 @@ const AsyncOTAutocompleteField = ({
       />
       {otError && (
         <div className="mt-2 p-2.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl text-xs text-red-700 dark:text-red-400 font-semibold flex items-start gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-          <span className="text-red-600 dark:text-red-400 font-bold select-none">⚠</span>
-          <span>{otError}</span>
+          <Text as="span" color="inherit" className="text-red-600 dark:text-red-400 font-bold select-none">⚠</Text>
+          <Text as="span" color="inherit">{otError}</Text>
         </div>
       )}
       {validatingOt && (
@@ -208,16 +210,16 @@ const RadioCheckGroup = ({
 }) => {
   return (
     <div className="flex flex-col gap-1.5 h-full justify-start">
-      <label className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-1">
+      <Text as="label" color="inherit" className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-1">
         {label}
-        {required && <span className="text-red-500">*</span>}
-        {labelHint && <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1 truncate" title={labelHint}>{labelHint}</span>}
-      </label>
+        {required && <Text as="span" color="inherit" className="text-red-500">*</Text>}
+        {labelHint && <Text as="span" color="inherit" className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1 truncate" title={labelHint}>{labelHint}</Text>}
+      </Text>
       <div className="flex flex-wrap gap-4 mt-2">
         {options.map((opt) => {
           const isSelected = value === opt.value;
           return (
-            <label
+            <Text as="label" color="inherit"
               key={opt.value}
               className="flex items-center gap-2 cursor-pointer group"
               onClick={() => onChange(opt.value)}
@@ -233,10 +235,10 @@ const RadioCheckGroup = ({
                   </svg>
                 )}
               </div>
-              <span className={`text-sm font-medium transition-colors ${isSelected ? 'text-[var(--color-text-primary)]' : 'text-slate-600 dark:text-slate-400 group-hover:text-[var(--color-text-primary)]'}`}>
+              <Text as="span" color="inherit" className={`text-sm font-medium transition-colors ${isSelected ? 'text-[var(--color-text-primary)]' : 'text-slate-600 dark:text-slate-400 group-hover:text-[var(--color-text-primary)]'}`}>
                 {opt.label}
-              </span>
-            </label>
+              </Text>
+            </Text>
           );
         })}
       </div>
@@ -248,7 +250,7 @@ export const SeccionDatosGenerales: React.FC<Props> = ({ form, update, correoSol
   const [validatingOt, setValidatingOt] = useState(false);
   const [otError, setOtError] = useState<string | null>(null);
 
-  const realizarValidacionOT = async (otValor: string) => {
+  const realizarValidacionOT = useCallback(async (otValor: string) => {
     if (!otValor || otValor.trim() === '' || otValor.trim().toUpperCase() === 'N/A') {
       setOtError(null);
       if (setBloquearEnvio) setBloquearEnvio(false);
@@ -281,13 +283,13 @@ export const SeccionDatosGenerales: React.FC<Props> = ({ form, update, correoSol
     } finally {
       setValidatingOt(false);
     }
-  };
+  }, [setBloquearEnvio, update]);
 
   useEffect(() => {
     if (form.ot) {
       realizarValidacionOT(form.ot);
     }
-  }, []);
+  }, [form.ot, realizarValidacionOT]);
 
   const departamentoOptions = Object.keys(DIVIPOLA);
   const municipioOptions = form.departamento ? DIVIPOLA[form.departamento] || [] : [];

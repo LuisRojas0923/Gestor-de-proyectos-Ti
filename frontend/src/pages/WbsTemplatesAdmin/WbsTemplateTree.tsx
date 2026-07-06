@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { Title, Text, MaterialCard } from '../../components/atoms';
 import { Plus, ChevronDown, ChevronRight, Edit3, Trash2 } from 'lucide-react';
@@ -102,7 +102,7 @@ export const WbsTemplateTree: React.FC<WbsTemplateTreeProps> = ({ rootTemplate, 
 
     const isDarkMode = document.documentElement.classList.contains('dark');
 
-    const fetchTreeInfo = async () => {
+    const fetchTreeInfo = useCallback(async () => {
         setLoading(true);
         try {
             const data = await get(`/desarrollos/plantillas/${rootTemplate.id}/arbol`);
@@ -112,11 +112,11 @@ export const WbsTemplateTree: React.FC<WbsTemplateTreeProps> = ({ rootTemplate, 
         } finally {
             setLoading(false);
         }
-    };
+    }, [get, rootTemplate.id]);
 
     useEffect(() => {
         fetchTreeInfo();
-    }, [rootTemplate.id]);
+    }, [fetchTreeInfo]);
 
     const handleAddSubtask = (parentId: number, _rootNombre: string) => {
         setModalParentId(parentId);

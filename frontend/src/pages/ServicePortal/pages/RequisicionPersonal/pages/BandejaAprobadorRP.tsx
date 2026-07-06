@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Eye, CheckCircle, XCircle, RotateCcw, ArrowLeft, Printer } from 'lucide-react';
 import { Button, Text, Textarea, Title } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
@@ -26,15 +26,15 @@ const BandejaAprobadorRP: React.FC<Props> = ({ correoAprobador, onVer, onVolver 
   const [procesando, setProcesando] = useState(false);
   const [searchText, setSearchText] = useState('');
 
-  const cargar = () => {
+  const cargar = useCallback(() => {
     setLoading(true);
     getBandejaAprobador(correoAprobador)
       .then(setRequisiciones)
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, [correoAprobador]);
 
-  useEffect(() => { cargar(); }, [correoAprobador]);
+  useEffect(() => { cargar(); }, [cargar]);
 
   const handleAccion = async () => {
     if (!modal) return;

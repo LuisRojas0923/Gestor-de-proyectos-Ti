@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Search,
     Calendar,
@@ -49,7 +49,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user }) => {
     const [fechaDesde, setFechaDesde] = useState(new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]);
     const [fechaHasta, setFechaHasta] = useState(new Date().toISOString().split('T')[0]);
 
-    const fetchEstadoCuenta = async () => {
+    const fetchEstadoCuenta = useCallback(async () => {
         setIsLoading(true);
         try {
             const params = {
@@ -64,7 +64,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user }) => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [fechaDesde, fechaHasta, user.cedula, user.id]);
 
     const handleExportExcel = async () => {
         try {
@@ -85,7 +85,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user }) => {
 
     useEffect(() => {
         fetchEstadoCuenta();
-    }, []);
+    }, [fetchEstadoCuenta]);
 
     return (
         <div className="flex flex-col h-[calc(100vh-70px)] overflow-hidden pb-2 bg-[var(--color-background)]">

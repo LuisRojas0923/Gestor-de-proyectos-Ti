@@ -21,7 +21,7 @@ with engine.connect() as conn:
     HAVING COUNT(*) > 1
     ORDER BY count DESC
     """
-    res = conn.execute(text(query)).fetchall()
+    res = conn.execute(text(query)).fetchall()  # [CONTROLADO]
     if not res:
         print("Ninguno.")
     for r in res:
@@ -29,6 +29,6 @@ with engine.connect() as conn:
         
         # Consultar los IDs específicos de este duplicado
         subq = "SELECT id, nombre FROM cargos_rp WHERE UPPER(nombre) = :nombre AND area_id = (SELECT id FROM areas_rp WHERE nombre = :area)"
-        subres = conn.execute(text(subq), {"nombre": r[0], "area": r[1]}).fetchall()
+        subres = conn.execute(text(subq), {"nombre": r[0], "area": r[1]}).fetchall()  # [CONTROLADO]
         for sr in subres:
             print(f"    - ID: {sr[0]} | Nombre original: '{sr[1]}'")

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Eye, Edit, Plus, ArrowLeft, Send, XCircle, Printer, Briefcase } from 'lucide-react';
 import { Button, Text, Title } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
@@ -21,26 +21,26 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
 
-  const cargar = () => {
+  const cargar = useCallback(() => {
     setLoading(true);
     getMisRequisiciones(correoSolicitante)
       .then(setRequisiciones)
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, [correoSolicitante]);
 
-  useEffect(() => { cargar(); }, [correoSolicitante]);
+  useEffect(() => { cargar(); }, [cargar]);
 
-  const handleCancelar = async (id: number) => {
+  const handleCancelar = useCallback(async (id: number) => {
     if (!window.confirm('¿Está seguro de cancelar esta requisición?')) return;
     await cancelarRequisicion(id, correoSolicitante, nombreSolicitante);
     cargar();
-  };
+  }, [correoSolicitante, nombreSolicitante, cargar]);
 
-  const handleReenviar = async (id: number) => {
+  const handleReenviar = useCallback(async (id: number) => {
     await enviarAAprobacion(id, correoSolicitante, nombreSolicitante);
     cargar();
-  };
+  }, [correoSolicitante, nombreSolicitante, cargar]);
 
   const columns = useMemo<ColumnDef<RequisicionRP>[]>(() => [
     {

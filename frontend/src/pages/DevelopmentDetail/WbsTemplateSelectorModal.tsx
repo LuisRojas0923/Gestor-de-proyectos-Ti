@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { Title, Text, Button } from '../../components/atoms';
 import { X } from 'lucide-react';
@@ -21,7 +21,7 @@ export const WbsTemplateSelectorModal: React.FC<WbsTemplateSelectorModalProps> =
 
     const isDarkMode = document.documentElement.classList.contains('dark');
 
-    const fetchTemplates = async () => {
+    const fetchTemplates = useCallback(async () => {
         setLoading(true);
         try {
             const data = await get('/desarrollos/plantillas/raices');
@@ -31,14 +31,21 @@ export const WbsTemplateSelectorModal: React.FC<WbsTemplateSelectorModalProps> =
         } finally {
             setLoading(false);
         }
-    };
+    }, [get]);
+
+    const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+    if (isOpen !== prevIsOpen) {
+        setPrevIsOpen(isOpen);
+        if (isOpen) {
+            setSelectedTemplateId(null);
+        }
+    }
 
     useEffect(() => {
         if (isOpen) {
             fetchTemplates();
-            setSelectedTemplateId(null);
         }
-    }, [isOpen]);
+    }, [isOpen, fetchTemplates]);
 
     if (!isOpen) return null;
 

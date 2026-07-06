@@ -4,6 +4,8 @@ import { useParams } from 'react-router-dom';
 import { getDetalleRequisicion } from '../services/requisicionService';
 import type { RequisicionRP } from '../types/requisicion.types';
 import logo from '../../../../../assets/images/logos/logo.png';
+import { Text, Button } from '../../../../../components/atoms';
+
 
 const PrintRequisicionRP: React.FC = () => {
   const { id } = useParams();
@@ -14,18 +16,24 @@ const PrintRequisicionRP: React.FC = () => {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
+    let timerId: ReturnType<typeof setTimeout>;
+
     getDetalleRequisicion(Number(id))
       .then(data => {
         setReq(data);
         if (!printTriggered.current) {
           printTriggered.current = true;
-          setTimeout(() => {
+          timerId = setTimeout(() => {
             window.print();
           }, 500); // Dar un poco de tiempo para renderizar
         }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    return () => {
+      if (timerId) clearTimeout(timerId);
+    };
   }, [id]);
 
   if (loading) {
@@ -96,43 +104,19 @@ const PrintRequisicionRP: React.FC = () => {
       
       {/* Botón flotante para re-imprimir si el usuario canceló el diálogo */}
       <div className="fixed top-4 right-4 no-print">
-        <button 
+        <Button variant="custom" 
           onClick={() => window.print()}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg flex items-center gapy-1 px-2 hover:bg-blue-700"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
           Imprimir Documento
-        </button>
+        </Button>
       </div>
 
       {/* Marca de agua: solo si falta aprobación gerencial */}
       {faltaAprobacion && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            pointerEvents: 'none',
-            zIndex: 9999,
-          }}
-        >
-          <div
-            style={{
-              transform: 'rotate(-45deg)',
-              fontSize: '72px',
-              fontWeight: 900,
-              color: 'black',
-              opacity: 0.12,
-              whiteSpace: 'nowrap',
-              userSelect: 'none',
-              letterSpacing: '4px',
-              fontFamily: 'sans-serif',
-              border: '8px solid black',
-              padding: '16px 32px',
-            }}
-          >
+        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-[9999]">
+          <div className="-rotate-45 text-[72px] font-black text-black opacity-[0.12] whitespace-nowrap select-none tracking-[4px] font-sans border-[8px] border-black py-4 px-8">
             FALTA APROBACION
           </div>
         </div>
@@ -145,16 +129,16 @@ const PrintRequisicionRP: React.FC = () => {
             <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">
               Requisición de Personal
             </h1>
-            <span className="text-sm font-medium text-slate-600">
+            <Text as="span" color="inherit" className="text-sm font-medium text-slate-600">
               RECURSOS HUMANOS — RDX SOLUTIONS
-            </span>
+            </Text>
           </div>
           <div className="text-right flex flex-col items-end">
              {/* Fallback en caso de que logo no cargue bien en print */}
              <div className="font-bold text-xl text-blue-900 tracking-wider">RDX</div>
-             <span className="font-mono text-lg font-bold bg-slate-100 px-3 py-1 rounded-md mt-1 border border-slate-300">
+             <Text as="span" color="inherit" className="font-mono text-lg font-bold bg-slate-100 px-3 py-1 rounded-md mt-1 border border-slate-300">
                {req.rp || 'SIN NÚMERO'}
-             </span>
+             </Text>
           </div>
         </div>
 
@@ -186,40 +170,40 @@ const PrintRequisicionRP: React.FC = () => {
           </div>
           <div className="grid grid-cols-2">
             <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Ubicación:</span>
-              <span className="text-right font-medium">{req.departamento && req.municipio ? `${req.departamento} - ${req.municipio}` : '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Ubicación:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.departamento && req.municipio ? `${req.departamento} - ${req.municipio}` : '—'}</Text>
             </div>
             <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Centro de Costo:</span>
-              <span className="text-right font-medium">{req.centro_costo || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Centro de Costo:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.centro_costo || '—'}</Text>
             </div>
             <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">OT / Proyecto:</span>
-              <span className="text-right font-medium">{req.ot || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">OT / Proyecto:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.ot || '—'}</Text>
             </div>
             <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Nombre Obra:</span>
-              <span className="text-right font-medium">{req.nombre_obra_proyecto || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Nombre Obra:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.nombre_obra_proyecto || '—'}</Text>
             </div>
             <div className="border-b border-r border-slate-300 py-1 px-2 col-span-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Dirección Obra:</span>
-              <span className="text-right font-medium">{req.direccion_obra_proyecto || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Dirección Obra:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.direccion_obra_proyecto || '—'}</Text>
             </div>
             <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Encargado Sitio:</span>
-              <span className="text-right font-medium">{req.encargado_sitio || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Encargado Sitio:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.encargado_sitio || '—'}</Text>
             </div>
             <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Vacantes Requeridas:</span>
-              <span className="text-right font-medium">{req.numero_personas_requeridas} vacante(s)</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Vacantes Requeridas:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.numero_personas_requeridas} vacante(s)</Text>
             </div>
             <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">TSA Requerido:</span>
-              <span className="text-right font-medium">{req.tsa || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">TSA Requerido:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.tsa || '—'}</Text>
             </div>
             <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Fecha Probable Ingreso:</span>
-              <span className="text-right font-medium">{req.fecha_probable_ingreso || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Fecha Probable Ingreso:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.fecha_probable_ingreso || '—'}</Text>
             </div>
           </div>
         </div>
@@ -230,20 +214,20 @@ const PrintRequisicionRP: React.FC = () => {
           </div>
           <div className="grid grid-cols-1">
             <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px] w-1/4">Área:</span>
-              <span className="text-left font-medium w-3/4">{req.area_nombre || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px] w-1/4">Área:</Text>
+              <Text as="span" color="inherit" className="text-left font-medium w-3/4">{req.area_nombre || '—'}</Text>
             </div>
             <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px] w-1/4">Cargo:</span>
-              <span className="text-left font-medium w-3/4">{req.cargo_nombre || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px] w-1/4">Cargo:</Text>
+              <Text as="span" color="inherit" className="text-left font-medium w-3/4">{req.cargo_nombre || '—'}</Text>
             </div>
             <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px] w-1/4">Causal / Justificación:</span>
-              <span className="text-left font-medium w-3/4">{req.causal_requisicion} {req.otra_causal ? ` - ${req.otra_causal}` : ''}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px] w-1/4">Causal / Justificación:</Text>
+              <Text as="span" color="inherit" className="text-left font-medium w-3/4">{req.causal_requisicion} {req.otra_causal ? ` - ${req.otra_causal}` : ''}</Text>
             </div>
             <div className="border-b border-r border-slate-300 py-1 px-2 flex flex-col">
-              <span className="font-bold text-slate-600 text-[9px] mb-0.5">Perfil Requerido:</span>
-              <span className="text-left font-medium whitespace-pre-wrap">{req.perfil_requerido || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px] mb-0.5">Perfil Requerido:</Text>
+              <Text as="span" color="inherit" className="text-left font-medium whitespace-pre-wrap">{req.perfil_requerido || '—'}</Text>
             </div>
           </div>
         </div>
@@ -254,40 +238,40 @@ const PrintRequisicionRP: React.FC = () => {
           </div>
           <div className="grid grid-cols-2">
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Salario Asignado:</span>
-              <span className="text-right font-black">{formatCOP(req.salario_asignado)}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Salario Asignado:</Text>
+              <Text as="span" color="inherit" className="text-right font-black">{formatCOP(req.salario_asignado)}</Text>
             </div>
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Horas Extras:</span>
-              <span className="text-right font-medium">{req.horas_extras || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Horas Extras:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.horas_extras || '—'}</Text>
             </div>
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Modalidad:</span>
-              <span className="text-right font-medium">{req.modalidad_contratacion || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Modalidad:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.modalidad_contratacion || '—'}</Text>
             </div>
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Tipo Contrato:</span>
-              <span className="text-right font-medium">{req.tipo_contratacion || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Tipo Contrato:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.tipo_contratacion || '—'}</Text>
             </div>
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Aux. Movilización:</span>
-              <span className="text-right font-medium">{formatCOP(req.auxilio_movilizacion)}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Aux. Movilización:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{formatCOP(req.auxilio_movilizacion)}</Text>
             </div>
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Aux. Alimentación:</span>
-              <span className="text-right font-medium">{formatCOP(req.auxilio_alimentacion)}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Aux. Alimentación:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{formatCOP(req.auxilio_alimentacion)}</Text>
             </div>
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Aux. Vivienda:</span>
-              <span className="text-right font-medium">{formatCOP(req.auxilio_vivienda)}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Aux. Vivienda:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{formatCOP(req.auxilio_vivienda)}</Text>
             </div>
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px]">Duración Contrato/Obra:</span>
-              <span className="text-right font-medium">{req.duracion_obra_contrato || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px]">Duración Contrato/Obra:</Text>
+              <Text as="span" color="inherit" className="text-right font-medium">{req.duracion_obra_contrato || '—'}</Text>
             </div>
              <div className="border-b border-r border-slate-300 py-1 px-2 col-span-2 flex justify-between bg-slate-50">
-              <span className="font-bold text-slate-800 text-[9px]">TOTAL INGRESOS (Salario + Auxilios):</span>
-              <span className="text-right font-black text-slate-800 text-[11px]">{formatCOP(totalIngresos)}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-800 text-[9px]">TOTAL INGRESOS (Salario + Auxilios):</Text>
+              <Text as="span" color="inherit" className="text-right font-black text-slate-800 text-[11px]">{formatCOP(totalIngresos)}</Text>
             </div>
           </div>
         </div>
@@ -298,20 +282,20 @@ const PrintRequisicionRP: React.FC = () => {
           </div>
           <div className="grid grid-cols-1">
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px] w-1/3">Equipos Oficina:</span>
-              <span className="text-left font-medium w-2/3">{req.equipos_oficina?.map(e => e.equipo).join(', ') || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px] w-1/3">Equipos Oficina:</Text>
+              <Text as="span" color="inherit" className="text-left font-medium w-2/3">{req.equipos_oficina?.map(e => e.equipo).join(', ') || '—'}</Text>
             </div>
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px] w-1/3">Equipos Tecnológicos:</span>
-              <span className="text-left font-medium w-2/3">{req.equipos_tecnologicos?.map(e => e.equipo).join(', ') || '—'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px] w-1/3">Equipos Tecnológicos:</Text>
+              <Text as="span" color="inherit" className="text-left font-medium w-2/3">{req.equipos_tecnologicos?.map(e => e.equipo).join(', ') || '—'}</Text>
             </div>
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px] w-1/3">SIMCARD:</span>
-              <span className="text-left font-medium w-2/3">{req.requiere_simcard === 'SI' ? `Sí - ${req.tipo_plan_simcard}` : 'No'}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px] w-1/3">SIMCARD:</Text>
+              <Text as="span" color="inherit" className="text-left font-medium w-2/3">{req.requiere_simcard === 'SI' ? `Sí - ${req.tipo_plan_simcard}` : 'No'}</Text>
             </div>
              <div className="border-b border-r border-slate-300 py-1 px-2 flex justify-between">
-              <span className="font-bold text-slate-600 text-[9px] w-1/3">Programas Especiales:</span>
-              <span className="text-left font-medium w-2/3">{req.programas_especiales || (req.requiere_programas_especiales === 'NO' ? 'No' : '—')}</span>
+              <Text as="span" color="inherit" className="font-bold text-slate-600 text-[9px] w-1/3">Programas Especiales:</Text>
+              <Text as="span" color="inherit" className="text-left font-medium w-2/3">{req.programas_especiales || (req.requiere_programas_especiales === 'NO' ? 'No' : '—')}</Text>
             </div>
           </div>
         </div>

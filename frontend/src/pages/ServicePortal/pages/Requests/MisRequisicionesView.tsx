@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, RefreshCw, Eye, Download, Search } from 'lucide-react';
@@ -28,7 +28,7 @@ const MisRequisicionesView: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    const fetchSolicitudes = async () => {
+    const fetchSolicitudes = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await axios.get(`${API_BASE_URL}/erp/requisiciones/mis-solicitudes`, {
@@ -41,12 +41,11 @@ const MisRequisicionesView: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [addNotification]);
 
     useEffect(() => {
         fetchSolicitudes();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [fetchSolicitudes]);
 
     const filteredSolicitudes = solicitudes.filter(sol =>
         sol.codigosolicitud?.toLowerCase().includes(searchTerm.toLowerCase()) ||

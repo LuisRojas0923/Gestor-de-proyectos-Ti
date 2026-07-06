@@ -197,7 +197,7 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
             >
               <MenuItem>
                 {({ focus }) => (
-                  <button
+                  <Button variant="custom"
                     onClick={() => setShowCausalesConfig(true)}
                     className={`${
                       focus ? 'bg-slate-100 dark:bg-slate-800' : ''
@@ -205,12 +205,12 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
                   >
                     <ListFilter className="mr-3 h-4 w-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300" />
                     Causales de Descarte
-                  </button>
+                  </Button>
                 )}
               </MenuItem>
               <MenuItem>
                 {({ focus }) => (
-                  <button
+                  <Button variant="custom"
                     onClick={() => setShowTemporalesConfig(true)}
                     className={`${
                       focus ? 'bg-slate-100 dark:bg-slate-800' : ''
@@ -218,7 +218,7 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
                   >
                     <Briefcase className="mr-3 h-4 w-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300" />
                     Empresas Temporales
-                  </button>
+                  </Button>
                 )}
               </MenuItem>
             </MenuItems>

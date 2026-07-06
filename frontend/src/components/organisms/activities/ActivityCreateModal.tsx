@@ -137,8 +137,14 @@ export const ActivityCreateModal: React.FC<ActivityCreateModalProps> = ({
     loadStages();
   }, [isOpen, get]);
 
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const [prevDefaultStageId, setPrevDefaultStageId] = useState(defaultStageId);
+
   // Reset wizard when modal closes
-  useEffect(() => {
+  if (isOpen !== prevIsOpen || defaultStageId !== prevDefaultStageId) {
+    setPrevIsOpen(isOpen);
+    setPrevDefaultStageId(defaultStageId);
+    
     if (!isOpen) {
       setErrors([]);
       setFormData({
@@ -159,7 +165,7 @@ export const ActivityCreateModal: React.FC<ActivityCreateModalProps> = ({
         dynamicPayload: {},
       });
     }
-  }, [isOpen, defaultStageId]);
+  }
 
   // Form handlers
   const handleStageChange = (stageId: number) => {

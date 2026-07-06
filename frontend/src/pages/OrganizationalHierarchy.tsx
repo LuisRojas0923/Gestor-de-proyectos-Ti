@@ -11,161 +11,9 @@ import { useApi } from '../hooks/useApi';
 import { useAppContext } from '../context/AppContext';
 import { HierarchyNode, HierarchyRelation, HierarchyUser } from '../types/hierarchy';
 
-// Configurador del auto-layout con Dagre
-const dagreGraph = new dagre.graphlib.Graph();
-dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-const nodeWidth = 175;
-const nodeHeight = 60;
-
-const getLayoutedElements = (nodes: FlowNode[], edges: Edge[], direction = 'TB') => {
-  const isHorizontal = direction === 'LR';
-  dagreGraph.setGraph({ 
-    rankdir: direction,
-    nodesep: 20, // Reducido para compactar horizontalmente
-    ranksep: 40, // Reducido para compactar verticalmente
-  });
-
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
-  });
-
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  dagre.layout(dagreGraph);
-
-  // Post-procesamiento para alinear verticalmente cadenas simples (padres con un único hijo directo)
-  const parentToChildren = new Map<string, string[]>();
-  edges.forEach((edge) => {
-    if (!parentToChildren.has(edge.source)) {
-      parentToChildren.set(edge.source, []);
-    }
-    parentToChildren.get(edge.source)!.push(edge.target);
-  });
-
-  let changed = true;
-  let safety = 0;
-  while (changed && safety < 10) {
-    changed = false;
-    nodes.forEach((node) => {
-      const children = parentToChildren.get(node.id) || [];
-      if (children.length === 1) {
-        const childId = children[0];
-        const dagreNode = dagreGraph.node(node.id);
-        const dagreChild = dagreGraph.node(childId);
-        if (dagreNode && dagreChild && dagreNode.x !== dagreChild.x) {
-          dagreNode.x = dagreChild.x;
-          changed = true;
-        }
-      }
-    });
-    safety++;
-  }
-
-  const newNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    return {
-      ...node,
-      targetPosition: isHorizontal ? Position.Left : Position.Top,
-      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
-      position: {
-        x: nodeWithPosition.x - nodeWidth / 2,
-        y: nodeWithPosition.y - nodeHeight / 2,
-      },
-      style: {
-        width: `${nodeWidth}px`,
-      }
-    };
-  });
-
-  return { nodes: newNodes, edges };
-};
-
-const getInitials = (name: string) => {
-  const parts = name.trim().split(' ');
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-};
-
-const formatShortName = (fullName: string) => {
-  if (!fullName) return '';
-  if (fullName.startsWith('[VACANTE]')) return fullName;
-  const parts = fullName.trim().split(/\s+/);
-  if (parts.length <= 1) return fullName;
-  
-  // Formato ERP: APELLIDO1 APELLIDO2 NOMBRE1 [NOMBRE2]
-  if (parts.length === 3) {
-    return `${parts[2]} ${parts[0]}`;
-  } else if (parts.length >= 4) {
-    return `${parts[2]} ${parts[0]}`;
-  }
-  return `${parts[1]} ${parts[0]}`;
-};
-
-const CustomNodeComponent = (props: any) => {
-  const { data, isConnectable } = props;
-  const { nodeData, level, selected, onSelect } = data;
-  const user = nodeData.usuario;
-  const isSelected = selected;
-  const isVacancy = user.id.startsWith('VAC-');
-  
-  const getLevelStyles = (lvl: number, isSelected: boolean) => {
-    if (isSelected) return '!border-[var(--color-primary)] bg-[var(--color-primary)]/10 shadow-md scale-105';
-    if (isVacancy) return 'border-dashed border-2 border-neutral-400 dark:border-neutral-600 bg-neutral-50/30 dark:bg-neutral-800/10 opacity-80 hover:opacity-100 transition-opacity';
-    switch (lvl) {
-      case 0: return 'border-primary-500/30 bg-gradient-to-br from-primary-500/5 to-primary-600/10 dark:from-primary-900/20 dark:to-primary-800/10';
-      case 1: return 'border-indigo-500/30 bg-gradient-to-br from-indigo-500/5 to-indigo-600/10 dark:from-indigo-900/20 dark:to-indigo-800/10';
-      case 2: return 'border-sky-500/30 bg-gradient-to-br from-sky-500/5 to-sky-600/10 dark:from-sky-900/20 dark:to-sky-800/10';
-      default: return 'border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-600/10 dark:from-emerald-900/20 dark:to-emerald-800/10';
-    }
-  };
-
-  const getAvatarColors = (lvl: number) => {
-    if (isVacancy) return 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 border-neutral-300 dark:border-neutral-700';
-    switch (lvl) {
-      case 0: return 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 border-primary-200 dark:border-primary-800';
-      case 1: return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800';
-      case 2: return 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300 border-sky-200 dark:border-sky-800';
-      default: return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
-    }
-  };
-
-  return (
-    <>
-      <Handle type="target" position={Position.Top} isConnectable={isConnectable} className="w-2 h-2 border-2 border-[var(--color-surface)] bg-neutral-300 dark:bg-neutral-600" />
-      <MaterialCard
-        onClick={() => onSelect(user.id)}
-        className={`p-2 w-full cursor-pointer transition-all border ${getLevelStyles(level, isSelected)}`}
-        elevation={isSelected ? 2 : 1}
-      >
-        <div className="flex items-center text-left gap-2">
-          {/* Initials Avatar - Compact */}
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm shrink-0 ${getAvatarColors(level)}`}>
-            {isVacancy ? (
-              <UserPlus size={14} className="opacity-80" />
-            ) : (
-              <Text className="!text-[10px] font-bold !m-0 leading-none tracking-tight">{getInitials(user.nombre)}</Text>
-            )}
-          </div>
-          
-          <div className="w-full min-w-0">
-            <Text className={`!text-[9.5px] font-bold leading-tight uppercase truncate block ${isVacancy ? 'text-neutral-500 dark:text-neutral-400 italic font-semibold' : ''}`} title={user.nombre}>
-              {formatShortName(user.nombre)}
-            </Text>
-            <Text className="!text-[8.5px] text-[var(--color-text-secondary)] leading-tight opacity-90 truncate block mt-0.5" title={user.cargo || user.rol}>
-              {user.cargo || user.rol}
-            </Text>
-          </div>
-        </div>
-      </MaterialCard>
-      <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} className="w-2 h-2 border-2 border-[var(--color-surface)] bg-neutral-300 dark:bg-neutral-600" />
-    </>
-  );
-};
-
+import { getLayoutedElements, formatShortName } from './OrganizationalHierarchy/utils';
+import { CustomNodeComponent } from './OrganizationalHierarchy/components/CustomNodeComponent';
+import { AutocompleteUserField } from './OrganizationalHierarchy/components/AutocompleteUserField';
 const nodeTypes = { custom: CustomNodeComponent };
 
 const FlowWithFitView: React.FC<{
@@ -232,7 +80,7 @@ const OrganizationalHierarchy: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [treeData, relationData, userData] = await Promise.all([
@@ -251,11 +99,11 @@ const OrganizationalHierarchy: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [get]);
 
   useEffect(() => {
     void fetchData();
-  }, []);
+  }, [fetchData]);
 
   const currentRelation = relations.find((relation) => relation.usuario_id === selectedUserId);
 
@@ -610,103 +458,6 @@ const OrganizationalHierarchy: React.FC = () => {
   );
 };
 
-const AutocompleteUserField: React.FC<{
-  label: string;
-  value: string;
-  users: HierarchyUser[];
-  onChange: (userId: string) => void;
-  excludeId?: string;
-  disabled?: boolean;
-  compact?: boolean;
-}> = ({ label, value, users, onChange, excludeId, disabled, compact }) => {
-  const availableUsers = users.filter((u) => u.id !== excludeId);
-  const selected = availableUsers.find((u) => u.id === value);
-
-  const [nombreInput, setNombreInput] = useState(selected?.nombre || '');
-  const [cedulaInput, setCedulaInput] = useState(selected?.cedula || '');
-  const [open, setOpen] = useState(false);
-  const [filterBy, setFilterBy] = useState<'nombre' | 'cedula'>('nombre');
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const u = availableUsers.find((u) => u.id === value);
-    setNombreInput(u?.nombre || '');
-    setCedulaInput(u?.cedula || '');
-  }, [value, users, excludeId]);
-
-  const filtered = availableUsers.filter((u) => {
-    if (filterBy === 'cedula') return (u.cedula || '').includes(cedulaInput.trim());
-    return u.nombre.toLowerCase().includes(nombreInput.trim().toLowerCase());
-  });
-
-  const select = (user: HierarchyUser) => {
-    setNombreInput(user.nombre);
-    setCedulaInput(user.cedula || '');
-    setOpen(false);
-    onChange(user.id);
-  };
-
-  const clear = () => {
-    setNombreInput('');
-    setCedulaInput('');
-    onChange('');
-  };
-
-  return (
-    <div ref={containerRef} className={`${compact ? 'flex items-center gap-2' : 'space-y-1'}`}>
-      <Text variant="caption" weight="bold" color="text-secondary" className={`uppercase tracking-wide shrink-0 ${compact ? '!text-[9px] w-14' : ''}`}>{label}</Text>
-      <div className="flex flex-1 gap-2">
-        <div className="w-24 shrink-0">
-          <Input
-            value={cedulaInput}
-            disabled={disabled}
-            placeholder="Cédula..."
-            onChange={(e) => { setCedulaInput(e.target.value); setFilterBy('cedula'); setOpen(true); if (!e.target.value) clear(); }}
-            onFocus={() => { setFilterBy('cedula'); setOpen(true); }}
-            className="h-8 text-xs"
-            size="xs"
-          />
-        </div>
-        <div className="relative flex-1">
-          <Input
-            value={nombreInput}
-            disabled={disabled}
-            placeholder="Nombre del empleado..."
-            onChange={(e) => { setNombreInput(e.target.value); setFilterBy('nombre'); setOpen(true); if (!e.target.value) clear(); }}
-            onFocus={() => { setFilterBy('nombre'); setOpen(true); }}
-            className="h-8 text-xs"
-            size="xs"
-          />
-          {open && filtered.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl max-h-52 overflow-y-auto custom-scrollbar">
-              {filtered.map((user) => (
-                <Button
-                  key={user.id}
-                  variant="custom"
-                  className="w-full px-4 py-2.5 text-left hover:bg-[var(--color-primary)]/10 transition-colors border-b border-[var(--color-border)] last:border-0"
-                  onMouseDown={() => select(user)}
-                >
-                  <Text variant="body2" weight="semibold" color="text-primary">{user.nombre}</Text>
-                  <Text variant="caption" color="text-secondary">{user.cedula} · {user.cargo || user.rol}</Text>
-                </Button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 
 

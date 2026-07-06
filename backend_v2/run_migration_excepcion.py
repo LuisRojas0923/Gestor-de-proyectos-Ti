@@ -20,6 +20,6 @@ WHERE excepcion_aplicada_id IS NOT NULL;
 """
 
 with engine.connect() as conn:
-    conn.execute(text(SQL))
+    conn.execute(text(SQL))  # [CONTROLADO]
     conn.commit()
     print("Migración ejecutada exitosamente: excepcion_aplicada_id agregada.")

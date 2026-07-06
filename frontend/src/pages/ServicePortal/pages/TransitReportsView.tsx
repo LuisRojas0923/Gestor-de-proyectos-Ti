@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, FileText, Trash2, Plus } from 'lucide-react';
 import { Button, Text, Title, MaterialCard, Spinner, Switch } from '../../../components/atoms';
 import { DeleteReportConfirmModal, ReportLockedModal } from '../../../components/molecules';
@@ -56,7 +56,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
     const [showHistory, setShowHistory] = useState(false);
     const { addNotification } = useNotifications();
 
-    const fetchReportes = async () => {
+    const fetchReportes = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await axios.get(`${API_BASE_URL}/viaticos/reportes/${user.cedula || user.id}`);
@@ -66,7 +66,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [user.cedula, user.id]);
 
     const [lockedReportId, setLockedReportId] = useState<string | null>(null);
 
@@ -100,7 +100,7 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
         if (user?.cedula || user?.id) {
             fetchReportes();
         }
-    }, [user?.cedula, user?.id]);
+    }, [user?.cedula, user?.id, fetchReportes]);
 
     const filteredReportes = showHistory
         ? reportes

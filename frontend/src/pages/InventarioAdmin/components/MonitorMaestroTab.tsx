@@ -276,7 +276,7 @@ const MonitorMaestroTab: React.FC<MonitorMaestroTabProps> = ({
         startTransition(() => {
             setColumnFilters(prev => ({ ...prev, [col]: values }));
         });
-    }, []);
+    }, [setColumnFilters]);
 
     const FilterHeader = React.memo(({ label, col, width = 'auto' }: { label: string, col: string, width?: string }) => {
         const options = useMemo(() => getOptionsForColumn(col), [col]);

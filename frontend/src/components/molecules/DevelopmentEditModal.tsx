@@ -54,8 +54,14 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
   const [errors, setErrors] = useState<string[]>([]);
   const [step, setStep] = useState(1);
 
+  const [prevDevelopment, setPrevDevelopment] = useState<DevelopmentData | null>(null);
+  const [prevIsOpen, setPrevIsOpen] = useState<boolean>(false);
+
   // Inicializar datos del formulario cuando se abre el modal
-  useEffect(() => {
+  if (isOpen !== prevIsOpen || development !== prevDevelopment) {
+    setPrevIsOpen(isOpen);
+    setPrevDevelopment(development);
+    
     if (isOpen && development) {
       setStep(1);
       setFormData({
@@ -75,7 +81,7 @@ const DevelopmentEditModal: React.FC<DevelopmentEditModalProps> = ({
       });
       setErrors([]);
     }
-  }, [isOpen, development]);
+  }
 
   // Validación del formulario
   const validateStep = (currentStep: number): string[] => {

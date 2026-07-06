@@ -13,6 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
     const { state } = useAppContext();
     const { user } = state;
     const location = useLocation();
+    const isAdminRole = useIsAdmin();
 
     if (!user) {
         // Redirigir al login si no hay usuario
@@ -21,7 +22,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
 
     // Normalizar rol del usuario de forma segura
     const userRole = (user.role || '').trim().toLowerCase();
-    const isAdminRole = useIsAdmin();
 
     // 1. Validación por módulo (RBAC Dinámico)
     // El Dashboard administrativo y la Torre de Control están permitidos para roles administrativos.

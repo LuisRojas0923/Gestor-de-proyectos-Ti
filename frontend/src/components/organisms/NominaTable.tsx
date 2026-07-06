@@ -57,14 +57,13 @@ export function NominaTable<T extends Record<string, any>>({
         sessionStorage.setItem(`${storageKey}_columns`, JSON.stringify(columnFilters));
     }, [columnFilters, storageKey]);
 
-    // Restaurar filtro global al montar
+        // Restaurar filtro global al montar
     useEffect(() => {
         const savedGlobal = sessionStorage.getItem(`${storageKey}_global`);
         if (savedGlobal && savedGlobal !== globalFilterText && onGlobalFilterChange) {
             onGlobalFilterChange(savedGlobal);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [storageKey, globalFilterText, onGlobalFilterChange]);
 
     // Guardar filtro global cuando cambie
     useEffect(() => {
@@ -124,7 +123,7 @@ export function NominaTable<T extends Record<string, any>>({
         }
 
         return result;
-    }, [data, globalFilterText, columnFilters, customSort]);
+    }, [data, globalFilterText, columnFilters, customSort, filterColumn, filterValue]);
 
     const handleExport = () => {
         if (filteredAndSortedData.length === 0) return;
