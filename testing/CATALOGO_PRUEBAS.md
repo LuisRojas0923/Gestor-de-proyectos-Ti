@@ -34,11 +34,20 @@ Ubicación: `testing/backend/`
 | **Jerarquía Organizacional** | `test_jerarquia_admin.py` | Reasignación de superiores, desactivación de relaciones, prevención de ciclos e historial. | ✅ PASSED |
 | **Asignación Jerárquica** | `test_asignacion_desarrollos_actividades.py` | Persistencia de responsable, ejecutor, delegador y estado de validación. | ✅ PASSED |
 | **Validaciones Asignación** | `test_validaciones_asignacion.py` | Creación automática de validaciones indirectas y resolución aprobada/rechazada. | ✅ PASSED |
-| **Eliminación Actividades** | `test_actividad_delete.py` | Eliminación en cascada de actividades y limpieza de validaciones asociadas. | ✅ PASSED |
+| **Anulación Actividades** | `test_actividad_delete.py` | Anulación lógica recursiva de actividades, metadatos de anulación y limpieza de validaciones asociadas. | ✅ PASSED |
 | **Prioridad Desarrollos** | `test_desarrollo_prioridad.py` | Ciclo CRUD de prioridades en desarrollos. | ✅ PASSED |
 | **Notificaciones** | `test_notificaciones.py` | Ciclo CRUD de notificaciones persistentes de usuario. | ✅ PASSED |
 
-### 2. Rendimiento (Locust)
+### 2. Frontend (Vitest)
+Ubicación: `frontend/src/`
+
+| Módulo | Archivo | Descripción | Estado |
+| :--- | :--- | :--- | :--- |
+| **Registro** | `pages/Login/RegisterSidebar.test.tsx` | Mensajes de autoactivación y normalización de errores de registro. | ✅ PASSED |
+| **Áreas** | `components/molecules/__tests__/AreaAutocomplete.test.tsx` | Selector buscable cerrado, requerido y con opciones estrictas. | ✅ PASSED |
+| **Anulación WBS** | `pages/DevelopmentDetail/DeleteActivityModal.test.tsx` | Modal confirma anulación lógica y evita copy de eliminación física. | ✅ PASSED |
+
+### 3. Rendimiento (Locust)
 Ubicación: `testing/backend/load_test.py`
 *   **Escenario Base**: Autenticación y navegación por el portal.
 *   **Capacidad**: Hasta 400 usuarios concurrentes.

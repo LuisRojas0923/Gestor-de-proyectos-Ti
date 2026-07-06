@@ -1,12 +1,64 @@
 import React, { useState } from 'react';
-import { X, User, Mail, Lock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, User, Mail, Lock, CheckCircle2 } from 'lucide-react';
 import { Button, Input, Title, Text } from '../../components/atoms';
+import { Callout } from '../../components/molecules';
 import { API_CONFIG, API_ENDPOINTS } from '../../config/api';
+import { getErrorMessage } from '../../utils/errors';
 
 interface RegisterSidebarProps {
     isOpen: boolean;
     onClose: () => void;
 }
+
+const getDefaultRegisterErrorMessage = (status: number): string => {
+    if (status === 403) {
+        return 'No fue posible activar tu cuenta porque tu usuario no figura activo en ERP/establecimiento. Verifica tus datos o contacta al administrador.';
+    }
+
+    if (status === 429) {
+        return 'Demasiados intentos. Espera unos minutos antes de intentarlo nuevamente.';
+    }
+
+    return 'Error al registrar la cuenta';
+};
+
+const formatApiDetail = (detail: unknown): string | null => {
+    if (typeof detail === 'string' && detail.trim()) return detail;
+
+    if (Array.isArray(detail)) {
+        const messages = detail
+            .map(item => {
+                if (typeof item === 'string') return item;
+                if (item && typeof item === 'object' && 'msg' in item && typeof (item as { msg: unknown }).msg === 'string') {
+                    return (item as { msg: string }).msg;
+                }
+                return null;
+            })
+            .filter((message): message is string => Boolean(message));
+
+        return messages.length > 0 ? messages.join('; ') : null;
+    }
+
+    return null;
+};
+
+const getRegisterErrorMessage = async (response: Response): Promise<string> => {
+    const fallback = getDefaultRegisterErrorMessage(response.status);
+
+    try {
+        const data: unknown = await response.json();
+        if (data && typeof data === 'object' && 'detail' in data) {
+            return formatApiDetail((data as { detail: unknown }).detail) ?? fallback;
+        }
+        if (data && typeof data === 'object' && 'message' in data && typeof (data as { message: unknown }).message === 'string') {
+            return (data as { message: string }).message || fallback;
+        }
+    } catch {
+        return fallback;
+    }
+
+    return fallback;
+};
 
 const RegisterSidebar: React.FC<RegisterSidebarProps> = ({ isOpen, onClose }) => {
     const [formData, setFormData] = useState({
@@ -63,13 +115,12 @@ const RegisterSidebar: React.FC<RegisterSidebarProps> = ({ isOpen, onClose }) =>
             });
 
             if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.detail || 'Error al registrar la cuenta');
+                throw new Error(await getRegisterErrorMessage(response));
             }
 
             setIsSuccess(true);
-        } catch (err: any) {
-            setError(err.message || 'Error de conexión');
+        } catch (err: unknown) {
+            setError(getErrorMessage(err, 'Error de conexión'));
         } finally {
             setIsLoading(false);
         }
@@ -116,12 +167,9 @@ const RegisterSidebar: React.FC<RegisterSidebarProps> = ({ isOpen, onClose }) =>
                                 <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                                     <CheckCircle2 size={40} />
                                 </div>
-                                <Title variant="h4" weight="bold" className="mb-3">¡Cuenta Creada!</Title>
+                                <Title variant="h4" weight="bold" className="mb-3">¡Cuenta activada!</Title>
                                 <Text variant="body1" className="text-[var(--color-text-secondary)] mb-6">
-                                    Tu cuenta ha sido creada exitosamente y está pendiente de aprobación por un administrador.
-                                </Text>
-                                <Text variant="body2" className="text-[var(--color-text-secondary)] mb-8">
-                                    Recibirás acceso al portal una vez que tu cuenta sea activada.
+                                    Tu cuenta fue creada y habilitada correctamente. Ya puedes iniciar sesión con tu identificación y contraseña.
                                 </Text>
                                 <Button
                                     variant="primary"
@@ -133,12 +181,11 @@ const RegisterSidebar: React.FC<RegisterSidebarProps> = ({ isOpen, onClose }) =>
                             </div>
                         ) : (
                             <form onSubmit={handleSubmit} className="space-y-5">
-                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl flex items-start space-x-3 mb-6 border border-blue-100 dark:border-blue-800">
-                                    <User size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
-                                    <Text variant="body2" className="text-blue-800 dark:text-blue-300">
-                                        Completa el formulario para registrarte en el portal. Tu cuenta quedará pendiente de aprobación.
+                                <Callout variant="info" icon={User} className="mb-6">
+                                    <Text variant="body2" color="inherit">
+                                        Completa el formulario para registrarte en el portal. Validaremos tu identificación con ERP/establecimiento y, si estás activo, tu cuenta quedará habilitada automáticamente.
                                     </Text>
-                                </div>
+                                </Callout>
 
                                 <Input
                                     type="text"
@@ -190,10 +237,9 @@ const RegisterSidebar: React.FC<RegisterSidebarProps> = ({ isOpen, onClose }) =>
                                 />
 
                                 {error && (
-                                    <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100 flex items-center space-x-2">
-                                        <AlertCircle size={18} className="flex-shrink-0" />
-                                        <Text as="span" variant="body2" className="!text-red-600">{error}</Text>
-                                    </div>
+                                    <Callout variant="error" role="alert">
+                                        <Text variant="body2" color="inherit">{error}</Text>
+                                    </Callout>
                                 )}
 
                                 <div className="pt-4 space-y-3">
