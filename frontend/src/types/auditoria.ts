@@ -52,8 +52,51 @@ export interface FiltrosAuditoria {
   codigo_respuesta?: number;
   direccion_ip?: string;
   resultado?: ResultadoAuditoria;
-  fecha_desde?: string;
   fecha_hasta?: string;
   page?: number;
   page_size?: number;
+}
+
+export interface StatsPorModulo {
+  modulo: string;
+  total: int;
+}
+
+export interface TipoFallo {
+  tipo: string;
+  total: number;
+}
+
+export interface StatsPorDia {
+  fecha: string;
+  total: number;
+}
+
+export interface TopUsuario {
+  usuario_nombre: string | null;
+  usuario_id: string;
+  total: number;
+  ultimo_evento: string | null;
+}
+
+export interface TopRuta {
+  ruta: string;
+  total: number;
+  fallos: number;
+}
+
+export interface AuditoriaEstadisticas {
+  total_eventos: number;
+  usuarios_unicos: number;
+  total_exitosos: number;
+  total_fallidos: number;
+  total_denegados: number;
+  total_fallos_auth: number;
+  tasa_exito: number;
+  modulo_mas_activo: string | null;
+  por_modulo: StatsPorModulo[];
+  tipos_fallos: TipoFallo[];
+  por_dia: StatsPorDia[];
+  top_usuarios: TopUsuario[];
+  top_rutas: TopRuta[];
 }

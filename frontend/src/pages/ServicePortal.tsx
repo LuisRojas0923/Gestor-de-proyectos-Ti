@@ -58,6 +58,7 @@ import TablaMaestraView from './ServicePortal/pages/NOVEDADES_NOMINA/TablaMaestr
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
 import ComisionesView from './ServicePortal/pages/Comisiones';
+import AuditoriaIndicadores from './ServicePortal/pages/AuditoriaIndicadores';
 
 import {
     CategoryWrapper,
@@ -199,8 +200,15 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'contabilidad') navigate('/service-portal/gestion-humana');
                             else if (v === 'gestion_actividades') navigate('/service-portal/gestion-actividades');
                             else if (v === 'comisiones') navigate('/service-portal/comisiones');
+                            else if (v === 'auditoria_indicadores') navigate('/service-portal/auditoria-indicadores');
                         }}
                     />
+                } />
+
+                <Route path="auditoria-indicadores" element={
+                    <ProtectedRoute moduleCode="auditoria_sistema">
+                        <AuditoriaIndicadores />
+                    </ProtectedRoute>
                 } />
 
                 {/* --- NUEVAS RUTAS DE REQUISICIONES / ALMACEN ERP --- */}

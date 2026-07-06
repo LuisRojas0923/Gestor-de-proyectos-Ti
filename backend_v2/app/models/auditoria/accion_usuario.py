@@ -89,3 +89,45 @@ class AuditoriaEventosPaginados(SQLModel):
     total: int
     page: int
     page_size: int
+
+class StatsPorModulo(SQLModel):
+    modulo: str
+    total: int
+
+class StatsPorResultado(SQLModel):
+    resultado: str
+    total: int
+
+class StatsPorDia(SQLModel):
+    fecha: str
+    total: int
+
+class TopUsuario(SQLModel):
+    usuario_nombre: Optional[str] = None
+    usuario_id: str
+    total: int
+    ultimo_evento: Optional[datetime] = None
+
+class TipoFallo(SQLModel):
+    tipo: str
+    total: int
+
+class TopRuta(SQLModel):
+    ruta: str
+    total: int
+    fallos: int
+
+class AuditoriaEstadisticas(SQLModel):
+    total_eventos: int
+    usuarios_unicos: int
+    total_exitosos: int
+    total_fallidos: int
+    total_denegados: int
+    total_fallos_auth: int
+    tasa_exito: float
+    modulo_mas_activo: Optional[str] = None
+    por_modulo: List[StatsPorModulo]
+    tipos_fallos: List[TipoFallo]
+    por_dia: List[StatsPorDia]
+    top_usuarios: List[TopUsuario]
+    top_rutas: List[TopRuta]

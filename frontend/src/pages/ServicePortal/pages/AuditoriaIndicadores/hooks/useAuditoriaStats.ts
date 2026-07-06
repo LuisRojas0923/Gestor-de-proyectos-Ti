@@ -1,0 +1,102 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useApi } from '../../../../../hooks/useApi';
+import type { AuditoriaEstadisticas } from '../../../../../types/auditoria';
+
+export type RangoPeriodo = 'hoy' | '7dias' | '30dias' | 'personalizado';
+
+export function useAuditoriaStats() {
+    const { get } = useApi<AuditoriaEstadisticas>();
+    const { get: getEventos } = useApi<any>(); // Para listar eventos
+    
+    const [estadisticas, setEstadisticas] = useState<AuditoriaEstadisticas | null>(null);
+    const [ultimosEventos, setUltimosEventos] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    
+    const [periodo, setPeriodo] = useState<RangoPeriodo>('30dias');
+    const [fechaDesde, setFechaDesde] = useState<string>('');
+    const [fechaHasta, setFechaHasta] = useState<string>('');
+
+    const cargar = useCallback(async (desde?: string, hasta?: string) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const params = new URLSearchParams();
+            if (desde) params.append('fecha_desde', desde);
+            if (hasta) params.append('fecha_hasta', hasta);
+            
+            const statsUrl = `/auditoria/estadisticas${params.toString() ? `?${params.toString()}` : ''}`;
+            params.append('page', '1');
+            params.append('page_size', '15');
+            const eventosUrl = `/auditoria/eventos${params.toString() ? `?${params.toString()}` : ''}`;
+            
+            const [statsData, eventosData] = await Promise.all([
+                get(statsUrl),
+                getEventos(eventosUrl)
+            ]);
+            
+            if (statsData) {
+                setEstadisticas(statsData);
+            }
+            if (eventosData && eventosData.items) {
+                setUltimosEventos(eventosData.items);
+            }
+        } catch (e) {
+            console.error("Error obteniendo estadísticas:", e);
+            setError('Error al cargar las estadísticas de auditoría.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [get]);
+
+    useEffect(() => {
+        const calcularFechas = () => {
+            const hoy = new Date();
+            const formatear = (d: Date) => d.toISOString().split('T')[0] + 'T00:00:00';
+            const formatearFin = (d: Date) => d.toISOString().split('T')[0] + 'T23:59:59';
+            
+            let desde = '';
+            let hasta = formatearFin(hoy);
+            
+            if (periodo === 'hoy') {
+                desde = formatear(hoy);
+            } else if (periodo === '7dias') {
+                const hace7 = new Date(hoy);
+                hace7.setDate(hoy.getDate() - 7);
+                desde = formatear(hace7);
+            } else if (periodo === '30dias') {
+                const hace30 = new Date(hoy);
+                hace30.setDate(hoy.getDate() - 30);
+                desde = formatear(hace30);
+            } else if (periodo === 'personalizado') {
+                desde = fechaDesde ? `${fechaDesde}T00:00:00` : '';
+                hasta = fechaHasta ? `${fechaHasta}T23:59:59` : '';
+            }
+            
+            if (periodo !== 'personalizado' || (desde && hasta)) {
+                cargar(desde, hasta);
+            }
+        };
+
+        calcularFechas();
+    }, [periodo, fechaDesde, fechaHasta, cargar]);
+
+    return {
+        estadisticas,
+        ultimosEventos,
+        isLoading,
+        error,
+        periodo,
+        setPeriodo,
+        fechaDesde,
+        setFechaDesde,
+        fechaHasta,
+        setFechaHasta,
+        recargar: () => {
+             // Forzamos un update de dependencias llamando a la misma fecha o simplemente
+             // usamos los estados actuales para cargar, pero como están en efecto, no necesitamos duplicar.
+             // Aquí hacemos un bypass sucio si se requiere forzar manual
+             setPeriodo(p => p); 
+        }
+    };
+}
