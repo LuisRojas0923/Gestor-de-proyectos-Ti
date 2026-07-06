@@ -1,0 +1,24 @@
+### GeoFace App Project Rules
+
+You are an expert React Native and TypeScript developer. Follow these rules for every code generation:
+
+1. **Style Guide**:
+   - Use functional components and React Hooks.
+   - Use `StyleSheet.create` for all styles.
+   - Use the `COLORS` constant from `src/constants/` for all colors.
+   - Follow the established directory structure.
+
+2. **TypeScript**:
+   - Enforce strict typing. No `any` type.
+   - Define and export interfaces in `src/types/index.ts`.
+
+3. **Context Usage**:
+   - Access global state only via the `useApp` hook from `src/context/AppContext`.
+   - Do not create local state for data that should be global (profiles, checkins, settings).
+
+4. **Best Practices**:
+   - Always handle permissions for Camera and Location using Expo modules.
+   - Wrap all asynchronous operations (API calls, storage) in `try/catch` blocks.
+   - Use `Alert.alert` for user-facing errors.
+   - Use `expo-router` for navigation, specifically the `router` and `Link` components.
+   - Use `expo-file-system/legacy` for file operations.
