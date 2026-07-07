@@ -1,100 +1,93 @@
-# GeoFace - Sistema de Asistencia Inteligente (Módulo Móvil)
+# GeoFace - Sistema de Asistencia Inteligente Movil
 
-## Descripción General
+## Descripcion General
 
-GeoFace es el módulo móvil (React Native / Expo) que combina **geolocalización** y **reconocimiento facial** para registrar la asistencia del personal. El usuario debe estar físicamente dentro de una zona geográfica designada (geocerca) y tomarse una selfie para que el sistema central verifique su identidad mediante Inteligencia Artificial (DeepFace).
+GeoFace es la app movil ubicada en `movil/`. Usa React Native + Expo para capturar rostro, GPS y evidencias de asistencia. La app no decide sola si una asistencia es valida: consulta al backend central `backend_v2` y al servicio interno `biometria-engine`.
 
-## Stack Tecnológico
+## Stack Tecnologico
 
-| Componente | Tecnología |
+| Componente | Tecnologia |
 |---|---|
-| **Frontend móvil** | React Native + Expo SDK 55 |
-| **Navegación** | Expo Router (file-based routing) |
-| **Reconocimiento facial** | DeepFace integrado en Backend Central (`backend_v2` - FastAPI) |
-| **Base de Datos (Vectores)** | PostgreSQL (SQLModel) en servidor central |
-| **Geolocalización** | expo-location (GPS) |
-| **Cámara** | expo-camera (CameraView moderna) |
-| **Idioma UI** | Español |
+| App movil | React Native + Expo SDK 55 |
+| Navegacion | Expo Router |
+| Backend central | FastAPI en `backend_v2` |
+| Motor biometrico | Servicio interno `biometria-engine` |
+| Base de datos | PostgreSQL / SQLModel |
+| GPS | `expo-location` |
+| Camara | `expo-camera` |
+| Sesion | JWT en SecureStore nativo / AsyncStorage web |
+
+## Principios Actuales
+
+- El backend es la fuente de verdad de enrolamiento, zonas, evidencias y asistencias.
+- La cache local solo acelera UI; no autoriza check-ins.
+- Las zonas oficiales vienen de `GET /api/v2/biometria/zonas`.
+- La geocerca se valida en app y tambien en backend.
+- Las evidencias se descargan con JWT, sin tokens en query params.
+- Crear/eliminar usuarios desde movil no esta permitido en el flujo empresarial.
 
 ## Funcionalidades Principales
 
-### 1. Dashboard (Inicio)
-- Estado del GPS (activo/inactivo) con animación de pulso.
-- Indicador de zona (dentro/fuera de geocerca).
-- Estadísticas: distancia a zona, latitud y longitud actual.
-- Botón "Verificar Identidad" (solo habilitado si está dentro de zona).
-- Historial de check-ins recientes (en caché local).
-- Inicia tracking GPS automáticamente al abrir la app.
+### Dashboard
 
-### 2. Perfiles y Enrolamiento
-- La aplicación permite capturar el rostro base del empleado.
-- Al crear/actualizar un perfil, la foto se envía al servidor central (FastAPI).
-- El servidor extrae las características matemáticas (embedding facial) y las guarda de forma segura en PostgreSQL.
-- **Diferencia clave:** El celular ya no almacena ni procesa la biometría, actuando únicamente como cliente de captura.
+- Muestra estado GPS y si el usuario esta dentro de zona.
+- Muestra historial reciente de asistencias.
+- Permite iniciar verificacion facial si hay zona valida.
 
-### 3. Verificación Facial (Check-in)
-- Toma una selfie → la envía al servidor central como `FormData` junto a las coordenadas GPS.
-- El servidor la compara exclusivamente contra el perfil del usuario autenticado (Verificación 1:1).
-- Si la coincidencia supera el umbral configurado de similitud, el servidor registra la asistencia en base de datos y guarda la evidencia física.
-- **Requisito obligatorio:** El usuario debe estar dentro de una geocerca. La app lo valida localmente, y el servidor audita las coordenadas recibidas.
+### Enrolamiento
 
-### 4. Configuración (Ajustes)
-- Permite configurar la dirección IP o URL del servidor central (Backend V2).
-- Gestión de zonas de verificación locales.
+- La app toma una foto frontal.
+- Envia `multipart/form-data` a `POST /api/v2/biometria/enrolar`.
+- Luego consulta `GET /api/v2/biometria/estado` para confirmar enrolamiento.
+- Si el backend no confirma, la app falla cerrado y permite reintento.
 
-## Flujo de Check-in Completo
+### Verificacion / Check-in
 
-1. Usuario abre la app → GPS inicia automáticamente.
-2. Usuario se dirige a la zona de trabajo designada.
-3. Dashboard muestra "En Zona ✓".
-4. Usuario presiona "Verificar Identidad".
-5. VerifyScreen valida que está dentro de zona (si no, bloquea la acción).
-6. Usuario se toma una selfie.
-7. App envía la foto y coordenadas al servidor FastAPI (`POST /api/v2/biometria/asistencia`).
-8. Servidor procesa la imagen, endereza EXIF y ejecuta DeepFace.
-9. Si hay match biométrico → check-in exitoso en servidor.
-10. La app recibe respuesta HTTP 200, guarda un registro en caché local para mostrar al usuario.
-11. Se muestra ResultOverlay con el estado de "Identidad Verificada".
+- La app toma selfie, latitud, longitud y zona cercana.
+- Envia datos a `POST /api/v2/biometria/asistencia`.
+- El backend valida geocerca por coordenadas antes de procesar imagen.
+- El backend compara el rostro 1:1 contra el usuario autenticado.
+- Si todo es valido, guarda registro y evidencia.
 
-## Estados y Validaciones
+### Configuracion
 
-- **GPS inactivo:** No se puede hacer check-in.
-- **Fuera de zona:** No se puede hacer check-in (muestra distancia a zona más cercana).
-- **Servidor offline/IP incorrecta:** Alerta de error de red.
-- **Error Biométrico:** El servidor responde con error HTTP si el rostro no coincide, está borroso, o si se detecta un intento de fraude (Anti-Spoofing).
+- Permite configurar servidor para piloto LAN.
+- Admin puede crear/eliminar zonas oficiales usando backend.
+- Gestion de usuarios desde movil esta deshabilitada por politica empresarial.
 
-## Endpoints del Servidor Central Consumidos
+## Endpoints Consumidos
 
-| Endpoint | Método | Descripción |
-|---|---|---|
-| `/api/v2/biometria/enrolar` | POST | Enrola un nuevo rostro para el usuario en la BD central |
-| `/api/v2/biometria/asistencia` | POST | Compara selfie contra el rostro guardado y registra asistencia |
-| `/api/v2/biometria/asistencias` | GET | (Opcional) Obtener el historial oficial de asistencias |
+| Endpoint | Uso |
+|---|---|
+| `POST /api/v2/auth/login` | Login |
+| `GET /api/v2/auth/yo` | Usuario actual |
+| `GET /api/v2/auth/analistas` | Lista admin con JWT |
+| `GET /api/v2/biometria/estado` | Estado biometrico backend-source |
+| `POST /api/v2/biometria/enrolar` | Enrolamiento facial |
+| `GET /api/v2/biometria/zonas` | Zonas oficiales |
+| `POST /api/v2/biometria/zonas` | Crear zona admin |
+| `DELETE /api/v2/biometria/zonas/{id}` | Eliminar zona admin |
+| `POST /api/v2/biometria/asistencia` | Marcar asistencia |
+| `GET /api/v2/biometria/asistencias` | Historial |
+| `GET /api/v2/biometria/evidencia/{filename}` | Evidencia protegida |
 
-## Estructura de Archivos Móvil
+## Estructura
 
-```
-modulo_autenticacion_facial_fork/
-├── app/                          # Expo Router (file-based routing)
-│   ├── _layout.tsx               # Layout root (AppProvider)
-│   └── (tabs)/
-│       ├── _layout.tsx           # Tabs navigation
-│       ├── index.tsx             # → DashboardScreen
-│       ├── profiles.tsx          # → ProfilesScreen
-│       ├── verify.tsx            # → VerifyScreen
-│       └── settings.tsx          # → SettingsScreen
+```text
+movil/
+├── app/                    # Expo Router
 ├── src/
-│   ├── components/               # Componentes reutilizables UI
-│   ├── screens/                  # Pantallas principales
-│   ├── context/                  # Estado global (React Context)
-│   ├── hooks/                    # Hook de geolocalización
-│   ├── services/                 # Clientes HTTP (faceApi.ts)
-│   ├── styles/                   # StyleSheets
-│   ├── types/                    # Interfaces TypeScript
-│   └── utils/                    # Utilidades de distancias y formateos
-├── docs/                         # Documentación técnica
-│   ├── CONTEXTO.md               # Este archivo
-│   └── ARQUITECTURA.md           # Arquitectura detallada
-├── app.json                      # Configuración Expo
+│   ├── components/         # Componentes reutilizables
+│   ├── context/            # AppContext / AuthContext
+│   ├── hooks/              # useLocation
+│   ├── screens/            # Pantallas principales
+│   ├── services/           # faceApi, auth, storage
+│   ├── styles/             # StyleSheets
+│   ├── types/              # Tipos TS
+│   └── utils/              # Formato, geocerca, export
+├── docs/                   # Documentacion movil
+├── face-server/            # Historico no productivo
+├── app.json
+├── eas.json
 └── package.json
 ```

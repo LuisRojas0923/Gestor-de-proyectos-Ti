@@ -167,14 +167,14 @@ No iniciar Fase 3 si Fase 1A o Fase 1B no estan aprobadas con evidencia.
 
 ### 1A.6 Limpieza legacy y documentacion movil
 
-- [ ] Decidir destino de `movil/face-server/`.
+- [x] Decidir destino de `movil/face-server/`.
   - [ ] Eliminar si no se usa.
-  - [ ] O mover/documentar como historico no productivo.
-- [ ] Actualizar `movil/API_CONTRACT.md` a backend actual `/api/v2`.
-- [ ] Actualizar `movil/docs/CONTEXTO.md` con ruta `movil/`.
-- [ ] Actualizar `movil/docs/ARQUITECTURA.md` con `backend_v2 + biometria-engine`.
-- [ ] Actualizar `movil/docs/GUIA-DESARROLLO.md` con puerto `8000`, `.env`, APK y pruebas.
-- [ ] Actualizar `movil/CHECKLIST.md` para reflejar estado real.
+  - [x] O mover/documentar como historico no productivo.
+- [x] Actualizar `movil/API_CONTRACT.md` a backend actual `/api/v2`.
+- [x] Actualizar `movil/docs/CONTEXTO.md` con ruta `movil/`.
+- [x] Actualizar `movil/docs/ARQUITECTURA.md` con `backend_v2 + biometria-engine`.
+- [x] Actualizar `movil/docs/GUIA-DESARROLLO.md` con puerto `8000`, `.env`, APK y pruebas.
+- [x] Actualizar `movil/CHECKLIST.md` para reflejar estado real.
 
 ### Criterio de salida GeoFace
 

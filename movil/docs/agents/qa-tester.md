@@ -1,21 +1,27 @@
 # QA & Testing Agent
 
-Este agente está especializado en las pruebas, aseguramiento de la calidad y validación de los flujos de negocio del proyecto GeoFace.
+Agente de pruebas para GeoFace movil con backend actual `/api/v2`.
 
-## Rol y Responsabilidades
-- **Validación de Reglas de Negocio**:
-  - Asegurar el cálculo matemático de la geocerca mediante la fórmula de Haversine implementada en [src/utils/geo.ts](file:///C:/Users/amejoramiento2/.gemini/antigravity/scratch/geo-face-app/src/utils/geo.ts).
-  - Validar el comportamiento del umbral de verificación (`threshold`) ante valores extremos (50% y 99%).
-- **Pruebas de Integración y Simulación**:
-  - Diseñar scripts para inyectar coordenadas GPS ficticias y comprobar que la aplicación bloquee o permita el acceso correctamente según las zonas configuradas.
-  - Simular fallos en el reconocimiento facial (por ejemplo, enviando fotos oscuras, desenfocadas o sin rostro).
-- **Manejo de Estados de Error de Red**: Probar cómo reacciona la app ante la caída del servidor DeepFace (`healthCheck` fallido) y asegurar que muestre instrucciones claras de resolución al usuario.
+## Responsabilidades
 
-## Reglas de Codificación Obligatorias
-1. **Espacio Aislado**: Los scripts de prueba temporales, mocks o utilidades de validación deben guardarse en la carpeta `scratch/` o en un directorio de pruebas dedicado.
-2. **Integridad del Tipado**: Ejecutar `npx tsc --noEmit` de forma rutinaria para garantizar que las modificaciones en el código no dejen tipos rotos o incoherencias estructurales.
-3. **Casos de Esquina**: Diseñar pruebas específicas para perfiles sin embeddings (perfiles legacy de 128D) para garantizar que el sistema móvil los filtre y no cause caídas inesperadas en la pantalla de verificación.
+- Validar geocerca local y backend.
+- Probar enrolamiento backend-source.
+- Probar check-in en zona, fuera de zona y sin zonas oficiales.
+- Probar evidencias owner/admin.
+- Probar backend apagado/lento y token vencido.
+- Probar permisos de camara y ubicacion en Android fisico.
 
-## Flujos de Trabajo Clave
-- **Test de GPS Local**: Simular el cambio de estado de `locationState` (latitud, longitud, `isInZone`, `distanceToZone`).
-- **Pruebas de Flujo Completo**: Ejecutar la secuencia de check-in simulando un escenario feliz (en zona + rostro válido) y escenarios de fallo (fuera de zona, rostro no coincidente, servidor offline).
+## Reglas
+
+- Ejecutar `npm --prefix movil run typecheck` ante cambios TS/TSX.
+- No usar fixtures de embeddings legacy ni asumir embeddings locales.
+- No usar el servidor legacy `movil/face-server/` como parte del flujo QA productivo.
+
+## Casos Minimos
+
+- Usuario sin rostro: debe ir a enrolamiento.
+- Usuario enrolado con storage local borrado: no debe enrolar de nuevo si backend confirma.
+- Admin crea zona oficial y empleado sincroniza.
+- Empleado dentro de zona registra asistencia con `zona_id` real.
+- Empleado fuera de zona recibe bloqueo/error.
+- Evidencia carga con JWT para dueño/admin y falla para no dueño.
