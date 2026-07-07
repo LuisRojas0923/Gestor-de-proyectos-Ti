@@ -16,7 +16,6 @@ from ....services.novedades_nomina.horas_extras_parametros import (
 )
 
 router = APIRouter(
-    prefix="/horas-extras",
     tags=["Nómina - Horas Extras"],
 )
 

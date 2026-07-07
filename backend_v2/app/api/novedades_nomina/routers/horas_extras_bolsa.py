@@ -39,7 +39,6 @@ from ....services.novedades_nomina.bolsa_horas_resolver import resolver_bolsa_ha
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/horas-extras",
     tags=["Nómina - Horas Extras"],
 )
 
@@ -64,6 +63,7 @@ async def requiere_permiso_he(
 async def obtener_estado_bolsa_global(
     ot_id: Optional[int] = Query(None, description="OT para aplicar override por OT"),
     db: AsyncSession = Depends(obtener_db),
+    _: Usuario = Depends(requiere_permiso_he),
 ):
     """Devuelve (bolsa_habilitada, fuente) usando el resolver.
 

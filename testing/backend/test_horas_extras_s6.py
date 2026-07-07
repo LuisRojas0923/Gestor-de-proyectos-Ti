@@ -18,6 +18,7 @@ Cedulas prefijo TEST-S6-*. OTs 9201-9204.
 """
 import pytest
 from datetime import date, datetime, timedelta
+from fastapi.routing import APIRoute
 from sqlmodel import select
 from sqlalchemy import delete
 
@@ -59,6 +60,22 @@ SEMANA = 31
 OT_DEFAULT = 9201
 OT_OVERRIDE_OFF = 9202
 OT_OVERRIDE_ON = 9203
+
+
+def test_bolsa_estado_global_route_no_duplica_prefijo_y_exige_permiso_he():
+    from app.main import app
+
+    rutas = {getattr(route, "path", "") for route in app.routes}
+    ruta_esperada = "/api/v2/novedades-nomina/horas-extras/bolsa/estado-global"
+    assert ruta_esperada in rutas
+    assert "/api/v2/novedades-nomina/horas-extras/horas-extras/bolsa/estado-global" not in rutas
+
+    route = next(
+        route for route in app.routes
+        if isinstance(route, APIRoute) and route.path == ruta_esperada
+    )
+    dependencias = {getattr(dep.call, "__name__", "") for dep in route.dependant.dependencies}
+    assert "requiere_permiso_he" in dependencias
 
 
 def _detalle(codigo, horas, factor, valor_bruto):

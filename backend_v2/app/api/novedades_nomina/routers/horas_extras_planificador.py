@@ -69,6 +69,7 @@ async def listar_empleados_erp(
     offset: int = Query(0, ge=0),
     solo_activos: bool = Query(True),
     db_erp = Depends(obtener_erp_db_opcional),
+    _: Usuario = Depends(requiere_permiso_he),
 ):
     """Lista paginada de empleados del ERP con busqueda opcional."""
     if db_erp is None:
@@ -185,6 +186,7 @@ async def confirmar_plan_endpoint(
     Errores por empleado (incluido BOLSA_DESACTIVADA de S6) se reportan
     en errores[] sin abortar el lote.
     """
+    payload.usuario_confirma = str(getattr(usuario, "cedula", None) or usuario.id)
     try:
         return await confirmar_plan(db, payload)
     except HTTPException:

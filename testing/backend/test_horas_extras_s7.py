@@ -20,6 +20,8 @@ from sqlmodel import select
 from sqlalchemy import delete, func
 
 from app.models.novedades_nomina.bolsa_horas_override import NominaBolsaOtOverride
+from app.models.auth.usuario import Usuario
+from app.api.novedades_nomina.routers.horas_extras_planificador import confirmar_plan_endpoint
 from app.models.novedades_nomina.horas_extras import (
     NominaBolsaHoras,
     NominaBolsaHorasMovimiento,
@@ -79,6 +81,19 @@ def test_planificador_routes_no_duplican_horas_extras():
         "/api/v2/novedades-nomina/horas-extras/horas-extras/planificador/empleados-erp"
         not in rutas
     )
+
+
+def test_planificador_empleados_erp_exige_permiso_he():
+    from fastapi.routing import APIRoute
+    from app.main import app
+
+    route = next(
+        route for route in app.routes
+        if isinstance(route, APIRoute)
+        and route.path == "/api/v2/novedades-nomina/horas-extras/planificador/empleados-erp"
+    )
+    dependencias = {getattr(dep.call, "__name__", "") for dep in route.dependant.dependencies}
+    assert "requiere_permiso_he" in dependencias
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +167,16 @@ def _make_parametros(ot_id: int = OT_DEFAULT) -> PlanConfirmarParametros:
         jornada_nocturna=False,
         ot_id=ot_id,
         ot_codigo=f"OT-S7-{ot_id}",
+    )
+
+
+def _usuario_test() -> Usuario:
+    return Usuario(
+        id="TEST-USER-ENDPOINT-S7",
+        cedula="TEST-USER-ENDPOINT-S7",
+        hash_contrasena="hash-test",
+        nombre="Usuario Test HE S7",
+        rol="admin",
     )
 
 
@@ -443,6 +468,37 @@ class TestConfirmarPlan:
             .where(NominaCalculoSemanal.cedula.in_([CEDULA_BASE, CEDULA_2]))
         )).scalar()
         assert count == 2
+
+    @pytest.mark.asyncio
+    async def test_endpoint_confirmar_ignora_usuario_confirma_del_cliente(self, db_session):
+        await _cleanup_all(db_session)
+        await _set_bolsa_global(db_session, False)
+
+        payload = PlanConfirmarRequest(
+            semana=_make_semana(),
+            usuario_confirma="USUARIO-FALSIFICADO-S7",
+            empleados=[
+                PlanConfirmarEmpleadoIn(
+                    cedula=CEDULA_BASE,
+                    dias=_make_empleado(CEDULA_BASE).dias,
+                    parametros=_make_parametros(OT_DEFAULT),
+                ),
+            ],
+        )
+
+        response = await confirmar_plan_endpoint(
+            payload=payload,
+            db=db_session,
+            usuario=_usuario_test(),
+        )
+
+        assert response.resumen.ok_count == 1
+        calc_id = response.calculos[0].calculo_id
+        assert calc_id is not None
+        calc = await db_session.get(NominaCalculoSemanal, calc_id)
+        assert calc is not None
+        assert calc.calculado_por == "TEST-USER-ENDPOINT-S7"
+        assert calc.confirmado_por == "TEST-USER-ENDPOINT-S7"
 
     @pytest.mark.asyncio
     async def test_confirma_sin_parametros_manual_frontend(self, db_session):

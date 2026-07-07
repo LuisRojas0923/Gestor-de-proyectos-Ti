@@ -7,7 +7,7 @@ import {
   obtenerHorarioSemana,
   actualizarHorarioSemana,
 } from '../../../../services/horasExtrasService';
-import type { HorarioPactadoDia, HorarioPactadoDiaUpdate } from '../../../../types/horasExtras';
+import type { HorarioPactadoDiaUpdate } from '../../../../types/horasExtras';
 import { labelDia } from './utils/horarioUtils';
 
 const HorarioSemanaView: React.FC = () => {

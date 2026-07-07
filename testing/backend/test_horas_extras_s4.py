@@ -37,6 +37,13 @@ from app.models.novedades_nomina.horas_extras import (
 from app.models.novedades_nomina.schemas_horas_extras import (
     PreLiquidacionConfirmar,
     ConfirmarDetalleItem,
+    WorkflowTransicionRequest,
+    CompensarBolsaRequest,
+)
+from app.models.auth.usuario import Usuario
+from app.api.novedades_nomina.routers.horas_extras import (
+    transicionar_calculo_endpoint,
+    compensar_bolsa_endpoint,
 )
 from app.services.novedades_nomina.horas_extras_confirmacion import (
     confirmar_pre_liquidacion,
@@ -93,6 +100,16 @@ def _payload(cedula=CEDULA_BASE, anio=ANIO, semana=SEMANA, detalles=None,
         ot_id=ot_id,
         ot_codigo=ot_codigo,
         usuario_confirma="TEST-USER-S4",
+    )
+
+
+def _usuario_test() -> Usuario:
+    return Usuario(
+        id="TEST-USER-ENDPOINT",
+        cedula="TEST-USER-ENDPOINT",
+        hash_contrasena="hash-test",
+        nombre="Usuario Test HE",
+        rol="admin",
     )
 
 
@@ -228,6 +245,29 @@ class TestTransicionPagado:
 
             with pytest.raises(ValueError, match=r"ya está en estado"):
                 await transicionar_calculo(db_session, calc_id, "PAGADO", "duplicado", "user")
+        finally:
+            await _cleanup(db_session, CEDULA_BASE)
+
+    @pytest.mark.asyncio
+    async def test_endpoint_transicion_persiste_commit(self, db_session):
+        await _cleanup(db_session, CEDULA_BASE)
+        try:
+            calc_id = await _crear_calculo_test(db_session)
+
+            await transicionar_calculo_endpoint(
+                calculo_id=calc_id,
+                payload=WorkflowTransicionRequest(
+                    estado_destino="PAGADO",
+                    justificacion="Liquidado por endpoint",
+                ),
+                db=db_session,
+                usuario=_usuario_test(),
+            )
+            await db_session.rollback()
+
+            calc = await db_session.get(NominaCalculoSemanal, calc_id)
+            assert calc is not None
+            assert calc.estado == "PAGADO"
         finally:
             await _cleanup(db_session, CEDULA_BASE)
 
@@ -505,6 +545,36 @@ class TestCompensarBolsa:
                 await compensar_bolsa(
                     db_session, cedula, 0.0, date(2026, 7, 22), "user"
                 )
+        finally:
+            await _cleanup(db_session, cedula)
+
+    @pytest.mark.asyncio
+    async def test_endpoint_compensar_bolsa_persiste_commit(self, db_session):
+        cedula = "TEST-S4-DIRECT-ENDPOINT"
+        await _cleanup(db_session, cedula)
+        try:
+            bolsa = NominaBolsaHoras(cedula=cedula, horas_acreditadas=5.0)
+            db_session.add(bolsa)
+            await db_session.commit()
+
+            await compensar_bolsa_endpoint(
+                payload=CompensarBolsaRequest(
+                    cedula=cedula,
+                    horas=1.0,
+                    fecha=date(2026, 7, 22),
+                    observaciones="Compensación por endpoint",
+                ),
+                db=db_session,
+                usuario=_usuario_test(),
+            )
+            await db_session.rollback()
+
+            bolsa_post = (
+                await db_session.execute(
+                    select(NominaBolsaHoras).where(NominaBolsaHoras.cedula == cedula)
+                )
+            ).scalar_one()
+            assert bolsa_post.horas_consumidas == pytest.approx(1.0)
         finally:
             await _cleanup(db_session, cedula)
 

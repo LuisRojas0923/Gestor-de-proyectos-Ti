@@ -322,9 +322,7 @@ async def confirmar_pre_liquidacion_endpoint(
     if not payload.detalles:
         raise HTTPException(status_code=400, detail="detalles no puede estar vacío")
 
-    # Si el usuario no se especifica en payload, usar el del token
-    if not payload.usuario_confirma:
-        payload.usuario_confirma = getattr(usuario, "cedula", None) or usuario.id
+    payload.usuario_confirma = str(getattr(usuario, "cedula", None) or usuario.id)
 
     try:
         resultado = await confirmar_pre_liquidacion(db, payload)
@@ -422,6 +420,7 @@ async def transicionar_calculo_endpoint(
             horas_compensar=payload.horas,
             fecha_compensacion=payload.fecha,
         )
+        await db.commit()
     except ValueError as e:
         msg = str(e)
         if "no encontrado" in msg:
@@ -475,6 +474,7 @@ async def compensar_bolsa_endpoint(
             calculo_id=payload.calculo_id,
             observaciones=payload.observaciones,
         )
+        await db.commit()
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 

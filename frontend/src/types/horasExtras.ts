@@ -161,7 +161,7 @@ export interface PreLiquidacionInput {
 // ---------------------------------------------------------------------------
 // Pre-liquidación: output
 // ---------------------------------------------------------------------------
-export interface ConfirmarDetalleItem {
+export interface DetalleCalculoItem {
   codigo_novedad: string;
   horas: number;
   factor_hora_ordinaria: number;

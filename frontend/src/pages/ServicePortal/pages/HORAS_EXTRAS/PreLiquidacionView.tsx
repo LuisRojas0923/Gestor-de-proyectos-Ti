@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Title, Text, Button, MaterialCard, Input, Select, Badge, Checkbox } from '../../../../components/atoms';
-import { ArrowLeft, Play, Save, AlertTriangle, CheckCircle2, Clock, Settings2, Calendar, Briefcase } from 'lucide-react';
+import { ArrowLeft, Play, Save, AlertTriangle, CheckCircle2, Settings2, Calendar, Briefcase } from 'lucide-react';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import {
   ejecutarPreLiquidacion,
@@ -24,7 +24,6 @@ import {
   calcularHorasDia,
   horarioPactadoARegistro,
   labelDia,
-  totalHorasSemana,
   fechasDeSemanaIso,
   fechaIsoCorta,
   fechaEnRango,

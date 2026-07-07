@@ -2,6 +2,7 @@
 from datetime import date
 
 import pytest
+from fastapi.routing import APIRoute
 from sqlalchemy import delete
 
 from app.models.novedades_nomina.horas_extras import (
@@ -23,6 +24,22 @@ from app.services.novedades_nomina.horas_extras_service import ejecutar_pre_liqu
 
 
 CODIGO_TEST = "TEST-PARAM-HE"
+
+
+def test_parametros_calculo_route_no_duplica_prefijo_y_exige_permiso_he():
+    from app.main import app
+
+    rutas = {getattr(route, "path", "") for route in app.routes}
+    ruta_esperada = "/api/v2/novedades-nomina/horas-extras/parametros-calculo"
+    assert ruta_esperada in rutas
+    assert "/api/v2/novedades-nomina/horas-extras/horas-extras/parametros-calculo" not in rutas
+
+    route = next(
+        route for route in app.routes
+        if isinstance(route, APIRoute) and route.path == ruta_esperada
+    )
+    dependencias = {getattr(dep.call, "__name__", "") for dep in route.dependant.dependencies}
+    assert "requiere_permiso_he" in dependencias
 
 
 async def _cleanup(db_session):
