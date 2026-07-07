@@ -41,8 +41,8 @@ Ubicación: `testing/backend/`
 | **Horas Extras S9 Reglas GH** | `test_horas_extras_s9_reglas_gh.py` | Reglas confirmadas por Gestion Humana: jornada semanal 42h/210h desde 2026-07-16, compensacion semanal, nocturna 19:00-06:00 y turnos cruzados en dos dias. | ✅ PASSED |
 | **Horas Extras Parametros Calculo** | `test_horas_extras_parametros_calculo.py` | Consulta y edicion de reglas vigentes en `nomina_parametros_legales`; valida que el calculo use parametros editados. | ✅ PASSED |
 | **Biometría Engine Client** | `test_biometria_engine_client.py` | Mapeo saneado de errores del motor, contrato de embedding y rechazo de respuestas invalidas. | ✅ PASSED |
-| **Biometría Service** | `test_biometria_service.py` | Flujo de negocio sin embedding, comparación vectorial y protección contra traversal en archivos. | ✅ PASSED |
-| **Biometría RBAC** | `test_biometria_router_engine.py` | Dependencia RBAC del módulo `biometria`: permite/deniega según permisos del rol. | ✅ PASSED |
+| **Biometría Service** | `test_biometria_service.py` | Flujo de negocio sin embedding, estado biométrico backend-source, geocerca backend, comparación vectorial y protección contra traversal en archivos. | ✅ PASSED |
+| **Biometría RBAC/Router** | `test_biometria_router_engine.py` | Dependencia RBAC del módulo `biometria` y delegación del endpoint de estado biométrico. | ✅ PASSED |
 | **Biometría Engine API** | `test_biometria_engine_api.py` | Token interno del servicio biométrico sin importar DeepFace durante colección. | ✅ PASSED |
 
 ### 2. Rendimiento (Locust)

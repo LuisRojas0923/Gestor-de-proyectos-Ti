@@ -11,17 +11,29 @@ import {
     clearCheckIns as storageClearCheckIns,
     deleteProfile as storageDeleteProfile,
     deleteZone as storageDeleteZone,
+    replaceZones as storageReplaceZones,
     saveProfile as storageSaveProfile,
     saveZone as storageSaveZone,
 } from '../services/storage';
-import { CheckIn, FaceProfile, LocationState, Zone } from '../types';
-import { enrollFace, getCheckIns as apiGetCheckIns, getAllCheckIns as apiGetAllCheckIns, healthCheck } from '../services/faceApi';
+import { BiometricStatus, CheckIn, FaceProfile, LocationState, Zone } from '../types';
+import {
+  createOfficialZone,
+  deleteOfficialZone,
+  enrollFace,
+  getBiometricStatus,
+  getCheckIns as apiGetCheckIns,
+  getAllCheckIns as apiGetAllCheckIns,
+  getOfficialZones,
+} from '../services/faceApi';
 
 interface AppContextType {
   profiles: FaceProfile[];
   zones: Zone[];
   checkIns: CheckIn[];
   threshold: number;
+  biometricStatus: BiometricStatus | null;
+  biometricStatusUserId: string | null;
+  isBiometricStatusLoading: boolean;
   locationState: LocationState;
   isLoading: boolean;
   
@@ -34,6 +46,8 @@ interface AppContextType {
   addCheckIn: (checkIn: Omit<CheckIn, 'id' | 'timestamp'>) => Promise<void>;
   clearCheckIns: () => Promise<void>;
   fetchCheckIns: (userId?: string) => Promise<void>;
+  refreshBiometricStatus: (userId: string) => Promise<BiometricStatus>;
+  refreshZones: () => Promise<Zone[]>;
   setThreshold: (value: number) => Promise<void>;
   startLocationTracking: () => Promise<void>;
   stopLocationTracking: () => void;
@@ -46,6 +60,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [zones, setZones] = useState<Zone[]>([]);
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [threshold, setThresholdState] = useState<number>(75);
+  const [biometricStatus, setBiometricStatus] = useState<BiometricStatus | null>(null);
+  const [biometricStatusUserId, setBiometricStatusUserId] = useState<string | null>(null);
+  const [isBiometricStatusLoading, setIsBiometricStatusLoading] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Initialize location hook with zones
@@ -78,6 +95,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadData();
   }, []);
 
+  const refreshBiometricStatus = useCallback(async (userId: string) => {
+    setIsBiometricStatusLoading(true);
+    try {
+      const status = await getBiometricStatus();
+      setBiometricStatus(status);
+      setBiometricStatusUserId(userId);
+      return status;
+    } catch (err) {
+      console.error('Error consultando estado biometrico:', err);
+      const failClosedStatus = { enrolado: false, fotoUrl: null, actualizadoEn: null };
+      setBiometricStatus(failClosedStatus);
+      setBiometricStatusUserId(userId);
+      return failClosedStatus;
+    } finally {
+      setIsBiometricStatusLoading(false);
+    }
+  }, []);
+
+  const refreshZones = useCallback(async () => {
+    try {
+      const officialZones = await getOfficialZones();
+      const mappedZones: Zone[] = officialZones.map((zone) => ({
+        id: String(zone.id),
+        name: zone.nombre,
+        center: { latitude: zone.latitud, longitude: zone.longitud },
+        radius: zone.radio,
+      }));
+      setZones(mappedZones);
+      await storageReplaceZones(mappedZones);
+      return mappedZones;
+    } catch (err) {
+      console.error('Error consultando zonas oficiales:', err);
+      return zones;
+    }
+  }, [zones]);
+
   // Profile operations
   const addProfile = useCallback(async (id: string, name: string, photoUri?: string) => {
     const newProfile: FaceProfile = {
@@ -96,12 +149,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         const localPhotoUri = await saveFacePhoto(id, photoUri, 0);
         newProfile.photoUris = [localPhotoUri];
-
-        const serverOnline = await healthCheck();
-        if (serverOnline) {
-          // Enrolar el rostro en el servidor
-          await enrollFace(localPhotoUri, id, name);
+        await enrollFace(localPhotoUri, id, name);
+        const backendStatus = await getBiometricStatus();
+        if (!backendStatus.enrolado) {
+          throw new Error('El backend no confirmó el enrolamiento biométrico. Intenta nuevamente.');
         }
+        setBiometricStatus(backendStatus);
+        setBiometricStatusUserId(id);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error('Error al procesar foto facial:', msg);
@@ -118,17 +172,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateProfilePhoto = useCallback(async (id: string, photoUri: string) => {
     try {
       const localPhotoUri = await saveFacePhoto(id, photoUri, 0);
-
-      try {
-        const serverOnline = await healthCheck();
-        if (serverOnline) {
-          const profile = profiles.find(p => p.id === id);
-          await enrollFace(localPhotoUri, id, profile?.name);
-        }
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error('Error al enrolar rostro en el servidor:', msg);
+      const profile = profiles.find(p => p.id === id);
+      await enrollFace(localPhotoUri, id, profile?.name);
+      const backendStatus = await getBiometricStatus();
+      if (!backendStatus.enrolado) {
+        throw new Error('El backend no confirmó la actualización biométrica. Intenta nuevamente.');
       }
+      setBiometricStatus(backendStatus);
+      setBiometricStatusUserId(id);
 
       setProfiles((prev) => {
         const next = [...prev];
@@ -145,8 +196,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
     } catch (err) {
       console.error('Error al actualizar la foto de perfil:', err);
+      throw err;
     }
-  }, []);
+  }, [profiles]);
 
   const deleteProfile = useCallback(async (id: string) => {
     try {
@@ -159,28 +211,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Zone operations
   const addZone = useCallback(async (name: string, latitude: number, longitude: number, radius: number) => {
-    const newZone: Zone = {
-      id: Date.now().toString(),
-      name,
-      center: { latitude, longitude },
-      radius,
-    };
     try {
+      const officialZone = await createOfficialZone(name, latitude, longitude, radius);
+      const newZone: Zone = {
+        id: String(officialZone.id),
+        name: officialZone.nombre,
+        center: { latitude: officialZone.latitud, longitude: officialZone.longitud },
+        radius: officialZone.radio,
+      };
       await storageSaveZone(newZone);
       setZones((prev) => [...prev, newZone]);
       return newZone;
     } catch (e) {
-      console.error('Error guardando zona:', e);
+      console.error('Error guardando zona oficial:', e);
       throw e;
     }
   }, []);
 
   const deleteZone = useCallback(async (id: string) => {
     try {
+      await deleteOfficialZone(id);
       await storageDeleteZone(id);
       setZones((prev) => prev.filter((z) => z.id !== id));
     } catch (e) {
-      console.error('Error borrando zona:', e);
+      console.error('Error borrando zona oficial:', e);
+      throw e;
     }
   }, []);
 
@@ -248,21 +303,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider
       value={{
-        profiles,
-        zones,
-        checkIns,
-        threshold,
-        locationState: locationHook,
-        isLoading,
+          profiles,
+          zones,
+          checkIns,
+          threshold,
+          biometricStatus,
+          biometricStatusUserId,
+          isBiometricStatusLoading,
+          locationState: locationHook,
+          isLoading,
         addProfile,
         updateProfilePhoto,
         deleteProfile,
         addZone,
         deleteZone,
-        addCheckIn,
-        clearCheckIns,
-        fetchCheckIns,
-        setThreshold,
+          addCheckIn,
+          clearCheckIns,
+          fetchCheckIns,
+          refreshBiometricStatus,
+          refreshZones,
+          setThreshold,
         startLocationTracking: locationHook.startTracking,
         stopLocationTracking: locationHook.stopTracking,
       }}

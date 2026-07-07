@@ -26,6 +26,7 @@ La estrategia es **secuencial-paralela**: estabilizar cada modulo en paralelo, c
 - No aceptar integracion si GeoFace no produce marcas confiables.
 - No aceptar calculos de HE sin pruebas de reglas legales y regresion.
 - Preferir integracion minima robusta sobre integracion amplia incompleta.
+- Mantener la carga manual de horarios en HE como respaldo operativo aun despues de conectar GeoFace.
 - Cada fase debe dejar evidencia en tests, logs o reporte `docs/reviews/builds/`.
 
 ## 3. Estado de partida
@@ -80,10 +81,10 @@ No iniciar Fase 3 si Fase 1A o Fase 1B no estan aprobadas con evidencia.
 
 ### Tareas
 
-- [ ] Confirmar rama de trabajo y estado limpio o documentar cambios pendientes.
-- [ ] Crear reporte build inicial en `docs/reviews/builds/` con baseline de ambos modulos.
-- [ ] Ejecutar `git status -sb` y registrar commit base.
-- [ ] Revisar `docs/reviews/plans/2026-07-05_estado-actual-app-movil-geoface.md`.
+- [x] Confirmar rama de trabajo y estado limpio o documentar cambios pendientes.
+- [x] Crear reporte build inicial en `docs/reviews/builds/` con baseline de ambos modulos.
+- [x] Ejecutar `git status -sb` y registrar commit base.
+- [x] Revisar `docs/reviews/plans/2026-07-05_estado-actual-app-movil-geoface.md`.
 - [ ] Revisar este plan con el equipo y marcar responsables por track.
 - [ ] Definir ambiente objetivo: local Docker, Pruebas3, produccion o los tres.
 - [ ] Confirmar si se requiere HTTPS/VPN para piloto o si LAN controlada es aceptada temporalmente.
@@ -104,41 +105,41 @@ No iniciar Fase 3 si Fase 1A o Fase 1B no estan aprobadas con evidencia.
 
 ### 1A.1 Fuente de verdad de enrolamiento
 
-- [ ] Crear o confirmar endpoint backend para consultar estado biometrico del usuario actual.
+- [x] Crear o confirmar endpoint backend para consultar estado biometrico del usuario actual.
   - Propuesta: `GET /api/v2/biometria/estado`.
   - Respuesta sugerida: `{ enrolado: boolean, fotoUrl?: string, actualizadoEn?: string }`.
-- [ ] Cambiar `AuthGate` para no decidir enrolamiento solo por `profiles` local.
-- [ ] Hacer fail-closed el enrolamiento movil.
-  - [ ] Si `/biometria/enrolar` falla, no guardar perfil local como valido.
-  - [ ] Mostrar error claro con causa backend.
-  - [ ] Permitir reintento sin dejar estado corrupto.
+- [x] Cambiar `AuthGate` para no decidir enrolamiento solo por `profiles` local.
+- [x] Hacer fail-closed el enrolamiento movil.
+  - [x] Si `/biometria/enrolar` falla, no guardar perfil local como valido.
+  - [x] Mostrar error claro con causa backend.
+  - [x] Permitir reintento sin dejar estado corrupto.
 - [ ] Mantener cache local solo como cache visual, no como autoridad.
 - [ ] Agregar prueba o validacion manual: borrar storage local con usuario ya enrolado en backend no debe obligar a enrolar si backend confirma `enrolado=true`.
 
 ### 1A.2 Zonas oficiales backend
 
-- [ ] Decidir si `zonas_trabajo` de biometria son la fuente oficial para GeoFace.
-- [ ] Consumir `GET /api/v2/biometria/zonas` desde la app movil.
-- [ ] Reemplazar IDs locales `Date.now()` para check-in por IDs reales del backend.
-- [ ] Crear/editar/eliminar zonas desde backend para admin o bloquear edicion local si no habra CRUD movil.
-- [ ] Mapear campos backend -> movil:
-  - `id` -> `Zone.id`
-  - `nombre` -> `Zone.name`
-  - `latitud`, `longitud` -> `Zone.center`
-  - `radio` -> `Zone.radius`
-- [ ] Confirmar que `zona_id` enviado a `/biometria/asistencia` existe y no se descarta.
-- [ ] Agregar validacion backend de geocerca o al menos registrar advertencia si coordenadas estan fuera del radio.
+- [x] Decidir si `zonas_trabajo` de biometria son la fuente oficial para GeoFace.
+- [x] Consumir `GET /api/v2/biometria/zonas` desde la app movil.
+- [x] Reemplazar IDs locales `Date.now()` para check-in por IDs reales del backend.
+- [x] Crear/editar/eliminar zonas desde backend para admin o bloquear edicion local si no habra CRUD movil.
+- [x] Mapear campos backend -> movil:
+  - [x] `id` -> `Zone.id`
+  - [x] `nombre` -> `Zone.name`
+  - [x] `latitud`, `longitud` -> `Zone.center`
+  - [x] `radio` -> `Zone.radius`
+- [x] Confirmar que `zona_id` enviado a `/biometria/asistencia` existe y no se descarta.
+- [x] Agregar validacion backend de geocerca o al menos registrar advertencia si coordenadas estan fuera del radio.
 - [ ] Definir comportamiento si no hay zonas oficiales.
 
 ### 1A.3 Evidencias autenticadas
 
-- [ ] Corregir carga de `evidenciaUrl` en movil.
-  - Opcion A: `fetch` con JWT -> blob/data URI -> `<Image>`.
+- [x] Corregir carga de `evidenciaUrl` en movil.
+  - [x] Opcion A: `fetch` con JWT -> blob/data URI -> `<Image>`.
   - Opcion B: endpoint con URL firmada temporal y scope limitado.
-- [ ] Mantener backend protegido por auth + owner/admin.
+- [x] Mantener backend protegido por auth + owner/admin.
 - [ ] Validar historial: empleado solo ve sus evidencias; admin puede ver todas.
-- [ ] Evitar exponer tokens por query params.
-- [ ] Agregar estado visual si evidencia aun esta descargando o si no hay permiso.
+- [x] Evitar exponer tokens por query params.
+- [x] Agregar estado visual si evidencia aun esta descargando o si no hay permiso.
 
 ### 1A.4 Auth movil y rutas legacy
 
@@ -151,7 +152,7 @@ No iniciar Fase 3 si Fase 1A o Fase 1B no estan aprobadas con evidencia.
 ### 1A.5 App movil lista para build
 
 - [ ] Agregar scripts en `movil/package.json`:
-  - [ ] `typecheck`: `tsc --noEmit`
+  - [x] `typecheck`: `tsc --noEmit`
   - [ ] `lint` si se define ESLint o documentar ausencia.
   - [ ] `test` si se agregan pruebas unitarias.
 - [ ] Instalar dependencias localmente en ambiente controlado antes de validar.
@@ -216,6 +217,12 @@ No iniciar Fase 3 si Fase 1A o Fase 1B no estan aprobadas con evidencia.
 - [ ] Revisar concurrencia en bolsa de horas.
 - [ ] Revisar idempotencia de confirmacion/pre-liquidacion.
 - [ ] Revisar errores esperados `409` para transiciones invalidas.
+- [ ] Confirmar que la carga manual de horarios sigue disponible para novedades, fallas de app, ajustes autorizados o contingencia operativa.
+- [ ] Confirmar prioridad de fuentes para calculo HE: horario manual autorizado, planificador, contrato/base, marcas GeoFace como evidencia/insumo.
+- [ ] Auditar cambios de horario manual con usuario, fecha, motivo y periodo afectado.
+- [ ] Restringir cambios manuales de horario a roles autorizados GH/jefe/admin segun RBAC.
+- [ ] Exigir motivo obligatorio y novedad/evidencia asociada cuando el horario manual reemplace o contradiga marca GeoFace.
+- [ ] Mantener bitacora inmutable de cambios manuales que impacten nomina.
 
 ### 1B.2 Migraciones, seed y datos
 
@@ -330,6 +337,8 @@ Empleado marca asistencia con GeoFace
 
 No se recomienda, en esta semana, automatizar al 100% la liquidacion sin revision humana.
 
+La integracion con GeoFace no reemplaza la carga manual de horarios existente en HE. Si hay novedad con la app, falla de GPS/camara, ausencia de marca, ajuste autorizado o contingencia operativa, GH/jefe autorizado debe poder ingresar o ajustar el horario manualmente y usar GeoFace solo como evidencia cuando exista.
+
 ### 2.3 Endpoints/servicios propuestos
 
 - [ ] `GET /api/v2/biometria/asistencias?desde=&hasta=&usuario_id=` para rango filtrado.
@@ -348,6 +357,9 @@ No se recomienda, en esta semana, automatizar al 100% la liquidacion sin revisio
 - [ ] Si hay multiples marcas, usar primera entrada y ultima salida o regla definida por GH.
 - [ ] Toda vinculacion debe quedar auditada.
 - [ ] Un registro de asistencia no debe respaldar dos liquidaciones incompatibles.
+- [ ] Un horario manual autorizado puede respaldar el calculo HE cuando no exista marca GeoFace completa o cuando exista una novedad documentada.
+- [ ] Si horario manual y marca GeoFace difieren, el sistema debe mostrar advertencia y exigir revision humana antes de confirmar.
+- [ ] Todo endpoint nuevo de integracion debe usar RBAC del modulo correspondiente y pruebas de `403`.
 
 ### Criterio de salida contrato
 
@@ -368,11 +380,15 @@ No se recomienda, en esta semana, automatizar al 100% la liquidacion sin revisio
 - [ ] Crear endpoint de pre-liquidacion desde asistencia o vinculacion a calculo existente.
 - [ ] Reutilizar `horas_extras_calculo.py` sin duplicar reglas.
 - [ ] Reutilizar workflow existente.
+- [ ] Preservar flujo existente de horarios manuales en HE y validar que sigue funcionando despues de integrar GeoFace.
+- [ ] Permitir que pre-liquidacion use horario manual autorizado cuando no haya marca GeoFace elegible o exista novedad documentada.
 - [ ] Agregar auditoria de vinculacion asistencia -> HE.
 - [ ] Agregar RBAC si el endpoint es nuevo.
 - [ ] Agregar tests backend:
   - [ ] asistencia verificada genera insumo elegible.
   - [ ] asistencia no match no elegible.
+  - [ ] horario manual autorizado permite calculo HE aunque no exista marca GeoFace completa.
+  - [ ] diferencia entre horario manual y marca GeoFace genera advertencia y requiere revision.
   - [ ] usuario normal solo ve sus marcas.
   - [ ] admin/GH ve segun permiso.
   - [ ] ausencia de salida no liquida automatico.

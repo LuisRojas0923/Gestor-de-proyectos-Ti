@@ -1,9 +1,9 @@
-import React, { memo } from 'react';
-import { View, Text, Image } from 'react-native';
+import React, { memo, useEffect, useState } from 'react';
+import { ActivityIndicator, View, Text, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants';
 import { styles } from '../styles/index.styles';
-import { getServerAddress } from '../services/faceApi';
+import { getAuthenticatedImageUri } from '../services/faceApi';
 
 interface CheckInItemProps {
   isMatch: boolean;
@@ -14,22 +14,41 @@ interface CheckInItemProps {
   evidenciaUrl?: string;
 }
 
-function buildFullUrl(relativeUrl?: string): string | null {
-  if (!relativeUrl) return null;
-  // Obtener la base del servidor configurado y quitar /api/v2.
-  const apiBase = getServerAddress();
-  const baseUrl = apiBase.replace(/\/api\/v2\/?$/, '');
-  return `${baseUrl}${relativeUrl}`;
-}
-
 export default memo(function CheckInItem({ isMatch, confidence, profileName, zoneName, formattedDate, evidenciaUrl }: CheckInItemProps) {
-  const fullEvidenciaUrl = buildFullUrl(evidenciaUrl);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setImageUri(null);
+    setImageError(false);
+
+    if (!evidenciaUrl) return;
+
+    setIsImageLoading(true);
+    getAuthenticatedImageUri(evidenciaUrl)
+      .then((uri) => {
+        if (active) setImageUri(uri);
+      })
+      .catch(() => {
+        console.error('Error cargando evidencia protegida');
+        if (active) setImageError(true);
+      })
+      .finally(() => {
+        if (active) setIsImageLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [evidenciaUrl]);
 
   return (
     <View style={styles.checkInCard}>
-      {fullEvidenciaUrl ? (
+      {imageUri ? (
         <Image
-          source={{ uri: fullEvidenciaUrl }}
+          source={{ uri: imageUri }}
           style={[
             styles.checkInAvatar,
             {
@@ -40,6 +59,10 @@ export default memo(function CheckInItem({ isMatch, confidence, profileName, zon
             },
           ]}
         />
+      ) : isImageLoading ? (
+        <View style={[styles.checkInAvatar, { backgroundColor: 'rgba(108, 92, 231, 0.12)' }]}>
+          <ActivityIndicator size="small" color={COLORS.primary} />
+        </View>
       ) : (
         <View
           style={[
@@ -52,9 +75,9 @@ export default memo(function CheckInItem({ isMatch, confidence, profileName, zon
           ]}
         >
           <Ionicons
-            name={isMatch ? 'checkmark-circle' : 'close-circle'}
+            name={imageError ? 'image-outline' : isMatch ? 'checkmark-circle' : 'close-circle'}
             size={24}
-            color={isMatch ? COLORS.success : COLORS.danger}
+            color={imageError ? COLORS.warning : isMatch ? COLORS.success : COLORS.danger}
           />
         </View>
       )}

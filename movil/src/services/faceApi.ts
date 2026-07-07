@@ -120,6 +120,25 @@ export interface EnrollResponse {
   message: string;
 }
 
+export interface BiometricStatusResponse {
+  enrolado: boolean;
+  fotoUrl: string | null;
+  actualizadoEn: string | null;
+}
+
+export interface BackendZoneResponse {
+  id: number;
+  nombre: string;
+  latitud: number;
+  longitud: number;
+  radio: number;
+}
+
+export interface CreateZoneResponse {
+  status: string;
+  zona: BackendZoneResponse;
+}
+
 async function request<T>(path: string, body: unknown = null, timeout = REQUEST_TIMEOUT, method = 'POST'): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
@@ -223,6 +242,89 @@ export async function enrollFace(photoUri: string, userId: string, userName?: st
   } as any);
   
   await request<unknown>('/biometria/enrolar', formData);
+}
+
+export async function getBiometricStatus(): Promise<BiometricStatusResponse> {
+  return request<BiometricStatusResponse>('/biometria/estado', null, REQUEST_TIMEOUT, 'GET');
+}
+
+export async function getOfficialZones(): Promise<BackendZoneResponse[]> {
+  return request<BackendZoneResponse[]>('/biometria/zonas', null, REQUEST_TIMEOUT, 'GET');
+}
+
+export async function createOfficialZone(
+  nombre: string,
+  latitud: number,
+  longitud: number,
+  radio: number
+): Promise<BackendZoneResponse> {
+  const response = await request<CreateZoneResponse>('/biometria/zonas', { nombre, latitud, longitud, radio });
+  return response.zona;
+}
+
+export async function deleteOfficialZone(id: string): Promise<void> {
+  await request<unknown>(`/biometria/zonas/${encodeURIComponent(id)}`, null, REQUEST_TIMEOUT, 'DELETE');
+}
+
+const EVIDENCE_PATH_PATTERN = /^\/api\/v2\/biometria\/evidencia\/[A-Za-z0-9._-]+\.(png|webp|jpe?g)$/i;
+
+function buildProtectedEvidenceUrl(relativeUrl: string): string {
+  if (!EVIDENCE_PATH_PATTERN.test(relativeUrl)) {
+    throw new FaceApiError('Ruta de evidencia no permitida.', 'INVALID_EVIDENCE_URL');
+  }
+  const baseUrl = API_BASE.replace(/\/api\/v2\/?$/, '');
+  return `${baseUrl}${relativeUrl}`;
+}
+
+function mimeFromEvidenceUrl(relativeUrl: string): string {
+  const extension = relativeUrl.match(/\.(png|webp|jpe?g)$/i)?.[1]?.toLowerCase();
+  if (extension === 'png') return 'image/png';
+  if (extension === 'webp') return 'image/webp';
+  return 'image/jpeg';
+}
+
+export async function getAuthenticatedImageUri(relativeUrl: string): Promise<string> {
+  const token = await getActiveSessionToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const url = buildProtectedEvidenceUrl(relativeUrl);
+  const mimeType = mimeFromEvidenceUrl(relativeUrl);
+
+  if (Platform.OS !== 'web' && FileSystem?.cacheDirectory) {
+    const extension = relativeUrl.match(/\.(png|webp|jpe?g)$/i)?.[0] || '.jpg';
+    const target = `${FileSystem.cacheDirectory}evidencia_${Date.now()}_${Math.random().toString(36).slice(2)}${extension}`;
+    let downloadedUri: string | null = null;
+    try {
+      const result = await FileSystem.downloadAsync(url, target, { headers });
+      downloadedUri = result.uri;
+      if (result.status < 200 || result.status >= 300) {
+        throw new FaceApiError('No se pudo cargar la evidencia fotografica.', `HTTP_${result.status}`);
+      }
+      const base64 = await FileSystem.readAsStringAsync(result.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      return `data:${mimeType};base64,${base64}`;
+    } finally {
+      if (downloadedUri) {
+        FileSystem.deleteAsync(downloadedUri, { idempotent: true }).catch(() => {});
+      }
+    }
+  }
+
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    throw new FaceApiError('No se pudo cargar la evidencia fotografica.', `HTTP_${response.status}`);
+  }
+  const blob = await response.blob();
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 export async function verifyFace(

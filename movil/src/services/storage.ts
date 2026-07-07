@@ -161,6 +161,10 @@ export async function saveZone(zone: Zone): Promise<void> {
   await secureSetItem(KEYS.ZONES, JSON.stringify(zones));
 }
 
+export async function replaceZones(zones: Zone[]): Promise<void> {
+  await secureSetItem(KEYS.ZONES, JSON.stringify(zones));
+}
+
 export async function deleteZone(zoneId: string): Promise<void> {
   const zones = await getZones();
   const filtered = zones.filter((z) => z.id !== zoneId);

@@ -1,3 +1,4 @@
+import math
 import os
 import time
 import uuid
@@ -70,6 +71,7 @@ class BiometriaService:
         if not perfil:
             raise HTTPException(status_code=404, detail="El usuario no tiene un rostro enrolado")
 
+        safe_zona_id = await self._resolver_zona_id_por_geocerca(db, zona_id, latitud, longitud)
         file_bytes = await self._leer_imagen(image)
         representacion = await self.engine_client.representar(
             file_bytes,
@@ -78,7 +80,6 @@ class BiometriaService:
         )
 
         distance, confidence, match_exitoso = self._comparar_embeddings(representacion.embedding, perfil.embedding)
-        safe_zona_id = await self._resolver_zona_id(db, zona_id)
         filename = self._filename_evidencia(usuario.id, image.content_type)
         file_path = Path("storage/asistencias") / filename
         evidencia_url = f"/api/v2/biometria/evidencia/{filename}"
@@ -111,6 +112,19 @@ class BiometriaService:
             "confidence": confidence,
             "evidenciaUrl": evidencia_url,
             "distance": round(distance, 6),
+        }
+
+    async def obtener_estado_biometrico(self, db: AsyncSession, usuario: Usuario) -> dict:
+        perfil = await self._obtener_perfil_por_usuario(db, usuario.id)
+        if not perfil or not perfil.activo:
+            return {"enrolado": False, "fotoUrl": None, "actualizadoEn": None}
+
+        foto_url = usuario.url_avatar if self._es_foto_biometrica(usuario.url_avatar) else None
+
+        return {
+            "enrolado": True,
+            "fotoUrl": foto_url,
+            "actualizadoEn": perfil.creado_en.isoformat() if perfil.creado_en else None,
         }
 
     async def obtener_asistencias(
@@ -174,10 +188,13 @@ class BiometriaService:
         return file_path
 
     async def _obtener_perfil_activo(self, db: AsyncSession, usuario_id: str) -> EmbeddingFacial | None:
+        perfil = await self._obtener_perfil_por_usuario(db, usuario_id)
+        return perfil if perfil and perfil.activo else None
+
+    async def _obtener_perfil_por_usuario(self, db: AsyncSession, usuario_id: str) -> EmbeddingFacial | None:
         result = await db.execute(
             select(EmbeddingFacial).where(
                 EmbeddingFacial.usuario_id == usuario_id,
-                EmbeddingFacial.activo == True,  # noqa: E712
             )
         )
         return result.scalar_one_or_none()
@@ -212,6 +229,29 @@ class BiometriaService:
         result = await db.execute(select(ZonaTrabajo).where(ZonaTrabajo.id == zona_id))
         return zona_id if result.scalar_one_or_none() else None
 
+    async def _resolver_zona_id_por_geocerca(
+        self,
+        db: AsyncSession,
+        zona_id: Optional[int],
+        latitud: float,
+        longitud: float,
+    ) -> Optional[int]:
+        result = await db.execute(select(ZonaTrabajo))
+        zonas = list(result.scalars().all())
+        if not zonas:
+            return None
+
+        zonas_en_radio = []
+        for zona in zonas:
+            distancia = self._distancia_metros(latitud, longitud, zona.latitud, zona.longitud)
+            if distancia <= zona.radio:
+                zonas_en_radio.append((distancia, zona.id))
+
+        if zonas_en_radio:
+            return min(zonas_en_radio, key=lambda item: item[0])[1]
+
+        raise HTTPException(status_code=400, detail="Las coordenadas estan fuera de una zona oficial")
+
     @staticmethod
     def _guardar_archivo(file_path: Path, file_bytes: bytes) -> None:
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -235,6 +275,16 @@ class BiometriaService:
         }.get((content_type or "").lower(), ".jpg")
 
     @staticmethod
+    def _distancia_metros(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        radio_tierra_m = 6371000
+        phi1 = math.radians(lat1)
+        phi2 = math.radians(lat2)
+        delta_phi = math.radians(lat2 - lat1)
+        delta_lambda = math.radians(lon2 - lon1)
+        a = math.sin(delta_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+        return radio_tierra_m * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    @staticmethod
     def _filename_motor(content_type: str | None) -> str:
         return f"captura{BiometriaService._extension(content_type)}"
 
@@ -244,6 +294,10 @@ class BiometriaService:
         if not safe_name or safe_name != filename or any(sep in filename for sep in ("/", "\\")):
             raise HTTPException(status_code=400, detail="Nombre de archivo invalido")
         return safe_name
+
+    @staticmethod
+    def _es_foto_biometrica(foto_url: str | None) -> bool:
+        return bool(foto_url and foto_url.startswith("/api/v2/biometria/foto/"))
 
     @staticmethod
     def _serializar_asistencia(registro: RegistroAsistencia) -> dict:

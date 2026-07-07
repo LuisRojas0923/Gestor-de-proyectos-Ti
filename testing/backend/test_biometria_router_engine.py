@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from app.api.biometria.biometria_router import requerir_permiso_biometria
+from app.api.biometria.biometria_router import obtener_estado_biometrico, requerir_permiso_biometria
 
 
 class _FakeDb:
@@ -38,3 +38,21 @@ async def test_requerir_permiso_biometria_permite_permiso(monkeypatch):
     usuario = SimpleNamespace(rol="usuario")
 
     assert await requerir_permiso_biometria(_FakeDb(), usuario) is usuario
+
+
+@pytest.mark.asyncio
+async def test_obtener_estado_biometrico_delega_en_servicio():
+    usuario = SimpleNamespace(id="USR-1")
+    db = _FakeDb()
+
+    class _FakeService:
+        async def obtener_estado_biometrico(self, received_db, received_user):
+            assert received_db is db
+            assert received_user is usuario
+            return {"enrolado": True, "fotoUrl": "/api/v2/biometria/foto/USR-1.jpg", "actualizadoEn": None}
+
+    assert await obtener_estado_biometrico(usuario, db, _FakeService()) == {
+        "enrolado": True,
+        "fotoUrl": "/api/v2/biometria/foto/USR-1.jpg",
+        "actualizadoEn": None,
+    }

@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.router import obtener_usuario_actual_db
@@ -18,9 +18,9 @@ router = APIRouter()
 
 class ZonaCreate(BaseModel):
     nombre: str
-    latitud: float
-    longitud: float
-    radio: float
+    latitud: float = Field(ge=-90, le=90)
+    longitud: float = Field(ge=-180, le=180)
+    radio: float = Field(gt=0, le=50000)
 
 
 def obtener_biometria_service() -> BiometriaService:
@@ -45,6 +45,15 @@ async def enrolar_rostro(
     service: BiometriaService = Depends(obtener_biometria_service),
 ):
     return await service.enrolar_rostro(db, usuario_actual, image)
+
+
+@router.get("/estado", summary="Obtener estado biometrico del usuario actual")
+async def obtener_estado_biometrico(
+    usuario_actual: Usuario = Depends(requerir_permiso_biometria),
+    db: AsyncSession = Depends(obtener_db),
+    service: BiometriaService = Depends(obtener_biometria_service),
+):
+    return await service.obtener_estado_biometrico(db, usuario_actual)
 
 
 @router.post("/asistencia", summary="Validar biometria y registrar asistencia")

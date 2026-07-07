@@ -31,6 +31,12 @@ export interface FaceProfile {
   updatedAt: string;
 }
 
+export interface BiometricStatus {
+  enrolado: boolean;
+  fotoUrl: string | null;
+  actualizadoEn: string | null;
+}
+
 export interface VerificationResult {
   isMatch: boolean;
   confidence: number; // 0-1

@@ -1,18 +1,50 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AppProvider, useApp } from '../src/context/AppContext';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, currentUser } = useAuth();
-  const { profiles, isLoading: isAppLoading } = useApp();
+  const {
+    biometricStatus,
+    biometricStatusUserId,
+    isBiometricStatusLoading,
+    isLoading: isAppLoading,
+    refreshBiometricStatus,
+    refreshZones,
+  } = useApp();
   const segments = useSegments();
   const router = useRouter();
+  const [biometricCheckUserId, setBiometricCheckUserId] = useState<string | null>(null);
+  const [zonesCheckUserId, setZonesCheckUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isLoading || isAppLoading) return;
+    if (!isAuthenticated) {
+      setBiometricCheckUserId(null);
+      setZonesCheckUserId(null);
+      return;
+    }
+    if (isLoading || !isAuthenticated || !currentUser) return;
+
+    if (biometricCheckUserId !== currentUser.id || biometricStatusUserId !== currentUser.id) {
+      setBiometricCheckUserId(currentUser.id);
+      refreshBiometricStatus(currentUser.id).catch((error) => {
+        console.error('Error actualizando estado biometrico:', error);
+      });
+    }
+
+    if (zonesCheckUserId !== currentUser.id) {
+      setZonesCheckUserId(currentUser.id);
+      refreshZones().catch((error) => {
+        console.error('Error actualizando zonas oficiales:', error);
+      });
+    }
+  }, [isAuthenticated, isLoading, currentUser, biometricCheckUserId, biometricStatusUserId, zonesCheckUserId, refreshBiometricStatus, refreshZones]);
+
+  useEffect(() => {
+    if (isLoading || isAppLoading || isBiometricStatusLoading) return;
 
     const inLoginScreen = segments[0] === 'login';
     const inEnrollScreen = segments[0] === 'enroll';
@@ -22,18 +54,18 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       // No autenticado y no está en login → redirigir a login
       router.replace('/login');
     } else if (isAuthenticated) {
-      // Verificar si el usuario ya registró su rostro en este dispositivo
-      const hasEnrolledFace = profiles.some(p => p.id === currentUser?.id);
+      if (!currentUser || biometricStatusUserId !== currentUser.id) return;
+
+      const hasEnrolledFace = biometricStatus?.enrolado === true;
 
       if (!hasEnrolledFace && !inEnrollScreen) {
-        // Autenticado pero no tiene rostro -> obligarlo a registrar su rostro
+        // El backend es la fuente de verdad: si no confirma enrolamiento, va a enrolar.
         router.replace('/enroll');
       } else if (hasEnrolledFace && (inLoginScreen || inEnrollScreen || inRoot)) {
-        // Autenticado y ya tiene rostro -> no puede ir a login ni a enroll, va a tabs
         router.replace('/(tabs)');
       }
     }
-  }, [isAuthenticated, isLoading, isAppLoading, segments, profiles, currentUser]);
+  }, [isAuthenticated, isLoading, isAppLoading, isBiometricStatusLoading, segments, biometricStatus, biometricStatusUserId, currentUser]);
 
   return <>{children}</>;
 }
