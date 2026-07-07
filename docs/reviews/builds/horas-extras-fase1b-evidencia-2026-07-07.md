@@ -61,3 +61,14 @@ Las suites HE no afectadas por los cambios ya se ejecutaron aisladas/secuenciale
 - Pendiente ampliar evidencia UI/componente para formularios y modales HE.
 - Pendiente actualizar `docs/ESQUEMA_BASE_DATOS.md` con las tablas HE para cierre documental completo.
 - Pendiente endurecer concurrencia/idempotencia con pruebas dedicadas para confirmacion, bolsa y costo OT antes de produccion amplia.
+
+## Hardening post-piloto agregado
+
+- `docs/ESQUEMA_BASE_DATOS.md` actualizado con tablas HE: catalogo, factores ARL, horario pactado, horario diario, bolsa, movimientos, overrides, calculo semanal, detalle, costos OT, parametros legales, workflow, festivos, novedades y planificador OT.
+- `python -m pytest testing/backend/test_horas_extras_s1.py -q`: 30 passed.
+- `python -m pytest testing/backend/test_horas_extras_s8_ot_mano_obra.py -q`: 5 passed.
+- Cobertura nueva:
+  - HEFD/HEFN con `pytest.approx` sobre horas, bruto, carga prestacional y costo total.
+  - Semana previa a 2026-07-16 con jornada 44h y divisor 220.
+  - Reparto OT con horas y valores brutos/carga esperados por proporcion.
+  - `_ot_id_desde_orden` con orden numerica y orden no numerica por CRC32 estable.

@@ -114,6 +114,50 @@ class TestCalculoBasico:
         )
         assert any(d.codigo_novedad == "HED" for d in r.detalles)
 
+    def test_festivos_diurno_y_nocturno_calculan_valores_numericos(self):
+        """HEFD/HEFN deben usar factores 2.05/2.55 en bruto, carga y costo."""
+        horas = [9.0, 9.0, 8.0, 8.0, 8.0, 2.0, 0.0]
+        codigos = [["HEFD"], ["HEFN"], [], [], [], [], []]
+
+        r = calcular_pre_liquidacion(
+            _input(horas, codigos_por_dia=codigos), CATALOGO_TEST, FACTOR_OP
+        )
+
+        valor_hora = 3_000_000 / 210
+        detalles = {d.codigo_novedad: d for d in r.detalles}
+
+        assert r.total_horas_extras == pytest.approx(2.0)
+        assert detalles["HEFD"].horas == pytest.approx(1.0)
+        assert detalles["HEFD"].valor_bruto == pytest.approx(valor_hora * 2.05, rel=1e-6)
+        assert detalles["HEFD"].carga_prestacional == pytest.approx(
+            valor_hora * 2.05 * FACTOR_OP, rel=1e-6
+        )
+        assert detalles["HEFD"].costo_total == pytest.approx(
+            valor_hora * 2.05 * (1 + FACTOR_OP), rel=1e-6
+        )
+        assert detalles["HEFN"].horas == pytest.approx(1.0)
+        assert detalles["HEFN"].valor_bruto == pytest.approx(valor_hora * 2.55, rel=1e-6)
+        assert detalles["HEFN"].carga_prestacional == pytest.approx(
+            valor_hora * 2.55 * FACTOR_OP, rel=1e-6
+        )
+        assert detalles["HEFN"].costo_total == pytest.approx(
+            valor_hora * 2.55 * (1 + FACTOR_OP), rel=1e-6
+        )
+
+    def test_semana_previa_a_vigencia_usa_44h_y_divisor_220(self):
+        """Antes de 2026-07-16 aplica jornada previa 44h y divisor 220."""
+        horas = [9.0, 9.0, 9.0, 9.0, 9.0, 0.0, 0.0]
+
+        r = calcular_pre_liquidacion(
+            _input(horas, semana_iso=28), CATALOGO_TEST, FACTOR_OP
+        )
+
+        valor_hora = 3_000_000 / 220
+        assert r.valor_hora_ordinaria == pytest.approx(valor_hora, rel=1e-6)
+        assert r.total_horas_extras == pytest.approx(1.0)
+        assert r.detalles[0].codigo_novedad == "HED"
+        assert r.total_valor_bruto == pytest.approx(valor_hora * 1.25, rel=1e-6)
+
     def test_dia_sin_horas_extras_se_omite(self):
         """Una semana de 42h compensa dias de menor y mayor jornada."""
         horas = [8.0, 8.0, 8.0, 6.0, 8.0, 4.0, 0.0]

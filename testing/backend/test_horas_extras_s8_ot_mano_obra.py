@@ -1,6 +1,7 @@
 """
 Tests S8 — Asignacion de OT/centros de costo de M.O. por dia.
 """
+import zlib
 from datetime import time
 
 import pytest
@@ -25,6 +26,7 @@ from app.models.novedades_nomina.schemas_horas_extras_planificador import (
     PlanSemanaIn,
 )
 from app.services.erp.ordenes_trabajo_service import OrdenesTrabajoService
+from app.services.novedades_nomina.planificador_costos_ot import _ot_id_desde_orden
 from app.services.novedades_nomina.planificador_persistencia import confirmar_plan
 from app.services.novedades_nomina.planificador_ot import validar_asignaciones_ot_dia
 
@@ -116,6 +118,11 @@ def test_listar_ot_mano_obra_usa_categoria_y_devuelve_combinaciones():
     assert resultado["items"][0]["cc"] == "3080"
 
 
+def test_ot_id_desde_orden_usa_entero_o_crc32_estable():
+    assert _ot_id_desde_orden(" 9401 ") == 9401
+    assert _ot_id_desde_orden("OT-1007") == zlib.crc32("OT-1007".encode("utf-8"))
+
+
 def test_plan_dia_rechaza_mas_de_tres_asignaciones_ot():
     with pytest.raises(ValidationError):
         PlanDiaIn(
@@ -196,6 +203,15 @@ async def test_confirmar_plan_distribuye_costo_en_multiples_ot(db_session):
     assert round(sum(c.total_horas for c in costos), 2) == response.resumen.total_horas_extras
     assert costos[0].cc == "3080"
     assert costos[0].categoria_sub_indice == "MANO DE OBRA"
-    assert costos[0].total_horas < costos[1].total_horas
+    assert costos[0].total_horas == pytest.approx(0.24)
+    assert costos[1].total_horas == pytest.approx(0.26)
+    assert costos[0].total_valor_bruto == pytest.approx(round(0.24 * 12_500 * 1.25, 0))
+    assert costos[1].total_valor_bruto == pytest.approx(round(0.26 * 12_500 * 1.25, 0))
+    assert costos[0].total_carga_prestacional == pytest.approx(
+        round(costos[0].total_valor_bruto * 0.52436, 0)
+    )
+    assert costos[1].total_carga_prestacional == pytest.approx(
+        round(costos[1].total_valor_bruto * 0.52436, 0)
+    )
 
     await _cleanup(db_session)

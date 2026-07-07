@@ -38,7 +38,7 @@ Ubicación: `testing/backend/`
 | **Prioridad Desarrollos** | `test_desarrollo_prioridad.py` | Ciclo CRUD de prioridades en desarrollos. | ✅ PASSED |
 | **Notificaciones** | `test_notificaciones.py` | Ciclo CRUD de notificaciones persistentes de usuario. | ✅ PASSED |
 | **Horas Extras S0 Semillas** | `test_horas_extras_s0.py` | Semillado, catalogo base, factores legales y topes iniciales del modulo. | ✅ PASSED |
-| **Horas Extras S1 Calculo** | `test_horas_extras_s1.py` | Motor de calculo semanal, clasificacion HED/HEN/HEFD/HEFN/HF y validaciones de entrada. | ✅ PASSED |
+| **Horas Extras S1 Calculo** | `test_horas_extras_s1.py` | Motor de calculo semanal, clasificacion HED/HEN/HEFD/HEFN/HF, valores numericos festivos, pre-vigencia 44h/220 y validaciones de entrada. | ✅ PASSED |
 | **Horas Extras S2 Confirmacion** | `test_horas_extras_s2.py` | Persistencia de calculo, detalle, bolsa, costo OT, idempotencia y auditoria desde usuario autenticado. | ✅ PASSED |
 | **Horas Extras S4 Workflow** | `test_horas_extras_s4.py` | Transiciones PAGADO/COMPENSADO/ANULADO, compensacion manual y persistencia endpoint-level con commit. | ✅ PASSED |
 | **Horas Extras S5 Festivos** | `test_horas_extras_s5_festivos.py` | Calendario de festivos, cache, sincronizacion Calendarific y manejo de errores externos. | ✅ PASSED |
@@ -47,7 +47,7 @@ Ubicación: `testing/backend/`
 | **Horas Extras S5''' Integracion** | `test_horas_extras_s5ppp_integracion.py` | Integracion horario diario + festivos + novedades en pre-liquidacion. | ✅ PASSED |
 | **Horas Extras S6 Bolsa** | `test_horas_extras_s6.py` | Bolsa desactivable, override por OT, ruta sin prefijo duplicado y RBAC en estado global. | ✅ PASSED |
 | **Horas Extras S7 Planificador** | `test_horas_extras_s7.py` | Planificador semanal masivo, selector ERP protegido por RBAC, borrador, pre-calculo y confirmacion. | ✅ PASSED |
-| **Horas Extras S8 OT/CC** | `test_horas_extras_s8_ot_mano_obra.py` | Consulta ERP `basegeneralcostos`, maximo 3 OT por empleado/dia, validacion de reparto y distribucion de costo por OT. | ✅ PASSED |
+| **Horas Extras S8 OT/CC** | `test_horas_extras_s8_ot_mano_obra.py` | Consulta ERP `basegeneralcostos`, maximo 3 OT por empleado/dia, validacion de reparto numerico, CRC32 para orden no numerica y distribucion de costo por OT. | ✅ PASSED |
 | **Horas Extras S9 Reglas GH** | `test_horas_extras_s9_reglas_gh.py` | Reglas confirmadas por Gestion Humana: jornada semanal 42h/210h desde 2026-07-16, compensacion semanal, nocturna 19:00-06:00 y turnos cruzados en dos dias. | ✅ PASSED |
 | **Horas Extras Parametros Calculo** | `test_horas_extras_parametros_calculo.py` | Consulta y edicion de reglas vigentes en `nomina_parametros_legales`; valida ruta sin prefijo duplicado, RBAC y uso de parametros editados. | ✅ PASSED |
 | **Biometría Engine Client** | `test_biometria_engine_client.py` | Mapeo saneado de errores del motor, contrato de embedding y rechazo de respuestas invalidas. | ✅ PASSED |

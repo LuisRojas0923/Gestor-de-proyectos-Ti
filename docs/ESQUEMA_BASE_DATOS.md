@@ -40,6 +40,312 @@ Estas tablas pertenecen al backend principal. El servicio `biometria-engine` no 
 
 ---
 
+## Tablas de Nomina - Horas Extras
+
+Estas tablas soportan el modulo `nomina_horas_extras`: calculo semanal, bolsa de horas, novedades, festivos, planificador semanal y costos por OT. Los nombres fisicos siguen la convencion en espanol del backend.
+
+### `nomina_catalogo_novedades`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador interno del concepto. |
+| `codigo` | varchar(20), unique, index | Codigo operativo: `HED`, `HEN`, `HEFD`, `HEFN`, `HF`, `RN`, `RF`, `VAC`, `INC`, etc. |
+| `descripcion_corta` | varchar(100) | Nombre corto visible del concepto. |
+| `descripcion_larga` | varchar(500), nullable | Descripcion extendida. |
+| `categoria` | varchar(50) | Categoria funcional: hora extra, ausencia, licencia, incapacidad, vacacion. |
+| `subcategoria` | varchar(50) | Clasificacion especifica: diurna, nocturna, festiva, etc. |
+| `factor_hora_ordinaria` | float | Multiplicador sobre hora ordinaria. |
+| `acredita_bolsa` | boolean | Indica si el concepto acredita bolsa de horas. |
+| `descuenta_bolsa` | boolean | Indica si el concepto descuenta bolsa al compensar. |
+| `requiere_autorizacion` | boolean | Indica si requiere autorizacion de HE. |
+| `unidad` | varchar(20) | Unidad: `HORAS` o `DIAS`. |
+| `estado` | varchar(20) | Estado del concepto. |
+| `vigente_desde` | date | Inicio de vigencia legal/operativa. |
+| `vigente_hasta` | date, nullable | Fin de vigencia. |
+| `observaciones` | text, nullable | Notas operativas. |
+| `creado_en` | timestamp | Fecha de creacion. |
+| `actualizado_en` | timestamp, nullable | Fecha de ultima actualizacion. |
+
+### `nomina_factor_prestacional_riesgo`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador interno. |
+| `nivel_riesgo` | varchar(20), unique, index | Nivel ARL `I` a `V`. |
+| `nivel_macro` | varchar(30) | Agrupacion operativa: direccion, administrativo u operativo. |
+| `arl_nombre` | varchar(100), nullable | Nombre de ARL si aplica. |
+| `factor_prestacional` | float | Carga prestacional efectiva aplicada al valor bruto. |
+| `porcentaje_salud` | float | Componente salud. |
+| `porcentaje_pension` | float | Componente pension. |
+| `porcentaje_arl` | float | Componente ARL. |
+| `porcentaje_caja` | float | Componente caja de compensacion. |
+| `porcentaje_icbf` | float | Componente ICBF. |
+| `porcentaje_sena` | float | Componente SENA. |
+| `porcentaje_prima` | float | Componente prima. |
+| `porcentaje_cesantia` | float | Componente cesantia. |
+| `porcentaje_interes_cesantia` | float | Componente intereses de cesantia. |
+| `porcentaje_vacaciones` | float | Componente vacaciones. |
+| `vigente_desde` | date | Inicio de vigencia. |
+| `vigente_hasta` | date, nullable | Fin de vigencia. |
+| `observaciones` | text, nullable | Notas. |
+| `creado_en` | timestamp | Fecha de creacion. |
+
+### `nomina_horario_pactado`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador interno. |
+| `cedula` | varchar(50), unique, index | Empleado asociado. |
+| `minutos_jornada_ordinaria` | integer | Minutos ordinarios por dia. |
+| `horas_semana_ordinaria` | float | Jornada semanal ordinaria vigente. |
+| `es_jornada_nocturna` | boolean | Indica si su jornada ordinaria es nocturna. |
+| `autoriza_he_default` | boolean | Autorizacion HE sincronizada desde ERP. |
+| `autoriza_he_override` | boolean, nullable | Override manual desde portal. |
+| `override_motivo` | varchar(500), nullable | Motivo del override. |
+| `override_autorizado_por` | varchar(100), nullable | Persona que autoriza el override. |
+| `override_fecha` | timestamp, nullable | Fecha del override. |
+| `sincronizado_en` | timestamp | Ultima sincronizacion. |
+| `fuente_sincronizacion` | varchar(20) | Fuente: ERP, manual u override. |
+| `observaciones` | text, nullable | Notas. |
+
+### `nomina_horario_pactado_dia`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `cedula` | varchar(50), PK, FK `nomina_horario_pactado.cedula` | Empleado asociado. |
+| `dia_semana` | integer, PK | Dia ISO: 1 lunes a 7 domingo. |
+| `hora_entrada` | time, nullable | Hora pactada de entrada; null para franco/libre. |
+| `hora_salida` | time, nullable | Hora pactada de salida; null para franco/libre. |
+| `minutos_almuerzo` | integer | Minutos de almuerzo, rango esperado 0 a 240. |
+
+### `nomina_bolsa_horas`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador de bolsa. |
+| `cedula` | varchar(50), unique, index | Empleado propietario de la bolsa. |
+| `horas_acreditadas` | float | Horas acumuladas por confirmaciones HE. |
+| `horas_consumidas` | float | Horas compensadas con tiempo libre. |
+| `horas_pagadas` | float | Horas liquidadas en dinero. |
+| `fecha_ultimo_movimiento` | timestamp, nullable | Ultimo movimiento registrado. |
+| `observaciones` | text, nullable | Notas. |
+| `creado_en` | timestamp | Fecha de creacion. |
+| `actualizado_en` | timestamp, nullable | Fecha de actualizacion. |
+
+### `nomina_bolsa_horas_movimientos`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del movimiento. |
+| `bolsa_id` | integer, FK `nomina_bolsa_horas.id` | Bolsa afectada. |
+| `cedula` | varchar(50), index | Empleado afectado. |
+| `tipo_movimiento` | varchar(30) | `ACREDITACION`, `CONSUMO_TIEMPO`, `PAGO` o `AJUSTE`. |
+| `horas` | float | Cantidad de horas movidas. |
+| `fecha` | timestamp | Fecha efectiva del movimiento. |
+| `calculo_id` | integer, FK `nomina_calculo_semanal.id`, nullable | Calculo origen si aplica. |
+| `liquidacion_id` | integer, nullable | Liquidacion externa si aplica. |
+| `usuario_id` | varchar(50), nullable | Usuario que registro el movimiento. |
+| `observaciones` | text, nullable | Notas. |
+
+### `nomina_override_autoriza_he`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del override. |
+| `cedula` | varchar(50), index | Empleado afectado. |
+| `autoriza_he_erp` | boolean | Valor original ERP. |
+| `autoriza_he_override` | boolean | Valor autorizado en portal. |
+| `motivo` | varchar(500) | Justificacion. |
+| `autorizado_por` | varchar(100) | Nombre de autorizador. |
+| `autorizado_por_id` | varchar(50), nullable | Usuario autorizador. |
+| `vigente_desde` | timestamp | Inicio de vigencia. |
+| `vigente_hasta` | timestamp, nullable | Fin de vigencia. |
+| `estado` | varchar(20) | `ACTIVO`, `REVOCADO` o `EXPIRADO`. |
+| `documento_soporte_url` | varchar(500), nullable | Evidencia documental. |
+| `creado_en` | timestamp | Fecha de creacion. |
+
+### `nomina_calculo_semanal`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del calculo. |
+| `cedula` | varchar(50), index | Empleado calculado. |
+| `anio` | integer, index | Anio ISO del calculo. |
+| `semana_iso` | integer, index | Semana ISO, 1 a 53. |
+| `fecha_inicio` | date | Inicio de semana. |
+| `fecha_fin` | date | Fin de semana. |
+| `nivel_riesgo_arl` | varchar(10) | Snapshot del nivel ARL. |
+| `factor_prestacional` | float | Snapshot de carga prestacional. |
+| `salario_base_mensual` | float | Salario usado para el calculo. |
+| `valor_hora_ordinaria` | float | Valor hora ordinaria calculado. |
+| `total_horas_extras` | float | Total de horas extras. |
+| `total_horas_recargo_nocturno` | float | Total de recargos nocturnos. |
+| `total_valor_bruto` | float | Total bruto calculado. |
+| `total_carga_prestacional` | float | Total carga prestacional. |
+| `total_costo_empresa` | float | Costo total empresa. |
+| `estado` | varchar(30) | `BORRADOR`, `CONFIRMADO`, `PAGADO`, `COMPENSADO` o `ANULADO`. |
+| `ot_id` | integer, nullable, index | OT primaria si aplica. |
+| `ot_codigo` | varchar(50), nullable | Codigo OT primaria. |
+| `calculado_por` | varchar(50), nullable | Usuario que calculo/confirmo. |
+| `calculado_en` | timestamp | Fecha de calculo. |
+| `confirmado_por` | varchar(50), nullable | Usuario que confirmo. |
+| `confirmado_en` | timestamp, nullable | Fecha de confirmacion. |
+| `observaciones` | text, nullable | Notas. |
+
+### `nomina_calculo_semanal_detalle`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del detalle. |
+| `calculo_id` | integer, FK `nomina_calculo_semanal.id` | Calculo padre. |
+| `codigo_novedad` | varchar(20) | Codigo de novedad/concepto aplicado. |
+| `horas` | float | Horas liquidadas en el concepto. |
+| `factor_hora_ordinaria` | float | Factor usado. |
+| `valor_bruto` | float | Valor bruto del concepto. |
+| `carga_prestacional` | float | Carga prestacional del concepto. |
+| `costo_total` | float | Valor bruto mas carga prestacional. |
+| `ot_id` | integer, nullable | OT asociada al detalle. |
+| `ot_codigo` | varchar(50), nullable | Codigo OT asociada. |
+| `fuente` | varchar(20) | Fuente: portal, planilla o ERP. |
+
+### `nomina_costo_ot`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del consolidado. |
+| `ot_id` | integer, index | OT consolidada. |
+| `ot_codigo` | varchar(50), index | Codigo de OT. |
+| `anio` | integer | Anio ISO. |
+| `semana_iso` | integer | Semana ISO. |
+| `fecha_inicio` | date | Inicio del periodo. |
+| `fecha_fin` | date | Fin del periodo. |
+| `total_empleados` | integer | Empleados distintos que aportaron HE. |
+| `total_horas` | float | Total horas HE imputadas. |
+| `total_horas_hed` | float | Total HED. |
+| `total_horas_hen` | float | Total HEN. |
+| `total_horas_hefd` | float | Total HEFD. |
+| `total_horas_hefn` | float | Total HEFN. |
+| `total_horas_hf` | float | Total HF. |
+| `total_valor_bruto` | float | Total bruto. |
+| `total_carga_prestacional` | float | Total carga prestacional. |
+| `total_costo_empresa` | float | Total costo empresa. |
+| `categoria_sub_indice` | varchar(50), nullable | Snapshot categoria subindice. |
+| `cc` | varchar(50), nullable | Centro de costo. |
+| `scc` | varchar(50), nullable | Subcentro de costo. |
+| `sub_indice` | varchar(50), nullable | Subindice. |
+| `ultima_actualizacion` | timestamp | Fecha de consolidacion. |
+| `calculo_ids` | JSON, nullable | Lista de calculos que aportaron. |
+
+### `nomina_parametros_legales`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del parametro. |
+| `codigo` | varchar(50), unique, index | Codigo funcional del parametro. |
+| `nombre` | varchar(200) | Nombre descriptivo. |
+| `valor` | varchar(500) | Valor serializado segun `tipo_dato`. |
+| `tipo_dato` | varchar(20) | `NUMERICO`, `TEXTO`, `JSON`, `BOOLEANO`, `FECHA` o `HORA`. |
+| `norma_soporte` | varchar(200), nullable | Norma o politica que soporta el valor. |
+| `vigente_desde` | date | Inicio de vigencia. |
+| `vigente_hasta` | date, nullable | Fin de vigencia. |
+| `estado` | varchar(20) | Estado del parametro. |
+| `observaciones` | text, nullable | Notas. |
+| `creado_en` | timestamp | Fecha de creacion. |
+
+### `nomina_calculo_workflow_evento`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del evento. |
+| `calculo_id` | integer, FK `nomina_calculo_semanal.id`, index | Calculo afectado. |
+| `estado_origen` | varchar(30) | Estado anterior. |
+| `estado_destino` | varchar(30) | Estado nuevo. |
+| `justificacion` | text, nullable | Motivo del cambio. |
+| `usuario_id` | varchar(50), nullable | Usuario que ejecuto la transicion. |
+| `created_at` | timestamp | Fecha del evento. |
+
+### `nomina_festivo_calendario`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `anio` | integer, PK | Anio del festivo. |
+| `fecha` | date, PK | Fecha del festivo. |
+| `nombre` | varchar(100) | Nombre del festivo. |
+| `fuente` | varchar(20) | `CALENDARIFIC` o `LEY_EMILIANI`. |
+| `created_at` | timestamp | Fecha de creacion. |
+
+### `nomina_novedad_evento`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del evento. |
+| `cedula` | varchar(50), index | Empleado afectado. |
+| `codigo_novedad` | varchar(20), FK `nomina_catalogo_novedades.codigo`, index | Concepto de novedad. |
+| `fecha_inicio` | date | Inicio de la novedad. |
+| `fecha_fin` | date | Fin de la novedad. |
+| `observaciones` | varchar(500), nullable | Notas. |
+| `estado` | varchar(20), index | `BORRADOR`, `CONFIRMADO` o `ANULADO`. |
+| `created_at` | timestamp | Fecha de creacion. |
+| `created_by` | varchar(50), nullable | Usuario creador. |
+| `updated_at` | timestamp, nullable | Fecha de actualizacion. |
+| `updated_by` | varchar(50), nullable | Usuario actualizador. |
+| `confirmado_at` | timestamp, nullable | Fecha de confirmacion. |
+| `confirmado_by` | varchar(50), nullable | Usuario confirmador. |
+| `anulado_at` | timestamp, nullable | Fecha de anulacion. |
+| `anulado_justificacion` | varchar(500), nullable | Motivo de anulacion. |
+
+### `nomina_bolsa_ot_override`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del override. |
+| `ot_id` | integer, index | OT afectada. |
+| `bolsa_habilitada_override` | boolean | Valor efectivo aplicado a la OT. |
+| `bolsa_habilitada_erp` | boolean | Snapshot del parametro global al crear el override. |
+| `motivo` | varchar(500) | Justificacion. |
+| `autorizado_por` | varchar(100) | Nombre de autorizador. |
+| `autorizado_por_id` | varchar(50), nullable | Usuario autorizador. |
+| `vigente_desde` | timestamp | Inicio de vigencia. |
+| `vigente_hasta` | timestamp, nullable | Fin de vigencia. |
+| `estado` | varchar(20) | Estado: `ACTIVO` o `REVOCADO`. |
+| `documento_soporte_url` | varchar(500), nullable | Evidencia documental. |
+| `creado_en` | timestamp | Fecha de creacion. |
+
+### `nomina_planificador_dia_ot`
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del reparto. |
+| `anio` | integer | Anio ISO. |
+| `semana_iso` | integer | Semana ISO, 1 a 53. |
+| `cedula` | varchar(50) | Empleado planificado. |
+| `dia_semana` | integer | Dia ISO: 1 lunes a 7 domingo. |
+| `orden` | varchar(50) | Orden/OT capturada desde ERP o manual. |
+| `cc` | varchar(50), nullable | Centro de costo. |
+| `scc` | varchar(50), nullable | Subcentro de costo. |
+| `sub_indice` | varchar(50), nullable | Subindice. |
+| `categoria_sub_indice` | varchar(50) | Categoria del subindice. |
+| `descripcion` | varchar(500), nullable | Descripcion de OT/CC. |
+| `vr_contratado` | double precision, nullable | Valor contratado de referencia. |
+| `horas` | double precision, nullable | Horas asignadas. |
+| `porcentaje` | double precision, nullable | Porcentaje de reparto. |
+| `creado_en` | timestamp | Fecha de creacion. |
+| `actualizado_en` | timestamp | Fecha de actualizacion. |
+
+### Relaciones principales de Horas Extras
+
+| Relacion | Descripcion |
+|---|---|
+| `nomina_horario_pactado.cedula` -> `nomina_horario_pactado_dia.cedula` | Horario pactado semanal y detalle diario por empleado. |
+| `nomina_calculo_semanal.id` -> `nomina_calculo_semanal_detalle.calculo_id` | Cabecera y detalle de conceptos liquidados. |
+| `nomina_calculo_semanal.id` -> `nomina_bolsa_horas_movimientos.calculo_id` | Movimientos de bolsa originados por un calculo. |
+| `nomina_bolsa_horas.id` -> `nomina_bolsa_horas_movimientos.bolsa_id` | Trazabilidad de movimientos por bolsa. |
+| `nomina_calculo_semanal.id` -> `nomina_calculo_workflow_evento.calculo_id` | Historial de cambios de estado. |
+| `nomina_catalogo_novedades.codigo` -> `nomina_novedad_evento.codigo_novedad` | Eventos de ausencias/licencias/vacaciones/incapacidades por concepto. |
+| `nomina_calculo_semanal.ot_id` / `nomina_calculo_semanal_detalle.ot_id` -> `nomina_costo_ot.ot_id` | Consolidacion semanal de costos por OT. |
+
+---
+
 ### 🏗️ Diagrama del Sistema de Gestión de Proyectos TI
 
 ```
