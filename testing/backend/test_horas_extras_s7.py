@@ -93,7 +93,7 @@ def test_planificador_empleados_erp_exige_permiso_he():
         and route.path == "/api/v2/novedades-nomina/horas-extras/planificador/empleados-erp"
     )
     dependencias = {getattr(dep.call, "__name__", "") for dep in route.dependant.dependencies}
-    assert "requiere_permiso_he" in dependencias
+    assert "requiere_permiso_he_planificar" in dependencias
 
 
 # ---------------------------------------------------------------------------

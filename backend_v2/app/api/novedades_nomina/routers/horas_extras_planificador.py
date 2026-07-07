@@ -18,7 +18,6 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ....api.auth.profile_router import obtener_usuario_actual_db
 from ....database import obtener_db, obtener_erp_db_opcional
 from ....models.auth.usuario import Usuario
 from ....models.novedades_nomina.schemas_horas_extras_planificador import (
@@ -30,7 +29,6 @@ from ....models.novedades_nomina.schemas_horas_extras_planificador import (
     PlanConfirmarResponse,
     PlanPreCalculoResponse,
 )
-from ....services.auth.servicio import ServicioAuth
 from ....services.erp.empleados_service import EmpleadosService
 from ....services.erp.ordenes_trabajo_service import OrdenesTrabajoService
 from ....services.novedades_nomina.planificador_service import (
@@ -38,25 +36,16 @@ from ....services.novedades_nomina.planificador_service import (
     guardar_borrador_plan,
     pre_calcular_plan,
 )
+from .horas_extras_permisos import (
+    requiere_permiso_he_confirmar,
+    requiere_permiso_he_planificar,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     tags=["Nómina - Horas Extras"],
 )
-
-MODULO_HE = "nomina_horas_extras"
-
-
-async def requiere_permiso_he(
-    db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
-) -> Usuario:
-    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
-    if MODULO_HE not in permisos:
-        raise HTTPException(status_code=403, detail="Sin permiso para Horas Extras")
-    return usuario
-
 
 # ---------------------------------------------------------------------------
 # GET /planificador/empleados-erp
@@ -69,7 +58,7 @@ async def listar_empleados_erp(
     offset: int = Query(0, ge=0),
     solo_activos: bool = Query(True),
     db_erp = Depends(obtener_erp_db_opcional),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_planificar),
 ):
     """Lista paginada de empleados del ERP con busqueda opcional."""
     if db_erp is None:
@@ -102,7 +91,7 @@ async def listar_ots_mano_obra(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db_erp = Depends(obtener_erp_db_opcional),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_planificar),
 ):
     """Lista combinaciones OT/CC del ERP clasificadas como mano de obra."""
     if db_erp is None:
@@ -125,7 +114,7 @@ async def listar_ots_mano_obra(
 async def guardar_registros_bulk(
     payload: PlanBulkRequest,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_planificar),
 ):
     """Guarda el plan semanal en BORRADOR (bulk upsert + bulk insert).
 
@@ -155,7 +144,7 @@ async def guardar_registros_bulk(
 async def pre_calcular_plan_endpoint(
     payload: PlanBulkRequest,
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_planificar),
 ):
     """Calcula HE estimado por empleado SIN persistir nada.
 
@@ -179,7 +168,7 @@ async def pre_calcular_plan_endpoint(
 async def confirmar_plan_endpoint(
     payload: PlanConfirmarRequest,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_confirmar),
 ):
     """Confirma el plan semanal: genera nomina_calculo_semanal por empleado.
 

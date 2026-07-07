@@ -10,6 +10,7 @@ import PortalLayout from './ServicePortal/PortalLayout';
 import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
 import { useServicePortal } from './ServicePortal/hooks/useServicePortal';
+import type { PortalUserRouteData, ReporteDetalle, ReporteResumen } from './ServicePortal/types';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -111,6 +112,7 @@ const ServicePortal: React.FC = () => {
     const [showEmailModal, setShowEmailModal] = React.useState(false);
 
     if (!user) return <div className="flex justify-center items-center h-screen">Cargando perfil...</div>;
+    const portalUser = user as PortalUserRouteData;
 
     const onFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         const ticketId = await handleSubmit(e);
@@ -124,17 +126,24 @@ const ServicePortal: React.FC = () => {
         if (success) navigate('/service-portal/mis-tickets');
     };
 
-    const horasExtrasProtegida = (element: React.ReactElement) => (
-        <ProtectedRoute moduleCode="nomina_horas_extras">{element}</ProtectedRoute>
+    const horasExtrasProtegida = (element: React.ReactElement, moduleCode = 'nomina_horas_extras.leer') => (
+        <ProtectedRoute moduleCode={moduleCode}>{element}</ProtectedRoute>
     );
 
-    const onSelectReport = async (reporte: any) => {
+    const rutaInicialHorasExtras = () => {
+        const permisos = portalUser.permissions || [];
+        if (permisos.includes('nomina_horas_extras.planificar')) return '/service-portal/horas-extras/planificador';
+        if (permisos.includes('nomina_horas_extras.admin')) return '/service-portal/horas-extras/configuracion';
+        return '/service-portal/horas-extras/calculos';
+    };
+
+    const onSelectReport = async (reporte: ReporteResumen) => {
         const rid = reporte.reporte_id;
         try {
             setIsLoading(true);
             const res = await axios.get(`${API_BASE_URL}/viaticos/reporte/${rid}/detalle`);
-            const resData = res.data as any[];
-            const lineasDetalle = resData.map((l: any) => ({
+            const resData = res.data as ReporteDetalle[];
+            const lineasDetalle = resData.map((l) => ({
                 id: l.id || Math.random().toString(36).substring(7),
                 categoria: l.categoria,
                 fecha: l.fecharealgasto || l.fecha_gasto || l.fecha,
@@ -185,9 +194,9 @@ const ServicePortal: React.FC = () => {
             }}
         >
             {/* Banner de Verificación Persistent */}
-            {!(user as any).emailVerified && (
+            {!portalUser.emailVerified && (
                 <VerificationBanner 
-                    email={(user as any).email} 
+                    email={portalUser.email} 
                     onEdit={() => setShowEmailModal(true)}
                 />
             )}
@@ -203,10 +212,10 @@ const ServicePortal: React.FC = () => {
                         onNavigate={async (v) => {
                             if (v === 'viaticos_gestion') navigate('/service-portal/gastos/gestion');
                             else if (v === 'categories') {
-                                if ((user as any).email_needs_update) {
+                                if (portalUser.email_needs_update || portalUser.emailNeedsUpdate) {
                                     setShowEmailModal(true);
                                     addNotification('info', "Por favor actualiza tu correo corporativo para continuar.");
-                                } else if (!(user as any).emailVerified) {
+                                } else if (!portalUser.emailVerified) {
                                     addNotification('warning', "Debes verificar tu correo corporativo antes de crear tickets. Revisa tu bandeja de entrada.");
                                 } else {
                                     navigate('/service-portal/servicios');
@@ -222,6 +231,9 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'comisiones') navigate('/service-portal/comisiones');
                             else if (v === 'biometria') navigate('/service-portal/biometria');
                             else if (v === 'horas_extras') navigate('/service-portal/horas-extras');
+                            else if (v === 'horas_extras_planificador') navigate('/service-portal/horas-extras/planificador');
+                            else if (v === 'horas_extras_configuracion') navigate('/service-portal/horas-extras/configuracion');
+                            else if (v === 'horas_extras_calculos') navigate('/service-portal/horas-extras/calculos');
                         }}
                     />
                 } />
@@ -379,7 +391,7 @@ const ServicePortal: React.FC = () => {
 
                 <Route path="gastos/estado" element={
                     <ProtectedRoute moduleCode="viaticos_estado">
-                        <AccountStatement user={user as any} />
+                        <AccountStatement user={portalUser} />
                     </ProtectedRoute>
                 } />
 
@@ -428,21 +440,21 @@ const ServicePortal: React.FC = () => {
                     </ProtectedRoute>
                 } />
 
-                <Route path="horas-extras" element={horasExtrasProtegida(<PlanificadorSemanalView />)} />
-                <Route path="horas-extras/pre-liquidacion" element={horasExtrasProtegida(<PreLiquidacionView />)} />
+                <Route path="horas-extras" element={<Navigate to={rutaInicialHorasExtras()} replace />} />
+                <Route path="horas-extras/pre-liquidacion" element={horasExtrasProtegida(<PreLiquidacionView />, 'nomina_horas_extras.planificar')} />
                 <Route path="horas-extras/calculos" element={horasExtrasProtegida(<CalculoListView />)} />
                 <Route path="horas-extras/calculos/:calculoId" element={horasExtrasProtegida(<CalculoDetailView />)} />
                 <Route path="horas-extras/bolsa" element={horasExtrasProtegida(<BolsaView />)} />
                 <Route path="horas-extras/empleados" element={horasExtrasProtegida(<EmpleadosActivosView />)} />
                 <Route path="horas-extras/costos-ot" element={horasExtrasProtegida(<CostosOtView />)} />
                 <Route path="horas-extras/festivos" element={horasExtrasProtegida(<FestivosView />)} />
-                <Route path="horas-extras/configuracion" element={horasExtrasProtegida(<ConfiguracionHorasExtrasView />)} />
-                <Route path="horas-extras/horario" element={horasExtrasProtegida(<HorarioSemanaView />)} />
-                <Route path="horas-extras/horario/:cedula" element={horasExtrasProtegida(<HorarioSemanaView />)} />
+                <Route path="horas-extras/configuracion" element={horasExtrasProtegida(<ConfiguracionHorasExtrasView />, 'nomina_horas_extras.admin')} />
+                <Route path="horas-extras/horario" element={horasExtrasProtegida(<HorarioSemanaView />, 'nomina_horas_extras.planificar')} />
+                <Route path="horas-extras/horario/:cedula" element={horasExtrasProtegida(<HorarioSemanaView />, 'nomina_horas_extras.planificar')} />
                 <Route path="horas-extras/novedades" element={horasExtrasProtegida(<NovedadesView />)} />
-                <Route path="horas-extras/novedades/nueva" element={horasExtrasProtegida(<NovedadFormView />)} />
-                <Route path="horas-extras/novedades/:id" element={horasExtrasProtegida(<NovedadFormView />)} />
-                <Route path="horas-extras/planificador" element={horasExtrasProtegida(<PlanificadorSemanalView />)} />
+                <Route path="horas-extras/novedades/nueva" element={horasExtrasProtegida(<NovedadFormView />, 'nomina_horas_extras.planificar')} />
+                <Route path="horas-extras/novedades/:id" element={horasExtrasProtegida(<NovedadFormView />, 'nomina_horas_extras.planificar')} />
+                <Route path="horas-extras/planificador" element={horasExtrasProtegida(<PlanificadorSemanalView />, 'nomina_horas_extras.planificar')} />
 
                 <Route path="inventario" element={
                     <ProtectedRoute moduleCode="inventario_2026">

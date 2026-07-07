@@ -659,6 +659,8 @@ CREATE INDEX idx_milestones_dev_status ON milestones(development_id, status);
 
 
 
+
+
 ## 🔄 Detalles Técnicos (Auto-generado)
 > [!NOTE]
 > Esta sección es generada automáticamente por `scripts/sync_docs.py`. No editar manualmente.
@@ -690,6 +692,11 @@ erDiagram
         character varying delegado_por_id
         character varying estado_validacion
         integer validacion_id
+        date compromiso_fecha
+        boolean compromiso_cumplido
+        boolean anulada
+        timestamp with time zone anulada_en
+        character varying anulada_por_id
     }
     ACTIVIDADES_PROXIMAS {
         integer id
@@ -732,6 +739,27 @@ erDiagram
         integer ronda_vista
         character varying cargo
         timestamp with time zone creado_en
+    }
+    AUDITORIA_ACCIONES_USUARIO {
+        integer id
+        timestamp without time zone timestamp
+        character varying usuario_id
+        character varying usuario_nombre
+        character varying rol
+        character varying modulo
+        character varying accion
+        character varying entidad_tipo
+        character varying entidad_id
+        character varying metodo_http
+        character varying ruta
+        smallint codigo_respuesta
+        character varying resultado
+        character varying direccion_ip
+        text agente_usuario
+        character varying correlacion_id
+        jsonb datos_anteriores
+        jsonb datos_nuevos
+        jsonb metadatos
     }
     AUDITORIA_EVENTOS {
         integer id
@@ -904,6 +932,13 @@ erDiagram
         character varying supervisor
         character varying area_ejecutor
         character varying prioridad
+    }
+    EMBEDDINGS_FACIALES {
+        integer id
+        character varying usuario_id
+        jsonb embedding
+        boolean activo
+        timestamp without time zone creado_en
     }
     EMPLEADOS_LINEAS {
         character varying documento
@@ -1217,6 +1252,109 @@ erDiagram
         timestamp without time zone creado_en
         timestamp without time zone actualizado_en
     }
+    NOMINA_BOLSA_HORAS {
+        integer id
+        character varying cedula
+        double precision horas_acreditadas
+        double precision horas_consumidas
+        double precision horas_pagadas
+        timestamp with time zone fecha_ultimo_movimiento
+        text observaciones
+        timestamp with time zone creado_en
+        timestamp with time zone actualizado_en
+    }
+    NOMINA_BOLSA_HORAS_MOVIMIENTOS {
+        integer id
+        integer bolsa_id
+        character varying cedula
+        character varying tipo_movimiento
+        double precision horas
+        timestamp with time zone fecha
+        integer calculo_id
+        integer liquidacion_id
+        character varying usuario_id
+        text observaciones
+    }
+    NOMINA_BOLSA_OT_OVERRIDE {
+        integer id
+        integer ot_id
+        boolean bolsa_habilitada_override
+        boolean bolsa_habilitada_erp
+        character varying motivo
+        character varying autorizado_por
+        character varying autorizado_por_id
+        timestamp without time zone vigente_desde
+        timestamp without time zone vigente_hasta
+        character varying estado
+        character varying documento_soporte_url
+        timestamp without time zone creado_en
+    }
+    NOMINA_CALCULO_SEMANAL {
+        integer id
+        character varying cedula
+        integer anio
+        integer semana_iso
+        date fecha_inicio
+        date fecha_fin
+        character varying nivel_riesgo_arl
+        double precision factor_prestacional
+        double precision salario_base_mensual
+        double precision valor_hora_ordinaria
+        double precision total_horas_extras
+        double precision total_horas_recargo_nocturno
+        double precision total_valor_bruto
+        double precision total_carga_prestacional
+        double precision total_costo_empresa
+        character varying estado
+        character varying calculado_por
+        timestamp with time zone calculado_en
+        character varying confirmado_por
+        timestamp with time zone confirmado_en
+        text observaciones
+        integer ot_id
+        character varying ot_codigo
+    }
+    NOMINA_CALCULO_SEMANAL_DETALLE {
+        integer id
+        integer calculo_id
+        character varying codigo_novedad
+        double precision horas
+        double precision factor_hora_ordinaria
+        double precision valor_bruto
+        double precision carga_prestacional
+        double precision costo_total
+        integer ot_id
+        character varying ot_codigo
+        character varying fuente
+    }
+    NOMINA_CALCULO_WORKFLOW_EVENTO {
+        integer id
+        integer calculo_id
+        character varying estado_origen
+        character varying estado_destino
+        character varying justificacion
+        character varying usuario_id
+        timestamp without time zone created_at
+    }
+    NOMINA_CATALOGO_NOVEDADES {
+        integer id
+        character varying codigo
+        character varying descripcion_corta
+        character varying descripcion_larga
+        character varying categoria
+        character varying subcategoria
+        double precision factor_hora_ordinaria
+        boolean acredita_bolsa
+        boolean descuenta_bolsa
+        boolean requiere_autorizacion
+        character varying unidad
+        character varying estado
+        date vigente_desde
+        date vigente_hasta
+        text observaciones
+        timestamp with time zone creado_en
+        timestamp with time zone actualizado_en
+    }
     NOMINA_CONCEPTOS {
         integer id
         character varying empresa
@@ -1227,6 +1365,31 @@ erDiagram
         boolean es_regex
         character varying keywords
         timestamp without time zone creado_en
+    }
+    NOMINA_COSTO_OT {
+        integer id
+        integer ot_id
+        character varying ot_codigo
+        integer anio
+        integer semana_iso
+        date fecha_inicio
+        date fecha_fin
+        integer total_empleados
+        double precision total_horas
+        double precision total_horas_hed
+        double precision total_horas_hen
+        double precision total_horas_hefd
+        double precision total_horas_hefn
+        double precision total_horas_hf
+        double precision total_valor_bruto
+        double precision total_carga_prestacional
+        double precision total_costo_empresa
+        character varying categoria_sub_indice
+        character varying cc
+        character varying scc
+        character varying sub_indice
+        timestamp with time zone ultima_actualizacion
+        jsonb calculo_ids
     }
     NOMINA_EXCEPCIONES {
         integer id
@@ -1254,12 +1417,124 @@ erDiagram
         character varying mensaje
         timestamp without time zone creado_en
     }
+    NOMINA_FACTOR_PRESTACIONAL_RIESGO {
+        integer id
+        character varying nivel_riesgo
+        character varying nivel_macro
+        character varying arl_nombre
+        double precision factor_prestacional
+        double precision porcentaje_salud
+        double precision porcentaje_pension
+        double precision porcentaje_arl
+        double precision porcentaje_caja
+        double precision porcentaje_icbf
+        double precision porcentaje_sena
+        double precision porcentaje_prima
+        double precision porcentaje_cesantia
+        double precision porcentaje_interes_cesantia
+        double precision porcentaje_vacaciones
+        date vigente_desde
+        date vigente_hasta
+        text observaciones
+        timestamp with time zone creado_en
+    }
     NOMINA_FAVORITOS {
         integer id
         character varying usuario_id
         character varying cedula
         character varying subcategoria
         timestamp without time zone creado_en
+    }
+    NOMINA_FESTIVO_CALENDARIO {
+        integer anio
+        date fecha
+        character varying nombre
+        character varying fuente
+        timestamp with time zone created_at
+    }
+    NOMINA_HORARIO_PACTADO {
+        integer id
+        character varying cedula
+        integer minutos_jornada_ordinaria
+        double precision horas_semana_ordinaria
+        boolean es_jornada_nocturna
+        boolean autoriza_he_default
+        boolean autoriza_he_override
+        character varying override_motivo
+        character varying override_autorizado_por
+        timestamp with time zone override_fecha
+        timestamp with time zone sincronizado_en
+        character varying fuente_sincronizacion
+        text observaciones
+    }
+    NOMINA_HORARIO_PACTADO_DIA {
+        character varying cedula
+        integer dia_semana
+        time without time zone hora_entrada
+        time without time zone hora_salida
+        integer minutos_almuerzo
+    }
+    NOMINA_NOVEDAD_EVENTO {
+        integer id
+        character varying cedula
+        character varying codigo_novedad
+        date fecha_inicio
+        date fecha_fin
+        character varying observaciones
+        character varying estado
+        timestamp without time zone created_at
+        character varying created_by
+        timestamp without time zone updated_at
+        character varying updated_by
+        timestamp without time zone confirmado_at
+        character varying confirmado_by
+        timestamp without time zone anulado_at
+        character varying anulado_justificacion
+    }
+    NOMINA_OVERRIDE_AUTORIZA_HE {
+        integer id
+        character varying cedula
+        boolean autoriza_he_erp
+        boolean autoriza_he_override
+        character varying motivo
+        character varying autorizado_por
+        character varying autorizado_por_id
+        timestamp with time zone vigente_desde
+        timestamp with time zone vigente_hasta
+        character varying estado
+        character varying documento_soporte_url
+        timestamp with time zone creado_en
+    }
+    NOMINA_PARAMETROS_LEGALES {
+        integer id
+        character varying codigo
+        character varying nombre
+        character varying valor
+        character varying tipo_dato
+        character varying norma_soporte
+        date vigente_desde
+        date vigente_hasta
+        character varying estado
+        text observaciones
+        timestamp with time zone creado_en
+    }
+    NOMINA_PLANIFICADOR_DIA_OT {
+        integer id
+        integer anio
+        integer semana_iso
+        character varying cedula
+        integer dia_semana
+        character varying orden
+        character varying cc
+        character varying scc
+        character varying sub_indice
+        character varying categoria_sub_indice
+        character varying descripcion
+        double precision vr_contratado
+        double precision horas
+        double precision porcentaje
+        timestamp without time zone creado_en
+        timestamp without time zone actualizado_en
     }
     NOMINA_REGISTROS_CRUDOS {
         integer id
@@ -1287,6 +1562,8 @@ erDiagram
         character varying ciudad
         integer fila_origen
         character varying observaciones
+        double precision valor_rdc
+        double precision valor_colaborador
     }
     NOTIFICACIONES_USUARIO {
         integer id
@@ -1348,6 +1625,17 @@ erDiagram
         character varying creado_por
         timestamp without time zone creado_en
         timestamp without time zone actualizado_en
+    }
+    REGISTROS_ASISTENCIA {
+        integer id
+        character varying usuario_id
+        integer zona_id
+        boolean match_exitoso
+        double precision nivel_confianza
+        double precision latitud_marcada
+        double precision longitud_marcada
+        character varying evidencia_url
+        timestamp without time zone creado_en
     }
     RELACIONES_USUARIOS {
         integer id
@@ -1632,6 +1920,13 @@ erDiagram
         timestamp without time zone creado_en
         timestamp without time zone validado_en
     }
+    ZONAS_TRABAJO {
+        integer id
+        character varying nombre
+        double precision latitud
+        double precision longitud
+        double precision radio
+    }
 ```
 
 ### 📋 Diccionario de Datos
@@ -1661,6 +1956,11 @@ erDiagram
 | delegado_por_id | character varying | YES | - |
 | estado_validacion | character varying | YES | 'aprobada'::character varying |
 | validacion_id | integer | YES | - |
+| compromiso_fecha | date | YES | - |
+| compromiso_cumplido | boolean | YES | false |
+| anulada | boolean | YES | false |
+| anulada_en | timestamp with time zone | YES | - |
+| anulada_por_id | character varying | YES | - |
 
 #### Tabla: `actividades_proximas`
 | Columna | Tipo | Nulable | Defecto |
@@ -1709,6 +2009,29 @@ erDiagram
 | ronda_vista | integer | YES | 1 |
 | cargo | character varying | YES | - |
 | creado_en | timestamp with time zone | YES | CURRENT_TIMESTAMP |
+
+#### Tabla: `auditoria_acciones_usuario`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('auditoria_acciones_usuario_id_seq'::regclass) |
+| timestamp | timestamp without time zone | YES | now() |
+| usuario_id | character varying | NO | - |
+| usuario_nombre | character varying | YES | - |
+| rol | character varying | YES | - |
+| modulo | character varying | NO | - |
+| accion | character varying | NO | - |
+| entidad_tipo | character varying | YES | - |
+| entidad_id | character varying | YES | - |
+| metodo_http | character varying | YES | - |
+| ruta | character varying | YES | - |
+| codigo_respuesta | smallint | YES | - |
+| resultado | character varying | NO | - |
+| direccion_ip | character varying | YES | - |
+| agente_usuario | text | YES | - |
+| correlacion_id | character varying | YES | - |
+| datos_anteriores | jsonb | YES | - |
+| datos_nuevos | jsonb | YES | - |
+| metadatos | jsonb | YES | - |
 
 #### Tabla: `auditoria_eventos`
 | Columna | Tipo | Nulable | Defecto |
@@ -1903,6 +2226,15 @@ erDiagram
 | supervisor | character varying | YES | - |
 | area_ejecutor | character varying | YES | - |
 | prioridad | character varying | YES | - |
+
+#### Tabla: `embeddings_faciales`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('embeddings_faciales_id_seq'::regclass) |
+| usuario_id | character varying | NO | - |
+| embedding | jsonb | YES | - |
+| activo | boolean | NO | - |
+| creado_en | timestamp without time zone | YES | now() |
 
 #### Tabla: `empleados_lineas`
 | Columna | Tipo | Nulable | Defecto |
@@ -2256,6 +2588,123 @@ erDiagram
 | creado_en | timestamp without time zone | YES | - |
 | actualizado_en | timestamp without time zone | YES | - |
 
+#### Tabla: `nomina_bolsa_horas`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_bolsa_horas_id_seq'::regclass) |
+| cedula | character varying | NO | - |
+| horas_acreditadas | double precision | NO | 0.0 |
+| horas_consumidas | double precision | NO | 0.0 |
+| horas_pagadas | double precision | NO | 0.0 |
+| fecha_ultimo_movimiento | timestamp with time zone | YES | - |
+| observaciones | text | YES | - |
+| creado_en | timestamp with time zone | YES | now() |
+| actualizado_en | timestamp with time zone | YES | - |
+
+#### Tabla: `nomina_bolsa_horas_movimientos`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_bolsa_horas_movimientos_id_seq'::regclass) |
+| bolsa_id | integer | NO | - |
+| cedula | character varying | NO | - |
+| tipo_movimiento | character varying | NO | - |
+| horas | double precision | NO | - |
+| fecha | timestamp with time zone | NO | now() |
+| calculo_id | integer | YES | - |
+| liquidacion_id | integer | YES | - |
+| usuario_id | character varying | YES | - |
+| observaciones | text | YES | - |
+
+#### Tabla: `nomina_bolsa_ot_override`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_bolsa_ot_override_id_seq'::regclass) |
+| ot_id | integer | NO | - |
+| bolsa_habilitada_override | boolean | NO | - |
+| bolsa_habilitada_erp | boolean | NO | - |
+| motivo | character varying | NO | - |
+| autorizado_por | character varying | NO | - |
+| autorizado_por_id | character varying | YES | - |
+| vigente_desde | timestamp without time zone | NO | - |
+| vigente_hasta | timestamp without time zone | YES | - |
+| estado | character varying | NO | - |
+| documento_soporte_url | character varying | YES | - |
+| creado_en | timestamp without time zone | YES | '2026-06-17 10:01:41.991353'::timestamp without time zone |
+
+#### Tabla: `nomina_calculo_semanal`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_calculo_semanal_id_seq'::regclass) |
+| cedula | character varying | NO | - |
+| anio | integer | NO | - |
+| semana_iso | integer | NO | - |
+| fecha_inicio | date | NO | - |
+| fecha_fin | date | NO | - |
+| nivel_riesgo_arl | character varying | NO | - |
+| factor_prestacional | double precision | NO | - |
+| salario_base_mensual | double precision | NO | - |
+| valor_hora_ordinaria | double precision | NO | - |
+| total_horas_extras | double precision | NO | 0.0 |
+| total_horas_recargo_nocturno | double precision | NO | 0.0 |
+| total_valor_bruto | double precision | NO | 0.0 |
+| total_carga_prestacional | double precision | NO | 0.0 |
+| total_costo_empresa | double precision | NO | 0.0 |
+| estado | character varying | NO | 'BORRADOR'::character varying |
+| calculado_por | character varying | YES | - |
+| calculado_en | timestamp with time zone | YES | now() |
+| confirmado_por | character varying | YES | - |
+| confirmado_en | timestamp with time zone | YES | - |
+| observaciones | text | YES | - |
+| ot_id | integer | YES | - |
+| ot_codigo | character varying | YES | - |
+
+#### Tabla: `nomina_calculo_semanal_detalle`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_calculo_semanal_detalle_id_seq'::regclass) |
+| calculo_id | integer | NO | - |
+| codigo_novedad | character varying | NO | - |
+| horas | double precision | NO | - |
+| factor_hora_ordinaria | double precision | NO | - |
+| valor_bruto | double precision | NO | - |
+| carga_prestacional | double precision | NO | - |
+| costo_total | double precision | NO | - |
+| ot_id | integer | YES | - |
+| ot_codigo | character varying | YES | - |
+| fuente | character varying | NO | 'PORTAL'::character varying |
+
+#### Tabla: `nomina_calculo_workflow_evento`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_calculo_workflow_evento_id_seq'::regclass) |
+| calculo_id | integer | NO | - |
+| estado_origen | character varying | NO | - |
+| estado_destino | character varying | NO | - |
+| justificacion | character varying | YES | - |
+| usuario_id | character varying | YES | - |
+| created_at | timestamp without time zone | YES | '2026-06-16 09:56:03.791843'::timestamp without time zone |
+
+#### Tabla: `nomina_catalogo_novedades`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_catalogo_novedades_id_seq'::regclass) |
+| codigo | character varying | NO | - |
+| descripcion_corta | character varying | NO | - |
+| descripcion_larga | character varying | YES | - |
+| categoria | character varying | NO | - |
+| subcategoria | character varying | NO | - |
+| factor_hora_ordinaria | double precision | NO | 1.0 |
+| acredita_bolsa | boolean | NO | false |
+| descuenta_bolsa | boolean | NO | false |
+| requiere_autorizacion | boolean | NO | false |
+| unidad | character varying | NO | 'HORAS'::character varying |
+| estado | character varying | NO | 'ACTIVO'::character varying |
+| vigente_desde | date | NO | CURRENT_DATE |
+| vigente_hasta | date | YES | - |
+| observaciones | text | YES | - |
+| creado_en | timestamp with time zone | YES | now() |
+| actualizado_en | timestamp with time zone | YES | - |
+
 #### Tabla: `nomina_conceptos`
 | Columna | Tipo | Nulable | Defecto |
 |---------|------|---------|---------|
@@ -2268,6 +2717,33 @@ erDiagram
 | es_regex | boolean | NO | - |
 | keywords | character varying | YES | - |
 | creado_en | timestamp without time zone | YES | '2026-05-29 11:39:11.964409'::timestamp without time zone |
+
+#### Tabla: `nomina_costo_ot`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_costo_ot_id_seq'::regclass) |
+| ot_id | integer | NO | - |
+| ot_codigo | character varying | NO | - |
+| anio | integer | NO | - |
+| semana_iso | integer | NO | - |
+| fecha_inicio | date | NO | - |
+| fecha_fin | date | NO | - |
+| total_empleados | integer | NO | 0 |
+| total_horas | double precision | NO | 0.0 |
+| total_horas_hed | double precision | NO | 0.0 |
+| total_horas_hen | double precision | NO | 0.0 |
+| total_horas_hefd | double precision | NO | 0.0 |
+| total_horas_hefn | double precision | NO | 0.0 |
+| total_horas_hf | double precision | NO | 0.0 |
+| total_valor_bruto | double precision | NO | 0.0 |
+| total_carga_prestacional | double precision | NO | 0.0 |
+| total_costo_empresa | double precision | NO | 0.0 |
+| categoria_sub_indice | character varying | YES | - |
+| cc | character varying | YES | - |
+| scc | character varying | YES | - |
+| sub_indice | character varying | YES | - |
+| ultima_actualizacion | timestamp with time zone | YES | now() |
+| calculo_ids | jsonb | YES | - |
 
 #### Tabla: `nomina_excepciones`
 | Columna | Tipo | Nulable | Defecto |
@@ -2299,6 +2775,29 @@ erDiagram
 | mensaje | character varying | NO | - |
 | creado_en | timestamp without time zone | NO | - |
 
+#### Tabla: `nomina_factor_prestacional_riesgo`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_factor_prestacional_riesgo_id_seq'::regclass) |
+| nivel_riesgo | character varying | NO | - |
+| nivel_macro | character varying | NO | - |
+| arl_nombre | character varying | YES | - |
+| factor_prestacional | double precision | NO | - |
+| porcentaje_salud | double precision | YES | 0.085 |
+| porcentaje_pension | double precision | YES | 0.12 |
+| porcentaje_arl | double precision | YES | 0.00522 |
+| porcentaje_caja | double precision | YES | 0.04 |
+| porcentaje_icbf | double precision | YES | 0.03 |
+| porcentaje_sena | double precision | YES | 0.02 |
+| porcentaje_prima | double precision | YES | 0.0833 |
+| porcentaje_cesantia | double precision | YES | 0.0833 |
+| porcentaje_interes_cesantia | double precision | YES | 0.01 |
+| porcentaje_vacaciones | double precision | YES | 0.0417 |
+| vigente_desde | date | NO | CURRENT_DATE |
+| vigente_hasta | date | YES | - |
+| observaciones | text | YES | - |
+| creado_en | timestamp with time zone | YES | now() |
+
 #### Tabla: `nomina_favoritos`
 | Columna | Tipo | Nulable | Defecto |
 |---------|------|---------|---------|
@@ -2307,6 +2806,111 @@ erDiagram
 | cedula | character varying | NO | - |
 | subcategoria | character varying | NO | - |
 | creado_en | timestamp without time zone | YES | '2026-05-29 11:39:11.964409'::timestamp without time zone |
+
+#### Tabla: `nomina_festivo_calendario`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| anio | integer | NO | - |
+| fecha | date | NO | - |
+| nombre | character varying | NO | - |
+| fuente | character varying | NO | - |
+| created_at | timestamp with time zone | NO | now() |
+
+#### Tabla: `nomina_horario_pactado`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_horario_pactado_id_seq'::regclass) |
+| cedula | character varying | NO | - |
+| minutos_jornada_ordinaria | integer | NO | 480 |
+| horas_semana_ordinaria | double precision | NO | 48.0 |
+| es_jornada_nocturna | boolean | NO | false |
+| autoriza_he_default | boolean | NO | false |
+| autoriza_he_override | boolean | YES | - |
+| override_motivo | character varying | YES | - |
+| override_autorizado_por | character varying | YES | - |
+| override_fecha | timestamp with time zone | YES | - |
+| sincronizado_en | timestamp with time zone | YES | now() |
+| fuente_sincronizacion | character varying | NO | 'ERP'::character varying |
+| observaciones | text | YES | - |
+
+#### Tabla: `nomina_horario_pactado_dia`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| cedula | character varying | NO | - |
+| dia_semana | integer | NO | - |
+| hora_entrada | time without time zone | YES | - |
+| hora_salida | time without time zone | YES | - |
+| minutos_almuerzo | integer | NO | 0 |
+
+#### Tabla: `nomina_novedad_evento`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_novedad_evento_id_seq'::regclass) |
+| cedula | character varying | NO | - |
+| codigo_novedad | character varying | NO | - |
+| fecha_inicio | date | NO | - |
+| fecha_fin | date | NO | - |
+| observaciones | character varying | YES | - |
+| estado | character varying | NO | - |
+| created_at | timestamp without time zone | YES | '2026-06-16 10:29:32.504188'::timestamp without time zone |
+| created_by | character varying | YES | - |
+| updated_at | timestamp without time zone | YES | - |
+| updated_by | character varying | YES | - |
+| confirmado_at | timestamp without time zone | YES | - |
+| confirmado_by | character varying | YES | - |
+| anulado_at | timestamp without time zone | YES | - |
+| anulado_justificacion | character varying | YES | - |
+
+#### Tabla: `nomina_override_autoriza_he`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_override_autoriza_he_id_seq'::regclass) |
+| cedula | character varying | NO | - |
+| autoriza_he_erp | boolean | NO | - |
+| autoriza_he_override | boolean | NO | - |
+| motivo | character varying | NO | - |
+| autorizado_por | character varying | NO | - |
+| autorizado_por_id | character varying | YES | - |
+| vigente_desde | timestamp with time zone | NO | now() |
+| vigente_hasta | timestamp with time zone | YES | - |
+| estado | character varying | NO | 'ACTIVO'::character varying |
+| documento_soporte_url | character varying | YES | - |
+| creado_en | timestamp with time zone | YES | now() |
+
+#### Tabla: `nomina_parametros_legales`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_parametros_legales_id_seq'::regclass) |
+| codigo | character varying | NO | - |
+| nombre | character varying | NO | - |
+| valor | character varying | NO | - |
+| tipo_dato | character varying | NO | 'NUMERICO'::character varying |
+| norma_soporte | character varying | YES | - |
+| vigente_desde | date | NO | CURRENT_DATE |
+| vigente_hasta | date | YES | - |
+| estado | character varying | NO | 'VIGENTE'::character varying |
+| observaciones | text | YES | - |
+| creado_en | timestamp with time zone | YES | now() |
+
+#### Tabla: `nomina_planificador_dia_ot`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_planificador_dia_ot_id_seq'::regclass) |
+| anio | integer | NO | - |
+| semana_iso | integer | NO | - |
+| cedula | character varying | NO | - |
+| dia_semana | integer | NO | - |
+| orden | character varying | NO | - |
+| cc | character varying | YES | - |
+| scc | character varying | YES | - |
+| sub_indice | character varying | YES | - |
+| categoria_sub_indice | character varying | NO | - |
+| descripcion | character varying | YES | - |
+| vr_contratado | double precision | YES | - |
+| horas | double precision | YES | - |
+| porcentaje | double precision | YES | - |
+| creado_en | timestamp without time zone | YES | now() |
+| actualizado_en | timestamp without time zone | YES | now() |
 
 #### Tabla: `nomina_registros_crudos`
 | Columna | Tipo | Nulable | Defecto |
@@ -2338,6 +2942,8 @@ erDiagram
 | ciudad | character varying | YES | - |
 | fila_origen | integer | NO | - |
 | observaciones | character varying | YES | - |
+| valor_rdc | double precision | YES | 0.0 |
+| valor_colaborador | double precision | YES | 0.0 |
 
 #### Tabla: `notificaciones_usuario`
 | Columna | Tipo | Nulable | Defecto |
@@ -2409,6 +3015,19 @@ erDiagram
 | creado_por | character varying | YES | - |
 | creado_en | timestamp without time zone | YES | now() |
 | actualizado_en | timestamp without time zone | YES | - |
+
+#### Tabla: `registros_asistencia`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('registros_asistencia_id_seq'::regclass) |
+| usuario_id | character varying | NO | - |
+| zona_id | integer | YES | - |
+| match_exitoso | boolean | NO | - |
+| nivel_confianza | double precision | NO | - |
+| latitud_marcada | double precision | NO | - |
+| longitud_marcada | double precision | NO | - |
+| evidencia_url | character varying | YES | - |
+| creado_en | timestamp without time zone | YES | now() |
 
 #### Tabla: `relaciones_usuarios`
 | Columna | Tipo | Nulable | Defecto |
@@ -2734,3 +3353,12 @@ erDiagram
 | observacion | character varying | YES | - |
 | creado_en | timestamp without time zone | YES | now() |
 | validado_en | timestamp without time zone | YES | - |
+
+#### Tabla: `zonas_trabajo`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('zonas_trabajo_id_seq'::regclass) |
+| nombre | character varying | NO | - |
+| latitud | double precision | NO | - |
+| longitud | double precision | NO | - |
+| radio | double precision | NO | - |

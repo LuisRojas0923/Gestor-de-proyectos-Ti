@@ -45,11 +45,12 @@ Ubicación: `testing/backend/`
 | **Horas Extras S5 Novedades** | `test_horas_extras_s5_novedades.py` | Eventos VAC/LIC/INC/AUS, solapes, confirmacion/anulacion y efecto sobre calculo HE. | ✅ PASSED |
 | **Horas Extras S5'' Horario Semana** | `test_horas_extras_s5pp_horario_semana.py` | Horario pactado por dia editable, validaciones y compatibilidad con horario legacy. | ✅ PASSED |
 | **Horas Extras S5''' Integracion** | `test_horas_extras_s5ppp_integracion.py` | Integracion horario diario + festivos + novedades en pre-liquidacion. | ✅ PASSED |
-| **Horas Extras S6 Bolsa** | `test_horas_extras_s6.py` | Bolsa desactivable, override por OT, ruta sin prefijo duplicado y RBAC en estado global. | ✅ PASSED |
+| **Horas Extras S6 Bolsa** | `test_horas_extras_s6.py` | Bolsa desactivable, override por OT, ruta sin prefijo duplicado y RBAC en estado global. Última corrida completa: 13 passed, 1 fallo funcional conocido en acreditación de override. | ⚠️ PARCIAL |
 | **Horas Extras S7 Planificador** | `test_horas_extras_s7.py` | Planificador semanal masivo, selector ERP protegido por RBAC, borrador, pre-calculo y confirmacion. | ✅ PASSED |
 | **Horas Extras S8 OT/CC** | `test_horas_extras_s8_ot_mano_obra.py` | Consulta ERP `basegeneralcostos`, maximo 3 OT por empleado/dia, validacion de reparto numerico, CRC32 para orden no numerica y distribucion de costo por OT. | ✅ PASSED |
 | **Horas Extras S9 Reglas GH** | `test_horas_extras_s9_reglas_gh.py` | Reglas confirmadas por Gestion Humana: jornada semanal 42h/210h desde 2026-07-16, compensacion semanal, nocturna 19:00-06:00 y turnos cruzados en dos dias. | ✅ PASSED |
 | **Horas Extras Parametros Calculo** | `test_horas_extras_parametros_calculo.py` | Consulta y edicion de reglas vigentes en `nomina_parametros_legales`; valida ruta sin prefijo duplicado, RBAC y uso de parametros editados. | ✅ PASSED |
+| **Horas Extras RBAC Granular** | `test_horas_extras_rbac_granular.py` | Manifiesto RBAC granular, dependencias por ruta critica, rechazo 403 sin permiso exacto y separacion confirmar/compensar. | ✅ PASSED |
 | **Biometría Engine Client** | `test_biometria_engine_client.py` | Mapeo saneado de errores del motor, contrato de embedding y rechazo de respuestas invalidas. | ✅ PASSED |
 | **Biometría Service** | `test_biometria_service.py` | Flujo de negocio sin embedding, estado biométrico backend-source, geocerca backend, comparación vectorial y protección contra traversal en archivos. | ✅ PASSED |
 | **Biometría RBAC/Router** | `test_biometria_router_engine.py` | Dependencia RBAC del módulo `biometria` y delegación del endpoint de estado biométrico. | ✅ PASSED |

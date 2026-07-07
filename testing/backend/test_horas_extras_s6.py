@@ -75,7 +75,7 @@ def test_bolsa_estado_global_route_no_duplica_prefijo_y_exige_permiso_he():
         if isinstance(route, APIRoute) and route.path == ruta_esperada
     )
     dependencias = {getattr(dep.call, "__name__", "") for dep in route.dependant.dependencies}
-    assert "requiere_permiso_he" in dependencias
+    assert "requiere_permiso_he_leer" in dependencias
 
 
 def _detalle(codigo, horas, factor, valor_bruto):

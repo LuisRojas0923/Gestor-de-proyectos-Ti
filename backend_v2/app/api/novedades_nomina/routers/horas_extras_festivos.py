@@ -12,13 +12,10 @@ Endpoints:
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ....database import obtener_db
-from ....api.auth.profile_router import obtener_usuario_actual_db
-from ....models.auth.usuario import Usuario
-from ....services.auth.servicio import ServicioAuth
 from ....models.novedades_nomina.schemas_horas_extras import (
     FestivoRead,
     FestivoSincronizarResult,
@@ -27,26 +24,15 @@ from ....services.novedades_nomina.festivos_service import (
     listar_festivos,
     sincronizar_festivos,
 )
+from .horas_extras_permisos import requiere_permiso_he_admin, requiere_permiso_he_leer
 
 logger = logging.getLogger(__name__)
-
-MODULO_HE = "nomina_horas_extras"
 
 router = APIRouter()
 
 
-async def requiere_permiso_he(
-    db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
-) -> Usuario:
-    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
-    if MODULO_HE not in permisos:
-        raise HTTPException(status_code=403, detail="Sin permiso para Horas Extras")
-    return usuario
-
-
 @router.get("/festivos/{anio}", response_model=List[FestivoRead],
-            dependencies=[Depends(requiere_permiso_he)])
+            dependencies=[Depends(requiere_permiso_he_leer)])
 async def listar_festivos_endpoint(
     anio: int = Path(..., ge=2000, le=2100),
     fuente: str = Query("auto", pattern="^(auto|calendarific|emiliani)$"),
@@ -63,7 +49,7 @@ async def listar_festivos_endpoint(
 
 
 @router.post("/festivos/{anio}/sincronizar", response_model=FestivoSincronizarResult,
-             dependencies=[Depends(requiere_permiso_he)])
+             dependencies=[Depends(requiere_permiso_he_admin)])
 async def sincronizar_festivos_endpoint(
     anio: int = Path(..., ge=2000, le=2100),
     db: AsyncSession = Depends(obtener_db),

@@ -346,7 +346,7 @@ const CalculoDetailView: React.FC = () => {
         )}
       </MaterialCard>
 
-      {(calculo.confirmado_por || calculado_por) && (
+      {(calculo.confirmado_por || calculo.calculado_por) && (
         <div className="mt-4 text-sm text-slate-500">
           {calculo.calculado_por && <Text className="!m-0">Calculado por: {calculo.calculado_por}. </Text>}
           {calculo.confirmado_por && <Text className="!m-0">Confirmado por: {calculo.confirmado_por}.</Text>}

@@ -6,6 +6,14 @@ from app.core.rbac_manifest import SYSTEM_MODULES_REGISTRY
 
 logger = logging.getLogger(__name__)
 
+PERMISOS_HE_GRANULARES = (
+    "nomina_horas_extras.leer",
+    "nomina_horas_extras.planificar",
+    "nomina_horas_extras.confirmar",
+    "nomina_horas_extras.compensar",
+    "nomina_horas_extras.admin",
+)
+
 
 async def sincronizar_manifiesto_rbac(db: AsyncSession):
     """
@@ -38,6 +46,12 @@ async def sincronizar_manifiesto_rbac(db: AsyncSession):
             INSERT INTO permisos_rol (rol, modulo, permitido) VALUES (:rol, :modulo, TRUE)
         """)
 
+        roles_con_he_legacy = text("""
+            SELECT DISTINCT rol
+            FROM permisos_rol
+            WHERE modulo = 'nomina_horas_extras' AND permitido = TRUE
+        """)
+
         modulos_sincronizados = 0
         permisos_reparados = 0
 
@@ -63,11 +77,21 @@ async def sincronizar_manifiesto_rbac(db: AsyncSession):
                 await db.execute(insert_permiso, {"rol": "admin", "modulo": mod_id})
                 permisos_reparados += 1
 
+        permisos_he_migrados = 0
+        roles_legacy = (await db.execute(roles_con_he_legacy)).scalars().all()
+        for rol in roles_legacy:
+            for modulo in PERMISOS_HE_GRANULARES:
+                existe = await db.execute(check_permiso, {"rol": rol, "modulo": modulo})
+                if existe.first() is None:
+                    await db.execute(insert_permiso, {"rol": rol, "modulo": modulo})
+                    permisos_he_migrados += 1
+
         await db.commit()
         logger.info(
             f"Auto-Discovery exitoso (upsert nativo PG): "
             f"{modulos_sincronizados} módulos sincronizados, "
-            f"{permisos_reparados} permisos de admin reparados."
+            f"{permisos_reparados} permisos de admin reparados, "
+            f"{permisos_he_migrados} permisos HE granulares migrados."
         )
 
     except Exception as e:

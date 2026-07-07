@@ -14,9 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ....database import obtener_db
-from ....api.auth.profile_router import obtener_usuario_actual_db
 from ....models.auth.usuario import Usuario
-from ....services.auth.servicio import ServicioAuth
 from ....models.novedades_nomina.schemas_horas_extras import (
     HorarioPactadoSemanaRead,
     HorarioPactadoSemanaUpdate,
@@ -26,27 +24,17 @@ from ....services.novedades_nomina.horas_extras_horario_semana import (
     obtener_horario_semana,
     actualizar_horario_semana,
 )
+from .horas_extras_permisos import requiere_permiso_he_planificar
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-MODULO_HE = "nomina_horas_extras"
-
-
-async def _permiso_he(
-    db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
-) -> Usuario:
-    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
-    if MODULO_HE not in permisos:
-        raise HTTPException(status_code=403, detail="Sin permiso para Horas Extras")
-    return usuario
 
 
 @router.get("/horario/{cedula}/semana", response_model=HorarioPactadoSemanaRead)
 async def obtener_horario_semana_endpoint(
     cedula: str = Path(..., min_length=1, max_length=50),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_planificar),
 ):
     """Devuelve los 7 días del horario (L-D). Crea la fila padre si no existe."""
     dias = await obtener_horario_semana(db, cedula)
@@ -61,7 +49,7 @@ async def actualizar_horario_semana_endpoint(
     payload: HorarioPactadoSemanaUpdate,
     cedula: str = Path(..., min_length=1, max_length=50),
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_planificar),
 ):
     """Reemplaza los 7 días del horario del empleado."""
     usuario_id = getattr(usuario, "cedula", None) or usuario.id

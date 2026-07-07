@@ -21,9 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ....database import obtener_db
-from ....api.auth.profile_router import obtener_usuario_actual_db
 from ....models.auth.usuario import Usuario
-from ....services.auth.servicio import ServicioAuth
 from ....models.novedades_nomina.schemas_horas_extras import (
     NovedadEventoCreate,
     NovedadEventoRead,
@@ -40,22 +38,15 @@ from ....services.novedades_nomina.horas_extras_novedades import (
     confirmar_novedad,
     anular_novedad,
 )
+from .horas_extras_permisos import (
+    requiere_permiso_he_confirmar,
+    requiere_permiso_he_leer,
+    requiere_permiso_he_planificar,
+)
 
 logger = logging.getLogger(__name__)
 
-MODULO_HE = "nomina_horas_extras"
-
 router = APIRouter()
-
-
-async def requiere_permiso_he(
-    db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
-) -> Usuario:
-    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
-    if MODULO_HE not in permisos:
-        raise HTTPException(status_code=403, detail="Sin permiso para Horas Extras")
-    return usuario
 
 
 def _usuario_id(usuario: Usuario) -> str:
@@ -65,7 +56,7 @@ def _usuario_id(usuario: Usuario) -> str:
 @router.get(
     "/novedades",
     response_model=NovedadEventoList,
-    dependencies=[Depends(requiere_permiso_he)],
+    dependencies=[Depends(requiere_permiso_he_leer)],
 )
 async def listar_novedades_endpoint(
     cedula: Optional[str] = Query(None, max_length=50),
@@ -105,12 +96,12 @@ async def listar_novedades_endpoint(
     "/novedades",
     response_model=NovedadEventoRead,
     status_code=201,
-    dependencies=[Depends(requiere_permiso_he)],
+    dependencies=[Depends(requiere_permiso_he_planificar)],
 )
 async def crear_novedad_endpoint(
     payload: NovedadEventoCreate,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_planificar),
 ):
     """Crea un evento en BORRADOR. Valida catálogo, horario y solapamiento."""
     try:
@@ -123,7 +114,7 @@ async def crear_novedad_endpoint(
 @router.get(
     "/novedades/{novedad_id}",
     response_model=NovedadEventoRead,
-    dependencies=[Depends(requiere_permiso_he)],
+    dependencies=[Depends(requiere_permiso_he_leer)],
 )
 async def obtener_novedad_endpoint(
     novedad_id: int = Path(..., ge=1),
@@ -138,13 +129,13 @@ async def obtener_novedad_endpoint(
 @router.patch(
     "/novedades/{novedad_id}",
     response_model=NovedadEventoRead,
-    dependencies=[Depends(requiere_permiso_he)],
+    dependencies=[Depends(requiere_permiso_he_planificar)],
 )
 async def actualizar_novedad_endpoint(
     novedad_id: int = Path(..., ge=1),
     payload: NovedadEventoUpdate = ...,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_planificar),
 ):
     """Edita un evento. Solo permitido en estado BORRADOR."""
     try:
@@ -159,12 +150,12 @@ async def actualizar_novedad_endpoint(
 @router.post(
     "/novedades/{novedad_id}/confirmar",
     response_model=NovedadEventoRead,
-    dependencies=[Depends(requiere_permiso_he)],
+    dependencies=[Depends(requiere_permiso_he_confirmar)],
 )
 async def confirmar_novedad_endpoint(
     novedad_id: int = Path(..., ge=1),
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_confirmar),
 ):
     """Confirma una novedad: BORRADOR → CONFIRMADO. Es la fuente oficial."""
     try:
@@ -178,13 +169,13 @@ async def confirmar_novedad_endpoint(
 @router.post(
     "/novedades/{novedad_id}/anular",
     response_model=NovedadEventoRead,
-    dependencies=[Depends(requiere_permiso_he)],
+    dependencies=[Depends(requiere_permiso_he_confirmar)],
 )
 async def anular_novedad_endpoint(
     novedad_id: int = Path(..., ge=1),
     payload: NovedadAnularRequest = ...,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_confirmar),
 ):
     """Anula una novedad. Requiere justificación. Estado terminal."""
     try:

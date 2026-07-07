@@ -2,40 +2,26 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ....api.auth.profile_router import obtener_usuario_actual_db
 from ....database import obtener_db
 from ....models.auth.usuario import Usuario
 from ....models.novedades_nomina.schemas_horas_extras_parametros import (
     ParametrosCalculoRead,
     ParametrosCalculoUpdateRequest,
 )
-from ....services.auth.servicio import ServicioAuth
 from ....services.novedades_nomina.horas_extras_parametros import (
     actualizar_parametros_calculo,
     listar_parametros_calculo,
 )
+from .horas_extras_permisos import requiere_permiso_he_admin
 
 router = APIRouter(
     tags=["Nómina - Horas Extras"],
 )
 
-MODULO_HE = "nomina_horas_extras"
-
-
-async def requiere_permiso_he(
-    db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
-) -> Usuario:
-    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
-    if MODULO_HE not in permisos:
-        raise HTTPException(status_code=403, detail="Sin permiso para Horas Extras")
-    return usuario
-
-
 @router.get("/parametros-calculo", response_model=ParametrosCalculoRead)
 async def obtener_parametros_calculo(
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_admin),
 ):
     return await listar_parametros_calculo(db)
 
@@ -44,7 +30,7 @@ async def obtener_parametros_calculo(
 async def guardar_parametros_calculo(
     payload: ParametrosCalculoUpdateRequest,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_admin),
 ):
     usuario_id = getattr(usuario, "cedula", None) or usuario.id
     try:

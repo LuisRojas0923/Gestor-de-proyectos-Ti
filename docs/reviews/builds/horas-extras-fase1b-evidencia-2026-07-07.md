@@ -72,3 +72,21 @@ Las suites HE no afectadas por los cambios ya se ejecutaron aisladas/secuenciale
   - Semana previa a 2026-07-16 con jornada 44h y divisor 220.
   - Reparto OT con horas y valores brutos/carga esperados por proporcion.
   - `_ot_id_desde_orden` con orden numerica y orden no numerica por CRC32 estable.
+
+## Hardening RBAC granular
+
+- Se agregaron permisos RBAC granulares para HE: `nomina_horas_extras.leer`, `nomina_horas_extras.planificar`, `nomina_horas_extras.confirmar`, `nomina_horas_extras.compensar` y `nomina_horas_extras.admin`.
+- Se centralizaron dependencias backend en `horas_extras_permisos.py` y se reemplazo el chequeo coarse en routers HE.
+- Se agrego migracion de arranque para copiar roles con permiso legacy `nomina_horas_extras` hacia los permisos granulares, sin aceptar el legacy en endpoints.
+- La transicion `COMPENSADO` ahora exige `nomina_horas_extras.confirmar` por dependencia de ruta y `nomina_horas_extras.compensar` por validacion adicional.
+- Se actualizo la proteccion frontend de rutas HE para exigir permisos granulares por pantalla.
+- `python -m pytest testing/backend/test_horas_extras_rbac_granular.py -q`: 6 passed.
+- `python -m pytest testing/backend/test_horas_extras_rbac_granular.py testing/backend/test_horas_extras_parametros_calculo.py::test_parametros_calculo_route_no_duplica_prefijo_y_exige_permiso_he testing/backend/test_horas_extras_s6.py::test_bolsa_estado_global_route_no_duplica_prefijo_y_exige_permiso_he testing/backend/test_horas_extras_s7.py::test_planificador_empleados_erp_exige_permiso_he testing/backend/test_audit_coverage_manifest.py -q`: 11 passed.
+- `python -m pytest testing/backend/test_horas_extras_s2.py -q`: 18 passed.
+- `python -m pytest testing/backend/test_audit_coverage_manifest.py -q`: 2 passed.
+- `npm run test -- --run src/tests/horasExtrasService.test.ts`: 33 passed.
+- `npx eslint "src/pages/ServicePortal.tsx" "src/pages/ServicePortal/pages/DashboardView.tsx" "src/pages/ServicePortal/pages/HORAS_EXTRAS/CalculoDetailView.tsx"`: passed.
+- `npx tsc --noEmit --pretty false`: passed.
+- `npm run build`: passed.
+- `python scripts/sync_docs.py`: passed; actualizo `docs/ESQUEMA_BASE_DATOS.md` desde la base local.
+- `python -m pytest testing/backend/test_horas_extras_s6.py -q`: 13 passed, 1 failed por estado funcional de bolsa esperado 3.0 vs 1.0 en `test_override_true_sobre_global_false_acredita`; no bloquea el delta RBAC, pero requiere limpieza/semillado de catálogo antes de certificar suite S6 completa.

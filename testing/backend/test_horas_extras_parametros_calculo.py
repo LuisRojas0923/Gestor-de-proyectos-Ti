@@ -39,7 +39,7 @@ def test_parametros_calculo_route_no_duplica_prefijo_y_exige_permiso_he():
         if isinstance(route, APIRoute) and route.path == ruta_esperada
     )
     dependencias = {getattr(dep.call, "__name__", "") for dep in route.dependant.dependencies}
-    assert "requiere_permiso_he" in dependencias
+    assert "requiere_permiso_he_admin" in dependencias
 
 
 async def _cleanup(db_session):

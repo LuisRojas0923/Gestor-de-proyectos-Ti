@@ -186,6 +186,36 @@ AUDITORIA_COBERTURA: dict[str, CoberturaAuditoriaModulo] = {
         ],
         "rutas_api": ["/api/v2/novedades-nomina/horas-extras"],
     },
+    "nomina_horas_extras.leer": {
+        "tipo": "parcial",
+        "notas": "Permiso granular de consulta; hereda cobertura operativa del módulo HE.",
+        "hereda_de": "nomina_horas_extras",
+        "rutas_api": ["/api/v2/novedades-nomina/horas-extras"],
+    },
+    "nomina_horas_extras.planificar": {
+        "tipo": "parcial",
+        "notas": "Permiso granular de pre-cálculo y borradores; middleware cubre mutaciones.",
+        "hereda_de": "nomina_horas_extras",
+        "rutas_api": ["/api/v2/novedades-nomina/horas-extras"],
+    },
+    "nomina_horas_extras.confirmar": {
+        "tipo": "parcial",
+        "notas": "Permiso granular de confirmación y transiciones; middleware cubre mutaciones.",
+        "hereda_de": "nomina_horas_extras",
+        "rutas_api": ["/api/v2/novedades-nomina/horas-extras"],
+    },
+    "nomina_horas_extras.compensar": {
+        "tipo": "parcial",
+        "notas": "Permiso granular de compensación de bolsa; middleware cubre mutaciones.",
+        "hereda_de": "nomina_horas_extras",
+        "rutas_api": ["/api/v2/novedades-nomina/horas-extras"],
+    },
+    "nomina_horas_extras.admin": {
+        "tipo": "parcial",
+        "notas": "Permiso granular de administración HE; middleware cubre mutaciones.",
+        "hereda_de": "nomina_horas_extras",
+        "rutas_api": ["/api/v2/novedades-nomina/horas-extras"],
+    },
 }
 
 # Módulos RBAC sin acciones de backend auditables (solo navegación / consulta meta).

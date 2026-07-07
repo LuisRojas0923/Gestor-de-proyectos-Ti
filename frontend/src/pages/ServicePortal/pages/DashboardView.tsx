@@ -1,5 +1,5 @@
 import { Title, Text, MaterialCard } from '../../../components/atoms';
-import { FileText, Briefcase, Plus, ChevronRight, ScanFace, MapPin } from 'lucide-react';
+import { FileText, Briefcase, ChevronRight, ScanFace } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -9,9 +9,14 @@ import imgNovedadesNomina from '../../../assets/images/categories/NOVEDADES_NOMI
 import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 
 interface DashboardViewProps {
-    user: any;
+    user: {
+        role?: string;
+        rol?: string;
+        permissions?: string[];
+        viaticante?: boolean;
+    };
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'biometria' | 'horas_extras') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'biometria' | 'horas_extras' | 'horas_extras_planificador' | 'horas_extras_configuracion' | 'horas_extras_calculos') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -103,10 +108,21 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         ['admin', 'director'].includes(userRole)
     );
 
+    const permisosHorasExtras = [
+        'nomina_horas_extras.leer',
+        'nomina_horas_extras.planificar',
+        'nomina_horas_extras.admin',
+    ];
+
     const canSeeHorasExtras = moduleStatus['nomina_horas_extras'] !== false && (
-        permissions.includes('nomina_horas_extras') ||
-        ['admin', 'director'].includes(userRole)
+        permisosHorasExtras.some((permiso) => permissions.includes(permiso))
     );
+
+    const rutaInicialHorasExtras = permissions.includes('nomina_horas_extras.planificar')
+        ? 'horas_extras_planificador'
+        : permissions.includes('nomina_horas_extras.admin')
+            ? 'horas_extras_configuracion'
+            : 'horas_extras_calculos';
     const cards = [
         {
             key: 'solicitudes',
@@ -162,7 +178,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
             title: "Horas Extras y Pre-liquidación",
             description: "Cálculo semanal de HE, bolsa de horas y costos por OT.",
             icon: <img src={imgNovedadesNomina} alt="Horas Extras" className="w-full h-full object-contain p-1" />,
-            onClick: () => onNavigate('horas_extras')
+            onClick: () => onNavigate(rutaInicialHorasExtras)
         },
         {
             key: 'inventario',

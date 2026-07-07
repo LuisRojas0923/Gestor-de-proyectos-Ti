@@ -37,7 +37,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ....database import obtener_db
 from ....models.auth.usuario import Usuario
-from ....api.auth.profile_router import obtener_usuario_actual_db
 from ....models.novedades_nomina.schemas_horas_extras import (
     NovedadCatalogoRead,
     NovedadCatalogoCreate,
@@ -58,7 +57,6 @@ from ....models.novedades_nomina.schemas_horas_extras import (
     CompensarBolsaRequest,
     CompensarBolsaResponse,
 )
-from ....services.auth.servicio import ServicioAuth
 from ....services.novedades_nomina.horas_extras_service import (
     crear_novedad_catalogo,
     actualizar_novedad_catalogo,
@@ -88,6 +86,15 @@ from .horas_extras_horario_semana import router as horario_semana_subrouter
 from .horas_extras_bolsa import router as bolsa_subrouter
 from .horas_extras_planificador import router as planificador_subrouter
 from .horas_extras_parametros import router as parametros_subrouter
+from .horas_extras_permisos import (
+    PERMISO_HE_COMPENSAR,
+    requiere_permiso_he_admin,
+    requiere_permiso_he_compensar,
+    requiere_permiso_he_confirmar,
+    requiere_permiso_he_leer,
+    requiere_permiso_he_planificar,
+    validar_permiso_he,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -107,19 +114,6 @@ router.include_router(planificador_subrouter)
 # S9 — Sub-router de parámetros de cálculo editables
 router.include_router(parametros_subrouter)
 
-MODULO_HE = "nomina_horas_extras"
-
-
-async def requiere_permiso_he(
-    db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
-) -> Usuario:
-    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
-    if MODULO_HE not in permisos:
-        raise HTTPException(status_code=403, detail="Sin permiso para Horas Extras")
-    return usuario
-
-
 # Catálogo de novedades
 # ---------------------------------------------------------------------------
 @router.get("/catalogo", response_model=List[NovedadCatalogoRead])
@@ -128,7 +122,7 @@ async def listar_catalogo(
     solo_acreditan_bolsa: bool = Query(False),
     fecha: Optional[date] = Query(None, description="Fecha de referencia para vigencia"),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_leer),
 ):
     return await listar_catalogo_vigente(
         db, categoria=categoria, solo_acreditan_bolsa=solo_acreditan_bolsa, fecha_referencia=fecha
@@ -139,7 +133,7 @@ async def listar_catalogo(
 async def crear_novedad(
     payload: NovedadCatalogoCreate,
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_admin),
 ):
     try:
         return await crear_novedad_catalogo(db, payload)
@@ -152,7 +146,7 @@ async def actualizar_novedad(
     codigo: str = Path(..., max_length=20),
     payload: NovedadCatalogoCreate = ...,
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_admin),
 ):
     try:
         return await actualizar_novedad_catalogo(db, codigo, payload)
@@ -166,7 +160,7 @@ async def actualizar_novedad(
 @router.get("/factores-arl", response_model=List[FactorPrestacionalRead])
 async def listar_factores_arl(
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_leer),
 ):
     return await listar_factores_arl_todos(db)
 
@@ -178,7 +172,7 @@ async def listar_factores_arl(
 async def obtener_horario(
     cedula: str = Path(..., min_length=1, max_length=50),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_leer),
 ):
     return await obtener_horario_pactado(db, cedula)
 
@@ -187,7 +181,7 @@ async def obtener_horario(
 async def obtener_autorizacion_efectiva(
     cedula: str = Path(..., min_length=1, max_length=50),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_leer),
 ):
     horario = await obtener_horario_pactado(db, cedula)
     if horario is None:
@@ -217,7 +211,7 @@ async def obtener_autorizacion_efectiva(
 async def crear_override(
     payload: OverrideAutorizaHECreate,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_admin),
 ):
     usuario_id = getattr(usuario, "cedula", None) or usuario.id
     try:
@@ -231,7 +225,7 @@ async def listar_overrides(
     cedula: str = Path(..., min_length=1, max_length=50),
     estado: Optional[str] = Query(None, description="ACTIVO, REVOCADO, EXPIRADO"),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_leer),
 ):
     return await listar_overrides_cedula(db, cedula, estado)
 
@@ -243,7 +237,7 @@ async def listar_overrides(
 async def ejecutar_pre_liquidacion_endpoint(
     payload: PreLiquidacionInput,
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_planificar),
 ):
     if len(payload.horas_por_dia) != 7:
         raise HTTPException(status_code=400, detail="horas_por_dia debe tener 7 valores (L-D)")
@@ -280,7 +274,7 @@ async def ejecutar_pre_liquidacion_endpoint(
 async def obtener_bolsa(
     cedula: str = Path(..., min_length=1, max_length=50),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_leer),
 ):
     bolsa = await obtener_bolsa_horas(db, cedula)
     if bolsa is None:
@@ -308,7 +302,7 @@ async def obtener_bolsa(
 async def confirmar_pre_liquidacion_endpoint(
     payload: PreLiquidacionConfirmar,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_confirmar),
 ):
     """
     Persiste un cálculo y sus efectos colaterales.
@@ -347,7 +341,7 @@ async def listar_calculos_endpoint(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_leer),
 ):
     return await listar_calculos(
         db,
@@ -364,7 +358,7 @@ async def listar_calculos_endpoint(
 async def obtener_calculo_endpoint(
     calculo_id: int = Path(..., ge=1),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_leer),
 ):
     calc = await obtener_calculo_completo(db, calculo_id)
     if calc is None:
@@ -380,7 +374,7 @@ async def listar_costos_ot_endpoint(
     semana_iso: Optional[int] = Query(None, ge=1, le=53),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_leer),
 ):
     return await listar_costos_ot(
         db,
@@ -401,7 +395,7 @@ async def transicionar_calculo_endpoint(
     calculo_id: int = Path(..., ge=1),
     payload: WorkflowTransicionRequest = ...,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_confirmar),
 ):
     """
     Aplica una transición de estado al cálculo.
@@ -409,6 +403,9 @@ async def transicionar_calculo_endpoint(
     - CONFIRMADO → COMPENSADO: consume horas de la bolsa (parcial o total).
     - CONFIRMADO → ANULADO: revierte la ACREDITACION y resta del costo_ot.
     """
+    if payload.estado_destino == "COMPENSADO":
+        await validar_permiso_he(db, usuario, PERMISO_HE_COMPENSAR)
+
     usuario_id = getattr(usuario, "cedula", None) or usuario.id
     try:
         resultado = await transicionar_calculo(
@@ -447,7 +444,7 @@ async def transicionar_calculo_endpoint(
 async def listar_historial_endpoint(
     calculo_id: int = Path(..., ge=1),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_leer),
 ):
     """Bitácora de transiciones del cálculo (CONFIRMADO inicial + cada cambio)."""
     return await listar_eventos_calculo(db, calculo_id)
@@ -457,7 +454,7 @@ async def listar_historial_endpoint(
 async def compensar_bolsa_endpoint(
     payload: CompensarBolsaRequest,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_compensar),
 ):
     """
     Consume horas de la bolsa del empleado. Crea movimiento CONSUMO_TIEMPO.

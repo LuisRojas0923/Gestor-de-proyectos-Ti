@@ -22,7 +22,6 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from ....api.auth.profile_router import obtener_usuario_actual_db
 from ....database import obtener_db
 from ....models.auth.usuario import Usuario
 from ....models.novedades_nomina.bolsa_horas_override import NominaBolsaOtOverride
@@ -33,27 +32,14 @@ from ....models.novedades_nomina.schemas_horas_extras import (
     BolsaOverrideOTIn,
     BolsaOverrideOTOut,
 )
-from ....services.auth.servicio import ServicioAuth
 from ....services.novedades_nomina.bolsa_horas_resolver import resolver_bolsa_habilitada
+from .horas_extras_permisos import requiere_permiso_he_admin, requiere_permiso_he_leer
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     tags=["Nómina - Horas Extras"],
 )
-
-MODULO_HE = "nomina_horas_extras"
-
-
-async def requiere_permiso_he(
-    db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(obtener_usuario_actual_db),
-) -> Usuario:
-    permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
-    if MODULO_HE not in permisos:
-        raise HTTPException(status_code=403, detail="Sin permiso para Horas Extras")
-    return usuario
-
 
 # ---------------------------------------------------------------------------
 # GET /bolsa/estado-global
@@ -63,7 +49,7 @@ async def requiere_permiso_he(
 async def obtener_estado_bolsa_global(
     ot_id: Optional[int] = Query(None, description="OT para aplicar override por OT"),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_leer),
 ):
     """Devuelve (bolsa_habilitada, fuente) usando el resolver.
 
@@ -85,7 +71,7 @@ async def obtener_estado_bolsa_global(
 async def crear_override_bolsa_ot(
     payload: BolsaOverrideOTIn,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_admin),
 ):
     """Crea override por OT del flag global de bolsa.
 
@@ -153,7 +139,7 @@ async def crear_override_bolsa_ot(
 async def revocar_override_bolsa_ot(
     override_id: int = Path(..., ge=1),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he),
+    _: Usuario = Depends(requiere_permiso_he_admin),
 ):
     """Revoca un override por OT (no borra la fila, marca estado=REVOCADO)."""
     try:
@@ -189,7 +175,7 @@ async def revocar_override_bolsa_ot(
 async def configurar_bolsa_global(
     payload: BolsaGlobalConfigIn,
     db: AsyncSession = Depends(obtener_db),
-    usuario: Usuario = Depends(requiere_permiso_he),
+    usuario: Usuario = Depends(requiere_permiso_he_admin),
 ):
     """Cambia el parametro legal global de bolsa.
 
