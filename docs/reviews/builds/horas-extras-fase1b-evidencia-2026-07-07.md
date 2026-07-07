@@ -89,4 +89,6 @@ Las suites HE no afectadas por los cambios ya se ejecutaron aisladas/secuenciale
 - `npx tsc --noEmit --pretty false`: passed.
 - `npm run build`: passed.
 - `python scripts/sync_docs.py`: passed; actualizo `docs/ESQUEMA_BASE_DATOS.md` desde la base local.
-- `python -m pytest testing/backend/test_horas_extras_s6.py -q`: 13 passed, 1 failed por estado funcional de bolsa esperado 3.0 vs 1.0 en `test_override_true_sobre_global_false_acredita`; no bloquea el delta RBAC, pero requiere limpieza/semillado de catálogo antes de certificar suite S6 completa.
+- `python -m pytest testing/backend/test_horas_extras_s6.py -q`: 14 passed.
+- `python -m pytest testing/backend/test_horas_extras_parametros_calculo.py testing/backend/test_horas_extras_s6.py -q`: 18 passed.
+- Causa raíz del fallo S6: `test_horas_extras_parametros_calculo.py._cleanup` borraba HED del catálogo sin restaurarlo; S6 dependía de HED para acreditar bolsa. Fix: S6 ahora es autónomo con `_setup_catalogo` que hace upsert de HED/HEN; parametros_calculo hace upsert de HED y factor ARL en lugar de insert directo.

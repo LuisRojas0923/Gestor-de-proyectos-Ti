@@ -101,29 +101,46 @@ async def test_actualiza_parametro_legal_editable(db_session):
 async def test_calculo_usa_divisor_vigente_editado(db_session):
     await _cleanup(db_session)
     try:
-        db_session.add(
-            NominaCatalogoNovedad(
-                codigo="HED",
-                descripcion_corta="Hora extra diurna",
-                categoria="HORA_EXTRA",
-                subcategoria="DIURNA",
-                factor_hora_ordinaria=1.25,
-                acredita_bolsa=True,
-                descuenta_bolsa=True,
-                requiere_autorizacion=True,
-                unidad="HORAS",
-                estado="ACTIVO",
-                vigente_desde=date(2026, 1, 1),
+        from sqlmodel import select as _select
+        existente_hed = (
+            await db_session.execute(
+                _select(NominaCatalogoNovedad).where(
+                    NominaCatalogoNovedad.codigo == "HED"
+                )
             )
-        )
-        db_session.add(
-            NominaFactorPrestacionalRiesgo(
-                nivel_riesgo="III",
-                nivel_macro="OPERATIVO",
-                factor_prestacional=0.52436,
-                vigente_desde=date(2026, 1, 1),
+        ).scalar_one_or_none()
+        if existente_hed is None:
+            db_session.add(
+                NominaCatalogoNovedad(
+                    codigo="HED",
+                    descripcion_corta="Hora extra diurna",
+                    categoria="HORA_EXTRA",
+                    subcategoria="DIURNA",
+                    factor_hora_ordinaria=1.25,
+                    acredita_bolsa=True,
+                    descuenta_bolsa=True,
+                    requiere_autorizacion=True,
+                    unidad="HORAS",
+                    estado="ACTIVO",
+                    vigente_desde=date(2026, 1, 1),
+                )
             )
-        )
+        existente_arl = (
+            await db_session.execute(
+                _select(NominaFactorPrestacionalRiesgo).where(
+                    NominaFactorPrestacionalRiesgo.nivel_riesgo == "III"
+                )
+            )
+        ).scalar_one_or_none()
+        if existente_arl is None:
+            db_session.add(
+                NominaFactorPrestacionalRiesgo(
+                    nivel_riesgo="III",
+                    nivel_macro="OPERATIVO",
+                    factor_prestacional=0.52436,
+                    vigente_desde=date(2026, 1, 1),
+                )
+            )
         await db_session.commit()
         await actualizar_parametros_calculo(
             db_session,

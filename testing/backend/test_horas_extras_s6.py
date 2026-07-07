@@ -29,6 +29,7 @@ from app.models.novedades_nomina.horas_extras import (
     NominaCalculoSemanal,
     NominaCalculoSemanalDetalle,
     NominaCalculoWorkflowEvento,
+    NominaCatalogoNovedad,
     NominaCostoOt,
     NominaHorarioPactado,
     NominaParametroLegal,
@@ -149,10 +150,48 @@ async def _cleanup_todo(db_session, cedula: str):
     await db_session.execute(
         delete(NominaHorarioPactado).where(NominaHorarioPactado.cedula == cedula)
     )
+    await db_session.execute(
+        delete(NominaCatalogoNovedad).where(
+            NominaCatalogoNovedad.codigo.in_(["HED", "HEN"])
+        )
+    )
+    await db_session.commit()
+
+
+async def _setup_catalogo(db_session):
+    """Crea HED y HEN en el catalogo si no existen (upsert manual)."""
+    for codigo, factor, subcat in [
+        ("HED", 1.25, "DIURNA"),
+        ("HEN", 1.75, "NOCTURNA"),
+    ]:
+        existente = (
+            await db_session.execute(
+                select(NominaCatalogoNovedad).where(
+                    NominaCatalogoNovedad.codigo == codigo
+                )
+            )
+        ).scalar_one_or_none()
+        if existente is None:
+            db_session.add(
+                NominaCatalogoNovedad(
+                    codigo=codigo,
+                    descripcion_corta=f"Hora extra {subcat.lower()}",
+                    categoria="HORA_EXTRA",
+                    subcategoria=subcat,
+                    factor_hora_ordinaria=factor,
+                    acredita_bolsa=True,
+                    descuenta_bolsa=True,
+                    requiere_autorizacion=True,
+                    unidad="HORAS",
+                    estado="ACTIVO",
+                    vigente_desde=date(2026, 1, 1),
+                )
+            )
     await db_session.commit()
 
 
 async def _setup_horario(db_session, cedula: str):
+    await _setup_catalogo(db_session)
     horario = NominaHorarioPactado(
         cedula=cedula,
         minutos_jornada_ordinaria=480,
