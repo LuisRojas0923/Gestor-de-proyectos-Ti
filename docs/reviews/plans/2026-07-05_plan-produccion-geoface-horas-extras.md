@@ -143,10 +143,10 @@ No iniciar Fase 3 si Fase 1A o Fase 1B no estan aprobadas con evidencia.
 
 ### 1A.4 Auth movil y rutas legacy
 
-- [ ] Corregir `getStoredAccounts()` para enviar `Authorization` en `/auth/analistas`.
-- [ ] Corregir o eliminar `deleteAccount()` que apunta a `/v1/users/{id}`.
-- [ ] Revisar `createAccount()` y UI de creacion: si no esta permitida, ocultar o dejar mensaje consistente.
-- [ ] Eliminar referencias operativas a `/v1/*` en app movil.
+- [x] Corregir `getStoredAccounts()` para enviar `Authorization` en `/auth/analistas`.
+- [x] Corregir o eliminar `deleteAccount()` que apunta a `/v1/users/{id}`.
+- [x] Revisar `createAccount()` y UI de creacion: si no esta permitida, ocultar o dejar mensaje consistente.
+- [x] Eliminar referencias operativas a `/v1/*` en app movil.
 - [ ] Confirmar que endpoints protegidos sin token siguen respondiendo `401`.
 
 ### 1A.5 App movil lista para build
@@ -156,12 +156,12 @@ No iniciar Fase 3 si Fase 1A o Fase 1B no estan aprobadas con evidencia.
   - [ ] `lint` si se define ESLint o documentar ausencia.
   - [ ] `test` si se agregan pruebas unitarias.
 - [ ] Instalar dependencias localmente en ambiente controlado antes de validar.
-- [ ] Ejecutar typecheck.
+- [x] Ejecutar typecheck.
 - [ ] Revisar `app.json`:
-  - [ ] Remover `RECORD_AUDIO` si no se usa.
+  - [x] Remover `RECORD_AUDIO` si no se usa.
   - [ ] Confirmar `usesCleartextTraffic` solo para entorno LAN/piloto.
-  - [ ] Confirmar permisos de camara y ubicacion.
-- [ ] Configurar `eas.json` production/preview segun politica de distribucion.
+  - [x] Confirmar permisos de camara y ubicacion.
+- [x] Configurar `eas.json` production/preview segun politica de distribucion.
 - [ ] Generar APK preview.
 - [ ] Probar APK en al menos 2 dispositivos Android fisicos.
 

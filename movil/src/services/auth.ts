@@ -8,6 +8,14 @@ const KEYS = {
   SESSION: 'geo_face_session',
 };
 
+type BackendUser = {
+  id: string;
+  cedula: string;
+  nombre: string;
+  rol: string;
+  creado_en?: string | null;
+};
+
 // --- Secure Store Wrappers (same pattern as storage.ts) ---
 
 async function secureGetItem(key: string): Promise<string | null> {
@@ -68,20 +76,26 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout 
 
 export async function getStoredAccounts(adminId: string): Promise<UserAccount[]> {
   try {
-    const res = await fetchWithTimeout(`${getServerAddress()}/auth/analistas`);
+    const token = await getActiveSession();
+    if (!token) return [];
+
+    const res = await fetchWithTimeout(`${getServerAddress()}/auth/analistas`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     if (!res.ok) throw new Error('Error de red o acceso denegado');
-    const data = await res.json();
-    return data.users as UserAccount[];
+    const data = await res.json() as BackendUser[];
+    return data.map(mapBackendUserToAccount);
   } catch (e) {
-    console.error('getStoredAccounts error:', e);
+    console.error('No se pudo consultar la lista de analistas');
     return [];
   }
 }
 
 
 export async function deleteAccount(accountId: string, adminId: string): Promise<void> {
-  const res = await fetchWithTimeout(`${getServerAddress()}/v1/users/${accountId}?admin_id=${adminId}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Error al eliminar cuenta en la nube');
+  throw new Error('La eliminación de cuentas desde la aplicación móvil no está permitida en el flujo empresarial.');
 }
 
 // --- Authentication (via Cloud Backend) ---
@@ -127,7 +141,7 @@ export async function authenticateUser(
     }
     return null;
   } catch (e: any) {
-    console.error('authenticateUser error:', e);
+    console.error('Error de autenticacion movil');
     throw new Error(e.message || 'No se pudo conectar al servidor.');
   }
 }
@@ -162,17 +176,22 @@ export async function getUserById(token: string): Promise<UserAccount | null> {
     if (!res.ok) return null;
     
     const data = await res.json();
-    return {
-      id: data.id,
-      username: data.cedula,
-      role: data.rol,
-      displayName: data.nombre,
-      createdAt: data.creado_en || new Date().toISOString()
-    } as UserAccount;
+    return mapBackendUserToAccount(data as BackendUser);
   } catch (e) {
-    console.error('getUserById error:', e);
+    console.error('No se pudo consultar el usuario actual');
     return null;
   }
+}
+
+function mapBackendUserToAccount(user: BackendUser): UserAccount {
+  return {
+    id: user.id,
+    username: user.cedula,
+    passwordHash: '',
+    role: user.rol === 'admin' ? 'admin' : 'user',
+    displayName: user.nombre,
+    createdAt: user.creado_en || new Date().toISOString(),
+  };
 }
 
 export async function hasAnyAccounts(): Promise<boolean> {
