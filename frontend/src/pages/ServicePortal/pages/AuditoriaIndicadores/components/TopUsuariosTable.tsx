@@ -1,14 +1,27 @@
-import React from 'react';
-import { MaterialCard as Card, Title, Text } from '../../../../../components/atoms';
+import React, { useState, useMemo } from 'react';
+import { MaterialCard as Card, Title, Text, Input } from '../../../../../components/atoms';
 import { DataTable, DataTableColumn } from '../../../../../components/molecules/DataTable';
-import { Users, Clock } from 'lucide-react';
+import { Users, Clock, Search } from 'lucide-react';
 import type { TopUsuario } from '../../../../../types/auditoria';
 
 interface TopUsuariosTableProps {
   datos: TopUsuario[];
+  onUserClick?: (user: TopUsuario) => void;
 }
 
-const TopUsuariosTable: React.FC<TopUsuariosTableProps> = ({ datos }) => {
+const TopUsuariosTable: React.FC<TopUsuariosTableProps> = ({ datos, onUserClick }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const datosFiltrados = useMemo(() => {
+    const safeDatos = datos || [];
+    if (!searchTerm) return safeDatos;
+    const term = searchTerm.toLowerCase();
+    return safeDatos.filter(user => 
+      (user.usuario_nombre && user.usuario_nombre.toLowerCase().includes(term)) ||
+      (user.usuario_id && user.usuario_id.toLowerCase().includes(term))
+    );
+  }, [datos, searchTerm]);
+
   const columns: DataTableColumn<TopUsuario>[] = [
     {
       key: 'usuario',
@@ -48,24 +61,39 @@ const TopUsuariosTable: React.FC<TopUsuariosTableProps> = ({ datos }) => {
   ];
 
   return (
-    <Card className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm h-full flex flex-col">
-      <div className="mb-4 flex items-center gap-2">
-        <Users className="w-5 h-5 text-[var(--color-primary)]" />
-        <div>
-          <Title variant="h6">Top Usuarios</Title>
-          <Text variant="caption" color="text-secondary">Usuarios con más interacciones</Text>
+    <Card className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] shadow-sm h-full overflow-hidden">
+      <div className="flex flex-col h-full">
+        <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-[var(--color-primary)]" />
+            <div>
+              <Title variant="h6">Top Usuarios</Title>
+              <Text variant="caption" color="text-secondary">Usuarios con más interacciones</Text>
+            </div>
+          </div>
+          
+          <div className="w-full sm:w-64">
+            <Input
+              id="buscar-usuario"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por cédula o nombre..."
+              icon={Search}
+            />
+          </div>
         </div>
-      </div>
-      
-      <div className="flex-1 min-h-0 border border-[var(--color-border)] rounded-lg overflow-hidden">
-        <DataTable
-          columns={columns}
-          data={datos}
-          keyExtractor={(row, i) => row.usuario_id || String(i)}
-          emptyMessage="No hay datos para este período."
-          className="h-full"
-          maxHeight="100%"
-        />
+        
+        <div className="flex-1 min-h-0 border border-[var(--color-border)] rounded-lg overflow-hidden flex flex-col">
+          <DataTable
+            columns={columns}
+            data={datosFiltrados}
+            keyExtractor={(row, i) => row.usuario_id || String(i)}
+            emptyMessage="No hay datos para este período."
+            onRowClick={onUserClick}
+            className="flex-1 min-h-0"
+            maxHeight="350px"
+          />
+        </div>
       </div>
     </Card>
   );

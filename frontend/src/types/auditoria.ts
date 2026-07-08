@@ -59,12 +59,15 @@ export interface FiltrosAuditoria {
 
 export interface StatsPorModulo {
   modulo: string;
-  total: int;
+  total: number;
+  usuarios_unicos?: number;
+  ultimos_eventos?: AuditoriaEvento[];
 }
 
 export interface TipoFallo {
   tipo: string;
   total: number;
+  detalles?: Record<string, number>;
 }
 
 export interface StatsPorDia {
@@ -81,8 +84,19 @@ export interface TopUsuario {
 
 export interface TopRuta {
   ruta: string;
+  accion: string;
   total: number;
   fallos: number;
+}
+
+export interface StatsPorHora {
+  rango: string;
+  total: number;
+}
+
+export interface StatsPorDispositivo {
+  dispositivo: string;
+  total: number;
 }
 
 export interface AuditoriaEstadisticas {
@@ -99,4 +113,6 @@ export interface AuditoriaEstadisticas {
   por_dia: StatsPorDia[];
   top_usuarios: TopUsuario[];
   top_rutas: TopRuta[];
+  por_hora?: StatsPorHora[];
+  por_dispositivo?: StatsPorDispositivo[];
 }

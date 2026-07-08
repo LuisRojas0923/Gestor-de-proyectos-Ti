@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApi } from '../../../../../hooks/useApi';
 import type { AuditoriaEstadisticas } from '../../../../../types/auditoria';
 
@@ -17,13 +17,16 @@ export function useAuditoriaStats() {
     const [fechaDesde, setFechaDesde] = useState<string>('');
     const [fechaHasta, setFechaHasta] = useState<string>('');
 
-    const cargar = useCallback(async (desde?: string, hasta?: string) => {
-        setIsLoading(true);
+    const activeDatesRef = useRef<{ desde?: string; hasta?: string }>({ desde: '', hasta: '' });
+
+    const cargar = useCallback(async (desde?: string, hasta?: string, silencioso = false) => {
+        if (!silencioso) setIsLoading(true);
         setError(null);
         try {
             const params = new URLSearchParams();
             if (desde) params.append('fecha_desde', desde);
             if (hasta) params.append('fecha_hasta', hasta);
+            params.append('_t', Date.now().toString());
             
             const statsUrl = `/auditoria/estadisticas${params.toString() ? `?${params.toString()}` : ''}`;
             params.append('page', '1');
@@ -45,9 +48,9 @@ export function useAuditoriaStats() {
             console.error("Error obteniendo estadísticas:", e);
             setError('Error al cargar las estadísticas de auditoría.');
         } finally {
-            setIsLoading(false);
+            if (!silencioso) setIsLoading(false);
         }
-    }, [get]);
+    }, [get, getEventos]);
 
     useEffect(() => {
         const calcularFechas = () => {
@@ -74,12 +77,55 @@ export function useAuditoriaStats() {
             }
             
             if (periodo !== 'personalizado' || (desde && hasta)) {
+                activeDatesRef.current = { desde, hasta };
                 cargar(desde, hasta);
             }
         };
 
         calcularFechas();
     }, [periodo, fechaDesde, fechaHasta, cargar]);
+
+    useEffect(() => {
+        let socket: WebSocket | null = null;
+        let timeoutId: any = null;
+
+        const conectar = () => {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsHost = window.location.host;
+            const wsUrl = wsHost.includes('localhost')
+                ? `${wsProtocol}//localhost:8000/api/v2/auditoria/ws/dashboard`
+                : `${wsProtocol}//${wsHost}/api/v2/auditoria/ws/dashboard`;
+
+            socket = new WebSocket(wsUrl);
+
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'UPDATE_INDICADORES') {
+                        const { desde, hasta } = activeDatesRef.current;
+                        cargar(desde, hasta, true);
+                    }
+                } catch (e) {
+                    console.error("Error parsing WS message:", e);
+                }
+            };
+
+            socket.onclose = () => {
+                timeoutId = setTimeout(conectar, 5000);
+            };
+
+            socket.onerror = () => {
+                socket?.close();
+            };
+        };
+
+        conectar();
+
+        return () => {
+            if (socket) socket.close();
+            if (timeoutId) clearTimeout(timeoutId);
+        };
+    }, [cargar]);
 
     return {
         estadisticas,
@@ -93,10 +139,8 @@ export function useAuditoriaStats() {
         fechaHasta,
         setFechaHasta,
         recargar: () => {
-             // Forzamos un update de dependencias llamando a la misma fecha o simplemente
-             // usamos los estados actuales para cargar, pero como están en efecto, no necesitamos duplicar.
-             // Aquí hacemos un bypass sucio si se requiere forzar manual
-             setPeriodo(p => p); 
+            const { desde, hasta } = activeDatesRef.current;
+            cargar(desde, hasta);
         }
     };
 }

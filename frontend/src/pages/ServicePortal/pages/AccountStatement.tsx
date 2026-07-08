@@ -66,6 +66,29 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user }) => {
         }
     };
 
+    const auditarDescarga = async (tipo: 'pdf' | 'xlsx') => {
+        try {
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            await axios.post(
+                `${API_BASE_URL}/viaticos/estado-cuenta/auditar-descarga`, 
+                { 
+                    tipo_archivo: tipo,
+                    cedula_consultada: user.cedula || user.id,
+                    nombre_consultado: user.name
+                },
+                { headers }
+            );
+        } catch (err) {
+            console.error("Error al registrar auditoría de descarga:", err);
+        }
+    };
+
+    const handleDownloadPDF = () => {
+        generateAccountStatementPDF(user, movimientos);
+        auditarDescarga('pdf');
+    };
+
     const handleExportExcel = async () => {
         try {
             const params = new URLSearchParams({
@@ -75,6 +98,8 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user }) => {
             }).toString();
             
             const url = `${API_BASE_URL}/viaticos/estado-cuenta/xlsx?${params}`;
+            
+            auditarDescarga('xlsx');
             
             // Crear un link temporal para la descarga
             window.location.href = url;
@@ -150,7 +175,7 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user }) => {
                         <Button
                             variant="erp"
                             size="sm"
-                            onClick={() => generateAccountStatementPDF(user, movimientos)}
+                            onClick={handleDownloadPDF}
                             disabled={movimientos.length === 0 || isLoading}
                             icon={Download}
                             className="h-8 shadow-sm font-bold bg-red-600 hover:bg-red-700 ml-auto md:ml-0"

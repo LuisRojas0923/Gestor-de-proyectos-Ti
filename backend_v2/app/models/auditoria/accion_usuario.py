@@ -93,6 +93,8 @@ class AuditoriaEventosPaginados(SQLModel):
 class StatsPorModulo(SQLModel):
     modulo: str
     total: int
+    usuarios_unicos: int = 0
+    ultimos_eventos: List[AuditoriaAccionPublica] = []
 
 class StatsPorResultado(SQLModel):
     resultado: str
@@ -111,11 +113,21 @@ class TopUsuario(SQLModel):
 class TipoFallo(SQLModel):
     tipo: str
     total: int
+    detalles: Dict[str, int] = {}
 
 class TopRuta(SQLModel):
     ruta: str
+    accion: str
     total: int
     fallos: int
+
+class StatsPorHora(SQLModel):
+    rango: str
+    total: int
+
+class StatsPorDispositivo(SQLModel):
+    dispositivo: str
+    total: int
 
 class AuditoriaEstadisticas(SQLModel):
     total_eventos: int
@@ -131,3 +143,5 @@ class AuditoriaEstadisticas(SQLModel):
     por_dia: List[StatsPorDia]
     top_usuarios: List[TopUsuario]
     top_rutas: List[TopRuta]
+    por_hora: List[StatsPorHora] = []
+    por_dispositivo: List[StatsPorDispositivo] = []

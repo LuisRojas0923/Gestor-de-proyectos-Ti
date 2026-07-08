@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Title, Text, MaterialCard as Card, Button } from '../../../../components/atoms';
 import { Activity, Loader2, RefreshCw } from 'lucide-react';
 import PeriodSelector from './components/PeriodSelector';
@@ -9,9 +9,18 @@ import ActividadEnTiempo from './components/ActividadEnTiempo';
 import TopUsuariosTable from './components/TopUsuariosTable';
 import TopRutasTable from './components/TopRutasTable';
 import UltimosEventosTable from './components/UltimosEventosTable';
+import KpiUsersModal from './components/KpiUsersModal';
+import UserEventsModal from './components/UserEventsModal';
+import RouteEventsModal from './components/RouteEventsModal';
+import type { TopUsuario, TopRuta } from '../../../../types/auditoria';
+
 import { useAuditoriaStats } from './hooks/useAuditoriaStats';
 
 const AuditoriaIndicadores: React.FC = () => {
+  const [kpiModalTipo, setKpiModalTipo] = useState<'denegados' | 'fallos_auth' | null>(null);
+  const [selectedUser, setSelectedUser] = useState<TopUsuario | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<TopRuta | null>(null);
+
   const { 
     estadisticas, 
     setEstadisticas,
@@ -28,8 +37,6 @@ const AuditoriaIndicadores: React.FC = () => {
     setFechaHasta,
     recargar
   } = useAuditoriaStats();
-
-
 
   return (
     <div className="space-y-6">
@@ -71,7 +78,11 @@ const AuditoriaIndicadores: React.FC = () => {
       ) : estadisticas ? (
         <>
           {/* Fila 1: KPI Cards */}
-          <KpiCards stats={estadisticas} />
+          <KpiCards 
+            stats={estadisticas} 
+            onClickDenegados={() => setKpiModalTipo('denegados')}
+            onClickFallosAuth={() => setKpiModalTipo('fallos_auth')}
+          />
 
           {/* Fila 2: Gráficas Principales */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -79,20 +90,51 @@ const AuditoriaIndicadores: React.FC = () => {
             <TiposFallos datos={estadisticas.tipos_fallos} />
           </div>
 
-          {/* Fila 3: Gráfica de Tiempo (ancho completo o doble columna) */}
-          <div className="grid grid-cols-1 gap-6 mb-6">
+          {/* Fila 3: Actividad en el Tiempo */}
+          <div className="mb-6">
             <ActividadEnTiempo datos={estadisticas.por_dia} />
           </div>
+
           {/* Fila 4: Tablas de Top */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <TopUsuariosTable datos={estadisticas.top_usuarios || []} />
-            <TopRutasTable datos={estadisticas.top_rutas || []} />
+            <TopUsuariosTable 
+              datos={estadisticas.top_usuarios || []} 
+              onUserClick={setSelectedUser}
+            />
+            <TopRutasTable 
+              datos={estadisticas.top_rutas || []} 
+              onRouteClick={setSelectedRoute}
+            />
           </div>
 
           {/* Fila 5: Últimos Eventos */}
           <div className="mt-6 mb-12">
             <UltimosEventosTable datos={ultimosEventos} isLoading={isLoading} />
           </div>
+
+          <KpiUsersModal 
+            isOpen={!!kpiModalTipo} 
+            onClose={() => setKpiModalTipo(null)} 
+            tipo={kpiModalTipo}
+            fechaDesde={fechaDesde}
+            fechaHasta={fechaHasta}
+          />
+
+          <UserEventsModal
+            isOpen={!!selectedUser}
+            onClose={() => setSelectedUser(null)}
+            usuario={selectedUser}
+            fechaDesde={fechaDesde}
+            fechaHasta={fechaHasta}
+          />
+
+          <RouteEventsModal
+            isOpen={!!selectedRoute}
+            onClose={() => setSelectedRoute(null)}
+            rutaSeleccionada={selectedRoute}
+            fechaDesde={fechaDesde}
+            fechaHasta={fechaHasta}
+          />
         </>
       ) : null}
     </div>

@@ -196,7 +196,9 @@ class ServicioAuth:
             return jwt.decode(
                 token, config.jwt_secret_key, algorithms=[config.algorithm]
             )
-        except Exception:
+        except Exception as e:
+            import logging
+            logging.error(f"Error decodificando token: {e}")
             return None
 
     @staticmethod

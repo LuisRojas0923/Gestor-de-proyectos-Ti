@@ -174,7 +174,10 @@ export const useExpenseSubmission = ({
             };
 
             logMarina(`🚀 [API] Enviando reporte como ${estado}`);
-            const response = await axios.post(`${API_BASE_URL}/viaticos/enviar`, payload);
+            const token = localStorage.getItem('token');
+            const response = await axios.post(`${API_BASE_URL}/viaticos/enviar`, payload, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             const nuevoId = (response.data as any)?.reporte_id || response.data;
 
             if (nuevoId && typeof nuevoId === 'string') {
@@ -213,7 +216,10 @@ export const useExpenseSubmission = ({
         if (!activeReporteId) return;
         setIsDeletingReport(true);
         try {
-            await axios.delete(`${API_BASE_URL}/viaticos/reporte/${activeReporteId}`);
+            const token = localStorage.getItem('token');
+            await axios.delete(`${API_BASE_URL}/viaticos/reporte/${activeReporteId}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             addNotification('success', 'Reporte eliminado permanentemente.');
             onBack();
         } catch (err) {

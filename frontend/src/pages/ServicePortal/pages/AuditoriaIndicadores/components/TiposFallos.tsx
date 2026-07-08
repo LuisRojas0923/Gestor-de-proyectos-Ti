@@ -10,12 +10,50 @@ interface TiposFallosProps {
 // Colores según el tipo de fallo
 const getFalloColor = (tipo: string) => {
   const res = tipo.toLowerCase();
-  if (res === 'autenticación') return '#0f766e'; // Teal 700
-  if (res === 'permiso') return '#0891b2'; // Cyan 600
-  if (res === 'validación') return '#0284c7'; // Sky 600
-  if (res === 'sistema') return '#4f46e5'; // Indigo 600
-  if (res === 'negocio') return '#7c3aed'; // Violet 600
-  return 'var(--color-border)'; // Default
+  // Paleta de tonos fríos (azules, morados, índigos y un rosa suave) que combinan perfecto con el "deep navy"
+  if (res === 'autenticación') return '#6366f1'; // Indigo 500
+  if (res === 'permiso') return '#e11d48'; // Rose 600 (Rojo/Rosa oscuro que combina con azul)
+  if (res === 'validación') return '#0ea5e9'; // Sky 500
+  if (res === 'sistema') return '#3b82f6'; // Blue 500
+  if (res === 'negocio') return '#8b5cf6'; // Violet 500
+  return 'var(--color-primary-light, #93aed9)';
+};
+
+// Tooltip personalizado para mostrar la especificación detallada de los fallos
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const detalles = data.detalles || {};
+    const keys = Object.keys(detalles);
+    
+    return (
+      <div className="p-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-lg max-w-[280px]">
+        <Text as="p" color="inherit" className="font-semibold text-sm text-[var(--color-text-primary)] mb-1">{data.tipo}</Text>
+        <Text as="p" color="inherit" className="text-xs text-[var(--color-text-secondary)] mb-2">
+          Total fallos: <Text as="span" color="inherit" className="font-semibold text-[var(--color-text-primary)]">{data.total}</Text>
+        </Text>
+        
+        {keys.length > 0 ? (
+          <div className="border-t border-[var(--color-border)] pt-2 space-y-1.5">
+            <Text as="p" color="inherit" className="text-[9px] font-bold text-[var(--color-primary)] uppercase tracking-wider mb-1">
+              Especificación del fallo:
+            </Text>
+            {keys.map((key) => (
+              <div key={key} className="flex justify-between items-start gap-3 text-xs">
+                <Text as="span" color="inherit" className="text-[var(--color-text-secondary)] leading-tight text-[11px]">{key}</Text>
+                <Text as="span" color="inherit" className="font-semibold text-[var(--color-text-primary)] flex-shrink-0 bg-[var(--color-surface-variant)] px-1.5 py-0.5 rounded text-[10px]">
+                  {detalles[key]}
+                </Text>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Text as="p" color="inherit" className="text-[10px] text-[var(--color-text-secondary)] italic">Sin desglose disponible</Text>
+        )}
+      </div>
+    );
+  }
+  return null;
 };
 
 const TiposFallos: React.FC<TiposFallosProps> = ({ datos }) => {
@@ -35,9 +73,9 @@ const TiposFallos: React.FC<TiposFallosProps> = ({ datos }) => {
            </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" opacity={0.5} />
-              <XAxis type="number" stroke="var(--color-text-secondary)" fontSize={12} />
+              <XAxis type="number" stroke="var(--color-text-secondary)" fontSize={12} allowDecimals={false} />
               <YAxis 
                 dataKey="tipo" 
                 type="category" 
@@ -46,11 +84,7 @@ const TiposFallos: React.FC<TiposFallosProps> = ({ datos }) => {
                 width={100}
                 tickFormatter={(val) => val.charAt(0).toUpperCase() + val.slice(1)}
               />
-              <Tooltip 
-                cursor={{ fill: 'var(--color-surface-variant)', opacity: 0.4 }}
-                contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
-                itemStyle={{ textTransform: 'capitalize', color: 'var(--color-text-primary)' }}
-              />
+              <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="total" radius={[0, 4, 4, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={getFalloColor(entry.tipo)} />
