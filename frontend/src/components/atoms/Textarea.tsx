@@ -15,7 +15,9 @@ interface TextareaProps {
     rows?: number;
     maxLength?: number;
     className?: string;
+    textareaClassName?: string;
     name?: string;
+    'aria-label'?: string;
     onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
     onFocus?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
     onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
@@ -36,7 +38,9 @@ const Textarea: React.FC<TextareaProps> = ({
     rows = 3,
     maxLength,
     className = '',
+    textareaClassName = '',
     name,
+    'aria-label': ariaLabel,
     onChange,
     onFocus,
     onBlur,
@@ -72,6 +76,7 @@ const Textarea: React.FC<TextareaProps> = ({
                 defaultValue={defaultValue}
                 disabled={disabled}
                 required={required}
+                aria-label={ariaLabel}
                 rows={rows}
                 maxLength={maxLength}
                 name={name}
@@ -79,7 +84,7 @@ const Textarea: React.FC<TextareaProps> = ({
                 onFocus={onFocus}
                 onBlur={onBlur}
                 onKeyDown={onKeyDown}
-                className={`${baseClasses} ${stateClasses} ${backgroundClasses} px-4 py-2 text-[11px]`}
+                className={`${baseClasses} ${stateClasses} ${backgroundClasses} px-4 py-2 text-[11px] ${textareaClassName}`}
             />
 
             {error && errorMessage && (

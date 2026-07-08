@@ -92,7 +92,7 @@ const PlanificadorSemanalView: React.FC = () => {
   const [diasDestino, setDiasDestino] = useState<Set<number>>(new Set(borradorInicial?.diasDestino ?? [1, 2, 3, 4, 5]));
   const [plantillaEntrada, setPlantillaEntrada] = useState(borradorInicial?.plantillaEntrada ?? '07:30');
   const [plantillaSalida, setPlantillaSalida] = useState(borradorInicial?.plantillaSalida ?? '17:00');
-  const [plantillaAlmuerzo, setPlantillaAlmuerzo] = useState(borradorInicial?.plantillaAlmuerzo ?? 60);
+  const [plantillaAlmuerzo, setPlantillaAlmuerzo] = useState(borradorInicial?.plantillaAlmuerzo ?? 30);
   const [novedadMasiva, setNovedadMasiva] = useState(borradorInicial?.novedadMasiva ?? '');
   const [observacionMasiva, setObservacionMasiva] = useState(borradorInicial?.observacionMasiva ?? '');
 

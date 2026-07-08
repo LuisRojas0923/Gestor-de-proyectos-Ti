@@ -21,7 +21,9 @@ interface InputProps {
   iconPosition?: 'left' | 'right';
   size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
+  inputClassName?: string;
   name?: string;
+  'aria-label'?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -57,7 +59,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   iconPosition = 'left',
   size = 'md',
   className = '',
+  inputClassName = '',
   name,
+  'aria-label': ariaLabel,
   onChange,
   onFocus,
   onBlur,
@@ -158,6 +162,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           defaultValue={defaultValue}
           disabled={disabled}
           required={required}
+          aria-label={ariaLabel}
           name={name}
           onChange={onChange}
           onFocus={onFocus}
@@ -172,7 +177,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           autoFocus={autoFocus}
           onPaste={onPaste}
           readOnly={readOnly}
-          className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]} ${className}`}
+          className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${backgroundClasses} ${iconPaddingClasses[size]} ${className} ${inputClassName}`}
           style={style}
         />
 

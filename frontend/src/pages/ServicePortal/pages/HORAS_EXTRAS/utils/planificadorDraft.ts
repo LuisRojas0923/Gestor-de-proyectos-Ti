@@ -36,7 +36,7 @@ export const crearBorradorPlanificadorBase = (): PlanificadorDraft => ({
   diasDestino: [1, 2, 3, 4, 5],
   plantillaEntrada: '07:30',
   plantillaSalida: '17:00',
-  plantillaAlmuerzo: 60,
+  plantillaAlmuerzo: 30,
   novedadMasiva: '',
   observacionMasiva: '',
   preCalculo: null,

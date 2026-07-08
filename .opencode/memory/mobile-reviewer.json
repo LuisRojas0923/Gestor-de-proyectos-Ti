@@ -33,10 +33,65 @@
         "medium": 2,
         "low": 2
       }
+    },
+    {
+      "date": "2026-07-06",
+      "scope": "geoface-fase1a1-estado-biometrico",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 1,
+        "medium": 2,
+        "low": 1
+      }
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "geoface-fase1a2-zonas-oficiales",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 1,
+        "medium": 2,
+        "low": 1
+      }
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "geoface-fase1a3-evidencias-autenticadas",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 1,
+        "medium": 3,
+        "low": 1
+      }
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "geoface-fase1a5-build-movil",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 1,
+        "medium": 2,
+        "low": 1
+      }
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "geoface-fase1a6-docs-legacy",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "critical": 0,
+        "high": 0,
+        "medium": 3,
+        "low": 1
+      }
     }
   ],
   "stats": {
-    "total_reviews": 2,
-    "last_review": "2026-07-03"
+    "total_reviews": 7,
+    "last_review": "2026-07-07"
   }
 }

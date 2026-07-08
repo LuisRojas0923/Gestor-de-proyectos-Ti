@@ -1,48 +1,86 @@
 {
-  "subagent": "security-rbac-reviewer",
-  "description": "Read-only security/RBAC reviewer. Enforces auth, schemas, mass-assignment safety, secrets, and infra consistency.",
-  "capabilities": {
-    "review_auth": "Verify all endpoints have Depends(obtener_usuario_actual_db) or Depends(requerir_modulo(...))",
-    "review_schemas": "Reject datos: dict in Pydantic/SQLAlchemy; enforce Field(pattern) on PK str fields",
-    "review_mass_assignment": "Enforce model_dump(exclude_unset=True) on PUT/PATCH",
-    "review_error_handling": "Reject str(e) leakage in HTTPException 500",
-    "review_secrets": "Verify default secrets in config.py have startup guards",
-    "review_logging": "Reject print() in route handlers; enforce PII redaction",
-    "review_docker_infra": "Verify Docker/env/config consistency",
-    "review_rbac_manifest": "Verify backend_v2/app/core/rbac_manifest.py covers new modules"
-  },
-  "command_patterns": {
-    "review <files>": "Review security/RBAC surface for files or diffs",
-    "checklist <scope>": "Return the relevant subset of the security checklist"
-  },
   "review_history": [
     {
-      "date": "2026-07-03",
-      "scope": "biometria-engine",
-      "outcome": "blocked",
-      "findings_by_severity": {
-        "BLOQUEANTE": 1,
+      "date": "2026-07-07",
+      "scope": "Fase 1A.2 GeoFace zonas oficiales",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
         "ALTO": 0,
-        "MEDIO": 1,
-        "BAJO": 2
+        "MEDIO": 2,
+        "BAJO": 1
       },
-      "cwe_references": ["CWE-200", "CWE-359", "CWE-284"]
+      "cwe_references": ["CWE-20", "CWE-693", "CWE-840"],
+      "summary": "Bloqueo previo por geocerca solo en cliente resuelto; backend deriva zona oficial por Haversine y rechaza coordenadas fuera de zonas existentes. Riesgos residuales: fail-open sin zonas configuradas, falta de límites en ZonaCreate y cobertura de integración pendiente."
     },
     {
-      "date": "2026-07-03",
-      "scope": "mobile-geoface-backend-url",
+      "date": "2026-07-07",
+      "scope": "Fase 1A.3 GeoFace evidencias autenticadas",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 1,
+        "ALTO": 1,
+        "MEDIO": 3,
+        "BAJO": 0
+      },
+      "cwe_references": ["CWE-200", "CWE-522", "CWE-939", "CWE-922", "CWE-359", "CWE-754", "CWE-532", "CWE-862", "CWE-863"],
+      "summary": "Descarga móvil ya usa Authorization Bearer sin token en query params, y backend mantiene owner/admin + RBAC biometría. Bloquea por posible envío de JWT a URLs absolutas externas en evidenciaUrl y cache local de evidencias biométricas sin limpieza/TTL."
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "Fase 1A.5 GeoFace build movil",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 1,
+        "ALTO": 1,
+        "MEDIO": 4,
+        "BAJO": 0
+      },
+      "cwe_references": ["CWE-319", "CWE-522", "CWE-359", "CWE-200", "CWE-532", "CWE-922", "CWE-494"],
+      "summary": "RECORD_AUDIO fue eliminado y EAS separa preview APK interno de production app-bundle, pero producción queda bloqueada por cleartext HTTP habilitado/default, exponiendo JWT, fotos biométricas y GPS si no hay HTTPS/VPN obligatorio. Riesgos adicionales: APK sideload, logs crudos y almacenamiento local de biométricos/GPS."
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "Fase 1B Horas Extras standalone readiness",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 2,
+        "ALTO": 2,
+        "MEDIO": 3,
+        "BAJO": 1
+      },
+      "cwe_references": ["CWE-862", "CWE-306", "CWE-200", "CWE-345", "CWE-639", "CWE-20", "CWE-532", "CWE-863", "CWE-522"],
+      "summary": "NO-GO para producción standalone HE: endpoint planificador/empleados-erp sin auth/RBAC expone PII ERP; estado-global de bolsa carece de auth y tiene mismatch de prefijo; auditoría de confirmación usa usuario_confirma controlado por cliente. RBAC manifest existe y no hay dependencia directa de GeoFace."
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "Fase 1B Horas Extras standalone rereview after auth/audit fixes",
       "outcome": "approved_with_risks",
-      "findings_by_severity": {
+      "finding_count_by_severity": {
         "BLOQUEANTE": 0,
         "ALTO": 2,
         "MEDIO": 3,
-        "BAJO": 2
+        "BAJO": 1
       },
-      "cwe_references": ["CWE-319", "CWE-522", "CWE-200", "CWE-598", "CWE-770", "CWE-20", "CWE-284"]
+      "cwe_references": ["CWE-345", "CWE-639", "CWE-863", "CWE-20", "CWE-532", "CWE-200", "CWE-522"],
+      "summary": "Auth blockers for ERP employee selector and bolsa estado-global resolved; direct pre-liquidacion confirmation now derives audit user from token. GO with risks for controlled standalone pilot; NO-GO for broad production due planner bulk confirmation audit spoofing, coarse RBAC, and remaining HE config route mismatch."
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "Fase 1B Horas Extras final quick check after additional fixes",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 1,
+        "MEDIO": 2,
+        "BAJO": 1
+      },
+      "cwe_references": ["CWE-863", "CWE-20", "CWE-532", "CWE-200", "CWE-522"],
+      "summary": "Additional fixes close planner confirmation audit spoofing and parametros duplicated-prefix/RBAC test gap. Controlled standalone pilot is GO for a small trusted HE cohort. Broad production remains NO-GO due coarse HE RBAC/least-privilege gap; no remaining BLOQUEANTE issue in reviewed delta."
     }
   ],
   "stats": {
-    "total_reviews": 2,
-    "last_review": "2026-07-03 mobile-geoface-backend-url approved_with_risks"
+    "total_operations": 6,
+    "last_operation": "2026-07-07"
   }
 }

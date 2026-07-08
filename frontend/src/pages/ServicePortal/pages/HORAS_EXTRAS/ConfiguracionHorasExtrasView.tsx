@@ -99,78 +99,83 @@ const ConfiguracionHorasExtrasView: React.FC = () => {
   const grupos = ordenGrupos.filter((grupo) => parametrosPorGrupo[grupo]?.length);
 
   return (
-    <MaterialCard className="m-3 overflow-visible border-[var(--color-primary)]/20 p-0 shadow-md shadow-[var(--color-primary)]/5 md:m-6">
-      <MaterialCard elevation={0} className="rounded-t-[1.5rem] border-b border-[var(--color-border)] bg-gradient-to-br from-[var(--color-primary)]/10 via-[var(--color-surface)] to-[var(--color-surface-variant)] p-4 shadow-none md:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-3">
+    <MaterialCard className="m-2 overflow-visible border-[var(--color-primary)]/20 p-0 shadow-md shadow-[var(--color-primary)]/5 md:m-4">
+      <MaterialCard elevation={0} className="rounded-t-[1.5rem] border-b border-[var(--color-border)] bg-gradient-to-br from-[var(--color-primary)]/10 via-[var(--color-surface)] to-[var(--color-surface-variant)] p-3 shadow-none md:p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-2.5">
             <Button
               variant="secondary"
               onClick={() => navigate('/service-portal/horas-extras')}
-              className="h-10 w-10 shrink-0 !rounded-full !p-0 shadow-sm"
+              className="h-10 w-10 shrink-0 !rounded-full !p-0 shadow-sm md:h-9 md:w-9"
               aria-label="Volver al planificador"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
               <Badge size="sm" variant="info">Reglas vigentes</Badge>
-              <Title level={2} className="!m-0 mt-2 !text-2xl leading-tight">Configuración de Horas Extras</Title>
-              <Text className="max-w-3xl text-sm text-[var(--color-text-secondary)]">
+              <Title level={2} className="!m-0 mt-1 !text-xl leading-tight md:!text-2xl">Configuración de Horas Extras</Title>
+              <Text className="max-w-3xl text-xs text-[var(--color-text-secondary)] md:text-sm">
                 Edita las reglas usadas por el cálculo semanal: jornada ordinaria, divisor mensual,
                 jornada nocturna y topes legales.
               </Text>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={cargar} disabled={cargando || guardando}>
-              <RefreshCw className="mr-2 h-4 w-4" />Recargar
+            <Button size="sm" variant="secondary" onClick={cargar} disabled={cargando || guardando} className="min-h-10 md:min-h-0">
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />Recargar
             </Button>
-            <Button onClick={guardar} disabled={cargando || guardando || parametros.length === 0}>
-              <Save className="mr-2 h-4 w-4" />{guardando ? 'Guardando...' : 'Guardar reglas'}
+            <Button size="sm" onClick={guardar} disabled={cargando || guardando || parametros.length === 0} className="min-h-10 md:min-h-0">
+              <Save className="mr-1.5 h-3.5 w-3.5" />{guardando ? 'Guardando...' : 'Guardar reglas'}
             </Button>
           </div>
         </div>
       </MaterialCard>
 
-      <div className="grid gap-4 p-4 md:p-5 xl:grid-cols-2">
+      <div className="grid gap-3 p-3 md:p-4 xl:grid-cols-2">
         {cargando ? (
-          <MaterialCard className="p-5 xl:col-span-2">
+          <MaterialCard className="p-4 xl:col-span-2">
             <Text className="text-[var(--color-text-secondary)]">Cargando reglas de cálculo...</Text>
           </MaterialCard>
         ) : grupos.map((grupo) => (
-          <MaterialCard key={grupo} elevation={0} className="border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
-            <div className="mb-4 flex items-center justify-between gap-3">
+          <MaterialCard key={grupo} elevation={0} className="border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-sm">
+            <div className="mb-2.5 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Settings2 className="h-4 w-4 text-[var(--color-primary)]" />
-                <Title level={3} className="!m-0 !text-lg">{grupo}</Title>
+                <Settings2 className="h-3.5 w-3.5 text-[var(--color-primary)]" />
+                <Title level={3} className="!m-0 !text-base">{grupo}</Title>
               </div>
               <Badge size="xs" variant="default">{parametrosPorGrupo[grupo].length} reglas</Badge>
             </div>
 
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               {parametrosPorGrupo[grupo].map((parametro) => (
-                <MaterialCard key={parametro.codigo} elevation={0} className="border border-[var(--color-border)] bg-[var(--color-surface-variant)]/40 p-3 shadow-none">
-                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px] lg:items-start">
+                <MaterialCard key={parametro.codigo} elevation={0} className="border border-[var(--color-border)] bg-[var(--color-surface-variant)]/40 p-2.5 shadow-none">
+                  <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_150px] lg:items-start xl:grid-cols-[minmax(0,1fr)_150px_minmax(160px,0.75fr)]">
                     <div>
-                      <Text className="font-semibold text-[var(--color-text)]">{parametro.nombre}</Text>
+                      <Text className="text-sm font-semibold leading-snug text-[var(--color-text)]">{parametro.nombre}</Text>
                       {parametro.norma_soporte && (
-                        <Text className="mt-1 text-xs text-[var(--color-text-secondary)]">Soporte: {parametro.norma_soporte}</Text>
+                        <Text className="mt-0.5 text-[11px] leading-tight text-[var(--color-text-secondary)]">Soporte: {parametro.norma_soporte}</Text>
                       )}
                     </div>
                     <Input
                       type={parametro.tipo_dato === 'NUMERICO' ? 'number' : parametro.tipo_dato === 'FECHA' ? 'date' : parametro.tipo_dato === 'HORA' ? 'time' : 'text'}
+                      size="sm"
+                      inputClassName="md:h-8 md:px-2 md:py-1 md:text-[11px]"
+                      aria-label={`Valor de ${parametro.nombre}`}
                       value={parametro.editado}
                       onChange={(event) => actualizarCampo(parametro.codigo, { editado: event.target.value })}
                       disabled={!parametro.editable || guardando}
                     />
+                    <Textarea
+                      value={parametro.observacionEditada}
+                      onChange={(event) => actualizarCampo(parametro.codigo, { observacionEditada: event.target.value })}
+                      placeholder="Observación del cambio"
+                      aria-label={`Observación del cambio para ${parametro.nombre}`}
+                      rows={1}
+                      className="lg:col-span-2 xl:col-span-1"
+                      textareaClassName="min-h-10 py-1 leading-tight md:min-h-8"
+                      disabled={guardando}
+                    />
                   </div>
-                  <Textarea
-                    value={parametro.observacionEditada}
-                    onChange={(event) => actualizarCampo(parametro.codigo, { observacionEditada: event.target.value })}
-                    placeholder="Observación del cambio"
-                    rows={2}
-                    className="mt-3"
-                    disabled={guardando}
-                  />
                 </MaterialCard>
               ))}
             </div>

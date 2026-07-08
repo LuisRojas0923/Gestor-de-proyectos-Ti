@@ -34,10 +34,58 @@
         "low": 3
       },
       "test_coverage_observations": "La cobertura agregada valida el round-trip EmpleadosActivosView -> sessionStorage -> PlanificadorSemanalView -> guardar con cedula 456, y pruebas directas de guardar/leer e incompleto JSON para planificadorDraft. Vitest no ejecutado por permisos del subagente; requiere evidencia del implementador."
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "geoface-fase1a6-docs-legacy",
+      "outcome": "approved_with_risks",
+      "findings": {
+        "critical": 0,
+        "high": 0,
+        "medium": 2,
+        "low": 1
+      },
+      "test_coverage_observations": "Scope documental sin nueva logica backend ni schema. Implementacion reporta npm --prefix movil run typecheck PASS. Este reviewer ejecuto pytest --collect-only de 4 suites biometria: 26 tests collected, sin ejecucion real. Persisten pruebas productivas pendientes: backend biometria completo, owner/admin de evidencias, 401 sin token y APK fisico."
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "horas-extras-standalone-readiness-fase1b",
+      "outcome": "blocked",
+      "findings": {
+        "critical": 2,
+        "high": 2,
+        "medium": 2,
+        "low": 1
+      },
+      "test_coverage_observations": "HE backend tiene cobertura amplia: 13 archivos y 194 tests collected. El orquestador reporta pases aislados/secuenciales, pero la suite monolitica HE agoto timeout y hubo interferencia previa en s2 bajo ejecucion combinada/concurrente. Frontend service reportado 33 tests PASS y build PASS; faltan pruebas/evidencia trazable de flujo UI completo y concurrencia real de bolsa/confirmacion."
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "horas-extras-fase1b-rereview-after-fixes",
+      "outcome": "blocked",
+      "findings": {
+        "critical": 1,
+        "high": 2,
+        "medium": 2,
+        "low": 0
+      },
+      "test_coverage_observations": "Catalogo HE S0-S9/parametros y evidencia build quedaron resueltos. Este reviewer ejecuto collect-only de S2/S4/S6/S7: 63 tests collected. Persisten bloqueos: ESQUEMA_BASE_DATOS stale, suite HE monolitica sin pase estable ni aceptacion formal de matriz secuencial, y ausencia de UI/component tests para readiness web."
+    },
+    {
+      "date": "2026-07-07",
+      "scope": "horas-extras-hardening-followup-post-0dffebe",
+      "outcome": "approved_with_risks",
+      "findings": {
+        "critical": 0,
+        "high": 0,
+        "medium": 3,
+        "low": 0
+      },
+      "test_coverage_observations": "El bloqueo documental de ESQUEMA_BASE_DATOS para tablas HE queda resuelto y las brechas solicitadas quedan cubiertas: HEFD/HEFN numericos, pre-vigencia 44h/divisor 220, CRC32 de OT no numerica y distribucion numerica de costo OT. Este reviewer ejecuto collect-only de S1+S8: 35 tests collected; el orquestador reporto S1 30 passed y S8 5 passed. Persisten como riesgos fuera del delta: suite HE monolitica o aceptacion formal de matriz secuencial, UI/component tests HE, concurrencia real y decision/test RN/RF."
     }
   ],
   "stats": {
-    "total_reviews": 2,
-    "last_review": "2026-06-19"
+    "total_reviews": 6,
+    "last_review": "2026-07-07"
   }
 }

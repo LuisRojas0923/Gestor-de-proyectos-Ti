@@ -13,7 +13,7 @@ export const DIAS_SEMANA_INICIAL: PlanDiaIn[] = DIAS_SEMANA.map((d) => ({
   dia_semana: d,
   hora_entrada: d <= 5 ? '07:30' : null,
   hora_salida: d <= 5 ? '17:00' : null,
-  minutos_almuerzo: d <= 5 ? 60 : 0,
+  minutos_almuerzo: d <= 5 ? 30 : 0,
   novedades: [],
   asignaciones_ot: [],
 }));
