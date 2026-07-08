@@ -34,15 +34,49 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASS:-password_segura_refridcol}@db:${DB_PORT:-5432}/${DB_NAME:-project_manager_pruebas3}
       - TZ=America/Bogota
       - REDIS_URL=redis://redis:6379/0
+      - BIOMETRIA_ENGINE_URL=http://biometria-engine:8010
+      - BIOMETRIA_ENGINE_TOKEN=${BIOMETRIA_ENGINE_TOKEN:?BIOMETRIA_ENGINE_TOKEN requerido para biometria-engine}
+      - BIOMETRIA_ENGINE_TIMEOUT_SECONDS=${BIOMETRIA_ENGINE_TIMEOUT_SECONDS:-30}
     volumes:
       - ./GestionTi_SoporteFiles_Pruebas3:/app/storage/attachments
-      - deepface_weights_pruebas3:/root/.deepface
+      - ./GestionTi_SoporteFiles_Pruebas3/biometria/perfiles:/app/storage/perfiles
+      - ./GestionTi_SoporteFiles_Pruebas3/biometria/asistencias:/app/storage/asistencias
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      biometria-engine:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
     networks:
       - app-network-pruebas3
+      - biometria-internal-pruebas3
+
+  biometria-engine:
+    build:
+      context: ./biometria_engine
+      dockerfile: Dockerfile
+    container_name: gestor-de-proyectos-ti-biometria-engine-pruebas3
+    restart: always
+    expose:
+      - "8010"
+    environment:
+      - ENVIRONMENT=pruebas3
+      - DEEPFACE_MODEL=${DEEPFACE_MODEL:-Facenet}
+      - DEEPFACE_DETECTOR=${DEEPFACE_DETECTOR:-opencv}
+      - ANTI_SPOOFING=${ANTI_SPOOFING:-1}
+      - BIOMETRIA_ENGINE_TOKEN=${BIOMETRIA_ENGINE_TOKEN:?BIOMETRIA_ENGINE_TOKEN requerido para biometria-engine}
+    volumes:
+      - deepface_weights_pruebas3:/root/.deepface
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8010/health', timeout=5).read()\""]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - biometria-internal-pruebas3
 
   frontend:
     build:
@@ -81,6 +115,9 @@ services:
 networks:
   app-network-pruebas3:
     driver: bridge
+  biometria-internal-pruebas3:
+    driver: bridge
+    internal: true
 
 volumes:
   postgres_data_pruebas3:

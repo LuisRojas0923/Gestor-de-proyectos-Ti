@@ -30,16 +30,50 @@ services:
     environment:
       - TZ=America/Bogota
       - REDIS_URL=redis://redis:6379/0
+      - BIOMETRIA_ENGINE_URL=http://biometria-engine:8010
+      - BIOMETRIA_ENGINE_TOKEN=${BIOMETRIA_ENGINE_TOKEN:?BIOMETRIA_ENGINE_TOKEN requerido para biometria-engine}
+      - BIOMETRIA_ENGINE_TIMEOUT_SECONDS=${BIOMETRIA_ENGINE_TIMEOUT_SECONDS:-30}
     volumes:
       - ./GestionTi_SoporteFiles:/app/storage/attachments
+      - ./GestionTi_SoporteFiles/biometria/perfiles:/app/storage/perfiles
+      - ./GestionTi_SoporteFiles/biometria/asistencias:/app/storage/asistencias
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      biometria-engine:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
     networks:
       - app-network
+      - biometria-internal
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  biometria-engine:
+    build:
+      context: ./biometria_engine
+      dockerfile: Dockerfile
+    restart: always
+    expose:
+      - "8010"
+    environment:
+      - ENVIRONMENT=production
+      - DEEPFACE_MODEL=${DEEPFACE_MODEL:-Facenet}
+      - DEEPFACE_DETECTOR=${DEEPFACE_DETECTOR:-opencv}
+      - ANTI_SPOOFING=${ANTI_SPOOFING:-1}
+      - BIOMETRIA_ENGINE_TOKEN=${BIOMETRIA_ENGINE_TOKEN:?BIOMETRIA_ENGINE_TOKEN requerido para biometria-engine}
+    volumes:
+      - deepface_weights:/root/.deepface
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8010/health', timeout=5).read()\""]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - biometria-internal
 
   frontend:
     build:
@@ -77,6 +111,10 @@ services:
 networks:
   app-network:
     driver: bridge
+  biometria-internal:
+    driver: bridge
+    internal: true
 
 volumes:
   postgres_data:
+  deepface_weights:
