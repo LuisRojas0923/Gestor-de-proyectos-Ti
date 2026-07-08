@@ -25,9 +25,13 @@
   --color-background: var(--dust-grey);
   --color-surface: var(--white);
   --color-surface-variant: var(--lavender);
+  --color-surface-secondary: #f3f4f6;
   --color-text-primary: #000000;
   --color-text-secondary: #374151;
   --color-border: #a1a1aa;
+  --color-error: #dc2626;
+  --color-success: #059669;
+  --color-warning: #d97706;
   --text-primary: var(--deep-navy);
 
   /* Gris un poco más oscuro que d0d0d0 para contraste */
@@ -56,6 +60,7 @@
   --color-surface: #121826;
   /* Navy Oscuro */
   --color-surface-variant: #1e293b;
+  --color-surface-secondary: #1e293b;
 
   /* Variables de Scrollbar (Dark) */
   --scrollbar-thumb: #0a0e17;
@@ -63,6 +68,9 @@
   --color-text-primary: var(--white);
   --color-text-secondary: #f3f4f6;
   --color-border: #475569;
+  --color-error: #f87171;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
   --text-primary: var(--white);
 
   --toast-bg: var(--color-surface);
