@@ -25,7 +25,7 @@ from .api.kpis import router as kpis_router
 from .api.alertas import router as alertas_router
 from .api.tickets import router as tickets_router
 from .api.ia import router as ia_router
-from .api.erp import router as erp_router
+from .api.erp.router import router as erp_router
 from .api.panel_control import router as panel_control_router
 from .api.etapas_router import router as etapas_router
 from .api.solid.router import router as solid_router

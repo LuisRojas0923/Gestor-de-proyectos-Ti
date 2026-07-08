@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Plus, Edit2 } from 'lucide-react';
-import { Button, Input, Subtitle, Text } from '../../../../../components/atoms';
+import { Button, Input, Subtitle, Text, Badge } from '../../../../../components/atoms';
 import { NominaTable, ColumnDef } from '../../../../../components/organisms/NominaTable';
 import type { AreaRP } from '../../RequisicionPersonal/types/requisicion.types';
 
