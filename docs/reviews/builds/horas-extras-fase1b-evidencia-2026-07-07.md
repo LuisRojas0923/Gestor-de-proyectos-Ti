@@ -92,3 +92,19 @@ Las suites HE no afectadas por los cambios ya se ejecutaron aisladas/secuenciale
 - `python -m pytest testing/backend/test_horas_extras_s6.py -q`: 14 passed.
 - `python -m pytest testing/backend/test_horas_extras_parametros_calculo.py testing/backend/test_horas_extras_s6.py -q`: 18 passed.
 - Causa raíz del fallo S6: `test_horas_extras_parametros_calculo.py._cleanup` borraba HED del catálogo sin restaurarlo; S6 dependía de HED para acreditar bolsa. Fix: S6 ahora es autónomo con `_setup_catalogo` que hace upsert de HED/HEN; parametros_calculo hace upsert de HED y factor ARL en lugar de insert directo.
+
+## Hardening motor de calculo HF
+
+- Se corrigio la liquidacion de `HF` para trabajo festivo dentro de jornada ordinaria: ahora puede liquidarse aunque la semana no exceda 42h.
+- En contexto festivo se separa `HF` para la porcion ordinaria y `HEFD`/`HEFN` para la porcion extra.
+- El tope semanal legal se mantiene sobre HE reales; `HF` ordinaria no dispara advertencia de tope semanal aunque sea liquidable.
+- Se hizo estable `test_horas_extras_s2.py` limpiando la configuracion global de bolsa antes del caso que valida bolsa deshabilitada por defecto.
+- `python -m pytest testing/backend/test_horas_extras_s1.py::TestCalculoBasico::test_hora_festiva_ordinaria_hf_liquida_dentro_de_42h testing/backend/test_horas_extras_s1.py::TestCalculoBasico::test_festivo_con_extra_separa_hf_ordinaria_y_hefd_extra testing/backend/test_horas_extras_s5ppp_integracion.py::TestAplicarContextoFestivos::test_festivo_en_lunes_genera_HEFD_jornada_diurna -q`: primero 3 failed, luego 3 passed tras el fix.
+- `python -m pytest testing/backend/test_horas_extras_s1.py::TestCalculoBasico::test_hf_ordinaria_no_dispara_tope_semanal_de_horas_extra -q`: primero 1 failed, luego passed tras ajustar el contador legal de HE.
+- `python -m pytest testing/backend/test_horas_extras_s1.py -q`: 33 passed.
+- `python -m pytest testing/backend/test_horas_extras_s5ppp_integracion.py -q`: 13 passed.
+- `python -m pytest testing/backend/test_horas_extras_s2.py -q`: 18 passed.
+- `python -m pytest testing/backend/test_horas_extras_s8_ot_mano_obra.py -q`: 5 passed.
+- `python -m pytest testing/backend/test_horas_extras_s9_reglas_gh.py -q`: 4 passed.
+- `python -m pytest testing/backend/test_horas_extras_s2.py testing/backend/test_horas_extras_s5ppp_integracion.py testing/backend/test_horas_extras_s8_ot_mano_obra.py testing/backend/test_horas_extras_s9_reglas_gh.py -q`: 40 passed.
+- Riesgo residual aceptado para siguiente iteracion: `total_horas_extras` sigue representando horas liquidadas en detalles, incluyendo `HF`; se recomienda separar metricas de HE reales vs recargos ordinarios antes de produccion amplia.

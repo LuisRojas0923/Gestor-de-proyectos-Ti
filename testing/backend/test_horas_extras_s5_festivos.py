@@ -3,8 +3,8 @@ Tests del Sprint S5' — Festivos nacionales (Ley Emiliani + Calendarific).
 
 Cobertura:
   - Pascua correcta para 2024-2030 (validar contra fechas canónicas)
-  - Total siempre 18 festivos por año
-  - Traslado a lunes cuando festivo cae en domingo (Ley 51/1983)
+  - Total 18 festivos hasta 2025 y 19 desde 2026 por Virgen de Chiquinquira.
+  - Traslado Emiliani al primer lunes igual o posterior para festivos trasladables.
   - listar_festivos con fuente='auto' (lee DB o calcula Emiliani)
   - listar_festivos con fuente='emiliani' (siempre calcula)
   - sincronizar_festivos con Calendarific exitoso persiste 'CALENDARIFIC'
@@ -52,10 +52,13 @@ class TestPascua:
 # ---------------------------------------------------------------------------
 
 class TestFestivosColombia:
-    def test_total_18_por_anio(self):
-        for anio in [2024, 2025, 2026, 2027, 2028, 2029, 2030]:
+    def test_total_18_hasta_2025_y_19_desde_2026(self):
+        for anio in [2024, 2025]:
             f = festivos_colombia(anio)
             assert len(f) == 18, f"Año {anio} debería tener 18 festivos, tiene {len(f)}"
+        for anio in [2026, 2027, 2028, 2029, 2030]:
+            f = festivos_colombia(anio)
+            assert len(f) == 19, f"Año {anio} debería tener 19 festivos, tiene {len(f)}"
 
     def test_anio_nuevo_siempre_fijo(self):
         for anio in [2025, 2026, 2027, 2028]:
@@ -71,22 +74,42 @@ class TestFestivosColombia:
             assert navidad["fecha"] == date(anio, 12, 25)
             assert navidad["trasladado"] is False
 
-    def test_traslado_a_lunes_cuando_cae_en_domingo(self):
+    def test_traslado_a_lunes_igual_o_posterior(self):
         """
-        2025-06-29 (San Pedro y San Pablo) cae en domingo → se traslada
-        al lunes 2025-06-30 (caso real documentado).
+        La Ley Emiliani usa el primer lunes igual o posterior para los
+        festivos trasladables, no solo cuando caen domingo.
         """
-        f = festivos_colombia(2025)
-        san_pedro = next(x for x in f if x["nombre"] == "San Pedro y San Pablo")
-        assert san_pedro["fecha"] == date(2025, 6, 30)
-        assert san_pedro["trasladado"] is True
-
-    def test_no_traslado_si_no_es_domingo(self):
-        """2026-01-06 (Reyes Magos) cae en martes → no se traslada."""
         f = festivos_colombia(2026)
         reyes = next(x for x in f if x["nombre"] == "Día de los Reyes Magos")
-        assert reyes["fecha"] == date(2026, 1, 6)
-        assert reyes["trasladado"] is False
+        san_jose = next(x for x in f if x["nombre"] == "Día de San José")
+        san_pedro = next(x for x in f if x["nombre"] == "San Pedro y San Pablo")
+        assert reyes["fecha"] == date(2026, 1, 12)
+        assert reyes["trasladado"] is True
+        assert san_jose["fecha"] == date(2026, 3, 23)
+        assert san_jose["trasladado"] is True
+        assert san_pedro["fecha"] == date(2026, 6, 29)
+        assert san_pedro["trasladado"] is False
+
+    def test_festivos_relativos_a_pascua_trasladados_a_lunes(self):
+        f = festivos_colombia(2026)
+        ascension = next(x for x in f if x["nombre"] == "Ascensión del Señor")
+        corpus = next(x for x in f if x["nombre"] == "Corpus Christi")
+        sagrado = next(x for x in f if x["nombre"] == "Sagrado Corazón")
+        assert ascension["fecha"] == date(2026, 5, 18)
+        assert corpus["fecha"] == date(2026, 6, 8)
+        assert sagrado["fecha"] == date(2026, 6, 15)
+        assert ascension["trasladado"] is True
+        assert corpus["trasladado"] is True
+        assert sagrado["trasladado"] is True
+
+    def test_virgen_de_chiquinquira_desde_2026(self):
+        f_2025 = festivos_colombia(2025)
+        assert not any(x["nombre"] == "Virgen de Chiquinquirá" for x in f_2025)
+
+        f_2026 = festivos_colombia(2026)
+        chiquinquira = next(x for x in f_2026 if x["nombre"] == "Virgen de Chiquinquirá")
+        assert chiquinquira["fecha"] == date(2026, 7, 13)
+        assert chiquinquira["trasladado"] is True
 
     def test_jueves_y_viernes_santo_coinciden_con_pascua(self):
         """Jueves Santo = Pascua - 3, Viernes Santo = Pascua - 2."""
@@ -128,19 +151,19 @@ async def _cleanup_anio(db_session, anio: int):
 class TestListarFestivos:
     @pytest.mark.asyncio
     async def test_auto_sin_db_retorna_emiliani(self, db_session):
-        anio = 2099  # año sin sincronizar
+        anio = 2034  # año sin sincronizar y sin colisiones de fecha efectiva
         await _cleanup_anio(db_session, anio)
         resultado = await listar_festivos(db_session, anio, fuente="auto")
-        assert len(resultado) == 18
+        assert len(resultado) == 19
         assert all(r["fuente"] == "LEY_EMILIANI" for r in resultado)
 
     @pytest.mark.asyncio
     async def test_emiliani_ignora_db(self, db_session):
         """fuente='emiliani' siempre calcula, aunque haya datos en DB."""
-        anio = 2098
+        anio = 2033
         await _cleanup_anio(db_session, anio)
         resultado = await listar_festivos(db_session, anio, fuente="emiliani")
-        assert len(resultado) == 18
+        assert len(resultado) == 19
         assert all(r["fuente"] == "LEY_EMILIANI" for r in resultado)
 
     @pytest.mark.asyncio
@@ -178,7 +201,7 @@ class TestSincronizarFestivos:
 
     @pytest.mark.asyncio
     async def test_con_calendarific_caido_usa_emiliani(self, db_session):
-        anio = 2095
+        anio = 2032
         await _cleanup_anio(db_session, anio)
         with patch(
             "app.services.novedades_nomina.festivos_service.obtener_festivos_calendarific",
@@ -187,18 +210,18 @@ class TestSincronizarFestivos:
             resultado = await sincronizar_festivos(db_session, anio)
 
         assert resultado["fuente"] == "LEY_EMILIANI"
-        assert resultado["cantidad"] == 18
+        assert resultado["cantidad"] == 19
         assert "API caída" in resultado["calendarific_error"]
 
         en_db = await listar_festivos(db_session, anio, fuente="auto")
-        assert len(en_db) == 18
+        assert len(en_db) == 19
         assert all(r["fuente"] == "LEY_EMILIANI" for r in en_db)
         await _cleanup_anio(db_session, anio)
 
     @pytest.mark.asyncio
     async def test_sincronizacion_borra_datos_previos(self, db_session):
         """Sincronizar dos veces seguidas no duplica registros."""
-        anio = 2094
+        anio = 2031
         await _cleanup_anio(db_session, anio)
         with patch(
             "app.services.novedades_nomina.festivos_service.obtener_festivos_calendarific",
@@ -208,7 +231,7 @@ class TestSincronizarFestivos:
             await sincronizar_festivos(db_session, anio)
 
         en_db = await listar_festivos(db_session, anio, fuente="auto")
-        assert len(en_db) == 18
+        assert len(en_db) == 19
         await _cleanup_anio(db_session, anio)
 
 

@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 CODIGO_HE_FESTIVA_DIURNA = "HEFD"
 CODIGO_HE_FESTIVA_NOCTURNA = "HEFN"
+CODIGO_HORA_FESTIVA = "HF"
 CODIGO_HE_DIURNA = "HED"
 CODIGO_HE_NOCTURNA = "HEN"
 CODIGOS_NOVEDAD_SUPRESION = {"VAC", "LIC", "INC", "AUS"}
@@ -239,8 +240,8 @@ async def _aplicar_contexto_festivos_y_novedades(
     novedad de tipo VAC/LIC/INC/AUS.
 
     Reglas:
-      - Festivo + diurna → HEFD
-      - Festivo + nocturna → HEFN
+      - Festivo + diurna → HF + HEFD
+      - Festivo + nocturna → HF + HEFN
       - Novedad (VAC/LIC/INC/AUS) cubriendo el día → horas_por_dia=0, codigos=[]
         (la novedad manda sobre el festivo: si el lunes es festivo y la persona
          está de VAC ese día, no se devenga HEFD porque no trabajó).
@@ -307,9 +308,12 @@ async def _aplicar_contexto_festivos_y_novedades(
             nuevas_horas.append(0.0)
             nuevos_codigos.append([])
         elif fecha in festivos_set:
-            # Festivo: HEFD/HEFN según jornada
+            # Festivo: HF para la porción ordinaria y HEFD/HEFN para excedentes.
             nuevos_codigos.append(
-                [CODIGO_HE_FESTIVA_NOCTURNA if input_data.es_jornada_nocturna else CODIGO_HE_FESTIVA_DIURNA]
+                [
+                    CODIGO_HORA_FESTIVA,
+                    CODIGO_HE_FESTIVA_NOCTURNA if input_data.es_jornada_nocturna else CODIGO_HE_FESTIVA_DIURNA,
+                ]
             )
             nuevas_horas.append(horas[dia_idx])
         else:

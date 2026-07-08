@@ -1,18 +1,12 @@
 """
 Festivos nacionales de Colombia aplicando la Ley Emiliani (Ley 51 de 1983).
 
-La Ley Emiliani traslada al lunes siguiente los festivos que caen en domingo.
-Los festivos que NO se trasladan son los que caen en lunes (siguen igual),
-los que caen en martes/miércoles/jueves/viernes (siguen igual) y los que
-caen en sábado (siguen igual, no se trasladan).
-
 Reglas:
-  - Si festivo cae en domingo → se mueve al lunes siguiente.
-  - Demás días de semana → se queda en la fecha original.
+  - Festivos trasladables → primer lunes igual o posterior a la fecha base.
+  - Festivos fijos civiles/religiosos → se quedan en la fecha original.
   - Festivos basados en Pascua: Jueves Santo, Viernes Santo, Ascensión,
     Corpus Christi, Sagrado Corazón.
-
-Total: 18 festivos al año.
+  - Desde 2026 se incluye Virgen de Chiquinquirá (Ley 2578 de 2026).
 """
 from datetime import date, timedelta
 from typing import List, Dict
@@ -41,19 +35,15 @@ def pascua(anio: int) -> date:
     return date(anio, mes, dia)
 
 
-def _trasladar_a_lunes(d: date) -> date:
-    """
-    Ley 51/1983 (Ley Emiliani): si el festivo cae en domingo,
-    se traslada al lunes siguiente.
-    """
-    if d.weekday() == 6:  # domingo
-        return d + timedelta(days=1)
-    return d
+def _primer_lunes_igual_o_posterior(d: date) -> date:
+    """Devuelve el primer lunes igual o posterior a la fecha base."""
+    dias_hasta_lunes = (7 - d.weekday()) % 7
+    return d + timedelta(days=dias_hasta_lunes)
 
 
 def _emiliani(d: date) -> date:
     """Alias para claridad en el código de los festivos."""
-    return _trasladar_a_lunes(d)
+    return _primer_lunes_igual_o_posterior(d)
 
 
 def festivos_colombia(anio: int) -> List[Dict]:
@@ -74,10 +64,13 @@ def festivos_colombia(anio: int) -> List[Dict]:
         (date(anio, 12, 8),  "Inmaculada Concepción"),
         (date(anio, 12, 25), "Navidad"),
     ]
-    # Relativos a Pascua (antes de Emiliani)
-    pascua_fijos = [
+    # Relativos a Pascua que no se trasladan
+    pascua_no_trasladables = [
         (pascua_domingo - timedelta(days=3), "Jueves Santo"),
         (pascua_domingo - timedelta(days=2), "Viernes Santo"),
+    ]
+    # Relativos a Pascua que se observan el lunes siguiente
+    pascua_trasladables = [
         (pascua_domingo + timedelta(days=39), "Ascensión del Señor"),
         (pascua_domingo + timedelta(days=60), "Corpus Christi"),
         (pascua_domingo + timedelta(days=68), "Sagrado Corazón"),
@@ -87,6 +80,7 @@ def festivos_colombia(anio: int) -> List[Dict]:
         (date(anio, 1, 6),   "Día de los Reyes Magos"),
         (date(anio, 3, 19),  "Día de San José"),
         (date(anio, 6, 29),  "San Pedro y San Pablo"),
+        *([(date(anio, 7, 9), "Virgen de Chiquinquirá")] if anio >= 2026 else []),
         (date(anio, 8, 15),  "Asunción de la Virgen"),
         (date(anio, 10, 12), "Día de la Raza"),
         (date(anio, 11, 1),  "Día de Todos los Santos"),
@@ -97,7 +91,10 @@ def festivos_colombia(anio: int) -> List[Dict]:
     for original, nombre in fijos:
         resultado.append({"fecha": original, "nombre": nombre, "trasladado": False})
 
-    for original, nombre in pascua_fijos:
+    for original, nombre in pascua_no_trasladables:
+        resultado.append({"fecha": original, "nombre": nombre, "trasladado": False})
+
+    for original, nombre in pascua_trasladables:
         efectivo = _emiliani(original)
         resultado.append({
             "fecha": efectivo,

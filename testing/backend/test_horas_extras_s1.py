@@ -144,6 +144,57 @@ class TestCalculoBasico:
             valor_hora * 2.55 * (1 + FACTOR_OP), rel=1e-6
         )
 
+    def test_hora_festiva_ordinaria_hf_liquida_dentro_de_42h(self):
+        """HF paga trabajo festivo ordinario aunque la semana no exceda 42h."""
+        horas = [8.0, 8.0, 8.0, 8.0, 8.0, 2.0, 0.0]
+        codigos = [["HF"], [], [], [], [], [], []]
+
+        r = calcular_pre_liquidacion(
+            _input(horas, codigos_por_dia=codigos), CATALOGO_TEST, FACTOR_OP
+        )
+
+        valor_hora = 3_000_000 / 210
+        assert r.total_horas_extras == pytest.approx(8.0)
+        assert len(r.detalles) == 1
+        assert r.detalles[0].codigo_novedad == "HF"
+        assert r.detalles[0].horas == pytest.approx(8.0)
+        assert r.detalles[0].valor_bruto == pytest.approx(
+            8.0 * valor_hora * 1.80, rel=1e-6
+        )
+
+    def test_hf_ordinaria_no_dispara_tope_semanal_de_horas_extra(self):
+        """El tope semanal aplica a HE reales, no al recargo HF ordinario."""
+        horas = [8.0, 8.0, 8.0, 8.0, 8.0, 2.0, 0.0]
+        codigos = [["HF"], ["HF"], [], [], [], [], []]
+
+        r = calcular_pre_liquidacion(
+            _input(horas, codigos_por_dia=codigos), CATALOGO_TEST, FACTOR_OP
+        )
+
+        assert r.total_horas_extras == pytest.approx(16.0)
+        assert not any("Total semanal" in a for a in r.advertencias)
+
+    def test_festivo_con_extra_separa_hf_ordinaria_y_hefd_extra(self):
+        """En festivo: jornada ordinaria va a HF y exceso semanal a HEFD."""
+        horas = [9.0, 8.0, 8.0, 8.0, 8.0, 2.0, 0.0]
+        codigos = [["HF", "HEFD"], [], [], [], [], [], []]
+
+        r = calcular_pre_liquidacion(
+            _input(horas, codigos_por_dia=codigos), CATALOGO_TEST, FACTOR_OP
+        )
+
+        valor_hora = 3_000_000 / 210
+        detalles = {d.codigo_novedad: d for d in r.detalles}
+        assert r.total_horas_extras == pytest.approx(9.0)
+        assert detalles["HF"].horas == pytest.approx(8.0)
+        assert detalles["HEFD"].horas == pytest.approx(1.0)
+        assert detalles["HF"].valor_bruto == pytest.approx(
+            8.0 * valor_hora * 1.80, rel=1e-6
+        )
+        assert detalles["HEFD"].valor_bruto == pytest.approx(
+            valor_hora * 2.05, rel=1e-6
+        )
+
     def test_semana_previa_a_vigencia_usa_44h_y_divisor_220(self):
         """Antes de 2026-07-16 aplica jornada previa 44h y divisor 220."""
         horas = [9.0, 9.0, 9.0, 9.0, 9.0, 0.0, 0.0]

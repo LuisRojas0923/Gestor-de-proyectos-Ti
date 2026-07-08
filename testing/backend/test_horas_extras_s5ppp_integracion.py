@@ -2,8 +2,8 @@
 Tests del Sprint S5''' — Integración festivos y novedades en pre-liquidación.
 
 Cobertura:
-  - Festivo en día normal → codigos_por_dia del día se reemplaza por HEFD (jornada diurna)
-  - Festivo en jornada nocturna → HEFN
+  - Festivo en día normal → codigos_por_dia del día se reemplaza por HF+HEFD (jornada diurna)
+  - Festivo en jornada nocturna → HF+HEFN
   - Día con novedad CONFIRMADA (VAC/LIC/INC/AUS) → horas_por_dia=0 y codigos=[]
   - Novedad manda sobre festivo (festivo + VAC ese día → 0h, no HEFD)
   - Sin festivo ni novedad → respeta lo enviado por el cliente
@@ -37,6 +37,7 @@ from app.services.novedades_nomina.horas_extras_service import (
 CEDULA = "TEST-S5PPP-1107068093"
 ANIO = 2026
 SEMANA_25 = 25  # Lunes 2026-06-15 → Domingo 2026-06-21
+SEMANA_SIN_FESTIVOS = 26  # Lunes 2026-06-22 → Domingo 2026-06-28
 
 
 # ---------------------------------------------------------------------------
@@ -183,6 +184,7 @@ class TestAplicarContextoSinDatos:
         await _cleanup(db_session)
         try:
             input_data = _input_base(
+                semana_iso=SEMANA_SIN_FESTIVOS,
                 horas_por_dia=[10.0] * 7,  # 2h extras por día
                 codigos_por_dia=[["HED"]] * 7,
             )
@@ -199,7 +201,11 @@ class TestAplicarContextoSinDatos:
         por defecto en cada None)."""
         await _cleanup(db_session)
         try:
-            input_data = _input_base(horas_por_dia=[10.0] * 7, codigos_por_dia=None)
+            input_data = _input_base(
+                semana_iso=SEMANA_SIN_FESTIVOS,
+                horas_por_dia=[10.0] * 7,
+                codigos_por_dia=None,
+            )
             r = await _aplicar_contexto_festivos_y_novedades(db_session, input_data)
             assert r.codigos_por_dia == [None] * 7
         finally:
@@ -207,11 +213,11 @@ class TestAplicarContextoSinDatos:
 
 
 class TestAplicarContextoFestivos:
-    """Festivos en la semana: HEFD/HEFN auto-asignado."""
+    """Festivos en la semana: HF + HEFD/HEFN auto-asignado."""
 
     @pytest.mark.asyncio
     async def test_festivo_en_lunes_genera_HEFD_jornada_diurna(self, db_session):
-        """2026-06-15 (lunes de W25) marcado festivo → HEFD en posición 0."""
+        """2026-06-15 (lunes de W25) marcado festivo → HF+HEFD en posición 0."""
         await _cleanup(db_session)
         try:
             await _insertar_festivo(db_session, date(2026, 6, 15), "Festivo lunes")
@@ -221,7 +227,7 @@ class TestAplicarContextoFestivos:
             )
             r = await _aplicar_contexto_festivos_y_novedades(db_session, input_data)
             assert r.codigos_por_dia is not None
-            assert r.codigos_por_dia[0] == ["HEFD"]
+            assert r.codigos_por_dia[0] == ["HF", "HEFD"]
             # Resto de días: respeta HED
             for i in range(1, 7):
                 assert r.codigos_por_dia[i] == ["HED"]
@@ -230,7 +236,7 @@ class TestAplicarContextoFestivos:
 
     @pytest.mark.asyncio
     async def test_festivo_en_jueves_jornada_noctura_genera_HEFN(self, db_session):
-        """2026-06-18 (jueves de W25) festivo + jornada nocturna → HEFN."""
+        """2026-06-18 (jueves de W25) festivo + jornada nocturna → HF+HEFN."""
         await _cleanup(db_session)
         try:
             await _insertar_festivo(db_session, date(2026, 6, 18), "Festivo jueves")
@@ -241,7 +247,7 @@ class TestAplicarContextoFestivos:
             )
             r = await _aplicar_contexto_festivos_y_novedades(db_session, input_data)
             assert r.codigos_por_dia is not None
-            assert r.codigos_por_dia[3] == ["HEFN"]  # jueves
+            assert r.codigos_por_dia[3] == ["HF", "HEFN"]  # jueves
             for i in (0, 1, 2, 4, 5, 6):
                 assert r.codigos_por_dia[i] == ["HEN"]
         finally:
@@ -254,6 +260,7 @@ class TestAplicarContextoFestivos:
         try:
             await _insertar_festivo(db_session, date(2026, 6, 14), "Dom antes")  # domingo previo
             input_data = _input_base(
+                semana_iso=SEMANA_SIN_FESTIVOS,
                 horas_por_dia=[10.0] * 7,
                 codigos_por_dia=[["HED"]] * 7,
             )
@@ -296,16 +303,17 @@ class TestAplicarContextoNovedades:
 
     @pytest.mark.asyncio
     async def test_LIC_que_termina_en_medio_de_semana(self, db_session):
-        """LIC que cubre solo el miércoles (17 jun) → solo posición 2 afectada."""
+        """LIC que cubre solo el miércoles (24 jun) → solo posición 2 afectada."""
         await _cleanup(db_session)
         try:
             await _insertar_novedad_confirmada(
                 db_session,
                 codigo="LIC",
-                fecha_inicio=date(2026, 6, 17),
-                fecha_fin=date(2026, 6, 17),
+                fecha_inicio=date(2026, 6, 24),
+                fecha_fin=date(2026, 6, 24),
             )
             input_data = _input_base(
+                semana_iso=SEMANA_SIN_FESTIVOS,
                 horas_por_dia=[10.0] * 7,
                 codigos_por_dia=[["HED"]] * 7,
             )
@@ -334,6 +342,7 @@ class TestAplicarContextoNovedades:
             await db_session.commit()
 
             input_data = _input_base(
+                semana_iso=SEMANA_SIN_FESTIVOS,
                 horas_por_dia=[10.0] * 7,
                 codigos_por_dia=[["HED"]] * 7,
             )
@@ -386,7 +395,7 @@ class TestAplicarContextoCombinado:
             )
             r = await _aplicar_contexto_festivos_y_novedades(db_session, input_data)
             assert r.horas_por_dia[0] == 0.0
-            assert r.codigos_por_dia[0] == []  # VAC manda, no HEFD
+            assert r.codigos_por_dia[0] == []  # VAC manda, no HF/HEFD
             assert r.horas_por_dia[1] == 10.0  # martes: ni festivo ni novedad
             assert r.codigos_por_dia[1] == ["HED"]
         finally:
@@ -409,7 +418,7 @@ class TestAplicarContextoCombinado:
                 codigos_por_dia=[["HED"]] * 7,
             )
             r = await _aplicar_contexto_festivos_y_novedades(db_session, input_data)
-            assert r.codigos_por_dia[0] == ["HEFD"]  # lunes festivo
+            assert r.codigos_por_dia[0] == ["HF", "HEFD"]  # lunes festivo
             assert r.codigos_por_dia[1] == []        # martes VAC
             assert r.codigos_por_dia[2] == []        # miércoles VAC
             assert r.horas_por_dia[1] == 0.0

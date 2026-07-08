@@ -38,13 +38,13 @@ Ubicación: `testing/backend/`
 | **Prioridad Desarrollos** | `test_desarrollo_prioridad.py` | Ciclo CRUD de prioridades en desarrollos. | ✅ PASSED |
 | **Notificaciones** | `test_notificaciones.py` | Ciclo CRUD de notificaciones persistentes de usuario. | ✅ PASSED |
 | **Horas Extras S0 Semillas** | `test_horas_extras_s0.py` | Semillado, catalogo base, factores legales y topes iniciales del modulo. | ✅ PASSED |
-| **Horas Extras S1 Calculo** | `test_horas_extras_s1.py` | Motor de calculo semanal, clasificacion HED/HEN/HEFD/HEFN/HF, valores numericos festivos, pre-vigencia 44h/220 y validaciones de entrada. | ✅ PASSED |
+| **Horas Extras S1 Calculo** | `test_horas_extras_s1.py` | Motor de calculo semanal, clasificacion HED/HEN/HEFD/HEFN/HF, HF ordinaria festiva dentro de 42h, separacion HF+HEFD, valores numericos festivos, pre-vigencia 44h/220 y validaciones de entrada. | ✅ PASSED |
 | **Horas Extras S2 Confirmacion** | `test_horas_extras_s2.py` | Persistencia de calculo, detalle, bolsa, costo OT, idempotencia y auditoria desde usuario autenticado. | ✅ PASSED |
 | **Horas Extras S4 Workflow** | `test_horas_extras_s4.py` | Transiciones PAGADO/COMPENSADO/ANULADO, compensacion manual y persistencia endpoint-level con commit. | ✅ PASSED |
 | **Horas Extras S5 Festivos** | `test_horas_extras_s5_festivos.py` | Calendario de festivos, cache, sincronizacion Calendarific y manejo de errores externos. | ✅ PASSED |
 | **Horas Extras S5 Novedades** | `test_horas_extras_s5_novedades.py` | Eventos VAC/LIC/INC/AUS, solapes, confirmacion/anulacion y efecto sobre calculo HE. | ✅ PASSED |
 | **Horas Extras S5'' Horario Semana** | `test_horas_extras_s5pp_horario_semana.py` | Horario pactado por dia editable, validaciones y compatibilidad con horario legacy. | ✅ PASSED |
-| **Horas Extras S5''' Integracion** | `test_horas_extras_s5ppp_integracion.py` | Integracion horario diario + festivos + novedades en pre-liquidacion. | ✅ PASSED |
+| **Horas Extras S5''' Integracion** | `test_horas_extras_s5ppp_integracion.py` | Integracion horario diario + festivos + novedades en pre-liquidacion; festivos diurnos/nocturnos separan recargo ordinario HF y extra HEFD/HEFN. | ✅ PASSED |
 | **Horas Extras S6 Bolsa** | `test_horas_extras_s6.py` | Bolsa desactivable, override por OT, ruta sin prefijo duplicado y RBAC en estado global. | ✅ PASSED |
 | **Horas Extras S7 Planificador** | `test_horas_extras_s7.py` | Planificador semanal masivo, selector ERP protegido por RBAC, borrador, pre-calculo y confirmacion. | ✅ PASSED |
 | **Horas Extras S8 OT/CC** | `test_horas_extras_s8_ot_mano_obra.py` | Consulta ERP `basegeneralcostos`, maximo 3 OT por empleado/dia, validacion de reparto numerico, CRC32 para orden no numerica y distribucion de costo por OT. | ✅ PASSED |

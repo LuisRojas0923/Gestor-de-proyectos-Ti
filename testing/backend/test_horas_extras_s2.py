@@ -184,6 +184,7 @@ class TestConfirmarPreLiquidacionHappyPath:
     @pytest.mark.asyncio
     async def test_crea_calculo_detalle_y_costo_ot_sin_bolsa_por_default(self, db_session):
         await _cleanup(db_session, CEDULA_BASE)
+        await _limpiar_bolsa_global(db_session)
 
         # Sembrar horario (requisito para contexto)
         horario = NominaHorarioPactado(
@@ -233,6 +234,7 @@ class TestConfirmarPreLiquidacionHappyPath:
             assert costo.total_empleados == 1
         finally:
             await _cleanup(db_session, CEDULA_BASE)
+            await _limpiar_bolsa_global(db_session)
 
     @pytest.mark.asyncio
     async def test_endpoint_ignora_usuario_confirma_del_cliente(self, db_session):

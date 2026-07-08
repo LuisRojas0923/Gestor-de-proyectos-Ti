@@ -38,6 +38,8 @@ MAX_HE_SEMANALES = 12
 MAX_HE_ANUALES = 480
 HORA_NOCTURNA_INICIO = 19
 HORA_NOCTURNA_FIN = 6
+CODIGOS_HORAS_EXTRAS = {"HED", "HEN", "HEFD", "HEFN"}
+CODIGOS_RECARGO_ORDINARIO = {"HF", "RN", "RF"}
 
 
 def calcular_pre_liquidacion(
@@ -77,10 +79,6 @@ def calcular_pre_liquidacion(
     )
 
     for dia_idx, horas_extras_dia in enumerate(horas_extras_por_dia):
-
-        if horas_extras_dia <= 0:
-            continue
-
         # Resolver factor: si el usuario reportó códigos, los respetamos;
         # si no, inferimos (HEN si jornada nocturna, HED en caso contrario).
         codigos = codigos_por_dia[dia_idx] if dia_idx < len(codigos_por_dia) else []
@@ -99,27 +97,53 @@ def calcular_pre_liquidacion(
             if codigo not in cat_idx:
                 advertencias.append(f"Día {dia_idx + 1}: código desconocido '{codigo}' omitido.")
 
+        codigos_recargo_ordinario = [
+            codigo for codigo in codigos
+            if codigo in cat_idx and codigo in CODIGOS_RECARGO_ORDINARIO
+        ]
+        horas_ordinarias_dia = max(
+            0.0,
+            round(input_data.horas_por_dia[dia_idx] - horas_extras_dia, 2),
+        )
+        horas_por_recargo = _distribuir_horas_por_codigos(
+            horas_ordinarias_dia,
+            codigos_recargo_ordinario,
+            cat_idx,
+        )
+        for codigo, horas_codigo in horas_por_recargo.items():
+            if horas_codigo <= 0:
+                continue
+            _agregar_detalle(
+                detalles,
+                codigo,
+                horas_codigo,
+                cat_idx[codigo]["factor_hora_ordinaria"],
+                valor_hora,
+                factor_prestacional,
+            )
+
+        if horas_extras_dia <= 0:
+            continue
+
         # Distribuir las horas extras entre los códigos declarados (válidos).
+        codigos_extra = [
+            codigo for codigo in codigos
+            if codigo in cat_idx and codigo in CODIGOS_HORAS_EXTRAS
+        ]
         horas_por_codigo = _distribuir_horas_por_codigos(
-            horas_extras_dia, codigos, cat_idx
+            horas_extras_dia, codigos_extra, cat_idx
         )
 
         for codigo, horas_codigo in horas_por_codigo.items():
             if horas_codigo <= 0:
                 continue
-            cat = cat_idx[codigo]
-            factor = cat["factor_hora_ordinaria"]
-            valor_bruto = horas_codigo * valor_hora * factor
-            carga = valor_bruto * factor_prestacional
-            detalles.append(
-                DetalleCalculoItem(
-                    codigo_novedad=codigo,
-                    horas=horas_codigo,
-                    factor_hora_ordinaria=factor,
-                    valor_bruto=valor_bruto,
-                    carga_prestacional=carga,
-                    costo_total=valor_bruto + carga,
-                )
+            _agregar_detalle(
+                detalles,
+                codigo,
+                horas_codigo,
+                cat_idx[codigo]["factor_hora_ordinaria"],
+                valor_hora,
+                factor_prestacional,
             )
             horas_extras_total += horas_codigo
 
@@ -225,9 +249,8 @@ def _distribuir_horas_por_codigos(
     Si solo hay un código válido, se lleva todo. Si hay varios, se reparten
     en partes iguales.
 
-    Los códigos inválidos se excluyen del resultado pero SÍ cuentan para
-    el divisor, de modo que el usuario ve reflejado que declaró un código
-    desconocido.
+    Los códigos inválidos se excluyen del resultado; la advertencia se emite
+    antes de llamar este helper.
     """
     if not codigos:
         return {}
@@ -238,6 +261,28 @@ def _distribuir_horas_por_codigos(
         return {codigos_validos[0]: horas_extras}
     por_codigo = horas_extras / len(codigos_validos)
     return {c: por_codigo for c in codigos_validos}
+
+
+def _agregar_detalle(
+    detalles: List[DetalleCalculoItem],
+    codigo: str,
+    horas: float,
+    factor: float,
+    valor_hora: float,
+    factor_prestacional: float,
+) -> None:
+    valor_bruto = horas * valor_hora * factor
+    carga = valor_bruto * factor_prestacional
+    detalles.append(
+        DetalleCalculoItem(
+            codigo_novedad=codigo,
+            horas=horas,
+            factor_hora_ordinaria=factor,
+            valor_bruto=valor_bruto,
+            carga_prestacional=carga,
+            costo_total=valor_bruto + carga,
+        )
+    )
 
 
 def _agregar_detalles(detalles: List[DetalleCalculoItem]) -> List[DetalleCalculoItem]:
