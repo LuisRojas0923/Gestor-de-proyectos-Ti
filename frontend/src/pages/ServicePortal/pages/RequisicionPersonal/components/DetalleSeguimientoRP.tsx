@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   ArrowLeft, Calendar, UserPlus, Check, X, 
   ChevronRight, ChevronLeft, ShieldAlert, Award, FileText, BarChart2 

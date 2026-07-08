@@ -1,5 +1,5 @@
 // Detalle completo de una Requisición de Personal
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { ArrowLeft, MapPin, Layers, DollarSign, Package, Printer } from 'lucide-react';
 import { Button, Title, Text } from '../../../../../components/atoms';
 import RPStatusBadge from '../components/RPStatusBadge';
