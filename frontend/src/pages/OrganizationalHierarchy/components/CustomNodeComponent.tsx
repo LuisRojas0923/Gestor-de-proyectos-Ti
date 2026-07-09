@@ -1,9 +1,9 @@
-import React from 'react';
+﻿import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { UserPlus, Plus, Minus } from 'lucide-react';
 import { Button, MaterialCard, Text } from '../../../components/atoms';
 import { getInitials, formatShortName } from '../utils';
-import type { HierarchyNode } from '../../../types/hierarchy';
+import type { HierarchyNode, HierarchyUser } from '../../../types/hierarchy';
 
 export interface CustomNodeData {
   nodeData: HierarchyNode;
@@ -23,9 +23,10 @@ interface CustomNodeProps {
 export const CustomNodeComponent = (props: CustomNodeProps) => {
   const { data, isConnectable } = props;
   const { nodeData, level, selected, onSelect, isExpanded, hasChildren, onToggle } = data;
+  
   const user = nodeData.usuario;
   const isSelected = selected;
-  const isVacancy = user.id.startsWith('VAC-');
+  const isVacancy = String(user.id || '').startsWith('VAC-');
   
   const getLevelStyles = (lvl: number, isSelected: boolean) => {
     if (isSelected) return '!border-[var(--color-primary)] bg-[var(--color-primary)]/10 shadow-md scale-105';
@@ -52,25 +53,25 @@ export const CustomNodeComponent = (props: CustomNodeProps) => {
     <>
       <Handle type="target" position={Position.Top} isConnectable={isConnectable} className="w-2 h-2 border-2 border-[var(--color-surface)] bg-neutral-300 dark:bg-neutral-600" />
       <MaterialCard
-        onClick={() => onSelect(user.id)}
-        className={`p-2 w-full cursor-pointer transition-all border relative ${getLevelStyles(level, isSelected)}`}
+        onClick={() => onSelect(String(user.id || ''))}
+        className={\p-2 w-full cursor-pointer transition-all border relative \\}
         elevation={isSelected ? 2 : 1}
       >
         <div className="flex items-center text-left gap-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm shrink-0 ${getAvatarColors(level)}`}>
+          <div className={\w-8 h-8 rounded-full flex items-center justify-center border shadow-sm shrink-0 \\}>
             {isVacancy ? (
               <UserPlus size={14} className="opacity-80" />
             ) : (
-              <Text className="!text-[10px] font-bold !m-0 leading-none tracking-tight">{getInitials(user.nombre)}</Text>
+              <Text className="!text-[10px] font-bold !m-0 leading-none tracking-tight">{getInitials(String(user.nombre || ''))}</Text>
             )}
           </div>
           
           <div className="w-full min-w-0 pr-2">
-            <Text className={`!text-[9.5px] font-bold leading-tight uppercase truncate block ${isVacancy ? 'text-neutral-500 dark:text-neutral-400 italic font-semibold' : ''}`} title={user.nombre}>
-              {formatShortName(user.nombre)}
+            <Text className={\!text-[9.5px] font-bold leading-tight uppercase truncate block \\} title={String(user.nombre || '')}>
+              {formatShortName(String(user.nombre || ''))}
             </Text>
-            <Text className="!text-[8.5px] text-[var(--color-text-secondary)] leading-tight opacity-90 truncate block mt-0.5" title={user.cargo || user.rol}>
-              {user.cargo || user.rol}
+            <Text className="!text-[8.5px] text-[var(--color-text-secondary)] leading-tight opacity-90 truncate block mt-0.5" title={String((user as HierarchyUser & { cargo?: string }).cargo || user.rol || '')}>
+              {String((user as HierarchyUser & { cargo?: string }).cargo || user.rol || '')}
             </Text>
           </div>
         </div>
