@@ -2,6 +2,8 @@
 API de Desarrollos - Backend V2
 """
 from typing import List, Optional
+from datetime import datetime
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, or_, func, case
@@ -20,7 +22,6 @@ from app.services.jerarquia.service import JerarquiaService
 from app.services.auditoria.snapshots import (
     asignar_actualizacion_segura,
     asignar_creacion_segura,
-    asignar_eliminacion_segura,
     modelo_a_dict_auditoria,
 )
 
@@ -263,7 +264,7 @@ async def eliminar_desarrollo(
     db: AsyncSession = Depends(obtener_db),
     usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
-    """Elimina un desarrollo y todas sus actividades asociadas"""
+    """Anula un desarrollo y sus actividades sin borrar registros."""
     try:
         query = select(Desarrollo).where(Desarrollo.id == desarrollo_id)
         result = await db.execute(query)
@@ -272,9 +273,12 @@ async def eliminar_desarrollo(
         if not db_desarrollo:
             raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
 
+        if db_desarrollo.estado_general == "Anulado":
+            raise HTTPException(status_code=409, detail="La actividad está anulada y no puede modificarse")
+
         snapshot_antes = modelo_a_dict_auditoria(db_desarrollo)
 
-        # Validar permisos para eliminar el desarrollo — sin bypass de roles
+        # Validar permisos para anular el desarrollo — sin bypass de roles
         tiene_acceso = db_desarrollo.creado_por_id == usuario.id
         
         if not tiene_acceso:
@@ -287,11 +291,27 @@ async def eliminar_desarrollo(
         if not tiene_acceso:
             raise HTTPException(
                 status_code=403,
-                detail="No tiene permisos para eliminar este desarrollo"
+                detail="No tiene permisos para anular este desarrollo"
             )
 
-        # 1. Eliminar validaciones de asignación relacionadas al desarrollo o sus actividades
-        # Esto previene errores de llave foránea (IntegrityError)
+        actividades_q = select(Actividad).where(Actividad.desarrollo_id == desarrollo_id).with_for_update()
+        actividades_result = await db.execute(actividades_q)
+        actividades = actividades_result.scalars().all()
+
+        now = datetime.utcnow()
+        db_desarrollo.estado_general = "Anulado"
+        db_desarrollo.porcentaje_progreso = Decimal("0")
+
+        for actividad in actividades:
+            if actividad.anulada:
+                continue
+            actividad.anulada = True
+            actividad.anulada_en = now
+            actividad.anulada_por_id = usuario.id
+            actividad.estado = "Anulada"
+            actividad.porcentaje_avance = Decimal("0")
+
+        # Quitar validaciones pendientes/asociadas para que lo anulado no quede accionable.
         actividades_ids_q = select(Actividad.id).where(Actividad.desarrollo_id == desarrollo_id)
         await db.execute(
             delete(ValidacionAsignacion).where(
@@ -301,18 +321,12 @@ async def eliminar_desarrollo(
                 )
             )
         )
-
-        # 2. Eliminar actividades
-        await db.execute(delete(Actividad).where(Actividad.desarrollo_id == desarrollo_id))
-        
-        # 3. Eliminar el desarrollo
-        await db.delete(db_desarrollo)
         
         await db.commit()
 
         request.state.auditoria_entidad_tipo = "desarrollo"
         request.state.auditoria_entidad_id = desarrollo_id
-        asignar_eliminacion_segura(request, snapshot_antes)
+        asignar_actualizacion_segura(request, snapshot_antes, db_desarrollo)
     except HTTPException:
         raise
     except Exception as e:

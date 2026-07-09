@@ -3,7 +3,6 @@ import { useApi } from '../../hooks/useApi';
 import { Text, Button } from '../../components/atoms';
 import Skeleton from '../../components/atoms/Skeleton';
 import { ClipboardList, Activity, Plus, ShieldAlert } from 'lucide-react';
-
 import { WbsNodeModal } from './WbsNodeModal';
 import { WbsTemplateSelectorModal } from './WbsTemplateSelectorModal';
 import { DeleteActivityModal } from './DeleteActivityModal';
@@ -14,20 +13,11 @@ import { DataTable } from '../../components/molecules/DataTable';
 import { WbsActivityTree } from '../../types/wbs';
 import { getWbsColumns } from './components/WbsColumns';
 
-export interface WbsTabRef {
-    handleAddRootTask: () => void;
-    handleImportTemplate: () => void;
-}
-
-interface WbsTabProps {
-    developmentId: string;
-    darkMode: boolean;
-}
-
+export interface WbsTabRef { handleAddRootTask: () => void; handleImportTemplate: () => void; }
+interface WbsTabProps { developmentId: string; darkMode: boolean; isDevelopmentAnulado?: boolean; }
 type WbsRow = WbsActivityTree & { _rowIndex: number };
-
+type AnuladasFilter = 'activas' | 'anuladas' | 'todas';
 const getWbsOrderStorageKey = (developmentId: string) => `wbs_tasks_order_${developmentId}`;
-
 const loadStoredWbsOrder = (developmentId: string) => {
     try {
         const raw = localStorage.getItem(getWbsOrderStorageKey(developmentId));
@@ -37,14 +27,12 @@ const loadStoredWbsOrder = (developmentId: string) => {
         return [];
     }
 };
-
 const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number) => {
     const next = [...items];
     const [moved] = next.splice(fromIndex, 1);
     next.splice(toIndex, 0, moved);
     return next;
 };
-
 const formatDate = (dateStr?: string) => {
     if (!dateStr) return '-';
     try {
@@ -54,10 +42,7 @@ const formatDate = (dateStr?: string) => {
         return dateStr;
     }
 };
-
-
-
-const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, ref) => {
+const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode, isDevelopmentAnulado = false }, ref) => {
     const { get, post, patch, put, delete: del } = useApi();
     const [tree, setTree] = useState<WbsActivityTree[]>([]);
     const [loading, setLoading] = useState(true);
@@ -72,6 +57,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         hijos: { id: number; titulo: string; nivel: number; estado: string }[];
         total_eliminaciones: number;
     } | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
     const [detailModalOpen, setDetailModalOpen] = useState(false);
     const [selectedActivity, setSelectedActivity] = useState<WbsActivityTree | null>(null);
     const [stateMenuId, setStateMenuId] = useState<number | null>(null);
@@ -79,25 +65,22 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const [errorModalOpen, setErrorModalOpen] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [customOrder, setCustomOrder] = useState<string[]>(() => loadStoredWbsOrder(developmentId));
+    const [anuladasFilter, setAnuladasFilter] = useState<AnuladasFilter>('activas');
     const stateMenuRef = useRef<HTMLDivElement>(null);
-
     const showError = (err: unknown, defaultMsg: string) => {
         const msg = err instanceof Error ? err.message : defaultMsg;
         setErrorMessage(msg);
         setErrorModalOpen(true);
     };
-
     const getLider = useCallback((node: WbsActivityTree) => {
         const id = node.asignado_a_id || node.responsable_id;
         if (!id) return '(Sin asignar)';
         return userMap.get(id) ?? id;
     }, [userMap]);
-
     const getUserName = useCallback((id?: string) => {
         if (!id) return '-';
         return userMap.get(id) ?? id;
     }, [userMap]);
-
     const flattenTree = useCallback((nodes: WbsActivityTree[]): WbsActivityTree[] => {
         const result: WbsActivityTree[] = [];
         for (const node of nodes) {
@@ -108,10 +91,8 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         }
         return result;
     }, []);
-
     const columnAccessors = useMemo(() => ({
         index: (node: WbsActivityTree) => {
-            // Buscamos el nodo en el árbol aplanado original para obtener su índice real
             const flat = flattenTree(tree);
             const idx = flat.findIndex(n => n.id === node.id);
             return idx !== -1 ? String(idx + 1) : '(Draf)';
@@ -130,7 +111,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         fecha_inicio_estimada: (node: WbsActivityTree) => formatDate(node.fecha_inicio_estimada || node.fecha_inicio_real),
         fecha_fin_estimada: (node: WbsActivityTree) => formatDate(node.fecha_fin_estimada || node.fecha_fin_real),
     }), [tree, flattenTree, getLider, getUserName]);
-
     const {
         filters,
         filteredData,
@@ -162,26 +142,31 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         }).map((row, index) => ({ ...row, _rowIndex: index + 1 }));
     }, [customOrder, hasActiveFilters, rowData, sortState?.key]);
 
-    const canReorderRows = orderedRowData.length > 1 && !sortState?.key && !hasActiveFilters;
+    const visibleRowData = useMemo(() => {
+        if (anuladasFilter === 'todas') return orderedRowData;
+        if (anuladasFilter === 'anuladas') return orderedRowData.filter(row => row.anulada);
+        return orderedRowData.filter(row => !row.anulada);
+    }, [anuladasFilter, orderedRowData]);
+
+    const canReorderRows = visibleRowData.length > 1 && !sortState?.key && !hasActiveFilters && anuladasFilter === 'activas';
 
     const handleRowsReorder = useCallback((fromIndex: number, toIndex: number) => {
-        const reorderedVisible = moveItem(orderedRowData, fromIndex, toIndex).map(row => String(row.id));
+        const reorderedVisible = moveItem(visibleRowData, fromIndex, toIndex).map(row => String(row.id));
         const knownIds = rowData.map(row => String(row.id));
         const hiddenIds = knownIds.filter(id => !reorderedVisible.includes(id));
         const nextOrder = [...reorderedVisible, ...hiddenIds];
         setCustomOrder(nextOrder);
         localStorage.setItem(getWbsOrderStorageKey(developmentId), JSON.stringify(nextOrder));
-    }, [developmentId, orderedRowData, rowData]);
+    }, [developmentId, visibleRowData, rowData]);
 
     useImperativeHandle(ref, () => ({
         handleAddRootTask: () => {
-            setModalEditNode(null);
-            setIsModalOpen(true);
+            if (!isDevelopmentAnulado) { setModalEditNode(null); setIsModalOpen(true); }
         },
         handleImportTemplate: () => {
-            setIsTemplateModalOpen(true);
+            if (!isDevelopmentAnulado) setIsTemplateModalOpen(true);
         }
-    }), []);
+    }), [isDevelopmentAnulado]);
 
     const getAvanceDeTarea = (estado: string): number => {
         const s = (estado || '').toLowerCase();
@@ -192,10 +177,12 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     };
 
     const allFlat = flattenTree(tree);
-    const totalAvance = allFlat.reduce((sum, n) => sum + Number(n.porcentaje_avance ?? 0), 0);
-    const avgProgress = allFlat.length ? Math.round(totalAvance / allFlat.length) : 0;
+    const activeFlat = allFlat.filter(n => !n.anulada);
+    const anuladasCount = allFlat.length - activeFlat.length;
+    const totalAvance = activeFlat.reduce((sum, n) => sum + Number(n.porcentaje_avance ?? 0), 0);
+    const avgProgress = activeFlat.length ? Math.round(totalAvance / activeFlat.length) : 0;
 
-    const statusGroups = allFlat.reduce<Record<string, number>>((acc, n) => {
+    const statusGroups = activeFlat.reduce<Record<string, number>>((acc, n) => {
         const s = n.estado || 'Sin estado';
         acc[s] = (acc[s] || 0) + 1;
         return acc;
@@ -207,9 +194,20 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         if (s.includes('progreso') || s.includes('curso')) return 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50';
         if (s.includes('pendiente')) return 'text-red-700 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50';
         if (s.includes('pausa'))    return 'text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50';
-        if (s.includes('cancel'))   return 'text-neutral-600 bg-neutral-100 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+        if (s.includes('cancel') || s.includes('anulad')) return 'text-neutral-600 bg-neutral-100 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
         return 'text-neutral-600 bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
     };
+
+    const getAnuladasFilterClass = (filter: AnuladasFilter) =>
+        anuladasFilter === filter
+            ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)] ring-1 ring-[var(--color-primary)]/30'
+            : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)]';
+
+    const anuladasFilterOptions: { key: AnuladasFilter; label: string; count: number }[] = [
+        { key: 'activas', label: 'Activas', count: activeFlat.length },
+        { key: 'anuladas', label: 'Anuladas', count: anuladasCount },
+        { key: 'todas', label: 'Todas', count: allFlat.length },
+    ];
 
     const getAvanceChipClass = (pct: number) => {
         if (pct >= 100) return 'text-green-700 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50';
@@ -217,34 +215,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         if (pct >= 50)  return 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50';
         if (pct >= 25)  return 'text-orange-700 bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50';
         return 'text-red-700 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50';
-    };
-
-    const handleQuickAction = async (id: number, action: 'play' | 'pause' | 'finish', currentNode: WbsActivityTree) => {
-        let payload: Partial<WbsActivityTree> = {};
-        const now = new Date().toISOString().split('T')[0];
-
-        if (action === 'play') {
-            payload = {
-                estado: 'En Proceso',
-                fecha_inicio_real: currentNode.fecha_inicio_real || now
-            };
-        } else if (action === 'pause') {
-            payload = { estado: 'Pausa' };
-        } else if (action === 'finish') {
-            payload = {
-                estado: 'Completada',
-                porcentaje_avance: 100,
-                fecha_fin_real: now
-            };
-        }
-
-        try {
-            await patch(`/actividades/${id}`, payload);
-            await fetchTree();
-        } catch (error) {
-            console.error(`Error applying quick action ${action}:`, error);
-            showError(error, `Error al aplicar la acción rápida ${action} en la actividad.`);
-        }
     };
 
     const handleEstadoChange = async (id: number, newEstado: string) => {
@@ -295,12 +265,12 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     }, [developmentId]);
 
     useEffect(() => {
-        if (!developmentId || tree.length === 0) return;
-        const flat = flattenTree(tree);
+        if (!developmentId || tree.length === 0 || isDevelopmentAnulado) return;
+        const flat = flattenTree(tree).filter(n => !n.anulada);
         const totalProg = flat.reduce((sum, n) => sum + getAvanceDeTarea(n.estado), 0);
         const pct = flat.length ? Math.round(totalProg / flat.length) : 0;
         void put(`/desarrollos/${developmentId}`, { porcentaje_progreso: pct });
-    }, [tree, developmentId]);
+    }, [tree, developmentId, isDevelopmentAnulado]);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -378,15 +348,18 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     };
 
     const handleConfirmDelete = async () => {
-        if (!deletePreview) return;
+        if (!deletePreview || deleteLoading) return;
+        setDeleteLoading(true);
         try {
             await del(`/actividades/${deletePreview.actividad.id}`);
             await fetchTree();
             setDeleteModalOpen(false);
             setDeletePreview(null);
         } catch (error) {
-            console.error('Error deleting activity:', error);
-            showError(error, 'Error al eliminar la actividad.');
+            console.error('Error annulling activity:', error);
+            showError(error, 'Error al anular la actividad.');
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -415,7 +388,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         setStateMenuId,
         popoverPos,
         setPopoverPos,
-        handleQuickAction,
         handleEstadoChange,
         handleEditTask,
         handleCopyTask,
@@ -427,7 +399,6 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
         handleResolveValidation,
         stateMenuId,
         popoverPos,
-        handleQuickAction,
         handleEstadoChange,
         handleEditTask,
         handleCopyTask,
@@ -437,32 +408,43 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
     const statsCards = (
         <div className="flex justify-between items-center w-full flex-wrap gap-3">
             <div className="flex flex-wrap gap-2">
-                {/* Total */}
                 <Text as="span" className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
                     <ClipboardList size={11} />
                     <Text as="span" className="text-[var(--color-text-primary)] font-bold">{allFlat.length}</Text>
                     tareas
                 </Text>
-                {/* Avance dinámico */}
                 <Text as="span" className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getAvanceChipClass(avgProgress)}`}>
                     <Activity size={11} />
                     Avance: {avgProgress}%
                 </Text>
-                {/* Un chip por estado */}
                 {Object.entries(statusGroups).map(([status, count]) => (
                     <Text as="span" key={status} className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${getStatusChipClass(status)}`}>
                         {status}
                         <Text as="span" className="font-bold">{count}</Text>
                     </Text>
                 ))}
+                {anuladasFilterOptions.map(({ key, label, count }) => (
+                    <Button
+                        key={key}
+                        variant="custom"
+                        size="xs"
+                        aria-pressed={anuladasFilter === key}
+                        onClick={() => setAnuladasFilter(key)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium ${getAnuladasFilterClass(key)}`}
+                    >
+                        {label} <Text as="span" className="font-bold">{count}</Text>
+                    </Button>
+                ))}
             </div>
-            <Button
-                variant="primary"
-                icon={Plus}
-                onClick={() => {
-                    setModalEditNode(null);
-                    setIsModalOpen(true);
-                }}
+                <Button
+                    variant="primary"
+                    icon={Plus}
+                    disabled={isDevelopmentAnulado}
+                    title={isDevelopmentAnulado ? 'El desarrollo está anulado' : 'Agregar tarea'}
+                    onClick={() => {
+                        setModalEditNode(null);
+                        setIsModalOpen(true);
+                    }}
             >
                 Tarea
             </Button>
@@ -480,10 +462,11 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                     {statsCards}
                     <DataTable<WbsRow>
                         columns={columns}
-                        data={orderedRowData}
+                        data={visibleRowData}
                         keyExtractor={(row) => String(row.id)}
                         isRowDraggable={canReorderRows}
                         onRowsReorder={handleRowsReorder}
+                        getRowClassName={(row) => row.anulada ? 'opacity-45 grayscale bg-[var(--color-surface-variant)]/40' : ''}
                         columnFilters={filters}
                         columnOptions={uniqueValues}
                         onFilterChange={(key, newSet) => setColumnFilter(key, newSet)}
@@ -519,6 +502,7 @@ const WbsTab = forwardRef<WbsTabRef, WbsTabProps>(({ developmentId, darkMode }, 
                 preview={deletePreview}
                 onClose={() => { setDeleteModalOpen(false); setDeletePreview(null); }}
                 onConfirm={handleConfirmDelete}
+                isSubmitting={deleteLoading}
             />
 
             <WbsDetailModal

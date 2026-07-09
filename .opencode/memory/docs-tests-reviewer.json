@@ -12,9 +12,44 @@
     "review <files>": "Review docs/tests files or diffs",
     "checklist <scope>": "Return the relevant subset of the docs/tests checklist"
   },
-  "review_history": [],
+  "review_history": [
+    {
+      "date": "2026-07-06",
+      "scope": "tests/docs anulación lógica de actividades, selector de áreas y registro",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "high": 2,
+        "medium": 1,
+        "low": 0
+      },
+      "test_coverage_observations": "Backend cubre servicio de anulación y schemas, pero falta cobertura API para preview/delete/PATCH de actividad anulada. Frontend tiene suites Vitest para modal, autocomplete y registro; falta registro documental en catálogo."
+    },
+    {
+      "date": "2026-07-06",
+      "scope": "re-review test_actividad_delete, ESQUEMA_BASE_DATOS y CATALOGO_PRUEBAS",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "high": 1,
+        "medium": 0,
+        "low": 0
+      },
+      "test_coverage_observations": "13 tests collected for test_actividad_delete.py and backend pass reported by orchestrator; docs fixes verified. Still missing router DELETE and PATCH-anulada coverage."
+    },
+    {
+      "date": "2026-07-06",
+      "scope": "final focused re-review test_actividad_delete, ESQUEMA_BASE_DATOS y CATALOGO_PRUEBAS",
+      "outcome": "approved",
+      "finding_count_by_severity": {
+        "blocking": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 1
+      },
+      "test_coverage_observations": "15 tests collected for test_actividad_delete.py, including router DELETE authorized/unauthorized and PATCH anulada 409; orchestrator reports backend 15 passed, modal Vitest 1 passed, and npm build passed. No remaining blocking/high docs or tests gaps. Low-only note: catalog has duplicate section numbering after adding Frontend section."
+    }
+  ],
   "stats": {
-    "total_reviews": 0,
-    "last_review": null
+    "total_reviews": 3,
+    "last_review": "2026-07-06"
   }
 }

@@ -13,6 +13,7 @@ from app.config import config
 from app.core.config import obtener_configuracion
 from app.models.auth.usuario import Usuario, PermisoRol
 from app.services.erp import EmpleadosService
+from app.services.erp.empleados_service import normalizar_bool_erp
 from .sesion_service import (
     registrar_sesion,
     marcar_fin_sesion,
@@ -343,9 +344,7 @@ class ServicioAuth:
                 else usuario.nombre
             )
             val_viaticante = datos_erp.get("viaticante")
-            usuario.viaticante = (
-                bool(val_viaticante) if val_viaticante is not None else False
-            )
+            usuario.viaticante = normalizar_bool_erp(val_viaticante)
             usuario.baseviaticos = datos_erp.get("baseviaticos")
             
             # Sincronización de correo corporativo

@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    Ban,
     Download,
     Pencil,
     Copy,
@@ -72,7 +73,6 @@ interface GetWbsColumnsArgs {
   setStateMenuId: (id: number | null) => void;
   popoverPos: { top: number; left: number } | null;
   setPopoverPos: (pos: { top: number; left: number } | null) => void;
-  handleQuickAction: (id: number, action: 'play' | 'pause' | 'finish', currentNode: WbsActivityTree) => void;
   handleEstadoChange: (id: number, newEstado: string) => void;
   handleEditTask: (node: WbsActivityTree) => void;
   handleCopyTask: (node: WbsActivityTree) => void;
@@ -88,7 +88,6 @@ export const getWbsColumns = ({
   setStateMenuId,
   popoverPos,
   setPopoverPos,
-  handleQuickAction: _handleQuickAction,
   handleEstadoChange,
   handleEditTask,
   handleCopyTask,
@@ -119,6 +118,11 @@ export const getWbsColumns = ({
         ],
         render: (row) => (
             <div className="min-w-0" data-column="titulo">
+                {row.anulada && (
+                    <Text as="span" variant="caption" className="mb-1 inline-flex rounded-full border border-neutral-300 bg-neutral-100 px-2 py-0.5 !text-[10px] font-bold uppercase text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400">
+                        Anulada
+                    </Text>
+                )}
                 <Text weight="bold" className="block truncate" title={row.titulo}>{row.titulo}</Text>
                 {row.descripcion && (
                     <Text variant="caption" color="text-secondary" className="block truncate mt-0.5" title={row.descripcion}>
@@ -199,6 +203,7 @@ export const getWbsColumns = ({
             const status = row.estado_validacion;
             const isPending = status?.toLowerCase() === 'pendiente';
             const isResolving = resolvingIds.has(row.validacion_id ?? -1);
+            if (row.anulada) return <ValidationStatusBadge status="anulada" />;
             if (isPending && row.validacion_id) {
                 return (
                     <div className="flex items-center gap-1">
@@ -242,6 +247,9 @@ export const getWbsColumns = ({
         render: (row) => {
             const isMenuOpen = stateMenuId === row.id;
             const { Icon: StatusIcon, className: statusClass, label: statusLabel } = getEstadoStatusIcon(row.estado);
+            const Icon = row.anulada ? Ban : StatusIcon;
+            const iconClassName = row.anulada ? 'text-neutral-500 dark:text-neutral-400' : statusClass;
+            const iconLabel = row.anulada ? 'Anulada' : statusLabel;
 
             return (
                 <div className="flex flex-col gap-0.5 min-w-0 w-full">
@@ -249,11 +257,11 @@ export const getWbsColumns = ({
                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                             <Text
                                 as="span"
-                                title={statusLabel}
-                                aria-label={statusLabel}
+                                title={iconLabel}
+                                aria-label={iconLabel}
                                 className="pointer-events-auto shrink-0 inline-flex items-center justify-center m-0"
                             >
-                                <StatusIcon size={ESTADO_ICON_SIZE} className={statusClass} />
+                                <Icon size={ESTADO_ICON_SIZE} className={iconClassName} />
                             </Text>
                         </div>
                         <div className="relative z-10 ml-auto shrink-0" data-wbs-state-menu-trigger>
@@ -262,6 +270,7 @@ export const getWbsColumns = ({
                                 size="sm"
                                 onClick={(e) => {
                                     e.stopPropagation();
+                                    if (row.anulada) return;
                                     if (isMenuOpen) {
                                         setStateMenuId(null);
                                         setPopoverPos(null);
@@ -272,7 +281,8 @@ export const getWbsColumns = ({
                                     }
                                 }}
                                 className="h-6 w-6 !p-0 text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300"
-                                title="Cambiar estado"
+                                disabled={row.anulada}
+                                title={row.anulada ? 'Actividad anulada' : 'Cambiar estado'}
                             >
                                 ⋮
                             </Button>
@@ -386,24 +396,27 @@ export const getWbsColumns = ({
                     size="sm"
                     onClick={(e) => { e.stopPropagation(); handleEditTask(row); }}
                     icon={Pencil}
+                    disabled={row.anulada}
                     className="h-7 w-7 !p-0 text-neutral-600 bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700 shadow-sm"
-                    title="Editar"
+                    title={row.anulada ? 'Actividad anulada' : 'Editar'}
                 />
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={(e) => { e.stopPropagation(); void handleCopyTask(row); }}
                     icon={Copy}
+                    disabled={row.anulada}
                     className="h-7 w-7 !p-0 text-primary-500 bg-primary-50 hover:bg-primary-100 dark:bg-primary-900/20 dark:text-primary-400 dark:hover:bg-primary-900/40 border border-primary-200 dark:border-primary-800 shadow-sm"
-                    title="Copiar tarea"
+                    title={row.anulada ? 'Actividad anulada' : 'Copiar tarea'}
                 />
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={(e) => { e.stopPropagation(); void handleDeleteClick(row.id); }}
                     icon={Trash2}
+                    disabled={row.anulada}
                     className="h-7 w-7 !p-0 text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800 shadow-sm"
-                    title="Eliminar"
+                    title={row.anulada ? 'Actividad anulada' : 'Anular'}
                 />
             </div>
         )
