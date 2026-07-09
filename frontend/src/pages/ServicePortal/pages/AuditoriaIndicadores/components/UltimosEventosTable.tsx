@@ -4,6 +4,7 @@ import { DataTable, Modal } from '../../../../../components/molecules';
 import { ChevronDown, ChevronRight, Users, Search } from 'lucide-react';
 import type { AuditoriaEvento, ResultadoAuditoria } from '../../../../../types/auditoria';
 import { humanizarModulo, humanizarAccionDetallada, humanizarResultado } from '../utils/humanizer';
+import AuditoriaEventoDetalle from '../../../../AuditoriaSistema/components/AuditoriaEventoDetalle';
 
 interface UltimosEventosTableProps {
   datos: AuditoriaEvento[];
@@ -11,6 +12,7 @@ interface UltimosEventosTableProps {
   hideSearch?: boolean;
   hideModuleFilter?: boolean;
   hideGroupButton?: boolean;
+  onVerDetalle?: (evento: AuditoriaEvento) => void;
 }
 
 const getResultColor = (resultado: ResultadoAuditoria) => {
@@ -128,6 +130,7 @@ const MODULOS_DISPONIBLES = [
   { value: 'actividades', label: 'Actividades' },
   { value: 'impuestos', label: 'Gestión Tributaria' },
   { value: 'comisiones', label: 'Nómina: Comisiones' },
+  { value: 'inventario', label: 'Inventario Anual de TI' },
 ];
 
 const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({ 
@@ -135,13 +138,23 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
   isLoading, 
   hideSearch = false,
   hideModuleFilter = false,
-  hideGroupButton = false
+  hideGroupButton = false,
+  onVerDetalle
 }) => {
   const [agrupado, setAgrupado] = useState(false);
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [filtroModulo, setFiltroModulo] = useState<string>('todos');
+  const [filtroResultado, setFiltroResultado] = useState<string>('todos');
   const [busquedaUsuario, setBusquedaUsuario] = useState<string>('');
   const [eventoSeleccionado, setEventoSeleccionado] = useState<AuditoriaEvento | null>(null);
+
+  const hasActiveFilters = filtroModulo !== 'todos' || filtroResultado !== 'todos' || busquedaUsuario !== '';
+
+  const handleClearFilters = () => {
+    setFiltroModulo('todos');
+    setFiltroResultado('todos');
+    setBusquedaUsuario('');
+  };
 
   const datosFiltrados = useMemo(() => {
     if (!datos) return [];
@@ -149,6 +162,14 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
     
     if (filtroModulo !== 'todos') {
       filtrados = filtrados.filter(row => row.modulo === filtroModulo);
+    }
+
+    if (filtroResultado !== 'todos') {
+      if (filtroResultado === 'exitosos') {
+        filtrados = filtrados.filter(row => row.resultado === 'exito');
+      } else if (filtroResultado === 'no_exitosos') {
+        filtrados = filtrados.filter(row => row.resultado !== 'exito');
+      }
     }
     
     if (busquedaUsuario.trim() !== '') {
@@ -161,7 +182,7 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
     }
     
     return filtrados;
-  }, [datos, filtroModulo, busquedaUsuario]);
+  }, [datos, filtroModulo, filtroResultado, busquedaUsuario]);
 
   const groupedData = useMemo(() => {
     if (!agrupado || !datosFiltrados) return [];
@@ -322,6 +343,19 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
                 />
               </div>
             )}
+            <div className="w-48">
+              <Select
+                id="filtro-resultado"
+                options={[
+                  { value: 'todos', label: 'Todos los resultados' },
+                  { value: 'exitosos', label: 'Exitosos' },
+                  { value: 'no_exitosos', label: 'Fallos y Denegados' }
+                ]}
+                value={filtroResultado}
+                onChange={(e) => setFiltroResultado(e.target.value)}
+                size="sm"
+              />
+            </div>
             {!hideGroupButton && (
               <Button 
                 variant={agrupado ? 'primary' : 'outline'} 
@@ -330,6 +364,11 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
                 icon={Users}
               >
                 {agrupado ? 'Desagrupar' : 'Agrupar por Persona'}
+              </Button>
+            )}
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+                Limpiar
               </Button>
             )}
           </div>
@@ -341,7 +380,7 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
           data={datosFiltrados} 
           keyExtractor={(row) => row.id.toString()}
           emptyMessage="No se encontraron eventos en este período."
-          onRowClick={(row) => setEventoSeleccionado(row)}
+          onRowClick={(row) => onVerDetalle ? onVerDetalle(row) : setEventoSeleccionado(row)}
         />
       ) : (
         <div className="flex flex-col gap-3">
@@ -374,7 +413,7 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
                         columns={columnsWithoutUser} 
                         data={group.eventos} 
                         keyExtractor={(row) => row.id.toString()}
-                        onRowClick={(row) => setEventoSeleccionado(row)}
+                        onRowClick={(row) => onVerDetalle ? onVerDetalle(row) : setEventoSeleccionado(row)}
                       />
                     </div>
                   )}
@@ -385,86 +424,11 @@ const UltimosEventosTable: React.FC<UltimosEventosTableProps> = ({
         </div>
       )}
 
-      {/* Modal de Detalles del Evento */}
-      <Modal
-        isOpen={!!eventoSeleccionado}
-        onClose={() => setEventoSeleccionado(null)}
-        title="Radiografía del Evento"
-        size="lg"
-      >
-        {eventoSeleccionado && (
-          <div className="space-y-6">
-            {/* Cabecera / Info Principal */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Text variant="caption" color="text-secondary" weight="bold" className="uppercase tracking-wider block mb-1">Usuario</Text>
-                <Text variant="body2" weight="medium" className="text-[var(--color-text-primary)]">{eventoSeleccionado.usuario_nombre || eventoSeleccionado.usuario_id}</Text>
-                <Text variant="caption" color="text-secondary">{eventoSeleccionado.rol || 'Sin rol'}</Text>
-              </div>
-              <div>
-                <Text variant="caption" color="text-secondary" weight="bold" className="uppercase tracking-wider block mb-1">Fecha y Hora</Text>
-                <Text variant="body2" weight="medium" className="text-[var(--color-text-primary)]">
-                  {eventoSeleccionado.timestamp ? new Date(eventoSeleccionado.timestamp).toLocaleString() : 'N/A'}
-                </Text>
-              </div>
-            </div>
-
-            {/* Módulo y Acción */}
-            <div className="bg-[var(--color-surface-variant)] p-4 rounded-xl border border-[var(--color-border)]">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Text variant="caption" color="text-secondary" weight="bold" className="uppercase tracking-wider block mb-1">Módulo</Text>
-                  <Text variant="body2" weight="medium" className="text-[var(--color-text-primary)]">{humanizarModulo(eventoSeleccionado.modulo)}</Text>
-                </div>
-                <div>
-                  <Text variant="caption" color="text-secondary" weight="bold" className="uppercase tracking-wider block mb-1">Acción Específica</Text>
-                  <Text variant="body2" weight="medium" className="text-[var(--color-text-primary)]">{humanizarAccionDetallada(eventoSeleccionado)}</Text>
-                </div>
-              </div>
-            </div>
-
-            {/* Detalles Técnicos */}
-            <div>
-              <Text variant="subtitle2" weight="bold" color="text-primary" className="mb-3 border-b border-[var(--color-border)] pb-2">Detalles Técnicos</Text>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
-                <div>
-                  <Text variant="caption" color="text-secondary" className="block mb-1">Ruta (Endpoint)</Text>
-                  <Text variant="body2" className="font-mono text-[11px] break-all bg-[var(--color-surface-variant)] px-2 py-1 rounded text-[var(--color-text-primary)] inline-block">{eventoSeleccionado.ruta || 'N/A'}</Text>
-                </div>
-                <div>
-                  <Text variant="caption" color="text-secondary" className="block mb-1">Método / Código HTTP</Text>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="default" size="sm" className="font-mono">{eventoSeleccionado.metodo_http || 'N/A'}</Badge>
-                    <Badge variant={eventoSeleccionado.codigo_respuesta && eventoSeleccionado.codigo_respuesta >= 400 ? 'error' : 'success'} size="sm" className="font-mono">{eventoSeleccionado.codigo_respuesta || 'N/A'}</Badge>
-                  </div>
-                </div>
-                <div>
-                  <Text variant="caption" color="text-secondary" className="block mb-1">Dirección IP</Text>
-                  <Text variant="body2" className="font-mono text-[12px] text-[var(--color-text-primary)]">{eventoSeleccionado.direccion_ip || 'N/A'}</Text>
-                </div>
-                <div>
-                  <Text variant="caption" color="text-secondary" className="block mb-1">Agente de Usuario</Text>
-                  <Text variant="body2" className="text-[11px] text-[var(--color-text-secondary)] leading-snug">
-                    {eventoSeleccionado.agente_usuario || 'N/A'}
-                  </Text>
-                </div>
-              </div>
-            </div>
-
-            {/* Metadatos / Payload */}
-            {eventoSeleccionado.metadatos && Object.keys(eventoSeleccionado.metadatos).length > 0 && (
-              <div>
-                <Text variant="subtitle2" weight="bold" color="text-primary" className="mb-3 border-b border-[var(--color-border)] pb-2">Metadatos / Payload del Evento</Text>
-                <div className="bg-[#1e1e1e] dark:bg-[#0a0a0a] rounded-xl p-4 overflow-x-auto shadow-inner border border-gray-800">
-                  <pre className="text-[#d4d4d4] text-[12px] font-mono whitespace-pre-wrap leading-relaxed">
-                    {JSON.stringify(eventoSeleccionado.metadatos, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
+      {/* Modal de Detalles del Evento (Reutilizado del Sistema de Auditoría General) */}
+      <AuditoriaEventoDetalle 
+        evento={eventoSeleccionado} 
+        onCerrar={() => setEventoSeleccionado(null)} 
+      />
     </Card>
   );
 };

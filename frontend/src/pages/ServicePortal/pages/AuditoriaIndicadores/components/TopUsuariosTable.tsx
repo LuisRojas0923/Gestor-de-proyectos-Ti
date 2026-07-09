@@ -91,7 +91,7 @@ const TopUsuariosTable: React.FC<TopUsuariosTableProps> = ({ datos, onUserClick 
             emptyMessage="No hay datos para este período."
             onRowClick={onUserClick}
             className="flex-1 min-h-0"
-            maxHeight="350px"
+            maxHeight="max-h-[350px]"
           />
         </div>
       </div>

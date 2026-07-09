@@ -17,6 +17,7 @@ const MODULOS_DISPONIBLES = [
   { value: 'actividades', label: 'Actividades' },
   { value: 'impuestos', label: 'Gestión Tributaria' },
   { value: 'comisiones', label: 'Nómina: Comisiones' },
+  { value: 'inventario', label: 'Inventario Anual de TI' },
 ];
 
 const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
@@ -35,6 +36,7 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
       if (filtroModulo === 'actividades' && mod.includes('actividades')) return true;
       if (filtroModulo === 'impuestos' && mod === 'impuestos') return true;
       if (filtroModulo === 'comisiones' && mod === 'comisiones') return true;
+      if (filtroModulo === 'inventario' && mod.includes('inventario')) return true;
       
       return mod.includes(filtroModulo);
     });

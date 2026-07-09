@@ -1,9 +1,12 @@
 import React from 'react';
 import { MaterialCard as Card, Text } from '../../../components/atoms';
 
+import { humanizarClave } from '../../ServicePortal/pages/AuditoriaIndicadores/utils/humanizer';
+
 interface Props {
   datosAnteriores: Record<string, unknown> | null;
   datosNuevos: Record<string, unknown> | null;
+  accion?: string;
 }
 
 const formatearValor = (valor: unknown): string => {
@@ -15,7 +18,7 @@ const formatearValor = (valor: unknown): string => {
 const valorVacio = (valor: unknown): boolean =>
   valor === null || valor === undefined || valor === '';
 
-const ComparacionAntesDespues: React.FC<Props> = ({ datosAnteriores, datosNuevos }) => {
+const ComparacionAntesDespues: React.FC<Props> = ({ datosAnteriores, datosNuevos, accion }) => {
   const claves = Array.from(
     new Set([
       ...Object.keys(datosAnteriores ?? {}),
@@ -31,7 +34,9 @@ const ComparacionAntesDespues: React.FC<Props> = ({ datosAnteriores, datosNuevos
     );
   }
 
-  const esSoloCreacion = claves.every((clave) => valorVacio(datosAnteriores?.[clave]));
+  // Solo mostrar vista de "creación" si explícitamente la acción es 'crear'.
+  // Para 'actualizar' siempre mostramos el diff lado a lado, incluso si los valores anteriores eran vacíos.
+  const esSoloCreacion = accion === 'crear' || (!accion && claves.every((clave) => valorVacio(datosAnteriores?.[clave])));
 
   const clavesConCambio = claves.filter(
     (clave) => datosAnteriores?.[clave] !== datosNuevos?.[clave]
@@ -45,14 +50,14 @@ const ComparacionAntesDespues: React.FC<Props> = ({ datosAnteriores, datosNuevos
             Valores creados
           </Text>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 p-3 max-h-44 overflow-y-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 p-3 max-h-44 overflow-y-auto custom-scrollbar">
           {claves.map((clave) => (
             <div
               key={clave}
               className="rounded-lg border border-[var(--color-border)] bg-green-50/40 dark:bg-green-950/20 px-2.5 py-2 min-w-0"
             >
-              <Text variant="caption" color="text-secondary" className="!text-[9px] uppercase block mb-0.5 truncate">
-                {clave.replace(/_/g, ' ')}
+              <Text variant="caption" color="text-secondary" className="!text-[9px] uppercase block mb-0.5 truncate" title={humanizarClave(clave)}>
+                {humanizarClave(clave)}
               </Text>
               <Text variant="body2" className="font-mono text-xs break-all leading-snug">
                 {formatearValor(datosNuevos?.[clave])}
@@ -74,20 +79,20 @@ const ComparacionAntesDespues: React.FC<Props> = ({ datosAnteriores, datosNuevos
           Después
         </Text>
       </div>
-      <div className="divide-y divide-[var(--color-border)] max-h-44 overflow-y-auto">
+      <div className="divide-y divide-[var(--color-border)] max-h-44 overflow-y-auto custom-scrollbar">
         {clavesConCambio.map((clave) => (
           <div key={clave} className="grid grid-cols-2">
             <div className="px-3 py-2 border-r border-[var(--color-border)] bg-red-50/40 dark:bg-red-950/20 min-w-0">
-              <Text variant="caption" color="text-secondary" className="!text-[9px] uppercase block mb-0.5">
-                {clave.replace(/_/g, ' ')}
+              <Text variant="caption" color="text-secondary" className="!text-[9px] uppercase block mb-0.5" title={humanizarClave(clave)}>
+                {humanizarClave(clave)}
               </Text>
               <Text variant="body2" className="font-mono text-xs break-all whitespace-pre-wrap leading-snug">
                 {formatearValor(datosAnteriores?.[clave])}
               </Text>
             </div>
             <div className="px-3 py-2 bg-green-50/40 dark:bg-green-950/20 min-w-0">
-              <Text variant="caption" color="text-secondary" className="!text-[9px] uppercase block mb-0.5">
-                {clave.replace(/_/g, ' ')}
+              <Text variant="caption" color="text-secondary" className="!text-[9px] uppercase block mb-0.5" title={humanizarClave(clave)}>
+                {humanizarClave(clave)}
               </Text>
               <Text variant="body2" className="font-mono text-xs break-all whitespace-pre-wrap leading-snug">
                 {formatearValor(datosNuevos?.[clave])}

@@ -335,7 +335,7 @@ export function DataTable<T>({
                                 (bodyGridRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
                                 if (bodyRef) (bodyRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
                             }}
-                            className="overflow-y-auto custom-scrollbar"
+                            className="overflow-y-auto custom-scrollbar flex-1 min-h-0"
                         >
                             {data.map((row, rowIndex) => (
                                 <div

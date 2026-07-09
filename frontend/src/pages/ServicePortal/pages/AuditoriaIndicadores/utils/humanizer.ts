@@ -24,7 +24,10 @@ const MODULOS_MAP: Record<string, string> = {
   'biometria': 'Asistencia Facial / Biometría',
   'biometria_db': 'Base de Datos Biométrica',
   'impuestos': 'Gestión Tributaria y Retenciones',
-  'comisiones': 'Nómina: Comisiones'
+  'comisiones': 'Nómina: Comisiones',
+  'nomina_novedades': 'Novedades de Nómina',
+  'jerarquia_organizacional': 'Jerarquía Organizacional',
+  'inventario': 'Inventario Anual de TI'
 };
 
 const ACCIONES_MAP: Record<string, string> = {
@@ -59,6 +62,37 @@ export const humanizarAccion = (accion: string | null | undefined): string => {
 /**
  * Humaniza el resultado técnico
  */
+const CLAVES_MAP: Record<string, string> = {
+  'id': 'ID',
+  'nombre': 'Nombre',
+  'descripcion': 'Descripción',
+  'estado': 'Estado',
+  'is_active': 'Activo',
+  'is_superuser': 'Superusuario',
+  'created_at': 'Fecha de Creación',
+  'updated_at': 'Última Actualización',
+  'id_usuario': 'ID Usuario',
+  'rol': 'Rol de Usuario',
+  'tipo': 'Tipo',
+  'categoria': 'Categoría',
+  'fecha': 'Fecha',
+  'valor': 'Valor',
+  'observaciones': 'Observaciones'
+};
+
+/**
+ * Convierte una clave técnica de JSON en un nombre más legible.
+ */
+export const humanizarClave = (clave: string): string => {
+  if (!clave) return '';
+  const clean = clave.trim().toLowerCase();
+  if (CLAVES_MAP[clean]) return CLAVES_MAP[clean];
+  
+  // Convertir snake_case o camelCase a texto normal capitalizado
+  const palabras = clave.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+  return palabras.charAt(0).toUpperCase() + palabras.slice(1).toLowerCase();
+};
+
 export const humanizarResultado = (resultado: string | null | undefined, codigo?: number | null): string => {
   if (!resultado) return 'Procesado';
   const res = resultado.toLowerCase();
@@ -117,6 +151,9 @@ export const humanizarAccionDetallada = (row: any): string => {
     if (ruta.includes('/estado-cuenta/xlsx')) {
       return `Exportó Excel de Estado de Cuenta de Viáticos${deEmpleado}`;
     }
+    if (ruta.includes('/reporte-gastos/auditar-descarga')) {
+      return `Descargó PDF del Reporte de Gastos de Viáticos${deEmpleado}`;
+    }
   }
 
   // 2. Control de Acceso (Auth)
@@ -132,9 +169,39 @@ export const humanizarAccionDetallada = (row: any): string => {
     if (ruta.includes('/asistencia')) return 'Marcó asistencia mediante biometría facial';
   }
 
-  // 4. Desarrollos / Software Factory
-  if ((modulo === 'desarrollos' || modulo === 'desarrollo') && row.accion === 'crear') {
-    if (datos && datos.nombre) return `Creó el proyecto/requerimiento: ${datos.nombre}`;
+  // 4. Desarrollos / Software Factory / Actividades
+  if (modulo === 'desarrollos' || modulo === 'desarrollo' || modulo === 'actividades' || ruta.includes('/actividades') || ruta.includes('/desarrollos')) {
+    
+    // Acciones específicas de Actividades
+    if (ruta.includes('/actividades')) {
+      const titulo = datos?.titulo ? ` "${datos.titulo}"` : '';
+      if (row.metodo_http === 'POST' || row.accion === 'crear') {
+        return `Creó una nueva actividad${titulo} en el proyecto`;
+      }
+      if (row.metodo_http === 'PATCH' || row.metodo_http === 'PUT' || row.accion === 'actualizar') {
+        if (datos?.estado) return `Actualizó el estado de la actividad${titulo} a "${datos.estado}"`;
+        if (datos?.porcentaje_avance !== undefined) return `Actualizó el progreso de la actividad${titulo} al ${datos.porcentaje_avance}%`;
+        return `Actualizó información de la actividad${titulo}`;
+      }
+      if (row.metodo_http === 'DELETE' || row.accion === 'eliminar') {
+        return `Eliminó la actividad${titulo} del proyecto`;
+      }
+    }
+
+    // Acciones específicas de Desarrollos (Proyectos)
+    if (ruta.includes('/desarrollos') || row.entidad === 'desarrollo' || row.accion) {
+      const nombre = datos?.nombre ? ` "${datos.nombre}"` : '';
+      if (row.metodo_http === 'POST' || row.accion === 'crear') {
+        return `Creó el proyecto/requerimiento${nombre}`;
+      }
+      if (row.metodo_http === 'PATCH' || row.metodo_http === 'PUT' || row.accion === 'actualizar') {
+        if (datos?.estado) return `Cambió el estado del proyecto${nombre} a "${datos.estado}"`;
+        return `Actualizó la información base del proyecto${nombre}`;
+      }
+      if (row.metodo_http === 'DELETE' || row.accion === 'eliminar') {
+        return `Eliminó el proyecto/requerimiento${nombre}`;
+      }
+    }
   }
 
   // 5. ERP / Requisiciones
@@ -161,44 +228,97 @@ export const humanizarAccionDetallada = (row: any): string => {
     }
   }
 
-  // 7. Nómina / Comisiones
-  if (modulo === 'comisiones') {
-    const mes = row.metadatos?.mes || '';
-    const anio = row.metadatos?.anio || '';
-    const periodo = (mes && anio) ? ` para el periodo ${mes}/${anio}` : '';
-    
-    if (ruta.includes('/datos') && row.accion === 'consultar') {
-      return `Consultó los registros de comisiones${periodo}`;
+  // 7. Nómina, Comisiones y Novedades
+  if (modulo === 'comisiones' || modulo === 'nomina_novedades') {
+    // 7.1 Archivos base
+    if (ruta.includes('/archivos') && row.metodo_http === 'POST') {
+      if (ruta.includes('/procesar')) return 'Confirmó y procesó el archivo de novedades';
+      return 'Subió archivo base de nómina para validación';
     }
-    if (ruta.includes('/favoritos')) {
-      const operacion = row.metadatos?.operacion === 'added' ? 'Agregó a' : 'Eliminó de';
-      const cedula = row.metadatos?.cedula || '';
-      return `${operacion} sus favoritos de comisiones (Cédula: ${cedula})`;
+    if (ruta.includes('/exportar-solid') && row.metodo_http === 'POST') return 'Exportó novedades procesadas al ERP (SOLID)';
+
+    // 7.2 Comisiones
+    if (ruta.includes('/datos') && row.accion === 'consultar') return 'Consultó los registros de comisiones';
+    if (ruta.includes('/exportar')) return 'Descargó reporte de comisiones';
+    if (ruta.includes('/procesar-manual') && !ruta.includes('/embargos/')) return 'Procesó cálculos manuales de comisiones';
+    if (ruta.includes('/favoritos/toggle')) return 'Agregó/Eliminó empleado de su lista de favoritos (Comisiones)';
+
+    // 7.3 Control de Descuentos
+    if (ruta.includes('/control_descuentos/registro')) {
+      if (row.metodo_http === 'POST') return 'Registró un nuevo descuento quincenal';
+      if (row.metodo_http === 'PUT' || row.metodo_http === 'PATCH') return 'Modificó un descuento quincenal existente';
+      if (row.metodo_http === 'DELETE') return 'Eliminó un descuento quincenal';
     }
-    if (ruta.includes('/procesar-manual') || ruta.includes('/procesar_manual')) {
-      return `Procesó cálculos manuales de comisiones${periodo}`;
+    if (ruta.includes('/control_descuentos/conceptos') && row.metodo_http === 'POST') return 'Creó un nuevo concepto de descuento';
+
+    // 7.4 Embargos, Retenciones y Otros
+    if (ruta.includes('/embargos/procesar-manual')) return 'Aplicó embargo de forma manual';
+    if (ruta.includes('/preview')) return 'Generó vista previa de deducciones (Nómina/Cooperativas/Retenciones)';
+
+    // 7.5 Excepciones
+    if (ruta.includes('/excepciones')) {
+      if (ruta.includes('/estado') && row.metodo_http === 'PATCH') return 'Cambió el estado (Aprobó/Rechazó) de una excepción de nómina';
+      if (row.metodo_http === 'POST') return 'Registró una nueva excepción de nómina';
+      if (row.metodo_http === 'DELETE') return 'Eliminó una excepción de nómina';
     }
   }
 
-  // 8. Reserva de Salas
+  // 8. Jerarquía Organizacional y Permisos (Auth)
+  if (modulo === 'jerarquia_organizacional' || modulo === 'auth') {
+    // Jerarquía
+    if (ruta.includes('/relaciones')) {
+      if (row.metodo_http === 'POST') return 'Asignó un nuevo jefe inmediato a un empleado';
+      if (row.metodo_http === 'PATCH') return 'Modificó la línea de reporte (jefe inmediato) de un empleado';
+      if (row.metodo_http === 'DELETE') return 'Desactivó la línea de reporte de un empleado';
+    }
+    // Usuarios / Analistas
+    if ((ruta.includes('/usuarios') || ruta.includes('/analistas/crear')) && row.metodo_http === 'POST') {
+      return 'Registró un nuevo usuario en el sistema';
+    }
+    if (ruta.includes('/analistas/') && row.metodo_http === 'PATCH') {
+      return 'Actualizó el perfil, estado o rol de un usuario';
+    }
+    // Roles y Permisos (Matriz)
+    if (ruta.includes('/permisos') && row.metodo_http === 'POST') return 'Actualizó la matriz global de permisos del sistema';
+    if (ruta.includes('/roles')) {
+      if (row.metodo_http === 'POST') return 'Creó un nuevo rol en el sistema';
+      if (row.metodo_http === 'PUT' || row.metodo_http === 'PATCH') return 'Modificó la configuración de un rol de sistema';
+      if (row.metodo_http === 'DELETE') return 'Eliminó un rol del sistema';
+    }
+  }
+
+  // 9. Reserva de Salas
   if ((modulo.includes('reserva_salas') || modulo.includes('reserva-salas')) && row.accion === 'crear') {
     const salaNombre = datos?.room_name ? ` en ${datos.room_name}` : '';
     if (datos && datos.title) return `Reservó sala para: ${datos.title}${salaNombre}`;
     return `Reservó una sala de reuniones${salaNombre}`;
   }
 
-  // 7. Nómina / Comisiones
-  if (modulo === 'comisiones' || ruta.includes('comisiones')) {
-    if (row.accion === 'consultar') return 'Consultó datos de comisiones de nómina';
-    if (row.accion === 'exportar') return 'Descargó reporte de comisiones';
-  }
-
-  // 8. Inventario
+  // 10. Inventario
   if (modulo === 'inventario') {
-    if (ruta.includes('ronda-vista')) return 'Actualizó su vista de la ronda de inventario';
+    if (ruta.includes('/config')) return 'Configuró la ronda activa o el nombre del inventario';
+    if (ruta.includes('/guardar-conteo')) return 'Registró o actualizó el conteo físico de un ítem';
+    if (ruta.includes('/cargar-excel')) return 'Importó listado maestro de equipos (Excel)';
+    if (ruta.includes('/cargar-transito')) return 'Importó listado de mercancía en tránsito (Excel)';
+    if (ruta.includes('/cargar-legacy')) return 'Importó resultados históricos (Legacy Excel)';
+    if (ruta.includes('/asignaciones/limpiar')) return 'Reinició/Vació el progreso del inventario actual';
+    if (ruta.includes('/auditar-impresion-pdf')) return 'Descargó Planilla Manual 0 para conteo (PDF)';
+    if (ruta.includes('/auditar-descarga-pdf-asignado')) return 'Descargó PDF de su Planilla de Conteo Asignada';
+    if (ruta.includes('/auditar-exportacion')) return 'Exportó listado de asignaciones/responsables (Excel)';
+    if (ruta.includes('/ronda-vista')) return 'Aceptó e inició la ronda de inventario asignada';
+    if (ruta.includes('/plantilla-maestra')) return 'Descargó la Plantilla Maestra en Excel (.xlsx)';
+    if (ruta.includes('/plantilla-transito')) return 'Descargó la Plantilla de Tránsito en Excel (.xlsx)';
+    
+    // Desglose detallado de operaciones de asignación
+    if (ruta.includes('/asignar/habilitar-c2')) return 'Habilitó Segundo Conteo (C2) para responsable';
+    if (ruta.includes('/asignar')) {
+      if (row.metodo_http === 'DELETE') return 'Eliminó la asignación de un responsable';
+      if (row.metodo_http === 'PATCH') return 'Actualizó datos de la asignación de responsable';
+      return 'Asignó un usuario responsable a una bodega/bloque';
+    }
   }
 
-  // 9. Tickets de Soporte
+  // 11. Tickets de Soporte
   if (modulo.includes('ticket') || modulo === 'sistemas') {
     if (row.accion === 'crear') {
       return datos?.asunto ? `Creó ticket de soporte: ${datos.asunto}` : 'Creó un nuevo ticket de soporte';

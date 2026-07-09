@@ -1,5 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import axios from 'axios';
+import { API_CONFIG } from '../../../config/api';
 
 interface PlanillaManualPDFProps {
     addNotification: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
@@ -129,6 +131,11 @@ export const usePlanillaManualPDF = ({ addNotification }: PlanillaManualPDFProps
             doc.text(`Hoja Única de Conteo Manual`, pageWidth / 2, pageHeight - 4, { align: 'center' });
 
             doc.save(`Planilla_0_Manual_Inventario_2026.pdf`);
+            
+            // Registrar evento en auditoría silenciosamente
+            const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
+            axios.post(`${API_CONFIG.BASE_URL}/inventario/auditar-impresion-pdf`, {}, { headers }).catch(() => {});
+            
             addNotification('success', "Planilla 0 (Manual) generada con éxito.");
 
         } catch (error) {

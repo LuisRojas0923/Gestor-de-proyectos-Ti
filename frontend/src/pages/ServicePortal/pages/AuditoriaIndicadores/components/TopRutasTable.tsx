@@ -19,6 +19,7 @@ const MODULOS_DISPONIBLES = [
   { value: 'actividades', label: 'Actividades' },
   { value: 'impuestos', label: 'Gestión Tributaria' },
   { value: 'comisiones', label: 'Nómina: Comisiones' },
+  { value: 'inventario', label: 'Inventario Anual de TI' },
 ];
 
 const TopRutasTable: React.FC<TopRutasTableProps> = ({ datos, onRouteClick }) => {
@@ -39,6 +40,7 @@ const TopRutasTable: React.FC<TopRutasTableProps> = ({ datos, onRouteClick }) =>
       if (filtroModulo === 'actividades' && rutaNormalizada.includes('/actividades')) return true;
       if (filtroModulo === 'impuestos' && rutaNormalizada.includes('/impuestos')) return true;
       if (filtroModulo === 'comisiones' && rutaNormalizada.includes('/comisiones')) return true;
+      if (filtroModulo === 'inventario' && rutaNormalizada.includes('/inventario')) return true;
       
       return rutaNormalizada.includes(filtroModulo);
     });
@@ -131,7 +133,7 @@ const TopRutasTable: React.FC<TopRutasTableProps> = ({ datos, onRouteClick }) =>
             emptyMessage={filtroModulo === 'todos' ? "No hay datos para este período." : "No hay rutas para el módulo seleccionado."}
             onRowClick={onRouteClick}
             className="flex-1 min-h-0"
-            maxHeight="350px"
+            maxHeight="max-h-[350px]"
           />
         </div>
       </div>

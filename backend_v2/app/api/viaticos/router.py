@@ -282,3 +282,44 @@ async def auditar_descarga_estado_cuenta(
     await db.commit()
 
     return {"status": "logged", "mensaje": "Acción registrada en auditoría"}
+
+
+@router.post("/reporte-gastos/auditar-descarga")
+async def auditar_descarga_reporte_gastos(
+    payload: AuditarDescargaRequest,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
+    db: AsyncSession = Depends(obtener_db),
+):
+    """Registra la descarga de PDF del reporte de gastos de viáticos"""
+    if payload.tipo_archivo != "pdf":
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo de archivo no soportado para este reporte."
+        )
+
+    usuario_id = str(usuario_actual.id)
+    usuario_nombre = usuario_actual.nombre or "Desconocido"
+    rol = usuario_actual.rol or "usuario"
+    
+    metadatos = {}
+    if payload.cedula_consultada:
+        metadatos["cedula_consultada"] = payload.cedula_consultada
+    if payload.nombre_consultado:
+        metadatos["nombre_consultado"] = payload.nombre_consultado
+
+    nuevo_registro = AuditoriaAccionUsuario(
+        usuario_id=usuario_id,
+        usuario_nombre=usuario_nombre,
+        rol=rol,
+        modulo="viaticos",
+        accion="exportar",
+        ruta="/api/v2/viaticos/reporte-gastos/auditar-descarga",
+        metodo_http="POST",
+        codigo_respuesta=200,
+        resultado="exito",
+        metadatos=metadatos if metadatos else None,
+    )
+    db.add(nuevo_registro)
+    await db.commit()
+
+    return {"status": "logged", "mensaje": "Descarga de reporte de gastos registrada"}
