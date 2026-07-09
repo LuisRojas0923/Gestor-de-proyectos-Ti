@@ -48,17 +48,11 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       accessorKey: 'rp',
       align: 'center',
       cell: (row) => (
-        <div className="flex items-center justify-center gap-2">
-          <Button variant="ghost" onClick={() => onVer(row.id)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-blue-600 transition-colors" title="Ver Requisición">
-            <Eye className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" onClick={() => window.open(`/service-portal/requisicion-personal/print/${row.id}`, '_blank')} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-emerald-600 transition-colors" title="Imprimir Requisición">
-            <Printer className="w-4 h-4" />
-          </Button>
+        <div className="flex items-center justify-center">
           <Button
             variant="ghost"
             onClick={() => setSearchParams({ id: String(row.id) })}
-            className="px-2 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 font-mono font-bold text-blue-700 dark:text-blue-400 hover:underline transition-colors text-left"
+            className="px-2 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 font-mono font-bold text-blue-700 dark:text-blue-400 hover:underline transition-colors text-center"
             title="Gestionar Seguimiento y Candidatos"
           >
             {row.rp || 'Sin RP'}
@@ -115,6 +109,21 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       accessorKey: 'estado',
       align: 'center',
       cell: (row) => <RPStatusBadge estado={row.estado as EstadoRP} size="sm" />,
+    },
+    {
+      header: 'Acciones',
+      accessorKey: 'id',
+      align: 'center',
+      cell: (row) => (
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="ghost" onClick={() => onVer(row.id)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-blue-600 transition-colors" title="Ver Requisición">
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" onClick={() => window.open(`/service-portal/requisicion-personal/print/${row.id}`, '_blank')} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-emerald-600 transition-colors" title="Imprimir Requisición">
+            <Printer className="w-4 h-4" />
+          </Button>
+        </div>
+      ),
     },
   ], [onVer, setSearchParams]);
 
@@ -235,15 +244,15 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
       {/* Tarjetas de Métricas del Dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Total */}
-        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4 flex flex-col items-center justify-center text-center gap-2 shadow-sm">
-          <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0">
-            <Briefcase className="w-5 h-5 text-[var(--color-primary)]" />
-          </div>
-          <div className="min-w-0">
-            <Text variant="caption" color="secondary" className="block uppercase tracking-wider font-bold">Total</Text>
-            <div className="text-xl font-bold leading-none mt-1">
-              {requisiciones.length}
+        <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] px-4 py-2 flex items-center justify-between gap-2 shadow-sm">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center shrink-0">
+              <Briefcase className="w-4 h-4 text-[var(--color-primary)]" />
             </div>
+            <Text variant="caption" color="secondary" className="text-[11px] uppercase tracking-wider font-bold truncate">Total</Text>
+          </div>
+          <div className="text-lg font-bold leading-none text-[var(--color-primary)] shrink-0">
+            {requisiciones.length}
           </div>
         </div>
 
@@ -258,16 +267,16 @@ const BandejaGestionHumana: React.FC<Props> = ({ onVer, onVolver }) => {
           const Icon = ICONOS[estado] || Archive;
           
           return (
-            <div key={estado} className={`rounded-2xl p-4 ${colores.bg} border border-transparent shadow-sm flex flex-col items-center justify-center text-center gap-2`}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
-                <Icon className={`w-5 h-5 ${colores.text}`} />
-              </div>
-              <div className="min-w-0">
-                <Text variant="caption" className={`block truncate font-bold uppercase tracking-wider ${colores.text}`}>
+            <div key={estado} className={`rounded-xl px-4 py-2 ${colores.bg} border border-transparent shadow-sm flex items-center justify-between gap-2`}>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                  <Icon className={`w-4 h-4 ${colores.text}`} />
+                </div>
+                <Text variant="caption" className={`text-[11px] font-bold uppercase tracking-wider truncate ${colores.text}`}>
                   {label}
                 </Text>
-                <div className={`text-xl font-bold leading-none mt-1 ${colores.text}`}>{count}</div>
               </div>
+              <div className={`text-lg font-bold leading-none shrink-0 ${colores.text}`}>{count}</div>
             </div>
           );
         })}
