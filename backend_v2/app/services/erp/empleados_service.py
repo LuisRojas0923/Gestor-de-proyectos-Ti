@@ -1,6 +1,10 @@
+import logging
 from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+
+
+logger = logging.getLogger(__name__)
 
 
 def _normalizar_nivel_riesgo(valor: Optional[str]) -> str:
@@ -48,6 +52,11 @@ def _normalizar_bool(valor):
     return None
 
 
+def normalizar_bool_erp(valor, default: bool = False) -> bool:
+    normalizado = _normalizar_bool(valor)
+    return default if normalizado is None else normalizado
+
+
 def _existe_columna(db_erp: Session, tabla: str, columna: str) -> bool:
     try:
         query = text("""
@@ -74,7 +83,7 @@ class EmpleadosService:
     @staticmethod
     async def obtener_empleado_por_cedula(db_erp: Session, cedula: str, solo_activos: bool = True) -> Optional[Dict]:
         """Consulta un empleado en la base de datos del ERP por su cedula"""
-        print(f"DEBUG: Consultando empleado cedula={cedula} en ERP (solo_activos={solo_activos})...")
+        logger.debug("Consultando empleado en ERP solo_activos=%s", solo_activos)
 
         # Filtro de estado dinámico
         estado_filtro = "AND C.estado = 'Activo'" if solo_activos else ""
@@ -109,6 +118,8 @@ class EmpleadosService:
 
         resultado = db_erp.execute(query, {"cedula": cedula.strip()}).first()
         if resultado:
+            if solo_activos and (resultado.estado or "").strip().lower() != "activo":
+                return None
             return {
                 "nrocedula": str(resultado.nrocedula),
                 "nombre": resultado.nombre,
@@ -129,6 +140,24 @@ class EmpleadosService:
                 "correo_sincronizado": True
             }
         return None
+
+    @staticmethod
+    async def validar_empleado_activo_autogestion(db_erp: Session, cedula: str) -> Optional[Dict]:
+        """Valida autogestion contra ERP. Falla cerrado si no hay contrato activo."""
+        if not db_erp:
+            return None
+        try:
+            empleado = await EmpleadosService.obtener_empleado_por_cedula(
+                db_erp, cedula, solo_activos=True
+            )
+        except Exception:
+            logger.warning("ERP no disponible durante validacion de autogestion")
+            return None
+        if not empleado:
+            return None
+        if (empleado.get("estado") or "").strip().lower() != "activo":
+            return None
+        return empleado
 
     @staticmethod
     def consultar_empleados_bulk(db_erp: Session, cedulas: List[str]) -> Dict[str, Dict]:
@@ -172,7 +201,7 @@ class EmpleadosService:
     async def actualizar_correo_erp(db_erp: Session, cedula: str, nuevo_correo: str) -> bool:
         """Actualiza el correo corporativo y el flag de sincronización en el ERP (Solid)"""
         try:
-            print(f"DEBUG: Actualizando correo ERP para cedula={cedula} -> {nuevo_correo}")
+            logger.info("Actualizando correo corporativo en ERP")
             query = text("""
                 UPDATE establecimiento 
                 SET correocorporativo = :correo
@@ -181,8 +210,8 @@ class EmpleadosService:
             db_erp.execute(query, {"correo": nuevo_correo, "cedula": cedula})
             db_erp.commit()
             return True
-        except Exception as e:
-            print(f"ERROR al actualizar correo en ERP: {e}")
+        except Exception:
+            logger.exception("Error al actualizar correo corporativo en ERP")
             db_erp.rollback()
             return False
 

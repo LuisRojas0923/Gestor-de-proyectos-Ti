@@ -147,9 +147,7 @@ async def test_jit_race_5_concurrentes_no_crea_duplicados(
     2. Crear EXACTAMENTE 1 usuario en la DB
     3. Todos retornar respuestas consistentes (mismo status code)
 
-    Status esperado:
-    - 400 si jit_auto_aprobar=True (legacy: PASSWORD_NOT_SET)
-    - 403 si jit_auto_aprobar=False (aprobación pendiente)
+    Status esperado: 400 PASSWORD_NOT_SET tras autogestion ERP activa.
     """
     cedula = requiere_erp_test_cedula
     password = "ClaveSegura#Test2026"
@@ -184,9 +182,9 @@ async def test_jit_race_5_concurrentes_no_crea_duplicados(
             )
 
             status = responses[0].status_code
-            assert status in (400, 403), (
+            assert status == 400, (
                 f"Status inesperado para login JIT: {status}. "
-                f"Esperado 400 (legacy) o 403 (aprobación pendiente)."
+                f"Esperado 400 (PASSWORD_NOT_SET)."
             )
 
         # Verificar que existe EXACTAMENTE 1 usuario con esa cédula

@@ -118,10 +118,10 @@ const RegisterSidebar: React.FC<RegisterSidebarProps> = ({ isOpen, onClose }) =>
                                 </div>
                                 <Title variant="h4" weight="bold" className="mb-3">¡Cuenta Creada!</Title>
                                 <Text variant="body1" className="text-[var(--color-text-secondary)] mb-6">
-                                    Tu cuenta ha sido creada exitosamente y está pendiente de aprobación por un administrador.
+                                    Tu cuenta fue validada contra el ERP y quedó habilitada exitosamente.
                                 </Text>
                                 <Text variant="body2" className="text-[var(--color-text-secondary)] mb-8">
-                                    Recibirás acceso al portal una vez que tu cuenta sea activada.
+                                    Ya puedes iniciar sesión con la contraseña registrada.
                                 </Text>
                                 <Button
                                     variant="primary"
@@ -136,7 +136,7 @@ const RegisterSidebar: React.FC<RegisterSidebarProps> = ({ isOpen, onClose }) =>
                                 <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl flex items-start space-x-3 mb-6 border border-blue-100 dark:border-blue-800">
                                     <User size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
                                     <Text variant="body2" className="text-blue-800 dark:text-blue-300">
-                                        Completa el formulario para registrarte en el portal. Tu cuenta quedará pendiente de aprobación.
+                                        Completa el formulario para registrarte. El sistema validará que tengas contrato activo en el ERP antes de habilitar la cuenta.
                                     </Text>
                                 </div>
 

@@ -1,9 +1,8 @@
 """
-Test unit para F2.1: feature flag JIT_AUTO_APROBAR (esta_activo según flag).
+Test unit para JIT con autogestion validada contra ERP activo.
 
-Cubre el fix de C2: usuarios creados por JIT deben tener esta_activo=False
-(pendiente de aprobación) por default en producción. El flag jit_auto_aprobar
-permite habilitar el comportamiento legacy (esta_activo=True) solo en dev.
+Cubre que usuarios creados por JIT queden activos solo si ERP confirma contrato
+activo, pero sin entregar token hasta configurar contraseña.
 NO requiere Docker ni DB real. Pico RAM ~100MB.
 """
 
@@ -50,14 +49,13 @@ def _build_async_db_mock():
 
 
 class TestJitApprovalFlag:
-    """Verifica que el flag jit_auto_aprobar controla esta_activo del usuario JIT."""
+    """Verifica que JIT ya no depende de jit_auto_aprobar para autogestion."""
 
     @pytest.mark.asyncio
-    async def test_jit_auto_aprobar_false_crea_usuario_inactivo_y_retorna_403(self):
-        """PROD default: jit_auto_aprobar=False.
-        - Se crea el usuario con esta_activo=False
-        - El endpoint retorna 403 'pendiente de aprobación'"""
+    async def test_jit_auto_aprobar_false_crea_usuario_activo_y_retorna_400_password_not_set(self):
+        """ERP activo: se crea activo y se exige configurar contraseña."""
         from app.api.auth.login_router import login
+        login_handler = getattr(login, "__wrapped__", login)
 
         form = _build_form_data(username="1107068093", password="ClaveSegura#2026")
         request = _build_request()
@@ -73,8 +71,8 @@ class TestJitApprovalFlag:
 
         with patch("app.services.auth.servicio.ServicioAuth.obtener_usuario_por_cedula",
                    new=AsyncMock(return_value=None)), \
-             patch("app.services.erp.empleados_service.EmpleadosService.obtener_empleado_por_cedula",
-                   new=AsyncMock(return_value=_build_empleado_erp())), \
+             patch("app.services.erp.empleados_service.EmpleadosService.validar_empleado_activo_autogestion",
+                    new=AsyncMock(return_value=_build_empleado_erp())), \
              patch("app.services.auth.servicio.ServicioAuth.obtener_hash_contrasena",
                    return_value="$2b$04$fakehash"), \
              patch("app.api.auth.login_router.obtener_configuracion") as mock_cfg:
@@ -82,24 +80,20 @@ class TestJitApprovalFlag:
             mock_cfg.return_value.portal_pending_pwd = "test_pending"
 
             with pytest.raises(HTTPException) as excinfo:
-                await login(request, form, db, db_erp)
+                await login_handler(request, form, db, db_erp)
 
-            # 403 = pendiente de aprobación
-            assert excinfo.value.status_code == 403
-            assert "aprobación" in excinfo.value.detail.lower() or "aprobacion" in excinfo.value.detail.lower()
+            assert excinfo.value.status_code == 400
+            assert excinfo.value.headers.get("X-Password-Not-Set") == "true"
 
             # El usuario SÍ fue creado (db.add fue llamado)
             db.add.assert_called_once()
-            # Pero con esta_activo=False
-            assert captured_usuario["obj"].esta_activo is False, \
-                "Con jit_auto_aprobar=False, esta_activo debe ser False"
+            assert captured_usuario["obj"].esta_activo is True
 
     @pytest.mark.asyncio
     async def test_jit_auto_aprobar_true_crea_usuario_activo_y_retorna_400_password_not_set(self):
-        """DEV: jit_auto_aprobar=True (legacy behavior).
-        - Se crea el usuario con esta_activo=True
-        - El endpoint retorna 400 'Contraseña no configurada' + header X-Password-Not-Set"""
+        """El flag true conserva la misma respuesta: contraseña no configurada."""
         from app.api.auth.login_router import login
+        login_handler = getattr(login, "__wrapped__", login)
 
         form = _build_form_data(username="1107068093", password="ClaveSegura#2026")
         request = _build_request()
@@ -115,7 +109,7 @@ class TestJitApprovalFlag:
 
         with patch("app.services.auth.servicio.ServicioAuth.obtener_usuario_por_cedula",
                    new=AsyncMock(return_value=None)), \
-             patch("app.services.erp.empleados_service.EmpleadosService.obtener_empleado_por_cedula",
+             patch("app.services.erp.empleados_service.EmpleadosService.validar_empleado_activo_autogestion",
                    new=AsyncMock(return_value=_build_empleado_erp())), \
              patch("app.services.auth.servicio.ServicioAuth.obtener_hash_contrasena",
                    return_value="$2b$04$fakehash"), \
@@ -124,9 +118,9 @@ class TestJitApprovalFlag:
             mock_cfg.return_value.portal_pending_pwd = "test_pending"
 
             with pytest.raises(HTTPException) as excinfo:
-                await login(request, form, db, db_erp)
+                await login_handler(request, form, db, db_erp)
 
-            # 400 PASSWORD_NOT_SET (legacy: usuario activo pero sin contraseña)
+            # 400 PASSWORD_NOT_SET: usuario activo pero sin contraseña
             assert excinfo.value.status_code == 400
             assert "contraseña no configurada" in excinfo.value.detail.lower() or \
                    "Contrasena no configurada" in excinfo.value.detail
@@ -137,7 +131,7 @@ class TestJitApprovalFlag:
 
             # Usuario creado con esta_activo=True
             assert captured_usuario["obj"].esta_activo is True, \
-                "Con jit_auto_aprobar=True, esta_activo debe ser True (legacy)"
+                "El usuario JIT confirmado por ERP debe quedar activo"
 
     @pytest.mark.asyncio
     async def test_jit_default_es_false_incluso_sin_flag(self):
@@ -164,6 +158,7 @@ class TestJitIntegrityError:
         2. Releer el usuario (que ya fue creado por el request concurrente)
         3. NO retornar 500 — continúa con el flujo normal de validación"""
         from app.api.auth.login_router import login
+        login_handler = getattr(login, "__wrapped__", login)
         from sqlalchemy.exc import IntegrityError
 
         form = _build_form_data(username="1107068093", password="ClaveSegura#2026")
@@ -190,7 +185,7 @@ class TestJitIntegrityError:
 
         with patch("app.services.auth.servicio.ServicioAuth.obtener_usuario_por_cedula",
                    new=AsyncMock(side_effect=_obtener_usuario_side_effect)), \
-             patch("app.services.erp.empleados_service.EmpleadosService.obtener_empleado_por_cedula",
+             patch("app.services.erp.empleados_service.EmpleadosService.validar_empleado_activo_autogestion",
                    new=AsyncMock(return_value=_build_empleado_erp())), \
              patch("app.services.auth.servicio.ServicioAuth.obtener_hash_contrasena",
                    return_value="$2b$04$fakehash"), \
@@ -201,20 +196,20 @@ class TestJitIntegrityError:
             mock_cfg.return_value.portal_pending_pwd = "test_pending"
 
             with pytest.raises(HTTPException) as excinfo:
-                await login(request, form, db, db_erp)
+                await login_handler(request, form, db, db_erp)
 
             # Crítico: se hizo rollback
             db.rollback.assert_called_once()
 
-            # Crítico: NO es 500 (el race condition se manejó)
-            assert excinfo.value.status_code != 500, \
-                f"Después de IntegrityError no debe haber 500, obtuve: {excinfo.value.status_code}"
+            assert excinfo.value.status_code == 400
+            assert excinfo.value.headers.get("X-Password-Not-Set") == "true"
 
     @pytest.mark.asyncio
     async def test_integrity_error_sin_usuario_releido_retorna_500(self):
         """Si después del rollback no se puede recuperar el usuario (caso
         patológico extremo), el endpoint retorna 500 con mensaje claro."""
         from app.api.auth.login_router import login
+        login_handler = getattr(login, "__wrapped__", login)
         from sqlalchemy.exc import IntegrityError
 
         form = _build_form_data(username="1107068093", password="ClaveSegura#2026")
@@ -226,7 +221,7 @@ class TestJitIntegrityError:
 
         with patch("app.services.auth.servicio.ServicioAuth.obtener_usuario_por_cedula",
                    new=AsyncMock(return_value=None)), \
-             patch("app.services.erp.empleados_service.EmpleadosService.obtener_empleado_por_cedula",
+             patch("app.services.erp.empleados_service.EmpleadosService.validar_empleado_activo_autogestion",
                    new=AsyncMock(return_value=_build_empleado_erp())), \
              patch("app.services.auth.servicio.ServicioAuth.obtener_hash_contrasena",
                    return_value="$2b$04$fakehash"), \
@@ -235,7 +230,7 @@ class TestJitIntegrityError:
             mock_cfg.return_value.portal_pending_pwd = "test_pending"
 
             with pytest.raises(HTTPException) as excinfo:
-                await login(request, form, db, db_erp)
+                await login_handler(request, form, db, db_erp)
 
             db.rollback.assert_called_once()
             assert excinfo.value.status_code == 500
@@ -252,6 +247,7 @@ class TestJitIdempotencia:
         'usuario existe → validar contraseña' (que fallará porque no tiene
         contraseña configurada → 400 PASSWORD_NOT_SET)."""
         from app.api.auth.login_router import login
+        login_handler = getattr(login, "__wrapped__", login)
 
         form = _build_form_data(username="1107068093", password="ClaveSegura#2026")
         request = _build_request()
@@ -271,7 +267,7 @@ class TestJitIdempotencia:
             mock_cfg.return_value.portal_pending_pwd = "test_pending"
 
             with pytest.raises(HTTPException) as excinfo:
-                await login(request, form, db, db_erp)
+                await login_handler(request, form, db, db_erp)
 
             # NO se intentó crear de nuevo (db.add NO debe ser llamado)
             db.add.assert_not_called()
