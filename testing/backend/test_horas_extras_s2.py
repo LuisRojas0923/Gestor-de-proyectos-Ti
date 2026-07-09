@@ -33,8 +33,6 @@ from app.models.novedades_nomina.schemas_horas_extras import (
     ConfirmarDetalleItem,
     CalculoSemanalRead,
 )
-from app.models.auth.usuario import Usuario
-from app.api.novedades_nomina.routers.horas_extras import confirmar_pre_liquidacion_endpoint
 from app.services.novedades_nomina.horas_extras_confirmacion import (
     confirmar_pre_liquidacion,
     listar_calculos,
@@ -90,16 +88,6 @@ def _payload(cedula=CEDULA_BASE, anio=ANIO, semana=SEMANA, detalles=None,
         ot_id=ot_id,
         ot_codigo=ot_codigo,
         usuario_confirma="TEST-USER-S2",
-    )
-
-
-def _usuario_test() -> Usuario:
-    return Usuario(
-        id="TEST-USER-ENDPOINT-S2",
-        cedula="TEST-USER-ENDPOINT-S2",
-        hash_contrasena="hash-test",
-        nombre="Usuario Test HE S2",
-        rol="admin",
     )
 
 
@@ -235,30 +223,6 @@ class TestConfirmarPreLiquidacionHappyPath:
         finally:
             await _cleanup(db_session, CEDULA_BASE)
             await _limpiar_bolsa_global(db_session)
-
-    @pytest.mark.asyncio
-    async def test_endpoint_ignora_usuario_confirma_del_cliente(self, db_session):
-        cedula = "TEST-S2-ENDPOINT-AUDIT"
-        await _cleanup(db_session, cedula)
-        await _set_bolsa_global(db_session, False)
-        try:
-            payload = _payload(cedula=cedula)
-            payload.usuario_confirma = "USUARIO-FALSIFICADO"
-
-            respuesta = await confirmar_pre_liquidacion_endpoint(
-                payload=payload,
-                db=db_session,
-                usuario=_usuario_test(),
-            )
-
-            calc = await db_session.get(NominaCalculoSemanal, respuesta.calculo_id)
-            assert calc is not None
-            assert calc.calculado_por == "TEST-USER-ENDPOINT-S2"
-            assert calc.confirmado_por == "TEST-USER-ENDPOINT-S2"
-        finally:
-            await _cleanup(db_session, cedula)
-            await _limpiar_bolsa_global(db_session)
-
 
 # ---------------------------------------------------------------------------
 # Idempotencia

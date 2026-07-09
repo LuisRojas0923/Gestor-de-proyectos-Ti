@@ -1,6 +1,10 @@
+import logging
 from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+
+
+logger = logging.getLogger(__name__)
 
 
 def _normalizar_nivel_riesgo(valor: Optional[str]) -> str:
@@ -70,11 +74,11 @@ def _existe_columna(db_erp: Session, tabla: str, columna: str) -> bool:
 
 class EmpleadosService:
     """Lógica para la consulta de empleados y sincronización con el ERP externo"""
-    
+
     @staticmethod
-    async def obtener_empleado_por_cedula(db_erp: Session, cedula: str, solo_activos: bool = True) -> Optional[Dict]:
+    def obtener_empleado_por_cedula_sync(db_erp: Session, cedula: str, solo_activos: bool = True) -> Optional[Dict]:
         """Consulta un empleado en la base de datos del ERP por su cedula"""
-        print(f"DEBUG: Consultando empleado cedula={cedula} en ERP (solo_activos={solo_activos})...")
+        logger.debug("Consultando empleado en ERP solo_activos=%s", solo_activos)
 
         # Filtro de estado dinámico
         estado_filtro = "AND C.estado = 'Activo'" if solo_activos else ""
@@ -95,6 +99,7 @@ class EmpleadosService:
                 C.fecharetiro       AS "fecharetiro",
                 C.riesgoarl::text   AS "riesgoarl",
                 B.autorizacionhorasextras AS "autoriza_he",
+                B.salario AS "salario",
                 E.correocorporativo
             FROM establecimiento E
             LEFT JOIN contrato C
@@ -126,9 +131,14 @@ class EmpleadosService:
                 # --- Campos para módulo Horas Extras (S0) ---
                 "nivel_riesgo_arl": _normalizar_nivel_riesgo(resultado.riesgoarl),
                 "autoriza_he": bool(resultado.autoriza_he) if resultado.autoriza_he is not None else False,
+                "salario_base_mensual": float(resultado.salario) if resultado.salario is not None else None,
                 "correo_sincronizado": True
             }
         return None
+
+    @staticmethod
+    async def obtener_empleado_por_cedula(db_erp: Session, cedula: str, solo_activos: bool = True) -> Optional[Dict]:
+        return EmpleadosService.obtener_empleado_por_cedula_sync(db_erp, cedula, solo_activos)
 
     @staticmethod
     def consultar_empleados_bulk(db_erp: Session, cedulas: List[str]) -> Dict[str, Dict]:
@@ -172,7 +182,7 @@ class EmpleadosService:
     async def actualizar_correo_erp(db_erp: Session, cedula: str, nuevo_correo: str) -> bool:
         """Actualiza el correo corporativo y el flag de sincronización en el ERP (Solid)"""
         try:
-            print(f"DEBUG: Actualizando correo ERP para cedula={cedula} -> {nuevo_correo}")
+            logger.info("Actualizando correo corporativo en ERP")
             query = text("""
                 UPDATE establecimiento 
                 SET correocorporativo = :correo
@@ -181,8 +191,8 @@ class EmpleadosService:
             db_erp.execute(query, {"correo": nuevo_correo, "cedula": cedula})
             db_erp.commit()
             return True
-        except Exception as e:
-            print(f"ERROR al actualizar correo en ERP: {e}")
+        except Exception:
+            logger.exception("Error al actualizar correo corporativo en ERP")
             db_erp.rollback()
             return False
 

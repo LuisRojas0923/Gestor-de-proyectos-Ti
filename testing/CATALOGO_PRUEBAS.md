@@ -26,6 +26,7 @@ Ubicación: `testing/backend/`
 | **Líneas Corp.** | `test_lineas_corporativas.py` | Gestión de equipos móviles y personal. | ✅ PASSED |
 | **Core API** | `test_api_v2.py` | Salud general y Auth básico. | ✅ PASSED |
 | **ERP Sync** | `test_requisiciones.py` | Sincronización de catálogos con el ERP. | ✅ PASSED |
+| **ERP Empleados** | `test_erp_empleados_service.py` | Contrato ERP de empleado para HE: autorización, `beneficio.salario`, resolución de salario/ARL, firma de pre-liquidación y rechazo de importes manipulados. | ✅ PASSED |
 | **Viáticos** | `test_viaticos.py` | Flujo de legalización y solicitudes. | ✅ PASSED |
 | **Desarrollos** | `test_desarrollos_update.py` | Actualización de proyectos/desarrollos existentes y manejo 404. | ✅ PASSED |
 | **Desarrollos Autoridad** | `test_desarrollos_autoridad.py` | Persistencia y respuesta del campo autoridad en proyectos/desarrollos. | ✅ PASSED |
@@ -40,6 +41,7 @@ Ubicación: `testing/backend/`
 | **Horas Extras S0 Semillas** | `test_horas_extras_s0.py` | Semillado, catalogo base, factores legales y topes iniciales del modulo. | ✅ PASSED |
 | **Horas Extras S1 Calculo** | `test_horas_extras_s1.py` | Motor de calculo semanal, clasificacion HED/HEN/HEFD/HEFN/HF, HF ordinaria festiva dentro de 42h, separacion HF+HEFD, valores numericos festivos, pre-vigencia 44h/220 y validaciones de entrada. | ✅ PASSED |
 | **Horas Extras S2 Confirmacion** | `test_horas_extras_s2.py` | Persistencia de calculo, detalle, bolsa, costo OT, idempotencia y auditoria desde usuario autenticado. | ✅ PASSED |
+| **Horas Extras Endpoint Audit** | `test_horas_extras_endpoint_audit.py` | Endpoint de confirmación ignora `usuario_confirma` enviado por cliente y persiste el usuario autenticado. | ✅ PASSED |
 | **Horas Extras S4 Workflow** | `test_horas_extras_s4.py` | Transiciones PAGADO/COMPENSADO/ANULADO, compensacion manual y persistencia endpoint-level con commit. | ✅ PASSED |
 | **Horas Extras S5 Festivos** | `test_horas_extras_s5_festivos.py` | Calendario de festivos, cache, sincronizacion Calendarific y manejo de errores externos. | ✅ PASSED |
 | **Horas Extras S5 Novedades** | `test_horas_extras_s5_novedades.py` | Eventos VAC/LIC/INC/AUS, solapes, confirmacion/anulacion y efecto sobre calculo HE. | ✅ PASSED |
@@ -49,6 +51,7 @@ Ubicación: `testing/backend/`
 | **Horas Extras S7 Planificador** | `test_horas_extras_s7.py` | Planificador semanal masivo, selector ERP protegido por RBAC, borrador, pre-calculo y confirmacion. | ✅ PASSED |
 | **Horas Extras S8 OT/CC** | `test_horas_extras_s8_ot_mano_obra.py` | Consulta ERP `basegeneralcostos`, maximo 3 OT por empleado/dia, validacion de reparto numerico, CRC32 para orden no numerica y distribucion de costo por OT. | ✅ PASSED |
 | **Horas Extras S9 Reglas GH** | `test_horas_extras_s9_reglas_gh.py` | Reglas confirmadas por Gestion Humana: jornada semanal 42h/210h desde 2026-07-16, compensacion semanal, nocturna 19:00-06:00 y turnos cruzados en dos dias. | ✅ PASSED |
+| **Horas Extras S10 Trazabilidad Diaria** | `test_horas_extras_s10_trazabilidad_diaria.py` | Persistencia del snapshot diario de 7 dias asociado al calculo confirmado; lectura de estados `DISPONIBLE`, `HISTORICO_SIN_SNAPSHOT` e `INCOMPLETO`. | ✅ PASSED |
 | **Horas Extras Parametros Calculo** | `test_horas_extras_parametros_calculo.py` | Consulta y edicion de reglas vigentes en `nomina_parametros_legales`; valida ruta sin prefijo duplicado, RBAC y uso de parametros editados. | ✅ PASSED |
 | **Horas Extras RBAC Granular** | `test_horas_extras_rbac_granular.py` | Manifiesto RBAC granular, dependencias por ruta critica, rechazo 403 sin permiso exacto y separacion confirmar/compensar. | ✅ PASSED |
 | **Biometría Engine Client** | `test_biometria_engine_client.py` | Mapeo saneado de errores del motor, contrato de embedding y rechazo de respuestas invalidas. | ✅ PASSED |

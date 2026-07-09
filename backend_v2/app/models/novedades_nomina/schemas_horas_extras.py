@@ -28,11 +28,12 @@ from .schemas_horas_extras_parametros import (  # noqa: F401  (re-exports)
     ParametrosCalculoRead,
     ParametrosCalculoUpdateRequest,
 )
+from .schemas_horas_extras_trazabilidad import (  # noqa: F401
+    CalculoDiarioDetalleIn,
+    CalculoDiarioDetalleRead,
+    DetalleDiarioEstado,
+)
 
-
-# ---------------------------------------------------------------------------
-# Catálogo de novedades
-# ---------------------------------------------------------------------------
 
 class NovedadCatalogoRead(SQLModel):
     model_config = ConfigDict(from_attributes=True)
@@ -71,10 +72,6 @@ class NovedadCatalogoCreate(SQLModel):
     observaciones: Optional[str] = None
 
 
-# ---------------------------------------------------------------------------
-# Factores prestacionales ARL
-# ---------------------------------------------------------------------------
-
 class FactorPrestacionalRead(SQLModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -86,10 +83,6 @@ class FactorPrestacionalRead(SQLModel):
     vigente_desde: date
     vigente_hasta: Optional[date] = None
 
-
-# ---------------------------------------------------------------------------
-# Horario pactado
-# ---------------------------------------------------------------------------
 
 class HorarioPactadoRead(SQLModel):
     model_config = ConfigDict(from_attributes=True)
@@ -120,10 +113,6 @@ class HorarioPactadoEfectivoRead(SQLModel):
     es_jornada_nocturna: bool
 
 
-# ---------------------------------------------------------------------------
-# Override de autorización HE
-# ---------------------------------------------------------------------------
-
 class OverrideAutorizaHECreate(SQLModel):
     cedula: str = Field(min_length=1, max_length=50)
     autoriza_he_override: bool
@@ -148,10 +137,6 @@ class OverrideAutorizaHERead(SQLModel):
     documento_soporte_url: Optional[str] = None
     creado_en: Optional[datetime] = None
 
-
-# ---------------------------------------------------------------------------
-# Pre-liquidación: input de cálculo
-# ---------------------------------------------------------------------------
 
 class PreLiquidacionInput(SQLModel):
     """
@@ -182,8 +167,12 @@ class PreLiquidacionInput(SQLModel):
         "(salida - entrada - almuerzo). Cada entrada corresponde a Lun-Dom.",
     )
     es_jornada_nocturna: bool = False
-    salario_base_mensual: float = Field(gt=0, description="Salario base mensual del empleado")
-    nivel_riesgo_arl: str = Field(pattern="^(I|II|III|IV|V)$")
+    salario_base_mensual: Optional[float] = Field(
+        default=None,
+        gt=0,
+        description="Salario base mensual resuelto desde ERP por el backend",
+    )
+    nivel_riesgo_arl: Optional[str] = Field(default=None, pattern="^(I|II|III|IV|V)$")
     ot_codigo: Optional[str] = Field(default=None, max_length=50)
     ot_id: Optional[int] = None
 
@@ -197,10 +186,6 @@ class PreLiquidacionInput(SQLModel):
                 raise ValueError(f"horas_por_dia[{i}] no puede exceder 24h: {h}")
         return v
 
-
-# ---------------------------------------------------------------------------
-# Pre-liquidación: salida de cálculo
-# ---------------------------------------------------------------------------
 
 class DetalleCalculoItem(SQLModel):
     codigo_novedad: str
@@ -218,6 +203,8 @@ class PreLiquidacionResultado(SQLModel):
     cedula: str
     anio: int
     semana_iso: int
+    fecha_inicio: Optional[date] = None
+    fecha_fin: Optional[date] = None
     nivel_riesgo_arl: str
     factor_prestacional: float
     salario_base_mensual: float
@@ -227,15 +214,16 @@ class PreLiquidacionResultado(SQLModel):
     total_carga_prestacional: float
     total_costo_empresa: float
     detalles: List[DetalleCalculoItem]
+    ot_id: Optional[int] = None
+    ot_codigo: Optional[str] = Field(default=None, max_length=50)
+    observaciones: Optional[str] = None
+    detalle_diario: List[CalculoDiarioDetalleIn] = Field(default_factory=list)
+    firma_calculo: str = Field(default="", max_length=128)
     advertencias: List[str] = Field(
         default_factory=list,
         description="Topes legales excedidos, autorizaciones faltantes, etc.",
     )
 
-
-# ---------------------------------------------------------------------------
-# Bolsa de horas
-# ---------------------------------------------------------------------------
 
 class BolsaHorasRead(SQLModel):
     model_config = ConfigDict(from_attributes=True)
@@ -252,10 +240,6 @@ class BolsaHorasRead(SQLModel):
 class BolsaHorasEfectiva(BolsaHorasRead):
     horas_disponibles: float
 
-
-# ---------------------------------------------------------------------------
-# Confirmación de cálculo (persistencia en BD)
-# ---------------------------------------------------------------------------
 
 # ConfirmarDetalleItem se declara ANTES de PreLiquidacionConfirmar para que
 # la forward-ref 'ConfirmarDetalleItem' en `detalles: List[...]` se resuelva
@@ -288,6 +272,8 @@ class PreLiquidacionConfirmar(SQLModel):
     salario_base_mensual: float = Field(gt=0)
     valor_hora_ordinaria: float = Field(ge=0.0)
     detalles: List[ConfirmarDetalleItem] = Field(min_length=1)
+    detalle_diario: List[CalculoDiarioDetalleIn] = Field(default_factory=list)
+    firma_calculo: str = Field(default="", max_length=128)
     ot_id: Optional[int] = None
     ot_codigo: Optional[str] = Field(default=None, max_length=50)
     usuario_confirma: str = Field(min_length=1, max_length=50)
@@ -345,6 +331,8 @@ class CalculoSemanalRead(SQLModel):
     confirmado_en: Optional[datetime] = None
     observaciones: Optional[str] = None
     detalles: List[CalculoDetalleRead] = Field(default_factory=list)
+    detalle_diario_estado: DetalleDiarioEstado = "HISTORICO_SIN_SNAPSHOT"
+    detalle_diario: List[CalculoDiarioDetalleRead] = Field(default_factory=list)
 
 
 class CostoOtRead(SQLModel):

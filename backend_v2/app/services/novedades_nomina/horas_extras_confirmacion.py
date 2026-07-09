@@ -25,6 +25,7 @@ from ...models.novedades_nomina.horas_extras import (
     NominaCostoOt,
 )
 from .bolsa_horas_resolver import resolver_bolsa_habilitada
+from .horas_extras_trazabilidad import cargar_detalle_diario, persistir_detalle_diario
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,16 @@ async def confirmar_pre_liquidacion(
             fuente=d.fuente,
         )
         session.add(detalle)
+
+    await persistir_detalle_diario(
+        session,
+        calculo_id=calculo.id,
+        cedula=payload.cedula,
+        anio=payload.anio,
+        semana_iso=payload.semana_iso,
+        detalles=payload.detalle_diario,
+        creado_por=payload.usuario_confirma,
+    )
 
     bolsa_habilitada, bolsa_fuente = await resolver_bolsa_habilitada(
         session, payload.ot_id
@@ -324,6 +335,10 @@ async def obtener_calculo_completo(
             .options(selectinload(NominaCalculoSemanal.detalles))
         )
     ).scalar_one_or_none()
+    if calc is not None:
+        estado, detalle_diario = await cargar_detalle_diario(session, calculo_id)
+        object.__setattr__(calc, "detalle_diario_estado", estado)
+        object.__setattr__(calc, "detalle_diario", detalle_diario)
     return calc
 
 

@@ -13,6 +13,7 @@ import type {
   WorkflowEvento,
   EstadoWorkflowDestino,
 } from '../../../../types/horasExtras';
+import CalculoTrazabilidadDiariaCard from './components/CalculoTrazabilidadDiariaCard';
 
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
@@ -254,6 +255,11 @@ const CalculoDetailView: React.FC = () => {
           </div>
         )}
       </MaterialCard>
+
+      <CalculoTrazabilidadDiariaCard
+        estado={calculo.detalle_diario_estado}
+        detalle={calculo.detalle_diario}
+      />
 
       <MaterialCard className="p-4 mb-6">
         <Text className="font-medium mb-3 block">Workflow</Text>

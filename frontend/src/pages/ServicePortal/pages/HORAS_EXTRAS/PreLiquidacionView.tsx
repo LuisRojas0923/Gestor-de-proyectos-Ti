@@ -7,64 +7,28 @@ import {
   ejecutarPreLiquidacion,
   confirmarPreLiquidacion,
   obtenerHorarioSemana,
-  listarFestivos,
-  listarNovedades,
 } from '../../../../services/horasExtrasService';
 import type {
   PreLiquidacionInput,
   PreLiquidacionResultado,
   PreLiquidacionConfirmar,
   ConfirmarDetalleItem,
-  NivelRiesgoARL,
   RegistroDiario,
-  Festivo,
-  NovedadEventoListItem,
 } from '../../../../types/horasExtras';
 import {
   calcularHorasDia,
   horarioPactadoARegistro,
   labelDia,
-  fechasDeSemanaIso,
-  fechaIsoCorta,
-  fechaEnRango,
 } from './utils/horarioUtils';
-
-const CODIGOS_NOVEDAD_SUPRESION = ['VAC', 'LIC', 'INC', 'AUS'] as const;
-
-const HORAS_ORDINARIAS_DIARIAS = 8;
-
-const NIVELES: { value: NivelRiesgoARL; label: string }[] = [
-  { value: 'I', label: 'Nivel I — Dirección' },
-  { value: 'II', label: 'Nivel II — Administrativo' },
-  { value: 'III', label: 'Nivel III — Operativo' },
-  { value: 'IV', label: 'Nivel IV — Operativo alto' },
-  { value: 'V', label: 'Nivel V — Riesgo máximo' },
-];
-
-const fmtCurrency = (n: number) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
-
-const getCurrentWeek = (): { anio: number; semana: number } => {
-  const now = new Date();
-  const target = new Date(now.valueOf());
-  const dayNr = (now.getDay() + 6) % 7;
-  target.setDate(target.getDate() - dayNr + 3);
-  const firstThursday = target.valueOf();
-  target.setMonth(0, 1);
-  if (target.getDay() !== 4) {
-    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
-  }
-  const week = 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
-  return { anio: now.getFullYear(), semana: week };
-};
-
-const registroVacio = (): RegistroDiario[] =>
-  Array.from({ length: 7 }, (_, i) => ({
-    dia_semana: i + 1,
-    hora_entrada: null,
-    hora_salida: null,
-    minutos_almuerzo: 0,
-  }));
+import {
+  HORAS_ORDINARIAS_DIARIAS,
+  NIVELES,
+  fmtCurrency,
+  getCurrentWeek,
+  registroVacio,
+} from './utils/preLiquidacionUtils';
+import { useEmpleadoERP } from './hooks/useEmpleadoERP';
+import { useContextoPreLiquidacion } from './hooks/useContextoPreLiquidacion';
 
 const PreLiquidacionView: React.FC = () => {
   const navigate = useNavigate();
@@ -77,8 +41,7 @@ const PreLiquidacionView: React.FC = () => {
   const [semana, setSemana] = useState(initialWeek.semana);
   const [registro, setRegistro] = useState<RegistroDiario[]>(registroVacio);
   const [esJornadaNocturna, setEsJornadaNocturna] = useState(false);
-  const [salario, setSalario] = useState<number>(3_000_000);
-  const [nivel, setNivel] = useState<NivelRiesgoARL>('III');
+  const { empleadoERP, salario, nivel, cargandoEmpleado, errorEmpleado } = useEmpleadoERP(cedula);
   const [otCodigo, setOtCodigo] = useState('');
   const [otId, setOtId] = useState<number | ''>('');
 
@@ -87,88 +50,10 @@ const PreLiquidacionView: React.FC = () => {
   const [confirmando, setConfirmando] = useState(false);
   const [resultado, setResultado] = useState<PreLiquidacionResultado | null>(null);
 
-  // S5''' — Festivos y novedades de la semana (auto-fetch cuando cambian anio/semana/cedula)
-  const [festivosSemana, setFestivosSemana] = useState<Festivo[]>([]);
-  const [novedadesSemana, setNovedadesSemana] = useState<NovedadEventoListItem[]>([]);
+  const { fechasSemana, festivoPorFecha, novedadesPorFecha } = useContextoPreLiquidacion(cedula, anio, semana);
 
-  // Fechas de la semana (L-D) como strings YYYY-MM-DD
-  const fechasSemana = useMemo(
-    () => fechasDeSemanaIso(anio, semana).map(fechaIsoCorta),
-    [anio, semana],
-  );
+  useEffect(() => setResultado(null), [cedula]);
 
-  // Mapas para lookup O(1) en el render
-  const festivoPorFecha = useMemo(() => {
-    const m = new Map<string, Festivo>();
-    for (const f of festivosSemana) {
-      const key = typeof f.fecha === 'string' ? f.fecha.slice(0, 10) : fechaIsoCorta(new Date(f.fecha));
-      m.set(key, f);
-    }
-    return m;
-  }, [festivosSemana]);
-
-  const novedadesPorFecha = useMemo(() => {
-    const m = new Map<string, NovedadEventoListItem[]>();
-    for (const n of novedadesSemana) {
-      if (!(CODIGOS_NOVEDAD_SUPRESION as readonly string[]).includes(n.codigo_novedad)) continue;
-      const inicio = n.fecha_inicio.slice(0, 10);
-      const fin = n.fecha_fin.slice(0, 10);
-      for (const fecha of fechasSemana) {
-        if (fechaEnRango(fecha, inicio, fin)) {
-          const list = m.get(fecha) ?? [];
-          list.push(n);
-          m.set(fecha, list);
-        }
-      }
-    }
-    return m;
-  }, [novedadesSemana, fechasSemana]);
-
-  // Cargar festivos del año cuando cambia anio
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      try {
-        const token = localStorage.getItem('token') || '';
-        const fs = await listarFestivos(anio, 'auto', token);
-        if (!cancel) setFestivosSemana(fs);
-      } catch {
-        if (!cancel) setFestivosSemana([]);
-      }
-    })();
-    return () => {
-      cancel = true;
-    };
-  }, [anio]);
-
-  // Cargar novedades CONFIRMADAS del empleado que intersectan la semana
-  useEffect(() => {
-    if (!cedula.trim()) {
-      setNovedadesSemana([]);
-      return;
-    }
-    let cancel = false;
-    (async () => {
-      try {
-        const token = localStorage.getItem('token') || '';
-        const inicio = fechasSemana[0];
-        const fin = fechasSemana[6];
-        const r = await listarNovedades(
-          { cedula: cedula.trim(), fecha_desde: inicio, fecha_hasta: fin, estado: 'CONFIRMADO', limit: 200 },
-          token,
-        );
-        if (!cancel) setNovedadesSemana(r.items);
-      } catch {
-        if (!cancel) setNovedadesSemana([]);
-      }
-    })();
-    return () => {
-      cancel = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cedula, anio, semana]);
-
-  // Cálculos en vivo (no se envían al backend; son referencia para el usuario)
   const horasPorDia = useMemo(
     () => registro.map((r) => calcularHorasDia(r.hora_entrada, r.hora_salida, r.minutos_almuerzo)),
     [registro],
@@ -210,6 +95,10 @@ const PreLiquidacionView: React.FC = () => {
       addNotification('error', 'Debes ingresar la cédula del empleado');
       return;
     }
+    if (!salario || salario <= 0) {
+      addNotification('error', errorEmpleado || 'Debes cargar un empleado con salario base mensual vigente en ERP');
+      return;
+    }
     if (totalHorasTrabajadas === 0) {
       addNotification(
         'warning',
@@ -227,8 +116,6 @@ const PreLiquidacionView: React.FC = () => {
         horas_por_dia: horasPorDia,
         registro_diario: registro,
         es_jornada_nocturna: esJornadaNocturna,
-        salario_base_mensual: salario,
-        nivel_riesgo_arl: nivel,
         ot_codigo: otCodigo.trim() || null,
         ot_id: otId === '' ? null : Number(otId),
       };
@@ -251,12 +138,10 @@ const PreLiquidacionView: React.FC = () => {
     if (!resultado) return;
     setConfirmando(true);
     try {
-      const simple = new Date(Date.UTC(anio, 0, 1 + (semana - 1) * 7));
-      const dayOffset = (simple.getUTCDay() + 6) % 7;
-      const fechaInicio = new Date(simple);
-      fechaInicio.setUTCDate(simple.getUTCDate() - dayOffset);
-      const fechaFin = new Date(fechaInicio);
-      fechaFin.setUTCDate(fechaInicio.getUTCDate() + 6);
+      if (!resultado.fecha_inicio || !resultado.fecha_fin) {
+        addNotification('error', 'Recalcula la pre-liquidación antes de confirmar');
+        return;
+      }
 
       const detalles: ConfirmarDetalleItem[] = resultado.detalles.map((d) => ({
         codigo_novedad: d.codigo_novedad,
@@ -272,17 +157,19 @@ const PreLiquidacionView: React.FC = () => {
         cedula: resultado.cedula,
         anio: resultado.anio,
         semana_iso: resultado.semana_iso,
-        fecha_inicio: fechaInicio.toISOString().slice(0, 10),
-        fecha_fin: fechaFin.toISOString().slice(0, 10),
+        fecha_inicio: resultado.fecha_inicio,
+        fecha_fin: resultado.fecha_fin,
         nivel_riesgo_arl: resultado.nivel_riesgo_arl,
         factor_prestacional: resultado.factor_prestacional,
         salario_base_mensual: resultado.salario_base_mensual,
         valor_hora_ordinaria: resultado.valor_hora_ordinaria,
         detalles,
-        ot_id: otId === '' ? null : Number(otId),
-        ot_codigo: otCodigo.trim() || null,
+        detalle_diario: resultado.detalle_diario,
+        firma_calculo: resultado.firma_calculo,
+        ot_id: resultado.ot_id ?? null,
+        ot_codigo: resultado.ot_codigo ?? null,
         usuario_confirma: cedula.trim(),
-        observaciones: null,
+        observaciones: resultado.observaciones ?? null,
       };
 
       const r = await confirmarPreLiquidacion(payload, localStorage.getItem('token') || '');
@@ -319,6 +206,9 @@ const PreLiquidacionView: React.FC = () => {
             value={cedula}
             onChange={(e) => setCedula(e.target.value)}
             placeholder="1234567890"
+            helperText={cargandoEmpleado ? 'Consultando empleado en ERP...' : empleadoERP?.nombre}
+            error={!!errorEmpleado}
+            errorMessage={errorEmpleado || undefined}
           />
           <Input
             label="Año"
@@ -337,14 +227,17 @@ const PreLiquidacionView: React.FC = () => {
           <Input
             label="Salario base mensual"
             type="number"
-            value={salario}
-            onChange={(e) => setSalario(Number(e.target.value))}
+            value={salario === null ? '' : String(salario)}
+            readOnly
+            disabled
+            helperText="Fuente: beneficio.salario del empleado ERP vigente"
           />
           <Select
             label="Nivel de riesgo ARL"
             value={nivel}
-            onChange={(v) => setNivel(v as NivelRiesgoARL)}
+            disabled
             options={NIVELES.map((n) => ({ value: n.value, label: n.label }))}
+            helperText="Fuente: contrato.riesgoarl del empleado ERP vigente"
           />
           <div className="flex items-end">
             <Checkbox
@@ -499,7 +392,7 @@ const PreLiquidacionView: React.FC = () => {
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={handleCalcular} disabled={calculando}>
+          <Button onClick={handleCalcular} disabled={calculando || cargandoEmpleado || !salario}>
             <Play className="w-4 h-4 mr-2" />
             {calculando ? 'Calculando...' : 'Calcular'}
           </Button>

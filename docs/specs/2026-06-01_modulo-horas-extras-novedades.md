@@ -16,14 +16,14 @@ Reemplazar la planilla Excel `5.Formulario Reporte de Novedades Regionales` (1.2
 
 ### 1.2 Salidas del módulo
 
-El módulo entrega **minutos desglosados por concepto**. NO calcula valores en COP.
+El módulo entrega **minutos desglosados por concepto** y, para pre-liquidación/confirmación de Horas Extras, calcula importes referenciales en COP con salario/ARL resueltos desde ERP.
 
 | Concepto | Salida |
 |---|---|
 | HED, HEN, HEFD, HEFN, HF, RN, RF | minutos en `nomina_calculo_semanal` |
 | REM, LIC, INC, VAC, PNR, RET, CMP, ARL, AUS, SAN, DXT, SALARIO | minutos (días × 480) en `nomina_calculo_semanal` |
 | Bolsa de horas | minutos crédito/débito/saldo en `nomina_bolsa_horas_saldo` |
-| Detalle por día | minutos por marca en `nomina_marca_timelog` |
+| Detalle por día | minutos por marca en `nomina_marca_timelog` y snapshot auditable en `nomina_calculo_diario_detalle` al confirmar |
 | Detalle de novedad | registro individual en `nomina_novedad_registro` |
 
 ### 1.3 Reglas de cálculo (motor puro)
@@ -205,6 +205,58 @@ class NominaCalculoSemanal(SQLModel, table=True):
     version: int = Field(default=1)
     calculado_en: Optional[datetime] = Field(default_factory=datetime.now)
     calculado_por: int
+
+# Contrato salario HE (2026-07-09)
+# El salario base de pre-liquidación no es editable ni se acepta como fuente
+# de verdad desde el cliente. El backend resuelve `salario_base_mensual` desde
+# `beneficio.salario` del empleado ERP activo y `nivel_riesgo_arl` desde
+# `contrato.riesgoarl`. La confirmación rechaza el payload si salario o ARL no
+# coinciden con el ERP vigente. Además exige `firma_calculo`, generada por el
+# backend sobre fechas, OT, importes y detalles de la pre-liquidación, para
+# impedir cambios coherentemente recalculados desde el cliente.
+
+
+class NominaCalculoDiarioDetalle(SQLModel, table=True):
+    __tablename__ = "nomina_calculo_diario_detalle"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    calculo_id: int = Field(foreign_key="nomina_calculo_semanal.id", index=True)
+    cedula: str = Field(max_length=50, index=True)
+    anio: int
+    semana_iso: int
+    fecha: date
+    dia_semana: int  # ISO: 1=lunes, 7=domingo
+    hora_entrada: Optional[time] = None
+    hora_salida: Optional[time] = None
+    minutos_almuerzo: int = 0
+    horas_trabajadas: float = 0.0
+    horas_ordinarias: float = 0.0
+    horas_extras: float = 0.0
+    codigo_calculado: Optional[str] = None
+    horas_concepto: Optional[float] = None
+    factor_hora_ordinaria: Optional[float] = None
+    valor_bruto: float = 0.0
+    carga_prestacional: float = 0.0
+    costo_total: float = 0.0
+    es_festivo: bool = False
+    nombre_festivo: Optional[str] = None
+    es_domingo: bool = False
+    es_jornada_nocturna: bool = False
+    novedad_codigo: Optional[str] = None
+    novedad_evento_id: Optional[int] = None
+    fuente_horario: str = "PLANIFICADOR"
+    fuente_evidencia_id: Optional[int] = None
+    hash_snapshot: Optional[str] = None
+    creado_por: Optional[str] = None
+    ot_id: Optional[int] = None
+    ot_codigo: Optional[str] = None
+    observaciones: Optional[str] = None
+    creado_en: datetime = Field(default_factory=datetime.now)
+
+# Contrato trazabilidad diaria HE (2026-07-09)
+# Todo calculo confirmado persiste el detalle diario usado para liquidar. La
+# pre-liquidacion devuelve `detalle_diario`, la confirmacion lo exige dentro de
+# la misma `firma_calculo`, y el detalle del calculo retorna:
+# `detalle_diario_estado`: DISPONIBLE, HISTORICO_SIN_SNAPSHOT o INCOMPLETO.
 
 
 class NominaBolsaHorasSaldo(SQLModel, table=True):
@@ -422,7 +474,7 @@ def empleado_activo(cedula: str, db_erp: AsyncSession) -> dict | None:
 | POST | `/workflow/{tabla}/{id}/transicion` | depende del estado | Body: `{estado_destino, justificacion}` |
 | GET | `/calculo/preview?cedula=&anio=&semana=` | `nomina.calculo.preview` | Calcula sin persistir |
 | POST | `/calculo/confirmar` | `nomina.calculo.aprobacion` | Persiste y deja en BORRADOR |
-| GET | `/calculo/{cedula}?anio=&semana=` | autenticado | Lista cálculos |
+| GET | `/calculos/{calculo_id}` | autenticado | Detalle de un calculo confirmado; incluye `detalle_diario_estado` y `detalle_diario` si existe snapshot |
 | GET | `/bolsa/{cedula}` | `nomina.bolsa.consulta` | Saldo actual y movimientos |
 | POST | `/bolsa/compensar` | `nomina.calculo.aprobacion` | Registra débito |
 | GET | `/festivos/{anio}?fuente=auto|calendarific|emiliani` | público autenticado | Lista festivos |
@@ -607,8 +659,7 @@ export const horasExtrasService = {
   previewCalculo: (cedula: string, anio: number, semana: number) =>
     axios.get(`${BASE}/calculo/preview`, { params: { cedula, anio, semana } }),
   confirmarCalculo: (body: ConfirmarCalculoDTO) => axios.post(`${BASE}/calculo/confirmar`, body),
-  getCalculo: (cedula: string, anio: number, semana: number) =>
-    axios.get(`${BASE}/calculo/${cedula}`, { params: { anio, semana } }),
+  getCalculo: (calculoId: number) => axios.get(`${BASE}/calculos/${calculoId}`),
 
   // Bolsa
   getBolsa: (cedula: string) => axios.get(`${BASE}/bolsa/${cedula}`),
@@ -678,6 +729,30 @@ export interface ResultadoCalculoSemanal {
   jornada_legal_vigente: '44h' | '42h';
   recargo_dominical_pct: number;
   warnings: Array<{ codigo: string; detalle: string }>;
+  detalle_diario_estado?: 'DISPONIBLE' | 'HISTORICO_SIN_SNAPSHOT' | 'INCOMPLETO';
+  detalle_diario?: CalculoDiarioDetalle[];
+}
+
+export interface CalculoDiarioDetalle {
+  fecha: string;
+  dia_semana: number;
+  hora_entrada?: string | null;
+  hora_salida?: string | null;
+  minutos_almuerzo: number;
+  horas_trabajadas: number;
+  horas_ordinarias: number;
+  horas_extras: number;
+  codigo_calculado?: TipoNovedad | string | null;
+  horas_concepto?: number | null;
+  factor_hora_ordinaria?: number | null;
+  valor_bruto: number;
+  carga_prestacional: number;
+  costo_total: number;
+  es_festivo: boolean;
+  nombre_festivo?: string | null;
+  es_domingo: boolean;
+  es_jornada_nocturna: boolean;
+  fuente_horario: string;
 }
 ```
 

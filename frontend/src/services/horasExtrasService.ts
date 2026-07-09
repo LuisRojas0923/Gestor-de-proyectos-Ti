@@ -6,7 +6,7 @@
  *
  * Endpoint base: `${API_CONFIG.BASE_URL}/novedades-nomina/horas-extras`
  */
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import type {
   NovedadCatalogo,
   HorarioPactado,
@@ -40,6 +40,7 @@ import type {
   BolsaGlobalConfigIn,
   ParametrosCalculoResponse,
   ParametrosCalculoUpdateRequest,
+  EmpleadoERPDetalle,
 } from '../types/horasExtras';
 import type {
   EmpleadoERPListResponse,
@@ -188,6 +189,30 @@ export async function ejecutarPreLiquidacion(
     body: JSON.stringify(input),
     token,
   });
+}
+
+export async function obtenerEmpleadoERP(
+  identificacion: string,
+  token: string,
+): Promise<EmpleadoERPDetalle> {
+  const res = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.ERP_EMPLEADO(encodeURIComponent(identificacion))}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    let detail = text;
+    try {
+      const j = JSON.parse(text);
+      detail = j.detail || text;
+    } catch {
+      /* detail = text */
+    }
+    throw new Error(detail || `HTTP ${res.status}`);
+  }
+  return (await res.json()) as EmpleadoERPDetalle;
 }
 
 export async function confirmarPreLiquidacion(

@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any
@@ -13,6 +15,7 @@ from app.models.erp.requisiciones import (
 from app.services.erp.requisiciones_service import RequisicionesService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/ots", response_model=List[OTSistemaSolicitudes])
@@ -20,6 +23,7 @@ def obtener_ots(
     busqueda: Optional[str] = None,
     limit: int = 50,
     db_erp: Optional[Session] = Depends(obtener_erp_db_opcional),
+    _: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Obtiene el listado de OTS para el formulario de requisiciones"""
     if db_erp is None:
@@ -30,9 +34,9 @@ def obtener_ots(
             db_erp, busqueda, limit
         )
         return resultados
-    except Exception as e:
-        print(f"ERROR ERP ots: {e}")
-        raise HTTPException(status_code=500, detail="Error consultando OTS en el ERP")
+    except Exception as exc:
+        logger.exception("Error consultando OTS en ERP")
+        raise HTTPException(status_code=500, detail="Error consultando OTS en el ERP") from exc
 
 
 @router.get("/catalogo", response_model=List[CatalogoProducto])
@@ -41,6 +45,7 @@ def obtener_catalogo(
     limit: int = 50,
     offset: int = 0,
     db_erp: Optional[Session] = Depends(obtener_erp_db_opcional),
+    _: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Busca productos en el catálogo del ERP"""
     if db_erp is None:
@@ -51,11 +56,11 @@ def obtener_catalogo(
             db_erp, busqueda, limit, offset
         )
         return resultados
-    except Exception as e:
-        print(f"ERROR ERP catalogo: {e}")
+    except Exception as exc:
+        logger.exception("Error consultando catálogo ERP")
         raise HTTPException(
             status_code=500, detail="Error consultando el catálogo en el ERP"
-        )
+        ) from exc
 
 
 @router.post("/crear")
@@ -77,7 +82,7 @@ def crear_solicitud(
         try:
             if usuario_actual.id and usuario_actual.id.isdigit():
                 usuario_id = int(usuario_actual.id)
-        except:
+        except (TypeError, ValueError):
             pass
 
         nueva_solicitud = RequisicionesService.crear_solicitud_material(
@@ -92,15 +97,12 @@ def crear_solicitud(
             "codigosolicitud": nueva_solicitud.codigosolicitud,
             "codigo": nueva_solicitud.codigo,
         }
-    except Exception as e:
+    except Exception as exc:
         db_erp.rollback()
-        print(f"ERROR ERP crear_solicitud: {e}")
-        import traceback
-
-        traceback.print_exc()
+        logger.exception("Error creando solicitud en ERP")
         raise HTTPException(
-            status_code=500, detail=f"Error creando solicitud en el ERP: {str(e)}"
-        )
+            status_code=500, detail="Error creando solicitud en el ERP"
+        ) from exc
 
 
 @router.get("/mis-solicitudes", response_model=List[Any])
@@ -118,7 +120,7 @@ def obtener_mis_solicitudes(
         try:
             if usuario_actual.id and usuario_actual.id.isdigit():
                 usuario_id = int(usuario_actual.id)
-        except:
+        except (TypeError, ValueError):
             pass
 
         resultados = RequisicionesService.obtener_mis_solicitudes(
@@ -128,12 +130,9 @@ def obtener_mis_solicitudes(
             limit=limit,
         )
         return resultados
-    except Exception as e:
-        print(f"ERROR ERP obtener_mis_solicitudes: {e}")
-        import traceback
-
-        traceback.print_exc()
+    except Exception as exc:
+        logger.exception("Error consultando historial de solicitudes en ERP")
         raise HTTPException(
             status_code=500,
             detail="Error consultando el historial de solicitudes en ERP",
-        )
+        ) from exc

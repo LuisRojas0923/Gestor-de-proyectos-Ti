@@ -1,41 +1,13 @@
-"""
-Router principal del módulo de Horas Extras y Pre-liquidación.
-
-Endpoints:
-  /api/v2/novedades-nomina/horas-extras/
-    ├── catalogo/                    GET    Lista catálogo vigente
-    ├── catalogo/                    POST   Crea novedad (admin)
-    ├── catalogo/{codigo}            PUT    Actualiza novedad
-    ├── factores-arl/                GET    Lista 5 niveles ARL
-    ├── horario/{cedula}             GET    Horario cacheado del empleado
-    ├── autorizacion/{cedula}        GET    Resolución efectiva (override > ERP)
-    ├── overrides/                   POST   Registra override de autorización
-    ├── overrides/{cedula}           GET    Historial de overrides
-    ├── pre-liquidacion/             POST   Ejecuta cálculo semanal
-    ├── pre-liquidacion/confirmar    POST   Persiste cálculo + acredita bolsa + UPSERT costo_ot
-    ├── calculos/                    GET    Historial de cálculos confirmados
-    ├── calculos/{id}                GET    Detalle de un cálculo
-    ├── costos-ot/                   GET    Costos consolidados por OT
-    ├── bolsa/{cedula}               GET    Saldo actual de bolsa
-    ├── calculos/{id}/transicion     POST   Transición workflow (S4)
-    ├── calculos/{id}/historial      GET    Historial workflow (S4)
-    ├── bolsa/compensar              POST   Compensar bolsa (S4)
-    └── festivos/...                 GET/POST Festivos (S5', en sub-router)
-
-Los endpoints de festivos viven en `horas_extras_festivos.py` para mantener
-este archivo bajo el límite de 500 líneas del Architecture Enforcer.
-
-Patrón: el router solo parsea, valida y delega al service.
-La lógica de negocio y el acceso a DB viven en horas_extras_service.py.
-"""
+"""Router principal de Horas Extras; parsea, valida y delega a servicios."""
 import logging
 from datetime import date, datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
-from ....database import obtener_db
+from ....database import obtener_db, obtener_erp_db_opcional
 from ....models.auth.usuario import Usuario
 from ....models.novedades_nomina.schemas_horas_extras import (
     NovedadCatalogoRead,
@@ -69,12 +41,18 @@ from ....services.novedades_nomina.horas_extras_service import (
     ejecutar_pre_liquidacion,
     obtener_bolsa_horas,
 )
+from ....services.novedades_nomina.horas_extras_erp_validacion import (
+    firmar_pre_liquidacion,
+    resolver_parametros_empleado_erp,
+    validar_importes_confirmacion,
+)
 from ....services.novedades_nomina.horas_extras_confirmacion import (
     confirmar_pre_liquidacion,
     listar_calculos,
     obtener_calculo_completo,
     listar_costos_ot,
 )
+from ....services.novedades_nomina.horas_extras_trazabilidad import construir_detalle_diario_preliquidacion
 from ....services.novedades_nomina.horas_extras_workflow import (
     transicionar_calculo,
     listar_eventos_calculo,
@@ -113,6 +91,7 @@ router.include_router(bolsa_subrouter)
 router.include_router(planificador_subrouter)
 # S9 — Sub-router de parámetros de cálculo editables
 router.include_router(parametros_subrouter)
+
 
 # Catálogo de novedades
 # ---------------------------------------------------------------------------
@@ -237,6 +216,7 @@ async def listar_overrides(
 async def ejecutar_pre_liquidacion_endpoint(
     payload: PreLiquidacionInput,
     db: AsyncSession = Depends(obtener_db),
+    db_erp: Optional[Session] = Depends(obtener_erp_db_opcional),
     _: Usuario = Depends(requiere_permiso_he_planificar),
 ):
     if len(payload.horas_por_dia) != 7:
@@ -247,11 +227,13 @@ async def ejecutar_pre_liquidacion_endpoint(
             status_code=400, detail="codigos_por_dia debe tener 7 sublistas (una por día)"
         )
 
+    salario_erp, nivel_erp = await resolver_parametros_empleado_erp(payload.cedula, db_erp)
+    payload.salario_base_mensual = salario_erp
+    payload.nivel_riesgo_arl = nivel_erp
+
     autoriza, fuente = await resolver_autorizacion_he(db, payload.cedula)
     if not autoriza:
-        logger.warning(
-            f"Pre-liquidación para {payload.cedula} sin autorización vigente (fuente={fuente})"
-        )
+        logger.warning("Pre-liquidación HE sin autorización vigente (fuente=%s)", fuente)
 
     try:
         resultado = await ejecutar_pre_liquidacion(db, payload)
@@ -264,6 +246,13 @@ async def ejecutar_pre_liquidacion_endpoint(
             f"Empleado SIN autorización HE vigente (fuente={fuente}). "
             f"El cálculo se entrega como referencia, no como liquidación.",
         )
+    resultado.fecha_inicio = date.fromisocalendar(payload.anio, payload.semana_iso, 1)
+    resultado.fecha_fin = date.fromisocalendar(payload.anio, payload.semana_iso, 7)
+    resultado.ot_id = payload.ot_id
+    resultado.ot_codigo = payload.ot_codigo
+    resultado.observaciones = None
+    resultado.detalle_diario = await construir_detalle_diario_preliquidacion(db, payload, resultado)
+    resultado.firma_calculo = firmar_pre_liquidacion(resultado)
     return resultado
 
 
@@ -302,6 +291,7 @@ async def obtener_bolsa(
 async def confirmar_pre_liquidacion_endpoint(
     payload: PreLiquidacionConfirmar,
     db: AsyncSession = Depends(obtener_db),
+    db_erp: Optional[Session] = Depends(obtener_erp_db_opcional),
     usuario: Usuario = Depends(requiere_permiso_he_confirmar),
 ):
     """
@@ -315,6 +305,14 @@ async def confirmar_pre_liquidacion_endpoint(
     """
     if not payload.detalles:
         raise HTTPException(status_code=400, detail="detalles no puede estar vacío")
+
+    salario_erp, nivel_erp = await resolver_parametros_empleado_erp(payload.cedula, db_erp)
+    if abs(float(payload.salario_base_mensual) - salario_erp) > 0.01 or payload.nivel_riesgo_arl != nivel_erp:
+        raise HTTPException(
+            status_code=400,
+            detail="El salario o nivel ARL no coincide con el empleado ERP vigente; recalcula la pre-liquidación",
+        )
+    await validar_importes_confirmacion(db, payload, salario_erp, nivel_erp)
 
     payload.usuario_confirma = str(getattr(usuario, "cedula", None) or usuario.id)
 

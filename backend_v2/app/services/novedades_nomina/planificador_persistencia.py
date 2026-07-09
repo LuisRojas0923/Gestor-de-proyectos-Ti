@@ -48,6 +48,7 @@ from ._planificador_common import (
 )
 from .horas_extras_calculo import _calcular_horas_extras_semanales, _parametros_jornada_semana
 from .horas_extras_confirmacion import confirmar_pre_liquidacion
+from .horas_extras_trazabilidad import construir_detalle_diario_planificador
 from .planificador_costos_ot import distribuir_costos_ot_plan
 from .planificador_ot import validar_asignaciones_ot_dia
 
@@ -245,6 +246,9 @@ async def confirmar_plan(
             detalles = await _construir_detalles_confirmacion(
                 session, emp_in, payload.semana, parametros
             )
+            detalle_diario = await construir_detalle_diario_planificador(
+                session, emp_in, payload.semana, parametros, detalles
+            )
             tiene_asignaciones_ot = any(d.asignaciones_ot for d in emp_in.dias)
             confirm_payload = PreLiquidacionConfirmar(
                 cedula=emp_in.cedula,
@@ -257,6 +261,7 @@ async def confirmar_plan(
                 salario_base_mensual=parametros.salario_base_mensual,
                 valor_hora_ordinaria=parametros.valor_hora_ordinaria,
                 detalles=detalles,
+                detalle_diario=detalle_diario,
                 ot_id=None if tiene_asignaciones_ot else parametros.ot_id,
                 ot_codigo=None if tiene_asignaciones_ot else parametros.ot_codigo,
                 usuario_confirma=payload.usuario_confirma,

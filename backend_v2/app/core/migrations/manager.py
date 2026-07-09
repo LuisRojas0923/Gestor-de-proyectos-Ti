@@ -17,6 +17,7 @@ from app.core.migrations.horas_extras_migration_s6 import (
     crear_tabla_bolsa_ot_override,
 )
 from app.core.migrations.horas_extras_migration_s8 import crear_tabla_planificador_dia_ot
+from app.core.migrations.horas_extras_migration_s10 import crear_tabla_calculo_diario_detalle
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +132,13 @@ async def init_db_process(async_engine, AsyncSessionLocal):
             await crear_tabla_planificador_dia_ot(conn)
         except Exception as e:
             logger.error(f"Error en migración nomina_planificador_dia_ot (S8): {e}")
+
+    # 3.15 Crear tabla de snapshot diario confirmado (S10)
+    async with async_engine.begin() as conn:
+        try:
+            await crear_tabla_calculo_diario_detalle(conn)
+        except Exception as e:
+            logger.error(f"Error en migración nomina_calculo_diario_detalle (S10): {e}")
 
     # 4. Saneamiento de Datos (Inventario y otros)
     saneamientos = [

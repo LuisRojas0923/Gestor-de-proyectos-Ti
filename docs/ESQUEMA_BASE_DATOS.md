@@ -208,6 +208,46 @@ Estas tablas soportan el modulo `nomina_horas_extras`: calculo semanal, bolsa de
 | `ot_codigo` | varchar(50), nullable | Codigo OT asociada. |
 | `fuente` | varchar(20) | Fuente: portal, planilla o ERP. |
 
+### `nomina_calculo_diario_detalle`
+
+Snapshot diario inmutable del horario, concepto e importes usados para un calculo confirmado de Horas Extras. Permite auditar el calculo sin depender del estado actual del planificador ni de horarios editados despues de confirmar.
+
+| Columna | Tipo | Descripcion |
+|---|---|---|
+| `id` | integer PK | Identificador del detalle diario. |
+| `calculo_id` | integer, FK `nomina_calculo_semanal.id`, index | Calculo confirmado asociado. |
+| `cedula` | varchar(50), index | Empleado calculado. |
+| `anio` | integer, index | Anio ISO del calculo. |
+| `semana_iso` | integer, index | Semana ISO del calculo. |
+| `fecha` | date, index | Fecha del dia auditado. |
+| `dia_semana` | integer | Dia ISO: 1 lunes a 7 domingo. |
+| `hora_entrada` | time, nullable | Hora de entrada usada en el snapshot. |
+| `hora_salida` | time, nullable | Hora de salida usada en el snapshot. |
+| `minutos_almuerzo` | integer | Minutos de almuerzo descontados. |
+| `horas_trabajadas` | double precision | Horas trabajadas del dia. |
+| `horas_ordinarias` | double precision | Horas ordinarias del dia. |
+| `horas_extras` | double precision | Horas extra del dia. |
+| `codigo_calculado` | varchar(20), nullable, index | Concepto calculado principal: `HED`, `HEN`, `HEFD`, `HEFN`, `HF`, `RN`, `RF`, etc. |
+| `horas_concepto` | double precision, nullable | Horas liquidadas para el concepto. |
+| `factor_hora_ordinaria` | double precision, nullable | Factor aplicado al concepto. |
+| `valor_bruto` | double precision | Valor bruto calculado del concepto. |
+| `carga_prestacional` | double precision | Carga prestacional calculada. |
+| `costo_total` | double precision | Costo total empresa. |
+| `es_festivo` | boolean | Indica si la fecha fue festiva. |
+| `nombre_festivo` | varchar(150), nullable | Nombre del festivo si aplica. |
+| `es_domingo` | boolean | Indica si la fecha fue domingo. |
+| `es_jornada_nocturna` | boolean | Indica si el snapshot corresponde a jornada nocturna. |
+| `novedad_codigo` | varchar(20), nullable | Novedad asociada si aplica. |
+| `novedad_evento_id` | integer, nullable | Evento de novedad asociado si aplica. |
+| `fuente_horario` | varchar(30) | Fuente del horario usado, por defecto `PLANIFICADOR`. |
+| `fuente_evidencia_id` | integer, nullable | Evidencia origen si aplica. |
+| `hash_snapshot` | varchar(128), nullable | Hash del registro diario persistido. |
+| `creado_por` | varchar(50), nullable | Usuario que confirma/persiste el snapshot. |
+| `ot_id` | integer, nullable, index | OT asociada si aplica. |
+| `ot_codigo` | varchar(50), nullable | Codigo OT asociado si aplica. |
+| `observaciones` | text, nullable | Notas de trazabilidad. |
+| `creado_en` | timestamp | Fecha de creacion del snapshot. |
+
 ### `nomina_costo_ot`
 
 | Columna | Tipo | Descripcion |
@@ -338,6 +378,7 @@ Estas tablas soportan el modulo `nomina_horas_extras`: calculo semanal, bolsa de
 |---|---|
 | `nomina_horario_pactado.cedula` -> `nomina_horario_pactado_dia.cedula` | Horario pactado semanal y detalle diario por empleado. |
 | `nomina_calculo_semanal.id` -> `nomina_calculo_semanal_detalle.calculo_id` | Cabecera y detalle de conceptos liquidados. |
+| `nomina_calculo_semanal.id` -> `nomina_calculo_diario_detalle.calculo_id` | Cabecera y snapshot diario auditable usado en la liquidacion. |
 | `nomina_calculo_semanal.id` -> `nomina_bolsa_horas_movimientos.calculo_id` | Movimientos de bolsa originados por un calculo. |
 | `nomina_bolsa_horas.id` -> `nomina_bolsa_horas_movimientos.bolsa_id` | Trazabilidad de movimientos por bolsa. |
 | `nomina_calculo_semanal.id` -> `nomina_calculo_workflow_evento.calculo_id` | Historial de cambios de estado. |
@@ -1326,6 +1367,41 @@ erDiagram
         integer ot_id
         character varying ot_codigo
         character varying fuente
+    }
+    NOMINA_CALCULO_DIARIO_DETALLE {
+        integer id
+        integer calculo_id
+        character varying cedula
+        integer anio
+        integer semana_iso
+        date fecha
+        integer dia_semana
+        time without time zone hora_entrada
+        time without time zone hora_salida
+        integer minutos_almuerzo
+        double precision horas_trabajadas
+        double precision horas_ordinarias
+        double precision horas_extras
+        character varying codigo_calculado
+        double precision horas_concepto
+        double precision factor_hora_ordinaria
+        double precision valor_bruto
+        double precision carga_prestacional
+        double precision costo_total
+        boolean es_festivo
+        character varying nombre_festivo
+        boolean es_domingo
+        boolean es_jornada_nocturna
+        character varying novedad_codigo
+        integer novedad_evento_id
+        character varying fuente_horario
+        integer fuente_evidencia_id
+        character varying hash_snapshot
+        character varying creado_por
+        integer ot_id
+        character varying ot_codigo
+        text observaciones
+        timestamp without time zone creado_en
     }
     NOMINA_CALCULO_WORKFLOW_EVENTO {
         integer id
@@ -2672,6 +2748,43 @@ erDiagram
 | ot_id | integer | YES | - |
 | ot_codigo | character varying | YES | - |
 | fuente | character varying | NO | 'PORTAL'::character varying |
+
+#### Tabla: `nomina_calculo_diario_detalle`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_calculo_diario_detalle_id_seq'::regclass) |
+| calculo_id | integer | NO | - |
+| cedula | character varying | NO | - |
+| anio | integer | NO | - |
+| semana_iso | integer | NO | - |
+| fecha | date | NO | - |
+| dia_semana | integer | NO | - |
+| hora_entrada | time without time zone | YES | - |
+| hora_salida | time without time zone | YES | - |
+| minutos_almuerzo | integer | NO | 0 |
+| horas_trabajadas | double precision | NO | 0 |
+| horas_ordinarias | double precision | NO | 0 |
+| horas_extras | double precision | NO | 0 |
+| codigo_calculado | character varying | YES | - |
+| horas_concepto | double precision | YES | - |
+| factor_hora_ordinaria | double precision | YES | - |
+| valor_bruto | double precision | NO | 0 |
+| carga_prestacional | double precision | NO | 0 |
+| costo_total | double precision | NO | 0 |
+| es_festivo | boolean | NO | false |
+| nombre_festivo | character varying | YES | - |
+| es_domingo | boolean | NO | false |
+| es_jornada_nocturna | boolean | NO | false |
+| novedad_codigo | character varying | YES | - |
+| novedad_evento_id | integer | YES | - |
+| fuente_horario | character varying | NO | 'PLANIFICADOR'::character varying |
+| fuente_evidencia_id | integer | YES | - |
+| hash_snapshot | character varying | YES | - |
+| creado_por | character varying | YES | - |
+| ot_id | integer | YES | - |
+| ot_codigo | character varying | YES | - |
+| observaciones | text | YES | - |
+| creado_en | timestamp without time zone | NO | now() |
 
 #### Tabla: `nomina_calculo_workflow_evento`
 | Columna | Tipo | Nulable | Defecto |
