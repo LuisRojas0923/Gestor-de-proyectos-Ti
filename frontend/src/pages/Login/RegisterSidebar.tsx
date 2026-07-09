@@ -169,7 +169,7 @@ const RegisterSidebar: React.FC<RegisterSidebarProps> = ({ isOpen, onClose }) =>
                                 </div>
                                 <Title variant="h4" weight="bold" className="mb-3">¡Cuenta activada!</Title>
                                 <Text variant="body1" className="text-[var(--color-text-secondary)] mb-6">
-                                    Tu cuenta fue creada y habilitada correctamente. Ya puedes iniciar sesión con tu identificación y contraseña.
+                                    Tu cuenta fue validada contra el ERP y quedó habilitada exitosamente. Ya puedes iniciar sesión con tu identificación y contraseña.
                                 </Text>
                                 <Button
                                     variant="primary"
@@ -183,7 +183,7 @@ const RegisterSidebar: React.FC<RegisterSidebarProps> = ({ isOpen, onClose }) =>
                             <form onSubmit={handleSubmit} className="space-y-5">
                                 <Callout variant="info" icon={User} className="mb-6">
                                     <Text variant="body2" color="inherit">
-                                        Completa el formulario para registrarte en el portal. Validaremos tu identificación con ERP/establecimiento y, si estás activo, tu cuenta quedará habilitada automáticamente.
+                                        Completa el formulario para registrarte. Validaremos tu identificación con ERP/establecimiento y, si estás activo, tu cuenta quedará habilitada automáticamente.
                                     </Text>
                                 </Callout>
 
