@@ -25,6 +25,14 @@ const horasTurno = (entrada: string | null, salida: string | null, almuerzo: num
 const claveOt = (ot: Pick<PlanAsignacionOtIn, 'orden' | 'cc' | 'scc' | 'sub_indice'>): string =>
   [ot.orden, ot.cc ?? '', ot.scc ?? '', ot.sub_indice ?? ''].join('|');
 
+const limitarHorasOt = (horas: number, maximo: number): number => (
+  Math.max(0, Math.min(Math.min(24, maximo), Number(horas) || 0))
+);
+
+const opcionOtClass = 'group w-full flex-col items-stretch justify-start gap-1 rounded-xl border border-transparent !px-2.5 !py-2 text-left hover:border-[var(--color-primary)]/25 hover:bg-[var(--color-primary)]/5 focus:ring-1 focus:ring-[var(--color-primary)]/30 focus:ring-offset-0 dark:hover:border-sky-500/30 dark:hover:bg-sky-950/35 [&>span]:w-full';
+const etiquetaOtClass = 'rounded-lg bg-[var(--color-primary)]/10 px-1.5 py-0.5 !text-[10px] font-bold text-[var(--color-primary)] dark:bg-sky-400/10 dark:text-sky-200';
+const datoOtClass = 'rounded-md bg-neutral-100 px-1.5 py-0.5 !text-[10px] font-semibold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200';
+
 interface CeldaDiaEditorProps {
   abierto: boolean;
   cedula: string;
@@ -105,7 +113,9 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
   };
 
   const actualizarHorasOt = (idx: number, horas: number) => {
-    setAsignacionesOt((prev) => prev.map((item, i) => (i === idx ? { ...item, horas } : item)));
+    setAsignacionesOt((prev) => prev.map((item, i) => (
+      i === idx ? { ...item, horas: limitarHorasOt(horas, horasDisponibles) } : item
+    )));
   };
 
   const quitarOt = (idx: number) => {
@@ -136,7 +146,11 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
       hora_salida: salida,
       minutos_almuerzo: almuerzo,
       novedades: nuevasNovedades,
-      asignaciones_ot: asignacionesOt,
+      asignaciones_ot: asignacionesOt.map((item) => ({
+        ...item,
+        horas: limitarHorasOt(Number(item.horas) || 0, horasDisponibles),
+        porcentaje: null,
+      })),
     });
   };
 
@@ -237,10 +251,10 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
                   <Input
                     type="number"
                     min={0}
-                    max={24}
+                    max={Math.min(24, horasDisponibles)}
                     step={0.25}
                     value={item.horas ?? 0}
-                    onChange={(e) => actualizarHorasOt(idx, Math.max(0, Number(e.target.value) || 0))}
+                    onChange={(e) => actualizarHorasOt(idx, Number(e.target.value) || 0)}
                     className="h-8 max-w-[110px] text-xs"
                   />
                   <Badge size="xs" variant="default">{item.categoria_sub_indice}</Badge>
@@ -258,7 +272,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
                 className="text-xs"
               />
               {(opcionesOt.length > 0 || cargandoOt) && (
-                <MaterialCard className="absolute left-0 right-0 top-full z-[60] mt-1 max-h-56 overflow-y-auto p-1 shadow-xl">
+                <MaterialCard className="absolute left-0 right-0 top-full z-[60] mt-1 max-h-72 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-2xl">
                   {cargandoOt && <Text className="px-2 py-2 text-xs text-[var(--color-text-secondary)]">Buscando...</Text>}
                   {opcionesOt.map((ot) => (
                     <Button
@@ -266,12 +280,15 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
                       type="button"
                       variant="custom"
                       onClick={() => agregarOt(ot)}
-                      className="w-full justify-start rounded-lg px-2 py-2 text-left hover:bg-[var(--color-primary)]/10"
+                      className={opcionOtClass}
                     >
-                      <Text as="span" className="block truncate text-xs font-semibold text-[var(--color-primary)]">
-                        OT {ot.orden} · CC {ot.cc ?? '—'} · SCC {ot.scc ?? '—'} · Sub {ot.sub_indice ?? '—'}
+                      <Text as="span" className="flex min-w-0 flex-wrap items-center gap-1.5">
+                        <Text as="span" className={etiquetaOtClass}>OT {ot.orden}</Text>
+                        <Text as="span" className={datoOtClass}>CC {ot.cc ?? '—'}</Text>
+                        <Text as="span" className={datoOtClass}>SCC {ot.scc ?? '—'}</Text>
+                        <Text as="span" className={datoOtClass}>Sub {ot.sub_indice ?? '—'}</Text>
                       </Text>
-                      <Text as="span" className="block truncate text-[11px] text-[var(--color-text-secondary)]">
+                      <Text as="span" className="block truncate !text-[11px] font-medium leading-tight text-[var(--color-text-primary)] dark:text-neutral-200">
                         {ot.descripcion ?? ot.cliente ?? ot.categoria_sub_indice}
                       </Text>
                     </Button>

@@ -82,10 +82,46 @@
         "low": 0
       },
       "test_coverage_observations": "El bloqueo documental de ESQUEMA_BASE_DATOS para tablas HE queda resuelto y las brechas solicitadas quedan cubiertas: HEFD/HEFN numericos, pre-vigencia 44h/divisor 220, CRC32 de OT no numerica y distribucion numerica de costo OT. Este reviewer ejecuto collect-only de S1+S8: 35 tests collected; el orquestador reporto S1 30 passed y S8 5 passed. Persisten como riesgos fuera del delta: suite HE monolitica o aceptacion formal de matriz secuencial, UI/component tests HE, concurrencia real y decision/test RN/RF."
+    },
+    {
+      "date": "2026-07-08",
+      "scope": "horas-extras-planner-novedades-anulacion-frontend-only",
+      "outcome": "approved_with_risks",
+      "findings": {
+        "critical": 0,
+        "high": 0,
+        "medium": 4,
+        "low": 2
+      },
+      "test_coverage_observations": "Service tests existentes cubren listarNovedades/anularNovedad, pero el nuevo flujo UI/hook del planificador requiere pruebas propias: mocks de listar/anular, parametros por semana y empleados seleccionados, validacion de justificacion, estados loading/empty/error/403, accesibilidad de modal y limpieza de preCalculo/resultado/draft tras anular. No se ejecutaron comandos npm por alcance read-only; se requiere evidencia de test/lint/tsc/build del implementador."
+    },
+    {
+      "date": "2026-07-09",
+      "scope": "horas-extras-erp-salario-confirmacion-tests-docs",
+      "outcome": "approved_with_risks",
+      "findings": {
+        "critical": 0,
+        "high": 0,
+        "medium": 2,
+        "low": 1
+      },
+      "test_coverage_observations": "Cobertura backend afectada registrada y trazable: ERP salario desde beneficio.salario, sobrescritura de pre-liquidacion, rechazo por salario/ARL desalineado, rechazo por valor hora manipulado y monkeypatch S2 de auditoria. Log revisado reporta 9 passed; collect-only local recolecto 26 tests. Riesgos: suite HE completa no ejecutada por este reviewer y casos negativos monetarios podrian parametrizarse para factor/bruto/carga/costo."
+    },
+    {
+      "date": "2026-07-09",
+      "scope": "horas-extras-erp-audit-rereview-after-fixes",
+      "outcome": "approved_with_risks",
+      "findings": {
+        "critical": 0,
+        "high": 0,
+        "medium": 1,
+        "low": 2
+      },
+      "test_coverage_observations": "Re-review sin bloqueantes: test endpoint audit separado, test_erp_empleados_service cubre firma_calculo y manipulacion coherente, test_horas_extras_s2 queda en 547 lineas. Log 2026-07-09_09-17-52 reporta 27/27 passed; collect-only local recolecto 27 tests. Riesgos residuales: no se corrio suite backend completa/Master Health Check ni npm por permisos; frontend build/eslint queda como evidencia reportada."
     }
   ],
   "stats": {
-    "total_reviews": 6,
-    "last_review": "2026-07-07"
+    "total_reviews": 9,
+    "last_review": "2026-07-09"
   }
 }

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Text, Button, MaterialCard } from '../../../../components/atoms';
-import { Save, Calculator, CheckCircle2, FileText } from 'lucide-react';
+import { Text, Button } from '../../../../components/atoms';
+import { CheckCircle2 } from 'lucide-react';
 import Modal from '../../../../components/molecules/Modal';
 import { useNotifications } from '../../../../components/notifications/NotificationsContext';
 import {
@@ -25,6 +25,7 @@ import PlanificadorHeader from './components/PlanificadorHeader';
 import HorarioMasivoCard from './components/HorarioMasivoCard';
 import AsignacionOtMasivaCard from './components/AsignacionOtMasivaCard';
 import EmpleadosActivosPanel from './components/EmpleadosActivosPanel';
+import PlanificadorAccionesSemana from './components/PlanificadorAccionesSemana';
 import { fechasDeSemanaIso, fechaIsoCorta, semanaIsoDesdeFecha } from './utils/horarioUtils';
 import {
   CODIGOS_NOVEDAD,
@@ -176,12 +177,13 @@ const PlanificadorSemanalView: React.FC = () => {
   const crearDraftActual = (
     nextSeleccionados = seleccionados,
     nextEmpleadosInfo = empleadosInfo,
+    nextOverrides = overrides,
   ): PlanificadorDraft => ({
     anio,
     semanaIso,
     seleccionados: Array.from(nextSeleccionados),
     empleadosInfo: Array.from(nextEmpleadosInfo.entries()).filter(([cedula]) => nextSeleccionados.has(cedula)),
-    overrides: Array.from(overrides.entries()),
+    overrides: Array.from(nextOverrides.entries()),
     diasDestino: Array.from(diasDestino),
     plantillaEntrada,
     plantillaSalida,
@@ -242,15 +244,30 @@ const PlanificadorSemanalView: React.FC = () => {
     setPreCalculo(null);
   };
 
-  const aplicarHorarioMasivo = () => {
+  const aplicarCambiosMasivos = () => {
     actualizarDiasSeleccionados((dia) => ({
       ...dia,
       hora_entrada: plantillaEntrada || null,
       hora_salida: plantillaSalida || null,
       minutos_almuerzo: Math.max(0, Math.min(240, plantillaAlmuerzo || 0)),
+      novedades: novedadMasiva
+        ? [
+            {
+              codigo_novedad: novedadMasiva,
+              fecha_inicio: fechaIsoCorta(fechasSemana[dia.dia_semana - 1]),
+              fecha_fin: fechaIsoCorta(fechasSemana[dia.dia_semana - 1]),
+              observaciones: observacionMasiva || null,
+            },
+          ]
+        : [],
       asignaciones_ot: dia.asignaciones_ot ?? [],
     }));
-    addNotification('success', 'Horario aplicado a los empleados seleccionados.');
+    addNotification(
+      'success',
+      novedadMasiva
+        ? `Horario y novedad ${novedadMasiva} aplicados a los empleados seleccionados.`
+        : 'Horario aplicado a los empleados seleccionados.',
+    );
   };
 
   const aplicarOtMasiva = (asignaciones: PlanAsignacionOtIn[]) => {
@@ -260,11 +277,14 @@ const PlanificadorSemanalView: React.FC = () => {
     }
     actualizarDiasSeleccionados((dia) => ({
       ...dia,
-      asignaciones_ot: asignaciones.map((asignacion) => ({
-        ...asignacion,
-        horas: Number(asignacion.horas) || 0,
-        porcentaje: null,
-      })),
+      asignaciones_ot: asignaciones.map((asignacion) => {
+        const horasDisponibles = calcularHorasTurno(dia.hora_entrada, dia.hora_salida, dia.minutos_almuerzo);
+        return {
+          ...asignacion,
+          horas: Math.max(0, Math.min(24, horasDisponibles, Number(asignacion.horas) || 0)),
+          porcentaje: null,
+        };
+      }),
     }));
     addNotification('success', `OT aplicada a ${seleccionados.size} empleados en ${diasDestino.size} días.`);
   };
@@ -279,26 +299,6 @@ const PlanificadorSemanalView: React.FC = () => {
       asignaciones_ot: [],
     }));
     addNotification('info', 'Días limpiados para los empleados seleccionados.');
-  };
-
-  const agregarNovedadMasiva = () => {
-    if (!novedadMasiva) {
-      addNotification('error', 'Selecciona una novedad para aplicar.');
-      return;
-    }
-    actualizarDiasSeleccionados((dia) => ({
-      ...dia,
-      novedades: [
-        ...dia.novedades,
-        {
-          codigo_novedad: novedadMasiva,
-          fecha_inicio: fechaIsoCorta(fechasSemana[dia.dia_semana - 1]),
-          fecha_fin: fechaIsoCorta(fechasSemana[dia.dia_semana - 1]),
-          observaciones: observacionMasiva || null,
-        },
-      ],
-    }));
-    addNotification('success', 'Novedad aplicada a los días seleccionados.');
   };
 
   const guardarCelda = (nuevoDia: PlanDiaIn) => {
@@ -422,10 +422,20 @@ const PlanificadorSemanalView: React.FC = () => {
         resultado={resultado}
         onFechaReferenciaChange={cambiarFechaReferencia}
         horarioSinEmpleados={seleccionados.size === 0}
-        novedadMasivaActiva={!!novedadMasiva}
-        onAplicarHorario={aplicarHorarioMasivo}
-        onAgregarNovedad={agregarNovedadMasiva}
+        novedadMasiva={novedadMasiva}
+        onAplicarHorario={aplicarCambiosMasivos}
         onLimpiarDias={limpiarDiasMasivo}
+        accionesSemana={(
+          <PlanificadorAccionesSemana
+            seleccionadosCount={seleccionados.size}
+            preCalculando={preCalculando}
+            guardando={guardando}
+            confirmando={confirmando}
+            onPreCalcular={handlePreCalcular}
+            onGuardarBorrador={handleGuardarBorrador}
+            onConfirmarSemana={solicitarConfirmacion}
+          />
+        )}
         controlesHorario={(
           <HorarioMasivoCard
             compacto
@@ -446,8 +456,7 @@ const PlanificadorSemanalView: React.FC = () => {
             onNovedadMasivaChange={setNovedadMasiva}
             onObservacionMasivaChange={setObservacionMasiva}
             onToggleDiaDestino={toggleDiaDestino}
-            onAplicarHorario={aplicarHorarioMasivo}
-            onAgregarNovedad={agregarNovedadMasiva}
+            onAplicarHorario={aplicarCambiosMasivos}
             onLimpiarDias={limpiarDiasMasivo}
           />
         )}
@@ -476,25 +485,6 @@ const PlanificadorSemanalView: React.FC = () => {
       </div>
 
       <ResumenPlan preCalculo={preCalculo} confirmado={resultado} />
-
-      <MaterialCard className="p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <Text className="text-sm text-[var(--color-text-secondary)]">
-            Pre-calcula para revisar horas y costos antes de confirmar. La carga prestacional y datos propios del empleado se resuelven desde ERP/backend.
-          </Text>
-          <div className="flex flex-wrap gap-2 justify-end">
-            <Button variant="secondary" onClick={handlePreCalcular} disabled={seleccionados.size === 0} loading={preCalculando} icon={Calculator}>
-              Pre-calcular
-            </Button>
-            <Button variant="outline" onClick={handleGuardarBorrador} disabled={seleccionados.size === 0} loading={guardando} icon={Save}>
-              Guardar borrador
-            </Button>
-            <Button variant="primary" onClick={solicitarConfirmacion} disabled={seleccionados.size === 0} loading={confirmando} icon={CheckCircle2}>
-              Confirmar semana
-            </Button>
-          </div>
-        </div>
-      </MaterialCard>
 
       {celdaEdit && celdaActual && (
         <CeldaDiaEditor
@@ -532,11 +522,6 @@ const PlanificadorSemanalView: React.FC = () => {
           </div>
         </div>
       </Modal>
-
-      <Text className="mt-6 text-xs text-[var(--color-text-secondary)] flex items-center gap-1">
-        <FileText className="w-3 h-3" />
-        Las reglas de cálculo se mantienen en el backend; esta pantalla solo prepara y confirma la semana.
-      </Text>
     </div>
   );
 };

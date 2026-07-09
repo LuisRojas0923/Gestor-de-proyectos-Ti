@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Button, Title, MaterialCard } from '../atoms';
@@ -28,17 +28,56 @@ const Modal: React.FC<ModalProps> = ({
     contentClassName = '',
     headerClassName = '',
 }) => {
+    const modalRef = useRef<HTMLDivElement>(null);
+    const titleId = useId();
+
     // Prevenir scroll en el body cuando el modal está abierto
     useEffect(() => {
+        const elementoActivo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         if (isOpen) {
             document.body.style.overflow = 'hidden';
+            window.setTimeout(() => {
+                const focusable = modalRef.current?.querySelector<HTMLElement>(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+                );
+                (focusable ?? modalRef.current)?.focus();
+            }, 0);
         } else {
             document.body.style.overflow = 'unset';
         }
         return () => {
             document.body.style.overflow = 'unset';
+            elementoActivo?.focus();
         };
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, [isOpen, onClose]);
+
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key !== 'Tab') return;
+        const focusables = Array.from(
+            modalRef.current?.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ) ?? [],
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -60,27 +99,30 @@ const Modal: React.FC<ModalProps> = ({
             />
 
             {/* Modal Container */}
-            <MaterialCard
-                elevation={4}
+            <div
+                ref={modalRef}
                 className={`
           relative w-full ${sizeClasses[size]} 
-          !flex flex-col
           transform transition-all animate-fade-in
           ${className}
         `}
                 role="dialog"
                 aria-modal="true"
+                aria-labelledby={title ? titleId : undefined}
+                tabIndex={-1}
+                onKeyDown={handleKeyDown}
             >
+                <MaterialCard elevation={4} className="!flex w-full flex-col">
                 {/* Header (Optional) */}
                 {(title || showCloseButton) && (
                     <MaterialCard.Header className={`flex items-center justify-between !py-3 !px-4 ${headerClassName}`}>
                         {title && (
                             typeof title === 'string' ? (
-                                <Title variant="h4" weight="semibold">
+                                <Title id={titleId} variant="h4" weight="semibold">
                                     {title}
                                 </Title>
                             ) : (
-                                <div className="min-w-0 flex-1">{title}</div>
+                                <div id={titleId} className="min-w-0 flex-1">{title}</div>
                             )
                         )}
                         {showCloseButton && (
@@ -100,7 +142,8 @@ const Modal: React.FC<ModalProps> = ({
                 <MaterialCard.Content className={`!p-6 overflow-y-auto ${contentClassName}`}>
                     {children}
                 </MaterialCard.Content>
-            </MaterialCard>
+                </MaterialCard>
+            </div>
         </div>
     );
 

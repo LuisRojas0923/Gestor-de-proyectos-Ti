@@ -77,10 +77,101 @@
       },
       "cwe_references": ["CWE-863", "CWE-20", "CWE-532", "CWE-200", "CWE-522"],
       "summary": "Additional fixes close planner confirmation audit spoofing and parametros duplicated-prefix/RBAC test gap. Controlled standalone pilot is GO for a small trusted HE cohort. Broad production remains NO-GO due coarse HE RBAC/least-privilege gap; no remaining BLOQUEANTE issue in reviewed delta."
+    },
+    {
+      "date": "2026-07-08",
+      "scope": "Horas Extras planner novedades/anulación existing endpoints",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 0,
+        "MEDIO": 3,
+        "BAJO": 0
+      },
+      "cwe_references": ["CWE-200", "CWE-863", "CWE-639"],
+      "summary": "No backend route or rbac_manifest change required because leer/planificar/confirmar already exist and protect listed operations. Risks: planner UI must gate listing/anulación by leer/confirmar, filter sensitive INC data to selected employees/week only, and avoid storing novelty data client-side."
+    },
+    {
+      "date": "2026-07-08",
+      "scope": "Plan trazabilidad diaria de horarios y recargos HE",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 3,
+        "ALTO": 3,
+        "MEDIO": 3,
+        "BAJO": 0
+      },
+      "cwe_references": ["CWE-200", "CWE-359", "CWE-863", "CWE-345", "CWE-840", "CWE-20"],
+      "summary": "Plan blocked from security/RBAC perspective: document exposes real employee identifier, immutable audit model is not enforceable, and GeoFace/manual evidence permissions and PII minimization are underspecified. Requires redaction, append-only traceability requirements, granular evidence RBAC and 401/403 tests."
+    },
+    {
+      "date": "2026-07-09",
+      "scope": "Horas Extras ERP empleado re-review",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 1,
+        "ALTO": 4,
+        "MEDIO": 2,
+        "BAJO": 0
+      },
+      "cwe_references": ["CWE-306", "CWE-862", "CWE-200", "CWE-209", "CWE-532", "CWE-863", "CWE-20", "CWE-345"],
+      "summary": "Corrections for /erp/empleado auth, Bearer token, server-side salary/ARL source and threadpool use verified. Review remains blocked because ERP router still has unauthenticated API v2 routes and an external sync proxy without auth/rate limiting and with unsafe error disclosure. Non-blocking residuals: PII cedula logs in HE router, shared RBAC mismatch with InventarioAdmin, weak identifier patterns, salary minimization, ARL default-to-I behavior, and missing 401/403 tests."
+    },
+    {
+      "date": "2026-07-09",
+      "scope": "Horas Extras ERP final blocker re-review",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 2,
+        "ALTO": 1,
+        "MEDIO": 2,
+        "BAJO": 0
+      },
+      "cwe_references": ["CWE-400", "CWE-770", "CWE-306", "CWE-862", "CWE-532", "CWE-20", "CWE-209"],
+      "summary": "Final re-review verified auth and generic error fixes for /erp/solicitudes, /erp/sincronizar, /erp/sync-external, HE ERP permission, and server-derived amount validation before confirmation. Still blocked because /erp/sync-external lacks required rate limiting and imported /erp/requisiciones GET endpoints remain unauthenticated. Residuals: cedula PII logs, weak identifier patterns, print/str(e) in requisiciones errors."
+    },
+    {
+      "date": "2026-07-09",
+      "scope": "ERP employee/requisiciones auth, sync-external rate limit, HE ERP salary validation and cedula PII logs",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 2,
+        "ALTO": 0,
+        "MEDIO": 3,
+        "BAJO": 0
+      },
+      "cwe_references": ["CWE-532", "CWE-359", "CWE-200", "CWE-209", "CWE-863", "CWE-20"],
+      "summary": "Auth/RBAC blockers from previous ERP review are resolved: employee endpoint uses requiere_permiso_he_planificar, requisiciones routes require obtener_usuario_actual_db, and sync-external has auth plus rate limit and generic errors. Review remains blocked for explicit no-PII-log scope because horas_extras logs cedula and empleados_service prints cedula/correo plus raw exception. Residuals: salary/email data minimization, ARL default-to-I, weak cedula patterns."
+    },
+    {
+      "date": "2026-07-09",
+      "scope": "Read-only re-review: HE ERP PII log removals and firma_calculo HMAC verification",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 1,
+        "MEDIO": 3,
+        "BAJO": 1
+      },
+      "cwe_references": ["CWE-345", "CWE-347", "CWE-200", "CWE-20", "CWE-532"],
+      "summary": "Previous PII blockers are resolved: horas_extras warning no longer logs cedula, empleados_service print with cedula/correo was replaced by non-PII logger messages, and confirmation verifies HMAC plus server-derived salary/ARL/importes before persistence. No blockers remain in scoped files. Residuals: HMAC does not cover OT/date allocation fields, broad ERP employee DTO exposes salary/email, weak identifier patterns, ARL default-to-I, and logger.exception requires production parameter redaction controls."
+    },
+    {
+      "date": "2026-07-09",
+      "scope": "Read-only re-review: HE ERP firma_calculo expanded to OT/date/observaciones and frontend signed-result confirmation",
+      "outcome": "approved_with_risks",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 0,
+        "MEDIO": 3,
+        "BAJO": 2
+      },
+      "cwe_references": ["CWE-345", "CWE-347", "CWE-200", "CWE-20", "CWE-400", "CWE-770", "CWE-532"],
+      "summary": "No blockers remain: firma_calculo now covers fecha_inicio/fin, OT, observaciones, salary/ARL/importes/detalles; frontend confirms from signed backend result; regression rejects OT mutation after signing. Residuals: ERP employee lookup lacks rate limiting and returns sensitive salary data, identifier patterns remain permissive, ARL parser defaults to I, HMAC key reuse/no TTL, and production log redaction should be verified."
     }
   ],
   "stats": {
-    "total_operations": 6,
-    "last_operation": "2026-07-07"
+    "total_operations": 13,
+    "last_operation": "2026-07-09"
   }
 }

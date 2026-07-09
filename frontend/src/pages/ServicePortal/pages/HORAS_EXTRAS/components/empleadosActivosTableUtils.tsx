@@ -48,9 +48,9 @@ export const empleadoValorColumna = (empleado: EmpleadoERPRead, key: string): st
 };
 
 export const colorHE = (he: number): string => {
-  if (he <= 0) return 'bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]';
-  if (he <= 2) return 'bg-[var(--color-primary-light)]/30 text-[var(--color-primary)]';
-  return 'bg-[var(--color-primary)] text-[var(--color-surface)]';
+  if (he <= 0) return 'border-neutral-200 bg-neutral-100 text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800/70 dark:text-neutral-300';
+  if (he <= 2) return 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-700/70 dark:bg-sky-950/40 dark:text-sky-100';
+  return 'border-indigo-200 bg-indigo-50 text-indigo-950 dark:border-indigo-700/70 dark:bg-indigo-950/45 dark:text-indigo-100';
 };
 
 export const FilaDatoCompacta: React.FC<{ etiqueta: string; valor: string; mono?: boolean }> = ({ etiqueta, valor, mono }) => (

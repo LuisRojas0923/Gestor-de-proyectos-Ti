@@ -252,11 +252,12 @@ export function DataTable<T>({
                 onFilterChange(activeFilter, tempSubFilters[activeFilter] || new Set());
             }
         }
+        if (activeFilter && activeSubFilter) onFilterSearchChange?.(activeFilter, activeSubFilter, '');
         setActiveFilter(null);
         setAnchorRect(null);
         setFilterSearchTerm('');
         setActiveSubFilter(null);
-    }, [activeFilter, tempSubFilters, onFilterChange, columns]);
+    }, [activeFilter, activeSubFilter, tempSubFilters, onFilterChange, onFilterSearchChange, columns]);
 
     const getFilterOptions = useCallback((key: string) => {
         const options = columnOptions[key] || [];
@@ -303,7 +304,7 @@ export function DataTable<T>({
             {activeFilter && anchorRect && (
                 <FilterDropdown
                     isOpen
-                    onClose={() => { setActiveFilter(null); setAnchorRect(null); setActiveSubFilter(null); }}
+                    onClose={() => { if (activeSubFilter) onFilterSearchChange?.(activeFilter, activeSubFilter, ''); setActiveFilter(null); setAnchorRect(null); setActiveSubFilter(null); }}
                     anchorRect={anchorRect}
                     title={columns.find(c => c.key === activeFilter)?.label}
                     type="categorical"

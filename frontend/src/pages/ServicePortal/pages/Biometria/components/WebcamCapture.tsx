@@ -10,40 +10,93 @@ interface WebcamCaptureProps {
 const WebcamCapture: React.FC<WebcamCaptureProps> = ({ onCapture, isLoading = false }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+    const isMountedRef = useRef(false);
+    const startRequestRef = useRef(0);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
 
-    const startCamera = useCallback(async () => {
+    const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
+
+    const stopCamera = useCallback(() => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+
+        if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.srcObject = null;
+        }
+
+        setStream(null);
+    }, []);
+
+    const startCamera = useCallback(async (attempt = 0) => {
+        const requestId = ++startRequestRef.current;
         setError(null);
         setCapturedImage(null);
+        stopCamera();
+        await wait(250);
+
+        if (!isMountedRef.current || requestId !== startRequestRef.current) {
+            return;
+        }
+
         try {
             const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "user" }, // Prefiere cámara frontal en móviles
+                video: {
+                    facingMode: { ideal: "user" }, // Prefiere cámara frontal en móviles
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                },
                 audio: false 
             });
+
+            if (!isMountedRef.current || requestId !== startRequestRef.current) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                return;
+            }
+
+            streamRef.current = mediaStream;
             setStream(mediaStream);
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
-                videoRef.current.play();
+                await videoRef.current.play().catch(() => undefined);
             }
         } catch (err: any) {
             console.error("Error accessing camera: ", err);
-            setError("No se pudo acceder a la cámara. Por favor verifica los permisos.");
-        }
-    }, []);
 
-    const stopCamera = useCallback(() => {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            setStream(null);
+            if (!isMountedRef.current || requestId !== startRequestRef.current) {
+                return;
+            }
+
+            if ((err?.name === 'AbortError' || err?.name === 'NotReadableError') && attempt < 1) {
+                await wait(800);
+                if (isMountedRef.current && requestId === startRequestRef.current) {
+                    await startCamera(attempt + 1);
+                }
+                return;
+            }
+
+            const permissionMessage = err?.name === 'NotAllowedError'
+                ? "Permite el acceso a la cámara desde el candado del navegador y recarga la página."
+                : "No se pudo iniciar la cámara. Cierra otras apps o pestañas que la usen e intenta de nuevo.";
+            setError(permissionMessage);
         }
-    }, [stream]);
+    }, [stopCamera]);
 
     // Detener la cámara cuando el componente se desmonta
     useEffect(() => {
-        startCamera();
-        return () => stopCamera();
+        isMountedRef.current = true;
+        const timer = window.setTimeout(() => startCamera(), 300);
+        return () => {
+            isMountedRef.current = false;
+            startRequestRef.current += 1;
+            window.clearTimeout(timer);
+            stopCamera();
+        };
     }, [startCamera, stopCamera]);
 
     const capture = useCallback(() => {

@@ -1,6 +1,8 @@
 import type { EmpleadoERPRead, PlanDiaIn, PlanPreCalculoResponse } from '../../../../../types/horasExtrasPlanificador';
 
 export const PLANIFICADOR_DRAFT_KEY = 'horas_extras_planificador_draft';
+const ALMUERZO_DEFAULT_MINUTOS = 30;
+const ALMUERZO_DEFAULT_ANTERIOR_MINUTOS = 60;
 
 export type ResultadoConfirmacion = { ok: number; error: number; he: number; costo: number };
 
@@ -36,7 +38,7 @@ export const crearBorradorPlanificadorBase = (): PlanificadorDraft => ({
   diasDestino: [1, 2, 3, 4, 5],
   plantillaEntrada: '07:30',
   plantillaSalida: '17:00',
-  plantillaAlmuerzo: 30,
+  plantillaAlmuerzo: ALMUERZO_DEFAULT_MINUTOS,
   novedadMasiva: '',
   observacionMasiva: '',
   preCalculo: null,
@@ -65,9 +67,19 @@ const empleadosInfoEntries = (value: unknown): [string, EmpleadoERPRead][] => {
 
 const overridesEntries = (value: unknown): [string, PlanDiaIn[]][] => {
   if (!Array.isArray(value)) return [];
-  return value.filter((entry): entry is [string, PlanDiaIn[]] => {
-    return Array.isArray(entry) && typeof entry[0] === 'string' && Array.isArray(entry[1]);
-  });
+  return value
+    .filter((entry): entry is [string, PlanDiaIn[]] => {
+      return Array.isArray(entry) && typeof entry[0] === 'string' && Array.isArray(entry[1]);
+    })
+    .map(([cedula, dias]) => [
+      cedula,
+      dias.map((dia) => ({
+        ...dia,
+        minutos_almuerzo: dia.minutos_almuerzo === ALMUERZO_DEFAULT_ANTERIOR_MINUTOS
+          ? ALMUERZO_DEFAULT_MINUTOS
+          : dia.minutos_almuerzo,
+      })),
+    ]);
 };
 
 const erroresEntries = (value: unknown): [string, string][] => {
@@ -91,7 +103,9 @@ export const normalizarBorradorPlanificador = (value: unknown): PlanificadorDraf
     diasDestino: diasDestino.length > 0 ? diasDestino : base.diasDestino,
     plantillaEntrada: typeof value.plantillaEntrada === 'string' ? value.plantillaEntrada : base.plantillaEntrada,
     plantillaSalida: typeof value.plantillaSalida === 'string' ? value.plantillaSalida : base.plantillaSalida,
-    plantillaAlmuerzo: typeof value.plantillaAlmuerzo === 'number' ? value.plantillaAlmuerzo : base.plantillaAlmuerzo,
+    plantillaAlmuerzo: value.plantillaAlmuerzo === ALMUERZO_DEFAULT_ANTERIOR_MINUTOS
+      ? ALMUERZO_DEFAULT_MINUTOS
+      : typeof value.plantillaAlmuerzo === 'number' ? value.plantillaAlmuerzo : base.plantillaAlmuerzo,
     novedadMasiva: typeof value.novedadMasiva === 'string' ? value.novedadMasiva : base.novedadMasiva,
     observacionMasiva: typeof value.observacionMasiva === 'string' ? value.observacionMasiva : base.observacionMasiva,
     preCalculo: esObjeto(value.preCalculo) ? (value.preCalculo as PlanPreCalculoResponse) : null,

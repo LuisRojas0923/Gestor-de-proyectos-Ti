@@ -5,17 +5,9 @@ import Callout from '../../../../../components/molecules/Callout';
 import { DataTable, type DataTableColumn } from '../../../../../components/molecules/DataTable';
 import { buscarEmpleadosERP } from '../../../../../services/horasExtrasService';
 import type { EmpleadoERPRead, PlanDiaIn, PlanPreCalculoResponse } from '../../../../../types/horasExtrasPlanificador';
+import { FILTROS_PANEL_KEY, leerFiltrosPanel, restaurarColumnFilters, serializarColumnFilters, type SortState } from '../utils/empleadosPanelFilters';
 import { labelDia } from '../utils/horarioUtils';
-import {
-  COLUMNAS_FILTRABLES,
-  FilaDatoCompacta,
-  LIMITE_PAGINA,
-  colorHE,
-  deduplicarEmpleados,
-  empleadoValorColumna,
-  type EmpleadoTablaRow,
-  type EmpleadoTablaRowCacheEntry,
-} from './empleadosActivosTableUtils';
+import { COLUMNAS_FILTRABLES, FilaDatoCompacta, LIMITE_PAGINA, colorHE, deduplicarEmpleados, empleadoValorColumna, type EmpleadoTablaRow, type EmpleadoTablaRowCacheEntry } from './empleadosActivosTableUtils';
 
 interface EmpleadosActivosPanelProps {
   seleccionados: Set<string>;
@@ -43,19 +35,23 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
   onCeldaClick,
 }) => {
   const token = localStorage.getItem('token') || '';
+  const filtrosIniciales = useMemo(() => leerFiltrosPanel(), []);
   const [empleados, setEmpleados] = useState<EmpleadoERPRead[]>([]);
-  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
-  const [sortState, setSortState] = useState<{ key: string; dir: 'asc' | 'desc' | null } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>(() => (
+    restaurarColumnFilters(filtrosIniciales?.columnFilters ?? {})
+  ));
+  const [sortState, setSortState] = useState<SortState>(filtrosIniciales?.sortState ?? null);
   const [cargando, setCargando] = useState(false);
   const [cargandoMas, setCargandoMas] = useState(false);
   const [offsetEmpleados, setOffsetEmpleados] = useState(0);
   const [totalEmpleados, setTotalEmpleados] = useState(0);
   const [hayMasEmpleados, setHayMasEmpleados] = useState(false);
-  const [busquedaFiltro, setBusquedaFiltro] = useState('');
-  const [busquedaRemota, setBusquedaRemota] = useState('');
+  const [busquedaFiltro, setBusquedaFiltro] = useState(filtrosIniciales?.busqueda ?? '');
+  const [busquedaRemota, setBusquedaRemota] = useState(filtrosIniciales?.busqueda ?? '');
   const [error, setError] = useState<string | null>(null);
   const seleccionadosRef = useRef(seleccionados);
   const empleadosInfoRef = useRef(empleadosInfo);
+  const empleadosCacheRef = useRef(new Map<string, EmpleadoERPRead>());
   const rowCacheRef = useRef(new Map<string, EmpleadoTablaRowCacheEntry>());
   const tablaBodyRef = useRef<HTMLDivElement>(null);
   const cargandoMasRef = useRef(false);
@@ -70,9 +66,22 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
   }, [cargandoMas]);
 
   useEffect(() => {
+    empleados.forEach((empleado) => empleadosCacheRef.current.set(empleado.cedula, empleado));
+    empleadosInfo.forEach((empleado) => empleadosCacheRef.current.set(empleado.cedula, empleado));
+  }, [empleados, empleadosInfo]);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => setBusquedaRemota(busquedaFiltro.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [busquedaFiltro]);
+
+  useEffect(() => {
+    window.sessionStorage.setItem(FILTROS_PANEL_KEY, JSON.stringify({
+      columnFilters: serializarColumnFilters(columnFilters),
+      sortState,
+      busqueda: busquedaFiltro.trim() || busquedaRemota,
+    }));
+  }, [busquedaFiltro, busquedaRemota, columnFilters, sortState]);
 
   useEffect(() => {
     let cancelado = false;
@@ -138,7 +147,8 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
   }, [empleados]);
 
   const empleadosFiltrados = useMemo(() => {
-    const filtrados = empleados.filter((empleado) => {
+    const candidatosCache = Array.from(empleadosCacheRef.current.values()).filter((empleado) => !empleados.some((actual) => actual.cedula === empleado.cedula));
+    const filtrados = deduplicarEmpleados([...empleados, ...candidatosCache]).filter((empleado) => {
       return Object.entries(columnFilters).every(([key, filtro]) => {
         if (!filtro || filtro.size === 0) return true;
         return filtro.has(empleadoValorColumna(empleado, key));
@@ -154,7 +164,13 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
     });
   }, [empleados, columnFilters, sortState]);
 
-  const empleadosRenderizados = empleadosFiltrados;
+  const empleadosRenderizados = useMemo(() => {
+    const filtradosPorCedula = new Set(empleadosFiltrados.map((empleado) => empleado.cedula));
+    const seleccionadosOcultos = Array.from(seleccionados)
+      .map((cedula) => empleadosInfo.get(cedula) ?? empleadosCacheRef.current.get(cedula))
+      .filter((empleado): empleado is EmpleadoERPRead => !!empleado && !filtradosPorCedula.has(empleado.cedula));
+    return deduplicarEmpleados([...seleccionadosOcultos, ...empleadosFiltrados]);
+  }, [empleadosFiltrados, empleadosInfo, seleccionados]);
 
   useEffect(() => {
     const body = tablaBodyRef.current;
@@ -253,17 +269,19 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
     } else {
       nextSeleccionados.add(empleado.cedula);
       nextEmpleadosInfo.set(empleado.cedula, empleado);
+      empleadosCacheRef.current.set(empleado.cedula, empleado);
     }
     onSelectionChange(nextSeleccionados, nextEmpleadosInfo);
   }, [onSelectionChange]);
 
   const incluirVisibles = () => {
-    const nextSeleccionados = new Set(seleccionados);
-    const nextEmpleadosInfo = new Map(empleadosInfo);
+    const nextSeleccionados = new Set(seleccionadosRef.current);
+    const nextEmpleadosInfo = new Map(empleadosInfoRef.current);
     for (const empleado of empleadosRenderizados) {
       if (empleado.autoriza_he !== true || nextSeleccionados.size >= maxSeleccion) continue;
       nextSeleccionados.add(empleado.cedula);
       nextEmpleadosInfo.set(empleado.cedula, empleado);
+      empleadosCacheRef.current.set(empleado.cedula, empleado);
     }
     onSelectionChange(nextSeleccionados, nextEmpleadosInfo);
   };
@@ -445,12 +463,15 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
   const filtrosActivos = Object.values(columnFilters).filter((filter) => filter.size > 0).length;
   const hayBusquedaRemota = busquedaFiltro.trim().length > 0 || busquedaRemota.length > 0;
   const hayFiltrosActivos = filtrosActivos > 0 || !!sortState?.dir || hayBusquedaRemota;
+  const seleccionadosVisibles = filasRenderizadas.filter((empleado) => empleado.seleccionadoEnPlan).length;
+  const seleccionablesVisibles = seleccionadosVisibles + empleadosVisiblesSeleccionables.length;
 
   const limpiarFiltros = () => {
     setColumnFilters({});
     setSortState(null);
     setBusquedaFiltro('');
     setBusquedaRemota('');
+    window.sessionStorage.removeItem(FILTROS_PANEL_KEY);
   };
 
   return (
@@ -466,20 +487,12 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-              <Badge variant="primary">{empleados.length} / {totalEmpleados || empleados.length} cargados</Badge>
-              <Badge variant="default">
-                {empleadosFiltrados.length > empleadosRenderizados.length
-                  ? `${empleadosRenderizados.length} / ${empleadosFiltrados.length} visibles`
-                  : `${empleadosRenderizados.length} visibles`}
-              </Badge>
-              {hayMasEmpleados && <Badge variant="info">Scroll para cargar más</Badge>}
-              {hayBusquedaRemota && <Badge variant="warning">Filtro BD: {busquedaRemota || busquedaFiltro}</Badge>}
-              <Badge variant="info">{seleccionados.size} / {maxSeleccion} seleccionados</Badge>
-            </div>
+            <Badge variant="primary">{empleados.length} / {totalEmpleados || empleados.length} cargados</Badge>
+            {hayBusquedaRemota && <Badge variant="warning">Filtro BD: {busquedaRemota || busquedaFiltro}</Badge>}
+            <Badge variant="info">{seleccionadosVisibles} / {seleccionablesVisibles} seleccionados</Badge>
             <div className="flex flex-wrap items-center gap-2 xl:justify-end">
               <Button variant="secondary" size="sm" onClick={incluirVisibles} disabled={empleadosVisiblesSeleccionables.length === 0 || seleccionados.size >= maxSeleccion}>
-                Incluir visibles
+                Seleccionar visibles
               </Button>
               <Button variant="ghost" size="sm" onClick={limpiarSeleccion} disabled={seleccionados.size === 0}>
                 Limpiar selección
@@ -518,11 +531,7 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
         isLoading={cargando}
         loadingMessage="Consultando empleados del ERP..."
         emptyMessage="No hay empleados que coincidan con los filtros actuales."
-        emptyIcon={
-          <div className="p-4 rounded-full bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]">
-            <Users size={32} />
-          </div>
-        }
+        emptyIcon={<div className="p-4 rounded-full bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)]"><Users size={32} /></div>}
         maxHeight="max-h-[620px]"
         minHeight="min-h-[320px]"
         className="border-none shadow-none"
@@ -530,9 +539,7 @@ const EmpleadosActivosPanel: React.FC<EmpleadosActivosPanelProps> = ({
       />
       {cargandoMas && (
         <div className="border-t border-[var(--color-border)] px-4 py-2">
-          <Text className="text-center text-xs font-medium text-[var(--color-text-secondary)]">
-            Cargando más empleados...
-          </Text>
+          <Text className="text-center text-xs font-medium text-[var(--color-text-secondary)]">Cargando más empleados...</Text>
         </div>
       )}
     </MaterialCard>

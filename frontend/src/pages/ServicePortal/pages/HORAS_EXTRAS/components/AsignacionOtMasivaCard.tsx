@@ -14,6 +14,14 @@ interface AsignacionOtMasivaCardProps {
 const claveOt = (ot: Pick<PlanAsignacionOtIn, 'orden' | 'cc' | 'scc' | 'sub_indice'>): string =>
   [ot.orden, ot.cc ?? '', ot.scc ?? '', ot.sub_indice ?? ''].join('|');
 
+const limitarHorasOt = (horas: number, maximo: number): number => (
+  Math.max(0, Math.min(Math.min(24, maximo), Number(horas) || 0))
+);
+
+const opcionOtClass = 'group w-full flex-col items-stretch justify-start gap-1 rounded-xl border border-transparent !px-2.5 !py-2 text-left hover:border-[var(--color-primary)]/25 hover:bg-[var(--color-primary)]/5 focus:ring-1 focus:ring-[var(--color-primary)]/30 focus:ring-offset-0 dark:hover:border-sky-500/30 dark:hover:bg-sky-950/35 [&>span]:w-full';
+const etiquetaOtClass = 'rounded-lg bg-[var(--color-primary)]/10 px-1.5 py-0.5 !text-[10px] font-bold text-[var(--color-primary)] dark:bg-sky-400/10 dark:text-sky-200';
+const datoOtClass = 'rounded-md bg-neutral-100 px-1.5 py-0.5 !text-[10px] font-semibold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200';
+
 const AsignacionOtMasivaCard: React.FC<AsignacionOtMasivaCardProps> = ({
   seleccionadosCount,
   diasDestinoCount,
@@ -59,7 +67,9 @@ const AsignacionOtMasivaCard: React.FC<AsignacionOtMasivaCardProps> = ({
   };
 
   const actualizarHoras = (idx: number, horas: number) => {
-    setAsignaciones((prev) => prev.map((item, i) => (i === idx ? { ...item, horas } : item)));
+    setAsignaciones((prev) => prev.map((item, i) => (
+      i === idx ? { ...item, horas: limitarHorasOt(horas, horasTurnoPlantilla) } : item
+    )));
   };
 
   const dividirTurno = () => {
@@ -70,7 +80,12 @@ const AsignacionOtMasivaCard: React.FC<AsignacionOtMasivaCardProps> = ({
 
   const quitar = (idx: number) => setAsignaciones((prev) => prev.filter((_, i) => i !== idx));
   const totalHoras = asignaciones.reduce((total, item) => total + (Number(item.horas) || 0), 0);
-  const puedeAplicar = seleccionadosCount > 0 && diasDestinoCount > 0 && asignaciones.length > 0 && totalHoras > 0;
+  const puedeAplicar = seleccionadosCount > 0 && diasDestinoCount > 0 && asignaciones.length > 0 && totalHoras > 0 && totalHoras - horasTurnoPlantilla <= 0.01;
+  const asignacionesNormalizadas = asignaciones.map((item) => ({
+    ...item,
+    horas: limitarHorasOt(Number(item.horas) || 0, horasTurnoPlantilla),
+    porcentaje: null,
+  }));
 
   return (
     <div className="bg-[var(--color-surface)] p-2.5">
@@ -105,19 +120,22 @@ const AsignacionOtMasivaCard: React.FC<AsignacionOtMasivaCardProps> = ({
                 </Button>
               </div>
               {opciones.length > 0 && (
-                <MaterialCard className="absolute left-0 right-0 top-full z-[70] mt-1 max-h-56 overflow-y-auto p-1 shadow-xl">
+                <MaterialCard className="absolute left-0 right-0 top-full z-[70] mt-1 max-h-72 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 shadow-2xl">
                   {opciones.map((ot) => (
                     <Button
                       key={claveOt(ot)}
                       type="button"
                       variant="custom"
                       onClick={() => agregar(ot)}
-                      className="w-full justify-start rounded-lg px-2 py-2 text-left hover:bg-[var(--color-primary)]/10"
+                      className={opcionOtClass}
                     >
-                      <Text as="span" className="block truncate text-xs font-semibold text-[var(--color-primary)]">
-                        OT {ot.orden} · CC {ot.cc ?? '-'} · SCC {ot.scc ?? '-'} · Sub {ot.sub_indice ?? '-'}
+                      <Text as="span" className="flex min-w-0 flex-wrap items-center gap-1.5">
+                        <Text as="span" className={etiquetaOtClass}>OT {ot.orden}</Text>
+                        <Text as="span" className={datoOtClass}>CC {ot.cc ?? '-'}</Text>
+                        <Text as="span" className={datoOtClass}>SCC {ot.scc ?? '-'}</Text>
+                        <Text as="span" className={datoOtClass}>Sub {ot.sub_indice ?? '-'}</Text>
                       </Text>
-                      <Text as="span" className="block truncate text-[11px] text-[var(--color-text-secondary)]">
+                      <Text as="span" className="block truncate !text-[11px] font-medium leading-tight text-[var(--color-text-primary)] dark:text-neutral-200">
                         {ot.descripcion ?? ot.cliente ?? ot.categoria_sub_indice}
                       </Text>
                     </Button>
@@ -135,10 +153,10 @@ const AsignacionOtMasivaCard: React.FC<AsignacionOtMasivaCardProps> = ({
                   <Input
                     type="number"
                     min={0}
-                    max={24}
+                    max={Math.min(24, horasTurnoPlantilla)}
                     step={0.25}
                     value={item.horas ?? 0}
-                    onChange={(e) => actualizarHoras(idx, Math.max(0, Number(e.target.value) || 0))}
+                    onChange={(e) => actualizarHoras(idx, Number(e.target.value) || 0)}
                     className="h-7 w-20 text-xs"
                     aria-label={`Horas OT masiva ${item.orden}`}
                   />
@@ -156,7 +174,7 @@ const AsignacionOtMasivaCard: React.FC<AsignacionOtMasivaCardProps> = ({
             <Split className="mr-1 h-4 w-4" />
             Dividir turno
           </Button>
-          <Button variant="primary" size="sm" onClick={() => onAplicar(asignaciones)} disabled={!puedeAplicar} className="h-8 rounded-full !px-3 text-xs">
+          <Button variant="primary" size="sm" onClick={() => onAplicar(asignacionesNormalizadas)} disabled={!puedeAplicar} className="h-8 rounded-full !px-3 text-xs">
             Aplicar OT
           </Button>
         </div>

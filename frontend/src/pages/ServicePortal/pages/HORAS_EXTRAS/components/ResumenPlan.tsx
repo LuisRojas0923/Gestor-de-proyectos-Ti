@@ -5,7 +5,7 @@
  * Diferencia visual entre pre-cálculo (gris) y confirmado (verde).
  */
 import React from 'react';
-import { Badge, MaterialCard, Text } from '../../../../../components/atoms';
+import { MaterialCard, Text } from '../../../../../components/atoms';
 import type { PlanPreCalculoResponse } from '../../../../../types/horasExtrasPlanificador';
 
 interface ResumenPlanProps {
@@ -17,16 +17,7 @@ const fmtCOP = (n: number): string =>
   n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
 const ResumenPlan: React.FC<ResumenPlanProps> = ({ preCalculo, confirmado }) => {
-  if (!preCalculo && !confirmado) {
-    return (
-      <MaterialCard className="p-5 text-center" role="status" aria-label="Resumen sin cálculo">
-        <Badge variant="default" size="sm">Estimación pendiente</Badge>
-        <Text className="mt-2 text-sm text-[var(--color-text-secondary)]">
-          Pulsa "Pre-calcular" para revisar horas extras y costos antes de confirmar.
-        </Text>
-      </MaterialCard>
-    );
-  }
+  if (!preCalculo && !confirmado) return null;
 
   return (
     <MaterialCard className="p-5">

@@ -73,6 +73,18 @@ const mockEmpleados = {
   offset: 0,
 };
 
+const mockEmpleadosTellez = {
+  items: [
+    { cedula: '101', nombre: 'RODRIGUEZ ALVAREZ ANA', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true },
+    { cedula: '102', nombre: 'RODRIGUEZ BARRERA LUIS', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true },
+    { cedula: '103', nombre: 'RODRIGUEZ TELLEZ EDWAR GERMAN', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true },
+    { cedula: '104', nombre: 'RODRIGUEZ TELLEZ OSCAR JAVIER', cargo: 'Op', area: 'A', ciudadcontratacion: 'Bogota', quien_reporta: 'Lider Uno', nivel_riesgo_arl: 'III', autoriza_he: true },
+  ],
+  total: 4,
+  limit: 25,
+  offset: 0,
+};
+
 const guardarSeleccionPlanificador = () => {
   guardarBorradorPlanificadorLocal({
     ...crearBorradorPlanificadorBase(),
@@ -229,14 +241,15 @@ describe('PlanificadorSemanalView', () => {
     expect(screen.getByRole('button', { name: /Entrada: 07:30/i })).toBeTruthy();
     expect(screen.getByText(/Empleados y horarios/)).toBeTruthy();
     expect(screen.queryByPlaceholderText(/Buscar por cédula/)).toBeNull();
-    expect(screen.getByRole('button', { name: /Incluir visibles/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Seleccionar visibles/i })).toBeTruthy();
     await waitFor(() => expect(buscarEmpleadosERP).toHaveBeenCalled());
   });
 
   it('permite cambiar la semana usando selectores de fecha', async () => {
     wrapperRouter(<PlanificadorSemanalView />);
 
-    fireEvent.change(screen.getByDisplayValue('2026-06-29'), { target: { value: '2026-07-01' } });
+    const fechaInicioInput = screen.getAllByDisplayValue(/^\d{4}-\d{2}-\d{2}$/)[0];
+    fireEvent.change(fechaInicioInput, { target: { value: '2026-07-01' } });
 
     expect(screen.getByDisplayValue('2026-06-29')).toBeTruthy();
     expect(screen.getByDisplayValue('2026-07-05')).toBeTruthy();
@@ -282,6 +295,42 @@ describe('PlanificadorSemanalView', () => {
     });
   });
 
+  it('aplica horario y novedad masiva desde el mismo boton', async () => {
+    renderPlanificadorConSeleccion();
+
+    fireEvent.click(screen.getByRole('button', { name: /Novedad: Sin novedad/i }));
+    fireEvent.click(await screen.findByText('INC'));
+    fireEvent.click(screen.getByRole('button', { name: /Aplicar \+ INC/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Guardar borrador/i }));
+
+    await waitFor(() => {
+      expect(guardarBorradorPlan).toHaveBeenCalled();
+      const callArg = (guardarBorradorPlan as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(callArg.empleados[0].dias[0].novedades[0]).toMatchObject({
+        codigo_novedad: 'INC',
+      });
+    });
+  });
+
+  it('limpia la novedad masiva previa al aplicar sin novedad', async () => {
+    renderPlanificadorConSeleccion();
+
+    fireEvent.click(screen.getByRole('button', { name: /Novedad: Sin novedad/i }));
+    fireEvent.click(await screen.findByText('INC'));
+    fireEvent.click(screen.getByRole('button', { name: /Aplicar \+ INC/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Novedad: INC/i }));
+    fireEvent.click(await screen.findByText('Sin novedad'));
+    fireEvent.click(screen.getByRole('button', { name: /^Aplicar$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Guardar borrador/i }));
+
+    await waitFor(() => {
+      expect(guardarBorradorPlan).toHaveBeenCalled();
+      const callArg = (guardarBorradorPlan as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(callArg.empleados[0].dias[0].novedades).toEqual([]);
+    });
+  });
+
   it('aplica OT masiva a empleados y dias seleccionados antes de guardar', async () => {
     renderPlanificadorConSeleccion();
 
@@ -289,8 +338,8 @@ describe('PlanificadorSemanalView', () => {
     fireEvent.click(screen.getByRole('button', { name: /Buscar OT masiva/i }));
 
     await waitFor(() => expect(buscarOtManoObra).toHaveBeenCalledWith('1007', 8, 0, TOKEN));
-    fireEvent.click(await screen.findByText(/OT 1007 · CC 3080/i));
-    fireEvent.click(screen.getByRole('button', { name: /Dividir turno/i }));
+    fireEvent.click(await screen.findByText(/^OT 1007$/i));
+    fireEvent.change(screen.getByLabelText(/Horas OT masiva 1007/i), { target: { value: '4005' } });
     fireEvent.click(screen.getByRole('button', { name: /^Aplicar OT$/i }));
     fireEvent.click(screen.getByRole('button', { name: /Guardar borrador/i }));
 
@@ -303,7 +352,7 @@ describe('PlanificadorSemanalView', () => {
         scc: '10',
         sub_indice: '300',
       });
-      expect(callArg.empleados[0].dias[0].asignaciones_ot[0].horas).toBeGreaterThan(0);
+      expect(callArg.empleados[0].dias[0].asignaciones_ot[0].horas).toBe(9);
       expect(callArg.empleados[1].dias[4].asignaciones_ot[0].orden).toBe('1007');
     });
   });
@@ -337,7 +386,7 @@ describe('PlanificadorSemanalView', () => {
     fireEvent.click(screen.getByLabelText(/Seleccionar 456/i));
 
     await waitFor(() => {
-      expect(screen.getByText(/1 \/ 200 seleccionados/)).toBeTruthy();
+      expect(screen.getByText(/1 \/ 2 seleccionados/)).toBeTruthy();
       const draft = JSON.parse(window.sessionStorage.getItem(PLANIFICADOR_DRAFT_KEY) ?? '{}');
       expect(draft.seleccionados).toEqual(['456']);
       expect(draft.empleadosInfo[0][1].ciudadcontratacion).toBe('Medellin');
@@ -374,6 +423,34 @@ describe('PlanificadorSemanalView', () => {
     });
   });
 
+  it('mantiene seleccionados del filtro aunque la busqueda remota muestre solo algunos', async () => {
+    (buscarEmpleadosERP as ReturnType<typeof vi.fn>).mockImplementation((q) => Promise.resolve(
+      q === 'tellez'
+        ? { ...mockEmpleadosTellez, items: mockEmpleadosTellez.items.slice(2), total: 2 }
+        : mockEmpleadosTellez,
+    ));
+
+    wrapperRouter(<PlanificadorSemanalView />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /^Empleado$/i }));
+    fireEvent.click(screen.getByText(/Seleccionar Todos/i));
+    fireEvent.click(screen.getAllByRole('button', { name: /^Aplicar$/i }).at(-1)!);
+
+    await waitFor(() => expect(screen.getByText(/RODRIGUEZ ALVAREZ ANA/i)).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /^Empleado$/i }));
+    fireEvent.change(screen.getByPlaceholderText(/^Buscar\.\.\.$/i), { target: { value: 'tellez' } });
+    await waitFor(() => expect(buscarEmpleadosERP).toHaveBeenCalledWith('tellez', 25, 0, TOKEN, true));
+    fireEvent.click(screen.getAllByRole('button', { name: /^Aplicar$/i }).at(-1)!);
+
+    await waitFor(() => {
+      expect(screen.getByText(/RODRIGUEZ ALVAREZ ANA/i)).toBeTruthy();
+      expect(screen.getByText(/RODRIGUEZ BARRERA LUIS/i)).toBeTruthy();
+      expect(screen.getByText(/RODRIGUEZ TELLEZ EDWAR GERMAN/i)).toBeTruthy();
+      expect(screen.getByText(/RODRIGUEZ TELLEZ OSCAR JAVIER/i)).toBeTruthy();
+    });
+  });
+
   it('incluye empleados visibles autorizados desde el panel integrado', async () => {
     (buscarEmpleadosERP as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ...mockEmpleados,
@@ -383,10 +460,10 @@ describe('PlanificadorSemanalView', () => {
     wrapperRouter(<PlanificadorSemanalView />);
 
     await screen.findByText('Operación');
-    fireEvent.click(screen.getByRole('button', { name: /Incluir visibles/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Seleccionar visibles/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/2 \/ 200 seleccionados/)).toBeTruthy();
+      expect(screen.getByText(/2 \/ 2 seleccionados/)).toBeTruthy();
       const draft = leerBorradorPlanificador();
       expect(draft?.seleccionados).toEqual(['123', '456']);
       expect(draft?.empleadosInfo).toHaveLength(2);
@@ -406,7 +483,7 @@ describe('PlanificadorSemanalView', () => {
     fireEvent.click(screen.getByRole('button', { name: /Limpiar selección/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/0 \/ 200 seleccionados/)).toBeTruthy();
+      expect(screen.getByText(/0 \/ 2 seleccionados/)).toBeTruthy();
       const draft = leerBorradorPlanificador();
       expect(draft?.seleccionados).toEqual([]);
       expect(draft?.empleadosInfo).toEqual([]);

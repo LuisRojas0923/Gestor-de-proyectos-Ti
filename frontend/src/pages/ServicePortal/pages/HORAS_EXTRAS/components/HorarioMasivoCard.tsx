@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Text, Textarea } from '../../../../../components/atoms';
-import { ClipboardList, Copy, Eraser } from 'lucide-react';
+import { Copy, Eraser } from 'lucide-react';
 import TimeClockPicker from './TimeClockPicker';
 import { labelDia } from '../utils/horarioUtils';
 
@@ -25,13 +25,12 @@ interface HorarioMasivoCardProps {
   onObservacionMasivaChange: (value: string) => void;
   onToggleDiaDestino: (dia: number) => void;
   onAplicarHorario: () => void;
-  onAgregarNovedad: () => void;
   onLimpiarDias: () => void;
 }
 
-const chipClass = 'flex h-9 min-w-0 items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/90 px-2.5 shadow-sm';
-const chipLabelClass = 'shrink-0 text-[10px] font-semibold text-[var(--color-text-secondary)]';
-const chipPickerClass = '!h-6 !justify-center !rounded-full !border-none !bg-transparent !px-0 !text-[12px] !font-semibold !text-[var(--color-text-primary)] !shadow-none hover:!bg-transparent focus:!ring-0 focus:!ring-offset-0';
+const chipClass = 'flex h-8 min-w-0 items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/90 px-2 shadow-none';
+const chipLabelClass = 'shrink-0 !text-[10px] font-semibold text-[var(--color-text-secondary)]';
+const chipPickerClass = '!h-6 !justify-center !rounded-lg !border-none !bg-transparent !px-0 !text-[12px] !font-semibold !text-[var(--color-text-primary)] !shadow-none hover:!bg-transparent focus:!ring-0 focus:!ring-offset-0';
 const actionButtonClass = 'h-8 rounded-full !px-3 text-xs';
 
 interface ChipSelectOption {
@@ -92,9 +91,9 @@ const ChipSelect: React.FC<ChipSelectProps> = ({ value, options, ariaLabel, clas
         variant="custom"
         aria-label={`${ariaLabel}: ${selected?.label ?? ''}`}
         onClick={() => setOpen((prev) => !prev)}
-        className={`h-6 min-w-0 rounded-full border-none bg-transparent !px-1 text-[12px] font-semibold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-variant)] focus:ring-1 focus:ring-[var(--color-primary)]/40 focus:ring-offset-0 ${className}`}
+        className={`h-6 min-w-0 rounded-lg border-none bg-transparent !px-1 text-[12px] font-semibold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-variant)] focus:ring-1 focus:ring-[var(--color-primary)]/40 focus:ring-offset-0 [&>span]:!text-[12px] ${className}`}
       >
-        <Text as="span" className="truncate text-[12px] font-semibold">
+        <Text as="span" className="truncate !text-[12px] font-semibold">
           {selected?.label ?? '—'}
         </Text>
       </Button>
@@ -156,21 +155,20 @@ const HorarioMasivoCard: React.FC<HorarioMasivoCardProps> = ({
   onObservacionMasivaChange,
   onToggleDiaDestino,
   onAplicarHorario,
-  onAgregarNovedad,
   onLimpiarDias,
 }) => {
   const sinEmpleados = seleccionadosCount === 0;
   const toolbarClass = compacto
-    ? 'mt-2 border-t border-[var(--color-border)]/70 pt-3'
+    ? 'mt-2 border-t border-[var(--color-border)]/70 pt-2.5'
     : 'border-b border-[var(--color-border)] bg-[var(--color-surface-variant)]/25 p-2.5';
   const observacionClass = compacto
     ? 'mt-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-2.5'
     : 'border-b border-[var(--color-border)] bg-[var(--color-surface)] p-2.5';
   const layoutClass = compacto
-    ? 'flex flex-col gap-2.5'
+    ? 'flex flex-col gap-2'
     : 'flex flex-col gap-2 2xl:flex-row 2xl:items-center 2xl:justify-between';
   const controlesClass = compacto
-    ? 'flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2'
+    ? 'flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5'
     : 'flex min-w-0 flex-wrap items-center gap-2';
   const accionesClass = compacto
     ? 'flex flex-wrap items-center justify-end gap-2 border-t border-[var(--color-border)]/60 pt-2.5'
@@ -225,7 +223,7 @@ const HorarioMasivoCard: React.FC<HorarioMasivoCardProps> = ({
                 onChange={onNovedadMasivaChange}
               />
             </div>
-            <div className={`${chipClass} max-w-full flex-wrap gap-1.5 rounded-2xl sm:flex-nowrap sm:rounded-full`}>
+            <div className={`${chipClass} max-w-full gap-1.5`}>
               <Text className={chipLabelClass}>Días</Text>
               <div className="flex min-w-0 flex-wrap items-center gap-1 sm:flex-nowrap">
                 {diasSemana.map((dia) => {
@@ -238,7 +236,7 @@ const HorarioMasivoCard: React.FC<HorarioMasivoCardProps> = ({
                       size="xs"
                       rounded="full"
                       onClick={() => onToggleDiaDestino(dia)}
-                      className={`h-6 min-w-8 border !px-1.5 !text-[10px] ${activo
+                      className={`h-6 min-w-8 border !px-1.5 !text-[10px] [&>span]:!text-[10px] ${activo
                         ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-surface)] shadow-sm'
                         : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]'
                       }`}
@@ -253,8 +251,7 @@ const HorarioMasivoCard: React.FC<HorarioMasivoCardProps> = ({
 
           {!ocultarAcciones && (
             <div className={accionesClass}>
-              <Button variant="secondary" size="sm" onClick={onAplicarHorario} disabled={sinEmpleados} className={actionButtonClass}><Copy className="w-4 h-4 mr-1" />Aplicar</Button>
-              <Button variant="outline" size="sm" onClick={onAgregarNovedad} disabled={sinEmpleados || !novedadMasiva} className={actionButtonClass}><ClipboardList className="w-4 h-4 mr-1" />Novedad</Button>
+              <Button variant="secondary" size="sm" onClick={onAplicarHorario} disabled={sinEmpleados} className={actionButtonClass}><Copy className="w-4 h-4 mr-1" />{novedadMasiva ? `Aplicar + ${novedadMasiva}` : 'Aplicar'}</Button>
               <Button variant="ghost" size="sm" onClick={onLimpiarDias} disabled={sinEmpleados} className={actionButtonClass}><Eraser className="w-4 h-4 mr-1" />Limpiar</Button>
             </div>
           )}
