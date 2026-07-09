@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { UserPlus, Plus, Minus } from 'lucide-react';
 import { Button, MaterialCard, Text } from '../../../components/atoms';
@@ -54,11 +54,11 @@ export const CustomNodeComponent = (props: CustomNodeProps) => {
       <Handle type="target" position={Position.Top} isConnectable={isConnectable} className="w-2 h-2 border-2 border-[var(--color-surface)] bg-neutral-300 dark:bg-neutral-600" />
       <MaterialCard
         onClick={() => onSelect(String(user.id || ''))}
-        className={\p-2 w-full cursor-pointer transition-all border relative \\}
+        className={`p-2 w-full cursor-pointer transition-all border relative ${getLevelStyles(level, isSelected)}`}
         elevation={isSelected ? 2 : 1}
       >
         <div className="flex items-center text-left gap-2">
-          <div className={\w-8 h-8 rounded-full flex items-center justify-center border shadow-sm shrink-0 \\}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-sm shrink-0 ${getAvatarColors(level)}`}>
             {isVacancy ? (
               <UserPlus size={14} className="opacity-80" />
             ) : (
@@ -67,7 +67,7 @@ export const CustomNodeComponent = (props: CustomNodeProps) => {
           </div>
           
           <div className="w-full min-w-0 pr-2">
-            <Text className={\!text-[9.5px] font-bold leading-tight uppercase truncate block \\} title={String(user.nombre || '')}>
+            <Text className={`!text-[9.5px] font-bold leading-tight uppercase truncate block ${isVacancy ? 'text-neutral-500 dark:text-neutral-400 italic font-semibold' : ''}`} title={String(user.nombre || '')}>
               {formatShortName(String(user.nombre || ''))}
             </Text>
             <Text className="!text-[8.5px] text-[var(--color-text-secondary)] leading-tight opacity-90 truncate block mt-0.5" title={String((user as HierarchyUser & { cargo?: string }).cargo || user.rol || '')}>
