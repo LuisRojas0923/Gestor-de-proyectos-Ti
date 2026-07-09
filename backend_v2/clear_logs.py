@@ -6,9 +6,13 @@ from sqlalchemy import delete
 async def main():
     async with AsyncSessionLocal() as db:
         # Limpiar registros de viáticos para permitir repetir pruebas de auditoría
-        await db.execute(delete(AuditoriaAccionUsuario).where(AuditoriaAccionUsuario.modulo == "viaticos"))
-        await db.commit()
-        print("Registros de viáticos eliminados exitosamente de la auditoría.")
+        try:
+            await db.execute(delete(AuditoriaAccionUsuario).where(AuditoriaAccionUsuario.modulo == "viaticos"))
+            await db.commit()
+            print("Registros de viáticos eliminados exitosamente de la auditoría.")
+        except Exception as e:
+            await db.rollback()
+            print(f"Error al limpiar logs: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())

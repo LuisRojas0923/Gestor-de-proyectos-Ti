@@ -10,7 +10,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import React, { useState } from 'react';
-import { Badge, Icon, MaterialCard as Card, Text } from '../../../components/atoms';
+import { Badge, Button, Icon, MaterialCard as Card, Text } from '../../../components/atoms';
 import { Modal } from '../../../components/molecules';
 import type { AuditoriaEvento } from '../../../types/auditoria';
 import ComparacionAntesDespues from './ComparacionAntesDespues';
@@ -113,10 +113,10 @@ const DetallesTecnicos: React.FC<{ evento: AuditoriaEvento }> = ({ evento }) => 
 
   return (
     <div className="border border-[var(--color-border)] rounded-xl overflow-hidden mt-6">
-      <button 
-        type="button"
+      <Button 
+        variant="custom"
         onClick={() => setAbierto(!abierto)}
-        className="w-full px-4 py-3 bg-[var(--color-surface-variant)]/40 hover:bg-[var(--color-surface-variant)]/60 transition-colors flex items-center justify-between"
+        className="w-full !px-4 !py-3 !bg-[var(--color-surface-variant)]/40 hover:!bg-[var(--color-surface-variant)]/60 transition-colors !flex !items-center !justify-between !rounded-none !border-0"
       >
         <div className="flex items-center gap-2">
           <Icon name={Server} size="sm" className="text-text-secondary" />
@@ -129,7 +129,7 @@ const DetallesTecnicos: React.FC<{ evento: AuditoriaEvento }> = ({ evento }) => 
           size="sm" 
           className={`text-text-secondary transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`} 
         />
-      </button>
+      </Button>
 
       {abierto && (
         <div className="p-4 space-y-4 border-t border-[var(--color-border)] bg-[var(--color-surface)]/50">
@@ -230,17 +230,17 @@ const AuditoriaEventoDetalle: React.FC<Props> = ({ evento, onCerrar }) => {
             </div>
             <div>
               <Text variant="body1" className="leading-relaxed">
-                El usuario <span className="font-semibold text-text-primary">{evento.usuario_nombre ?? evento.usuario_id}</span>{' '}
-                <span className="font-medium text-[var(--color-primary)]">{humanizarAccion(evento.accion).toLowerCase()}</span>{' '}
-                en el módulo de <span className="font-semibold text-text-primary">{humanizarModulo(evento.modulo)}</span>.
+                El usuario <Text as="span" className="font-semibold text-[var(--color-text-primary)]">{evento.usuario_nombre ?? evento.usuario_id}</Text>{' '}
+                <Text as="span" className="font-medium text-[var(--color-primary)]">{humanizarAccion(evento.accion).toLowerCase()}</Text>{' '}
+                en el módulo de <Text as="span" className="font-semibold text-[var(--color-text-primary)]">{humanizarModulo(evento.modulo)}</Text>.
               </Text>
               
               {(evento.entidad_tipo || evento.entidad_id) && (
                 <Text variant="body2" color="text-secondary" className="mt-1">
-                  Se afectó el registro: <span className="font-medium">
+                  Se afectó el registro: <Text as="span" className="font-medium">
                     {evento.entidad_tipo ? `${evento.entidad_tipo} ` : ''}
                     {evento.entidad_id ? `#${evento.entidad_id}` : ''}
-                  </span>
+                  </Text>
                 </Text>
               )}
             </div>

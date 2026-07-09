@@ -11,12 +11,15 @@ async def main():
             AuditoriaAccionUsuario.modulo == "viaticos"
         ).order_by(AuditoriaAccionUsuario.timestamp.desc()).limit(10)
         
-        result = await session.execute(stmt)
-        rows = result.scalars().all()
-        
-        print("--- REGISTROS DE HOY EN VIÁTICOS ---")
-        for row in rows:
-            print(f"ID: {row.id} | Fecha: {row.timestamp} | Usuario ID/Cédula: {row.usuario_id} | Nombre: {row.usuario_nombre} | Ruta: {row.ruta}")
+        try:
+            result = await session.execute(stmt)
+            rows = result.scalars().all()
+            
+            print("--- REGISTROS DE HOY EN VIÁTICOS ---")
+            for row in rows:
+                print(f"ID: {row.id} | Fecha: {row.timestamp} | Usuario ID/Cédula: {row.usuario_id} | Nombre: {row.usuario_nombre} | Ruta: {row.ruta}")
+        except Exception as e:
+            print(f"Error al ejecutar consulta: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())

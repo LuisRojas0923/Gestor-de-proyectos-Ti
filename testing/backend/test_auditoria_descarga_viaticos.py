@@ -34,12 +34,9 @@ async def test_auditar_descarga_viaticos_cache(client, db_session):
     )
     
     # Limpiar por si quedó algún registro huérfano de pruebas fallidas previas
-    try:
-        await db_session.execute(delete(Usuario).where(Usuario.id == user_id))
-        await db_session.execute(delete(AuditoriaAccionUsuario).where(AuditoriaAccionUsuario.usuario_id == user_id))
-        await db_session.commit()
-    except Exception:
-        await db_session.rollback()
+    await db_session.execute(delete(Usuario).where(Usuario.id == user_id))
+    await db_session.execute(delete(AuditoriaAccionUsuario).where(AuditoriaAccionUsuario.usuario_id == user_id))
+    await db_session.commit()
     
     db_session.add(test_user)
     await db_session.commit()

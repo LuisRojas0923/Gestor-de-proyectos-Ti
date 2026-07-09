@@ -15,12 +15,15 @@ async def main():
             AuditoriaAccionUsuario.resultado
         ).order_by(AuditoriaAccionUsuario.timestamp.desc()).limit(15)
         
-        result = await session.execute(stmt)
-        rows = result.all()
-        
-        print("--- ÚLTIMOS 15 REGISTROS DE AUDITORÍA ---")
-        for row in rows:
-            print(f"Fecha: {row.timestamp} | Usuario: {row.usuario_nombre} | Módulo: {row.modulo} | Acción: {row.accion} | Resultado: {row.resultado}")
+        try:
+            result = await session.execute(stmt)
+            rows = result.all()
+            
+            print("--- ÚLTIMOS 15 REGISTROS DE AUDITORÍA ---")
+            for row in rows:
+                print(f"Fecha: {row.timestamp} | Usuario: {row.usuario_nombre} | Módulo: {row.modulo} | Acción: {row.accion} | Resultado: {row.resultado}")
+        except Exception as e:
+            print(f"Error al ejecutar consulta: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -243,45 +243,49 @@ async def auditar_descarga_estado_cuenta(
     accion = "exportar"
     ruta = f"/api/v2/viaticos/estado-cuenta/{payload.tipo_archivo}"
 
-    # 1. Comprobar si ya existe un registro en las últimas 4h 30m
-    limite = func.now() - text("INTERVAL '4 hours 30 minutes'")
-    stmt = select(AuditoriaAccionUsuario).where(
-        AuditoriaAccionUsuario.usuario_id == usuario_id,
-        AuditoriaAccionUsuario.modulo == modulo,
-        AuditoriaAccionUsuario.accion == accion,
-        AuditoriaAccionUsuario.ruta == ruta,
-        AuditoriaAccionUsuario.timestamp >= limite
-    ).limit(1)
+    try:
+        # 1. Comprobar si ya existe un registro en las últimas 4h 30m
+        limite = func.now() - text("INTERVAL '4 hours 30 minutes'")
+        stmt = select(AuditoriaAccionUsuario).where(
+            AuditoriaAccionUsuario.usuario_id == usuario_id,
+            AuditoriaAccionUsuario.modulo == modulo,
+            AuditoriaAccionUsuario.accion == accion,
+            AuditoriaAccionUsuario.ruta == ruta,
+            AuditoriaAccionUsuario.timestamp >= limite
+        ).limit(1)
 
-    result = await db.execute(stmt)
-    registro_existente = result.scalar_one_or_none()
+        result = await db.execute(stmt)
+        registro_existente = result.scalar_one_or_none()
 
-    if registro_existente:
-        return {"status": "cached", "mensaje": "Registro omitido por límite de frecuencia (4h 30m)"}
+        if registro_existente:
+            return {"status": "cached", "mensaje": "Registro omitido por límite de frecuencia (4h 30m)"}
 
-    # 2. Si no existe, insertar nuevo registro de auditoría
-    metadatos = {}
-    if payload.cedula_consultada:
-        metadatos["cedula_consultada"] = payload.cedula_consultada
-    if payload.nombre_consultado:
-        metadatos["nombre_consultado"] = payload.nombre_consultado
+        # 2. Si no existe, insertar nuevo registro de auditoría
+        metadatos = {}
+        if payload.cedula_consultada:
+            metadatos["cedula_consultada"] = payload.cedula_consultada
+        if payload.nombre_consultado:
+            metadatos["nombre_consultado"] = payload.nombre_consultado
 
-    nuevo_registro = AuditoriaAccionUsuario(
-        usuario_id=usuario_id,
-        usuario_nombre=usuario_nombre,
-        rol=rol,
-        modulo=modulo,
-        accion=accion,
-        ruta=ruta,
-        metodo_http="POST",
-        codigo_respuesta=200,
-        resultado="exito",
-        metadatos=metadatos if metadatos else None,
-    )
-    db.add(nuevo_registro)
-    await db.commit()
+        nuevo_registro = AuditoriaAccionUsuario(
+            usuario_id=usuario_id,
+            usuario_nombre=usuario_nombre,
+            rol=rol,
+            modulo=modulo,
+            accion=accion,
+            ruta=ruta,
+            metodo_http="POST",
+            codigo_respuesta=200,
+            resultado="exito",
+            metadatos=metadatos if metadatos else None,
+        )
+        db.add(nuevo_registro)
+        await db.commit()
 
-    return {"status": "logged", "mensaje": "Acción registrada en auditoría"}
+        return {"status": "logged", "mensaje": "Acción registrada en auditoría"}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al registrar auditoría: {str(e)}")
 
 
 @router.post("/reporte-gastos/auditar-descarga")
@@ -301,25 +305,29 @@ async def auditar_descarga_reporte_gastos(
     usuario_nombre = usuario_actual.nombre or "Desconocido"
     rol = usuario_actual.rol or "usuario"
     
-    metadatos = {}
-    if payload.cedula_consultada:
-        metadatos["cedula_consultada"] = payload.cedula_consultada
-    if payload.nombre_consultado:
-        metadatos["nombre_consultado"] = payload.nombre_consultado
+    try:
+        metadatos = {}
+        if payload.cedula_consultada:
+            metadatos["cedula_consultada"] = payload.cedula_consultada
+        if payload.nombre_consultado:
+            metadatos["nombre_consultado"] = payload.nombre_consultado
 
-    nuevo_registro = AuditoriaAccionUsuario(
-        usuario_id=usuario_id,
-        usuario_nombre=usuario_nombre,
-        rol=rol,
-        modulo="viaticos",
-        accion="exportar",
-        ruta="/api/v2/viaticos/reporte-gastos/auditar-descarga",
-        metodo_http="POST",
-        codigo_respuesta=200,
-        resultado="exito",
-        metadatos=metadatos if metadatos else None,
-    )
-    db.add(nuevo_registro)
-    await db.commit()
+        nuevo_registro = AuditoriaAccionUsuario(
+            usuario_id=usuario_id,
+            usuario_nombre=usuario_nombre,
+            rol=rol,
+            modulo="viaticos",
+            accion="exportar",
+            ruta="/api/v2/viaticos/reporte-gastos/auditar-descarga",
+            metodo_http="POST",
+            codigo_respuesta=200,
+            resultado="exito",
+            metadatos=metadatos if metadatos else None,
+        )
+        db.add(nuevo_registro)
+        await db.commit()
 
-    return {"status": "logged", "mensaje": "Descarga de reporte de gastos registrada"}
+        return {"status": "logged", "mensaje": "Descarga de reporte de gastos registrada"}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al registrar descarga: {str(e)}")
