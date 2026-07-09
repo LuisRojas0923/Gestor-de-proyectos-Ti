@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Title, Text, MaterialCard, Input } from '../../../components/atoms';
-import { FileText, Briefcase, Plus, ChevronRight, Search } from 'lucide-react';
+import { FileText, Briefcase, ChevronRight, Search } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -10,7 +10,12 @@ import imgNovedadesNomina from '../../../assets/images/categories/NOVEDADES_NOMI
 import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 
 interface DashboardViewProps {
-    user: any;
+    user: {
+        rol?: string;
+        role?: string;
+        permissions?: string[];
+        viaticante?: boolean;
+    } | null;
     moduleStatus: Record<string, boolean>;
     onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones') => void;
 }

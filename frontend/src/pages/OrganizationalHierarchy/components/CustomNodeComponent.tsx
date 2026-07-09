@@ -1,10 +1,26 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { UserPlus, Plus, Minus } from 'lucide-react';
-import { MaterialCard, Text } from '../../../components/atoms';
+import { Button, MaterialCard, Text } from '../../../components/atoms';
 import { getInitials, formatShortName } from '../utils';
+import type { HierarchyNode } from '../../../types/hierarchy';
 
-export const CustomNodeComponent = (props: any) => {
+export interface CustomNodeData {
+  nodeData: HierarchyNode;
+  level: number;
+  selected: boolean;
+  onSelect: (userId: string) => void;
+  isExpanded: boolean;
+  hasChildren: boolean;
+  onToggle?: () => void;
+}
+
+interface CustomNodeProps {
+  data: CustomNodeData;
+  isConnectable: boolean;
+}
+
+export const CustomNodeComponent = (props: CustomNodeProps) => {
   const { data, isConnectable } = props;
   const { nodeData, level, selected, onSelect, isExpanded, hasChildren, onToggle } = data;
   const user = nodeData.usuario;
@@ -60,7 +76,9 @@ export const CustomNodeComponent = (props: any) => {
         </div>
         
         {hasChildren && (
-          <button
+          <Button
+            variant="custom"
+            size="xs"
             onClick={(e) => {
               e.stopPropagation();
               onToggle?.();
@@ -69,7 +87,7 @@ export const CustomNodeComponent = (props: any) => {
             title={isExpanded ? "Contraer rama" : "Expandir rama"}
           >
             {isExpanded ? <Minus size={12} strokeWidth={3} /> : <Plus size={12} strokeWidth={3} />}
-          </button>
+          </Button>
         )}
       </MaterialCard>
       <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} className="w-2 h-2 border-2 border-[var(--color-surface)] bg-neutral-300 dark:bg-neutral-600" />
