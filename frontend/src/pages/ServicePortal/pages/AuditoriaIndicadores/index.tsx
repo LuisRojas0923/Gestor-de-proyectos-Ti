@@ -1,34 +1,20 @@
-import React, { useState } from 'react';
-import { Title, Text, MaterialCard as Card, Button } from '../../../../components/atoms';
+import React from 'react';
+import { Title, Text, Button } from '../../../../components/atoms';
 import { Activity, Loader2, RefreshCw } from 'lucide-react';
+import { Callout } from '../../../../components/molecules';
 import PeriodSelector from './components/PeriodSelector';
 import KpiCards from './components/KpiCards';
 import EventosPorModulo from './components/EventosPorModulo';
 import TiposFallos from './components/TiposFallos';
 import ActividadEnTiempo from './components/ActividadEnTiempo';
-import TopUsuariosTable from './components/TopUsuariosTable';
-import TopRutasTable from './components/TopRutasTable';
-import UltimosEventosTable from './components/UltimosEventosTable';
-import KpiUsersModal from './components/KpiUsersModal';
-import UserEventsModal from './components/UserEventsModal';
-import RouteEventsModal from './components/RouteEventsModal';
-import type { TopUsuario, TopRuta } from '../../../../types/auditoria';
 
 import { useAuditoriaStats } from './hooks/useAuditoriaStats';
 
 const AuditoriaIndicadores: React.FC = () => {
-  const [kpiModalTipo, setKpiModalTipo] = useState<'denegados' | 'fallos_auth' | null>(null);
-  const [selectedUser, setSelectedUser] = useState<TopUsuario | null>(null);
-  const [selectedRoute, setSelectedRoute] = useState<TopRuta | null>(null);
-
   const { 
     estadisticas, 
-    setEstadisticas,
-    ultimosEventos,
-    isLoading, 
-    setIsLoading,
-    error, 
-    setError,
+    isLoading,
+    error,
     periodo, 
     setPeriodo, 
     fechaDesde, 
@@ -68,21 +54,18 @@ const AuditoriaIndicadores: React.FC = () => {
       />
 
       {error ? (
-        <Card className="p-8 text-center text-red-500 border-red-200 bg-red-50 dark:bg-red-950/20">
-          <Text variant="body1">{error}</Text>
-        </Card>
+        <Callout variant="error" title="No se pudieron cargar los indicadores" role="alert">
+          {error}
+        </Callout>
       ) : isLoading && !estadisticas ? (
-        <div className="flex justify-center items-center h-64">
+        <div className="flex justify-center items-center h-64" role="status" aria-live="polite">
           <Loader2 className="w-10 h-10 animate-spin text-[var(--color-primary)]" />
+          <Text className="sr-only">Cargando indicadores de auditoría</Text>
         </div>
       ) : estadisticas ? (
         <>
           {/* Fila 1: KPI Cards */}
-          <KpiCards 
-            stats={estadisticas} 
-            onClickDenegados={() => setKpiModalTipo('denegados')}
-            onClickFallosAuth={() => setKpiModalTipo('fallos_auth')}
-          />
+          <KpiCards stats={estadisticas} />
 
           {/* Fila 2: Gráficas Principales */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -95,46 +78,6 @@ const AuditoriaIndicadores: React.FC = () => {
             <ActividadEnTiempo datos={estadisticas.por_dia} />
           </div>
 
-          {/* Fila 4: Tablas de Top */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <TopUsuariosTable 
-              datos={estadisticas.top_usuarios || []} 
-              onUserClick={setSelectedUser}
-            />
-            <TopRutasTable 
-              datos={estadisticas.top_rutas || []} 
-              onRouteClick={setSelectedRoute}
-            />
-          </div>
-
-          {/* Fila 5: Últimos Eventos */}
-          <div className="mt-6 mb-12">
-            <UltimosEventosTable datos={ultimosEventos} isLoading={isLoading} />
-          </div>
-
-          <KpiUsersModal 
-            isOpen={!!kpiModalTipo} 
-            onClose={() => setKpiModalTipo(null)} 
-            tipo={kpiModalTipo}
-            fechaDesde={fechaDesde}
-            fechaHasta={fechaHasta}
-          />
-
-          <UserEventsModal
-            isOpen={!!selectedUser}
-            onClose={() => setSelectedUser(null)}
-            usuario={selectedUser}
-            fechaDesde={fechaDesde}
-            fechaHasta={fechaHasta}
-          />
-
-          <RouteEventsModal
-            isOpen={!!selectedRoute}
-            onClose={() => setSelectedRoute(null)}
-            rutaSeleccionada={selectedRoute}
-            fechaDesde={fechaDesde}
-            fechaHasta={fechaHasta}
-          />
         </>
       ) : null}
     </div>

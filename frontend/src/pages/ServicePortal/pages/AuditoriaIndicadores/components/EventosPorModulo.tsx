@@ -1,8 +1,31 @@
 import React, { useState, useMemo } from 'react';
-import { MaterialCard as Card, Title, Text, ProgressBar, Select } from '../../../../../components/atoms';
+import { Button, MaterialCard as Card, Title, Text, ProgressBar, Select } from '../../../../../components/atoms';
 import { Users, Activity, ChevronDown, ChevronUp, Clock, Filter } from 'lucide-react';
 import type { StatsPorModulo } from '../../../../../types/auditoria';
-import { humanizarModulo, humanizarAccionDetallada } from '../utils/humanizer';
+
+const MODULOS: Record<string, string> = {
+  auth: 'Control de acceso',
+  auditoria_sistema: 'Seguridad y auditoría',
+  viaticos: 'Gestión de viáticos',
+  requisiciones: 'Requisiciones',
+  sistemas: 'Soporte de sistemas',
+  desarrollos: 'Desarrollos',
+  inventario: 'Inventario',
+};
+
+const ACCIONES: Record<string, string> = {
+  login: 'Inicio de sesión',
+  logout: 'Cierre de sesión',
+  crear: 'Creación',
+  actualizar: 'Actualización',
+  eliminar: 'Eliminación',
+  consultar: 'Consulta',
+  exportar: 'Exportación',
+  otro: 'Otra acción',
+};
+
+const humanizarModulo = (modulo: string) => MODULOS[modulo.toLowerCase()]
+  || modulo.replaceAll('_', ' ').replace(/\b\w/g, (letra) => letra.toUpperCase());
 
 interface EventosPorModuloProps {
   datos: StatsPorModulo[];
@@ -108,9 +131,13 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
 
                 return (
                   <div key={index} className="flex flex-col gap-1.5">
-                    <div 
-                      className={`flex justify-between items-end ${hasEvents ? 'cursor-pointer group' : ''}`}
+                    <Button
+                      variant="custom"
+                      className="flex justify-between items-end w-full text-left group"
                       onClick={() => hasEvents && toggleExpand(index)}
+                      disabled={!hasEvents}
+                      aria-expanded={hasEvents ? isExpanded : undefined}
+                      aria-controls={hasEvents ? `eventos-modulo-${index}` : undefined}
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         {hasEvents && (
@@ -139,13 +166,13 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
                           </Text>
                         </div>
                       </div>
-                    </div>
+                    </Button>
                     
                     <ProgressBar progress={porcentaje} variant="primary" className="h-1.5" />
 
                     {/* Acordeón de detalles */}
                     {isExpanded && hasEvents && (
-                      <div className="mt-2 pl-6 pr-2 py-2 bg-[var(--color-surface-variant)] bg-opacity-30 rounded-lg border border-[var(--color-border)] border-opacity-50 space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
+                      <div id={`eventos-modulo-${index}`} className="mt-2 pl-6 pr-2 py-2 bg-[var(--color-surface-variant)] bg-opacity-30 rounded-lg border border-[var(--color-border)] border-opacity-50 space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
                         <Text variant="caption" className="font-semibold text-[var(--color-primary)] block mb-1 sticky top-0 bg-[var(--color-surface-variant)] z-10 py-1">Últimas interacciones:</Text>
                         {item.ultimos_eventos!.map((evento) => {
                           let fechaFormateada = 'N/A';
@@ -171,7 +198,7 @@ const EventosPorModulo: React.FC<EventosPorModuloProps> = ({ datos }) => {
                                 </div>
                               </div>
                               <Text variant="caption" className="text-[var(--color-text-secondary)] leading-tight">
-                                {humanizarAccionDetallada(evento)}
+                                 {ACCIONES[evento.accion] || evento.accion.replaceAll('_', ' ')}
                               </Text>
                             </div>
                           );

@@ -52,6 +52,7 @@ export interface FiltrosAuditoria {
   codigo_respuesta?: number;
   direccion_ip?: string;
   resultado?: ResultadoAuditoria;
+  fecha_desde?: string;
   fecha_hasta?: string;
   page?: number;
   page_size?: number;
@@ -61,8 +62,13 @@ export interface StatsPorModulo {
   modulo: string;
   total: number;
   usuarios_unicos?: number;
-  ultimos_eventos?: AuditoriaEvento[];
+  ultimos_eventos?: AuditoriaEventoResumen[];
 }
+
+export type AuditoriaEventoResumen = Pick<
+  AuditoriaEvento,
+  'id' | 'timestamp' | 'usuario_id' | 'usuario_nombre' | 'modulo' | 'accion' | 'resultado'
+>;
 
 export interface TipoFallo {
   tipo: string;

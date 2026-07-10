@@ -38,6 +38,9 @@ Ubicación: `testing/backend/`
 | **Anulación Actividades** | `test_actividad_delete.py` | Anulación lógica recursiva de actividades, metadatos de anulación y limpieza de validaciones asociadas. | ✅ PASSED |
 | **Prioridad Desarrollos** | `test_desarrollo_prioridad.py` | Ciclo CRUD de prioridades en desarrollos. | ✅ PASSED |
 | **Notificaciones** | `test_notificaciones.py` | Ciclo CRUD de notificaciones persistentes de usuario. | ✅ PASSED |
+| **Indicadores de Auditoría** | `test_auditoria_estadisticas.py` | Valida límites e integridad de rangos temporales del dashboard. | ✅ PASSED |
+| **RBAC de Auditoría** | `test_auditoria_estadisticas_rbac.py` | Autoriza el dashboard por permiso efectivo y rechaza accesos sin permiso. | ✅ PASSED |
+| **API de Auditoría** | `test_auditoria_estadisticas_http.py` | Contrato HTTP 401/403/200 del endpoint de indicadores. | ✅ PASSED |
 
 ### 2. Frontend (Vitest)
 Ubicación: `frontend/src/`
@@ -47,6 +50,7 @@ Ubicación: `frontend/src/`
 | **Registro** | `pages/Login/RegisterSidebar.test.tsx` | Mensajes de autoactivación y normalización de errores de registro. | ✅ PASSED |
 | **Áreas** | `components/molecules/__tests__/AreaAutocomplete.test.tsx` | Selector buscable cerrado, requerido y con opciones estrictas. | ✅ PASSED |
 | **Anulación WBS** | `pages/DevelopmentDetail/DeleteActivityModal.test.tsx` | Modal confirma anulación lógica y evita copy de eliminación física. | ✅ PASSED |
+| **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
 
 ### 3. Rendimiento (Locust)
 Ubicación: `testing/backend/load_test.py`
