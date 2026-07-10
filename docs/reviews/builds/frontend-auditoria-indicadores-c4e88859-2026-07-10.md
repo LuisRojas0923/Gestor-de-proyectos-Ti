@@ -1,6 +1,6 @@
 # Frontend review: approved_with_risks
 
-**Fecha:** 2026-07-10  
+**Fecha:** 2026-07-10
 **Alcance:** revisión final read-only del commit `c4e88859`, con verificación acumulada del frontend de indicadores de auditoría contra `origin/main`.
 
 ## Findings
