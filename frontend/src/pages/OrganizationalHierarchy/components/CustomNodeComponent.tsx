@@ -23,11 +23,9 @@ interface CustomNodeProps {
 export const CustomNodeComponent = (props: CustomNodeProps) => {
   const { data, isConnectable } = props;
   const { nodeData, level, selected, onSelect, isExpanded, hasChildren, onToggle } = data;
-  
   const user = nodeData.usuario;
   const isSelected = selected;
   const isVacancy = String(user.id || '').startsWith('VAC-');
-  
   const getLevelStyles = (lvl: number, isSelected: boolean) => {
     if (isSelected) return '!border-[var(--color-primary)] bg-[var(--color-primary)]/10 shadow-md scale-105';
     if (isVacancy) return 'border-dashed border-2 border-neutral-400 dark:border-neutral-600 bg-neutral-50/30 dark:bg-neutral-800/10 opacity-80 hover:opacity-100 transition-opacity';
