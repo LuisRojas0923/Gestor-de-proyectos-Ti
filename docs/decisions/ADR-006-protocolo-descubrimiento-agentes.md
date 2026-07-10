@@ -1,4 +1,4 @@
-# ADR-006: Protocolo de descubrimiento de skills para el arnés OpenCode
+# ADR-006: Protocolo de descubrimiento de skills para los arneses OpenCode y Codex
 
 **Estado:** Aceptado
 **Fecha:** 2026-06-02
@@ -22,6 +22,8 @@ Los subagentes en `.opencode/agent/` referenciaban solo un subconjunto de los sk
 2. Cada subagente declara `Protocol (read first): _shared-discovery.md` y amplía `Mandatory references` según la matriz inferior.
 3. **graphify:** solo el flujo principal ejecuta el pipeline; revisores leen `graphify-out/` si existe (`graphify-out/` en `.gitignore`).
 4. **find-skills:** solo el orquestador/implementación; revisores pueden recomendar, no instalar.
+5. `.opencode/agent/*.md` es la fuente canonica de los ocho subagentes. `.codex/agents/*.toml` mantiene adaptadores del mismo roster y referencia esas definiciones para evitar duplicacion y drift.
+6. Todos los adaptadores Codex usan sandbox de solo lectura. Cuando una revision o `error-memory` requiere persistencia, devuelve el cambio propuesto al orquestador, que conserva la responsabilidad de escribir solo en las rutas autorizadas.
 
 ## Matriz skill → subagente
 
@@ -48,7 +50,9 @@ Los subagentes en `.opencode/agent/` referenciaban solo un subconjunto de los sk
 ## Consecuencias
 
 - **Positivas:** menos drift entre skills y revisores; criterio único para graphify/find-skills.
+- **Positivas:** paridad de routing y revisiones entre OpenCode y Codex sin duplicar checklists.
 - **Negativas:** mantener la matriz al crear skills nuevos (actualizar este ADR o el subagente de dominio).
+- **Negativas:** los cambios de roster requieren actualizar el adaptador Codex homologo.
 - **Hecho:** grafo AST local vía `scripts/graphify_build_ast.py`; ver `docs/GUIA_DESARROLLO.md` §6.
 - **Opcional:** `graphify extract` con LLM para aristas semánticas en documentación.
 
