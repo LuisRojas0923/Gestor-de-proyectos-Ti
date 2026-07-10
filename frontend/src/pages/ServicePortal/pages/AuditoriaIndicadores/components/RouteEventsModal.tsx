@@ -54,7 +54,13 @@ const RouteEventsModal: React.FC<RouteEventsModalProps> = ({ isOpen, onClose, ru
   const titulo = rutaSeleccionada ? `${humanizarAccion(rutaSeleccionada.accion)}: ${humanizarRuta(rutaSeleccionada.ruta)}` : 'Acción';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Eventos: ${titulo}`} size="xl">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title={`Eventos: ${titulo}`} 
+      size="xl"
+      className="!max-w-5xl w-full"
+    >
       <div className="space-y-4">
         <div className="space-y-1 mb-4">
           <Text variant="body2" color="text-secondary">

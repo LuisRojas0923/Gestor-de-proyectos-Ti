@@ -56,7 +56,13 @@ const UserEventsModal: React.FC<UserEventsModalProps> = ({ isOpen, onClose, usua
   const nombreMostrar = usuario?.usuario_nombre || usuario?.usuario_id || 'Desconocido';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Últimos Eventos: ${nombreMostrar}`} size="xl">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title={`Últimos Eventos: ${nombreMostrar}`} 
+      size="xl"
+      className="!max-w-5xl w-full"
+    >
       <div className="space-y-4">
         <Text variant="body2" color="text-secondary" className="mb-4">
           Esta vista muestra los últimos registros de actividad del usuario seleccionado.
