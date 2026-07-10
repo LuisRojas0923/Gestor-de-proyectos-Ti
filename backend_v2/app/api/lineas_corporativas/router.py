@@ -485,4 +485,6 @@ async def obtener_detalle_factura(periodo: str, db: AsyncSession = Depends(obten
 
 # --- INCLUSIÓN DE SUB-ROUTERS ---
 from .router_migracion import router as router_migracion
+from .router_inventario import router as router_inventario
 router.include_router(router_migracion)
+router.include_router(router_inventario)

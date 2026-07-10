@@ -118,6 +118,10 @@ export const LineDetailForm: React.FC<FormProps> = ({
                   { label: 'RDC', value: 'RDC' },
                   { label: 'CRUZTOR', value: 'CRUZTOR' },
                   { label: 'GTC', value: 'GTC' },
+                  { label: 'REFRIDCOL', value: 'REFRIDCOL' },
+                  { label: 'YAK', value: 'YAK' },
+                  { label: 'CONTRATISTA', value: 'CONTRATISTA' },
+                  { label: 'CLARO', value: 'CLARO' },
                 ]}
                 className="!rounded-2xl"
               />

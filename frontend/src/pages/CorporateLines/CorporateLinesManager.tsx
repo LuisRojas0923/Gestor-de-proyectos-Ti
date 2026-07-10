@@ -30,7 +30,8 @@ export const CorporateLinesManager: React.FC = () => {
     lines, equipos, employeeAlerts, isLoading, stats,
     loadData, createLine, updateLine, deleteLine,
     importarFactura, obtenerReporteCO, obtenerAlertasFactura,
-    importarMatrizLegacy, obtenerDetalleFactura
+    importarMatrizLegacy, obtenerDetalleFactura, importarInventario,
+    obtenerAuditoriaCruce, exportarNomina, exportarContable
   } = ctx;
 
   const { addNotification } = useNotifications();
@@ -60,7 +61,9 @@ export const CorporateLinesManager: React.FC = () => {
   }, [loadData]);
 
   const companyOptions = useMemo(() => {
-    const empresas = [...new Set(lines.map(l => l.empresa).filter(Boolean))];
+    const defaultCompanies = ['RDC', 'CRUZTOR', 'GTC', 'REFRIDCOL', 'YAK', 'CONTRATISTA', 'CLARO'];
+    const dynamicCompanies = lines.map(l => l.empresa).filter(Boolean);
+    const empresas = [...new Set([...defaultCompanies, ...dynamicCompanies])];
     return [
       { label: 'Todas las Empresas', value: 'all' },
       ...empresas.sort().map(e => ({ label: e, value: e }))
@@ -148,25 +151,38 @@ export const CorporateLinesManager: React.FC = () => {
     setView('dashboard');
   };
 
-  const onLegacyImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onInventarioImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!window.confirm(`¿Está seguro de importar la matriz legacy? Esta acción cargará los registros históricos y requiere que la base de datos esté limpia.`)) {
+    if (!window.confirm(`¿Está seguro de sincronizar el inventario? Esta acción actualizará los registros de líneas y empleados existentes y creará los nuevos.`)) {
       e.target.value = '';
       return;
     }
 
     try {
-      addNotification('info', 'Iniciando migración masiva... esto puede tardar unos segundos.');
-      const res: any = await importarMatrizLegacy(file);
-      addNotification('success', `${res.mensaje || 'Migración exitosa'}: ${res.lineas_procesadas} líneas procesadas.`);
+      addNotification('info', 'Sincronizando inventario masivo... por favor espere.');
+      const res: any = await importarInventario(file);
+      
+      let msg = `Sincronización exitosa:\n` +
+                `- Líneas creadas: ${res.lineas_creadas}\n` +
+                `- Líneas actualizadas: ${res.lineas_actualizadas}\n` +
+                `- Empleados creados: ${res.empleados_creados}\n` +
+                `- Empleados actualizados: ${res.empleados_actualizados}`;
+      
+      if (res.lineas_no_encontradas_excel && res.lineas_no_encontradas_excel.length > 0) {
+        msg += `\n\n⚠️ Advertencia: Hay ${res.lineas_no_encontradas_excel.length} líneas en la base de datos que no se encontraron en este Excel y podrían estar inactivas.`;
+      }
+      
+      window.alert(msg);
+      addNotification('success', 'Inventario sincronizado correctamente');
     } catch (err: any) {
-      addNotification('error', `Error en migración: ${err.message}`);
+      addNotification('error', `Error al sincronizar inventario: ${err.message}`);
     } finally {
       e.target.value = '';
     }
   };
+
   return (
     <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">
       {view === 'dashboard' ? (
@@ -182,18 +198,18 @@ export const CorporateLinesManager: React.FC = () => {
                 <div className="relative">
                   <Input
                     type="file"
-                    id="legacy-import-input"
+                    id="inventario-import-input"
                     className="hidden"
                     accept=".xlsx, .xls, .xlsm"
-                    onChange={onLegacyImport}
+                    onChange={onInventarioImport}
                   />
                   <Button
                     variant="outline"
-                    onClick={() => document.getElementById('legacy-import-input')?.click()}
+                    onClick={() => document.getElementById('inventario-import-input')?.click()}
                     icon={Upload}
                     className="px-6 rounded-2xl h-12 border-dashed border-2 hover:border-primary hover:text-primary transition-all"
                   >
-                    Importar Matriz
+                    Sincronizar Inventario
                   </Button>
                 </div>
               )}
@@ -292,6 +308,9 @@ export const CorporateLinesManager: React.FC = () => {
               onFetchReport={obtenerReporteCO}
               onFetchAlerts={obtenerAlertasFactura}
               onSelectLine={(id) => setSelectedLineId(id)}
+              onFetchAuditoriaCruce={obtenerAuditoriaCruce}
+              onExportNomina={exportarNomina}
+              onExportContable={exportarContable}
             />
           ) : (
             <InvoiceRawDataView

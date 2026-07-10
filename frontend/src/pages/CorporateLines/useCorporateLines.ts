@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useApi } from '../../hooks/useApi';
+import { API_CONFIG } from '../../config/api';
 
 export interface EquipoMovil {
   id: number;
@@ -159,6 +160,14 @@ export const useCorporateLines = () => {
     return res;
   };
 
+  const importarInventario = async (file: File) => {
+    const formData = new FormData();
+    formData.append('archivo', file);
+    const res = await post('/lineas-corporativas/importar-inventario', formData);
+    await loadData();
+    return res;
+  };
+
   const obtenerReporteCO = async (periodo: string) => {
     return await get(`/lineas-corporativas/reporte-co?periodo=${periodo}`);
   };
@@ -169,6 +178,46 @@ export const useCorporateLines = () => {
 
   const obtenerDetalleFactura = async (periodo: string) => {
     return await get(`/lineas-corporativas/detalle-factura/${periodo}`);
+  };
+
+  const obtenerAuditoriaCruce = async (periodo: string) => {
+    return await get(`/lineas-corporativas/cruce/auditoria?periodo=${periodo}`);
+  };
+
+  const exportarNomina = async (periodo: string) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_CONFIG.BASE_URL}/lineas-corporativas/cruce/exportar-nomina?periodo=${periodo}`, {
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    });
+    if (!response.ok) throw new Error("Error al descargar archivo de nómina");
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `deducciones_nomina_${periodo}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  const exportarContable = async (periodo: string) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_CONFIG.BASE_URL}/lineas-corporativas/cruce/exportar-contable?periodo=${periodo}`, {
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    });
+    if (!response.ok) throw new Error("Error al descargar archivo contable");
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `comprobante_contable_${periodo}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const stats = useMemo(() => {
@@ -204,8 +253,12 @@ export const useCorporateLines = () => {
     createPersona,
     importarFactura,
     importarMatrizLegacy,
+    importarInventario,
     obtenerReporteCO,
     obtenerAlertasFactura,
     obtenerDetalleFactura,
+    obtenerAuditoriaCruce,
+    exportarNomina,
+    exportarContable,
   };
 };

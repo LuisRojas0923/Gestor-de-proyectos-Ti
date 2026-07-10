@@ -33,19 +33,30 @@ interface Props {
   onFetchReport: (periodo: string) => Promise<any>;
   onFetchAlerts: (periodo: string) => Promise<any>;
   onSelectLine: (id: number) => void;
+  onFetchAuditoriaCruce: (periodo: string) => Promise<any>;
+  onExportNomina: (periodo: string) => Promise<any>;
+  onExportContable: (periodo: string) => Promise<any>;
 }
 
 export const InvoiceDispersionView: React.FC<Props> = ({ 
   onImport, 
   onFetchReport, 
   onFetchAlerts, 
-  onSelectLine 
+  onSelectLine,
+  onFetchAuditoriaCruce,
+  onExportNomina,
+  onExportContable
 }) => {
   const [periodo, setPeriodo] = useState(new Date().toISOString().slice(0, 7).replace('-', ''));
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [report, setReport] = useState<ReportRow[]>([]);
   const [alerts, setAlerts] = useState<FacturaAlert[]>([]);
+  const [cruceData, setCruceData] = useState<{
+    fugas: any[];
+    retirados: any[];
+    sin_asignacion: any[];
+  } | null>(null);
   const { addNotification } = useNotifications();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,12 +75,14 @@ export const InvoiceDispersionView: React.FC<Props> = ({
     try {
       await onImport(periodo, file);
       addNotification('success', 'Factura procesada y dispersada correctamente');
-      const [reportData, alertsData] = await Promise.all([
+      const [reportData, alertsData, cruceRes] = await Promise.all([
         onFetchReport(periodo),
-        onFetchAlerts(periodo)
+        onFetchAlerts(periodo),
+        onFetchAuditoriaCruce(periodo)
       ]);
       setReport(reportData);
       setAlerts(alertsData);
+      setCruceData(cruceRes);
     } catch (err: any) {
       addNotification('error', err.message || 'Error al procesar factura');
     } finally {
@@ -80,12 +93,14 @@ export const InvoiceDispersionView: React.FC<Props> = ({
   const loadReport = async () => {
     setIsProcessing(true);
     try {
-      const [reportData, alertsData] = await Promise.all([
+      const [reportData, alertsData, cruceRes] = await Promise.all([
         onFetchReport(periodo),
-        onFetchAlerts(periodo)
+        onFetchAlerts(periodo),
+        onFetchAuditoriaCruce(periodo)
       ]);
       setReport(reportData);
       setAlerts(alertsData);
+      setCruceData(cruceRes);
     } catch (err: any) {
       addNotification('error', 'Error al cargar reporte');
     } finally {
@@ -184,11 +199,96 @@ export const InvoiceDispersionView: React.FC<Props> = ({
         </div>
       )}
 
+      {/* PANEL DE AUDITORÍA Y CRUCE */}
+      {cruceData && (cruceData.fugas.length > 0 || cruceData.retirados.length > 0) && (
+        <div className="p-0 border-2 border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/10 rounded-3xl overflow-hidden">
+          <div className="p-4 bg-red-100 dark:bg-red-900/30 flex items-center gap-3">
+            <div className="p-2 bg-red-500 rounded-xl text-white">
+              <Icon name={AlertCircle} size="sm" />
+            </div>
+            <div>
+              <Text weight="bold" className="text-red-800 dark:text-red-200">
+                Discrepancias críticas detectadas en facturación
+              </Text>
+              <Text variant="caption" className="text-red-700/70 dark:text-red-400/70">
+                Se detectaron líneas inactivas siendo cobradas o asociadas a personal no activo.
+              </Text>
+            </div>
+          </div>
+          <div className="p-4 space-y-4">
+            {cruceData.fugas.length > 0 && (
+              <div className="space-y-2">
+                <Text weight="bold" className="text-xs text-red-600 dark:text-red-400 uppercase tracking-wider">⚠️ Líneas Inactivas o No Registradas cobradas en Factura ({cruceData.fugas.length}):</Text>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {cruceData.fugas.map((fuga, idx) => (
+                    <div 
+                      key={idx}
+                      onClick={() => onSelectLine(fuga.linea_id)}
+                      className="p-3 bg-white dark:bg-neutral-800 border border-red-200 dark:border-neutral-700 rounded-2xl flex justify-between items-center cursor-pointer hover:border-red-500 transition-colors shadow-sm"
+                    >
+                      <div>
+                        <Text weight="bold" className="text-primary">{fuga.numero}</Text>
+                        <Text variant="caption" className="opacity-60">Cobrado: ${fuga.total.toLocaleString()}</Text>
+                      </div>
+                      <Badge variant="error" className="text-[10px] uppercase">Estado: {fuga.estatus}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {cruceData.retirados.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-red-100 dark:border-neutral-700">
+                <Text weight="bold" className="text-xs text-red-600 dark:text-red-400 uppercase tracking-wider">👤 Líneas de Personal Inactivo / Retirado ({cruceData.retirados.length}):</Text>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {cruceData.retirados.map((ret, idx) => (
+                    <div 
+                      key={idx}
+                      onClick={() => onSelectLine(ret.linea_id)}
+                      className="p-3 bg-white dark:bg-neutral-800 border border-red-200 dark:border-neutral-700 rounded-2xl flex justify-between items-center cursor-pointer hover:border-red-500 transition-colors shadow-sm"
+                    >
+                      <div>
+                        <Text weight="bold" className="text-primary">{ret.numero}</Text>
+                        <Text variant="caption" className="opacity-70">Cédula: {ret.documento}</Text>
+                        <Text variant="caption" className="opacity-60 block">Cobrado: ${ret.total.toLocaleString()}</Text>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="error" className="text-[9px] block uppercase mb-1">{ret.estado_erp}</Badge>
+                        <Text variant="caption" className="text-[10px] text-red-500 block">Retiro: {ret.fecha_retiro ? ret.fecha_retiro.substring(0, 10) : 'N/A'}</Text>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {report.length > 0 && (
         <div className="overflow-hidden rounded-3xl">
-          <div className="p-6 border-b border-neutral-100 dark:border-neutral-700 flex justify-between items-center">
+          <div className="p-6 border-b border-neutral-100 dark:border-neutral-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
              <Title variant="h4">Resumen Contable por Centro de Costo (C.O)</Title>
-             <Button variant="outline" size="sm" icon={Download} className="rounded-xl">Exportar PDF</Button>
+             <div className="flex gap-2">
+               <Button 
+                 variant="outline" 
+                 size="sm" 
+                 icon={Download} 
+                 className="rounded-xl"
+                 onClick={() => onExportContable(periodo)}
+               >
+                 Exportar Contable (CSV)
+               </Button>
+               <Button 
+                 variant="outline" 
+                 size="sm" 
+                 icon={Download} 
+                 className="rounded-xl"
+                 onClick={() => onExportNomina(periodo)}
+               >
+                 Deducciones Nómina (CSV)
+               </Button>
+             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -205,7 +305,7 @@ export const InvoiceDispersionView: React.FC<Props> = ({
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700">
                 {report.map((row, idx) => (
-                  <tr key={`${row.id || row.cedula || 'row'}-${idx}`} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/20 transition-colors">
+                  <tr key={`${row.co}-${idx}`} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-900/20 transition-colors">
                     <td className="px-6 py-4 font-medium text-primary">{row.co}</td>
                     <td className="px-6 py-4 text-right">${row.cargo_mes?.toLocaleString()}</td>
                     <td className="px-6 py-4 text-right text-red-500">${row.descuento_mes?.toLocaleString()}</td>

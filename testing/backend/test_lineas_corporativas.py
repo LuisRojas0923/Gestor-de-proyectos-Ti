@@ -186,3 +186,165 @@ async def test_importar_factura_real(client):
     
     # Verificar que el Centro de Costo de la línea aparezca en el reporte
     assert any(row["co"] == "CC-REAL-PROD" for row in reporte)
+
+
+# --- PRUEBA DE IMPORTACIÓN DE INVENTARIO ---
+@pytest.mark.asyncio
+async def test_importar_inventario(client):
+    """
+    Verifica el endpoint de importación de inventario con un Excel mock.
+    """
+    import polars as pl
+    import io
+    import random
+    
+    timestamp = int(datetime.now().timestamp())
+    rand_line1 = f"311{random.randint(1000000, 9999999)}"
+    rand_line2 = f"311{random.randint(1000000, 9999999)}"
+    rand_doc1 = f"DOC-{timestamp}-1"
+    rand_doc2 = f"DOC-{timestamp}-2"
+    
+    # 1. Crear un DataFrame mock con la estructura del Excel de inventario
+    df = pl.DataFrame({
+        "LINEA": [rand_line1, rand_line2],
+        "DOCUMENTO DE ASIGNADO": [rand_doc1, rand_doc2],
+        "NOMBRE DE ASIGNADO": ["Empleado Uno", "Empleado Dos"],
+        "CARGO": ["ANALISTA", "COORDINADOR"],
+        "AREA": ["SISTEMAS", "OPERACIONES"],
+        "CENTRO DE COSTO": ["CC-SIST", "CC-OPER"],
+        "EMPRESA": ["CLARO", "CLARO"],
+        "ESTATUS": ["ACTIVA", "ACTIVA"],
+        "ESTADO DE ASIGNACION": ["ASIGNADA", "ASIGNADA"],
+        "FECHA DE ACTUALIZACION": ["2026-07-10", "2026-07-10"],
+        "CONVENIO #1": ["50%", "100%"]
+    })
+    
+    # Escribir a un buffer en formato Excel
+    buffer = io.BytesIO()
+    df.write_excel(buffer)
+    buffer.seek(0)
+    
+    files = {
+        'archivo': ('Inventario_Mock.xlsx', buffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    }
+    
+    # 2. Enviar archivo al endpoint
+    response = await client.post("/lineas-corporativas/importar-inventario", files=files)
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert data["lineas_creadas"] > 0
+    assert data["empleados_creados"] > 0
+    
+    # 3. Verificar que se hayan creado en la base de datos
+    # Listar líneas
+    resp_l = await client.get("/lineas-corporativas/")
+    assert resp_l.status_code == 200
+    lineas = resp_l.json()
+    assert any(l["linea"] == rand_line1 for l in lineas)
+    assert any(l["linea"] == rand_line2 for l in lineas)
+    
+    # Verificar que el empleado y su centro de costos se actualizó correctamente
+    linea_uno = next(l for l in lineas if l["linea"] == rand_line1)
+    assert linea_uno["asignado"]["nombre"] == "Empleado Uno"
+    assert linea_uno["asignado"]["centro_costo"] == "CC-SIST"
+    assert linea_uno["cobro_fijo_coef"] == 0.5  # 50%
+    
+    linea_dos = next(l for l in lineas if l["linea"] == rand_line2)
+    assert linea_dos["cobro_fijo_coef"] == 1.0  # 100%
+
+
+@pytest.mark.asyncio
+async def test_fase2_endpoints(client, db_session):
+    """
+    Verifica los endpoints de la Fase 2: auditoría cruzada y exportables de nómina y contabilidad.
+    """
+    # 1. Crear datos de prueba en la base de datos local
+    from app.models.linea_corporativa.factura_model import FacturaLinea
+    from app.models.linea_corporativa import LineaCorporativa, EmpleadoLinea
+    import random
+    
+    rand_doc = f"RET-{random.randint(10000, 99999)}"
+    line_inactiva = f"311{random.randint(1000000, 9999999)}"
+    line_activa = f"311{random.randint(1000000, 9999999)}"
+    
+    # Crear un empleado retirado local para el test
+    emp_ret = EmpleadoLinea(
+        documento=rand_doc,
+        nombre="Empleado Inactivo",
+        tipo="INTERNO",
+        centro_costo="CC-TEST"
+    )
+    db_session.add(emp_ret)
+    
+    # Crear dos líneas (una inactiva y una activa con empleado retirado)
+    l_inactiva = LineaCorporativa(
+        linea=line_inactiva,
+        empresa="CLARO",
+        estatus="INACTIVA",
+        estado_asignacion="ASIGNADA",
+        documento_asignado=rand_doc
+    )
+    l_activa = LineaCorporativa(
+        linea=line_activa,
+        empresa="CLARO",
+        estatus="ACTIVA",
+        estado_asignacion="ASIGNADA",
+        documento_asignado=rand_doc
+    )
+    db_session.add(l_inactiva)
+    db_session.add(l_activa)
+    await db_session.flush()
+    
+    # Agregar facturas para el periodo 202607
+    fact_inactiva = FacturaLinea(
+        linea_id=l_inactiva.id,
+        periodo="202607",
+        documento_asignado=rand_doc,
+        centro_costo="CC-TEST",
+        cargo_mes=50000.0,
+        total=50000.0,
+        pago_empleado=25000.0,
+        pago_refridcol=25000.0
+    )
+    fact_activa = FacturaLinea(
+        linea_id=l_activa.id,
+        periodo="202607",
+        documento_asignado=rand_doc,
+        centro_costo="CC-TEST",
+        cargo_mes=80000.0,
+        total=80000.0,
+        pago_empleado=40000.0,
+        pago_refridcol=40000.0
+    )
+    db_session.add(fact_inactiva)
+    db_session.add(fact_activa)
+    await db_session.commit()
+    
+    # 2. Probar Auditoría Cruce
+    # Como db_erp no está disponible, emulamos la respuesta.
+    response = await client.get("/lineas-corporativas/cruce/auditoria", params={"periodo": "202607"})
+    assert response.status_code == 200, f"Error: {response.status_code}, Body: {response.text}"
+    res_data = response.json()
+    
+    # La línea inactiva debe figurar como fuga
+    assert len(res_data["fugas"]) > 0
+    assert any(f["numero"] == line_inactiva for f in res_data["fugas"])
+    
+    # 3. Probar Exportación de Nómina
+    response_nom = await client.get("/lineas-corporativas/cruce/exportar-nomina", params={"periodo": "202607"})
+    assert response_nom.status_code == 200, f"Error: {response_nom.status_code}, Body: {response_nom.text}"
+    assert "text/csv" in response_nom.headers["content-type"]
+    csv_content = response_nom.text
+    assert "DOCUMENTO;EMPLEADO;VALOR A DEDUCIR" in csv_content
+    assert rand_doc in csv_content
+    
+    # 4. Probar Exportación Contable
+    response_con = await client.get("/lineas-corporativas/cruce/exportar-contable", params={"periodo": "202607"})
+    assert response_con.status_code == 200
+    assert "text/csv" in response_con.headers["content-type"]
+    csv_con_content = response_con.text
+    assert "CENTRO COSTO;CARGO MES;DESCUENTO MES" in csv_con_content
+    assert "CC-TEST" in csv_con_content
+
+
