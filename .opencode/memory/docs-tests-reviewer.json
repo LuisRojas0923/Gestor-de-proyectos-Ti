@@ -46,10 +46,22 @@
         "low": 1
       },
       "test_coverage_observations": "15 tests collected for test_actividad_delete.py, including router DELETE authorized/unauthorized and PATCH anulada 409; orchestrator reports backend 15 passed, modal Vitest 1 passed, and npm build passed. No remaining blocking/high docs or tests gaps. Low-only note: catalog has duplicate section numbering after adding Frontend section."
+    },
+    {
+      "date": "2026-07-10",
+      "scope": "plan pre-merge origin/main...NOVEDADES_NOMINA_V2 y origin/main...indicadores_auditoria_del_sistema",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "blocking": 3,
+        "high": 3,
+        "medium": 4,
+        "low": 1
+      },
+      "test_coverage_observations": "Nómina V2 no añade regresiones Vitest para límite de 50 y nulos. Auditoría añade solo 2 casos y los duplica fuera de testpaths; faltan RBAC, contrato completo de estadísticas, WebSocket, middleware, inventario, reporte de gastos, errores/concurrencia y frontend. No hay catálogo ni evidencia ejecutada."
     }
   ],
   "stats": {
-    "total_reviews": 3,
-    "last_review": "2026-07-06"
+    "total_reviews": 4,
+    "last_review": "2026-07-10"
   }
 }
