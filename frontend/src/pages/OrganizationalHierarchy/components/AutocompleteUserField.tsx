@@ -38,7 +38,7 @@ export const AutocompleteUserField: React.FC<{
   const filtered = availableUsers.filter((u) => {
     if (filterBy === 'cedula') return (u.cedula || '').includes(cedulaInput.trim());
     return u.nombre.toLowerCase().includes(nombreInput.trim().toLowerCase());
-  });
+  }).slice(0, 50);
 
   const select = (user: HierarchyUser) => {
     setNombreInput(user.nombre);

@@ -1,10 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { GitBranch, RefreshCw, Search, UserPlus, X, ArrowLeft, Filter, ChevronDown } from 'lucide-react';
-import { ReactFlow, MiniMap, Controls, Background, Edge, Position, MarkerType, Handle, useNodesState, useEdgesState, ReactFlowProvider, useReactFlow } from '@xyflow/react';
-import type { Node as FlowNode } from '@xyflow/react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { GitBranch, RefreshCw, UserPlus, X, Filter, ChevronDown } from 'lucide-react';
+import { ReactFlow, MiniMap, Controls, Background, Edge, useNodesState, useEdgesState, ReactFlowProvider, useReactFlow } from '@xyflow/react';
+import type { EdgeChange, Node as FlowNode, NodeChange } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import * as dagre from 'dagre';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Button, Input, MaterialCard, Text, Title } from '../components/atoms';
 import { FilterDropdown } from '../components/molecules';
 import { useApi } from '../hooks/useApi';
@@ -12,16 +11,18 @@ import { useAppContext } from '../context/AppContext';
 import { HierarchyNode, HierarchyRelation, HierarchyUser } from '../types/hierarchy';
 
 import { getLayoutedElements, formatShortName } from './OrganizationalHierarchy/utils';
-import { CustomNodeComponent } from './OrganizationalHierarchy/components/CustomNodeComponent';
+import { CustomNodeComponent, type CustomNodeData } from './OrganizationalHierarchy/components/CustomNodeComponent';
 import { AutocompleteUserField } from './OrganizationalHierarchy/components/AutocompleteUserField';
 const nodeTypes = { custom: CustomNodeComponent };
 
+type AppUser = { id?: string; usuario_id?: string; rol?: string };
+
 const FlowWithFitView: React.FC<{
-  nodes: FlowNode[];
+  nodes: FlowNode<CustomNodeData>[];
   edges: Edge[];
-  onNodesChange: any;
-  onEdgesChange: any;
-  nodeTypes: any;
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
+  nodeTypes: typeof nodeTypes;
   selectedDirectors: string[];
 }> = ({ nodes, edges, onNodesChange, onEdgesChange, nodeTypes, selectedDirectors }) => {
   const { fitView } = useReactFlow();
@@ -48,7 +49,7 @@ const FlowWithFitView: React.FC<{
     >
       <Background color="#ccc" gap={16} />
       <MiniMap 
-        nodeColor={(n: any) => {
+        nodeColor={(n: FlowNode<CustomNodeData>) => {
           if (n.data?.selected) return 'var(--color-primary)';
           return '#94a3b8';
         }}
@@ -61,11 +62,10 @@ const FlowWithFitView: React.FC<{
 
 const OrganizationalHierarchy: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const isPortal = location.pathname.startsWith('/service-portal');
   const { get, post, delete: deleteRequest } = useApi<unknown>();
   const { state } = useAppContext();
-  const currentUserId: string = (state.user as any)?.id || (state.user as any)?.usuario_id || '';
+  const appUser = state.user as AppUser | null | undefined;
+  const currentUserId: string = appUser?.id || appUser?.usuario_id || '';
   const [tree, setTree] = useState<HierarchyNode[]>([]);
   const [relations, setRelations] = useState<HierarchyRelation[]>([]);
   const [users, setUsers] = useState<HierarchyUser[]>([]);
@@ -79,6 +79,7 @@ const OrganizationalHierarchy: React.FC = () => {
   const [filterSearchTerm, setFilterSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [toggledNodes, setToggledNodes] = useState<Record<string, boolean>>({});
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -115,7 +116,7 @@ const OrganizationalHierarchy: React.FC = () => {
 
   const reachableUsers = useMemo(() => {
     // Si es administrador o no hay usuario actual, permitimos ver todo (o nada si no hay login)
-    const isAdmin = (state.user as any)?.rol === 'admin';
+    const isAdmin = appUser?.rol === 'admin';
     if (isAdmin) return users;
 
     if (!currentUserId) return [];
@@ -145,7 +146,7 @@ const OrganizationalHierarchy: React.FC = () => {
     };
     collectSubs(currentUserId);
     return users.filter((u) => ids.has(u.id));
-  }, [currentUserId, relations, users, state.user]);
+  }, [appUser?.rol, currentUserId, relations, users]);
 
   const accessibleTree = useMemo(() => {
     if (reachableUsers.length === 0) return [];
@@ -197,10 +198,17 @@ const OrganizationalHierarchy: React.FC = () => {
 
   // Preparar nodos para React Flow usando Dagre
   const { initialNodes, initialEdges } = useMemo(() => {
-    const rfNodes: FlowNode[] = [];
+    const rfNodes: FlowNode<CustomNodeData>[] = [];
     const rfEdges: Edge[] = [];
 
+    const handleToggleNode = (nodeId: string, currentState: boolean) => {
+      setToggledNodes(prev => ({ ...prev, [nodeId]: !currentState }));
+    };
+
     const traverse = (node: HierarchyNode, level: number) => {
+      const isExpanded = toggledNodes[node.usuario_id] !== undefined ? toggledNodes[node.usuario_id] : (level < 1);
+      const hasChildren = node.subordinados && node.subordinados.length > 0;
+
       rfNodes.push({
         id: node.usuario_id,
         type: 'custom',
@@ -209,28 +217,33 @@ const OrganizationalHierarchy: React.FC = () => {
           nodeData: node,
           level,
           selected: selectedUserId === node.usuario_id,
-          onSelect: setSelectedUserId
+          onSelect: setSelectedUserId,
+          isExpanded,
+          hasChildren,
+          onToggle: () => handleToggleNode(node.usuario_id, isExpanded)
         }
       });
 
-      node.subordinados?.forEach(child => {
-        rfEdges.push({
-          id: `e-${node.usuario_id}-${child.usuario_id}`,
-          source: node.usuario_id,
-          target: child.usuario_id,
-          type: 'smoothstep',
-          animated: false,
-          style: { strokeWidth: 2, stroke: '#94a3b8' } // neutral-400
+      if (isExpanded) {
+        node.subordinados?.forEach(child => {
+          rfEdges.push({
+            id: `e-${node.usuario_id}-${child.usuario_id}`,
+            source: node.usuario_id,
+            target: child.usuario_id,
+            type: 'smoothstep',
+            animated: false,
+            style: { strokeWidth: 2, stroke: '#94a3b8' } // neutral-400
+          });
+          traverse(child, level + 1);
         });
-        traverse(child, level + 1);
-      });
+      }
     };
 
     filteredTree.forEach(node => traverse(node, 0));
 
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(rfNodes, rfEdges, 'TB');
     return { initialNodes: layoutedNodes, initialEdges: layoutedEdges };
-  }, [filteredTree, selectedUserId]);
+  }, [filteredTree, selectedUserId, toggledNodes]);
 
   const [flowNodes, setFlowNodes, onNodesChange] = useNodesState(initialNodes);
   const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -239,13 +252,6 @@ const OrganizationalHierarchy: React.FC = () => {
     setFlowNodes(initialNodes);
     setFlowEdges(initialEdges);
   }, [initialNodes, initialEdges, setFlowNodes, setFlowEdges]);
-
-  const reachableRelations = relations.filter(
-    (r) => reachableUsers.some((u) => u.id === r.usuario_id)
-  );
-  const reachableWithoutSuperior = reachableUsers.filter(
-    (user) => !reachableRelations.some((r) => r.usuario_id === user.id)
-  );
 
   const handleSave = async () => {
     if (!selectedUserId || !selectedSuperiorId) return;

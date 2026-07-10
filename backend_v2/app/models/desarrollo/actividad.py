@@ -56,6 +56,9 @@ class Actividad(SQLModel, table=True):
     compromiso_fecha: Optional[date] = Field(default=None)
     compromiso_cumplido: bool = Field(default=False)
     archivo_url: Optional[str] = Field(default=None, max_length=500)
+    anulada: bool = Field(default=False)
+    anulada_en: Optional[datetime] = Field(default=None)
+    anulada_por_id: Optional[str] = Field(default=None, max_length=50)
 
     # Auditoria
     creado_en: Optional[datetime] = Field(
@@ -112,7 +115,6 @@ class ActividadActualizar(SQLModel):
     estado: Optional[str] = None
     responsable_id: Optional[str] = None
     asignado_a_id: Optional[str] = None
-    delegado_por_id: Optional[str] = None
     estado_validacion: Optional[str] = None
     validacion_id: Optional[int] = None
     fecha_inicio_estimada: Optional[date] = None
@@ -127,7 +129,6 @@ class ActividadActualizar(SQLModel):
     compromiso_fecha: Optional[date] = None
     compromiso_cumplido: Optional[bool] = None
     archivo_url: Optional[str] = None
-    parent_id: Optional[int] = None
 
 
 class ActividadLeer(ActividadBase):
@@ -137,6 +138,9 @@ class ActividadLeer(ActividadBase):
     fecha_inicio_real: Optional[date] = None
     fecha_fin_real: Optional[date] = None
     horas_reales: Decimal
+    anulada: bool = False
+    anulada_en: Optional[datetime] = None
+    anulada_por_id: Optional[str] = None
     creado_en: Optional[datetime] = None
     actualizado_en: Optional[datetime] = None
 

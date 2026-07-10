@@ -104,6 +104,7 @@ export const getStatusColor = (status: string) => {
   if (s.includes('pendiente')) return 'text-red-800 bg-red-100 dark:bg-red-900/20 dark:text-red-400';
   if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) return 'text-yellow-800 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400';
   if (s.includes('complet')) return 'text-green-800 bg-green-100 dark:bg-green-900/20 dark:text-green-400';
+  if (s.includes('anulad')) return 'text-neutral-700 bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-400';
   return 'text-gray-800 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
 };
 

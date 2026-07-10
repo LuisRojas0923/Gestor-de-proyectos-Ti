@@ -83,6 +83,23 @@ def _parsear_totales(linea: str) -> List[int]:
     return nums[:10]
 
 
+def _parsear_valores_linea(linea: str) -> List[int]:
+    """
+    Extrae los últimos 10 tokens numéricos de una línea de detalle.
+    Retorna lista de 10 enteros.
+    """
+    partes = linea.split()
+    nums = [p for p in partes if _es_numero(p)]
+    # Tomamos los últimos 10
+    nums_10 = nums[-10:]
+    # Convertir a int
+    vals = [_parse_numero(x) for x in nums_10]
+    # Rellenar al inicio con 0s si faltan
+    while len(vals) < 10:
+        vals.insert(0, 0)
+    return vals
+
+
 def extraer_grancoop(
     archivos_binarios: List[bytes],
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[str]]:
@@ -202,7 +219,22 @@ def _procesar_bloque(
         warnings.append(f"Cédula no detectada en PDF para '{nombre}'. Se intentará resolver por nombre en ERP.")
         cedula = ""
 
-    totales = _parsear_totales(linea_totales)
+    # Recalculamos los totales sumando las líneas de detalle válidas (ignorando CREDIPRIMA)
+    totales = [0] * 10
+    tiene_detalles_validos = False
+
+    for linea_det in lineas_detalle:
+        if "crediprima" in linea_det.lower():
+            continue
+        
+        vals = _parsear_valores_linea(linea_det)
+        for i in range(10):
+            totales[i] += vals[i]
+        tiene_detalles_validos = True
+
+    # Fallback por si no hay detalles pero sí totales en el PDF
+    if not tiene_detalles_validos and linea_totales:
+        totales = _parsear_totales(linea_totales)
 
     valor_aporte = totales[IDX_APORTE]
     valor_prestamos = (

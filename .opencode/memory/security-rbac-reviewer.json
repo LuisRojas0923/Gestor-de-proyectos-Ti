@@ -15,9 +15,34 @@
     "review <files>": "Review security/RBAC surface for files or diffs",
     "checklist <scope>": "Return the relevant subset of the security checklist"
   },
-  "review_history": [],
+  "review_history": [
+    {
+      "date": "2026-07-06",
+      "scope": "logical annulment of activities and related endpoints",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 2,
+        "ALTO": 1,
+        "MEDIO": 1,
+        "BAJO": 0
+      },
+      "cwe_references": ["CWE-862", "CWE-915", "CWE-200", "CWE-863", "CWE-209"]
+    },
+    {
+      "date": "2026-07-06",
+      "scope": "focused re-review of activity logical annulment concurrency lock",
+      "outcome": "approved",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 0,
+        "MEDIO": 0,
+        "BAJO": 0
+      },
+      "cwe_references": []
+    }
+  ],
   "stats": {
-    "total_reviews": 0,
-    "last_review": null
+    "total_reviews": 2,
+    "last_review": "2026-07-06"
   }
 }

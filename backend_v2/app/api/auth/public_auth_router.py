@@ -58,6 +58,11 @@ async def setup_password(
             )
 
         if usuario:
+            if not usuario.esta_activo:
+                raise HTTPException(
+                    status_code=403,
+                    detail="La cuenta está desactivada. Por favor, contacte al administrador.",
+                )
             if ServicioAuth.es_password_configurado(usuario.hash_contrasena, usuario.cedula):
                 raise HTTPException(
                     status_code=400,
@@ -68,22 +73,16 @@ async def setup_password(
 
         if not db_erp:
             raise HTTPException(
-                status_code=503,
-                detail="Servicio ERP no disponible para crear el usuario",
+                status_code=400,
+                detail="No fue posible habilitar la cuenta con la informacion proporcionada. Verifique los datos o contacte al administrador.",
             )
 
-        from app.services.erp import EmpleadosService
-
-        empleado = await EmpleadosService.obtener_empleado_por_cedula(db_erp, cedula_norm)
-        if not empleado:
-            raise HTTPException(
-                status_code=404,
-                detail="Usuario no encontrado en el sistema. Debe registrarse primero o contactar al administrador.",
+        try:
+            nuevo_usuario = await ServicioAuth.crear_usuario_portal_desde_erp(
+                db, db_erp, cedula_norm, contrasena_norm
             )
-
-        nuevo_usuario = await ServicioAuth.crear_usuario_portal_desde_erp(
-            db, db_erp, datos.cedula, datos.contrasena
-        )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
         return {"message": "Usuario creado y contraseña configurada exitosamente", "cedula": nuevo_usuario.cedula}
     except HTTPException:
         raise
@@ -194,7 +193,7 @@ async def registro_usuario_portal(
     db: AsyncSession = Depends(obtener_db),
     db_erp=Depends(obtener_erp_db_opcional),
 ):
-    """Endpoint público para registro de usuarios en el portal (pendiente de aprobación)"""
+    """Endpoint público para registro de usuarios activos confirmados por ERP."""
     # 1. Validar que las contraseñas coincidan
     if payload.contrasena != payload.contrasena_confirmar:
         raise HTTPException(
@@ -223,7 +222,7 @@ async def registro_usuario_portal(
             contrasena=payload.contrasena,
         )
         return {
-            "message": "Cuenta creada exitosamente. Pendiente de aprobación por un administrador.",
+            "message": "Cuenta creada y habilitada exitosamente.",
             "user_id": usuario.id,
             "cedula": usuario.cedula,
         }

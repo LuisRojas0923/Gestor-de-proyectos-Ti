@@ -40,15 +40,15 @@ Full-stack project management system with Python backend (FastAPI, SQLAlchemy as
 - [docs/ESQUEMA_BASE_DATOS.md](docs/ESQUEMA_BASE_DATOS.md) - Database schema
 - [docs/GUIA_DESARROLLO.md](docs/GUIA_DESARROLLO.md) - Development guide
 
-## Subagentes disponibles (opencode harness)
+## Subagentes disponibles (OpenCode/Codex harness)
 
-El arnés de opencode expone 8 subagentes especializados en `.opencode/agent/`. Cada uno es de solo lectura y debe invocarse segun el alcance del trabajo (consultar `harness-router` para recomendacion, pero invocacion directa obligatoria):
+El arnes canonico expone 8 subagentes especializados en `.opencode/agent/`. Codex usa adaptadores con el mismo roster en `.codex/agents/`; esos TOML deben leer su definicion canonica homologa para evitar drift. Los revisores son de solo lectura y deben invocarse segun el alcance del trabajo (consultar `harness-router` para recomendacion, pero invocacion directa obligatoria). En OpenCode, `error-memory` es la unica excepcion con escritura, limitada a `errors_memory.json` y `.opencode/memory/`; en Codex, todos los adaptadores son de solo lectura y delegan esas escrituras al orquestador:
 
 - `harness-router` — recomienda la matriz de subagentes segun alcance. Read-only, no aprueba ni invoca.
 - `scope-reviewer` — valida alcance y subagentes requeridos.
 - `backend-reviewer` — revisa `backend_v2/` (FastAPI, SQLAlchemy async, PostgreSQL, RBAC, tests).
 - `frontend-reviewer` — revisa `frontend/` (design system, atomic design, mobile-first, performance).
-- `mobile-reviewer` — revisa `modulo_actividades_fork/` (React Native, offline, nativo).
+- `mobile-reviewer` — revisa `modulo_actividades_fork/` y `movil/` (React Native, offline, nativo).
 - `docs-tests-reviewer` — revisa `docs/`, `testing/`, bitacora, ADRs, MER, evidencia de tests.
 - `security-rbac-reviewer` — revisa auth, RBAC, secrets, schemas, PII, infra.
 - `error-memory` — memoria persistente de errores y decisiones (`errors_memory.json` + `.opencode/memory/`).
@@ -61,12 +61,13 @@ Reportes no triviales se persisten en `docs/reviews/{plans,builds}/` usando las 
 
 Usar según dominio: cada skill vive en `.agents/skills/<nombre>/SKILL.md`. Los subagentes listan referencias obligatorias en `.opencode/agent/<revisor>.md`.
 
-### Protocolo del arnés OpenCode
+### Protocolo del arnes OpenCode/Codex
 
 Antes de revisar o implementar con subagentes, leer:
 
 - `.opencode/agent/_shared-discovery.md` — orden de resolución (skills locales → graphify → find-skills)
 - `docs/decisions/ADR-006-protocolo-descubrimiento-agentes.md` — matriz skill → subagente
+- `.codex/agents/*.toml` — adaptadores Codex; no duplican checklists ni memoria
 
 ### Exploración del codebase (graphify)
 

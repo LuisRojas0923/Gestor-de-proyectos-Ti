@@ -1,9 +1,6 @@
-import React from 'react';
-import { Title, Text, MaterialCard, Tooltip } from '../../../components/atoms';
-import {
-    FileText, Briefcase, ChevronRight, Users, Settings, UserCheck,
-    PenTool, Database
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Title, Text, MaterialCard, Input } from '../../../components/atoms';
+import { FileText, Briefcase, ChevronRight, Search } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -13,9 +10,14 @@ import imgNovedadesNomina from '../../../assets/images/categories/NOVEDADES_NOMI
 import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 
 interface DashboardViewProps {
-    user: any;
+    user: {
+        rol?: string;
+        role?: string;
+        permissions?: string[];
+        viaticante?: boolean;
+    } | null;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'requisicion_personal' | 'seguimiento_rp_gh' | 'aprobacion_rp_gerencia' | 'perfiles_cargo' | 'centro_costos') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -25,34 +27,36 @@ const ServicePortalCard: React.FC<{
     onClick: () => void;
 }> = ({ title, description, icon, onClick }) => {
     return (
-        <Tooltip content={description} align="center" width="w-64" className="w-full block">
-            <MaterialCard
-                onClick={onClick}
-                hoverable={true}
-                className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm hover:shadow-lg hover:border-[var(--color-primary)] transition-all duration-300 transform hover:-translate-y-0.5 text-left w-full min-h-20 h-auto cursor-pointer"
-            >
-                <div className="flex items-center gap-4 w-full h-full">
-                    {/* Contenedor del Icono/Logo */}
-                    <div className="w-16 h-16 bg-white dark:bg-neutral-800 rounded-xl flex items-center justify-center p-2 border border-slate-100 dark:border-neutral-700 shadow-sm shrink-0">
-                        <div className="w-full h-full flex items-center justify-center">
-                            {icon}
-                        </div>
+        <MaterialCard
+            onClick={onClick}
+            hoverable={true}
+            className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm hover:shadow-lg hover:border-[var(--color-primary)] transition-all duration-300 transform hover:-translate-y-0.5 text-left w-full min-h-24 h-auto cursor-pointer"
+        >
+            <div className="flex items-center gap-4 w-full h-full">
+                {/* Contenedor del Icono/Logo */}
+                <div className="w-16 h-16 bg-white dark:bg-neutral-800 rounded-xl flex items-center justify-center p-2 border border-slate-100 dark:border-neutral-700 shadow-sm shrink-0">
+                    <div className="w-full h-full flex items-center justify-center">
+                        {icon}
                     </div>
-                    {/* Textos */}
-                    <div className="flex-grow min-w-0">
-                        <Title variant="h6" weight="bold" className="truncate leading-tight text-slate-800 dark:text-white group-hover:text-[var(--color-primary)] transition-colors">
-                            {title}
-                        </Title>
-                    </div>
-                    {/* Indicador de Acción */}
-                    <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-[var(--color-primary)] group-hover:translate-x-1 transition-all shrink-0" />
                 </div>
-            </MaterialCard>
-        </Tooltip>
+                {/* Textos */}
+                <div className="flex-grow min-w-0">
+                    <Title variant="h6" weight="bold" className="truncate leading-tight text-slate-800 dark:text-white group-hover:text-[var(--color-primary)] transition-colors">
+                        {title}
+                    </Title>
+                    <Text variant="caption" color="text-secondary" className="block mt-1 font-medium line-clamp-2">
+                        {description}
+                    </Text>
+                </div>
+                {/* Indicador de Acción */}
+                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-[var(--color-primary)] group-hover:translate-x-1 transition-all shrink-0" />
+            </div>
+        </MaterialCard>
     );
 };
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
+    const [searchTerm, setSearchTerm] = useState('');
     const userRole = (user?.rol || user?.role || '').toLowerCase();
     const permissions: string[] = user?.permissions || [];
 
@@ -105,25 +109,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         permissions.includes('comisiones') ||
         ['admin', 'director'].includes(userRole)
     );
-
-    const canSeeRequisicionPersonal = moduleStatus['requisicion_personal'] !== false;
-
-    const canSeeSeguimientoRPGH = moduleStatus['requisicion_personal'] !== false && (
-        permissions.includes('gestion_humana') ||
-        ['admin', 'director'].includes(userRole)
-    );
-
-    const canSeeAprobacionGerenciaRP = moduleStatus['requisicion_personal'] !== false && (
-        (user?.cedula || user?.id) === "66903320" ||
-        userRole === "admin"
-    );
-
-    const canSeePerfilesCargo = moduleStatus['perfiles_cargo'] !== false && (
-        permissions.includes('perfiles_cargo') ||
-        ['admin', 'director'].includes(userRole)
-    );
-
-    const canSeeCentroCostos = moduleStatus['configuracion_centro_costo'] !== false;
     const cards = [
         {
             key: 'solicitudes',
@@ -196,60 +181,34 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
             description: "Accede a desarrollos, aprobaciones y jerarquía organizacional.",
             icon: <Briefcase className="w-8 h-8 text-[var(--color-primary)]" />,
             onClick: () => onNavigate('gestion_actividades')
-        },
-        {
-            key: 'requisicion_personal',
-            canSee: canSeeRequisicionPersonal,
-            title: "Requisición de Personal",
-            description: "Creación y seguimiento de solicitudes de contratación de personal.",
-            icon: <Users className="w-8 h-8 text-[var(--color-primary)]" />,
-            onClick: () => onNavigate('requisicion_personal')
-        },
-        {
-            key: 'seguimiento_rp_gh',
-            canSee: canSeeSeguimientoRPGH,
-            title: "Seguimiento RP Gestión Humana",
-            description: "Gestión y seguimiento del proceso de selección y contratación de requisiciones aprobadas.",
-            icon: <UserCheck className="w-8 h-8 text-[var(--color-primary)]" />,
-            onClick: () => onNavigate('seguimiento_rp_gh')
-        },
-        {
-            key: 'aprobacion_rp_gerencia',
-            canSee: canSeeAprobacionGerenciaRP,
-            title: "Aprobación Gerencial RP",
-            description: "Firma y autorización definitiva de requisiciones de personal aprobadas por directores.",
-            icon: <PenTool className="w-8 h-8 text-[var(--color-primary)]" />,
-            onClick: () => onNavigate('aprobacion_rp_gerencia')
-        },
-        {
-            key: 'perfiles_cargo',
-            canSee: canSeePerfilesCargo,
-            title: "Perfiles de Cargo",
-            description: "Administración de áreas, cargos y sus relaciones de reporte jerárquico.",
-            icon: <Settings className="w-8 h-8 text-[var(--color-primary)]" />,
-            onClick: () => onNavigate('perfiles_cargo')
-        },
-        {
-            key: 'centro_costos',
-            canSee: canSeeCentroCostos,
-            title: "Configuración Centros de Costos",
-            description: "Configure los catálogos maestros de UENs, Subcentros de Costo y Especialidades del ERP.",
-            icon: <Database className="w-8 h-8 text-[var(--color-primary)]" />,
-            onClick: () => onNavigate('centro_costos')
         }
     ];
 
     const activeCards = cards
         .filter(card => card.canSee)
+        .filter(card => 
+            card.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            card.description.toLowerCase().includes(searchTerm.toLowerCase())
+        )
         .sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
 
     return (
         <div className="space-y-12 py-6">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-4">
                 <Title variant="h3" weight="bold" className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-light)] bg-clip-text text-transparent">
                     ¿En qué podemos ayudarte hoy?
                 </Title>
                 <Text variant="h6" color="text-secondary" weight="medium">Selecciona una de las opciones principales de gestión</Text>
+                
+                <div className="max-w-md mx-auto pt-4">
+                    <Input
+                        placeholder="Buscar opción o servicio..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        icon={Search}
+                        className="w-full bg-white shadow-sm rounded-xl border-slate-200"
+                    />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

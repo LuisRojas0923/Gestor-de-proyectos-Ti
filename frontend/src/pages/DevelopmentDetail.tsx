@@ -73,6 +73,7 @@ const DevelopmentDetail: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [userMap, setUserMap] = useState<Map<string, string>>(new Map());
   const [editTarget, setEditTarget] = useState<DevelopmentWithCurrentStatus | null>(null);
+  const isAnulado = development ? getDerivedStatus(development).toLowerCase().includes('anulad') : false;
 
   useEffect(() => {
     get('/jerarquia/usuarios-disponibles').then((users: unknown) => {
@@ -143,14 +144,16 @@ const DevelopmentDetail: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Pencil}
-              onClick={() => setEditTarget(development)}
-              className="text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
-              title="Editar proyecto"
-            />
+            {!isAnulado && (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={Pencil}
+                onClick={() => setEditTarget(development)}
+                className="text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+                title="Editar proyecto"
+              />
+            )}
             {development?.portal_link && (
               <Button
                 variant="outline"
@@ -276,7 +279,7 @@ const DevelopmentDetail: React.FC = () => {
       </div>
 
       {development && (
-        <WbsTab ref={wbsRef} developmentId={development.id} darkMode={darkMode} />
+        <WbsTab ref={wbsRef} developmentId={development.id} darkMode={darkMode} isDevelopmentAnulado={isAnulado} />
       )}
 
       {editTarget && (

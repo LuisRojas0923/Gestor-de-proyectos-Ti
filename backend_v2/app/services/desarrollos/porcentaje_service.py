@@ -50,7 +50,7 @@ async def _propagar_hacia_arriba(db: AsyncSession, actividad_id: int, parent_id:
         raw_sql = text("""
             SELECT id, porcentaje_avance 
             FROM actividades 
-            WHERE parent_id = :padre_id
+        WHERE parent_id = :padre_id AND COALESCE(anulada, FALSE) = FALSE
         """)
         result_hijos = await db.execute(raw_sql, {"padre_id": padre.id})
         hijos_raw = result_hijos.fetchall()
@@ -73,7 +73,7 @@ async def _actualizar_porcentaje_actividad(db: AsyncSession, actividad: Activida
     raw_sql = text("""
         SELECT id, porcentaje_avance 
         FROM actividades 
-        WHERE parent_id = :actividad_id
+        WHERE parent_id = :actividad_id AND COALESCE(anulada, FALSE) = FALSE
     """)
     result = await db.execute(raw_sql, {"actividad_id": actividad.id})
     hijos_raw = result.fetchall()
@@ -105,7 +105,7 @@ async def recalcular_progreso_desarrollo(db: AsyncSession, desarrollo_id: str) -
         return
 
     raw_sql = text("""
-        SELECT estado FROM actividades WHERE desarrollo_id = :did
+        SELECT estado FROM actividades WHERE desarrollo_id = :did AND COALESCE(anulada, FALSE) = FALSE
     """)
     result = await db.execute(raw_sql, {"did": desarrollo_id})
     rows = result.fetchall()

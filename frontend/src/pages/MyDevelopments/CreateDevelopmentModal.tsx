@@ -29,6 +29,8 @@ const PRIORIDAD_OPTIONS = [
     { value: 'Baja', label: 'Baja' },
 ];
 
+const TODAS_LAS_AREAS = 'TODAS LAS AREAS';
+
 export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     isOpen, onClose, onSaved
 }) => {
@@ -53,11 +55,13 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     const [analista, setAnalista] = useState('');
     const [analistaId, setAnalistaId] = useState('');
     const [supervisor, setSupervisor] = useState('');
-    const [supervisorId, setSupervisorId] = useState('');
+    const [, setSupervisorId] = useState('');
     const [areaEjecutor, setAreaEjecutor] = useState('');
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaEstimadaFin, setFechaEstimadaFin] = useState('');
     const [prioridad, setPrioridad] = useState('');
+    const [areaEjecutorError, setAreaEjecutorError] = useState<string | null>(null);
+    const [areaDesarrolloError, setAreaDesarrolloError] = useState<string | null>(null);
 
     const totalSteps = 3;
 
@@ -71,6 +75,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         setAnalista(''); setAnalistaId('');
         setSupervisor(''); setSupervisorId('');
         setAreaEjecutor('');
+        setAreaEjecutorError(null); setAreaDesarrolloError(null);
         setFechaInicio(''); setFechaEstimadaFin('');
         setPrioridad('');
         onClose();
@@ -153,6 +158,10 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         )].sort(),
     [hierarchyUsers]);
 
+    const areaImpactadaOptions = useMemo<string[]>(() =>
+        [TODAS_LAS_AREAS, ...areaOptions.filter(area => area !== TODAS_LAS_AREAS)],
+    [areaOptions]);
+
     const analistaOptions = useMemo<HierarchyUser[]>(() => {
         if (currentUserId && responsableId === currentUserId) {
             return hierarchyUsers.filter(u => subordinateIds.includes(u.id));
@@ -187,7 +196,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
     }, [analistaId, responsableId, currentUserId, hierarchyUsers, superiorId, superiorSuperiorId, reachableUsers]);
 
     const handleSave = async () => {
-        if (!nombre.trim()) return;
+        if (!nombre.trim() || !validateAreasStep()) return;
         setLoading(true);
         try {
             const payload = {
@@ -216,6 +225,21 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
         } finally {
             setLoading(false);
         }
+    };
+
+    const validateAreasStep = () => {
+        const missingAreaEjecutor = !areaEjecutor;
+        const missingAreaDesarrollo = !areaDesarrollo;
+
+        setAreaEjecutorError(missingAreaEjecutor ? 'Selecciona el área del ejecutor.' : null);
+        setAreaDesarrolloError(missingAreaDesarrollo ? 'Selecciona el área impactada.' : null);
+
+        return !missingAreaEjecutor && !missingAreaDesarrollo;
+    };
+
+    const handleNext = () => {
+        if (step === 2 && !validateAreasStep()) return;
+        setStep(step + 1);
     };
 
     if (!isOpen) return null;
@@ -350,14 +374,26 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                                 placeholder="Ej. DESARROLLO"
                                 value={areaEjecutor}
                                 options={areaOptions}
-                                onChange={setAreaEjecutor}
-                            />
-                            <Input
-                                label="Área Impactada"
-                                placeholder="Ej. Gestión Humana"
-                                value={areaDesarrollo}
-                                onChange={(e) => setAreaDesarrollo(e.target.value)}
+                                onChange={(value) => {
+                                    setAreaEjecutor(value);
+                                    if (value) setAreaEjecutorError(null);
+                                }}
                                 required
+                                strictOptions
+                                errorMessage={areaEjecutorError ?? undefined}
+                            />
+                            <AreaAutocomplete
+                                label="Área Impactada"
+                                placeholder="Buscar área impactada..."
+                                value={areaDesarrollo}
+                                options={areaImpactadaOptions}
+                                onChange={(value) => {
+                                    setAreaDesarrollo(value);
+                                    if (value) setAreaDesarrolloError(null);
+                                }}
+                                required
+                                strictOptions
+                                errorMessage={areaDesarrolloError ?? undefined}
                             />
                         </div>
                     </div>
@@ -442,7 +478,7 @@ export const CreateDevelopmentModal: React.FC<CreateDevelopmentModalProps> = ({
                         {step < totalSteps ? (
                             <Button
                                 variant="primary"
-                                onClick={() => setStep(step + 1)}
+                                onClick={handleNext}
                                 disabled={step === 1 && !nombre.trim()}
                             >
                                 Siguiente

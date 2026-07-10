@@ -26,6 +26,12 @@ from app.services.desarrollos.actividad_delete_service import (
     obtener_hijos_preview,
     eliminar_actividad_cascade,
 )
+from app.services.desarrollos.actividad_access_service import (
+    actividad_a_arbol,
+    bloquear_ancestros_y_obtener_actividad,
+    usuario_puede_acceder_actividad,
+    usuario_puede_acceder_desarrollo,
+)
 from app.services.auditoria.snapshots import (
     asignar_actualizacion_segura,
     asignar_creacion_segura,
@@ -34,37 +40,6 @@ from app.services.auditoria.snapshots import (
 )
 
 router = APIRouter()
-
-
-def actividad_a_arbol(actividad: Actividad) -> ActividadArbol:
-    return ActividadArbol(
-        id=actividad.id,
-        desarrollo_id=actividad.desarrollo_id,
-        parent_id=actividad.parent_id,
-        titulo=actividad.titulo,
-        descripcion=actividad.descripcion,
-        estado=actividad.estado,
-        responsable_id=actividad.responsable_id,
-        asignado_a_id=actividad.asignado_a_id,
-        delegado_por_id=actividad.delegado_por_id,
-        estado_validacion=actividad.estado_validacion,
-        validacion_id=actividad.validacion_id,
-        fecha_inicio_estimada=actividad.fecha_inicio_estimada,
-        fecha_fin_estimada=actividad.fecha_fin_estimada,
-        fecha_inicio_real=actividad.fecha_inicio_real,
-        fecha_fin_real=actividad.fecha_fin_real,
-        horas_estimadas=actividad.horas_estimadas,
-        horas_reales=actividad.horas_reales,
-        porcentaje_avance=actividad.porcentaje_avance,
-        seguimiento=actividad.seguimiento,
-        compromiso=actividad.compromiso,
-        compromiso_fecha=actividad.compromiso_fecha,
-        compromiso_cumplido=actividad.compromiso_cumplido,
-        archivo_url=actividad.archivo_url,
-        creado_en=actividad.creado_en,
-        actualizado_en=actividad.actualizado_en,
-        subactividades=[],
-    )
 
 
 @router.post("/", response_model=ActividadLeer)
@@ -77,6 +52,25 @@ async def crear_actividad(
     """Crea una nueva actividad (puede ser raíz o subactividad si recibe parent_id)"""
     try:
         nueva_act_data = actividad_in.model_dump()
+        nueva_act_data["delegado_por_id"] = usuario.id
+        result_dev = await db.execute(select(Desarrollo).where(Desarrollo.id == actividad_in.desarrollo_id).with_for_update())
+        desarrollo = result_dev.scalar_one_or_none()
+        if not desarrollo: raise HTTPException(status_code=404, detail="Desarrollo no encontrado")
+        if desarrollo.estado_general == "Anulado":
+            raise HTTPException(status_code=409, detail="El desarrollo está anulado y no permite crear tareas WBS")
+
+        if nueva_act_data.get("parent_id") is not None:
+            parent = await bloquear_ancestros_y_obtener_actividad(db, nueva_act_data["parent_id"])
+            if not parent:
+                raise HTTPException(status_code=404, detail="Actividad padre no encontrada")
+            if parent.desarrollo_id != actividad_in.desarrollo_id:
+                raise HTTPException(status_code=400, detail="La actividad padre no pertenece al desarrollo")
+            if parent.anulada:
+                raise HTTPException(status_code=409, detail="No se pueden crear subactividades en una actividad anulada")
+            if not await usuario_puede_acceder_actividad(db, usuario, parent):
+                raise HTTPException(status_code=403, detail="No tiene permisos para crear subactividades en esta actividad")
+        elif not await usuario_puede_acceder_desarrollo(db, usuario, actividad_in.desarrollo_id):
+            raise HTTPException(status_code=403, detail="No tiene permisos para crear actividades en este desarrollo")
         
         if nueva_act_data.get("estado") in ("Completada", "Completado"):
             nueva_act_data["porcentaje_avance"] = Decimal("100")
@@ -126,6 +120,8 @@ async def crear_actividad(
         asignar_creacion_segura(request, nueva_act)
 
         return nueva_act
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(
@@ -223,6 +219,7 @@ async def obtener_arbol_actividades(
 async def obtener_actividad(
     actividad_id: int,
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
     """Obtiene una actividad por su ID"""
     try:
@@ -232,6 +229,12 @@ async def obtener_actividad(
 
         if not act_db:
             raise HTTPException(status_code=404, detail="Actividad no encontrada")
+
+        if not await usuario_puede_acceder_actividad(db, usuario, act_db):
+            raise HTTPException(
+                status_code=403,
+                detail="No tiene permisos para ver esta actividad",
+            )
 
         return act_db
     except HTTPException:
@@ -252,12 +255,13 @@ async def actualizar_actividad(
 ):
     """Actualiza una actividad existente (avance, estado, responsable, etc)"""
     try:
-        stmt = select(Actividad).where(Actividad.id == actividad_id)
-        result = await db.execute(stmt)
-        act_db = result.scalar_one_or_none()
+        act_db = await bloquear_ancestros_y_obtener_actividad(db, actividad_id)
 
         if not act_db:
             raise HTTPException(status_code=404, detail="Actividad no encontrada")
+
+        if act_db.anulada:
+            raise HTTPException(status_code=409, detail="La actividad está anulada y no puede modificarse")
 
         snapshot_antes = modelo_a_dict_auditoria(act_db)
 
@@ -386,37 +390,10 @@ async def eliminar_actividad_preview(
         if not act_db:
             raise HTTPException(status_code=404, detail="Actividad no encontrada")
 
-        # Validar permisos — sin bypass de roles
-        subordinados = await JerarquiaService.obtener_ids_y_nombres_subordinados(db, usuario.id)
-        todos_los_ids = [usuario.id] + subordinados["ids"]
-        todos_los_nombres = [usuario.nombre] + subordinados["nombres"]
-
-        tiene_acceso = False
-        if (act_db.responsable_id in todos_los_ids or 
-            act_db.asignado_a_id in todos_los_ids or 
-            act_db.delegado_por_id in todos_los_ids):
-            tiene_acceso = True
-        
-        if not tiene_acceso:
-            stmt_dev = select(Desarrollo).where(
-                Desarrollo.id == act_db.desarrollo_id,
-                or_(
-                    Desarrollo.creado_por_id.in_(todos_los_ids),
-                    Desarrollo.responsable_id.in_(todos_los_ids),
-                    Desarrollo.analista.in_(todos_los_nombres),
-                    Desarrollo.supervisor.in_(todos_los_nombres),
-                    Desarrollo.autoridad.in_(todos_los_nombres),
-                    Desarrollo.responsable.in_(todos_los_nombres),
-                )
-            )
-            res_dev = await db.execute(stmt_dev)
-            if res_dev.scalar_one_or_none() is not None:
-                tiene_acceso = True
-
-        if not tiene_acceso:
+        if act_db.delegado_por_id != usuario.id:
             raise HTTPException(
                 status_code=403,
-                detail="No tiene permisos para ver esta actividad"
+                detail="Solo el delegador original de la actividad puede previsualizar su anulación"
             )
 
         actividad, hijos = await obtener_hijos_preview(db, actividad_id)
@@ -449,7 +426,7 @@ async def eliminar_actividad(
     db: AsyncSession = Depends(obtener_db),
     usuario: Usuario = Depends(obtener_usuario_actual_db),
 ):
-    """Elimina una actividad y todos sus descendientes recursivamente."""
+    """Anula una actividad y todos sus descendientes recursivamente."""
     try:
         stmt = select(Actividad).where(Actividad.id == actividad_id)
         result = await db.execute(stmt)
@@ -467,7 +444,7 @@ async def eliminar_actividad(
         parent_id_original = act_db.parent_id
         desarrollo_id = act_db.desarrollo_id
         snapshot_antes = modelo_a_dict_auditoria(act_db)
-        count = await eliminar_actividad_cascade(db, actividad_id)
+        count = await eliminar_actividad_cascade(db, actividad_id, usuario.id)
 
         if parent_id_original is not None:
             stmt_padre = select(Actividad).where(Actividad.id == parent_id_original)

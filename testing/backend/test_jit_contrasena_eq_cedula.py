@@ -32,6 +32,13 @@ def _build_request(client_ip: str = "127.0.0.1"):
     return Request(scope)
 
 
+def _build_async_db_mock():
+    db = MagicMock()
+    db.commit = AsyncMock()
+    db.rollback = AsyncMock()
+    return db
+
+
 def _build_empleado_erp(cedula: str = "1107068093") -> dict:
     """Empleado fake devuelto por el ERP."""
     return {
@@ -58,22 +65,23 @@ class TestJitContrasenaIgualCedula:
     async def test_contrasena_igual_cedula_retorna_400(self):
         """Caso principal: contrasena = cedula → 400 sin crear usuario."""
         from app.api.auth.login_router import login
+        login_handler = getattr(login, "__wrapped__", login)
 
         form = _build_form_data(username="1107068093", password="1107068093")
         request = _build_request()
-        db = AsyncMock()
+        db = _build_async_db_mock()
         db_erp = AsyncMock()
 
         with patch("app.services.auth.servicio.ServicioAuth.obtener_usuario_por_cedula",
                    new=AsyncMock(return_value=None)), \
-             patch("app.services.erp.empleados_service.EmpleadosService.obtener_empleado_por_cedula",
+             patch("app.services.erp.empleados_service.EmpleadosService.validar_empleado_activo_autogestion",
                    new=AsyncMock(return_value=_build_empleado_erp())), \
              patch("app.api.auth.login_router.obtener_configuracion") as mock_cfg:
             mock_cfg.return_value.jit_auto_aprobar = False
             mock_cfg.return_value.portal_pending_pwd = "test_pending"
 
             with pytest.raises(HTTPException) as excinfo:
-                await login(request, form, db, db_erp)
+                await login_handler(request, form, db, db_erp)
 
             assert excinfo.value.status_code == 400
             assert "cédula" in excinfo.value.detail.lower() or "cedula" in excinfo.value.detail.lower()
@@ -88,10 +96,11 @@ class TestJitContrasenaIgualCedula:
         """'contrasena = CEDULA.en-mayusculas' también debe ser rechazada.
         Normalizar_cedula ya hace .lower() y la comparación es case-insensitive."""
         from app.api.auth.login_router import login
+        login_handler = getattr(login, "__wrapped__", login)
 
         form = _build_form_data(username="1107068093", password="1107068093")
         request = _build_request()
-        db = AsyncMock()
+        db = _build_async_db_mock()
         db_erp = AsyncMock()
 
         # Cedula del empleado viene en mayúsculas desde el ERP
@@ -100,13 +109,13 @@ class TestJitContrasenaIgualCedula:
 
         with patch("app.services.auth.servicio.ServicioAuth.obtener_usuario_por_cedula",
                    new=AsyncMock(return_value=None)), \
-             patch("app.services.erp.empleados_service.EmpleadosService.obtener_empleado_por_cedula",
+             patch("app.services.erp.empleados_service.EmpleadosService.validar_empleado_activo_autogestion",
                    new=AsyncMock(return_value=empleado_mayus)), \
              patch("app.api.auth.login_router.obtener_configuracion") as mock_cfg:
             mock_cfg.return_value.jit_auto_aprobar = False
 
             with pytest.raises(HTTPException) as excinfo:
-                await login(request, form, db, db_erp)
+                await login_handler(request, form, db, db_erp)
 
             assert excinfo.value.status_code == 400
             db.add.assert_not_called()
@@ -117,28 +126,29 @@ class TestJitContrasenaIgualCedula:
         Puede disparar OTROS errores (401, 403, 400 PASSWORD_NOT_SET), pero
         el mensaje NO debe mencionar 'igual a la cédula'."""
         from app.api.auth.login_router import login
+        login_handler = getattr(login, "__wrapped__", login)
 
         form = _build_form_data(username="1107068093", password="UnaClaveSegura#2026")
         request = _build_request()
-        db = AsyncMock()
+        db = _build_async_db_mock()
         db_erp = AsyncMock()
 
         # PATCH: el endpoint usa `from app.core.config import obtener_configuracion`,
         # que es un lru_cache. Necesitamos parchear el binding LOCAL del módulo.
         with patch("app.services.auth.servicio.ServicioAuth.obtener_usuario_por_cedula",
                    new=AsyncMock(return_value=None)), \
-             patch("app.services.erp.empleados_service.EmpleadosService.obtener_empleado_por_cedula",
+             patch("app.services.erp.empleados_service.EmpleadosService.validar_empleado_activo_autogestion",
                    new=AsyncMock(return_value=_build_empleado_erp())), \
              patch("app.services.auth.servicio.ServicioAuth.obtener_hash_contrasena",
                    return_value="$2b$04$fakehash"), \
              patch("app.api.auth.login_router.obtener_configuracion") as mock_cfg, \
              patch("app.services.auth.servicio.ServicioAuth.registrar_sesion",
                    new=AsyncMock()):
-            mock_cfg.return_value.jit_auto_aprobar = True  # para que retorne PASSWORD_NOT_SET en lugar de 403
+            mock_cfg.return_value.jit_auto_aprobar = False
             mock_cfg.return_value.portal_pending_pwd = "test_pending"
 
             with pytest.raises(HTTPException) as excinfo:
-                await login(request, form, db, db_erp)
+                await login_handler(request, form, db, db_erp)
 
             # El status debe ser 400 PASSWORD_NOT_SET (no 400 'igual a cédula')
             assert excinfo.value.status_code == 400
@@ -155,21 +165,22 @@ class TestJitContrasenaIgualCedula:
         rechaza vacíos, pero si llegan ambos vacíos al endpoint, el check
         lower() == '' debe disparar."""
         from app.api.auth.login_router import login
+        login_handler = getattr(login, "__wrapped__", login)
 
         form = _build_form_data(username="", password="")
         request = _build_request()
-        db = AsyncMock()
+        db = _build_async_db_mock()
         db_erp = AsyncMock()
 
         with patch("app.services.auth.servicio.ServicioAuth.obtener_usuario_por_cedula",
                    new=AsyncMock(return_value=None)), \
-             patch("app.services.erp.empleados_service.EmpleadosService.obtener_empleado_por_cedula",
+             patch("app.services.erp.empleados_service.EmpleadosService.validar_empleado_activo_autogestion",
                    new=AsyncMock(return_value=_build_empleado_erp())), \
              patch("app.api.auth.login_router.obtener_configuracion") as mock_cfg:
             mock_cfg.return_value.jit_auto_aprobar = False
 
             with pytest.raises(HTTPException) as excinfo:
-                await login(request, form, db, db_erp)
+                await login_handler(request, form, db, db_erp)
 
             # '' == '' → debería disparar el check
             assert excinfo.value.status_code == 400

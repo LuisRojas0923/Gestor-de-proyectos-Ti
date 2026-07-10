@@ -76,3 +76,36 @@ def test_grancoop_extractor_sin_cedula(mock_open):
     
     # Validar que se registró la advertencia informativa de la cédula no detectada
     assert any("Cédula no detectada" in w for w in warnings)
+
+@patch("pdfplumber.open")
+def test_grancoop_ignorar_crediprima_y_recalcular(mock_open):
+    """
+    Valida que las líneas con la palabra 'CREDIPRIMA' sean ignoradas,
+    y que los totales del asociado se recalculen a partir de las líneas
+    de detalle no excluidas (evitando errores de parseo por asteriscos).
+    """
+    mock_pdf = MagicMock()
+    mock_page = MagicMock()
+    
+    texto_pdf = (
+        "Asociado : BOBADILLA PRADA KAROL VIVIAM\n"
+        "Documento\n"
+        "10 261000092 CREDIPRIMA 0 0 0 1,937 0 0 1,174,879 0 0 1,176,816\n"
+        "38 261002174 FONDO MUTUAL 0 0 0 0 0 0 58,200 0 0 58,200\n"
+        "Totales : 0 0 0 1,937 0 0 ********** 0 0 1,235,016\n"
+    )
+    
+    mock_page.extract_text.return_value = texto_pdf
+    mock_pdf.pages = [mock_page]
+    mock_open.return_value.__enter__.return_value = mock_pdf
+
+    rows, summary, warnings = extraer_grancoop([b"fake pdf content"])
+
+    # Sólo debería haber una fila normalizada: FONDO MUTUAL (GRANCOOP ADICIONALES = 58200)
+    # CREDIPRIMA (1937 de Vida y 1174879 de Otros) debe ser totalmente omitido
+    rows_bobadilla = [r for r in rows if r["nombre_asociado"] == "BOBADILLA PRADA KAROL VIVIAM"]
+    assert len(rows_bobadilla) == 1
+    
+    row = rows_bobadilla[0]
+    assert row["concepto"] == "GRANCOOP ADICIONALES"
+    assert row["valor"] == 58200
