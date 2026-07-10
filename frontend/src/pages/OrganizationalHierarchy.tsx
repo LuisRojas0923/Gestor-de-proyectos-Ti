@@ -10,14 +10,14 @@ import { useApi } from '../hooks/useApi';
 import { useAppContext } from '../context/AppContext';
 import { HierarchyNode, HierarchyRelation, HierarchyUser } from '../types/hierarchy';
 
-import { getLayoutedElements, formatShortName } from './OrganizationalHierarchy/utils';
+import { formatShortName, getCenterZoom, getLayoutedElements, isNodeExpanded, nodeHeight, nodeWidth } from './OrganizationalHierarchy/utils';
 import { CustomNodeComponent, type CustomNodeData } from './OrganizationalHierarchy/components/CustomNodeComponent';
 import { AutocompleteUserField } from './OrganizationalHierarchy/components/AutocompleteUserField';
 const nodeTypes = { custom: CustomNodeComponent };
 
 type AppUser = { id?: string; usuario_id?: string; rol?: string };
 
-const FlowWithFitView: React.FC<{
+export const FlowWithFitView: React.FC<{
   nodes: FlowNode<CustomNodeData>[];
   edges: Edge[];
   onNodesChange: (changes: NodeChange[]) => void;
@@ -25,7 +25,8 @@ const FlowWithFitView: React.FC<{
   nodeTypes: typeof nodeTypes;
   selectedDirectors: string[];
   nodeToCenter: string | null;
-}> = ({ nodes, edges, onNodesChange, onEdgesChange, nodeTypes, selectedDirectors, nodeToCenter }) => {
+  onCentered: () => void;
+}> = ({ nodes, edges, onNodesChange, onEdgesChange, nodeTypes, selectedDirectors, nodeToCenter, onCentered }) => {
   const { fitView, setCenter } = useReactFlow();
 
   useEffect(() => {
@@ -40,14 +41,18 @@ const FlowWithFitView: React.FC<{
     if (nodeToCenter) {
       const node = nodes.find((n) => n.id === nodeToCenter);
       if (node) {
-        // Center the viewport on the node (x + width/2, y + height/2)
         const timer = setTimeout(() => {
-          setCenter(node.position.x + 115, node.position.y + 32, { duration: 800, zoom: 1 });
+          setCenter(
+            node.position.x + nodeWidth / 2,
+            node.position.y + nodeHeight / 2,
+            { duration: 800, zoom: getCenterZoom(window.innerWidth) },
+          );
+          onCentered();
         }, 100);
         return () => clearTimeout(timer);
       }
     }
-  }, [nodeToCenter, nodes, setCenter]);
+  }, [nodeToCenter, nodes, onCentered, setCenter]);
 
   return (
     <ReactFlow
@@ -218,11 +223,11 @@ const OrganizationalHierarchy: React.FC = () => {
 
     const handleToggleNode = (nodeId: string, currentState: boolean) => {
       setToggledNodes(prev => ({ ...prev, [nodeId]: !currentState }));
-      setNodeToCenter(nodeId);
+      setNodeToCenter(currentState ? null : nodeId);
     };
 
     const traverse = (node: HierarchyNode, level: number) => {
-      const isExpanded = toggledNodes[node.usuario_id] !== undefined ? toggledNodes[node.usuario_id] : (level <= 1);
+      const isExpanded = isNodeExpanded(toggledNodes, node.usuario_id, level);
       const hasChildren = node.subordinados && node.subordinados.length > 0;
 
       rfNodes.push({
@@ -440,6 +445,7 @@ const OrganizationalHierarchy: React.FC = () => {
                     nodeTypes={nodeTypes}
                     selectedDirectors={selectedDirectors}
                     nodeToCenter={nodeToCenter}
+                    onCentered={() => setNodeToCenter(null)}
                   />
                 </ReactFlowProvider>
               </div>

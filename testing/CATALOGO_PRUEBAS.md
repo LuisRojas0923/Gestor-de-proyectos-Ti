@@ -52,6 +52,7 @@ Ubicación: `frontend/src/`
 | **Áreas** | `components/molecules/__tests__/AreaAutocomplete.test.tsx` | Selector buscable cerrado, requerido y con opciones estrictas. | ✅ PASSED |
 | **Anulación WBS** | `pages/DevelopmentDetail/DeleteActivityModal.test.tsx` | Modal confirma anulación lógica y evita copy de eliminación física. | ✅ PASSED |
 | **Indicadores de Auditoría** | `pages/ServicePortal/pages/AuditoriaIndicadores/index.test.tsx` | Estados de éxito, error y actualización manual del dashboard. | ✅ PASSED |
+| **Organigrama interactivo** | `pages/OrganizationalHierarchy/*.test.tsx` y `utils.test.ts` | Expansión inicial, paneo móvil, layout aislado y controles accesibles. | ✅ PASSED |
 
 ### 3. Rendimiento (Locust)
 Ubicación: `testing/backend/load_test.py`

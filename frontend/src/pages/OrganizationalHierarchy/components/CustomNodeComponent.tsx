@@ -28,30 +28,41 @@ export const CustomNodeComponent = (props: CustomNodeProps) => {
   const isVacancy = String(user.id || '').startsWith('VAC-');
   const getLevelStyles = (lvl: number, isSelected: boolean) => {
     if (isSelected) return '!border-[var(--color-primary)] bg-[var(--color-primary)]/10 shadow-md scale-105';
-    if (isVacancy) return 'border-dashed border-2 border-neutral-400 dark:border-neutral-500 bg-neutral-50/30 dark:bg-neutral-800/40 opacity-80 hover:opacity-100 transition-opacity';
+    if (isVacancy) return 'border-dashed border-2 border-[var(--color-border)] bg-[var(--color-surface-variant)]/40 opacity-80 hover:opacity-100 transition-opacity';
     switch (lvl) {
-      case 0: return 'border-blue-400/50 bg-blue-50/80 dark:bg-blue-900/30 dark:border-blue-500/50';
-      case 1: return 'border-indigo-400/50 bg-indigo-50/80 dark:bg-indigo-900/30 dark:border-indigo-500/50';
-      case 2: return 'border-sky-400/50 bg-sky-50/80 dark:bg-sky-900/30 dark:border-sky-500/50';
-      default: return 'border-emerald-400/50 bg-emerald-50/80 dark:bg-emerald-900/30 dark:border-emerald-500/50';
+      case 0: return 'border-[var(--color-primary)]/50 bg-[var(--color-primary)]/10';
+      case 1: return 'border-[var(--color-secondary)]/60 bg-[var(--color-secondary)]/20';
+      case 2: return 'border-[var(--color-primary-light)]/60 bg-[var(--color-primary-light)]/20';
+      default: return 'border-[var(--color-border)] bg-[var(--color-surface-variant)]/40';
     }
   };
 
   const getAvatarColors = (lvl: number) => {
-    if (isVacancy) return 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 border-neutral-300 dark:border-neutral-700';
+    if (isVacancy) return 'bg-[var(--color-surface-variant)] text-[var(--color-text-secondary)] border-[var(--color-border)]';
     switch (lvl) {
-      case 0: return 'bg-blue-100 text-blue-700 dark:bg-blue-600 dark:text-white border-blue-200 dark:border-blue-500';
-      case 1: return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-600 dark:text-white border-indigo-200 dark:border-indigo-500';
-      case 2: return 'bg-sky-100 text-sky-700 dark:bg-sky-600 dark:text-white border-sky-200 dark:border-sky-500';
-      default: return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-600 dark:text-white border-emerald-200 dark:border-emerald-500';
+      case 0: return 'bg-[var(--color-primary)] text-[var(--color-surface)] border-[var(--color-primary)]';
+      case 1: return 'bg-[var(--color-secondary)] text-[var(--color-primary)] border-[var(--color-secondary)]';
+      case 2: return 'bg-[var(--color-primary-light)] text-[var(--color-primary)] border-[var(--color-primary-light)]';
+      default: return 'bg-[var(--color-surface-variant)] text-[var(--color-text-primary)] border-[var(--color-border)]';
     }
   };
+
+  const selectNode = () => onSelect(String(user.id || ''));
 
   return (
     <>
       <Handle type="target" position={Position.Top} isConnectable={isConnectable} className="w-2 h-2 border-2 border-[var(--color-surface)] bg-neutral-300 dark:bg-neutral-600" />
       <MaterialCard
-        onClick={() => onSelect(String(user.id || ''))}
+        onClick={selectNode}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            selectNode();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-pressed={isSelected}
         className={`p-2 w-full cursor-pointer transition-all border relative ${getLevelStyles(level, isSelected)}`}
         elevation={isSelected ? 2 : 1}
       >
@@ -78,11 +89,14 @@ export const CustomNodeComponent = (props: CustomNodeProps) => {
           <Button
             variant="custom"
             size="xs"
+            aria-label={isExpanded ? "Contraer rama" : "Expandir rama"}
+            aria-expanded={isExpanded}
             onClick={(e) => {
               e.stopPropagation();
               onToggle?.();
             }}
-            className="absolute -bottom-2 -right-2 w-5 h-5 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow flex items-center justify-center text-neutral-500 hover:text-primary-600 hover:border-primary-300 transition-colors z-10"
+            onKeyDown={(e) => e.stopPropagation()}
+            className="absolute -bottom-5 -right-5 min-w-11 min-h-11 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] shadow flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] transition-colors z-10"
             title={isExpanded ? "Contraer rama" : "Expandir rama"}
           >
             {isExpanded ? <Minus size={12} strokeWidth={3} /> : <Plus size={12} strokeWidth={3} />}
