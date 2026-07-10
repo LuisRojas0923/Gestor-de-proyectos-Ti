@@ -11,15 +11,15 @@ import ActividadEnTiempo from './components/ActividadEnTiempo';
 import { useAuditoriaStats } from './hooks/useAuditoriaStats';
 
 const AuditoriaIndicadores: React.FC = () => {
-  const { 
-    estadisticas, 
+  const {
+    estadisticas,
     isLoading,
     error,
-    periodo, 
-    setPeriodo, 
-    fechaDesde, 
-    setFechaDesde, 
-    fechaHasta, 
+    periodo,
+    setPeriodo,
+    fechaDesde,
+    setFechaDesde,
+    fechaHasta,
     setFechaHasta,
     recargar
   } = useAuditoriaStats();
@@ -44,13 +44,13 @@ const AuditoriaIndicadores: React.FC = () => {
         </Button>
       </div>
 
-      <PeriodSelector 
-        periodo={periodo} 
-        setPeriodo={setPeriodo} 
-        fechaDesde={fechaDesde} 
-        setFechaDesde={setFechaDesde} 
-        fechaHasta={fechaHasta} 
-        setFechaHasta={setFechaHasta} 
+      <PeriodSelector
+        periodo={periodo}
+        setPeriodo={setPeriodo}
+        fechaDesde={fechaDesde}
+        setFechaDesde={setFechaDesde}
+        fechaHasta={fechaHasta}
+        setFechaHasta={setFechaHasta}
       />
 
       {error ? (

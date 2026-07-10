@@ -1,9 +1,9 @@
 # Reporte de Revisión de Build
 
-**Fecha:** 2026-07-10  
-**Build:** PR #11 — estadísticas de auditoría saneadas sobre `origin/main`  
-**Autor del build:** PR #11 / saneamiento local  
-**Modo:** build read-only  
+**Fecha:** 2026-07-10
+**Build:** PR #11 — estadísticas de auditoría saneadas sobre `origin/main`
+**Autor del build:** PR #11 / saneamiento local
+**Modo:** build read-only
 **Proyecto:** Gestor-de-proyectos-Ti
 
 ---

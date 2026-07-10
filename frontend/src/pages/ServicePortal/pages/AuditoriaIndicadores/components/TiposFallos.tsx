@@ -30,14 +30,14 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     const data = payload[0].payload;
     const detalles = data.detalles || {};
     const keys = Object.keys(detalles);
-    
+
     return (
       <div className="p-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-lg max-w-[280px]">
         <Text as="p" color="inherit" className="font-semibold text-sm text-[var(--color-text-primary)] mb-1">{data.tipo}</Text>
         <Text as="p" color="inherit" className="text-xs text-[var(--color-text-secondary)] mb-2">
           Total fallos: <Text as="span" color="inherit" className="font-semibold text-[var(--color-text-primary)]">{data.total}</Text>
         </Text>
-        
+
         {keys.length > 0 ? (
           <div className="border-t border-[var(--color-border)] pt-2 space-y-1.5">
             <Text as="p" color="inherit" className="text-[9px] font-bold text-[var(--color-primary)] uppercase tracking-wider mb-1">
@@ -81,11 +81,11 @@ const TiposFallos: React.FC<TiposFallosProps> = ({ datos }) => {
             <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" opacity={0.5} />
               <XAxis type="number" stroke="var(--color-text-secondary)" fontSize={12} allowDecimals={false} />
-              <YAxis 
-                dataKey="tipo" 
-                type="category" 
-                stroke="var(--color-text-secondary)" 
-                fontSize={12} 
+              <YAxis
+                dataKey="tipo"
+                type="category"
+                stroke="var(--color-text-secondary)"
+                fontSize={12}
                 width={100}
                 tickFormatter={(val) => val.charAt(0).toUpperCase() + val.slice(1)}
               />

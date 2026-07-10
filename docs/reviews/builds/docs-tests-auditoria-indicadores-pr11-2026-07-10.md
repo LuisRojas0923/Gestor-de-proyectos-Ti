@@ -1,7 +1,7 @@
 # Docs/tests review: blocked
 
-**Fecha:** 2026-07-10  
-**Alcance:** worktree `pr11`, reparación de indicadores de auditoría; diff actual, catálogo y evidencia previa a commit/push.  
+**Fecha:** 2026-07-10
+**Alcance:** worktree `pr11`, reparación de indicadores de auditoría; diff actual, catálogo y evidencia previa a commit/push.
 **Modo:** revisión read-only de código; solo se persiste este reporte autorizado.
 
 ## Findings
