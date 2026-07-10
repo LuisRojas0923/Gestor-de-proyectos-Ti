@@ -1,4 +1,5 @@
 """API de consulta de auditoría de acciones de usuario."""
+
 from datetime import datetime
 from typing import Optional
 
@@ -10,9 +11,11 @@ from app.database import obtener_db
 from app.models.auditoria.accion_usuario import (
     AuditoriaAccionPublica,
     AuditoriaEventosPaginados,
+    AuditoriaEstadisticas,
 )
 from app.models.auth.usuario import Usuario
 from app.services.auditoria.servicio import ServicioAuditoria
+from app.services.auditoria.servicio_estadisticas import ServicioAuditoriaEstadisticas
 from app.services.auth.servicio import ServicioAuth
 
 router = APIRouter()
@@ -26,7 +29,9 @@ async def requiere_permiso_auditoria(
 ) -> Usuario:
     permisos = await ServicioAuth.obtener_permisos_por_rol(db, usuario.rol)
     if MODULO_AUDITORIA not in permisos:
-        raise HTTPException(status_code=403, detail="Sin permiso para consultar auditoría")
+        raise HTTPException(
+            status_code=403, detail="Sin permiso para consultar auditoría"
+        )
     return usuario
 
 
@@ -88,3 +93,21 @@ async def obtener_evento_auditoria(
     if not evento:
         raise HTTPException(status_code=404, detail="Evento de auditoría no encontrado")
     return AuditoriaAccionPublica.model_validate(evento)
+
+
+@router.get("/estadisticas", response_model=AuditoriaEstadisticas)
+async def obtener_estadisticas_auditoria(
+    fecha_desde: Optional[datetime] = Query(None),
+    fecha_hasta: Optional[datetime] = Query(None),
+    db: AsyncSession = Depends(obtener_db),
+    _: Usuario = Depends(requiere_permiso_auditoria),
+):
+    """Retorna las estadísticas, KPIs y agrupaciones para el dashboard de auditoría."""
+    try:
+        return await ServicioAuditoriaEstadisticas.obtener_estadisticas(
+            db,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

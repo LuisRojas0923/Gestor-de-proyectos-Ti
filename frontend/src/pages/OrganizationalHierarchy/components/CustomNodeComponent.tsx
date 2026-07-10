@@ -25,8 +25,7 @@ export const CustomNodeComponent = (props: CustomNodeProps) => {
   const { nodeData, level, selected, onSelect, isExpanded, hasChildren, onToggle } = data;
   const user = nodeData.usuario;
   const isSelected = selected;
-  const isVacancy = user.id.startsWith('VAC-');
-  
+  const isVacancy = String(user.id || '').startsWith('VAC-');
   const getLevelStyles = (lvl: number, isSelected: boolean) => {
     if (isSelected) return '!border-[var(--color-primary)] bg-[var(--color-primary)]/10 shadow-md scale-105';
     if (isVacancy) return 'border-dashed border-2 border-neutral-400 dark:border-neutral-500 bg-neutral-50/30 dark:bg-neutral-800/40 opacity-80 hover:opacity-100 transition-opacity';
@@ -52,7 +51,7 @@ export const CustomNodeComponent = (props: CustomNodeProps) => {
     <>
       <Handle type="target" position={Position.Top} isConnectable={isConnectable} className="w-2 h-2 border-2 border-[var(--color-surface)] bg-neutral-300 dark:bg-neutral-600" />
       <MaterialCard
-        onClick={() => onSelect(user.id)}
+        onClick={() => onSelect(String(user.id || ''))}
         className={`p-2 w-full cursor-pointer transition-all border relative ${getLevelStyles(level, isSelected)}`}
         elevation={isSelected ? 2 : 1}
       >
@@ -61,16 +60,16 @@ export const CustomNodeComponent = (props: CustomNodeProps) => {
             {isVacancy ? (
               <UserPlus size={14} className="opacity-80" />
             ) : (
-              <Text className="!text-[10px] font-bold !m-0 leading-none tracking-tight">{getInitials(user.nombre)}</Text>
+              <Text className="!text-[10px] font-bold !m-0 leading-none tracking-tight">{getInitials(String(user.nombre || ''))}</Text>
             )}
           </div>
           
           <div className="w-full min-w-0 pr-2">
-            <Text className={`!text-[9.5px] font-bold leading-tight uppercase truncate block ${isVacancy ? 'text-neutral-500 dark:text-neutral-400 italic font-semibold' : ''}`} title={user.nombre}>
-              {formatShortName(user.nombre)}
+            <Text className={`!text-[9.5px] font-bold leading-tight uppercase truncate block ${isVacancy ? 'text-neutral-500 dark:text-neutral-400 italic font-semibold' : ''}`} title={String(user.nombre || '')}>
+              {formatShortName(String(user.nombre || ''))}
             </Text>
-            <Text className="!text-[8.5px] text-[var(--color-text-secondary)] leading-tight opacity-90 truncate block mt-0.5" title={user.cargo || user.rol}>
-              {user.cargo || user.rol}
+            <Text className="!text-[8.5px] text-[var(--color-text-secondary)] leading-tight opacity-90 truncate block mt-0.5" title={String(user.cargo || user.rol || '')}>
+              {String(user.cargo || user.rol || '')}
             </Text>
           </div>
         </div>
