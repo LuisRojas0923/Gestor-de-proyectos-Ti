@@ -57,3 +57,68 @@ export interface FiltrosAuditoria {
   page?: number;
   page_size?: number;
 }
+
+export interface StatsPorModulo {
+  modulo: string;
+  total: number;
+  usuarios_unicos?: number;
+  ultimos_eventos?: AuditoriaEventoResumen[];
+}
+
+export type AuditoriaEventoResumen = Pick<
+  AuditoriaEvento,
+  'id' | 'timestamp' | 'usuario_id' | 'usuario_nombre' | 'modulo' | 'accion' | 'resultado'
+>;
+
+export interface TipoFallo {
+  tipo: string;
+  total: number;
+  detalles?: Record<string, number>;
+}
+
+export interface StatsPorDia {
+  fecha: string;
+  total: number;
+}
+
+export interface TopUsuario {
+  usuario_nombre: string | null;
+  usuario_id: string;
+  total: number;
+  ultimo_evento: string | null;
+}
+
+export interface TopRuta {
+  ruta: string;
+  accion: string;
+  total: number;
+  fallos: number;
+}
+
+export interface StatsPorHora {
+  rango: string;
+  total: number;
+}
+
+export interface StatsPorDispositivo {
+  dispositivo: string;
+  total: number;
+}
+
+export interface AuditoriaEstadisticas {
+  total_eventos: number;
+  usuarios_unicos: number;
+  total_exitosos: number;
+  total_fallidos: number;
+  total_denegados: number;
+  total_fallos_auth: number;
+  tasa_exito: number;
+  modulo_mas_activo: string | null;
+  por_modulo: StatsPorModulo[];
+  tipos_fallos: TipoFallo[];
+  por_dia: StatsPorDia[];
+  top_usuarios: TopUsuario[];
+  top_rutas: TopRuta[];
+  por_hora?: StatsPorHora[];
+  por_dispositivo?: StatsPorDispositivo[];
+}

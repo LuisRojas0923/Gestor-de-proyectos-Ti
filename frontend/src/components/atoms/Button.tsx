@@ -23,6 +23,8 @@ interface ButtonProps {
   'aria-hidden'?: boolean;
   'aria-selected'?: boolean;
   'aria-pressed'?: boolean;
+  'aria-expanded'?: boolean;
+  'aria-controls'?: string;
   fullWidth?: boolean;
   rounded?: 'lg' | 'full';
   tabIndex?: number;
@@ -69,6 +71,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   'aria-hidden': ariaHidden,
   'aria-selected': ariaSelected,
   'aria-pressed': ariaPressed,
+  'aria-expanded': ariaExpanded,
+  'aria-controls': ariaControls,
 }, ref) => {
   const baseClasses = 'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
@@ -117,6 +121,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       aria-hidden={ariaHidden}
       aria-selected={ariaSelected}
       aria-pressed={ariaPressed}
+      aria-expanded={ariaExpanded}
+      aria-controls={ariaControls}
       draggable={draggable}
       role={role}
       className={`

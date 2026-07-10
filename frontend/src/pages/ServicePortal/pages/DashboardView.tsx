@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Title, Text, MaterialCard, Input } from '../../../components/atoms';
-import { FileText, Briefcase, ChevronRight, Search } from 'lucide-react';
+import { FileText, Briefcase, ChevronRight, Search, Activity } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -17,7 +17,7 @@ interface DashboardViewProps {
         viaticante?: boolean;
     } | null;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'auditoria_indicadores') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -109,6 +109,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         permissions.includes('comisiones') ||
         ['admin', 'director'].includes(userRole)
     );
+
+    const canSeeAuditoria = moduleStatus['auditoria_sistema'] !== false && (
+        permissions.includes('auditoria_sistema') ||
+        ['admin'].includes(userRole) // Solo admins por ahora como pidio el usuario
+    );
+
     const cards = [
         {
             key: 'solicitudes',
@@ -181,6 +187,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
             description: "Accede a desarrollos, aprobaciones y jerarquía organizacional.",
             icon: <Briefcase className="w-8 h-8 text-[var(--color-primary)]" />,
             onClick: () => onNavigate('gestion_actividades')
+        },
+        {
+            key: 'auditoria',
+            canSee: canSeeAuditoria,
+            title: "Auditoría del Sistema",
+            description: "Indicadores, gráficas y KPIs sobre la trazabilidad y eventos del sistema.",
+            icon: <Activity className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('auditoria_indicadores')
         }
     ];
 
