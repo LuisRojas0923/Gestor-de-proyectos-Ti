@@ -75,26 +75,17 @@ const GestionActividadesView: React.FC<Props> = ({ user, onNavigate, onBack }) =
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-8 space-y-12">
-            {/* Header con navegación integrada */}
-            <div className="flex flex-col items-center relative">
-                <div className="w-full flex justify-start md:absolute md:left-0 md:top-1/2 md:-translate-y-1/2">
-                    <Button
-                        variant="ghost"
-                        onClick={onBack}
-                        className="group flex items-center gap-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-4 py-2 rounded-xl transition-all"
-                    >
-                        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                        <Text as="span" variant="body1" weight="semibold" className="hidden sm:inline">Volver</Text>
+            {/* Header Estandarizado */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <ArrowLeft className="w-5 h-5" />
                     </Button>
-                </div>
-
-                <div className="text-center space-y-2 mt-6 md:mt-0">
-                    <Title variant="h2" weight="bold" className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-light)] bg-clip-text text-transparent">
-                        Gestión de Actividades
-                    </Title>
-                    <Text variant="h6" color="text-secondary" weight="medium">
-                        Centro de control para el seguimiento de desarrollos
-                    </Text>
+                    <div>
+                        <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                            Gestión de Actividades
+                        </Title>
+                    </div>
                 </div>
             </div>
 

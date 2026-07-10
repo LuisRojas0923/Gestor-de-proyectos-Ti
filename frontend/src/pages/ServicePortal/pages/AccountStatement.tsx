@@ -91,12 +91,15 @@ const AccountStatement: React.FC<AccountStatementProps> = ({ user }) => {
         <div className="flex flex-col h-[calc(100vh-70px)] overflow-hidden pb-2 bg-[var(--color-background)]">
             {/* BLOQUE SUPERIOR: FIJO */}
             <div className="flex-none space-y-3 px-1 pb-4">
-                <div className="flex items-center justify-between py-1 relative h-[50px] bg-[var(--color-background)]">
-                    <div className="w-20"></div>
-                    <Title variant="h5" weight="bold" color="text-primary" className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] sm:text-sm md:text-lg uppercase tracking-tight top-10 md:top-1/2 md:-translate-y-1/2">
-                        Estado de Cuenta de Viáticos
-                    </Title>
-                    <div className="w-20"></div>
+                {/* Header Estandarizado */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
+                    <div className="flex items-center gap-4">
+                        <div>
+                            <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                                Estado de Cuenta de Viáticos
+                            </Title>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Tarjeta de Información Compacta */}

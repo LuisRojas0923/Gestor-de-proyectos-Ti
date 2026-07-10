@@ -133,18 +133,19 @@ const MisRequisicionesRP: React.FC<Props> = ({ correoSolicitante, nombreSolicita
 
   return (
     <div className={`${hideHeader ? '' : 'space-y-6'} animate-in fade-in duration-500`}>
-      {/* Header */}
+      {/* Header Estandarizado */}
       {!hideHeader && (
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div className="flex items-center gap-4">
-            {onVolver && <Button variant="ghost" onClick={onVolver} icon={ArrowLeft} className="font-bold hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl" />}
+            {onVolver && (
+              <Button variant="ghost" size="icon" onClick={onVolver} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            )}
             <div>
               <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
                 Mis Solicitudes — Requisiciones de Personal
               </Title>
-              <Text variant="caption" color="text-secondary" className="block text-[10px] leading-none uppercase tracking-widest opacity-70 mt-1">
-                RECURSOS HUMANOS / MIS SOLICITUDES
-              </Text>
             </div>
           </div>
           <Button variant="primary" icon={Plus} onClick={onNueva}>Nueva Requisición</Button>

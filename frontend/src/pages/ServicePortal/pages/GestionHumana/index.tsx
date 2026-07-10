@@ -90,28 +90,20 @@ const GestionHumanaPortal: React.FC<GestionHumanaPortalProps> = ({ user, onBack 
   }
 
   return (
-    <div className="p-6 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-[var(--portal-max-width)] mx-auto">
-      
-      {/* Botón de Navegación Superior (UX Pattern: Salida Clara) */}
-      <div className="flex w-full mb-[-1rem]">
-        <Button 
-          variant="outline" 
-          onClick={handleBack} 
-          className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-[var(--deep-navy)] dark:text-slate-300 dark:hover:text-white border-transparent hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Volver al Menú Principal
-        </Button>
-      </div>
-
-      <div className="text-center space-y-4">
-        <Title variant="h2" weight="bold" className="text-[var(--deep-navy)] dark:text-white">
-          Gestión Humana
-        </Title>
-        <Text variant="body1" color="text-secondary" className="max-w-2xl mx-auto font-medium">
-          Accede a tus documentos laborales, certificados tributarios y comprobantes de pago de forma segura.
-        </Text>
-      </div>
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 py-6">
+        {/* Header Estandarizado */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={handleBack} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <div>
+                    <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                        Gestión Humana
+                    </Title>
+                </div>
+            </div>
+        </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <ServicePortalCard

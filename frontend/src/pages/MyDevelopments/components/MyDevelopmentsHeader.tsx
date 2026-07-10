@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Activity, RotateCcw, Users, X, Plus, CheckCheck, ChevronDown } from 'lucide-react';
+import { ClipboardList, Activity, RotateCcw, Users, X, Plus, CheckCheck, ChevronDown, ArrowLeft } from 'lucide-react';
 import { Button, Title, Text } from '../../../components/atoms';
 
 interface MyDevelopmentsHeaderProps {
@@ -67,13 +67,14 @@ export const MyDevelopmentsHeader: React.FC<MyDevelopmentsHeaderProps> = ({
         {isPortal && (
           <Button
             variant="ghost"
+            size="icon"
             onClick={() => navigate('/service-portal/gestion-actividades')}
-            className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
+            className="hover:bg-slate-100 dark:hover:bg-slate-800"
           >
-            ← Volver
+            <ArrowLeft className="w-5 h-5" />
           </Button>
         )}
-        <Title variant="h1" className="m-0">Gestión de Actividades</Title>
+        <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 m-0">Gestión de Actividades</Title>
         <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
         {/* Stats chips */}
         <button // @audit-ok

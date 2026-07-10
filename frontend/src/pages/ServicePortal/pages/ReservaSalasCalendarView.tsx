@@ -169,12 +169,14 @@ export const ReservaSalasCalendarView: React.FC<ReservaSalasCalendarViewProps> =
 
   return (
     <div className="space-y-6 py-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onBack} icon={ArrowLeft} className="font-bold p-0">Volver</Button>
-          <div className="flex items-center gap-2">
-            <Icon name={Calendar} size="lg" color="primary" />
-            <Title variant="h3" weight="bold" className="text-[var(--deep-navy)] dark:text-white">
+      {/* Header Estandarizado */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
               Calendario de reservas
             </Title>
           </div>

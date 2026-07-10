@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Title, Text, MaterialCard, Input } from '../../../components/atoms';
-import { FileText, Briefcase, ChevronRight, Search } from 'lucide-react';
+import { FileText, Briefcase, ChevronRight, Search, Users, UserCheck, PenTool, Settings, Database } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -15,9 +15,11 @@ interface DashboardViewProps {
         role?: string;
         permissions?: string[];
         viaticante?: boolean;
+        cedula?: string;
+        id?: string;
     } | null;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'requisicion_personal' | 'seguimiento_rp_gh' | 'aprobacion_rp_gerencia' | 'perfiles_cargo' | 'centro_costos') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -109,6 +111,25 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         permissions.includes('comisiones') ||
         ['admin', 'director'].includes(userRole)
     );
+
+    const canSeeRequisicionPersonal = moduleStatus['requisicion_personal'] !== false;
+
+    const canSeeSeguimientoRPGH = moduleStatus['requisicion_personal'] !== false && (
+        permissions.includes('gestion_humana') ||
+        ['admin', 'director'].includes(userRole)
+    );
+
+    const canSeeAprobacionGerenciaRP = moduleStatus['requisicion_personal'] !== false && (
+        (user?.cedula || user?.id) === "66903320" ||
+        userRole === "admin"
+    );
+
+    const canSeePerfilesCargo = moduleStatus['perfiles_cargo'] !== false && (
+        permissions.includes('perfiles_cargo') ||
+        ['admin', 'director'].includes(userRole)
+    );
+
+    const canSeeCentroCostos = moduleStatus['configuracion_centro_costo'] !== false;
     const cards = [
         {
             key: 'solicitudes',
@@ -181,6 +202,46 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
             description: "Accede a desarrollos, aprobaciones y jerarquía organizacional.",
             icon: <Briefcase className="w-8 h-8 text-[var(--color-primary)]" />,
             onClick: () => onNavigate('gestion_actividades')
+        },
+        {
+            key: 'requisicion_personal',
+            canSee: canSeeRequisicionPersonal,
+            title: "Requisición de Personal",
+            description: "Creación y seguimiento de solicitudes de contratación de personal.",
+            icon: <Users className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('requisicion_personal')
+        },
+        {
+            key: 'seguimiento_rp_gh',
+            canSee: canSeeSeguimientoRPGH,
+            title: "Seguimiento RP Gestión Humana",
+            description: "Gestión y seguimiento del proceso de selección y contratación de requisiciones aprobadas.",
+            icon: <UserCheck className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('seguimiento_rp_gh')
+        },
+        {
+            key: 'aprobacion_rp_gerencia',
+            canSee: canSeeAprobacionGerenciaRP,
+            title: "Aprobación Gerencial RP",
+            description: "Firma y autorización definitiva de requisiciones de personal aprobadas por directores.",
+            icon: <PenTool className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('aprobacion_rp_gerencia')
+        },
+        {
+            key: 'perfiles_cargo',
+            canSee: canSeePerfilesCargo,
+            title: "Perfiles de Cargo",
+            description: "Administración de áreas, cargos y sus relaciones de reporte jerárquico.",
+            icon: <Settings className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('perfiles_cargo')
+        },
+        {
+            key: 'centro_costos',
+            canSee: canSeeCentroCostos,
+            title: "Configuración Centros de Costos",
+            description: "Configure los catálogos maestros de UENs, Subcentros de Costo y Especialidades del ERP.",
+            icon: <Database className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('centro_costos')
         }
     ];
 

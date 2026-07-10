@@ -141,30 +141,16 @@ const PerfilesCargo: React.FC<PerfilesCargoProps> = ({ onVolver }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
+      {/* Header Estandarizado */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={onVolver}
-            icon={ArrowLeft}
-            className="font-bold hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl"
-          />
+          <Button variant="ghost" size="icon" onClick={onVolver} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <div>
-            <Title
-              variant="h4"
-              weight="bold"
-              className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400"
-            >
+            <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
               Perfiles de Cargo y Áreas
             </Title>
-            <Text
-              variant="caption"
-              color="text-secondary"
-              className="block text-[10px] leading-none uppercase tracking-widest opacity-70 mt-1"
-            >
-              ADMINISTRACIÓN DEL SISTEMA / PERFILES Y JERARQUÍAS
-            </Text>
           </div>
         </div>
         <Button

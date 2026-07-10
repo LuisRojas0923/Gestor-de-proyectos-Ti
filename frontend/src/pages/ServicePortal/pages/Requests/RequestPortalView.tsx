@@ -51,19 +51,17 @@ const RequestPortalView: React.FC<RequestPortalViewProps> = ({ onSelectArea, onC
 
     return (
         <div className="w-full max-w-6xl mx-auto space-y-8 animate-fade-in py-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                    <Button variant="ghost" onClick={onBack} icon={ArrowLeft} className="font-bold">
-                        Volver al Inicio
+            {/* Header Estandarizado */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <ArrowLeft className="w-5 h-5" />
                     </Button>
-                </div>
-                <div className="text-right">
-                    <Title variant="h3" weight="bold" className="text-[var(--deep-navy)] dark:text-white">
-                        Gestión de Solicitudes y Requisiciones
-                    </Title>
-                    <Text variant="subtitle1" color="text-secondary">
-                        Integración ERP
-                    </Text>
+                    <div>
+                        <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                            Gestión de Solicitudes y Requisiciones
+                        </Title>
+                    </div>
                 </div>
             </div>
 

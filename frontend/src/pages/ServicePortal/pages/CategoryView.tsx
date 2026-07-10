@@ -21,31 +21,18 @@ interface CategoryViewProps {
 const CategoryView: React.FC<CategoryViewProps> = ({ categories, onSelect, onBack }) => {
     return (
         <div className="space-y-12 py-6">
-            <div className="flex items-center space-x-4">
-                <Button
-                    variant="ghost"
-                    onClick={onBack}
-                    icon={ArrowLeft}
-                    className="font-bold p-0"
-                >
-                    Volver a las áreas
-                </Button>
-            </div>
-
-            <div className="text-center space-y-4">
-                <Badge
-                    variant="primary"
-                    size="lg"
-                    className="mb-4 uppercase tracking-[0.2em] font-extrabold shadow-sm"
-                >
-                    Catálogo de Servicios
-                </Badge>
-                <Title variant="h2" weight="bold" className="text-[var(--deep-navy)] dark:text-white">
-                    Selecciona el servicio específico
-                </Title>
-                <Text variant="body1" color="text-secondary" className="max-w-2xl mx-auto font-medium">
-                    Elige la categoría que mejor describa tu requerimiento ({categories.length} opciones disponibles).
-                </Text>
+            {/* Header Estandarizado */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <div>
+                        <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                            Selecciona el servicio específico
+                        </Title>
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

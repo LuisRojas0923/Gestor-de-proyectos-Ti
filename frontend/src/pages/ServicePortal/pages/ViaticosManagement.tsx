@@ -65,23 +65,20 @@ const ViaticosManagement: React.FC<ViaticosManagementProps> = ({ onNavigate, mod
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+            {/* Header Estandarizado */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
                     {onBack && (
-                        <Button
-                            variant="ghost"
-                            onClick={onBack}
-                            icon={ArrowLeft}
-                            className="rounded-full !p-2 -ml-2"
-                            aria-label="Volver al inicio"
-                            title="Volver al inicio"
-                        />
+                        <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <ArrowLeft className="w-5 h-5" />
+                        </Button>
                     )}
-                    <Title variant="h4" weight="bold" color="text-primary" className="uppercase tracking-tight">
-                        Gestión de Viáticos
-                    </Title>
+                    <div>
+                        <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                            Gestión de Viáticos
+                        </Title>
+                    </div>
                 </div>
-                <div className="w-20"></div>
             </div>
 
             {/* Mensaje Informativo si es viaticante pero no tiene permiso administrativo */}

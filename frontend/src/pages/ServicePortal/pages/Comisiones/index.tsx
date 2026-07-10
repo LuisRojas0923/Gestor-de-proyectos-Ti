@@ -147,17 +147,16 @@ const ComisionesView: React.FC = () => {
             <div className="flex-none space-y-2 pb-2">
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/service-portal/inicio')}>
-                            <ArrowLeft className="w-4 h-4" />
-                        </Button>
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
-                                <TrendingUp className="w-5 h-5 text-white" />
-                            </div>
+                    {/* Header Estandarizado */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <Button variant="ghost" size="icon" onClick={() => navigate('/service-portal/inicio')} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+                                <ArrowLeft className="w-5 h-5" />
+                            </Button>
                             <div>
-                                <Title variant="h5" weight="bold">Comisiones</Title>
-                                <Text color="text-secondary" className="text-[10px] leading-none uppercase tracking-widest">Novedades / Comisiones</Text>
+                                <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                                    Comisiones
+                                </Title>
                             </div>
                         </div>
                     </div>

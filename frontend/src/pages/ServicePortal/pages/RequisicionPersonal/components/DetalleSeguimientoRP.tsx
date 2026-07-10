@@ -254,13 +254,17 @@ const DetalleSeguimientoRP: React.FC<Props> = ({ requisicion, onBack, onStatusCh
 
   return (
     <div className="space-y-6">
-      {/* Botón Volver & Info Principal */}
-      <div className="flex items-center justify-between flex-wrap gap-4 border-b border-[var(--color-border)] pb-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onBack} icon={ArrowLeft} className="font-bold p-0 mr-2">Volver</Button>
+      {/* Header Estandarizado */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <div>
             <div className="flex items-center gap-2">
-              <Title variant="h4" weight="bold" className="font-mono">{requisicion.rp}</Title>
+              <Title variant="h4" weight="bold" className="font-mono bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                {requisicion.rp}
+              </Title>
               <Badge variant="emerald">{requisicion.area_nombre}</Badge>
             </div>
             <Text color="secondary" className="mt-0.5 font-medium">

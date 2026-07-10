@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { GitBranch, RefreshCw, UserPlus, X, Filter, ChevronDown } from 'lucide-react';
+import { GitBranch, RefreshCw, UserPlus, X, Filter, ChevronDown, ArrowLeft } from 'lucide-react';
 import { ReactFlow, MiniMap, Controls, Background, Edge, useNodesState, useEdgesState, ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import type { EdgeChange, Node as FlowNode, NodeChange } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -288,19 +288,18 @@ const OrganizationalHierarchy: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-3 pb-6 animate-in fade-in duration-500">
-      {/* Banner Header */}
+      {/* Banner Header Estandarizado */}
       <div className="flex justify-between items-center bg-white dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/service-portal/gestion-actividades')}
-            className="text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-variant)] px-3 py-1.5 text-sm rounded-lg flex items-center gap-2"
-          >
-            ← Volver
+          <Button variant="ghost" size="icon" onClick={() => navigate('/service-portal/gestion-actividades')} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+            <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
-          <Title variant="h1" weight="bold" color="text-primary">Jerarquía Organizacional</Title>
-          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
+          <div>
+            <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+              Jerarquía Organizacional
+            </Title>
+          </div>
+          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block ml-4" />
           <div className="flex items-center gap-2">
             <Text as="span" variant="caption" weight="bold" className="bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 px-3 py-1 rounded-full border border-primary-100 dark:border-primary-800/50">
               {reachableUsers.length} Usuarios

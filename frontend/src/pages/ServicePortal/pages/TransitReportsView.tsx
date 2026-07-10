@@ -109,22 +109,20 @@ const TransitReportsView: React.FC<TransitReportsViewProps> = ({ user, onBack, o
     return (
         <div className="space-y-6 pb-20">
             <div className="space-y-2 -mb-4">
-                <div className="relative flex items-center justify-between min-h-[36px] px-1">
-                    <Button
-                        variant="ghost"
-                        onClick={onBack}
-                        className="text-neutral-700 hover:bg-white/10 dark:text-neutral-300 dark:hover:bg-neutral-800 px-3 py-1.5 text-sm rounded-lg flex items-center gap-2 z-10"
-                    >
-                        <ArrowLeft size={18} />
-                        <Text weight="medium" className="text-base font-medium text-left text-gray-900 dark:text-gray-100 hidden sm:inline">
-                            Volver
-                        </Text>
-                    </Button>
-
-                    <Title variant="h4" weight="bold" color="navy" className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-lg md:text-2xl uppercase text-center w-full pointer-events-none font-['Roboto']">
-                        Legalización de Gastos
-                    </Title>
-                    <div className="w-10 md:w-20"></div>
+                {/* Header Estandarizado */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                    <div className="flex items-center gap-4">
+                        {onBack && (
+                            <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+                                <ArrowLeft className="w-5 h-5" />
+                            </Button>
+                        )}
+                        <div>
+                            <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                                Legalización de Gastos
+                            </Title>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Botón NUEVO (0.5rem debajo del título) */}

@@ -178,10 +178,18 @@ const AlmacenFormView: React.FC<AlmacenFormViewProps> = () => {
 
     return (
         <div className="w-full max-w-6xl mx-auto space-y-8 animate-fade-in py-6">
-            <div className="flex items-center space-x-4 mb-4">
-                <Button variant="ghost" onClick={() => navigate('/service-portal/requisiciones/almacen')} icon={ArrowLeft} className="font-bold">
-                    Volver a Especialidades
-                </Button>
+            {/* Header Estandarizado */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={() => navigate('/service-portal/requisiciones/almacen')} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <div>
+                        <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                            Nueva Solicitud Almacén
+                        </Title>
+                    </div>
+                </div>
             </div>
 
             <div className="bg-[var(--color-surface)] rounded-3xl p-8 border border-[var(--color-border)] shadow-md">

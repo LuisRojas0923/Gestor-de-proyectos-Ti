@@ -157,25 +157,17 @@ const CentroCostosConfig: React.FC<CentroCostosConfigProps> = ({ user, onVolver 
 
   return (
     <div className="space-y-6 max-w-[1800px] mx-auto w-full px-4">
-      {/* Header Estilo Requisición de Personal */}
-      <div className="flex items-center gap-4 border-b border-[var(--color-border)] pb-4 mb-6">
-        <Button
-          variant="ghost"
-          onClick={onVolver}
-          icon={ArrowLeft}
-          className="font-bold hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl"
-        />
-        <div>
-          <Title
-            variant="h4"
-            weight="bold"
-            className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400"
-          >
-            Configurador de Centros de Costos
-          </Title>
-          <Text variant="caption" className="text-[var(--color-text-secondary)] mt-1">
-            Administración del ERP — Configure los códigos maestros para UENs, Procesos y Especialidades / Subcentros del Ecosistema Solid.
-          </Text>
+      {/* Header Estandarizado */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onVolver} className="hover:bg-slate-100 dark:hover:bg-slate-800">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <Title variant="h4" weight="bold" className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+              Configurador de Centros de Costos
+            </Title>
+          </div>
         </div>
       </div>
 
