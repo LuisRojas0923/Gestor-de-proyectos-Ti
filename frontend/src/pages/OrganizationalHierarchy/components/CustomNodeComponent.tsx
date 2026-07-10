@@ -3,7 +3,7 @@ import { Handle, Position } from '@xyflow/react';
 import { UserPlus, Plus, Minus } from 'lucide-react';
 import { Button, MaterialCard, Text } from '../../../components/atoms';
 import { getInitials, formatShortName } from '../utils';
-import type { HierarchyNode, HierarchyUser } from '../../../types/hierarchy';
+import type { HierarchyNode } from '../../../types/hierarchy';
 
 export interface CustomNodeData {
   nodeData: HierarchyNode;
@@ -70,8 +70,8 @@ export const CustomNodeComponent = (props: CustomNodeProps) => {
             <Text className={`!text-[9.5px] font-bold leading-tight uppercase truncate block ${isVacancy ? 'text-neutral-500 dark:text-neutral-400 italic font-semibold' : ''}`} title={String(user.nombre || '')}>
               {formatShortName(String(user.nombre || ''))}
             </Text>
-            <Text className="!text-[8.5px] text-[var(--color-text-secondary)] leading-tight opacity-90 truncate block mt-0.5" title={String((user as HierarchyUser & { cargo?: string }).cargo || user.rol || '')}>
-              {String((user as HierarchyUser & { cargo?: string }).cargo || user.rol || '')}
+            <Text className="!text-[8.5px] text-[var(--color-text-secondary)] leading-tight opacity-90 truncate block mt-0.5" title={String(user.cargo || user.rol || '')}>
+              {String(user.cargo || user.rol || '')}
             </Text>
           </div>
         </div>

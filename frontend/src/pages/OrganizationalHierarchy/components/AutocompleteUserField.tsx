@@ -88,7 +88,7 @@ export const AutocompleteUserField: React.FC<{
                   onMouseDown={() => select(user)}
                 >
                   <Text variant="body2" weight="semibold" color="text-primary">{user.nombre}</Text>
-                  <Text variant="caption" color="text-secondary">{user.cedula} · {(user as unknown as {cargo?: string}).cargo || user.rol}</Text>
+                  <Text variant="caption" color="text-secondary">{user.cedula} · {user.cargo || user.rol}</Text>
                 </Button>
               ))}
             </div>
