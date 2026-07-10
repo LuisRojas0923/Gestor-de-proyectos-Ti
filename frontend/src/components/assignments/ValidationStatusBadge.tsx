@@ -16,5 +16,9 @@ export const ValidationStatusBadge: React.FC<ValidationStatusBadgeProps> = ({ st
     return <Badge variant="error" size="sm">Rechazada</Badge>;
   }
 
+  if (normalized === 'anulada') {
+    return <Badge variant="default" size="sm">Anulada</Badge>;
+  }
+
   return <Badge variant="success" size="sm">Aprobada</Badge>;
 };

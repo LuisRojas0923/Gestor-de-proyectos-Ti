@@ -1,5 +1,6 @@
-import { Title, Text, MaterialCard } from '../../../components/atoms';
-import { FileText, Briefcase, Plus, ChevronRight, Activity } from 'lucide-react';
+import React, { useState } from 'react';
+import { Title, Text, MaterialCard, Input } from '../../../components/atoms';
+import { FileText, Briefcase, ChevronRight, Search, Activity } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -9,7 +10,12 @@ import imgNovedadesNomina from '../../../assets/images/categories/NOVEDADES_NOMI
 import imgComisiones from '../../../assets/images/categories/COMISIONES.png';
 
 interface DashboardViewProps {
-    user: any;
+    user: {
+        rol?: string;
+        role?: string;
+        permissions?: string[];
+        viaticante?: boolean;
+    } | null;
     moduleStatus: Record<string, boolean>;
     onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'auditoria_indicadores') => void;
 }
@@ -50,6 +56,7 @@ const ServicePortalCard: React.FC<{
 };
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
+    const [searchTerm, setSearchTerm] = useState('');
     const userRole = (user?.rol || user?.role || '').toLowerCase();
     const permissions: string[] = user?.permissions || [];
 
@@ -193,15 +200,29 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
 
     const activeCards = cards
         .filter(card => card.canSee)
+        .filter(card => 
+            card.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            card.description.toLowerCase().includes(searchTerm.toLowerCase())
+        )
         .sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
 
     return (
         <div className="space-y-12 py-6">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-4">
                 <Title variant="h3" weight="bold" className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-light)] bg-clip-text text-transparent">
                     ¿En qué podemos ayudarte hoy?
                 </Title>
                 <Text variant="h6" color="text-secondary" weight="medium">Selecciona una de las opciones principales de gestión</Text>
+                
+                <div className="max-w-md mx-auto pt-4">
+                    <Input
+                        placeholder="Buscar opción o servicio..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        icon={Search}
+                        className="w-full bg-white shadow-sm rounded-xl border-slate-200"
+                    />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

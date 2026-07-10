@@ -3,8 +3,6 @@ import { Save, Download, Trash2, Send } from 'lucide-react';
 import { Button } from '../../../components/atoms';
 import ExpenseTotals from './ExpenseTotals';
 import { generateExpenseReportPDF } from '../../../utils/generateExpenseReportPDF';
-import axios from 'axios';
-import { API_CONFIG } from '../../../config/api';
 
 interface ExpenseActionCenterProps {
     totalFacturado: number;
@@ -40,30 +38,7 @@ const ExpenseActionCenter: React.FC<ExpenseActionCenterProps> = ({
     user,
     lineas,
     radicado,
-}) => {
-    const handleDownloadPDF = async () => {
-        // Generar el PDF
-        await generateExpenseReportPDF(radicado || activeReporteId || '', user, lineas);
-        
-        // Registrar en auditoría
-        try {
-            const token = localStorage.getItem('token');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            await axios.post(
-                `${API_CONFIG.BASE_URL}/viaticos/reporte-gastos/auditar-descarga`,
-                {
-                    tipo_archivo: 'pdf',
-                    cedula_consultada: user?.cedula || user?.id,
-                    nombre_consultado: user?.name
-                },
-                { headers }
-            );
-        } catch (err) {
-            console.error("Error al registrar auditoría de descarga de gastos:", err);
-        }
-    };
-
-    return (
+}) => (
     <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
         <div className="w-full md:w-[50%] bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] py-2 px-4 shadow-sm h-[84px] flex items-center">
             <ExpenseTotals
@@ -87,7 +62,7 @@ const ExpenseActionCenter: React.FC<ExpenseActionCenterProps> = ({
                 </Button>
                 {canDownloadPDF ? (
                     <Button
-                        onClick={handleDownloadPDF}
+                        onClick={() => generateExpenseReportPDF(radicado || activeReporteId || '', user, lineas)}
                         variant="erp" size="md" icon={Download}
                         className="h-[68px] font-bold rounded-2xl shadow-none px-2 uppercase text-[10px] sm:text-xs flex-col gap-1 justify-center shrink-0 border-blue-200 text-blue-700 dark:text-blue-400"
                     >
@@ -118,7 +93,6 @@ const ExpenseActionCenter: React.FC<ExpenseActionCenterProps> = ({
             </div>
         </div>
     </div>
-    );
-};
+);
 
 export default ExpenseActionCenter;

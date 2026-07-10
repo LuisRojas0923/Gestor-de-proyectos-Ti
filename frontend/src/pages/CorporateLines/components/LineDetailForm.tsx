@@ -205,11 +205,9 @@ export const LineDetailForm: React.FC<FormProps> = ({
         {activeSubTab === 'finanzas' && (
           <div className="space-y-8">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-               <div className="space-y-6">
-                  <div>
-                    <Title variant="h6" weight="bold" className="border-b pb-2 dark:border-neutral-700">Parámetros de Dispersión (Motor IA)</Title>
-                    <Text variant="caption" className="opacity-70 mt-1 block">Define qué porcentaje asume el empleado en la liquidación automática.</Text>
-                  </div>
+               <div className="p-5 bg-primary-50 dark:bg-primary-900/10 rounded-3xl border border-primary-100 dark:border-primary-800/50 space-y-4">
+                  <Title variant="h6" weight="bold" color="text-primary">Parámetros de Dispersión (Motor IA)</Title>
+                  <Text variant="caption" className="opacity-70 mb-4 block">Define qué porcentaje asume el empleado en la liquidación automática.</Text>
                   <div className="grid grid-cols-2 gap-4">
                      <Select 
                         label="Cobro Cargo Fijo"
@@ -235,8 +233,8 @@ export const LineDetailForm: React.FC<FormProps> = ({
                      />
                   </div>
                </div>
-               <div className="space-y-6">
-                  <Title variant="h6" weight="bold" className="border-b pb-2 dark:border-neutral-700">Aprobaciones</Title>
+               <div className="p-5 bg-neutral-50 dark:bg-neutral-900/50 rounded-3xl border border-neutral-200 dark:border-neutral-700/50 space-y-4">
+                  <Title variant="h6" weight="bold">Aprobaciones</Title>
                   <Input 
                     label="Centro de Costo (C.O)" 
                     value={formData.asignado?.centro_costo || 'GENERAL'} 

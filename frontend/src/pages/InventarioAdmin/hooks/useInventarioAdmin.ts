@@ -436,9 +436,6 @@ export const useInventarioAdmin = () => {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Asignaciones");
         XLSX.writeFile(workbook, "Reporte_Asignaciones_Planta.xlsx");
-
-        // Registrar evento en auditoría silenciosamente
-        axios.post(`${API_CONFIG.BASE_URL}/inventario/auditar-exportacion`, {}, { headers }).catch(() => {});
     };
 
     const handleEditAsig = (asig: any) => {

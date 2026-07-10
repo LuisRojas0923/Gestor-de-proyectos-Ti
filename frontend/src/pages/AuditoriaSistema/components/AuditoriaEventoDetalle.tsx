@@ -6,15 +6,12 @@ import {
   Server,
   Shield,
   User,
-  Info,
-  ChevronDown
 } from 'lucide-react';
-import React, { useState } from 'react';
-import { Badge, Button, Icon, MaterialCard as Card, Text } from '../../../components/atoms';
+import React from 'react';
+import { Badge, Icon, MaterialCard as Card, Text } from '../../../components/atoms';
 import { Modal } from '../../../components/molecules';
 import type { AuditoriaEvento } from '../../../types/auditoria';
 import ComparacionAntesDespues from './ComparacionAntesDespues';
-import { humanizarAccion, humanizarModulo, humanizarClave, humanizarResultado } from '../../ServicePortal/pages/AuditoriaIndicadores/utils/humanizer';
 
 interface Props {
   evento: AuditoriaEvento | null;
@@ -27,6 +24,12 @@ const resultadoVariant = (resultado: string) => {
   return 'error';
 };
 
+const resultadoEtiqueta = (resultado: string) => {
+  if (resultado === 'exito') return 'Éxito';
+  if (resultado === 'denegado') return 'Denegado';
+  return 'Fallo';
+};
+
 const formatearFecha = (iso: string | null) => {
   if (!iso) return '—';
   try {
@@ -37,6 +40,7 @@ const formatearFecha = (iso: string | null) => {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      second: '2-digit',
     });
   } catch {
     return iso;
@@ -86,20 +90,20 @@ const BloqueJson: React.FC<{ titulo: string; datos: Record<string, unknown> }> =
       </div>
       <div className="p-4">
         {esPlano ? (
-          <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {entradas.map(([clave, valor]) => (
-              <div key={clave} className="bg-[var(--color-surface-variant)]/20 p-2 rounded-lg border border-[var(--color-border)]/50">
-                <Text variant="caption" color="text-secondary" className="!text-[10px] uppercase block mb-0.5 truncate" title={humanizarClave(clave)}>
-                  {humanizarClave(clave)}
+              <div key={clave}>
+                <Text variant="caption" color="text-secondary" className="!text-[10px] uppercase block mb-0.5">
+                  {clave.replace(/_/g, ' ')}
                 </Text>
-                <Text variant="body2" className="font-mono text-sm break-all leading-snug">
+                <Text variant="body2" className="font-mono text-sm break-all">
                   {valor === null ? 'null' : String(valor)}
                 </Text>
               </div>
             ))}
           </dl>
         ) : (
-          <pre className="text-xs leading-relaxed p-3 rounded-lg bg-[var(--deep-navy)] text-green-300 overflow-x-auto font-mono custom-scrollbar">
+          <pre className="text-xs leading-relaxed p-3 rounded-lg bg-[var(--deep-navy)] text-green-300 overflow-x-auto font-mono">
             {JSON.stringify(datos, null, 2)}
           </pre>
         )}
@@ -108,103 +112,22 @@ const BloqueJson: React.FC<{ titulo: string; datos: Record<string, unknown> }> =
   );
 };
 
-const DetallesTecnicos: React.FC<{ evento: AuditoriaEvento }> = ({ evento }) => {
-  const [abierto, setAbierto] = useState(false);
-
-  return (
-    <div className="border border-[var(--color-border)] rounded-xl overflow-hidden mt-6">
-      <Button 
-        variant="custom"
-        onClick={() => setAbierto(!abierto)}
-        className="w-full !px-4 !py-3 !bg-[var(--color-surface-variant)]/40 hover:!bg-[var(--color-surface-variant)]/60 transition-colors !flex !items-center !justify-between !rounded-none !border-0"
-      >
-        <div className="flex items-center gap-2">
-          <Icon name={Server} size="sm" className="text-text-secondary" />
-          <Text variant="body2" weight="semibold" color="text-primary">
-            Información Técnica Avanzada
-          </Text>
-        </div>
-        <Icon 
-          name={ChevronDown} 
-          size="sm" 
-          className={`text-text-secondary transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`} 
-        />
-      </Button>
-
-      {abierto && (
-        <div className="p-4 space-y-4 border-t border-[var(--color-border)] bg-[var(--color-surface)]/50">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <CampoDetalle etiqueta="ID Usuario" valor={evento.usuario_id} mono icono={Hash} />
-            <CampoDetalle etiqueta="Rol del Usuario" valor={evento.rol} icono={Shield} />
-            <CampoDetalle etiqueta="Módulo Interno" valor={evento.modulo} mono />
-            <CampoDetalle etiqueta="Acción Interna" valor={evento.accion} mono />
-            
-            <CampoDetalle etiqueta="Método HTTP" valor={evento.metodo_http} mono />
-            <CampoDetalle etiqueta="Código Respuesta" valor={evento.codigo_respuesta != null ? String(evento.codigo_respuesta) : '—'} mono />
-            <CampoDetalle etiqueta="IP Origen" valor={evento.direccion_ip} mono icono={Globe} />
-            
-            <div className="col-span-2 sm:col-span-3">
-              <CampoDetalle etiqueta="Ruta del Servidor" valor={evento.ruta} mono />
-            </div>
-            
-            {evento.correlacion_id && (
-              <div className="col-span-2 sm:col-span-3">
-                <CampoDetalle etiqueta="ID Correlación" valor={evento.correlacion_id} mono icono={Hash} />
-              </div>
-            )}
-            {evento.agente_usuario && (
-              <div className="col-span-2 sm:col-span-3">
-                <CampoDetalle etiqueta="Dispositivo / Navegador (User-Agent)" valor={evento.agente_usuario} />
-              </div>
-            )}
-          </div>
-
-          {evento.metadatos && Object.keys(evento.metadatos).length > 0 && (
-            <BloqueJson titulo="Metadatos en crudo" datos={evento.metadatos} />
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const AuditoriaEventoDetalle: React.FC<Props> = ({ evento, onCerrar }) => {
   if (!evento) return null;
 
-  const esExito = evento.resultado === 'exito';
-  let motivoFallo = '';
-  if (!esExito) {
-    const detail = evento.datos_nuevos?.detail;
-    if (detail && typeof detail === 'string') motivoFallo = detail;
-    else if (detail && typeof detail === 'object') motivoFallo = JSON.stringify(detail);
-    
-    if (!motivoFallo && evento.metadatos) {
-      const metaError = evento.metadatos.error || evento.metadatos.mensaje || evento.metadatos.detail;
-      if (metaError && typeof metaError === 'string') motivoFallo = metaError;
-    }
-    
-    if (!motivoFallo) {
-      const code = evento.codigo_respuesta;
-      if (code === 401) motivoFallo = 'Credenciales inválidas o sesión expirada';
-      else if (code === 403) motivoFallo = 'Permiso denegado para este recurso';
-      else if (code === 404) motivoFallo = 'Recurso no encontrado';
-      else if (code === 409) motivoFallo = 'Conflicto con datos existentes';
-      else if (code === 422) motivoFallo = 'Datos de entrada inválidos';
-      else if (code === 500) motivoFallo = 'Error interno del servidor';
-      else if (code && code >= 400) motivoFallo = `Error HTTP ${code}`;
-    }
-  }
-
   const tituloModal = (
     <div className="flex flex-col gap-0.5 min-w-0 pr-8">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Text as="span" variant="h3" weight="semibold" color="text-primary">
-          Detalle del Evento
+          Evento #{evento.id}
         </Text>
+        <Badge variant={resultadoVariant(evento.resultado)} size="sm">
+          {resultadoEtiqueta(evento.resultado)}
+        </Badge>
       </div>
-      <div className="flex items-center gap-1.5 mt-1">
+      <div className="flex items-center gap-1.5">
         <Icon name={Clock} size="xs" className="text-[var(--color-primary)]" />
-        <Text variant="caption" color="text-secondary" className="uppercase tracking-wider">
+        <Text variant="caption" color="text-secondary">
           {formatearFecha(evento.timestamp)}
         </Text>
       </div>
@@ -217,82 +140,101 @@ const AuditoriaEventoDetalle: React.FC<Props> = ({ evento, onCerrar }) => {
       onClose={onCerrar}
       title={tituloModal}
       size="full"
-      className="!max-w-4xl w-[min(100%,64rem)] !max-h-[90vh] !flex !flex-col"
-      contentClassName="!p-5 sm:!p-6 overflow-y-auto custom-scrollbar !max-h-[calc(90vh-4.5rem)]"
+      className="!max-w-6xl w-[min(100%,72rem)] !max-h-[85vh] !flex !flex-col"
+      contentClassName="!p-4 !pt-3 overflow-y-auto !max-h-[calc(85vh-4.5rem)]"
     >
-      <div className="space-y-6">
-        
-        {/* Cabecera Amigable */}
-        <div className="bg-[var(--color-surface-variant)]/30 border border-[var(--color-border)] p-4 sm:p-5 rounded-2xl flex flex-col gap-4">
-          <div className="flex items-start gap-4">
-            <div className="bg-[var(--color-primary)]/10 p-3 rounded-full shrink-0">
-              <Icon name={Info} size="md" className="text-[var(--color-primary)]" />
-            </div>
-            <div>
-              <Text variant="body1" className="leading-relaxed">
-                El usuario <Text as="span" className="font-semibold text-[var(--color-text-primary)]">{evento.usuario_nombre ?? evento.usuario_id}</Text>{' '}
-                <Text as="span" className="font-medium text-[var(--color-primary)]">{humanizarAccion(evento.accion).toLowerCase()}</Text>{' '}
-                en el módulo de <Text as="span" className="font-semibold text-[var(--color-text-primary)]">{humanizarModulo(evento.modulo)}</Text>.
-              </Text>
-              
-              {(evento.entidad_tipo || evento.entidad_id) && (
-                <Text variant="body2" color="text-secondary" className="mt-1">
-                  Se afectó el registro: <Text as="span" className="font-medium">
-                    {evento.entidad_tipo ? `${evento.entidad_tipo} ` : ''}
-                    {evento.entidad_id ? `#${evento.entidad_id}` : ''}
-                  </Text>
-                </Text>
-              )}
-            </div>
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <section>
+          <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider !text-[10px] mb-2 block">
+            Actor y acción
+          </Text>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <CampoDetalle
+              etiqueta="Usuario"
+              valor={evento.usuario_nombre ?? evento.usuario_id}
+              icono={User}
+            />
+            <CampoDetalle etiqueta="ID usuario" valor={evento.usuario_id} mono icono={Hash} />
+            <CampoDetalle etiqueta="Rol" valor={evento.rol} icono={Shield} />
+            <CampoDetalle etiqueta="Módulo" valor={evento.modulo} icono={Server} />
+            <CampoDetalle etiqueta="Acción" valor={evento.accion} icono={Activity} />
+            <CampoDetalle
+              etiqueta="Entidad"
+              valor={
+                evento.entidad_tipo || evento.entidad_id
+                  ? `${evento.entidad_tipo ?? ''} ${evento.entidad_id ?? ''}`.trim()
+                  : '—'
+              }
+            />
+            {evento.datos_nuevos?.nombre != null && (
+              <CampoDetalle etiqueta="Nombre" valor={String(evento.datos_nuevos.nombre)} />
+            )}
+            {evento.datos_nuevos?.tipo != null && (
+              <CampoDetalle etiqueta="Tipo" valor={String(evento.datos_nuevos.tipo)} />
+            )}
+            {evento.datos_anteriores?.nombre != null && !evento.datos_nuevos?.nombre && (
+              <CampoDetalle etiqueta="Nombre" valor={String(evento.datos_anteriores.nombre)} />
+            )}
           </div>
+        </section>
 
-          <div className="flex flex-col gap-2 pt-3 border-t border-[var(--color-border)]/50">
-            <div className="flex items-center gap-2">
-              <Text variant="body2" weight="medium" color="text-secondary">
-                Resultado de la operación:
-              </Text>
-              <Badge variant={resultadoVariant(evento.resultado)} size="md">
-                {humanizarResultado(evento.resultado, evento.codigo_respuesta)}
-              </Badge>
+        <section>
+          <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider !text-[10px] mb-2 block">
+            Petición HTTP
+          </Text>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <CampoDetalle
+              etiqueta="Método"
+              valor={evento.metodo_http}
+              mono
+            />
+            <CampoDetalle
+              etiqueta="Código respuesta"
+              valor={evento.codigo_respuesta != null ? String(evento.codigo_respuesta) : '—'}
+              mono
+            />
+            <CampoDetalle etiqueta="IP origen" valor={evento.direccion_ip} mono icono={Globe} />
+            <div className="col-span-2 sm:col-span-3">
+              <CampoDetalle etiqueta="Ruta" valor={evento.ruta} mono />
             </div>
-            
-            {!esExito && motivoFallo && (
-              <div className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 p-3 rounded-xl mt-1">
-                <Text variant="caption" weight="bold" className="text-red-600 dark:text-red-400 uppercase tracking-wider !text-[10px] block mb-1">
-                  Motivo del Fallo
-                </Text>
-                <Text variant="body2" className="text-red-700 dark:text-red-300">
-                  {motivoFallo}
-                </Text>
+            {evento.correlacion_id && (
+              <div className="col-span-2 sm:col-span-3">
+                <CampoDetalle etiqueta="ID correlación" valor={evento.correlacion_id} mono icono={Hash} />
+              </div>
+            )}
+            {evento.agente_usuario && (
+              <div className="col-span-2 sm:col-span-3">
+                <CampoDetalle etiqueta="User-Agent" valor={evento.agente_usuario} />
               </div>
             )}
           </div>
+        </section>
         </div>
 
-        {/* Datos Modificados */}
-        {((evento.datos_anteriores || evento.datos_nuevos) || (evento.accion === 'crear' && evento.datos_nuevos)) && (
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Icon name={Activity} size="sm" className="text-[var(--color-primary)]" />
-              <Text variant="h4" weight="semibold">
-                Datos Involucrados
-              </Text>
-            </div>
-            {(evento.datos_anteriores || evento.datos_nuevos) ? (
-              <ComparacionAntesDespues
-                datosAnteriores={evento.datos_anteriores}
-                datosNuevos={evento.datos_nuevos}
-                accion={evento.accion}
-              />
-            ) : (
-              <BloqueJson titulo="Valores Registrados" datos={evento.datos_nuevos!} />
-            )}
+        <section className="space-y-2">
+          <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wider !text-[10px] block">
+            Cambios registrados
+          </Text>
+          {(evento.datos_anteriores || evento.datos_nuevos) ? (
+            <ComparacionAntesDespues
+              datosAnteriores={evento.datos_anteriores}
+              datosNuevos={evento.datos_nuevos}
+            />
+          ) : evento.accion === 'crear' && evento.datos_nuevos ? (
+            <BloqueJson titulo="Datos creados" datos={evento.datos_nuevos} />
+          ) : (
+            <Text variant="body2" color="text-secondary">
+              Este evento no incluye diff antes/después (registro anterior al cambio o sin payload).
+            </Text>
+          )}
+        </section>
+
+        {evento.metadatos && Object.keys(evento.metadatos).length > 0 && (
+          <section>
+            <BloqueJson titulo="Metadatos adicionales" datos={evento.metadatos} />
           </section>
         )}
-
-        {/* Sección Técnica Desplegable */}
-        <DetallesTecnicos evento={evento} />
-
       </div>
     </Modal>
   );

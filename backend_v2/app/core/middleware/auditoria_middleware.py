@@ -54,20 +54,24 @@ logger = logging.getLogger(__name__)
 _METODOS_AUDITABLES = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 _RUTAS_EXCLUIDAS = frozenset({
+
     "/health",
+
     "/api/v2/health",
+
     "/docs",
+
     "/openapi.json",
+
     "/redoc",
+
     "/api/v2/auth/login",
+
     "/api/v2/auth/logout",
-    "/api/v2/auth/refresh",
+
     # Polling automático de presencia en torre de control (no es acción de usuario)
     "/api/v2/panel-control/torre-control/heartbeat",
-    # Polling automático de mantenimiento
-    "/api/v2/panel-control/mantenimiento/limpiar-tickets",
-    # Endpoint manual de auditoría con deduplicación propia
-    "/api/v2/viaticos/estado-cuenta/auditar-descarga",
+
 })
 
 _CONTENT_TYPES_JSON = ("application/json", "application/json;", "text/json")
@@ -170,19 +174,18 @@ async def auditoria_http_middleware(request: Request, call_next) -> Response:
 
     usuario_id, usuario_nombre, rol = await resolver_actor_desde_request(request)
 
-    if not usuario_id and body_json and isinstance(body_json, dict):
-        raw_uid = body_json.get("usuario_id")
-        if raw_uid:
-            usuario_id = str(raw_uid)
-            usuario_nombre = str(body_json.get("empleado_nombre") or body_json.get("usuario_nombre") or "") or None
-            rol = str(body_json.get("cargo") or body_json.get("rol") or "") or None
-
     if not usuario_id:
+
         logger.debug(
+
             "Auditoría omitida (sin actor): %s %s",
+
             request.method,
+
             request.url.path,
+
         )
+
         return response
 
 

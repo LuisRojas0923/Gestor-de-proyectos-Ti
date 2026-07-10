@@ -25,10 +25,11 @@ interface MyDevelopmentsHeaderProps {
 const getStatusChipClass = (status: string, isSelected: boolean, hasActiveFilter: boolean) => {
   const s = status.toLowerCase();
   let baseColorClass = '';
-  if (s.includes('pendiente')) baseColorClass = 'text-red-700 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/50';
-  else if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) baseColorClass = 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800/50';
-  else if (s.includes('complet')) baseColorClass = 'text-green-700 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/50';
-  else if (s.includes('cancel')) baseColorClass = 'text-neutral-600 bg-neutral-100 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+  if (s.includes('pendiente')) baseColorClass = 'text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/60';
+  else if (s.includes('progreso') || s.includes('proceso') || s.includes('curso')) baseColorClass = 'text-sky-700 bg-sky-50 border-sky-200 dark:bg-sky-900/20 dark:text-sky-300 dark:border-sky-800/60';
+  else if (s.includes('complet')) baseColorClass = 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800/60';
+  else if (s.includes('paus')) baseColorClass = 'text-violet-700 bg-violet-50 border-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:border-violet-800/60';
+  else if (s.includes('anulad') || s.includes('cancel')) baseColorClass = 'text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-800/70';
   else baseColorClass = 'text-neutral-600 bg-neutral-50 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
 
   const interactionClass = isSelected
@@ -78,13 +79,13 @@ export const MyDevelopmentsHeader: React.FC<MyDevelopmentsHeaderProps> = ({
         <button // @audit-ok
           type="button"
           onClick={() => onStatusSelect(null)}
-          className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer focus:outline-none
+          className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border border-primary-200 dark:border-primary-800/60 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer focus:outline-none
             ${!selectedStatus
               ? 'ring-2 ring-[var(--color-primary)]/50 border-[var(--color-primary)] font-bold scale-[1.02]'
               : 'opacity-55 hover:opacity-100 scale-95'}`}
         >
-          <ClipboardList size={11} className="text-neutral-400" />
-          <Text as="span" className="font-bold text-[var(--color-text-primary)]">{totalCount}</Text>
+          <ClipboardList size={11} />
+          <Text as="span" color="inherit" className="font-bold">{totalCount}</Text>
           total
         </button>
         {Object.entries(statusGroups).map(([status, count]) => {
@@ -99,7 +100,7 @@ export const MyDevelopmentsHeader: React.FC<MyDevelopmentsHeaderProps> = ({
             >
               <Activity size={11} />
               {status}
-              <Text as="span" className="font-bold">{count}</Text>
+              <Text as="span" color="inherit" className="font-bold">{count}</Text>
             </button>
           );
         })}

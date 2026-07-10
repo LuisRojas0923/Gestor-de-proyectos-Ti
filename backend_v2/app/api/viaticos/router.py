@@ -1,27 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, select, text
 from typing import List, Optional, Union
 from datetime import date
 from pydantic import BaseModel
 
-from ...database import obtener_erp_db, obtener_db
+from ...database import obtener_erp_db
 from ...services.erp import ViaticosService, ViaticosQueryService
-from app.api.auth.router import obtener_usuario_actual_db
-from app.models.auth.usuario import Usuario
-from app.models.auditoria.accion_usuario import AuditoriaAccionUsuario
 
 router = APIRouter(prefix="/viaticos")
 
 # --- Schemas ---
-
-
-class AuditarDescargaRequest(BaseModel):
-    tipo_archivo: str
-    cedula_consultada: Optional[str] = None
-    nombre_consultado: Optional[str] = None
 
 
 class OTResponse(BaseModel):
@@ -219,115 +208,3 @@ async def obtener_legalizaciones_director(db_erp: Session = Depends(obtener_erp_
         raise HTTPException(
             status_code=500, detail=f"Error al obtener legalizaciones: {str(e)}"
         )
-
-
-@router.post("/estado-cuenta/auditar-descarga")
-async def auditar_descarga_estado_cuenta(
-    payload: AuditarDescargaRequest,
-    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
-    db: AsyncSession = Depends(obtener_db),
-):
-    """Registra la descarga de PDF o Excel del estado de cuenta de viáticos,
-    con un control de frecuencia (caché) de 4 horas y 30 minutos por usuario y acción.
-    """
-    if payload.tipo_archivo not in ("pdf", "xlsx"):
-        raise HTTPException(
-            status_code=400,
-            detail="Tipo de archivo no soportado. Debe ser 'pdf' o 'xlsx'"
-        )
-
-    usuario_id = str(usuario_actual.id)
-    usuario_nombre = usuario_actual.nombre or "Desconocido"
-    rol = usuario_actual.rol or "usuario"
-    modulo = "viaticos"
-    accion = "exportar"
-    ruta = f"/api/v2/viaticos/estado-cuenta/{payload.tipo_archivo}"
-
-    try:
-        # 1. Comprobar si ya existe un registro en las últimas 4h 30m
-        limite = func.now() - text("INTERVAL '4 hours 30 minutes'")
-        stmt = select(AuditoriaAccionUsuario).where(
-            AuditoriaAccionUsuario.usuario_id == usuario_id,
-            AuditoriaAccionUsuario.modulo == modulo,
-            AuditoriaAccionUsuario.accion == accion,
-            AuditoriaAccionUsuario.ruta == ruta,
-            AuditoriaAccionUsuario.timestamp >= limite
-        ).limit(1)
-
-        result = await db.execute(stmt)
-        registro_existente = result.scalar_one_or_none()
-
-        if registro_existente:
-            return {"status": "cached", "mensaje": "Registro omitido por límite de frecuencia (4h 30m)"}
-
-        # 2. Si no existe, insertar nuevo registro de auditoría
-        metadatos = {}
-        if payload.cedula_consultada:
-            metadatos["cedula_consultada"] = payload.cedula_consultada
-        if payload.nombre_consultado:
-            metadatos["nombre_consultado"] = payload.nombre_consultado
-
-        nuevo_registro = AuditoriaAccionUsuario(
-            usuario_id=usuario_id,
-            usuario_nombre=usuario_nombre,
-            rol=rol,
-            modulo=modulo,
-            accion=accion,
-            ruta=ruta,
-            metodo_http="POST",
-            codigo_respuesta=200,
-            resultado="exito",
-            metadatos=metadatos if metadatos else None,
-        )
-        db.add(nuevo_registro)
-        await db.commit()
-
-        return {"status": "logged", "mensaje": "Acción registrada en auditoría"}
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al registrar auditoría: {str(e)}")
-
-
-@router.post("/reporte-gastos/auditar-descarga")
-async def auditar_descarga_reporte_gastos(
-    payload: AuditarDescargaRequest,
-    usuario_actual: Usuario = Depends(obtener_usuario_actual_db),
-    db: AsyncSession = Depends(obtener_db),
-):
-    """Registra la descarga de PDF del reporte de gastos de viáticos"""
-    if payload.tipo_archivo != "pdf":
-        raise HTTPException(
-            status_code=400,
-            detail="Tipo de archivo no soportado para este reporte."
-        )
-
-    usuario_id = str(usuario_actual.id)
-    usuario_nombre = usuario_actual.nombre or "Desconocido"
-    rol = usuario_actual.rol or "usuario"
-    
-    try:
-        metadatos = {}
-        if payload.cedula_consultada:
-            metadatos["cedula_consultada"] = payload.cedula_consultada
-        if payload.nombre_consultado:
-            metadatos["nombre_consultado"] = payload.nombre_consultado
-
-        nuevo_registro = AuditoriaAccionUsuario(
-            usuario_id=usuario_id,
-            usuario_nombre=usuario_nombre,
-            rol=rol,
-            modulo="viaticos",
-            accion="exportar",
-            ruta="/api/v2/viaticos/reporte-gastos/auditar-descarga",
-            metodo_http="POST",
-            codigo_respuesta=200,
-            resultado="exito",
-            metadatos=metadatos if metadatos else None,
-        )
-        db.add(nuevo_registro)
-        await db.commit()
-
-        return {"status": "logged", "mensaje": "Descarga de reporte de gastos registrada"}
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al registrar descarga: {str(e)}")

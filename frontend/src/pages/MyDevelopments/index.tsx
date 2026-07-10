@@ -42,6 +42,9 @@ const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number) => {
   return next;
 };
 
+const isDevelopmentAnulado = (dev: DevelopmentRow) =>
+  getDevelopmentStatus(dev).toLowerCase().includes('anulad');
+
 const MyDevelopments: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,12 +84,12 @@ const MyDevelopments: React.FC = () => {
     setDeleteLoading(true);
     try {
       await apiDelete(`/desarrollos/${deleteTarget.id}`);
-      addNotification('success', `Actividad "${getDevelopmentName(deleteTarget)}" eliminada`);
+      addNotification('success', `Actividad "${getDevelopmentName(deleteTarget)}" anulada`);
       setDeleteTarget(null);
       loadDevelopments();
     } catch (err) {
       console.error('Error deleting development:', err);
-      const msg = err instanceof Error ? err.message : 'Error al eliminar la actividad';
+        const msg = err instanceof Error ? err.message : 'Error al anular la actividad';
       setErrorMessage(msg);
       setErrorModalOpen(true);
       setDeleteTarget(null); // Cerrar el modal de confirmación
@@ -140,8 +143,8 @@ const MyDevelopments: React.FC = () => {
   }, [customOrder, displayData, sortState?.key]);
 
   const canReorderRows = useMemo(
-    () => orderedDisplayData.length > 1 && !sortState?.key && activeFilterCount === 0 && !peopleSearch.trim(),
-    [activeFilterCount, orderedDisplayData.length, peopleSearch, sortState?.key]
+    () => orderedDisplayData.length > 1 && !sortState?.key && activeFilterCount === 0 && !peopleSearch.trim() && !orderedDisplayData.some(isDevelopmentAnulado),
+    [activeFilterCount, orderedDisplayData, peopleSearch, sortState?.key]
   );
 
   const handleRowsReorder = useCallback((fromIndex: number, toIndex: number) => {
@@ -237,6 +240,7 @@ const MyDevelopments: React.FC = () => {
         keyExtractor={(dev) => String(dev.id)}
         isRowDraggable={canReorderRows}
         onRowsReorder={handleRowsReorder}
+        getRowClassName={(dev) => isDevelopmentAnulado(dev) ? 'opacity-55 grayscale bg-[var(--color-surface-variant)]/40' : ''}
         onRowClick={(dev) => navigate(isPortal ? `/service-portal/desarrollos/${dev.id}?tab=bitacora` : `/developments/${dev.id}?tab=bitacora`)}
         columnFilters={filters}
         columnOptions={cascadingOptions}
@@ -245,7 +249,11 @@ const MyDevelopments: React.FC = () => {
         activeSortDir={sortState?.dir ?? null}
         onSort={setSort}
         actionsMinWidth="90px"
-        renderRowActions={(dev) => (
+        renderRowActions={(dev) => isDevelopmentAnulado(dev) ? (
+          <Text as="span" variant="caption" color="text-secondary" className="font-bold">
+            Anulada
+          </Text>
+        ) : (
           <>
             {getDevelopmentStatus(dev) === 'Pausado' ? (
               <Button
@@ -256,7 +264,7 @@ const MyDevelopments: React.FC = () => {
                     await apiPut(`/desarrollos/${dev.id}`, { estado_general: 'En curso' });
                     addNotification('success', `Actividad "${getDevelopmentName(dev)}" reanudada`);
                     loadDevelopments();
-                  } catch (err) {
+                  } catch {
                     addNotification('error', 'Error al reanudar la actividad');
                   }
                 }}
@@ -275,7 +283,7 @@ const MyDevelopments: React.FC = () => {
                       await apiPut(`/desarrollos/${dev.id}`, { estado_general: 'Pausado' });
                       addNotification('success', `Actividad "${getDevelopmentName(dev)}" pausada`);
                       loadDevelopments();
-                    } catch (err) {
+                    } catch {
                       addNotification('error', 'Error al pausar la actividad');
                     }
                   }}
@@ -298,7 +306,7 @@ const MyDevelopments: React.FC = () => {
               variant="custom"
               onClick={(e) => { e.stopPropagation(); setDeleteTarget(dev); }}
               className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 inline-flex items-center justify-center"
-              title="Eliminar"
+              title="Anular"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
             </Button>

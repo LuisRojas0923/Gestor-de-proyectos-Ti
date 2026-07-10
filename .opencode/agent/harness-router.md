@@ -20,9 +20,9 @@ Mission: given a scope description or list of modified files, return which revie
 
 Decision rules:
 
-- If the work touches `backend_v2/`, `testing/`, migrations, models, services, routers, or RBAC: `backend-reviewer` is REQUIRED.
-- If the work touches `frontend/` or web UI: `frontend-reviewer` is REQUIRED.
-- If the work touches `modulo_actividades_fork/` or React Native: `mobile-reviewer` is REQUIRED.
+- If the work touches `backend_v2/`, `testing/backend/`, backend tests at the root of `testing/`, migrations, models, services, routers, or RBAC: `backend-reviewer` is REQUIRED.
+- If the work touches `frontend/`, `testing/frontend/`, or web UI: `frontend-reviewer` is REQUIRED.
+- If the work touches `modulo_actividades_fork/`, `movil/`, or React Native: `mobile-reviewer` is REQUIRED.
 - If the work touches auth, permissions, roles, endpoints protegidos, secrets, Docker/env, or external integrations: `security-rbac-reviewer` is REQUIRED.
 - In `plan` mode: `scope-reviewer` is ALWAYS required.
 - In `build` mode: `docs-tests-reviewer` is ALWAYS required.
