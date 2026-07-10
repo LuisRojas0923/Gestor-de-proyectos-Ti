@@ -6,8 +6,8 @@ import type { Node as FlowNode } from '@xyflow/react';
 const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-export const nodeWidth = 175;
-export const nodeHeight = 60;
+export const nodeWidth = 230;
+export const nodeHeight = 65;
 
 export const getLayoutedElements = (nodes: FlowNode[], edges: Edge[], direction = 'TB') => {
   const isHorizontal = direction === 'LR';

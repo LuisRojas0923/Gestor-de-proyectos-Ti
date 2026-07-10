@@ -24,8 +24,9 @@ const FlowWithFitView: React.FC<{
   onEdgesChange: (changes: EdgeChange[]) => void;
   nodeTypes: typeof nodeTypes;
   selectedDirectors: string[];
-}> = ({ nodes, edges, onNodesChange, onEdgesChange, nodeTypes, selectedDirectors }) => {
-  const { fitView } = useReactFlow();
+  nodeToCenter: string | null;
+}> = ({ nodes, edges, onNodesChange, onEdgesChange, nodeTypes, selectedDirectors, nodeToCenter }) => {
+  const { fitView, setCenter } = useReactFlow();
 
   useEffect(() => {
     // Animación suave de recentrado al cambiar el filtro
@@ -34,6 +35,19 @@ const FlowWithFitView: React.FC<{
     }, 100);
     return () => clearTimeout(timer);
   }, [selectedDirectors, fitView]);
+
+  useEffect(() => {
+    if (nodeToCenter) {
+      const node = nodes.find((n) => n.id === nodeToCenter);
+      if (node) {
+        // Center the viewport on the node (x + width/2, y + height/2)
+        const timer = setTimeout(() => {
+          setCenter(node.position.x + 115, node.position.y + 32, { duration: 800, zoom: 1 });
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [nodeToCenter, nodes, setCenter]);
 
   return (
     <ReactFlow
@@ -80,6 +94,7 @@ const OrganizationalHierarchy: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toggledNodes, setToggledNodes] = useState<Record<string, boolean>>({});
+  const [nodeToCenter, setNodeToCenter] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -203,10 +218,11 @@ const OrganizationalHierarchy: React.FC = () => {
 
     const handleToggleNode = (nodeId: string, currentState: boolean) => {
       setToggledNodes(prev => ({ ...prev, [nodeId]: !currentState }));
+      setNodeToCenter(nodeId);
     };
 
     const traverse = (node: HierarchyNode, level: number) => {
-      const isExpanded = toggledNodes[node.usuario_id] !== undefined ? toggledNodes[node.usuario_id] : (level < 1);
+      const isExpanded = toggledNodes[node.usuario_id] !== undefined ? toggledNodes[node.usuario_id] : (level <= 1);
       const hasChildren = node.subordinados && node.subordinados.length > 0;
 
       rfNodes.push({
@@ -423,6 +439,7 @@ const OrganizationalHierarchy: React.FC = () => {
                     onEdgesChange={onEdgesChange}
                     nodeTypes={nodeTypes}
                     selectedDirectors={selectedDirectors}
+                    nodeToCenter={nodeToCenter}
                   />
                 </ReactFlowProvider>
               </div>

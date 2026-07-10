@@ -29,22 +29,22 @@ export const CustomNodeComponent = (props: CustomNodeProps) => {
   
   const getLevelStyles = (lvl: number, isSelected: boolean) => {
     if (isSelected) return '!border-[var(--color-primary)] bg-[var(--color-primary)]/10 shadow-md scale-105';
-    if (isVacancy) return 'border-dashed border-2 border-neutral-400 dark:border-neutral-600 bg-neutral-50/30 dark:bg-neutral-800/10 opacity-80 hover:opacity-100 transition-opacity';
+    if (isVacancy) return 'border-dashed border-2 border-neutral-400 dark:border-neutral-500 bg-neutral-50/30 dark:bg-neutral-800/40 opacity-80 hover:opacity-100 transition-opacity';
     switch (lvl) {
-      case 0: return 'border-primary-500/30 bg-gradient-to-br from-primary-500/5 to-primary-600/10 dark:from-primary-900/20 dark:to-primary-800/10';
-      case 1: return 'border-indigo-500/30 bg-gradient-to-br from-indigo-500/5 to-indigo-600/10 dark:from-indigo-900/20 dark:to-indigo-800/10';
-      case 2: return 'border-sky-500/30 bg-gradient-to-br from-sky-500/5 to-sky-600/10 dark:from-sky-900/20 dark:to-sky-800/10';
-      default: return 'border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-600/10 dark:from-emerald-900/20 dark:to-emerald-800/10';
+      case 0: return 'border-blue-400/50 bg-blue-50/80 dark:bg-blue-900/30 dark:border-blue-500/50';
+      case 1: return 'border-indigo-400/50 bg-indigo-50/80 dark:bg-indigo-900/30 dark:border-indigo-500/50';
+      case 2: return 'border-sky-400/50 bg-sky-50/80 dark:bg-sky-900/30 dark:border-sky-500/50';
+      default: return 'border-emerald-400/50 bg-emerald-50/80 dark:bg-emerald-900/30 dark:border-emerald-500/50';
     }
   };
 
   const getAvatarColors = (lvl: number) => {
     if (isVacancy) return 'bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 border-neutral-300 dark:border-neutral-700';
     switch (lvl) {
-      case 0: return 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 border-primary-200 dark:border-primary-800';
-      case 1: return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800';
-      case 2: return 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300 border-sky-200 dark:border-sky-800';
-      default: return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+      case 0: return 'bg-blue-100 text-blue-700 dark:bg-blue-600 dark:text-white border-blue-200 dark:border-blue-500';
+      case 1: return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-600 dark:text-white border-indigo-200 dark:border-indigo-500';
+      case 2: return 'bg-sky-100 text-sky-700 dark:bg-sky-600 dark:text-white border-sky-200 dark:border-sky-500';
+      default: return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-600 dark:text-white border-emerald-200 dark:border-emerald-500';
     }
   };
 
