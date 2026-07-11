@@ -7,8 +7,10 @@ asistencia que alimenta la pre-liquidación. Separado de
 """
 from datetime import time
 from typing import Optional, List
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, model_validator
 from sqlmodel import SQLModel
+
+from .turnos import minutos_jornada
 
 
 class HorarioPactadoDiaRead(SQLModel):
@@ -19,6 +21,7 @@ class HorarioPactadoDiaRead(SQLModel):
     hora_entrada: Optional[time] = None
     hora_salida: Optional[time] = None
     minutos_almuerzo: int
+    cruza_medianoche: bool = False
 
 
 class HorarioPactadoDiaUpdate(SQLModel):
@@ -27,16 +30,17 @@ class HorarioPactadoDiaUpdate(SQLModel):
     hora_entrada: Optional[time] = None
     hora_salida: Optional[time] = None
     minutos_almuerzo: int = Field(default=0, ge=0, le=240)
+    cruza_medianoche: bool = False
 
-    @field_validator("hora_salida")
-    @classmethod
-    def _salida_posterior_a_entrada(cls, v, info):
-        entrada = info.data.get("hora_entrada")
-        if v is not None and entrada is not None and v <= entrada:
-            raise ValueError(
-                "hora_salida debe ser estrictamente mayor que hora_entrada"
-            )
-        return v
+    @model_validator(mode="after")
+    def _validar_jornada(self):
+        minutos_jornada(
+            self.hora_entrada,
+            self.hora_salida,
+            self.minutos_almuerzo,
+            self.cruza_medianoche,
+        )
+        return self
 
 
 class HorarioPactadoSemanaUpdate(SQLModel):
@@ -63,3 +67,14 @@ class RegistroDiarioInput(SQLModel):
     hora_entrada: Optional[time] = None
     hora_salida: Optional[time] = None
     minutos_almuerzo: int = Field(default=0, ge=0, le=240)
+    cruza_medianoche: bool = False
+
+    @model_validator(mode="after")
+    def _validar_jornada(self):
+        minutos_jornada(
+            self.hora_entrada,
+            self.hora_salida,
+            self.minutos_almuerzo,
+            self.cruza_medianoche,
+        )
+        return self

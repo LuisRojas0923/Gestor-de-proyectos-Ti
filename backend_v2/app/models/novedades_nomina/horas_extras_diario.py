@@ -19,6 +19,7 @@ class NominaCalculoDiarioDetalle(SQLModel, table=True):
     hora_entrada: Optional[time] = None
     hora_salida: Optional[time] = None
     minutos_almuerzo: int = Field(default=0, ge=0)
+    cruza_medianoche: bool = Field(default=False)
     horas_trabajadas: float = Field(default=0.0, ge=0.0)
     horas_ordinarias: float = Field(default=0.0, ge=0.0)
     horas_extras: float = Field(default=0.0, ge=0.0)

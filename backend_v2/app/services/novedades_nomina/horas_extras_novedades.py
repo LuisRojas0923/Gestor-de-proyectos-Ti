@@ -113,6 +113,7 @@ async def crear_novedad_evento(
     session: AsyncSession,
     payload: NovedadEventoCreate,
     usuario_id: Optional[str],
+    confirmar_transaccion: bool = True,
 ) -> NominaNovedadEvento:
     cat = await _codigo_existe_y_es_valido(session, payload.codigo_novedad)
     if cat is None:
@@ -149,8 +150,11 @@ async def crear_novedad_evento(
         created_by=usuario_id,
     )
     session.add(evento)
-    await session.commit()
-    await session.refresh(evento)
+    if confirmar_transaccion:
+        await session.commit()
+        await session.refresh(evento)
+    else:
+        await session.flush()
     return evento
 
 
@@ -167,8 +171,13 @@ async def listar_novedades(
     estado: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
+    cedulas_permitidas: Optional[set[str]] = None,
 ) -> List[NominaNovedadEvento]:
     stmt = select(NominaNovedadEvento)
+    if cedulas_permitidas is not None:
+        if not cedulas_permitidas:
+            return []
+        stmt = stmt.where(NominaNovedadEvento.cedula.in_(cedulas_permitidas))
     if cedula:
         stmt = stmt.where(NominaNovedadEvento.cedula == cedula)
     if codigo:

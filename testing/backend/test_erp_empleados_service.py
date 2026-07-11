@@ -54,7 +54,7 @@ class _SesionFake:
                 cargo="Operario",
                 area="Produccion",
                 ciudadcontratacion="Bogota",
-                quien_reporta="Regional Norte" if ("contrato", "regional") in self.columnas_existentes else None,
+                quien_reporta="Jefe Operativo" if ("contrato", "jefe") in self.columnas_existentes else None,
                 autoriza_he=True if ("beneficio", "autorizacionhorasextras") in self.columnas_existentes else None,
             )
         ])
@@ -125,6 +125,7 @@ def test_listar_empleados_paginado_no_usa_columnas_opcionales_erp():
                 "cargo": "Operario",
                 "area": "Produccion",
                 "ciudadcontratacion": "Bogota",
+                "activo": True,
                 "quien_reporta": None,
                 "nivel_riesgo_arl": None,
                 "autoriza_he": None,
@@ -213,8 +214,7 @@ async def test_pre_liquidacion_router_sobrescribe_salario_y_arl_desde_erp(monkey
     resultado = await horas_extras_router.ejecutar_pre_liquidacion_endpoint(
         payload,
         db=None,
-        db_erp=object(),
-        _=SimpleNamespace(id=1),
+        usuario=SimpleNamespace(id=1, rol="admin"),
     )
 
     assert resultado.salario_base_mensual == 2_850_000.0
@@ -258,8 +258,7 @@ async def test_confirmar_pre_liquidacion_rechaza_salario_o_arl_distinto_a_erp(mo
         await horas_extras_router.confirmar_pre_liquidacion_endpoint(
             payload,
             db=None,
-            db_erp=object(),
-            usuario=SimpleNamespace(id=1, cedula="123"),
+            usuario=SimpleNamespace(id=1, cedula="123", rol="admin"),
         )
 
     assert exc.value.status_code == 400
@@ -325,8 +324,7 @@ async def test_confirmar_pre_liquidacion_rechaza_importes_manipulados(monkeypatc
         await horas_extras_router.confirmar_pre_liquidacion_endpoint(
             payload,
             db=None,
-            db_erp=object(),
-            usuario=SimpleNamespace(id=1, cedula="123"),
+            usuario=SimpleNamespace(id=1, cedula="123", rol="admin"),
         )
 
     assert exc.value.status_code == 400
@@ -376,8 +374,7 @@ async def test_confirmar_pre_liquidacion_rechaza_detalles_recalculados_sin_firma
         await horas_extras_router.confirmar_pre_liquidacion_endpoint(
             payload_manipulado,
             db=None,
-            db_erp=object(),
-            usuario=SimpleNamespace(id=1, cedula="123"),
+            usuario=SimpleNamespace(id=1, cedula="123", rol="admin"),
         )
 
     assert exc.value.status_code == 400
@@ -424,8 +421,7 @@ async def test_confirmar_pre_liquidacion_rechaza_ot_modificada_sin_firma_valida(
         await horas_extras_router.confirmar_pre_liquidacion_endpoint(
             payload,
             db=None,
-            db_erp=object(),
-            usuario=SimpleNamespace(id=1, cedula="123"),
+            usuario=SimpleNamespace(id=1, cedula="123", rol="admin"),
         )
 
     assert exc.value.status_code == 400
@@ -484,8 +480,7 @@ async def test_confirmar_pre_liquidacion_rechaza_detalle_diario_modificado_sin_f
         await horas_extras_router.confirmar_pre_liquidacion_endpoint(
             payload,
             db=None,
-            db_erp=object(),
-            usuario=SimpleNamespace(id=1, cedula="123"),
+            usuario=SimpleNamespace(id=1, cedula="123", rol="admin"),
         )
 
     assert exc.value.status_code == 400
@@ -494,7 +489,7 @@ async def test_confirmar_pre_liquidacion_rechaza_detalle_diario_modificado_sin_f
 
 def test_listar_empleados_paginado_incluye_autorizacion_y_reporta_si_existen():
     sesion = _SesionFake(columnas_existentes={
-        ("contrato", "regional"),
+        ("contrato", "jefe"),
         ("contrato", "numerocontrato"),
         ("beneficio", "contrato"),
         ("beneficio", "autorizacionhorasextras"),
@@ -503,13 +498,13 @@ def test_listar_empleados_paginado_incluye_autorizacion_y_reporta_si_existen():
 
     respuesta = EmpleadosService.listar_empleados_paginado(sesion, limit=50, offset=0)
 
-    assert respuesta["items"][0]["quien_reporta"] == "Regional Norte"
+    assert respuesta["items"][0]["quien_reporta"] == "Jefe Operativo"
     assert respuesta["items"][0]["autoriza_he"] is True
 
 
 def test_listar_empleados_paginado_busca_en_campos_operativos_erp():
     sesion = _SesionFake(columnas_existentes={
-        ("contrato", "regional"),
+        ("contrato", "jefe"),
         ("contrato", "numerocontrato"),
         ("beneficio", "contrato"),
         ("beneficio", "autorizacionhorasextras"),
@@ -524,6 +519,6 @@ def test_listar_empleados_paginado_busca_en_campos_operativos_erp():
     assert "c.cargo::text ilike :q" in sql_ejecutado
     assert "c.area::text ilike :q" in sql_ejecutado
     assert "c.ciudadcontratacion::text ilike :q" in sql_ejecutado
-    assert "c.regional::text ilike :q" in sql_ejecutado
+    assert "c.jefe::text ilike :q" in sql_ejecutado
     assert "autorizacionhorasextras" in sql_ejecutado
     assert any(params.get("q") == "%produccion%" for _sql, params in sesion.queries)

@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from fastapi import Response
 
 from app.api.biometria.biometria_router import obtener_estado_biometrico, requerir_permiso_biometria
 
@@ -51,8 +52,10 @@ async def test_obtener_estado_biometrico_delega_en_servicio():
             assert received_user is usuario
             return {"enrolado": True, "fotoUrl": "/api/v2/biometria/foto/USR-1.jpg", "actualizadoEn": None}
 
-    assert await obtener_estado_biometrico(usuario, db, _FakeService()) == {
+    response = Response()
+    assert await obtener_estado_biometrico(response, usuario, db, _FakeService()) == {
         "enrolado": True,
         "fotoUrl": "/api/v2/biometria/foto/USR-1.jpg",
         "actualizadoEn": None,
     }
+    assert response.headers["Cache-Control"] == "no-store, private"

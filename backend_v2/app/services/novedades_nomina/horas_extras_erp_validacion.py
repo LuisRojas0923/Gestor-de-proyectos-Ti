@@ -6,10 +6,10 @@ from typing import Any, Optional
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from ...config import config
+from ...database import SessionErp
 from ...models.novedades_nomina.schemas_horas_extras import (
     PreLiquidacionConfirmar,
     PreLiquidacionResultado,
@@ -23,20 +23,21 @@ from .horas_extras_service import listar_catalogo_vigente, obtener_factor_por_ni
 logger = logging.getLogger(__name__)
 
 
-async def resolver_parametros_empleado_erp(
-    cedula: str,
-    db_erp: Optional[Session],
-) -> tuple[float, str]:
-    if db_erp is None:
-        raise HTTPException(status_code=503, detail="El servicio ERP no esta disponible")
+def _consultar_empleado_erp_worker(cedula: str) -> dict | None:
+    db_erp = SessionErp()
     try:
-        empleado = await run_in_threadpool(
-            EmpleadosService.obtener_empleado_por_cedula_sync,
-            db_erp,
-            cedula,
-        )
+        return EmpleadosService.obtener_empleado_por_cedula_sync(db_erp, cedula)
+    finally:
+        db_erp.close()
+
+
+async def resolver_parametros_empleado_erp(
+    cedula: str, _db_erp_ignorado=None
+) -> tuple[float, str]:
+    try:
+        empleado = await run_in_threadpool(_consultar_empleado_erp_worker, cedula)
     except Exception as exc:
-        logger.exception("Error consultando empleado ERP para HE")
+        logger.error("Error consultando empleado ERP para HE")
         raise HTTPException(status_code=503, detail="Error al consultar el empleado en ERP") from exc
     if not empleado:
         raise HTTPException(status_code=404, detail="Empleado no encontrado o inactivo en el ERP")

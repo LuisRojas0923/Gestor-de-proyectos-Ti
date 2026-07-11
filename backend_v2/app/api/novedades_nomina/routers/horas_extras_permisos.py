@@ -14,6 +14,7 @@ PERMISO_HE_PLANIFICAR = "nomina_horas_extras.planificar"
 PERMISO_HE_CONFIRMAR = "nomina_horas_extras.confirmar"
 PERMISO_HE_COMPENSAR = "nomina_horas_extras.compensar"
 PERMISO_HE_ADMIN = "nomina_horas_extras.admin"
+PERMISO_PLANTILLAS_ADMIN = "nomina_horas_extras.plantillas_horario.administrar"
 PERMISOS_HE_GRANULARES = (
     PERMISO_HE_LEER,
     PERMISO_HE_PLANIFICAR,
@@ -72,3 +73,10 @@ async def requiere_permiso_he_admin(
     usuario: Usuario = Depends(obtener_usuario_actual_db),
 ) -> Usuario:
     return await validar_permiso_he(db, usuario, PERMISO_HE_ADMIN)
+
+
+async def requiere_permiso_plantillas_administrar(
+    db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(obtener_usuario_actual_db),
+) -> Usuario:
+    return await validar_permiso_he(db, usuario, PERMISO_PLANTILLAS_ADMIN)

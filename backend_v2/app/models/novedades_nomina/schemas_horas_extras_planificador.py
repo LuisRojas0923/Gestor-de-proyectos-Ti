@@ -13,8 +13,11 @@ bajo el limite de 500 lineas del pre-commit.
 from datetime import date, datetime, time
 from typing import List, Optional
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 from sqlmodel import SQLModel
+
+from .turnos import minutos_jornada
+from ..erp.schemas_empleados_horarios import FacetasEmpleados
 
 
 # ---------------------------------------------------------------------------
@@ -29,8 +32,11 @@ class EmpleadoERPRead(SQLModel):
     area: Optional[str] = None
     ciudadcontratacion: Optional[str] = None
     quien_reporta: Optional[str] = None
+    jefe: Optional[str] = None
     nivel_riesgo_arl: Optional[str] = None
     autoriza_he: Optional[bool] = None
+    disponible_semana: bool = False
+    motivo_no_disponible: Optional[str] = None
 
 
 class EmpleadoERPListResponse(SQLModel):
@@ -38,6 +44,7 @@ class EmpleadoERPListResponse(SQLModel):
     total: int
     limit: int
     offset: int
+    facetas: FacetasEmpleados = Field(default_factory=FacetasEmpleados)
 
 
 class OtManoObraRead(SQLModel):
@@ -99,8 +106,19 @@ class PlanDiaIn(SQLModel):
     hora_entrada: Optional[time] = None
     hora_salida: Optional[time] = None
     minutos_almuerzo: int = Field(default=0, ge=0, le=240)
+    cruza_medianoche: bool = False
     novedades: List[PlanNovedadIn] = Field(default_factory=list)
     asignaciones_ot: List[PlanAsignacionOtIn] = Field(default_factory=list, max_length=3)
+
+    @model_validator(mode="after")
+    def _validar_jornada(self):
+        minutos_jornada(
+            self.hora_entrada,
+            self.hora_salida,
+            self.minutos_almuerzo,
+            self.cruza_medianoche,
+        )
+        return self
 
 
 class PlanEmpleadoInBase(SQLModel):

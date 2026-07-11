@@ -11,6 +11,7 @@ import EmailUpdateModal from './ServicePortal/components/EmailUpdateModal';
 import VerificationBanner from './ServicePortal/components/VerificationBanner';
 import { useServicePortal } from './ServicePortal/hooks/useServicePortal';
 import type { PortalUserRouteData, ReporteDetalle, ReporteResumen } from './ServicePortal/types';
+import { createServicePortalFeatureRoutes } from './ServicePortal/routes/featureRoutes';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -63,19 +64,6 @@ const PlanillasRegionales2QPreview = React.lazy(() => import('./ServicePortal/pa
 const TablaMaestraView = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/TablaMaestraView'));
 const ComisionesView = React.lazy(() => import('./ServicePortal/pages/Comisiones'));
 const AuditoriaIndicadores = React.lazy(() => import('./ServicePortal/pages/AuditoriaIndicadores'));
-const PreLiquidacionView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/PreLiquidacionView'));
-const CalculoListView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/CalculoListView'));
-const CalculoDetailView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/CalculoDetailView'));
-const BolsaView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/BolsaView'));
-const CostosOtView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/CostosOtView'));
-const FestivosView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/FestivosView'));
-const HorarioSemanaView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/HorarioSemanaView'));
-const ConfiguracionHorasExtrasView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/ConfiguracionHorasExtrasView'));
-const NovedadesView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/NovedadesView'));
-const NovedadFormView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/NovedadFormView'));
-const PlanificadorSemanalView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/PlanificadorSemanalView'));
-const EmpleadosActivosView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/EmpleadosActivosView'));
-const BiometriaModule = React.lazy(() => import('./ServicePortal/pages/Biometria/BiometriaModule'));
 const CategoryWrapper = React.lazy(() =>
     import('./ServicePortal/PortalWrappers').then((module) => ({ default: module.CategoryWrapper })),
 );
@@ -126,10 +114,6 @@ const ServicePortal: React.FC = () => {
         const success = await handleSendUserFeedback(e);
         if (success) navigate('/service-portal/mis-tickets');
     };
-
-    const horasExtrasProtegida = (element: React.ReactElement, moduleCode = 'nomina_horas_extras.leer') => (
-        <ProtectedRoute moduleCode={moduleCode}>{element}</ProtectedRoute>
-    );
 
     const rutaInicialHorasExtras = () => {
         const permisos = portalUser.permissions || [];
@@ -236,6 +220,8 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'horas_extras_configuracion') navigate('/service-portal/horas-extras/configuracion');
                             else if (v === 'horas_extras_calculos') navigate('/service-portal/horas-extras/calculos');
                             else if (v === 'auditoria_indicadores') navigate('/service-portal/auditoria-indicadores');
+                            else if (v === 'horas_extras_plantillas') navigate('/service-portal/horas-extras/plantillas');
+                            else if (v === 'alcance_empleados') navigate('/service-portal/alcance-empleados');
                         }}
                     />
                 } />
@@ -449,20 +435,7 @@ const ServicePortal: React.FC = () => {
                 } />
 
                 <Route path="horas-extras" element={<Navigate to={rutaInicialHorasExtras()} replace />} />
-                <Route path="horas-extras/pre-liquidacion" element={horasExtrasProtegida(<PreLiquidacionView />, 'nomina_horas_extras.planificar')} />
-                <Route path="horas-extras/calculos" element={horasExtrasProtegida(<CalculoListView />)} />
-                <Route path="horas-extras/calculos/:calculoId" element={horasExtrasProtegida(<CalculoDetailView />)} />
-                <Route path="horas-extras/bolsa" element={horasExtrasProtegida(<BolsaView />)} />
-                <Route path="horas-extras/empleados" element={horasExtrasProtegida(<EmpleadosActivosView />)} />
-                <Route path="horas-extras/costos-ot" element={horasExtrasProtegida(<CostosOtView />)} />
-                <Route path="horas-extras/festivos" element={horasExtrasProtegida(<FestivosView />)} />
-                <Route path="horas-extras/configuracion" element={horasExtrasProtegida(<ConfiguracionHorasExtrasView />, 'nomina_horas_extras.admin')} />
-                <Route path="horas-extras/horario" element={horasExtrasProtegida(<HorarioSemanaView />, 'nomina_horas_extras.planificar')} />
-                <Route path="horas-extras/horario/:cedula" element={horasExtrasProtegida(<HorarioSemanaView />, 'nomina_horas_extras.planificar')} />
-                <Route path="horas-extras/novedades" element={horasExtrasProtegida(<NovedadesView />)} />
-                <Route path="horas-extras/novedades/nueva" element={horasExtrasProtegida(<NovedadFormView />, 'nomina_horas_extras.planificar')} />
-                <Route path="horas-extras/novedades/:id" element={horasExtrasProtegida(<NovedadFormView />, 'nomina_horas_extras.planificar')} />
-                <Route path="horas-extras/planificador" element={horasExtrasProtegida(<PlanificadorSemanalView />, 'nomina_horas_extras.planificar')} />
+                {createServicePortalFeatureRoutes()}
 
                 <Route path="inventario" element={
                     <ProtectedRoute moduleCode="inventario_2026">
@@ -491,12 +464,6 @@ const ServicePortal: React.FC = () => {
                         }}
                         onBack={() => navigate('/service-portal/inicio')}
                     />
-                } />
-
-                <Route path="biometria" element={
-                    <ProtectedRoute>
-                        <BiometriaModule />
-                    </ProtectedRoute>
                 } />
 
                 <Route path="desarrollos" element={

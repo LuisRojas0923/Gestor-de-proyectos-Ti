@@ -43,6 +43,7 @@ from .api.jerarquia import router as jerarquia_router
 from .api.notificaciones.router import router as notificaciones_router
 from .api.auditoria import router as auditoria_router
 from .api.biometria import router as biometria_router
+from .api.auth.alcance_empleados_router import router as alcance_empleados_router
 from .core.middleware.auditoria_middleware import auditoria_http_middleware
 
 # Configurar logging centralizado
@@ -319,6 +320,7 @@ app.include_router(
     prefix=f"{api_prefix}/biometria",
     tags=["Biometría Facial"],
 )
+app.include_router(alcance_empleados_router, prefix=api_prefix)
 
 # Consolidated developments-activities endpoint and number-mapped endpoint
 app.include_router(desarrollos_actividades_router, prefix=api_prefix)

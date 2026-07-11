@@ -98,6 +98,7 @@ async def construir_detalle_diario_preliquidacion(session: AsyncSession, input_d
             "hora_entrada": getattr(registro, "hora_entrada", None),
             "hora_salida": getattr(registro, "hora_salida", None),
             "minutos_almuerzo": getattr(registro, "minutos_almuerzo", 0),
+            "cruza_medianoche": getattr(registro, "cruza_medianoche", False),
             "horas_trabajadas": horas_trab,
             "horas_ordinarias": horas_ord,
             "horas_extras": horas_ext,
@@ -139,7 +140,10 @@ async def construir_detalle_diario_planificador(
             datos_dias.append((dia_semana, None, 0.0, []))
             continue
         codigos_nov = [n.codigo_novedad for n in dia.novedades]
-        horas_trab = _horas_trabajadas_dia(dia.hora_entrada, dia.hora_salida, dia.minutos_almuerzo)
+        horas_trab = _horas_trabajadas_dia(
+            dia.hora_entrada, dia.hora_salida, dia.minutos_almuerzo,
+            dia.cruza_medianoche,
+        )
         if any(c in CODIGOS_NOVEDAD_SUPRESION_PLAN for c in codigos_nov):
             horas_trab = 0.0
         datos_dias.append((dia_semana, dia, horas_trab, codigos_nov))
@@ -161,6 +165,7 @@ async def construir_detalle_diario_planificador(
             "hora_entrada": getattr(dia, "hora_entrada", None),
             "hora_salida": getattr(dia, "hora_salida", None),
             "minutos_almuerzo": getattr(dia, "minutos_almuerzo", 0),
+            "cruza_medianoche": getattr(dia, "cruza_medianoche", False),
             "horas_trabajadas": round(float(horas_trab), 2),
             "horas_ordinarias": horas_ord,
             "horas_extras": horas_ext,

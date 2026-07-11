@@ -4,6 +4,8 @@ from typing import Dict, Optional
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from ...database import SessionErp
+
 
 class OrdenesTrabajoService:
     """Servicio de lectura contra public.basegeneralcostos del ERP."""
@@ -78,3 +80,15 @@ class OrdenesTrabajoService:
         ]
         total = int(getattr(rows[0], "total", len(rows))) if rows else 0
         return {"items": items, "total": total, "limit": limit, "offset": offset}
+
+
+def consultar_ots_mano_obra_worker(
+    q: Optional[str], limit: int, offset: int
+) -> Dict:
+    db_erp = SessionErp()
+    try:
+        return OrdenesTrabajoService.listar_ot_mano_obra(
+            db_erp, q=q, limit=limit, offset=offset
+        )
+    finally:
+        db_erp.close()

@@ -316,6 +316,20 @@ SYSTEM_MODULES_REGISTRY: List[Dict[str, Any]] = [
         "descripcion": "Administración de catálogo, parámetros legales, festivos y overrides de autorización o bolsa.",
     },
     {
+        "id": "nomina_horas_extras.plantillas_horario.administrar",
+        "nombre": "Horas Extras — Plantillas de horario",
+        "categoria": "portal",
+        "es_critico": True,
+        "descripcion": "Administración auditable del catálogo de horarios semanales prediseñados.",
+    },
+    {
+        "id": "alcance_empleados.administrar",
+        "nombre": "Alcance de empleados",
+        "categoria": "panel",
+        "es_critico": True,
+        "descripcion": "Administración de relaciones entre gestores del portal y empleados ERP.",
+    },
+    {
         "id": "auditoria_sistema",
         "nombre": "Auditoría del Sistema",
         "categoria": "panel",

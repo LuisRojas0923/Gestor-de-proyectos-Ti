@@ -1,47 +1,85 @@
-import React, { useState } from 'react';
-import { useIsAdmin } from '../../../../hooks/useIsAdmin';
+import React, { useEffect, useState } from 'react';
+import { Button, MaterialCard, Spinner } from '../../../../components/atoms';
+import Callout from '../../../../components/molecules/Callout';
+import { obtenerCapacidadesBiometria } from '../../../../services/horariosRelacionesService';
 import BiometriaDashboard from './BiometriaDashboard';
 import BiometriaAdminView from './BiometriaAdminView';
 
 const BiometriaModule: React.FC = () => {
-    const isAdmin = useIsAdmin();
-    // Si es administrador, muestra el panel administrativo por defecto. Si no, solo puede ver "asistencia".
-    const [view, setView] = useState<'admin' | 'asistencia'>(isAdmin ? 'admin' : 'asistencia');
+    const [view, setView] = useState<'admin' | 'asistencia'>('asistencia');
+    const [puedeSupervisar, setPuedeSupervisar] = useState(false);
+    const [cargandoCapacidades, setCargandoCapacidades] = useState(true);
+    const [errorCapacidades, setErrorCapacidades] = useState('');
+    const [revision, setRevision] = useState(0);
 
-    if (!isAdmin) {
-        // Usuarios estǭndar solo ven la interfaz de marcado de asistencia
+    useEffect(() => {
+        const controller = new AbortController();
+        setCargandoCapacidades(true);
+        setErrorCapacidades('');
+        obtenerCapacidadesBiometria(controller.signal)
+            .then((response) => {
+                setPuedeSupervisar(response.puede_supervisar_equipo);
+                if (response.puede_supervisar_equipo) setView('admin');
+            })
+            .catch((reason: unknown) => {
+                if (!controller.signal.aborted) setErrorCapacidades(reason instanceof Error ? reason.message : 'No fue posible consultar las capacidades de supervisión.');
+            })
+            .finally(() => { if (!controller.signal.aborted) setCargandoCapacidades(false); });
+        return () => controller.abort();
+    }, [revision]);
+
+    if (cargandoCapacidades) {
+        return <MaterialCard className="flex min-h-64 items-center justify-center"><Spinner size="lg" /></MaterialCard>;
+    }
+
+    if (errorCapacidades) {
+        return <div className="space-y-4"><Callout variant="error" role="alert" title="No fue posible verificar la supervisión">{errorCapacidades}<Button variant="ghost" size="sm" onClick={() => setRevision((value) => value + 1)}>Reintentar</Button></Callout><BiometriaDashboard /></div>;
+    }
+
+    if (!puedeSupervisar) {
         return <BiometriaDashboard />;
     }
 
+    const cambiarTab = (event: React.KeyboardEvent<HTMLButtonElement>, next: 'admin' | 'asistencia') => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        setView(next);
+        window.setTimeout(() => document.getElementById(`biometria-tab-${next}`)?.focus(), 0);
+    };
+
     return (
-        <div className="flex-1 flex flex-col w-full h-full bg-slate-50 dark:bg-[#0A0A0A]">
-            {/* Cabecera de pestaas solo para administradores */}
-            <div className="sticky top-0 z-10 border-b border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-3 flex justify-center space-x-2 shadow-sm">
-                <button
+        <MaterialCard className="flex min-h-full w-full flex-1 flex-col overflow-hidden bg-[var(--color-background)]">
+            <div className="sticky top-0 z-10 flex justify-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-sm" role="tablist" aria-label="Vistas de biometría">
+                <Button
+                    id="biometria-tab-admin"
+                    role="tab"
+                    aria-selected={view === 'admin'}
+                    aria-controls="biometria-panel-admin"
+                    tabIndex={view === 'admin' ? 0 : -1}
+                    variant={view === 'admin' ? 'primary' : 'ghost'}
                     onClick={() => setView('admin')}
-                    className={`px-6 py-2 rounded-md font-medium text-sm transition-all duration-200 ${view === 'admin'
-                            ? 'bg-[var(--color-primary)] text-white shadow-md'
-                            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-neutral-800'
-                        }`}
+                    onKeyDown={(event) => cambiarTab(event, 'asistencia')}
                 >
-                    Panel de Administración
-                </button>
-                <button
+                    Asistencia del equipo
+                </Button>
+                <Button
+                    id="biometria-tab-asistencia"
+                    role="tab"
+                    aria-selected={view === 'asistencia'}
+                    aria-controls="biometria-panel-asistencia"
+                    tabIndex={view === 'asistencia' ? 0 : -1}
+                    variant={view === 'asistencia' ? 'primary' : 'ghost'}
                     onClick={() => setView('asistencia')}
-                    className={`px-6 py-2 rounded-md font-medium text-sm transition-all duration-200 ${view === 'asistencia'
-                            ? 'bg-[var(--color-primary)] text-white shadow-md'
-                            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-neutral-800'
-                        }`}
+                    onKeyDown={(event) => cambiarTab(event, 'admin')}
                 >
-                    Mi Asistencia (Validación)
-                </button>
+                    Mi asistencia
+                </Button>
             </div>
 
-            {/* Renderizado dinǭmico segn la pestaa seleccionada */}
-            <div className="flex-1 overflow-auto">
+            <div id={`biometria-panel-${view}`} role="tabpanel" aria-labelledby={`biometria-tab-${view}`} tabIndex={0} className="flex-1 overflow-auto">
                 {view === 'admin' ? <BiometriaAdminView /> : <BiometriaDashboard />}
             </div>
-        </div>
+        </MaterialCard>
     );
 };
 

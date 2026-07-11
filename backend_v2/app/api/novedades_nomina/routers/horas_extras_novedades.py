@@ -38,6 +38,9 @@ from ....services.novedades_nomina.horas_extras_novedades import (
     confirmar_novedad,
     anular_novedad,
 )
+from ....services.auth.alcance_empleados_service import (
+    autorizar_cedula, autorizar_novedad_id, cedulas_permitidas,
+)
 from .horas_extras_permisos import (
     requiere_permiso_he_confirmar,
     requiere_permiso_he_leer,
@@ -67,6 +70,7 @@ async def listar_novedades_endpoint(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_he_leer),
 ):
     """
     Lista eventos de novedades con filtros opcionales.
@@ -74,6 +78,12 @@ async def listar_novedades_endpoint(
     Solo aparecen novedades de categorías S5 (AUSENCIA, LICENCIA, VACACION,
     INCAPACIDAD). REM/RETIRO queda fuera de este endpoint.
     """
+    permitidas = await cedulas_permitidas(db, usuario)
+    if cedula:
+        try:
+            cedula = await autorizar_cedula(db, usuario, cedula)
+        except (PermissionError, ValueError) as exc:
+            raise HTTPException(404, "Recurso no encontrado") from exc
     items = await listar_novedades(
         db,
         cedula=cedula,
@@ -83,6 +93,7 @@ async def listar_novedades_endpoint(
         estado=estado,
         limit=limit,
         offset=offset,
+        cedulas_permitidas=permitidas,
     )
     return NovedadEventoList(
         items=[NovedadEventoListItem.model_validate(i) for i in items],
@@ -105,7 +116,10 @@ async def crear_novedad_endpoint(
 ):
     """Crea un evento en BORRADOR. Valida catálogo, horario y solapamiento."""
     try:
+        payload.cedula = await autorizar_cedula(db, usuario, payload.cedula)
         evento = await crear_novedad_evento(db, payload, _usuario_id(usuario))
+    except PermissionError as exc:
+        raise HTTPException(404, "Recurso no encontrado") from exc
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
     return evento
@@ -119,7 +133,12 @@ async def crear_novedad_endpoint(
 async def obtener_novedad_endpoint(
     novedad_id: int = Path(..., ge=1),
     db: AsyncSession = Depends(obtener_db),
+    usuario: Usuario = Depends(requiere_permiso_he_leer),
 ):
+    try:
+        await autorizar_novedad_id(db, usuario, novedad_id)
+    except LookupError as exc:
+        raise HTTPException(404, "Recurso no encontrado") from exc
     evento = await obtener_novedad(db, novedad_id)
     if evento is None:
         raise HTTPException(status_code=404, detail=f"Novedad {novedad_id} no existe")
@@ -139,7 +158,12 @@ async def actualizar_novedad_endpoint(
 ):
     """Edita un evento. Solo permitido en estado BORRADOR."""
     try:
+        await autorizar_novedad_id(db, usuario, novedad_id)
+        if payload.cedula is not None:
+            payload.cedula = await autorizar_cedula(db, usuario, payload.cedula)
         return await actualizar_novedad(db, novedad_id, payload, _usuario_id(usuario))
+    except (LookupError, PermissionError) as exc:
+        raise HTTPException(404, "Recurso no encontrado") from exc
     except ValueError as e:
         # 404 si no existe, 409 si no es BORRADOR o solapa
         if "no existe" in str(e):
@@ -159,7 +183,10 @@ async def confirmar_novedad_endpoint(
 ):
     """Confirma una novedad: BORRADOR → CONFIRMADO. Es la fuente oficial."""
     try:
+        await autorizar_novedad_id(db, usuario, novedad_id)
         return await confirmar_novedad(db, novedad_id, _usuario_id(usuario))
+    except LookupError as exc:
+        raise HTTPException(404, "Recurso no encontrado") from exc
     except ValueError as e:
         if "no existe" in str(e):
             raise HTTPException(status_code=404, detail=str(e))
@@ -179,7 +206,10 @@ async def anular_novedad_endpoint(
 ):
     """Anula una novedad. Requiere justificación. Estado terminal."""
     try:
+        await autorizar_novedad_id(db, usuario, novedad_id)
         return await anular_novedad(db, novedad_id, payload.justificacion, _usuario_id(usuario))
+    except LookupError as exc:
+        raise HTTPException(404, "Recurso no encontrado") from exc
     except ValueError as e:
         if "no existe" in str(e):
             raise HTTPException(status_code=404, detail=str(e))

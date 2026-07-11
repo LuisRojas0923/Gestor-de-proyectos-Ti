@@ -44,6 +44,28 @@ Estas tablas pertenecen al backend principal. El servicio `biometria-engine` no 
 
 Estas tablas soportan el modulo `nomina_horas_extras`: calculo semanal, bolsa de horas, novedades, festivos, planificador semanal y costos por OT. Los nombres fisicos siguen la convencion en espanol del backend.
 
+### Alcance gestor-empleado e idempotencia
+
+`relaciones_gestor_empleado` no representa jerarquia. Es una relacion M:N de alcance operativo entre `usuarios.id` y una cedula canonica del ERP; no existe FK cross-database hacia el empleado. `historial_relaciones_gestor_empleado` registra altas, bajas y reactivaciones y es append-only por trigger PostgreSQL.
+
+| Tabla | Clave y proposito |
+|---|---|
+| `relaciones_gestor_empleado` | UUID PK; unique `(gestor_usuario_id, empleado_cedula)`; estado activo, actor y timestamps. |
+| `historial_relaciones_gestor_empleado` | UUID PK; FK restrictiva a la relacion; actor, accion y estados anterior/nuevo. |
+| `operaciones_idempotentes` | PK `(solicitud_id, tipo_operacion)`; actor, objetivo, SHA-256 del payload, estado y resultado JSONB. |
+
+### Plantillas y aplicaciones de horario
+
+| Tabla | Clave y proposito |
+|---|---|
+| `nomina_plantillas_horario` | Catalogo UUID, nombre activo unico normalizado, version y estado. |
+| `nomina_plantillas_horario_dias` | PK `(plantilla_id, dia_semana)`; siete dias con horas, almuerzo y `cruza_medianoche`. |
+| `nomina_plantillas_horario_historial` | Evento versionado con snapshot JSONB append-only. |
+| `nomina_aplicaciones_plantilla_horario` | Cabecera append-only con solicitud, plantilla/version/nombre, actor, cantidad y estado. |
+| `nomina_aplicaciones_plantilla_empleados` | PK `(aplicacion_id, empleado_cedula)`; snapshots JSONB anterior y aplicado, append-only. |
+
+Aplicar una plantilla copia los valores a `nomina_horario_pactado` y `nomina_horario_pactado_dia`; las tablas de aplicacion conservan evidencia independiente. Los triggers `trg_*_append_only` rechazan `UPDATE` y `DELETE` de historiales y aplicaciones.
+
 ### `nomina_catalogo_novedades`
 
 | Columna | Tipo | Descripcion |
@@ -117,6 +139,7 @@ Estas tablas soportan el modulo `nomina_horas_extras`: calculo semanal, bolsa de
 | `hora_entrada` | time, nullable | Hora pactada de entrada; null para franco/libre. |
 | `hora_salida` | time, nullable | Hora pactada de salida; null para franco/libre. |
 | `minutos_almuerzo` | integer | Minutos de almuerzo, rango esperado 0 a 240. |
+| `cruza_medianoche` | boolean | Indica que la salida corresponde al dia siguiente. |
 
 ### `nomina_bolsa_horas`
 
@@ -224,6 +247,7 @@ Snapshot diario inmutable del horario, concepto e importes usados para un calcul
 | `hora_entrada` | time, nullable | Hora de entrada usada en el snapshot. |
 | `hora_salida` | time, nullable | Hora de salida usada en el snapshot. |
 | `minutos_almuerzo` | integer | Minutos de almuerzo descontados. |
+| `cruza_medianoche` | boolean | Indica que la salida del snapshot pertenece al dia siguiente. |
 | `horas_trabajadas` | double precision | Horas trabajadas del dia. |
 | `horas_ordinarias` | double precision | Horas ordinarias del dia. |
 | `horas_extras` | double precision | Horas extra del dia. |
@@ -384,6 +408,11 @@ Snapshot diario inmutable del horario, concepto e importes usados para un calcul
 | `nomina_calculo_semanal.id` -> `nomina_calculo_workflow_evento.calculo_id` | Historial de cambios de estado. |
 | `nomina_catalogo_novedades.codigo` -> `nomina_novedad_evento.codigo_novedad` | Eventos de ausencias/licencias/vacaciones/incapacidades por concepto. |
 | `nomina_calculo_semanal.ot_id` / `nomina_calculo_semanal_detalle.ot_id` -> `nomina_costo_ot.ot_id` | Consolidacion semanal de costos por OT. |
+| `usuarios.id` -> `relaciones_gestor_empleado.gestor_usuario_id` | Gestor local cuyo alcance se delimita por cedulas ERP. |
+| `relaciones_gestor_empleado.id` -> `historial_relaciones_gestor_empleado.relacion_id` | Estado actual e historial append-only de alcance. |
+| `nomina_plantillas_horario.id` -> `nomina_plantillas_horario_dias.plantilla_id` | Cabecera versionada y patron semanal de siete dias. |
+| `nomina_plantillas_horario.id` -> `nomina_aplicaciones_plantilla_horario.plantilla_id` | Catalogo y evidencia de cada copy-on-apply. |
+| `nomina_aplicaciones_plantilla_horario.id` -> `nomina_aplicaciones_plantilla_empleados.aplicacion_id` | Aplicacion bulk y snapshots por cedula. |
 
 ---
 
@@ -690,6 +719,10 @@ CREATE INDEX idx_milestones_dev_status ON milestones(development_id, status);
 5. CONFIGURACIÓN:
    SYSTEM_SETTINGS (por usuario)
 ```
+
+
+
+
 
 
 
@@ -1165,6 +1198,15 @@ erDiagram
         character varying notas_entrega
         timestamp without time zone creado_en
     }
+    HISTORIAL_RELACIONES_GESTOR_EMPLEADO {
+        uuid id
+        uuid relacion_id
+        character varying actor_usuario_id
+        character varying accion
+        boolean estado_anterior
+        boolean estado_nuevo
+        timestamp with time zone creado_en
+    }
     HISTORIAL_RELACIONES_USUARIOS {
         integer id
         character varying usuario_id
@@ -1277,6 +1319,25 @@ erDiagram
         boolean es_critico
         timestamp with time zone actualizado_en
     }
+    NOMINA_APLICACIONES_PLANTILLA_EMPLEADOS {
+        uuid aplicacion_id
+        character varying empleado_cedula
+        jsonb snapshot_anterior
+        jsonb snapshot_aplicado
+        character varying estado
+        timestamp with time zone creado_en
+    }
+    NOMINA_APLICACIONES_PLANTILLA_HORARIO {
+        uuid id
+        uuid solicitud_id
+        uuid plantilla_id
+        integer plantilla_version
+        character varying plantilla_nombre
+        character varying actor_usuario_id
+        integer cantidad_empleados
+        character varying estado
+        timestamp with time zone creado_en
+    }
     NOMINA_ARCHIVOS {
         integer id
         character varying nombre_archivo
@@ -1330,6 +1391,42 @@ erDiagram
         character varying documento_soporte_url
         timestamp without time zone creado_en
     }
+    NOMINA_CALCULO_DIARIO_DETALLE {
+        integer id
+        integer calculo_id
+        character varying cedula
+        integer anio
+        integer semana_iso
+        date fecha
+        integer dia_semana
+        time without time zone hora_entrada
+        time without time zone hora_salida
+        integer minutos_almuerzo
+        double precision horas_trabajadas
+        double precision horas_ordinarias
+        double precision horas_extras
+        character varying codigo_calculado
+        double precision horas_concepto
+        double precision factor_hora_ordinaria
+        double precision valor_bruto
+        double precision carga_prestacional
+        double precision costo_total
+        boolean es_festivo
+        character varying nombre_festivo
+        boolean es_domingo
+        boolean es_jornada_nocturna
+        character varying novedad_codigo
+        integer novedad_evento_id
+        character varying fuente_horario
+        integer fuente_evidencia_id
+        character varying hash_snapshot
+        character varying creado_por
+        integer ot_id
+        character varying ot_codigo
+        character varying observaciones
+        timestamp without time zone creado_en
+        boolean cruza_medianoche
+    }
     NOMINA_CALCULO_SEMANAL {
         integer id
         character varying cedula
@@ -1367,41 +1464,6 @@ erDiagram
         integer ot_id
         character varying ot_codigo
         character varying fuente
-    }
-    NOMINA_CALCULO_DIARIO_DETALLE {
-        integer id
-        integer calculo_id
-        character varying cedula
-        integer anio
-        integer semana_iso
-        date fecha
-        integer dia_semana
-        time without time zone hora_entrada
-        time without time zone hora_salida
-        integer minutos_almuerzo
-        double precision horas_trabajadas
-        double precision horas_ordinarias
-        double precision horas_extras
-        character varying codigo_calculado
-        double precision horas_concepto
-        double precision factor_hora_ordinaria
-        double precision valor_bruto
-        double precision carga_prestacional
-        double precision costo_total
-        boolean es_festivo
-        character varying nombre_festivo
-        boolean es_domingo
-        boolean es_jornada_nocturna
-        character varying novedad_codigo
-        integer novedad_evento_id
-        character varying fuente_horario
-        integer fuente_evidencia_id
-        character varying hash_snapshot
-        character varying creado_por
-        integer ot_id
-        character varying ot_codigo
-        text observaciones
-        timestamp without time zone creado_en
     }
     NOMINA_CALCULO_WORKFLOW_EVENTO {
         integer id
@@ -1549,6 +1611,7 @@ erDiagram
         time without time zone hora_entrada
         time without time zone hora_salida
         integer minutos_almuerzo
+        boolean cruza_medianoche
     }
     NOMINA_NOVEDAD_EVENTO {
         integer id
@@ -1612,6 +1675,34 @@ erDiagram
         timestamp without time zone creado_en
         timestamp without time zone actualizado_en
     }
+    NOMINA_PLANTILLAS_HORARIO {
+        uuid id
+        character varying nombre
+        character varying descripcion
+        integer version
+        boolean esta_activa
+        character varying creado_por_id
+        character varying actualizado_por_id
+        timestamp with time zone creado_en
+        timestamp with time zone actualizado_en
+    }
+    NOMINA_PLANTILLAS_HORARIO_DIAS {
+        uuid plantilla_id
+        smallint dia_semana
+        time without time zone hora_entrada
+        time without time zone hora_salida
+        smallint minutos_almuerzo
+        boolean cruza_medianoche
+    }
+    NOMINA_PLANTILLAS_HORARIO_HISTORIAL {
+        uuid id
+        uuid plantilla_id
+        character varying accion
+        integer version
+        character varying actor_usuario_id
+        jsonb snapshot
+        timestamp with time zone creado_en
+    }
     NOMINA_REGISTROS_CRUDOS {
         integer id
         integer archivo_id
@@ -1650,6 +1741,17 @@ erDiagram
         character varying tipo_evento
         character varying referencia_id
         timestamp without time zone creado_en
+    }
+    OPERACIONES_IDEMPOTENTES {
+        uuid solicitud_id
+        character varying tipo_operacion
+        character varying actor_usuario_id
+        character varying recurso_objetivo
+        character varying payload_hash
+        character varying estado
+        jsonb resultado
+        timestamp with time zone creado_en
+        timestamp with time zone finalizado_en
     }
     PERMISOS_ROL {
         integer id
@@ -1712,6 +1814,16 @@ erDiagram
         double precision longitud_marcada
         character varying evidencia_url
         timestamp without time zone creado_en
+    }
+    RELACIONES_GESTOR_EMPLEADO {
+        uuid id
+        character varying gestor_usuario_id
+        character varying empleado_cedula
+        boolean esta_activa
+        character varying creado_por_id
+        character varying actualizado_por_id
+        timestamp with time zone creado_en
+        timestamp with time zone actualizado_en
     }
     RELACIONES_USUARIOS {
         integer id
@@ -2518,6 +2630,17 @@ erDiagram
 | notas_entrega | character varying | YES | - |
 | creado_en | timestamp without time zone | YES | now() |
 
+#### Tabla: `historial_relaciones_gestor_empleado`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | uuid | NO | - |
+| relacion_id | uuid | NO | - |
+| actor_usuario_id | character varying | NO | - |
+| accion | character varying | NO | - |
+| estado_anterior | boolean | NO | - |
+| estado_nuevo | boolean | NO | - |
+| creado_en | timestamp with time zone | NO | now() |
+
 #### Tabla: `historial_relaciones_usuarios`
 | Columna | Tipo | Nulable | Defecto |
 |---------|------|---------|---------|
@@ -2646,6 +2769,29 @@ erDiagram
 | es_critico | boolean | YES | false |
 | actualizado_en | timestamp with time zone | YES | now() |
 
+#### Tabla: `nomina_aplicaciones_plantilla_empleados`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| aplicacion_id | uuid | NO | - |
+| empleado_cedula | character varying | NO | - |
+| snapshot_anterior | jsonb | NO | - |
+| snapshot_aplicado | jsonb | NO | - |
+| estado | character varying | NO | - |
+| creado_en | timestamp with time zone | NO | now() |
+
+#### Tabla: `nomina_aplicaciones_plantilla_horario`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | uuid | NO | - |
+| solicitud_id | uuid | NO | - |
+| plantilla_id | uuid | NO | - |
+| plantilla_version | integer | NO | - |
+| plantilla_nombre | character varying | NO | - |
+| actor_usuario_id | character varying | NO | - |
+| cantidad_empleados | integer | NO | - |
+| estado | character varying | NO | - |
+| creado_en | timestamp with time zone | NO | now() |
+
 #### Tabla: `nomina_archivos`
 | Columna | Tipo | Nulable | Defecto |
 |---------|------|---------|---------|
@@ -2707,6 +2853,44 @@ erDiagram
 | documento_soporte_url | character varying | YES | - |
 | creado_en | timestamp without time zone | YES | '2026-06-17 10:01:41.991353'::timestamp without time zone |
 
+#### Tabla: `nomina_calculo_diario_detalle`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | integer | NO | nextval('nomina_calculo_diario_detalle_id_seq'::regclass) |
+| calculo_id | integer | NO | - |
+| cedula | character varying | NO | - |
+| anio | integer | NO | - |
+| semana_iso | integer | NO | - |
+| fecha | date | NO | - |
+| dia_semana | integer | NO | - |
+| hora_entrada | time without time zone | YES | - |
+| hora_salida | time without time zone | YES | - |
+| minutos_almuerzo | integer | NO | - |
+| horas_trabajadas | double precision | NO | - |
+| horas_ordinarias | double precision | NO | - |
+| horas_extras | double precision | NO | - |
+| codigo_calculado | character varying | YES | - |
+| horas_concepto | double precision | YES | - |
+| factor_hora_ordinaria | double precision | YES | - |
+| valor_bruto | double precision | NO | - |
+| carga_prestacional | double precision | NO | - |
+| costo_total | double precision | NO | - |
+| es_festivo | boolean | NO | - |
+| nombre_festivo | character varying | YES | - |
+| es_domingo | boolean | NO | - |
+| es_jornada_nocturna | boolean | NO | - |
+| novedad_codigo | character varying | YES | - |
+| novedad_evento_id | integer | YES | - |
+| fuente_horario | character varying | NO | - |
+| fuente_evidencia_id | integer | YES | - |
+| hash_snapshot | character varying | YES | - |
+| creado_por | character varying | YES | - |
+| ot_id | integer | YES | - |
+| ot_codigo | character varying | YES | - |
+| observaciones | character varying | YES | - |
+| creado_en | timestamp without time zone | NO | - |
+| cruza_medianoche | boolean | NO | false |
+
 #### Tabla: `nomina_calculo_semanal`
 | Columna | Tipo | Nulable | Defecto |
 |---------|------|---------|---------|
@@ -2748,43 +2932,6 @@ erDiagram
 | ot_id | integer | YES | - |
 | ot_codigo | character varying | YES | - |
 | fuente | character varying | NO | 'PORTAL'::character varying |
-
-#### Tabla: `nomina_calculo_diario_detalle`
-| Columna | Tipo | Nulable | Defecto |
-|---------|------|---------|---------|
-| id | integer | NO | nextval('nomina_calculo_diario_detalle_id_seq'::regclass) |
-| calculo_id | integer | NO | - |
-| cedula | character varying | NO | - |
-| anio | integer | NO | - |
-| semana_iso | integer | NO | - |
-| fecha | date | NO | - |
-| dia_semana | integer | NO | - |
-| hora_entrada | time without time zone | YES | - |
-| hora_salida | time without time zone | YES | - |
-| minutos_almuerzo | integer | NO | 0 |
-| horas_trabajadas | double precision | NO | 0 |
-| horas_ordinarias | double precision | NO | 0 |
-| horas_extras | double precision | NO | 0 |
-| codigo_calculado | character varying | YES | - |
-| horas_concepto | double precision | YES | - |
-| factor_hora_ordinaria | double precision | YES | - |
-| valor_bruto | double precision | NO | 0 |
-| carga_prestacional | double precision | NO | 0 |
-| costo_total | double precision | NO | 0 |
-| es_festivo | boolean | NO | false |
-| nombre_festivo | character varying | YES | - |
-| es_domingo | boolean | NO | false |
-| es_jornada_nocturna | boolean | NO | false |
-| novedad_codigo | character varying | YES | - |
-| novedad_evento_id | integer | YES | - |
-| fuente_horario | character varying | NO | 'PLANIFICADOR'::character varying |
-| fuente_evidencia_id | integer | YES | - |
-| hash_snapshot | character varying | YES | - |
-| creado_por | character varying | YES | - |
-| ot_id | integer | YES | - |
-| ot_codigo | character varying | YES | - |
-| observaciones | text | YES | - |
-| creado_en | timestamp without time zone | NO | now() |
 
 #### Tabla: `nomina_calculo_workflow_evento`
 | Columna | Tipo | Nulable | Defecto |
@@ -2954,6 +3101,7 @@ erDiagram
 | hora_entrada | time without time zone | YES | - |
 | hora_salida | time without time zone | YES | - |
 | minutos_almuerzo | integer | NO | 0 |
+| cruza_medianoche | boolean | NO | false |
 
 #### Tabla: `nomina_novedad_evento`
 | Columna | Tipo | Nulable | Defecto |
@@ -3025,6 +3173,40 @@ erDiagram
 | creado_en | timestamp without time zone | YES | now() |
 | actualizado_en | timestamp without time zone | YES | now() |
 
+#### Tabla: `nomina_plantillas_horario`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | uuid | NO | - |
+| nombre | character varying | NO | - |
+| descripcion | character varying | YES | - |
+| version | integer | NO | 1 |
+| esta_activa | boolean | NO | true |
+| creado_por_id | character varying | NO | - |
+| actualizado_por_id | character varying | NO | - |
+| creado_en | timestamp with time zone | NO | now() |
+| actualizado_en | timestamp with time zone | NO | now() |
+
+#### Tabla: `nomina_plantillas_horario_dias`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| plantilla_id | uuid | NO | - |
+| dia_semana | smallint | NO | - |
+| hora_entrada | time without time zone | YES | - |
+| hora_salida | time without time zone | YES | - |
+| minutos_almuerzo | smallint | NO | 0 |
+| cruza_medianoche | boolean | NO | false |
+
+#### Tabla: `nomina_plantillas_horario_historial`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | uuid | NO | - |
+| plantilla_id | uuid | NO | - |
+| accion | character varying | NO | - |
+| version | integer | NO | - |
+| actor_usuario_id | character varying | NO | - |
+| snapshot | jsonb | NO | - |
+| creado_en | timestamp with time zone | NO | now() |
+
 #### Tabla: `nomina_registros_crudos`
 | Columna | Tipo | Nulable | Defecto |
 |---------|------|---------|---------|
@@ -3069,6 +3251,19 @@ erDiagram
 | tipo_evento | character varying | NO | - |
 | referencia_id | character varying | YES | - |
 | creado_en | timestamp without time zone | YES | now() |
+
+#### Tabla: `operaciones_idempotentes`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| solicitud_id | uuid | NO | - |
+| tipo_operacion | character varying | NO | - |
+| actor_usuario_id | character varying | NO | - |
+| recurso_objetivo | character varying | NO | - |
+| payload_hash | character varying | NO | - |
+| estado | character varying | NO | - |
+| resultado | jsonb | YES | - |
+| creado_en | timestamp with time zone | NO | now() |
+| finalizado_en | timestamp with time zone | YES | - |
 
 #### Tabla: `permisos_rol`
 | Columna | Tipo | Nulable | Defecto |
@@ -3141,6 +3336,18 @@ erDiagram
 | longitud_marcada | double precision | NO | - |
 | evidencia_url | character varying | YES | - |
 | creado_en | timestamp without time zone | YES | now() |
+
+#### Tabla: `relaciones_gestor_empleado`
+| Columna | Tipo | Nulable | Defecto |
+|---------|------|---------|---------|
+| id | uuid | NO | - |
+| gestor_usuario_id | character varying | NO | - |
+| empleado_cedula | character varying | NO | - |
+| esta_activa | boolean | NO | true |
+| creado_por_id | character varying | NO | - |
+| actualizado_por_id | character varying | NO | - |
+| creado_en | timestamp with time zone | NO | now() |
+| actualizado_en | timestamp with time zone | NO | now() |
 
 #### Tabla: `relaciones_usuarios`
 | Columna | Tipo | Nulable | Defecto |

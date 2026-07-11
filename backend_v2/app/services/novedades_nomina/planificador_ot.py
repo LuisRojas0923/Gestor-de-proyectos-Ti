@@ -43,6 +43,7 @@ def validar_asignaciones_ot_dia(dia: PlanDiaIn) -> None:
             dia.hora_entrada,
             dia.hora_salida,
             dia.minutos_almuerzo,
+            dia.cruza_medianoche,
         )
         total_horas = sum(a.horas or 0 for a in asignaciones)
         if total_horas <= 0:

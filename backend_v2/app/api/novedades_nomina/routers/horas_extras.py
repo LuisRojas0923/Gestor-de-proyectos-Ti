@@ -1,13 +1,12 @@
 """Router principal de Horas Extras; parsea, valida y delega a servicios."""
 import logging
-from datetime import date, datetime
+from datetime import date
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 
-from ....database import obtener_db, obtener_erp_db_opcional
+from ....database import obtener_db
 from ....models.auth.usuario import Usuario
 from ....models.novedades_nomina.schemas_horas_extras import (
     NovedadCatalogoRead,
@@ -21,11 +20,8 @@ from ....models.novedades_nomina.schemas_horas_extras import (
     PreLiquidacionResultado,
     PreLiquidacionConfirmar,
     PreLiquidacionConfirmada,
-    CalculoSemanalRead,
-    CostoOtRead,
     WorkflowTransicionRequest,
     WorkflowTransicionResult,
-    WorkflowEventoRead,
     CompensarBolsaRequest,
     CompensarBolsaResponse,
 )
@@ -48,15 +44,14 @@ from ....services.novedades_nomina.horas_extras_erp_validacion import (
 )
 from ....services.novedades_nomina.horas_extras_confirmacion import (
     confirmar_pre_liquidacion,
-    listar_calculos,
-    obtener_calculo_completo,
-    listar_costos_ot,
 )
 from ....services.novedades_nomina.horas_extras_trazabilidad import construir_detalle_diario_preliquidacion
 from ....services.novedades_nomina.horas_extras_workflow import (
     transicionar_calculo,
-    listar_eventos_calculo,
     compensar_bolsa,
+)
+from ....services.auth.alcance_empleados_service import (
+    autorizar_calculo_id, autorizar_cedula,
 )
 from .horas_extras_festivos import router as festivos_subrouter
 from .horas_extras_novedades import router as novedades_subrouter
@@ -64,6 +59,14 @@ from .horas_extras_horario_semana import router as horario_semana_subrouter
 from .horas_extras_bolsa import router as bolsa_subrouter
 from .horas_extras_planificador import router as planificador_subrouter
 from .horas_extras_parametros import router as parametros_subrouter
+from .horas_extras_plantillas import router as plantillas_subrouter
+from .horas_extras_consultas import (
+    listar_calculos_endpoint,
+    listar_costos_ot_endpoint,
+    listar_historial_endpoint,
+    obtener_calculo_endpoint,
+    router as consultas_subrouter,
+)
 from .horas_extras_permisos import (
     PERMISO_HE_COMPENSAR,
     requiere_permiso_he_admin,
@@ -89,8 +92,14 @@ router.include_router(novedades_subrouter)
 router.include_router(bolsa_subrouter)
 # S7 — Sub-router de planificador semanal
 router.include_router(planificador_subrouter)
+# S5'' — Horario semanal editable
+router.include_router(horario_semana_subrouter)
+# Catalogo de plantillas semanales
+router.include_router(plantillas_subrouter)
 # S9 — Sub-router de parámetros de cálculo editables
 router.include_router(parametros_subrouter)
+# Consultas de calculos, costos e historial
+router.include_router(consultas_subrouter)
 
 
 # Catálogo de novedades
@@ -151,8 +160,12 @@ async def listar_factores_arl(
 async def obtener_horario(
     cedula: str = Path(..., min_length=1, max_length=50),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he_leer),
+    usuario: Usuario = Depends(requiere_permiso_he_leer),
 ):
+    try:
+        cedula = await autorizar_cedula(db, usuario, cedula)
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(404, "Empleado no encontrado") from exc
     return await obtener_horario_pactado(db, cedula)
 
 
@@ -160,8 +173,12 @@ async def obtener_horario(
 async def obtener_autorizacion_efectiva(
     cedula: str = Path(..., min_length=1, max_length=50),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he_leer),
+    usuario: Usuario = Depends(requiere_permiso_he_leer),
 ):
+    try:
+        cedula = await autorizar_cedula(db, usuario, cedula)
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(404, "Empleado no encontrado") from exc
     horario = await obtener_horario_pactado(db, cedula)
     if horario is None:
         return HorarioPactadoEfectivoRead(
@@ -192,6 +209,10 @@ async def crear_override(
     db: AsyncSession = Depends(obtener_db),
     usuario: Usuario = Depends(requiere_permiso_he_admin),
 ):
+    try:
+        payload.cedula = await autorizar_cedula(db, usuario, payload.cedula)
+    except (PermissionError, ValueError) as exc:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado") from exc
     usuario_id = getattr(usuario, "cedula", None) or usuario.id
     try:
         return await crear_override_autoriza_he(db, payload, usuario_id)
@@ -201,12 +222,19 @@ async def crear_override(
 
 @router.get("/overrides/{cedula}", response_model=List[OverrideAutorizaHERead])
 async def listar_overrides(
+    response: Response,
     cedula: str = Path(..., min_length=1, max_length=50),
     estado: Optional[str] = Query(None, description="ACTIVO, REVOCADO, EXPIRADO"),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he_leer),
+    usuario: Usuario = Depends(requiere_permiso_he_leer),
 ):
-    return await listar_overrides_cedula(db, cedula, estado)
+    try:
+        cedula = await autorizar_cedula(db, usuario, cedula)
+    except (PermissionError, ValueError) as exc:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado") from exc
+    resultado = await listar_overrides_cedula(db, cedula, estado)
+    response.headers["Cache-Control"] = "no-store, private"
+    return resultado
 
 
 # ---------------------------------------------------------------------------
@@ -216,9 +244,12 @@ async def listar_overrides(
 async def ejecutar_pre_liquidacion_endpoint(
     payload: PreLiquidacionInput,
     db: AsyncSession = Depends(obtener_db),
-    db_erp: Optional[Session] = Depends(obtener_erp_db_opcional),
-    _: Usuario = Depends(requiere_permiso_he_planificar),
+    usuario: Usuario = Depends(requiere_permiso_he_planificar),
 ):
+    try:
+        payload.cedula = await autorizar_cedula(db, usuario, payload.cedula)
+    except (PermissionError, ValueError) as exc:
+        raise HTTPException(404, "Empleado no encontrado") from exc
     if len(payload.horas_por_dia) != 7:
         raise HTTPException(status_code=400, detail="horas_por_dia debe tener 7 valores (L-D)")
 
@@ -227,7 +258,7 @@ async def ejecutar_pre_liquidacion_endpoint(
             status_code=400, detail="codigos_por_dia debe tener 7 sublistas (una por día)"
         )
 
-    salario_erp, nivel_erp = await resolver_parametros_empleado_erp(payload.cedula, db_erp)
+    salario_erp, nivel_erp = await resolver_parametros_empleado_erp(payload.cedula, None)
     payload.salario_base_mensual = salario_erp
     payload.nivel_riesgo_arl = nivel_erp
 
@@ -291,7 +322,6 @@ async def obtener_bolsa(
 async def confirmar_pre_liquidacion_endpoint(
     payload: PreLiquidacionConfirmar,
     db: AsyncSession = Depends(obtener_db),
-    db_erp: Optional[Session] = Depends(obtener_erp_db_opcional),
     usuario: Usuario = Depends(requiere_permiso_he_confirmar),
 ):
     """
@@ -303,10 +333,15 @@ async def confirmar_pre_liquidacion_endpoint(
 
     Idempotente sobre (cedula, anio, semana_iso): si ya existe, retorna 409.
     """
+    try:
+        payload.cedula = await autorizar_cedula(db, usuario, payload.cedula)
+    except (PermissionError, ValueError) as exc:
+        raise HTTPException(404, "Empleado no encontrado") from exc
+
     if not payload.detalles:
         raise HTTPException(status_code=400, detail="detalles no puede estar vacío")
 
-    salario_erp, nivel_erp = await resolver_parametros_empleado_erp(payload.cedula, db_erp)
+    salario_erp, nivel_erp = await resolver_parametros_empleado_erp(payload.cedula, None)
     if abs(float(payload.salario_base_mensual) - salario_erp) > 0.01 or payload.nivel_riesgo_arl != nivel_erp:
         raise HTTPException(
             status_code=400,
@@ -330,60 +365,6 @@ async def confirmar_pre_liquidacion_endpoint(
     )
 
 
-@router.get("/calculos", response_model=List[CalculoSemanalRead])
-async def listar_calculos_endpoint(
-    cedula: Optional[str] = Query(None),
-    anio: Optional[int] = Query(None),
-    semana_iso: Optional[int] = Query(None, ge=1, le=53),
-    estado: Optional[str] = Query(None, description="BORRADOR, CONFIRMADO, PAGADO, COMPENSADO, ANULADO"),
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he_leer),
-):
-    return await listar_calculos(
-        db,
-        cedula=cedula,
-        anio=anio,
-        semana_iso=semana_iso,
-        estado=estado,
-        limit=limit,
-        offset=offset,
-    )
-
-
-@router.get("/calculos/{calculo_id}", response_model=CalculoSemanalRead)
-async def obtener_calculo_endpoint(
-    calculo_id: int = Path(..., ge=1),
-    db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he_leer),
-):
-    calc = await obtener_calculo_completo(db, calculo_id)
-    if calc is None:
-        raise HTTPException(status_code=404, detail=f"Cálculo {calculo_id} no encontrado")
-    return calc
-
-
-@router.get("/costos-ot", response_model=List[CostoOtRead])
-async def listar_costos_ot_endpoint(
-    ot_id: Optional[int] = Query(None),
-    ot_codigo: Optional[str] = Query(None, max_length=50),
-    anio: Optional[int] = Query(None),
-    semana_iso: Optional[int] = Query(None, ge=1, le=53),
-    limit: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he_leer),
-):
-    return await listar_costos_ot(
-        db,
-        ot_id=ot_id,
-        ot_codigo=ot_codigo,
-        anio=anio,
-        semana_iso=semana_iso,
-        limit=limit,
-    )
-
-
 # ---------------------------------------------------------------------------
 # S4 — Workflow de estados y compensación de bolsa
 # ---------------------------------------------------------------------------
@@ -403,6 +384,10 @@ async def transicionar_calculo_endpoint(
     """
     if payload.estado_destino == "COMPENSADO":
         await validar_permiso_he(db, usuario, PERMISO_HE_COMPENSAR)
+    try:
+        await autorizar_calculo_id(db, usuario, calculo_id)
+    except LookupError as exc:
+        raise HTTPException(404, "Recurso no encontrado") from exc
 
     usuario_id = getattr(usuario, "cedula", None) or usuario.id
     try:
@@ -436,16 +421,6 @@ async def transicionar_calculo_endpoint(
         horas_afectadas=resultado["horas_afectadas"],
         mensaje=f"Cálculo {calculo_id} pasó de {resultado['estado_anterior']} a {resultado['estado_nuevo']}.",
     )
-
-
-@router.get("/calculos/{calculo_id}/historial", response_model=List[WorkflowEventoRead])
-async def listar_historial_endpoint(
-    calculo_id: int = Path(..., ge=1),
-    db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he_leer),
-):
-    """Bitácora de transiciones del cálculo (CONFIRMADO inicial + cada cambio)."""
-    return await listar_eventos_calculo(db, calculo_id)
 
 
 @router.post("/bolsa/compensar", response_model=CompensarBolsaResponse)

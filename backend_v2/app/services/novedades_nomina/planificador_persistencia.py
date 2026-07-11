@@ -51,6 +51,7 @@ from .horas_extras_confirmacion import confirmar_pre_liquidacion
 from .horas_extras_trazabilidad import construir_detalle_diario_planificador
 from .planificador_costos_ot import distribuir_costos_ot_plan
 from .planificador_ot import validar_asignaciones_ot_dia
+from .horario_lock_service import bloquear_horario_empleado
 
 logger = logging.getLogger(__name__)
 
@@ -84,26 +85,24 @@ async def guardar_borrador_plan(
 
     for emp_in in payload.empleados:
         try:
-            await _guardar_un_empleado(
-                session, emp_in, payload.semana, usuario_id
-            )
-        except Exception as e:
-            logger.exception("Error guardando borrador de %s: %s", emp_in.cedula, e)
-            errores.append(PlanBulkEmpleadoError(cedula=emp_in.cedula, motivo=str(e)))
-            await session.rollback()
+            async with session.begin_nested():
+                creados, actualizados, novedades = await _guardar_un_empleado(
+                    session, emp_in, payload.semana, usuario_id
+                )
+            regs_creados += creados
+            regs_actualizados += actualizados
+            nov_creadas += novedades
+        except Exception:
+            logger.warning("Error de negocio guardando empleado del lote")
+            errores.append(PlanBulkEmpleadoError(
+                cedula=emp_in.cedula, motivo="No fue posible guardar el empleado"
+            ))
             continue
-
-        # Contar filas afectadas — fuera del try/except para que cuente OK
-        # incluso si el commit de este empleado fue exitoso.
-        for d in emp_in.dias:
-            if d.hora_entrada is not None or d.hora_salida is not None:
-                regs_creados += 1
-        nov_creadas += sum(len(d.novedades) for d in emp_in.dias)
 
     try:
         await session.commit()
-    except Exception as e:
-        logger.exception("Error en commit final de borrador: %s", e)
+    except Exception:
+        logger.error("Error en commit final de borrador")
         await session.rollback()
         raise
 
@@ -120,22 +119,13 @@ async def _guardar_un_empleado(
     emp_in: PlanEmpleadoInBase,
     semana: PlanSemanaIn,
     usuario_id: Optional[str],
-) -> None:
+) -> tuple[int, int, int]:
     """Upsert idempotente de un empleado. Si falla, raise para rollback."""
     cedula = emp_in.cedula.strip()
 
-    # 1. Cabecera nomina_horario_pactado (crear si no existe)
-    stmt_h = select(NominaHorarioPactado).where(NominaHorarioPactado.cedula == cedula)
-    horario_hdr = (await session.execute(stmt_h)).scalar_one_or_none()
-    if horario_hdr is None:
-        horario_hdr = NominaHorarioPactado(
-            cedula=cedula,
-            minutos_jornada_ordinaria=480,
-            horas_semana_ordinaria=48.0,
-            autoriza_he_default=True,
-        )
-        session.add(horario_hdr)
-        await session.flush()
+    await bloquear_horario_empleado(session, cedula)
+    creados = 0
+    actualizados = 0
 
     # 2. Upsert de cada dia (PK cedula+dia_semana)
     for d in emp_in.dias:
@@ -146,17 +136,21 @@ async def _guardar_un_empleado(
         )
         existing = (await session.execute(stmt_d)).scalar_one_or_none()
         if existing is not None:
+            actualizados += 1
             existing.hora_entrada = d.hora_entrada
             existing.hora_salida = d.hora_salida
             existing.minutos_almuerzo = d.minutos_almuerzo
+            existing.cruza_medianoche = d.cruza_medianoche
             session.add(existing)
         else:
+            creados += 1
             session.add(NominaHorarioPactadoDia(
                 cedula=cedula,
                 dia_semana=d.dia_semana,
                 hora_entrada=d.hora_entrada,
                 hora_salida=d.hora_salida,
                 minutos_almuerzo=d.minutos_almuerzo,
+                cruza_medianoche=d.cruza_medianoche,
             ))
         await _guardar_asignaciones_ot_dia(session, cedula, semana, d)
     await session.flush()
@@ -174,9 +168,12 @@ async def _guardar_un_empleado(
                 fecha_fin=nov.fecha_fin,
                 observaciones=nov.observaciones,
             )
-            await crear_novedad_evento(session, payload_nov, usuario_id)
+            await crear_novedad_evento(
+                session, payload_nov, usuario_id, confirmar_transaccion=False
+            )
 
     await session.flush()
+    return creados, actualizados, sum(len(d.novedades) for d in emp_in.dias)
 
 
 async def _guardar_asignaciones_ot_dia(
@@ -235,42 +232,43 @@ async def confirmar_plan(
 
     for emp_in in payload.empleados:
         try:
-            parametros = await _resolver_parametros_confirmacion(
-                session, emp_in, payload.semana
-            )
-            for dia in emp_in.dias:
-                validar_asignaciones_ot_dia(dia)
-                await _guardar_asignaciones_ot_dia(session, emp_in.cedula.strip(), payload.semana, dia)
-            await session.flush()
-            # 1. Construir PreLiquidacionConfirmar con registro_diario
-            detalles = await _construir_detalles_confirmacion(
-                session, emp_in, payload.semana, parametros
-            )
-            detalle_diario = await construir_detalle_diario_planificador(
-                session, emp_in, payload.semana, parametros, detalles
-            )
-            tiene_asignaciones_ot = any(d.asignaciones_ot for d in emp_in.dias)
-            confirm_payload = PreLiquidacionConfirmar(
-                cedula=emp_in.cedula,
-                anio=payload.semana.anio,
-                semana_iso=payload.semana.semana_iso,
-                fecha_inicio=payload.semana.fecha_inicio,
-                fecha_fin=payload.semana.fecha_fin,
-                nivel_riesgo_arl=parametros.nivel_riesgo_arl,
-                factor_prestacional=parametros.factor_prestacional,
-                salario_base_mensual=parametros.salario_base_mensual,
-                valor_hora_ordinaria=parametros.valor_hora_ordinaria,
-                detalles=detalles,
-                detalle_diario=detalle_diario,
-                ot_id=None if tiene_asignaciones_ot else parametros.ot_id,
-                ot_codigo=None if tiene_asignaciones_ot else parametros.ot_codigo,
-                usuario_confirma=payload.usuario_confirma,
-            )
-            # 2. Llamar al motor actual
-            resultado = await confirmar_pre_liquidacion(session, confirm_payload)
-            costo_ot_ids = await distribuir_costos_ot_plan(
-                session, emp_in, payload.semana, parametros, resultado.get("calculo_id")
-            )
+            async with session.begin_nested():
+                parametros = await _resolver_parametros_confirmacion(
+                    session, emp_in, payload.semana
+                )
+                for dia in emp_in.dias:
+                    validar_asignaciones_ot_dia(dia)
+                    await _guardar_asignaciones_ot_dia(session, emp_in.cedula.strip(), payload.semana, dia)
+                await session.flush()
+                detalles = await _construir_detalles_confirmacion(
+                    session, emp_in, payload.semana, parametros
+                )
+                detalle_diario = await construir_detalle_diario_planificador(
+                    session, emp_in, payload.semana, parametros, detalles
+                )
+                tiene_asignaciones_ot = any(d.asignaciones_ot for d in emp_in.dias)
+                confirm_payload = PreLiquidacionConfirmar(
+                    cedula=emp_in.cedula,
+                    anio=payload.semana.anio,
+                    semana_iso=payload.semana.semana_iso,
+                    fecha_inicio=payload.semana.fecha_inicio,
+                    fecha_fin=payload.semana.fecha_fin,
+                    nivel_riesgo_arl=parametros.nivel_riesgo_arl,
+                    factor_prestacional=parametros.factor_prestacional,
+                    salario_base_mensual=parametros.salario_base_mensual,
+                    valor_hora_ordinaria=parametros.valor_hora_ordinaria,
+                    detalles=detalles,
+                    detalle_diario=detalle_diario,
+                    ot_id=None if tiene_asignaciones_ot else parametros.ot_id,
+                    ot_codigo=None if tiene_asignaciones_ot else parametros.ot_codigo,
+                    usuario_confirma=payload.usuario_confirma,
+                )
+                resultado = await confirmar_pre_liquidacion(
+                    session, confirm_payload, confirmar_transaccion=False
+                )
+                costo_ot_ids = await distribuir_costos_ot_plan(
+                    session, emp_in, payload.semana, parametros, resultado.get("calculo_id")
+                )
             calculos.append(PlanConfirmarCalculoItem(
                 cedula=emp_in.cedula,
                 calculo_id=resultado.get("calculo_id"),
@@ -286,14 +284,18 @@ async def confirmar_plan(
             ))
             total_he += sum(d.horas for d in detalles)
             total_costo += sum(d.costo_total for d in detalles)
-        except ValueError as e:
-            logger.warning("Error confirmando %s: %s", emp_in.cedula, e)
-            errores.append(PlanBulkEmpleadoError(cedula=emp_in.cedula, motivo=str(e)))
-            await session.rollback()
-        except Exception as e:
-            logger.exception("Error inesperado confirmando %s: %s", emp_in.cedula, e)
-            errores.append(PlanBulkEmpleadoError(cedula=emp_in.cedula, motivo=str(e)))
-            await session.rollback()
+        except ValueError:
+            logger.warning("Error de negocio confirmando empleado del lote")
+            errores.append(PlanBulkEmpleadoError(
+                cedula=emp_in.cedula, motivo="No fue posible confirmar el empleado"
+            ))
+        except Exception:
+            logger.error("Error inesperado confirmando empleado del lote")
+            errores.append(PlanBulkEmpleadoError(
+                cedula=emp_in.cedula, motivo="Error interno al confirmar el empleado"
+            ))
+
+    await session.commit()
 
     return PlanConfirmarResponse(
         calculos=calculos,
@@ -384,7 +386,7 @@ async def _construir_detalles_confirmacion(
         validar_asignaciones_ot_dia(d)
         codigos_nov = [n.codigo_novedad for n in d.novedades]
         horas_trab = _horas_trabajadas_dia(
-            d.hora_entrada, d.hora_salida, d.minutos_almuerzo
+            d.hora_entrada, d.hora_salida, d.minutos_almuerzo, d.cruza_medianoche
         )
         if any(c in CODIGOS_NOVEDAD_SUPRESION_PLAN for c in codigos_nov):
             horas_trab = 0.0

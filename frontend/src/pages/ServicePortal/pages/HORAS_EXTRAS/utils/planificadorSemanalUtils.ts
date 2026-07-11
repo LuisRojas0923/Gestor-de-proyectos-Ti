@@ -14,6 +14,7 @@ export const DIAS_SEMANA_INICIAL: PlanDiaIn[] = DIAS_SEMANA.map((d) => ({
   hora_entrada: d <= 5 ? '07:30' : null,
   hora_salida: d <= 5 ? '17:00' : null,
   minutos_almuerzo: d <= 5 ? 30 : 0,
+  cruza_medianoche: false,
   novedades: [],
   asignaciones_ot: [],
 }));
@@ -24,12 +25,12 @@ export const normalizarDiasPlan = (dias: PlanDiaIn[]): PlanDiaIn[] =>
     asignaciones_ot: dia.asignaciones_ot ?? [],
   }));
 
-export const calcularHorasTurno = (entrada: string | null, salida: string | null, almuerzo: number): number => {
+export const calcularHorasTurno = (entrada: string | null, salida: string | null, almuerzo: number, cruzaMedianoche = false): number => {
   if (!entrada || !salida) return 0;
   const [eh, em] = entrada.split(':').map(Number);
   const [sh, sm] = salida.split(':').map(Number);
   const inicio = eh * 60 + em;
   let fin = sh * 60 + sm;
-  if (fin < inicio) fin += 24 * 60;
+  if (cruzaMedianoche) fin += 24 * 60;
   return Math.max(0, Number(((fin - inicio - almuerzo) / 60).toFixed(2)));
 };

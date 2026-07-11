@@ -225,3 +225,49 @@ El consumidor (`MyDevelopments`) pasa `columnOptions={cascadingOptions}` al `Dat
 - **No es fuente de verdad del backend.** Es marca personal/equipo. Si el equipo cambia de navegador o limpia storage, los checks se pierden.
 - **No se migra si se renombra la clave.** Si `my_developments_reviewed` cambia, los checks existentes quedan huérfanos en localStorage.
 - **Performance:** con 12 columnas y N filas, la cascada itera `12 × N` por cambio de filtro. Para N < 5000 es despreciable; sobre eso considerar memoizar por `data` + `filters` signature.
+
+---
+
+## Features: Plantillas de horario y alcance de empleados
+
+**Agregado:** 2026-07-10
+
+Las rutas de features del Portal de Servicios se extrajeron a `src/pages/ServicePortal/routes/featureRoutes.tsx`. Cada pantalla nueva se carga con `React.lazy` y queda envuelta por `ProtectedRoute` con un permiso independiente:
+
+- `/service-portal/horas-extras/plantillas` -> `nomina_horas_extras.plantillas_horario.administrar`.
+- `/service-portal/alcance-empleados` -> `alcance_empleados.administrar`.
+- `/service-portal/biometria` -> `biometria`.
+
+### Limites por capa
+
+| Capa | Responsabilidad |
+|---|---|
+| `src/config/api.ts` | Paths API sin URLs hardcodeadas en paginas. |
+| `src/services/horariosRelacionesService.ts` | Fetch autenticado, errores tipados, serializacion multivalor y `AbortSignal`. |
+| `src/types/horariosRelaciones.ts` | DTO de plantillas, empleados, relaciones, disponibilidad y GeoFace admin. |
+| `PlantillasHorario/hooks/usePlantillasHorario.ts` | Estado remoto y acciones del catalogo. |
+| `AlcanceEmpleados/hooks/useAlcanceEmpleados.ts` | Gestor, semana, filtros remotos, paginacion, debounce y cancelacion. |
+| Paginas `index.tsx` | Coordinacion de estado, modales, seleccion y notificaciones. |
+| `components/` | Render desktop/mobile y acciones presentacionales. |
+
+### Editor semanal
+
+`WeeklyScheduleEditor` es controlado y reutilizable por Plantillas, Horario y Planificador. Edita siete dias, francos, almuerzo y `cruza_medianoche`; no conoce endpoints ni permisos. `DefaultHorarioSemana` compone este editor para mantener el flujo existente.
+
+### Relaciones responsive
+
+`AlcanceEmpleados` mantiene la seleccion por cedula fuera de la pagina visible. En escritorio usa `EmpleadosRelacionTable`; en movil usa `EmpleadosRelacionCards`. Los datos de empleado se concentran en `EmpleadoDatos` para no duplicar nombre, cedula, cargo, area, ciudad, jefe y badges HE.
+
+El hook aplica debounce de 250 ms y cancela solicitudes anteriores con `AbortController`. Los filtros se envian al backend; la pagina no usa la pagina cargada como fuente de verdad para totales o facetas.
+
+### Autoridad y seguridad
+
+Las guardas frontend solo controlan navegacion y visibilidad. Backend conserva la autoridad sobre permiso funcional, alcance por cedula, idempotencia y respuesta `403/404`. GeoFace consulta `/biometria/admin/capacidades` para habilitar supervision, pero cada listado y evidencia vuelve a validar alcance.
+
+### Hardening posterior a revision
+
+- La `solicitud_id` de Relaciones y Aplicaciones se conserva en un `ref` mientras no cambie el payload y solo se descarta tras exito, cancelacion o cambio de seleccion.
+- `Modal` mantiene un stack global y un contador de scroll locks: Escape y focus trap pertenecen solo al modal superior, y el foco vuelve al disparador al cerrar.
+- `utils/validarTurno.ts` centraliza la coherencia de pares de horas, francos, igualdad, almuerzo y `cruza_medianoche` para editores individuales y masivos.
+- Relaciones impide preparar mas de 200 cambios, bloquea doble submit y refresca empleados y conteos de gestores tras guardar.
+- Biometria diferencia error de capacidades de ausencia de permiso, permite reintento, implementa tabs ARIA con flechas y confirma la eliminacion de zonas en un modal.

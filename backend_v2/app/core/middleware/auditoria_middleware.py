@@ -261,9 +261,9 @@ async def auditoria_http_middleware(request: Request, call_next) -> Response:
 
             )
 
-    except Exception as exc:
+    except Exception:
 
-        logger.error("Middleware auditoría falló sin afectar respuesta: %s", exc)
+        logger.error("Middleware auditoría falló sin afectar respuesta")
 
 
 

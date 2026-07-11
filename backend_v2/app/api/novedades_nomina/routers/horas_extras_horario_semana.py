@@ -24,6 +24,7 @@ from ....services.novedades_nomina.horas_extras_horario_semana import (
     obtener_horario_semana,
     actualizar_horario_semana,
 )
+from ....services.auth.alcance_empleados_service import autorizar_cedula
 from .horas_extras_permisos import requiere_permiso_he_planificar
 
 logger = logging.getLogger(__name__)
@@ -34,9 +35,13 @@ router = APIRouter()
 async def obtener_horario_semana_endpoint(
     cedula: str = Path(..., min_length=1, max_length=50),
     db: AsyncSession = Depends(obtener_db),
-    _: Usuario = Depends(requiere_permiso_he_planificar),
+    usuario: Usuario = Depends(requiere_permiso_he_planificar),
 ):
     """Devuelve los 7 días del horario (L-D). Crea la fila padre si no existe."""
+    try:
+        cedula = await autorizar_cedula(db, usuario, cedula)
+    except (ValueError, PermissionError) as exc:
+        raise HTTPException(404, "Empleado no encontrado") from exc
     dias = await obtener_horario_semana(db, cedula)
     return HorarioPactadoSemanaRead(
         cedula=cedula,
@@ -54,11 +59,15 @@ async def actualizar_horario_semana_endpoint(
     """Reemplaza los 7 días del horario del empleado."""
     usuario_id = getattr(usuario, "cedula", None) or usuario.id
     try:
+        cedula = await autorizar_cedula(db, usuario, cedula)
         dias = await actualizar_horario_semana(db, cedula, payload.dias, usuario_id)
         await db.commit()
+    except PermissionError as exc:
+        await db.rollback()
+        raise HTTPException(404, "Empleado no encontrado") from exc
     except ValueError as e:
         await db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e))
     return HorarioPactadoSemanaRead(
         cedula=cedula,
         dias=[HorarioPactadoDiaRead.model_validate(d) for d in dias],

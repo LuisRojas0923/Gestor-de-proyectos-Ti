@@ -18,6 +18,7 @@ from app.core.migrations.horas_extras_migration_s6 import (
 )
 from app.core.migrations.horas_extras_migration_s8 import crear_tabla_planificador_dia_ot
 from app.core.migrations.horas_extras_migration_s10 import crear_tabla_calculo_diario_detalle
+from app.core.migrations.horarios_relaciones_migration import migrar_horarios_relaciones
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +140,10 @@ async def init_db_process(async_engine, AsyncSessionLocal):
             await crear_tabla_calculo_diario_detalle(conn)
         except Exception as e:
             logger.error(f"Error en migración nomina_calculo_diario_detalle (S10): {e}")
+
+    # 3.16 Migracion critica: debe abortar el arranque ante cualquier fallo.
+    async with async_engine.begin() as conn:
+        await migrar_horarios_relaciones(conn)
 
     # 4. Saneamiento de Datos (Inventario y otros)
     saneamientos = [

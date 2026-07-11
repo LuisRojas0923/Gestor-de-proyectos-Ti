@@ -5,7 +5,7 @@ Cobertura:
   - Jornada ordinaria semanal 42h y divisor 210 desde 2026-07-16.
   - Revision semanal con compensacion entre dias.
   - Franja nocturna operativa 19:00-06:00 cuando se infiere HEN.
-  - Turnos que cruzan medianoche deben partirse en dos dias.
+  - Turnos que cruzan medianoche usan el flag explicito del contrato semanal.
 """
 from datetime import time
 
@@ -80,11 +80,17 @@ def test_jornada_nocturna_confirmada_infiere_hen_con_franja_19_a_6():
     assert resultado.detalles[0].codigo_novedad == "HEN"
 
 
-def test_turno_que_cruza_medianoche_debe_partirse_en_dos_dias():
+def test_turno_que_cruza_medianoche_se_calcula_con_flag_explicito():
     entrada_salida = [
         RegistroDiarioInput(dia_semana=1, hora_entrada=time(8, 0), hora_salida=time(17, 0), minutos_almuerzo=60),
         RegistroDiarioInput(dia_semana=2, hora_entrada=time(8, 0), hora_salida=time(17, 0), minutos_almuerzo=60),
-        RegistroDiarioInput(dia_semana=3, hora_entrada=time(19, 0), hora_salida=time(6, 0), minutos_almuerzo=0),
+        RegistroDiarioInput(
+            dia_semana=3,
+            hora_entrada=time(19, 0),
+            hora_salida=time(6, 0),
+            minutos_almuerzo=0,
+            cruza_medianoche=True,
+        ),
         RegistroDiarioInput(dia_semana=4, hora_entrada=time(8, 0), hora_salida=time(17, 0), minutos_almuerzo=60),
         RegistroDiarioInput(dia_semana=5, hora_entrada=time(8, 0), hora_salida=time(17, 0), minutos_almuerzo=60),
         RegistroDiarioInput(dia_semana=6, hora_entrada=None, hora_salida=None, minutos_almuerzo=0),
@@ -92,5 +98,6 @@ def test_turno_que_cruza_medianoche_debe_partirse_en_dos_dias():
     ]
     payload = _input([0.0] * 7, registro_diario=entrada_salida)
 
-    with pytest.raises(ValueError, match="partirse en dos dias"):
-        _aplicar_registro_diario(payload)
+    resultado = _aplicar_registro_diario(payload)
+
+    assert resultado.horas_por_dia[2] == 11.0

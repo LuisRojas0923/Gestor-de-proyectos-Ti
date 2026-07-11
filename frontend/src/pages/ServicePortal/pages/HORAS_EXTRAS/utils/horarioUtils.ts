@@ -28,9 +28,10 @@ export const calcularHorasDia = (
   horaEntrada: string | null,
   horaSalida: string | null,
   minutosAlmuerzo: number,
+  cruzaMedianoche = false,
 ): number => {
   if (!esHoraValida(horaEntrada) || !esHoraValida(horaSalida)) return 0;
-  const minutosBrutos = toMinutes(horaSalida) - toMinutes(horaEntrada);
+  const minutosBrutos = toMinutes(horaSalida) + (cruzaMedianoche ? 24 * 60 : 0) - toMinutes(horaEntrada);
   if (minutosBrutos <= 0) return 0;
   const minutosEfectivos = minutosBrutos - Math.max(0, minutosAlmuerzo);
   return Math.round(Math.max(0, minutosEfectivos / 60) * 100) / 100;
@@ -46,13 +47,14 @@ export const horarioPactadoARegistro = (h: HorarioPactadoDia): RegistroDiario =>
   hora_entrada: h.hora_entrada,
   hora_salida: h.hora_salida,
   minutos_almuerzo: h.minutos_almuerzo,
+  cruza_medianoche: h.cruza_medianoche,
 });
 
 /** Suma horas trabajadas en una semana (7 días). */
 export const totalHorasSemana = (registro: RegistroDiario[]): number =>
   registro.reduce(
     (acc, r) =>
-      acc + calcularHorasDia(r.hora_entrada, r.hora_salida, r.minutos_almuerzo),
+      acc + calcularHorasDia(r.hora_entrada, r.hora_salida, r.minutos_almuerzo, r.cruza_medianoche),
     0,
   );
 

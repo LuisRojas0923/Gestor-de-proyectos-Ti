@@ -58,7 +58,8 @@ async def distribuir_costos_ot_plan(
             continue
         codigos_nov = [n.codigo_novedad for n in dia.novedades]
         horas_trab = _horas_trabajadas_dia(
-            dia.hora_entrada, dia.hora_salida, dia.minutos_almuerzo
+            dia.hora_entrada, dia.hora_salida, dia.minutos_almuerzo,
+            dia.cruza_medianoche,
         )
         if any(c in CODIGOS_NOVEDAD_SUPRESION_PLAN for c in codigos_nov):
             horas_trab = 0.0

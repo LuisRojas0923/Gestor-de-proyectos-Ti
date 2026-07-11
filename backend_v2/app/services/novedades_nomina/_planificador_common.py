@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...models.novedades_nomina.turnos import horas_jornada
 from .horas_extras_calculo import HORAS_ORDINARIAS_DIARIAS
 from .horas_extras_service import listar_catalogo_vigente, obtener_factor_por_nivel
 
@@ -34,15 +35,10 @@ def _horas_trabajadas_dia(
     entrada: Optional[time],
     salida: Optional[time],
     minutos_almuerzo: int,
+    cruza_medianoche: bool = False,
 ) -> float:
     """Replica la regla de _aplicar_registro_diario."""
-    if entrada is None or salida is None:
-        return 0.0
-    minutos_brutos = (salida.hour * 60 + salida.minute) - (entrada.hour * 60 + entrada.minute)
-    if minutos_brutos < 0:
-        return 0.0
-    minutos_efectivos = minutos_brutos - max(0, minutos_almuerzo)
-    return round(max(0.0, minutos_efectivos / 60.0), 2)
+    return horas_jornada(entrada, salida, minutos_almuerzo, cruza_medianoche)
 
 
 async def _resolver_catalogo_y_factor(

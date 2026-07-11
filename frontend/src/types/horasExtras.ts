@@ -114,6 +114,7 @@ export interface HorarioPactadoDia {
   hora_salida: string | null;
   /** Minutos de almuerzo (0-240) */
   minutos_almuerzo: number;
+  cruza_medianoche: boolean;
 }
 
 export interface HorarioPactadoSemana {
@@ -126,6 +127,7 @@ export interface HorarioPactadoDiaUpdate {
   hora_entrada: string | null;
   hora_salida: string | null;
   minutos_almuerzo: number;
+  cruza_medianoche: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +143,7 @@ export interface RegistroDiario {
   hora_salida: string | null;
   /** Minutos de almuerzo (0-240) */
   minutos_almuerzo: number;
+  cruza_medianoche: boolean;
 }
 
 export interface EmpleadoERPDetalle {

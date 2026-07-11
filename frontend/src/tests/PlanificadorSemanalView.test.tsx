@@ -42,7 +42,6 @@ vi.mock('../services/horasExtrasService', () => ({
 
 import PlanificadorSemanalView from '../pages/ServicePortal/pages/HORAS_EXTRAS/PlanificadorSemanalView';
 import EmpleadosActivosView from '../pages/ServicePortal/pages/HORAS_EXTRAS/EmpleadosActivosView';
-import DefaultHorarioSemana from '../pages/ServicePortal/pages/HORAS_EXTRAS/components/DefaultHorarioSemana';
 import {
   crearBorradorPlanificadorBase,
   guardarBorradorPlanificadorLocal,
@@ -100,81 +99,6 @@ const renderPlanificadorConSeleccion = () => {
   guardarSeleccionPlanificador();
   return wrapperRouter(<PlanificadorSemanalView />);
 };
-
-describe('DefaultHorarioSemana', () => {
-  it('llama onAplicarATodos al hacer click en el boton', () => {
-    const onChange = vi.fn();
-    const onAplicar = vi.fn();
-    const dias = [1, 2, 3, 4, 5, 6, 7].map((d) => ({
-      dia_semana: d,
-      hora_entrada: '07:30',
-      hora_salida: '17:00',
-      minutos_almuerzo: 60,
-      novedades: [],
-      asignaciones_ot: [],
-    }));
-    wrapperRouter(
-      <DefaultHorarioSemana dias={dias} onChange={onChange} onAplicarATodos={onAplicar} />,
-    );
-
-    const boton = screen.getByText(/Aplicar a todos/);
-    fireEvent.click(boton);
-    expect(onAplicar).toHaveBeenCalledTimes(1);
-  });
-
-  it('permite editar la hora de entrada de un dia', () => {
-    const onChange = vi.fn();
-    const dias = [1, 2, 3, 4, 5, 6, 7].map((d) => ({
-      dia_semana: d,
-      hora_entrada: '07:30',
-      hora_salida: '17:00',
-      minutos_almuerzo: 60,
-      novedades: [],
-      asignaciones_ot: [],
-    }));
-    wrapperRouter(
-      <DefaultHorarioSemana dias={dias} onChange={onChange} onAplicarATodos={() => {}} />,
-    );
-
-    // El primer input con valor 07:30 es la entrada del Lunes
-    const entradaInput = screen.getAllByDisplayValue('07:30')[0];
-    fireEvent.change(entradaInput, { target: { value: '08:00' } });
-
-    expect(onChange).toHaveBeenCalled();
-    const llamado = onChange.mock.calls[0][0];
-    expect(llamado[0].hora_entrada).toBe('08:00');
-  });
-});
-
-describe('planificadorDraft', () => {
-  afterEach(() => {
-    sessionStorage.clear();
-  });
-
-  it('guarda y lee el borrador local con valores normalizados', () => {
-    const draft = crearBorradorPlanificadorBase();
-    guardarBorradorPlanificadorLocal({
-      ...draft,
-      seleccionados: ['456'],
-      empleadosInfo: [['456', mockEmpleados.items[1]]],
-      plantillaEntrada: '08:00',
-    });
-
-    const leido = leerBorradorPlanificador();
-    expect(leido?.seleccionados).toEqual(['456']);
-    expect(leido?.empleadosInfo[0][1].ciudadcontratacion).toBe('Medellin');
-    expect(leido?.plantillaEntrada).toBe('08:00');
-  });
-
-  it('no rompe con JSON valido pero incompleto', () => {
-    sessionStorage.setItem(PLANIFICADOR_DRAFT_KEY, JSON.stringify({ empleadosInfo: {} }));
-
-    const leido = leerBorradorPlanificador();
-    expect(leido?.seleccionados).toEqual([]);
-    expect(leido?.empleadosInfo).toEqual([]);
-    expect(leido?.diasDestino).toEqual([1, 2, 3, 4, 5]);
-  });
-});
 
 describe('PlanificadorSemanalView', () => {
   beforeEach(() => {
@@ -293,6 +217,24 @@ describe('PlanificadorSemanalView', () => {
       const callArg = (guardarBorradorPlan as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(callArg.empleados[0].dias[0].hora_entrada).toBe('08:00');
     });
+  });
+
+  it('no llama APIs cuando un día tiene un turno nocturno incoherente', async () => {
+    guardarBorradorPlanificadorLocal({
+      ...crearBorradorPlanificadorBase(),
+      seleccionados: ['123'],
+      empleadosInfo: [['123', mockEmpleados.items[0]]],
+      overrides: [['123', [1, 2, 3, 4, 5, 6, 7].map((dia_semana) => ({
+        dia_semana, hora_entrada: '22:00', hora_salida: '06:00', minutos_almuerzo: 0,
+        cruza_medianoche: false, novedades: [], asignaciones_ot: [],
+      }))]],
+    });
+    wrapperRouter(<PlanificadorSemanalView />);
+    await screen.findByText('Operación');
+    fireEvent.click(screen.getByRole('button', { name: /Guardar borrador/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Pre-calcular/i }));
+    expect(guardarBorradorPlan).not.toHaveBeenCalled();
+    expect(preCalcularPlan).not.toHaveBeenCalled();
   });
 
   it('aplica horario y novedad masiva desde el mismo boton', async () => {

@@ -78,6 +78,7 @@ describe('horarioUtils', () => {
         hora_entrada: '08:00',
         hora_salida: '17:00',
         minutos_almuerzo: 45,
+        cruza_medianoche: false,
       };
       const r: RegistroDiario = horarioPactadoARegistro(h);
       expect(r).toEqual(h);
@@ -89,6 +90,7 @@ describe('horarioUtils', () => {
         hora_entrada: null,
         hora_salida: null,
         minutos_almuerzo: 0,
+        cruza_medianoche: false,
       };
       const r = horarioPactadoARegistro(h);
       expect(r.hora_entrada).toBeNull();
@@ -99,15 +101,20 @@ describe('horarioUtils', () => {
   describe('totalHorasSemana', () => {
     it('suma 5 días laborales (9h c/u) + 2 francos = 45h', () => {
       const dias: RegistroDiario[] = [
-        { dia_semana: 1, hora_entrada: '07:30', hora_salida: '17:00', minutos_almuerzo: 30 },
-        { dia_semana: 2, hora_entrada: '07:30', hora_salida: '17:00', minutos_almuerzo: 30 },
-        { dia_semana: 3, hora_entrada: '07:30', hora_salida: '17:00', minutos_almuerzo: 30 },
-        { dia_semana: 4, hora_entrada: '07:30', hora_salida: '17:00', minutos_almuerzo: 30 },
-        { dia_semana: 5, hora_entrada: '07:30', hora_salida: '17:30', minutos_almuerzo: 30 },
-        { dia_semana: 6, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0 },
-        { dia_semana: 7, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0 },
+        { dia_semana: 1, hora_entrada: '07:30', hora_salida: '17:00', minutos_almuerzo: 30, cruza_medianoche: false },
+        { dia_semana: 2, hora_entrada: '07:30', hora_salida: '17:00', minutos_almuerzo: 30, cruza_medianoche: false },
+        { dia_semana: 3, hora_entrada: '07:30', hora_salida: '17:00', minutos_almuerzo: 30, cruza_medianoche: false },
+        { dia_semana: 4, hora_entrada: '07:30', hora_salida: '17:00', minutos_almuerzo: 30, cruza_medianoche: false },
+        { dia_semana: 5, hora_entrada: '07:30', hora_salida: '17:30', minutos_almuerzo: 30, cruza_medianoche: false },
+        { dia_semana: 6, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0, cruza_medianoche: false },
+        { dia_semana: 7, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0, cruza_medianoche: false },
       ];
       expect(totalHorasSemana(dias)).toBe(45.5);
+    });
+
+    it('calcula un turno que cruza medianoche solo con el flag explícito', () => {
+      expect(calcularHorasDia('22:00', '06:00', 30, true)).toBe(7.5);
+      expect(calcularHorasDia('22:00', '06:00', 30, false)).toBe(0);
     });
 
     it('semana vacía → 0', () => {

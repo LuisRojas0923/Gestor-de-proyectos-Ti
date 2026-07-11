@@ -164,10 +164,46 @@
         "low": 1
       },
       "test_coverage_observations": "Nómina V2 no añade regresiones Vitest para límite de 50 y nulos. Auditoría añade solo 2 casos y los duplica fuera de testpaths; faltan RBAC, contrato completo de estadísticas, WebSocket, middleware, inventario, reporte de gastos, errores/concurrencia y frontend. No hay catálogo ni evidencia ejecutada."
+    },
+    {
+      "date": "2026-07-10",
+      "scope": "build-real-horarios-relaciones-empleados",
+      "outcome": "blocked",
+      "findings": {
+        "critical": 0,
+        "high": 3,
+        "medium": 4,
+        "low": 2
+      },
+      "test_coverage_observations": "Evidencia directa comunicada: frontend 176 passed/2 skipped, tsc/build OK; backend 59 passed/4 skipped. Evidencia secundaria: 118 backend passed y migracion doble reportados. Collect-only local: 70 casos en siete suites focales. Sin metrica de coverage ni rojo TDD auditable; faltan pruebas de GeoFace/IDOR, append-only, relaciones transaccionales/concurrencia y migracion desde esquema previo con fallo critico."
+    },
+    {
+      "date": "2026-07-10",
+      "scope": "build-real-horarios-relaciones-empleados-rereview",
+      "outcome": "blocked",
+      "findings": {
+        "critical": 0,
+        "high": 3,
+        "medium": 4,
+        "low": 2
+      },
+      "test_coverage_observations": "Evidencia final reportada: backend 134, seguridad/concurrencia 48, health 4/4, frontend 196/2, tsc/build/lint focal OK. Collect-only local: 57 casos en ocho suites focales. Cerrados constraints, fallo critico, append-only, relaciones transaccionales, savepoints, PII/no-store y parte de IDOR/GeoFace. Persisten ausencia de concurrencia multi-sesion real, matriz HTTP IDOR completa, coverage/log final y rojo TDD auditable."
+    },
+    {
+      "date": "2026-07-10",
+      "scope": "build-real-horarios-relaciones-empleados-final-definitiva",
+      "outcome": "approved_with_risks",
+      "findings": {
+        "critical": 0,
+        "high": 0,
+        "medium": 4,
+        "low": 2
+      },
+      "test_coverage_observations": "Evidencia final reportada: backend 149, health 4/4, concurrencia PostgreSQL 2, frontend 199/2, focal frontend 10/10 y tsc/build/lint focal OK. Collect-only local: 71 casos en diez suites focales. Cerrados bloqueos de concurrencia multi-sesion, IDOR/preliquidacion/recursos indirectos, ERP 503, jefe y disponibilidad VAC/INC/LIC; evidencia TDD roja documenta ModuleNotFoundError previo a implementacion. Riesgos no bloqueantes: sin coverage/log verde final, matriz HTTP no exhaustiva y security pendiente de rerevision vigente."
     }
   ],
   "stats": {
-    "total_reviews": 13,
+    "total_reviews": 16,
     "last_review": "2026-07-10"
   }
 }

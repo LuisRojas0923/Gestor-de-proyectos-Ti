@@ -227,6 +227,8 @@ class EmpleadosService:
         limit: int = 20,
         offset: int = 0,
         solo_activos: bool = True,
+        cedulas_permitidas: Optional[List[str]] = None,
+        sin_paginar: bool = False,
     ) -> Dict:
         """Sprint S7: lista paginada de empleados del ERP con búsqueda opcional.
 
@@ -246,7 +248,8 @@ class EmpleadosService:
 
         estado_join_filtro = "AND C.estado = 'Activo'" if solo_activos else ""
         estado_where_filtro = "AND C.estado = 'Activo'" if solo_activos else ""
-        tiene_regional = _existe_columna(db_erp, "contrato", "regional")
+        tiene_jefe = _existe_columna(db_erp, "contrato", "jefe")
+        tiene_fecha_inicio = _existe_columna(db_erp, "contrato", "fechainicio")
         tiene_contrato_numero = _existe_columna(db_erp, "contrato", "numerocontrato")
         tiene_beneficio_autoriza = all([
             tiene_contrato_numero,
@@ -255,7 +258,7 @@ class EmpleadosService:
         ])
         tiene_beneficio_estado = _existe_columna(db_erp, "beneficio", "estado")
 
-        select_reporta = 'C.regional::text AS "quien_reporta"' if tiene_regional else 'NULL::text AS "quien_reporta"'
+        select_reporta = 'C.jefe::text AS "quien_reporta"' if tiene_jefe else 'NULL::text AS "quien_reporta"'
         if tiene_beneficio_autoriza:
             select_autoriza = 'B.autorizacionhorasextras AS "autoriza_he"'
             estado_beneficio = "AND B.estado = 'Activo'" if tiene_beneficio_estado else ""
@@ -277,15 +280,25 @@ class EmpleadosService:
                 "C.area::text ILIKE :q",
                 "C.ciudadcontratacion::text ILIKE :q",
             ]
-            if tiene_regional:
-                campos_busqueda.append("C.regional::text ILIKE :q")
+            if tiene_jefe:
+                campos_busqueda.append("C.jefe::text ILIKE :q")
             if tiene_beneficio_autoriza:
                 campos_busqueda.append("CAST(B.autorizacionhorasextras AS TEXT) ILIKE :q")
             where_clauses.append(f"({' OR '.join(campos_busqueda)})")
             params["q"] = f"%{q.strip()}%"
+        if cedulas_permitidas is not None:
+            if not cedulas_permitidas:
+                return {"items": [], "total": 0}
+            where_clauses.append("TRIM(CAST(E.nrocedula AS TEXT)) = ANY(:cedulas_permitidas)")
+            params["cedulas_permitidas"] = list(cedulas_permitidas)
 
         where_sql = " AND ".join(where_clauses)
 
+        paginacion_sql = "" if sin_paginar else "LIMIT :limit OFFSET :offset"
+        orden_contrato = (
+            ", C.numerocontrato DESC NULLS LAST" if tiene_contrato_numero else ""
+        )
+        orden_fecha = ", C.fechainicio DESC NULLS LAST" if tiene_fecha_inicio else ""
         query = text(f"""
             SELECT DISTINCT ON (E.nrocedula)
                 E.nrocedula      AS "nrocedula",
@@ -293,6 +306,7 @@ class EmpleadosService:
                 C.cargo::text    AS "cargo",
                 C.area::text     AS "area",
                 C.ciudadcontratacion::text AS "ciudadcontratacion",
+                C.estado::text AS "contrato_estado",
                 {select_reporta},
                 {select_autoriza}
             FROM establecimiento E
@@ -301,31 +315,38 @@ class EmpleadosService:
                 {estado_join_filtro}
             {join_beneficio}
             WHERE {where_sql} {estado_where_filtro}
-            ORDER BY E.nrocedula
-            LIMIT :limit OFFSET :offset
+            ORDER BY E.nrocedula{orden_fecha}{orden_contrato}
+            {paginacion_sql}
         """)
         rows = db_erp.execute(query, params).fetchall()
 
-        count_query = text(f"""
-            SELECT COUNT(DISTINCT E.nrocedula) AS "total"
-            FROM establecimiento E
-            LEFT JOIN contrato C
-                ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
-                {estado_join_filtro}
-            {join_beneficio}
-            WHERE {where_sql} {estado_where_filtro}
-        """)
-        total_row = db_erp.execute(count_query, params).first()
-        total = int(total_row.total) if total_row else 0
+        if sin_paginar:
+            total = len(rows)
+        else:
+            count_query = text(f"""
+                SELECT COUNT(DISTINCT E.nrocedula) AS "total"
+                FROM establecimiento E
+                LEFT JOIN contrato C
+                    ON TRIM(CAST(C.establecimiento AS TEXT)) = TRIM(CAST(E.nrocedula AS TEXT))
+                    {estado_join_filtro}
+                {join_beneficio}
+                WHERE {where_sql} {estado_where_filtro}
+            """)
+            total_row = db_erp.execute(count_query, params).first()
+            total = int(total_row.total) if total_row else 0
 
         items = []
         for r in rows:
+            contrato_estado = getattr(
+                r, "contrato_estado", "Activo" if solo_activos else None
+            )
             items.append({
                 "cedula": str(r.nrocedula).strip(),
                 "nombre": r.nombre,
                 "cargo": r.cargo,
                 "area": r.area,
                 "ciudadcontratacion": r.ciudadcontratacion,
+                "activo": contrato_estado == "Activo",
                 "quien_reporta": r.quien_reporta,
                 "nivel_riesgo_arl": None,
                 "autoriza_he": _normalizar_bool(r.autoriza_he),

@@ -35,4 +35,5 @@ export const registroVacio = (): RegistroDiario[] =>
     hora_entrada: null,
     hora_salida: null,
     minutos_almuerzo: 0,
+    cruza_medianoche: false,
   }));

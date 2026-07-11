@@ -189,6 +189,7 @@ def _aplicar_registro_diario(input_data: PreLiquidacionInput) -> PreLiquidacionI
         se reordena para alinear con horas_por_dia.
     """
     from ...models.novedades_nomina.schemas_horas_extras import RegistroDiarioInput  # noqa: F401
+    from ...models.novedades_nomina.turnos import horas_jornada
 
     if len(input_data.registro_diario or []) != 7:
         raise ValueError("registro_diario debe tener exactamente 7 entradas (L-D)")
@@ -202,19 +203,14 @@ def _aplicar_registro_diario(input_data: PreLiquidacionInput) -> PreLiquidacionI
             raise ValueError(
                 f"registro_diario debe cubrir días 1-7 consecutivos; falta día {i + 1}"
             )
-        if r.hora_entrada is None or r.hora_salida is None:
-            nuevas_horas.append(0.0)
-            continue
-        minutos_brutos = (
-            (r.hora_salida.hour * 60 + r.hora_salida.minute)
-            - (r.hora_entrada.hour * 60 + r.hora_entrada.minute)
-        )
-        if minutos_brutos < 0:
-            raise ValueError(
-                f"registro_diario[{i + 1}]: turno que cruza medianoche debe partirse en dos dias"
+        nuevas_horas.append(
+            horas_jornada(
+                r.hora_entrada,
+                r.hora_salida,
+                r.minutos_almuerzo,
+                r.cruza_medianoche,
             )
-        minutos_efectivos = minutos_brutos - r.minutos_almuerzo
-        nuevas_horas.append(round(max(0.0, minutos_efectivos / 60.0), 2))
+        )
 
     # Reemplazamos horas_por_dia in-place (es mutable en SQLModel).
     input_data.horas_por_dia = nuevas_horas

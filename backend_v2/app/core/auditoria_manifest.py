@@ -216,6 +216,20 @@ AUDITORIA_COBERTURA: dict[str, CoberturaAuditoriaModulo] = {
         "hereda_de": "nomina_horas_extras",
         "rutas_api": ["/api/v2/novedades-nomina/horas-extras"],
     },
+    "nomina_horas_extras.plantillas_horario.administrar": {
+        "tipo": "explicito",
+        "notas": "Historial de dominio transaccional y middleware sin payload bulk.",
+        "archivos": [
+            "backend_v2/app/api/novedades_nomina/routers/horas_extras_plantillas.py",
+        ],
+        "rutas_api": ["/api/v2/novedades-nomina/horas-extras/plantillas-horario"],
+    },
+    "alcance_empleados.administrar": {
+        "tipo": "explicito",
+        "notas": "Historial append-only; auditoría HTTP registra solo IDs y conteos.",
+        "archivos": ["backend_v2/app/api/auth/alcance_empleados_router.py"],
+        "rutas_api": ["/api/v2/alcance-empleados"],
+    },
 }
 
 # Módulos RBAC sin acciones de backend auditables (solo navegación / consulta meta).

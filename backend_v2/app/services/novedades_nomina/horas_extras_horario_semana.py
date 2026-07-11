@@ -20,6 +20,8 @@ from sqlmodel import select
 
 from ...models.novedades_nomina.horas_extras import NominaHorarioPactado
 from ...models.novedades_nomina.horas_extras_horario_dia import NominaHorarioPactadoDia
+from ...models.novedades_nomina.turnos import minutos_jornada
+from .horario_lock_service import bloquear_horario_empleado
 from ...models.novedades_nomina.schemas_horas_extras import (
     HorarioPactadoDiaUpdate,
 )
@@ -56,7 +58,7 @@ async def obtener_horario_semana(
     la crea vacía. Si hay días sin detalle, devuelve filas con hora_entrada
     = null (franco) para completar la semana.
     """
-    await _asegurar_horario_padre(session, cedula)
+    padre = await bloquear_horario_empleado(session, cedula)
     existentes = (
         await session.execute(
             select(NominaHorarioPactadoDia)
@@ -76,6 +78,7 @@ async def obtener_horario_semana(
                     hora_entrada=None,
                     hora_salida=None,
                     minutos_almuerzo=0,
+                    cruza_medianoche=False,
                 )
             )
     return resultado
@@ -104,7 +107,7 @@ async def actualizar_horario_semana(
                 f"dias debe cubrir días 1-7 consecutivos; falta día {i + 1}"
             )
 
-    await _asegurar_horario_padre(session, cedula)
+    padre = await bloquear_horario_empleado(session, cedula)
 
     # Borrar existentes y reinsertar (reemplazo total).
     from sqlalchemy import delete
@@ -123,6 +126,7 @@ async def actualizar_horario_semana(
                 hora_entrada=d.hora_entrada,
                 hora_salida=d.hora_salida,
                 minutos_almuerzo=d.minutos_almuerzo,
+                cruza_medianoche=d.cruza_medianoche,
             )
         )
     await session.flush()
@@ -134,20 +138,16 @@ async def actualizar_horario_semana(
     for d in dias_orden:
         if d.hora_entrada is None or d.hora_salida is None:
             continue
-        minutos = (
-            (d.hora_salida.hour * 60 + d.hora_salida.minute)
-            - (d.hora_entrada.hour * 60 + d.hora_entrada.minute)
-            - d.minutos_almuerzo
+        minutos = minutos_jornada(
+            d.hora_entrada,
+            d.hora_salida,
+            d.minutos_almuerzo,
+            d.cruza_medianoche,
         )
         if minutos > 0:
             total_min += minutos
             dias_con_jornada += 1
 
-    padre = (
-        await session.execute(
-            select(NominaHorarioPactado).where(NominaHorarioPactado.cedula == cedula)
-        )
-    ).scalar_one()
     padre.fuente_sincronizacion = "MANUAL"
     if dias_con_jornada > 0:
         padre.minutos_jornada_ordinaria = round(total_min / dias_con_jornada, 0)

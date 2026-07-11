@@ -55,7 +55,7 @@ const PreLiquidacionView: React.FC = () => {
   useEffect(() => setResultado(null), [cedula]);
 
   const horasPorDia = useMemo(
-    () => registro.map((r) => calcularHorasDia(r.hora_entrada, r.hora_salida, r.minutos_almuerzo)),
+    () => registro.map((r) => calcularHorasDia(r.hora_entrada, r.hora_salida, r.minutos_almuerzo, r.cruza_medianoche)),
     [registro],
   );
   const totalHorasTrabajadas = useMemo(() => horasPorDia.reduce((a, b) => a + b, 0), [horasPorDia]);

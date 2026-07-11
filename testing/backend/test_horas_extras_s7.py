@@ -12,15 +12,14 @@ Cobertura:
   - confirmar_plan: errores parciales (algunos OK, otros no)
   - confirmar_plan: acredita bolsa cuando codigo tiene acredita_bolsa=True
 
-Cedulas prefijo TEST-S7-*. OTs 9301-9304.
+Cedulas numericas reservadas 9900000000000001-4. OTs 9301-9304.
 """
 import pytest
-from datetime import date, time, timedelta
+from datetime import time
+from types import SimpleNamespace
 from sqlmodel import select
-from sqlalchemy import delete, func
+from sqlalchemy import func
 
-from app.models.novedades_nomina.bolsa_horas_override import NominaBolsaOtOverride
-from app.models.auth.usuario import Usuario
 from app.api.novedades_nomina.routers.horas_extras_planificador import confirmar_plan_endpoint
 from app.models.novedades_nomina.horas_extras import (
     NominaBolsaHoras,
@@ -41,10 +40,6 @@ from app.models.novedades_nomina.schemas_horas_extras_planificador import (
     PlanConfirmarEmpleadoIn,
     PlanConfirmarParametros,
     PlanConfirmarRequest,
-    PlanDiaIn,
-    PlanEmpleadoInBase,
-    PlanNovedadIn,
-    PlanSemanaIn,
 )
 from app.services.novedades_nomina.planificador_calculo import pre_calcular_plan
 from app.services.novedades_nomina.planificador_persistencia import (
@@ -53,20 +48,24 @@ from app.services.novedades_nomina.planificador_persistencia import (
 )
 
 
-CODIGO_GLOBAL = "BOLSA_GLOBAL_HABILITADA"
-
-CEDULA_BASE = "TEST-S7-1107068093"
-CEDULA_2 = "TEST-S7-9876543210"
-CEDULA_3 = "TEST-S7-5555555555"
-CEDULA_4 = "TEST-S7-1111111111"
-
-ANIO = 2026
-SEMANA = 25  # Lunes 2026-06-15 → Domingo 2026-06-21
-FECHA_INICIO = date(ANIO, 6, 15)
-FECHA_FIN = date(ANIO, 6, 21)
-
-OT_DEFAULT = 9301
-OT_GLOBAL_OFF = 9302
+from testing.backend.horas_extras_s7_helpers import (
+    ANIO,
+    CEDULA_2,
+    CEDULA_3,
+    CEDULA_4,
+    CEDULA_BASE,
+    FECHA_FIN,
+    FECHA_INICIO,
+    OT_DEFAULT,
+    OT_GLOBAL_OFF,
+    cleanup as _cleanup,
+    cleanup_all as _cleanup_all,
+    make_empleado as _make_empleado,
+    make_parametros as _make_parametros,
+    make_semana as _make_semana,
+    set_bolsa_global as _set_bolsa_global,
+    usuario_test as _usuario_test,
+)
 
 
 def test_planificador_routes_no_duplican_horas_extras():
@@ -94,175 +93,6 @@ def test_planificador_empleados_erp_exige_permiso_he():
     )
     dependencias = {getattr(dep.call, "__name__", "") for dep in route.dependant.dependencies}
     assert "requiere_permiso_he_planificar" in dependencias
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _make_semana() -> PlanSemanaIn:
-    return PlanSemanaIn(
-        anio=ANIO,
-        semana_iso=SEMANA,
-        fecha_inicio=FECHA_INICIO,
-        fecha_fin=FECHA_FIN,
-    )
-
-
-def _make_empleado(
-    cedula: str,
-    *,
-    entrada: time = time(7, 30),
-    salida: time = time(17, 0),
-    almuerzo: int = 60,
-    con_novedad_lunes: bool = False,
-    con_novedad_martes: bool = False,
-) -> PlanEmpleadoInBase:
-    dias = []
-    dias.append(PlanDiaIn(
-        dia_semana=1,
-        hora_entrada=entrada,
-        hora_salida=salida,
-        minutos_almuerzo=almuerzo,
-        novedades=[
-            PlanNovedadIn(
-                codigo_novedad="INC",
-                fecha_inicio=FECHA_INICIO,
-                fecha_fin=FECHA_INICIO,
-                observaciones="test",
-            )
-        ] if con_novedad_lunes else [],
-    ))
-    dias.append(PlanDiaIn(
-        dia_semana=2,
-        hora_entrada=entrada,
-        hora_salida=salida,
-        minutos_almuerzo=almuerzo,
-        novedades=[
-            PlanNovedadIn(
-                codigo_novedad="VAC",
-                fecha_inicio=FECHA_INICIO + timedelta(days=1),
-                fecha_fin=FECHA_INICIO + timedelta(days=1),
-                observaciones="test",
-            )
-        ] if con_novedad_martes else [],
-    ))
-    for d in range(3, 8):
-        dias.append(PlanDiaIn(
-            dia_semana=d,
-            hora_entrada=entrada,
-            hora_salida=salida,
-            minutos_almuerzo=almuerzo,
-            novedades=[],
-        ))
-    return PlanEmpleadoInBase(cedula=cedula, dias=dias)
-
-
-def _make_parametros(ot_id: int = OT_DEFAULT) -> PlanConfirmarParametros:
-    return PlanConfirmarParametros(
-        nivel_riesgo_arl="III",
-        factor_prestacional=0.52436,
-        salario_base_mensual=3_000_000.0,
-        valor_hora_ordinaria=12_500.0,
-        jornada_nocturna=False,
-        ot_id=ot_id,
-        ot_codigo=f"OT-S7-{ot_id}",
-    )
-
-
-def _usuario_test() -> Usuario:
-    return Usuario(
-        id="TEST-USER-ENDPOINT-S7",
-        cedula="TEST-USER-ENDPOINT-S7",
-        hash_contrasena="hash-test",
-        nombre="Usuario Test HE S7",
-        rol="admin",
-    )
-
-
-async def _cleanup(db_session, cedula: str) -> None:
-    """Limpia todas las filas relacionadas con un calculo de test S7."""
-    # Costo OT: borrar por ot_id primero
-    await db_session.execute(
-        delete(NominaCostoOt).where(NominaCostoOt.ot_id.in_([OT_DEFAULT, OT_GLOBAL_OFF]))
-    )
-    # Calculos y detalles
-    calcs = (await db_session.execute(
-        select(NominaCalculoSemanal).where(NominaCalculoSemanal.cedula == cedula)
-    )).scalars().all()
-    for c in calcs:
-        await db_session.execute(
-            delete(NominaCalculoSemanalDetalle).where(
-                NominaCalculoSemanalDetalle.calculo_id == c.id
-            )
-        )
-    await db_session.execute(
-        delete(NominaCalculoSemanal).where(NominaCalculoSemanal.cedula == cedula)
-    )
-    # Bolsa y movimientos
-    await db_session.execute(
-        delete(NominaBolsaHorasMovimiento).where(NominaBolsaHorasMovimiento.cedula == cedula)
-    )
-    await db_session.execute(
-        delete(NominaBolsaHoras).where(NominaBolsaHoras.cedula == cedula)
-    )
-    # Novedades
-    await db_session.execute(
-        delete(NominaNovedadEvento).where(NominaNovedadEvento.cedula == cedula)
-    )
-    # Horario
-    await db_session.execute(
-        delete(NominaHorarioPactadoDia).where(NominaHorarioPactadoDia.cedula == cedula)
-    )
-    await db_session.execute(
-        delete(NominaHorarioPactado).where(NominaHorarioPactado.cedula == cedula)
-    )
-    # Overrides
-    await db_session.execute(
-        delete(NominaBolsaOtOverride).where(NominaBolsaOtOverride.ot_id.in_([OT_DEFAULT, OT_GLOBAL_OFF]))
-    )
-    await db_session.commit()
-
-
-async def _cleanup_all(db_session) -> None:
-    """Limpieza global para tests que no usan cleanup por cedula."""
-    for ced in (CEDULA_BASE, CEDULA_2, CEDULA_3, CEDULA_4):
-        await _cleanup(db_session, ced)
-    # Parametros legales
-    await db_session.execute(
-        delete(NominaParametroLegal).where(NominaParametroLegal.codigo == CODIGO_GLOBAL)
-    )
-    await db_session.commit()
-
-
-async def _set_bolsa_global(db_session, habilitada: bool) -> None:
-    """Crea/actualiza el parametro legal BOLSA_GLOBAL_HABILITADA."""
-    hoy = date.today()
-    existente = (
-        await db_session.execute(
-            select(NominaParametroLegal).where(NominaParametroLegal.codigo == CODIGO_GLOBAL)
-        )
-    ).scalars().first()
-    if existente is not None:
-        existente.valor = "true" if habilitada else "false"
-        existente.vigente_desde = hoy
-        existente.vigente_hasta = None
-        existente.estado = "VIGENTE"
-        existente.observaciones = "test S7"
-        db_session.add(existente)
-    else:
-        db_session.add(NominaParametroLegal(
-            codigo=CODIGO_GLOBAL,
-            nombre="Habilitar bolsa de horas (global)",
-            valor="true" if habilitada else "false",
-            tipo_dato="BOOLEANO",
-            norma_soporte="Politica interna — test S7",
-            vigente_desde=hoy,
-            vigente_hasta=None,
-            estado="VIGENTE",
-            observaciones="test S7",
-        ))
-    await db_session.commit()
 
 
 # ===========================================================================
@@ -488,6 +318,7 @@ class TestConfirmarPlan:
 
         response = await confirmar_plan_endpoint(
             payload=payload,
+            request=SimpleNamespace(state=SimpleNamespace()),
             db=db_session,
             usuario=_usuario_test(),
         )

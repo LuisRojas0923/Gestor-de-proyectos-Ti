@@ -7,12 +7,12 @@ Cobertura:
   - PUT /horario/{cedula}/semana: crea 7 filas y actualiza horas_semana_ordinaria
   - PUT: rechaza si la lista no tiene 7 días
   - PUT: rechaza días no consecutivos
-  - PUT: rechaza hora_salida <= hora_entrada (validación schema)
+  - PUT: soporta cruce de medianoche explícito
   - PUT: días con hora_entrada null = franco (sin minutos en cálculo)
   - PUT: reemplazo total (PUT dos veces deja la última versión)
   - _aplicar_registro_diario: deriva horas_por_dia del registro reloj
   - _aplicar_registro_diario: 0h para días libres
-  - _aplicar_registro_diario: rechaza cuando hora_salida < hora_entrada
+  - _aplicar_registro_diario: calcula turnos que cruzan medianoche
 
 Usa cédulas con prefijo TEST-S5PP- para evitar choques con datos reales.
 """
@@ -167,13 +167,24 @@ class TestActualizarHorarioSemana:
             )
 
     @pytest.mark.asyncio
-    async def test_schema_rechaza_salida_menor_o_igual_a_entrada(self, db_session):
-        with pytest.raises(Exception, match="estrictamente mayor"):
+    async def test_schema_requiere_flag_para_cruzar_medianoche(self, db_session):
+        with pytest.raises(Exception, match="cruza_medianoche"):
             HorarioPactadoDiaUpdate(
                 dia_semana=1,
                 hora_entrada=time(17, 0),
                 hora_salida=time(15, 0),
             )
+
+    def test_schema_acepta_turno_que_cruza_medianoche(self):
+        dia = HorarioPactadoDiaUpdate(
+            dia_semana=1,
+            hora_entrada=time(22, 0),
+            hora_salida=time(6, 0),
+            minutos_almuerzo=30,
+            cruza_medianoche=True,
+        )
+
+        assert dia.cruza_medianoche is True
 
     @pytest.mark.asyncio
     async def test_reemplazo_total(self, db_session):
@@ -240,17 +251,22 @@ class TestAplicarRegistroDiario:
         out = _aplicar_registro_diario(inp)
         assert out.horas_por_dia == [0.0] * 7
 
-    def test_turno_cruzado_debe_partirse_en_dos_dias(self):
+    def test_turno_cruzado_calcula_duracion_hasta_dia_siguiente(self):
         inp = self._input()
         inp.registro_diario = [
             RegistroDiarioInput(dia_semana=i, hora_entrada=time(8, 0), hora_salida=time(17, 0), minutos_almuerzo=0)
             for i in range(1, 8)
         ]
         inp.registro_diario[2] = RegistroDiarioInput(
-            dia_semana=3, hora_entrada=time(17, 0), hora_salida=time(8, 0), minutos_almuerzo=0
+            dia_semana=3,
+            hora_entrada=time(22, 0),
+            hora_salida=time(6, 0),
+            minutos_almuerzo=30,
+            cruza_medianoche=True,
         )
-        with pytest.raises(ValueError, match="partirse en dos dias"):
-            _aplicar_registro_diario(inp)
+        out = _aplicar_registro_diario(inp)
+
+        assert out.horas_por_dia[2] == 7.5
 
     def test_rechaza_si_no_hay_7_dias(self):
         inp = self._input()

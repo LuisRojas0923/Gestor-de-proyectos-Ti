@@ -3,22 +3,24 @@
  * de un día específico de un empleado.
  */
 import React, { useEffect, useState } from 'react';
-import { Badge, Input, Button, Text, Select, Textarea, MaterialCard } from '../../../../../components/atoms';
+import { Badge, Input, Button, Text, Select, Textarea, MaterialCard, Switch } from '../../../../../components/atoms';
 import { X, Save } from 'lucide-react';
 import { labelDia } from '../utils/horarioUtils';
 import { buscarOtManoObra } from '../../../../../services/horasExtrasService';
 import type { OtManoObraRead, PlanAsignacionOtIn, PlanDiaIn, PlanNovedadIn } from '../../../../../types/horasExtrasPlanificador';
 import TimeClockPicker from './TimeClockPicker';
+import Callout from '../../../../../components/molecules/Callout';
+import { errorTurno } from '../utils/validarTurno';
 
 const CODIGOS_NOVEDAD = ['INC', 'VAC', 'AUS', 'LIC'];
 
-const horasTurno = (entrada: string | null, salida: string | null, almuerzo: number): number => {
+const horasTurno = (entrada: string | null, salida: string | null, almuerzo: number, cruzaMedianoche: boolean): number => {
   if (!entrada || !salida) return 0;
   const [eh, em] = entrada.split(':').map(Number);
   const [sh, sm] = salida.split(':').map(Number);
   const inicio = eh * 60 + em;
   let fin = sh * 60 + sm;
-  if (fin < inicio) fin += 24 * 60;
+  if (cruzaMedianoche) fin += 24 * 60;
   return Math.max(0, (fin - inicio - almuerzo) / 60);
 };
 
@@ -55,6 +57,8 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
   const [entrada, setEntrada] = useState<string | null>(dia.hora_entrada);
   const [salida, setSalida] = useState<string | null>(dia.hora_salida);
   const [almuerzo, setAlmuerzo] = useState<number>(dia.minutos_almuerzo);
+  const [cruzaMedianoche, setCruzaMedianoche] = useState(dia.cruza_medianoche);
+  const [errorHorario, setErrorHorario] = useState('');
   const [novedadCodigo, setNovedadCodigo] = useState<string>('');
   const [novedadObs, setNovedadObs] = useState<string>('');
   const [asignacionesOt, setAsignacionesOt] = useState<PlanAsignacionOtIn[]>(dia.asignaciones_ot ?? []);
@@ -87,7 +91,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
     };
   }, [asignacionesOt.length, busquedaOt, token]);
 
-  const horasDisponibles = horasTurno(entrada, salida, almuerzo);
+  const horasDisponibles = horasTurno(entrada, salida, almuerzo, cruzaMedianoche);
   const horasAsignadas = asignacionesOt.reduce((total, item) => total + (Number(item.horas) || 0), 0);
   const excedeHoras = horasAsignadas - horasDisponibles > 0.01;
 
@@ -131,6 +135,9 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
   if (!abierto) return null;
 
   const handleGuardar = () => {
+    const error = errorTurno({ hora_entrada: entrada, hora_salida: salida, minutos_almuerzo: almuerzo, cruza_medianoche: cruzaMedianoche });
+    if (error) { setErrorHorario(error); return; }
+    setErrorHorario('');
     const nuevasNovedades: PlanNovedadIn[] = [...dia.novedades];
     if (novedadCodigo) {
       nuevasNovedades.push({
@@ -145,6 +152,7 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
       hora_entrada: entrada,
       hora_salida: salida,
       minutos_almuerzo: almuerzo,
+      cruza_medianoche: cruzaMedianoche,
       novedades: nuevasNovedades,
       asignaciones_ot: asignacionesOt.map((item) => ({
         ...item,
@@ -194,7 +202,11 @@ const CeldaDiaEditor: React.FC<CeldaDiaEditorProps> = ({
               }
             />
           </div>
+          <div className="col-span-2">
+            <Switch checked={cruzaMedianoche} onChange={setCruzaMedianoche} label="La salida corresponde al día siguiente" />
+          </div>
         </div>
+        {errorHorario && <Callout variant="error" role="alert">{errorHorario}</Callout>}
 
         <div className="border-t border-[var(--color-border)] pt-3 mb-3">
           <Text className="text-xs text-[var(--color-text-secondary)] mb-1">Novedad (opcional)</Text>

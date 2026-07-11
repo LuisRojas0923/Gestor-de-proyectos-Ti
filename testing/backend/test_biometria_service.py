@@ -23,6 +23,9 @@ class _FakeResult:
             return self.value
         return [self.value]
 
+    def first(self):
+        return self.value
+
 
 class _FakeDbSinPerfil:
     async def execute(self, *args, **kwargs):
@@ -231,3 +234,27 @@ async def test_asistencia_fuera_de_geocerca_no_lee_imagen_ni_llama_motor():
         )
 
     assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_evidencia_admin_fuera_de_alcance_es_404_generico():
+    service = BiometriaService(engine_client=_EngineNoDebeLlamarse())
+
+    with pytest.raises(HTTPException) as exc:
+        await service.ruta_evidencia_admin(_FakeDbSinPerfil(), 999, {"100"})
+
+    assert exc.value.status_code == 404
+    assert exc.value.detail == "Recurso no encontrado"
+
+
+@pytest.mark.asyncio
+async def test_evidencia_admin_bypass_recupera_por_registro(monkeypatch):
+    service = BiometriaService(engine_client=_EngineNoDebeLlamarse())
+    registro = SimpleNamespace(evidencia_url="/api/v2/biometria/evidencia/prueba.jpg")
+    usuario = SimpleNamespace(cedula="100")
+    db = _FakeDbConPerfil((registro, usuario))
+    monkeypatch.setattr("pathlib.Path.exists", lambda _path: True)
+
+    ruta = await service.ruta_evidencia_admin(db, 1, None)
+
+    assert ruta.name == "prueba.jpg"

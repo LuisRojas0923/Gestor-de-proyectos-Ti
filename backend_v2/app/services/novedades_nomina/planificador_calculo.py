@@ -88,7 +88,8 @@ async def pre_calcular_plan(
                 validar_asignaciones_ot_dia(dia_in)
                 codigos_nov = [n.codigo_novedad for n in dia_in.novedades]
                 horas_trab = _horas_trabajadas_dia(
-                    dia_in.hora_entrada, dia_in.hora_salida, dia_in.minutos_almuerzo
+                    dia_in.hora_entrada, dia_in.hora_salida,
+                    dia_in.minutos_almuerzo, dia_in.cruza_medianoche
                 )
                 if any(c in CODIGOS_NOVEDAD_SUPRESION_PLAN for c in codigos_nov):
                     horas_trab = 0.0

@@ -36,6 +36,8 @@ import {
   calcularHorasTurno,
   normalizarDiasPlan,
 } from './utils/planificadorSemanalUtils';
+import { errorTurno } from './utils/validarTurno';
+import { labelDia } from './utils/horarioUtils';
 import {
   PLANIFICADOR_DRAFT_KEY,
   guardarBorradorPlanificadorLocal,
@@ -245,11 +247,12 @@ const PlanificadorSemanalView: React.FC = () => {
   };
 
   const aplicarCambiosMasivos = () => {
+    const candidato = { hora_entrada: plantillaEntrada || null, hora_salida: plantillaSalida || null, minutos_almuerzo: Math.max(0, Math.min(240, plantillaAlmuerzo || 0)), cruza_medianoche: !!plantillaEntrada && !!plantillaSalida && plantillaSalida < plantillaEntrada };
+    const error = errorTurno(candidato);
+    if (error) { addNotification('error', error); return; }
     actualizarDiasSeleccionados((dia) => ({
       ...dia,
-      hora_entrada: plantillaEntrada || null,
-      hora_salida: plantillaSalida || null,
-      minutos_almuerzo: Math.max(0, Math.min(240, plantillaAlmuerzo || 0)),
+      ...candidato,
       novedades: novedadMasiva
         ? [
             {
@@ -278,7 +281,7 @@ const PlanificadorSemanalView: React.FC = () => {
     actualizarDiasSeleccionados((dia) => ({
       ...dia,
       asignaciones_ot: asignaciones.map((asignacion) => {
-        const horasDisponibles = calcularHorasTurno(dia.hora_entrada, dia.hora_salida, dia.minutos_almuerzo);
+        const horasDisponibles = calcularHorasTurno(dia.hora_entrada, dia.hora_salida, dia.minutos_almuerzo, dia.cruza_medianoche);
         return {
           ...asignacion,
           horas: Math.max(0, Math.min(24, horasDisponibles, Number(asignacion.horas) || 0)),
@@ -295,6 +298,7 @@ const PlanificadorSemanalView: React.FC = () => {
       hora_entrada: null,
       hora_salida: null,
       minutos_almuerzo: 0,
+      cruza_medianoche: false,
       novedades: [],
       asignaciones_ot: [],
     }));
@@ -332,6 +336,13 @@ const PlanificadorSemanalView: React.FC = () => {
       );
       addNotification('error', 'Hay empleados sin autorización HE. Retíralos antes de confirmar o guardar.');
       return false;
+    }
+    for (const empleado of empleadosPlan) {
+      const diaInvalido = empleado.dias.find((dia) => errorTurno(dia));
+      if (diaInvalido) {
+        addNotification('error', `${empleado.cedula}, ${labelDia(diaInvalido.dia_semana)}: ${errorTurno(diaInvalido)}`);
+        return false;
+      }
     }
     return true;
   };

@@ -3,6 +3,25 @@ import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Button, Title, MaterialCard } from '../atoms';
 
+const modalStack: symbol[] = [];
+let scrollLocks = 0;
+let previousBodyOverflow = '';
+
+const isTopModal = (id: symbol) => modalStack[modalStack.length - 1] === id;
+
+const lockBodyScroll = () => {
+    if (scrollLocks === 0) {
+        previousBodyOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+    }
+    scrollLocks += 1;
+};
+
+const unlockBodyScroll = () => {
+    scrollLocks = Math.max(0, scrollLocks - 1);
+    if (scrollLocks === 0) document.body.style.overflow = previousBodyOverflow;
+};
+
 export interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -10,7 +29,9 @@ export interface ModalProps {
     children: React.ReactNode;
     size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
     showCloseButton?: boolean;
+    closeButtonDisabled?: boolean;
     closeOnOverlayClick?: boolean;
+    closeOnEscape?: boolean;
     className?: string; // Para clases adicionales en el contenedor
     contentClassName?: string;
     headerClassName?: string;
@@ -23,45 +44,56 @@ const Modal: React.FC<ModalProps> = ({
     children,
     size = 'md',
     showCloseButton = true,
+    closeButtonDisabled = false,
     closeOnOverlayClick = true,
+    closeOnEscape = true,
     className = '',
     contentClassName = '',
     headerClassName = '',
 }) => {
     const modalRef = useRef<HTMLDivElement>(null);
+    const modalId = useRef(Symbol('modal'));
+    const openerRef = useRef<HTMLElement | null>(null);
     const titleId = useId();
 
-    // Prevenir scroll en el body cuando el modal está abierto
     useEffect(() => {
-        const elementoActivo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-            window.setTimeout(() => {
-                const focusable = modalRef.current?.querySelector<HTMLElement>(
-                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-                );
-                (focusable ?? modalRef.current)?.focus();
-            }, 0);
-        } else {
-            document.body.style.overflow = 'unset';
-        }
+        if (!isOpen) return undefined;
+        const id = modalId.current;
+        openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        modalStack.push(id);
+        lockBodyScroll();
+        const focusTimer = window.setTimeout(() => {
+            if (!isTopModal(id)) return;
+            const focusable = modalRef.current?.querySelector<HTMLElement>(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            );
+            (focusable ?? modalRef.current)?.focus();
+        }, 0);
         return () => {
-            document.body.style.overflow = 'unset';
-            elementoActivo?.focus();
+            window.clearTimeout(focusTimer);
+            const wasTop = isTopModal(id);
+            const index = modalStack.lastIndexOf(id);
+            if (index >= 0) modalStack.splice(index, 1);
+            unlockBodyScroll();
+            if (wasTop) window.setTimeout(() => openerRef.current?.focus(), 0);
         };
     }, [isOpen]);
 
     useEffect(() => {
         if (!isOpen) return undefined;
         const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onClose();
+            if (event.key === 'Escape' && closeOnEscape && isTopModal(modalId.current)) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                onClose();
+            }
         };
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
-    }, [isOpen, onClose]);
+    }, [closeOnEscape, isOpen, onClose]);
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-        if (event.key !== 'Tab') return;
+        if (event.key !== 'Tab' || !isTopModal(modalId.current)) return;
         const focusables = Array.from(
             modalRef.current?.querySelectorAll<HTMLElement>(
                 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
@@ -94,7 +126,7 @@ const Modal: React.FC<ModalProps> = ({
             {/* Overlay */}
             <div
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-fade-in"
-                onClick={closeOnOverlayClick ? onClose : undefined}
+                onClick={closeOnOverlayClick ? () => { if (isTopModal(modalId.current)) onClose(); } : undefined}
                 aria-hidden="true"
             />
 
@@ -130,6 +162,7 @@ const Modal: React.FC<ModalProps> = ({
                                 variant="ghost"
                                 size="sm"
                                 onClick={onClose}
+                                disabled={closeButtonDisabled}
                                 icon={X}
                                 aria-label="Cerrar modal"
                                 className="text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 p-1"

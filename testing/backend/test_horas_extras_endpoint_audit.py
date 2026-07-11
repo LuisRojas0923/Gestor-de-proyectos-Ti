@@ -98,7 +98,7 @@ async def test_endpoint_ignora_usuario_confirma_del_cliente(db_session, monkeypa
     monkeypatch.setattr(horas_extras_router, "resolver_parametros_empleado_erp", resolver_fake)
     monkeypatch.setattr(horas_extras_router, "validar_importes_confirmacion", validar_importes_fake)
 
-    cedula = "TEST-S2-ENDPOINT-AUDIT"
+    cedula = "700000000001"
     await _cleanup(db_session, cedula)
     try:
         respuesta = await confirmar_pre_liquidacion_endpoint(

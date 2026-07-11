@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Title, Text, MaterialCard, Input } from '../../../components/atoms';
-import { FileText, Briefcase, ChevronRight, Search, Activity, ScanFace } from 'lucide-react';
+import { Activity, Briefcase, CalendarClock, ChevronRight, FileText, ScanFace, Search, Users } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -17,7 +17,7 @@ interface DashboardViewProps {
         viaticante?: boolean;
     } | null;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'biometria' | 'horas_extras' | 'horas_extras_planificador' | 'horas_extras_configuracion' | 'horas_extras_calculos' | 'auditoria_indicadores') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'biometria' | 'horas_extras' | 'horas_extras_planificador' | 'horas_extras_configuracion' | 'horas_extras_calculos' | 'horas_extras_plantillas' | 'alcance_empleados' | 'auditoria_indicadores') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -132,6 +132,22 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
     );
     const cards = [
         {
+            key: 'plantillas_horario',
+            canSee: permissions.includes('nomina_horas_extras.plantillas_horario.administrar'),
+            title: "Plantillas de horario",
+            description: "Diseña y aplica jornadas semanales reutilizables.",
+            icon: <CalendarClock className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('horas_extras_plantillas')
+        },
+        {
+            key: 'alcance_empleados',
+            canSee: permissions.includes('alcance_empleados.administrar'),
+            title: "Alcance de empleados",
+            description: "Relaciona gestores del portal con empleados ERP.",
+            icon: <Users className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('alcance_empleados')
+        },
+        {
             key: 'solicitudes',
             canSee: canSeeSolicitudes,
             title: "Gestión de Solicitudes TI",
@@ -213,7 +229,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         },
         {
             key: 'biometria',
-            canSee: true,
+            canSee: permissions.includes('biometria'),
             title: ['admin'].includes(userRole) ? "Biometría y Asistencia" : "Autenticación Facial",
             description: ['admin'].includes(userRole) ? "Registra tu asistencia, audita registros y administra zonas de geocerca." : "Registra tu asistencia mediante reconocimiento facial.",
             icon: <ScanFace className="w-8 h-8 text-[var(--color-primary)]" />,

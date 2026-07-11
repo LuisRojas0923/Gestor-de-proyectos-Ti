@@ -16,11 +16,7 @@ import {
   listarCalculos,
   obtenerCalculo,
   listarCostosOt,
-  transicionarCalculo,
   obtenerHistorial,
-  compensarBolsa,
-  listarFestivos,
-  sincronizarFestivos,
   listarNovedades,
   crearNovedad,
   obtenerNovedad,
@@ -259,64 +255,6 @@ describe('horasExtrasService', () => {
   // S4 — Workflow de estados
   // -------------------------------------------------------------------------
 
-  describe('transicionarCalculo', () => {
-    it('POST a /calculos/{id}/transicion con payload', async () => {
-      fetchMock.mockResolvedValueOnce(
-        mockJsonResponse({
-          calculo_id: 7,
-          estado_anterior: 'CONFIRMADO',
-          estado_nuevo: 'PAGADO',
-          evento_id: 99,
-          movimiento_bolsa_id: null,
-          horas_afectadas: 0,
-          mensaje: 'ok',
-        }),
-      );
-      const r = await transicionarCalculo(
-        7,
-        { estado_destino: 'PAGADO', justificacion: 'liquidado', horas: null, fecha: null },
-        TOKEN,
-      );
-      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(url).toBe(`${BASE}/calculos/7/transicion`);
-      expect(init.method).toBe('POST');
-      expect(JSON.parse(init.body as string)).toEqual({
-        estado_destino: 'PAGADO',
-        justificacion: 'liquidado',
-        horas: null,
-        fecha: null,
-      });
-      expect(r.estado_nuevo).toBe('PAGADO');
-      expect(r.evento_id).toBe(99);
-    });
-
-    it('incluye horas y fecha en compensación', async () => {
-      fetchMock.mockResolvedValueOnce(
-        mockJsonResponse({
-          calculo_id: 8,
-          estado_anterior: 'CONFIRMADO',
-          estado_nuevo: 'COMPENSADO',
-          evento_id: 100,
-          movimiento_bolsa_id: 50,
-          horas_afectadas: 1.5,
-          mensaje: 'ok',
-        }),
-      );
-      await transicionarCalculo(
-        8,
-        { estado_destino: 'COMPENSADO', justificacion: null, horas: 1.5, fecha: '2026-07-22' },
-        TOKEN,
-      );
-      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(JSON.parse(init.body as string)).toEqual({
-        estado_destino: 'COMPENSADO',
-        justificacion: null,
-        horas: 1.5,
-        fecha: '2026-07-22',
-      });
-    });
-  });
-
   describe('obtenerHistorial', () => {
     it('GET a /calculos/{id}/historial', async () => {
       fetchMock.mockResolvedValueOnce(
@@ -345,87 +283,9 @@ describe('horasExtrasService', () => {
   // S4 — Compensar bolsa directa
   // -------------------------------------------------------------------------
 
-  describe('compensarBolsa', () => {
-    it('POST a /bolsa/compensar con cedula, horas, fecha', async () => {
-      fetchMock.mockResolvedValueOnce(
-        mockJsonResponse({
-          cedula: '12345',
-          movimiento_id: 200,
-          horas_compensadas: 2.0,
-          horas_disponibles_despues: 3.0,
-          mensaje: 'ok',
-        }),
-      );
-      const r = await compensarBolsa(
-        { cedula: '12345', horas: 2.0, fecha: '2026-07-22', calculo_id: null, observaciones: 'x' },
-        TOKEN,
-      );
-      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(url).toBe(`${BASE}/bolsa/compensar`);
-      expect(init.method).toBe('POST');
-      expect(JSON.parse(init.body as string).horas).toBe(2.0);
-      expect(r.horas_disponibles_despues).toBe(3.0);
-    });
-
-    it('propaga error 409 con detail del backend', async () => {
-      fetchMock.mockResolvedValueOnce(
-        mockJsonResponse({ detail: 'Bolsa solo tiene 0.5h disponibles' }, 409),
-      );
-      await expect(
-        compensarBolsa(
-          { cedula: '12345', horas: 5.0, fecha: '2026-07-22', calculo_id: null, observaciones: null },
-          TOKEN,
-        ),
-      ).rejects.toThrow('Bolsa solo tiene 0.5h disponibles');
-    });
-  });
-
   // -------------------------------------------------------------------------
   // S5' — Festivos
   // -------------------------------------------------------------------------
-
-  describe('listarFestivos', () => {
-    it('GET a /festivos/{anio} con query fuente', async () => {
-      fetchMock.mockResolvedValueOnce(
-        mockJsonResponse([
-          { fecha: '2026-01-01', nombre: 'Año Nuevo', fuente: 'LEY_EMILIANI' },
-        ]),
-      );
-      const r = await listarFestivos(2026, 'auto', TOKEN);
-      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(url).toBe(`${BASE}/festivos/2026?fuente=auto`);
-      expect(init.method).toBeUndefined();
-      expect(r).toHaveLength(1);
-      expect(r[0].fuente).toBe('LEY_EMILIANI');
-    });
-
-    it('acepta fuente calendarific y emiliani en la query', async () => {
-      fetchMock.mockResolvedValueOnce(mockJsonResponse([]));
-      await listarFestivos(2027, 'calendarific', TOKEN);
-      const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(url).toBe(`${BASE}/festivos/2027?fuente=calendarific`);
-    });
-  });
-
-  describe('sincronizarFestivos', () => {
-    it('POST a /festivos/{anio}/sincronizar y devuelve calendarific_error si lo hay', async () => {
-      fetchMock.mockResolvedValueOnce(
-        mockJsonResponse({
-          anio: 2026,
-          fuente: 'LEY_EMILIANI',
-          cantidad: 18,
-          calendarific_error: 'API caída',
-          mensaje: 'Sincronizado con Ley Emiliani',
-        }),
-      );
-      const r = await sincronizarFestivos(2026, TOKEN);
-      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(url).toBe(`${BASE}/festivos/2026/sincronizar`);
-      expect(init.method).toBe('POST');
-      expect(r.fuente).toBe('LEY_EMILIANI');
-      expect(r.calendarific_error).toBe('API caída');
-    });
-  });
 
   // -------------------------------------------------------------------------
   // S5 — Novedades (AUS / LIC / VAC / INC)
@@ -645,9 +505,10 @@ describe('horasExtrasService', () => {
         hora_entrada: '07:30:00',
         hora_salida: d === 5 ? '17:30:00' : '17:00:00',
         minutos_almuerzo: 30,
+        cruza_medianoche: false,
       })).concat([
-        { dia_semana: 6, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0 },
-        { dia_semana: 7, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0 },
+        { dia_semana: 6, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0, cruza_medianoche: false },
+        { dia_semana: 7, hora_entrada: null, hora_salida: null, minutos_almuerzo: 0, cruza_medianoche: false },
       ]);
 
     it('PUT a /horario/{cedula}/semana con 7 días en el body', async () => {

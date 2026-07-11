@@ -63,6 +63,16 @@ Ubicación: `testing/backend/`
 | **RBAC de Auditoría** | `test_auditoria_estadisticas_rbac.py` | Autoriza el dashboard por permiso efectivo y rechaza accesos sin permiso. | ✅ PASSED |
 | **API de Auditoría** | `test_auditoria_estadisticas_http.py` | Contrato HTTP 401/403/200 del endpoint de indicadores. | ✅ PASSED |
 | **Diagnóstico de Estados** | `test_validate_estados.py` | Manejo seguro de resultados y errores DB del script diagnóstico. | ✅ PASSED |
+| **Horarios Plantillas - Contratos y Migración** | `test_horarios_plantillas.py` | Siete días, validación de francos y turnos nocturnos, migración PostgreSQL idempotente y preservación de usuarios. | ✅ PASSED (reporte focal) |
+| **Horarios Plantillas - Servicio** | `test_horarios_plantillas_service.py` | CRUD versionado, búsqueda, historial, copy-on-apply, snapshots, replay/conflicto idempotente y rollback atómico. | ✅ PASSED (reporte focal) |
+| **Alcance Gestor-Empleado** | `test_alcance_empleados.py` | Cédula canónica, M:N, límites bulk, autoedición, bypass admin, filtros/facetas, IDOR, RBAC y ciclo de sesión ERP. | ✅ PASSED (reporte focal) |
+| **Horarios Migración/Integridad** | `test_horarios_migracion_seguridad.py` | Reparación de constraints PostgreSQL, rechazo de datos inválidos, triggers append-only y propagación de fallo crítico. | ✅ PASSED (reporte final) |
+| **Horarios Seguridad HTTP** | `test_horarios_security_http.py` | IDOR de cálculo, alcance SQL GeoFace, redacción de cédulas y `Cache-Control: no-store, private`. | ✅ PASSED (reporte final) |
+| **Planificador Savepoints** | `test_planificador_savepoints.py` | Identidad canónica, éxito/error/éxito con savepoints y ciclo de sesión ERP del worker OT. | ✅ PASSED (reporte final) |
+| **Horarios Segunda Revisión** | `test_horarios_segunda_revision.py` | IDOR antes de ERP, cédula canónica, recursos indirectos, GeoFace relacionado/no relacionado, RBAC, jefe contractual, ERP `503`, disponibilidad VAC/INC/LIC y overrides GET/POST con alcance, admin, canonicalización y no-store. | ✅ PASSED (incluida en 154) |
+| **Overrides HE - Alcance** | `test_horarios_segunda_revision.py` (casos de overrides) | POST relacionado canoniza antes de mutar; POST/GET no relacionado no opera; GET relacionado/admin canoniza y usa `no-store, private`. | ✅ FOCAL 19 PASSED |
+| **Concurrencia PostgreSQL Real** | `test_relaciones_concurrencia.py` | Dos sesiones reales: serialización de una relación con UUID distintos y replay concurrente del mismo ledger de aplicación. | ✅ 2 PASSED |
+| **Horas Extras S7 Helpers** | `horas_extras_s7_helpers.py` | Helpers y fixtures extraídos de S7 para dividir la suite sin duplicar preparación del planificador. | Soporte de suite |
 
 ### 2. Frontend (Vitest)
 Ubicación: `frontend/src/`
@@ -79,6 +89,29 @@ Ubicación: `frontend/src/`
 Ubicación: `testing/backend/load_test.py`
 *   **Escenario Base**: Autenticación y navegación por el portal.
 *   **Capacidad**: Hasta 400 usuarios concurrentes.
+
+### 2.1 Frontend focal: horarios y relaciones
+
+Ubicación: `frontend/src/tests/`
+
+| Suite | Cobertura |
+| :--- | :--- |
+| `WeeklyScheduleEditor.test.tsx` | Siete días, franco, cruce de medianoche y diálogo accesible. |
+| `AplicarPlantillaModal.test.tsx` | Selección por cédula entre páginas y confirmación bulk. |
+| `horariosRelacionesService.test.ts` | Serialización de filtros, rutas, inactivas y UUID de solicitud. |
+| `PlanificadorHorarioDraft.test.tsx` | Aplicación masiva y persistencia local normalizada del borrador. |
+| `servicePortalFeatureRoutes.test.tsx` | Guardas independientes de Plantillas, Alcance y Biometría. |
+| `horasExtrasWorkflowService.test.ts` | Servicios de transición, bolsa y festivos separados del servicio principal. |
+| `AlcanceEmpleados.test.tsx` | UUID estable en reintento, doble submit, descarte de cambios, refresco y límite 200. |
+| `PlantillasHorarioPage.test.tsx` | Crear/duplicar/desactivar, UUID estable y doble submit de aplicación. |
+| `ModalStack.test.tsx` | Escape solo sobre modal superior, scroll lock contado y restauración de foco. |
+| `BiometriaModule.test.tsx` | Error/reintento de capacidades y tabs enlazadas con teclado. |
+| `BiometriaAdminView.test.tsx` | Tabs ARIA y confirmación antes de eliminar zona. |
+| `CeldaDiaEditor.test.tsx` / `validarTurno.test.ts` | Feedback y reglas compartidas para turnos nocturnos. |
+
+La evidencia final frontend reportada es 199 passed/2 skipped; el subconjunto focal de las ultimas correcciones pasa 10/10. `tsc`, build y lint focal estan OK. Como historia se conservan 196 passed/2 skipped y el baseline previo del orquestador de 176 passed/2 skipped. El lint global permanece en 531 errores/63 warnings preexistentes. Estos conteos no constituyen medición de cobertura.
+
+Backend consolidado final reportado: 154 passed; focal overrides: 19 passed; health: 4 passed/4 skipped; carreras PostgreSQL reales: 2 passed. La suite ERP no recolecta localmente sin `pdfplumber`; el import Docker reporta 318 rutas.
 
 ### 3. Scripts de Verificación Manual
 Ubicación: `testing/backend/scripts/`

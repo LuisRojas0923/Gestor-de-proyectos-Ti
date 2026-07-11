@@ -22,6 +22,11 @@ _CLAVES_SENSIBLES = frozenset({
     "secret",
     "clave",
     "hash_contrasena",
+    "cedula",
+    "cedulas",
+    "cedulas_agregar",
+    "cedulas_quitar",
+    "empleado_cedula",
 })
 
 
@@ -118,8 +123,8 @@ class ServicioAuditoria:
             )
             await db.execute(stmt)
             await db.commit()
-        except Exception as exc:
-            logger.error("Error registrando auditoría de acción: %s", exc)
+        except Exception:
+            logger.error("Error registrando auditoría de acción")
             try:
                 await db.rollback()
             except Exception:

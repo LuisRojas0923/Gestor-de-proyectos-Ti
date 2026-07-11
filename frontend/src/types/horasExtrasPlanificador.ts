@@ -66,6 +66,7 @@ export interface PlanDiaIn {
   hora_entrada: string | null;
   hora_salida: string | null;
   minutos_almuerzo: number;
+  cruza_medianoche: boolean;
   novedades: PlanNovedadIn[];
   asignaciones_ot: PlanAsignacionOtIn[];
 }

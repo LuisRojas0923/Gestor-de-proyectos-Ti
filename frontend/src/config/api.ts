@@ -123,6 +123,20 @@ export const API_ENDPOINTS = {
   BIOMETRIA_ENROLAR: '/biometria/enrolar',
   BIOMETRIA_ZONAS: '/biometria/zonas',
   BIOMETRIA_ASISTENCIAS: '/biometria/asistencias',
+  BIOMETRIA_CAPACIDADES: '/biometria/admin/capacidades',
+  BIOMETRIA_ADMIN_ASISTENCIAS: '/biometria/admin/asistencias',
+  BIOMETRIA_ADMIN_EVIDENCIA: (registroId: number) => `/biometria/admin/evidencias/${registroId}`,
+
+  // Plantillas de horario y alcance de empleados
+  PLANTILLAS_HORARIO: '/novedades-nomina/horas-extras/plantillas-horario',
+  PLANTILLA_HORARIO: (id: string) => `/novedades-nomina/horas-extras/plantillas-horario/${id}`,
+  PLANTILLA_HORARIO_DESACTIVAR: (id: string) => `/novedades-nomina/horas-extras/plantillas-horario/${id}/desactivar`,
+  PLANTILLA_HORARIO_DUPLICAR: (id: string) => `/novedades-nomina/horas-extras/plantillas-horario/${id}/duplicar`,
+  PLANTILLA_HORARIO_APLICACIONES: (id: string) => `/novedades-nomina/horas-extras/plantillas-horario/${id}/aplicaciones`,
+  ALCANCE_GESTORES: '/alcance-empleados/gestores',
+  ALCANCE_GESTOR_EMPLEADOS: (id: string) => `/alcance-empleados/gestores/${id}/empleados`,
+  ALCANCE_GESTOR_RELACIONES: (id: string) => `/alcance-empleados/gestores/${id}/relaciones`,
+  PLANIFICADOR_EMPLEADOS_ERP: '/novedades-nomina/horas-extras/planificador/empleados-erp',
 
   // ERP
   ERP_SOLICITUDES: '/erp/solicitudes',

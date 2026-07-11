@@ -7,6 +7,7 @@ from typing import Optional
 
 import numpy as np
 from fastapi import HTTPException, UploadFile, status
+from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -133,13 +134,76 @@ class BiometriaService:
         usuario: Usuario,
         usuario_id: Optional[str] = None,
     ) -> list[dict]:
-        target_id = usuario_id if usuario.rol == "admin" else usuario.id
+        # Autoservicio: el objetivo siempre deriva del JWT.
+        target_id = usuario.id
         stmt = select(RegistroAsistencia)
         if target_id:
             stmt = stmt.where(RegistroAsistencia.usuario_id == target_id)
         stmt = stmt.order_by(RegistroAsistencia.creado_en.desc())
         result = await db.execute(stmt)
         return [self._serializar_asistencia(r) for r in result.scalars().all()]
+
+    async def obtener_asistencias_admin(
+        self, db: AsyncSession, usuario: Usuario,
+        cedulas_permitidas: set[str] | None, limit: int, offset: int,
+        fecha_desde=None, fecha_hasta=None, usuario_id: Optional[str] = None,
+        zona_id: Optional[int] = None, resultado: Optional[bool] = None,
+    ) -> dict:
+        stmt = select(RegistroAsistencia, Usuario, ZonaTrabajo).join(
+            Usuario, Usuario.id == RegistroAsistencia.usuario_id
+        ).outerjoin(ZonaTrabajo, ZonaTrabajo.id == RegistroAsistencia.zona_id)
+        filtros = []
+        if cedulas_permitidas is not None:
+            if not cedulas_permitidas:
+                return {"items": [], "total": 0, "limit": limit, "offset": offset}
+            filtros.append(Usuario.cedula.in_(cedulas_permitidas))
+        if fecha_desde:
+            filtros.append(RegistroAsistencia.creado_en >= fecha_desde)
+        if fecha_hasta:
+            filtros.append(RegistroAsistencia.creado_en <= fecha_hasta)
+        if usuario_id:
+            filtros.append(RegistroAsistencia.usuario_id == usuario_id)
+        if zona_id is not None:
+            filtros.append(RegistroAsistencia.zona_id == zona_id)
+        if resultado is not None:
+            filtros.append(RegistroAsistencia.match_exitoso.is_(resultado))
+        total = int(await db.scalar(select(func.count()).select_from(RegistroAsistencia).join(
+            Usuario, Usuario.id == RegistroAsistencia.usuario_id
+        ).where(*filtros)) or 0)
+        rows = (await db.execute(stmt.where(*filtros).order_by(
+            RegistroAsistencia.creado_en.desc(), RegistroAsistencia.id.desc()
+        ).limit(limit).offset(offset))).all()
+        return {
+            "items": [{
+                "id": registro.id,
+                "usuario_id": cuenta.id,
+                "empleado_cedula": cuenta.cedula,
+                "empleado_nombre": cuenta.nombre,
+                "zona_id": registro.zona_id,
+                "zona_nombre": zona.nombre if zona else None,
+                "resultado": registro.match_exitoso,
+                "creado_en": registro.creado_en,
+            } for registro, cuenta, zona in rows],
+            "total": total, "limit": limit, "offset": offset,
+        }
+
+    async def ruta_evidencia_admin(
+        self, db: AsyncSession, registro_id: int,
+        cedulas_permitidas: set[str] | None,
+    ) -> Path:
+        stmt = select(RegistroAsistencia, Usuario).join(
+            Usuario, Usuario.id == RegistroAsistencia.usuario_id
+        ).where(RegistroAsistencia.id == registro_id)
+        if cedulas_permitidas is not None:
+            stmt = stmt.where(Usuario.cedula.in_(cedulas_permitidas))
+        row = (await db.execute(stmt)).first()
+        if row is None or not row[0].evidencia_url:
+            raise HTTPException(status_code=404, detail="Recurso no encontrado")
+        safe_name = self._validar_filename(row[0].evidencia_url.rsplit("/", 1)[-1])
+        ruta = Path("storage/asistencias") / safe_name
+        if not ruta.exists():
+            raise HTTPException(status_code=404, detail="Recurso no encontrado")
+        return ruta
 
     async def listar_zonas(self, db: AsyncSession) -> list[ZonaTrabajo]:
         result = await db.execute(select(ZonaTrabajo))
@@ -166,8 +230,8 @@ class BiometriaService:
         file_path = Path("storage/perfiles") / safe_name
         if not file_path.exists():
             raise HTTPException(status_code=404, detail="Foto no encontrada")
-        if usuario.rol != "admin" and usuario.url_avatar != f"/api/v2/biometria/foto/{safe_name}":
-            raise HTTPException(status_code=403, detail="No tiene permisos para consultar esta foto")
+        if usuario.url_avatar != f"/api/v2/biometria/foto/{safe_name}":
+            raise HTTPException(status_code=404, detail="Foto no encontrada")
         return file_path
 
     async def ruta_evidencia(self, db: AsyncSession, filename: str, usuario: Usuario) -> Path:
@@ -183,8 +247,8 @@ class BiometriaService:
         registro = result.scalar_one_or_none()
         if not registro:
             raise HTTPException(status_code=404, detail="Evidencia fotografica no encontrada")
-        if usuario.rol != "admin" and registro.usuario_id != usuario.id:
-            raise HTTPException(status_code=403, detail="No tiene permisos para consultar esta evidencia")
+        if registro.usuario_id != usuario.id:
+            raise HTTPException(status_code=404, detail="Evidencia fotografica no encontrada")
         return file_path
 
     async def _obtener_perfil_activo(self, db: AsyncSession, usuario_id: str) -> EmbeddingFacial | None:

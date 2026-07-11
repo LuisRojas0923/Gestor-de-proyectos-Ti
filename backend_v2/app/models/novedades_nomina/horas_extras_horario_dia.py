@@ -33,3 +33,4 @@ class NominaHorarioPactadoDia(SQLModel, table=True):
     hora_entrada: Optional[time] = Field(default=None)
     hora_salida: Optional[time] = Field(default=None)
     minutos_almuerzo: int = Field(default=0, ge=0, le=240)
+    cruza_medianoche: bool = Field(default=False)

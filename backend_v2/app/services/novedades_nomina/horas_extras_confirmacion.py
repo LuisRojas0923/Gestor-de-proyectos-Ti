@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 async def confirmar_pre_liquidacion(
     session: AsyncSession,
     payload,
+    confirmar_transaccion: bool = True,
 ) -> dict:
     """
     Persiste un cálculo de HE y sus efectos colaterales:
@@ -139,7 +140,10 @@ async def confirmar_pre_liquidacion(
     if payload.ot_id is not None and payload.ot_codigo:
         costo_ot_id = await _upsert_costo_ot(session, payload, calculo.id)
 
-    await session.commit()
+    if confirmar_transaccion:
+        await session.commit()
+    else:
+        await session.flush()
     return {
         "calculo_id": calculo.id,
         "bolsa_id": bolsa_id,
@@ -304,12 +308,17 @@ async def listar_calculos(
     estado: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
+    cedulas_permitidas: Optional[set[str]] = None,
 ):
     stmt = select(NominaCalculoSemanal).options(
         selectinload(NominaCalculoSemanal.detalles)
     )
     if cedula:
         stmt = stmt.where(NominaCalculoSemanal.cedula == cedula)
+    if cedulas_permitidas is not None:
+        if not cedulas_permitidas:
+            return []
+        stmt = stmt.where(NominaCalculoSemanal.cedula.in_(cedulas_permitidas))
     if anio:
         stmt = stmt.where(NominaCalculoSemanal.anio == anio)
     if semana_iso:
