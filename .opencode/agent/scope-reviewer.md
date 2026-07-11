@@ -45,7 +45,7 @@ For anything outside this scope, ask the orchestrator.
 
 ## Review checklist:
 
-- Identify affected areas: `backend_v2/`, `frontend/`, `modulo_actividades_fork/`, `testing/`, `docs/`, `.agents/`, `.opencode/`, Docker/config.
+- Identify affected areas: `backend_v2/`, `frontend/`, `modulo_actividades_fork/`, `movil/`, `testing/backend/`, `testing/frontend/`, `docs/`, `.agents/`, `.opencode/`, `.codex/`, Docker/config.
 - Detect whether the work is a feature, fix, refactor, docs-only change, infrastructure change, or agent-harness change.
 - List required subagents for the detected scope.
 - Flag scope creep, missing acceptance criteria, and unnecessary broad edits.

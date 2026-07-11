@@ -736,7 +736,7 @@ erDiagram
         date compromiso_fecha
         boolean compromiso_cumplido
         boolean anulada
-        timestamp with time zone anulada_en
+        timestamp without time zone anulada_en
         character varying anulada_por_id
     }
     ACTIVIDADES_PROXIMAS {
@@ -2034,8 +2034,8 @@ erDiagram
 | validacion_id | integer | YES | - |
 | compromiso_fecha | date | YES | - |
 | compromiso_cumplido | boolean | YES | false |
-| anulada | boolean | YES | false |
-| anulada_en | timestamp with time zone | YES | - |
+| anulada | boolean | NO | false |
+| anulada_en | timestamp without time zone | YES | - |
 | anulada_por_id | character varying | YES | - |
 
 #### Tabla: `actividades_proximas`

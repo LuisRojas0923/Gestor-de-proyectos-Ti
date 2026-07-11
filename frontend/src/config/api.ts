@@ -72,6 +72,7 @@ export const API_ENDPOINTS = {
   DASHBOARD_WEEKLY_PROGRESS: '/panel-control/progreso-semanal',
   DASHBOARD_UPCOMING_MILESTONES: '/panel-control/proximos-hitos',
   DASHBOARD_PENDING_ACTIVITIES: '/panel-control/actividades-pendientes',
+  AUDIT_STATS: '/auditoria/estadisticas',
 
   // Activity Log (Bitácora)
   ACTIVITY_LOG_CREATE: (developmentId: string) => `/log-actividades/desarrollos/${developmentId}/actividades`,

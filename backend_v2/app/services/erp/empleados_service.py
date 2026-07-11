@@ -36,7 +36,6 @@ def _normalizar_nivel_riesgo(valor: Optional[str]) -> str:
             return nivel
     return "I"
 
-
 def _normalizar_bool(valor):
     if valor is None:
         return None
@@ -70,6 +69,11 @@ def _existe_columna(db_erp: Session, tabla: str, columna: str) -> bool:
         return bool(row.existe) if row else False
     except Exception:
         return False
+
+
+def normalizar_bool_erp(valor, default: bool = False) -> bool:
+    normalizado = _normalizar_bool(valor)
+    return default if normalizado is None else normalizado
 
 
 class EmpleadosService:
@@ -114,6 +118,8 @@ class EmpleadosService:
 
         resultado = db_erp.execute(query, {"cedula": cedula.strip()}).first()
         if resultado:
+            if solo_activos and (resultado.estado or "").strip().lower() != "activo":
+                return None
             return {
                 "nrocedula": str(resultado.nrocedula),
                 "nombre": resultado.nombre,
@@ -139,6 +145,24 @@ class EmpleadosService:
     @staticmethod
     async def obtener_empleado_por_cedula(db_erp: Session, cedula: str, solo_activos: bool = True) -> Optional[Dict]:
         return EmpleadosService.obtener_empleado_por_cedula_sync(db_erp, cedula, solo_activos)
+
+    @staticmethod
+    async def validar_empleado_activo_autogestion(db_erp: Session, cedula: str) -> Optional[Dict]:
+        """Valida autogestion contra ERP. Falla cerrado si no hay contrato activo."""
+        if not db_erp:
+            return None
+        try:
+            empleado = await EmpleadosService.obtener_empleado_por_cedula(
+                db_erp, cedula, solo_activos=True
+            )
+        except Exception:
+            logger.warning("ERP no disponible durante validacion de autogestion")
+            return None
+        if not empleado:
+            return None
+        if (empleado.get("estado") or "").strip().lower() != "activo":
+            return None
+        return empleado
 
     @staticmethod
     def consultar_empleados_bulk(db_erp: Session, cedulas: List[str]) -> Dict[str, Dict]:

@@ -1,4 +1,20 @@
 {
+  "subagent": "security-rbac-reviewer",
+  "description": "Read-only security/RBAC reviewer. Enforces auth, schemas, mass-assignment safety, secrets, and infra consistency.",
+  "capabilities": {
+    "review_auth": "Verify all endpoints have Depends(obtener_usuario_actual_db) or Depends(requerir_modulo(...))",
+    "review_schemas": "Reject datos: dict in Pydantic/SQLAlchemy; enforce Field(pattern) on PK str fields",
+    "review_mass_assignment": "Enforce model_dump(exclude_unset=True) on PUT/PATCH",
+    "review_error_handling": "Reject str(e) leakage in HTTPException 500",
+    "review_secrets": "Verify default secrets in config.py have startup guards",
+    "review_logging": "Reject print() in route handlers; enforce PII redaction",
+    "review_docker_infra": "Verify Docker/env/config consistency",
+    "review_rbac_manifest": "Verify backend_v2/app/core/rbac_manifest.py covers new modules"
+  },
+  "command_patterns": {
+    "review <files>": "Review security/RBAC surface for files or diffs",
+    "checklist <scope>": "Return the relevant subset of the security checklist"
+  },
   "review_history": [
     {
       "date": "2026-07-07",
@@ -168,10 +184,36 @@
       },
       "cwe_references": ["CWE-345", "CWE-347", "CWE-200", "CWE-20", "CWE-400", "CWE-770", "CWE-532"],
       "summary": "No blockers remain: firma_calculo now covers fecha_inicio/fin, OT, observaciones, salary/ARL/importes/detalles; frontend confirms from signed backend result; regression rejects OT mutation after signing. Residuals: ERP employee lookup lacks rate limiting and returns sensitive salary data, identifier patterns remain permissive, ARL parser defaults to I, HMAC key reuse/no TTL, and production log redaction should be verified."
+    },
+    {
+      "date": "2026-07-06",
+      "scope": "logical annulment of activities and related endpoints",
+      "outcome": "blocked",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 2,
+        "ALTO": 1,
+        "MEDIO": 1,
+        "BAJO": 0
+      },
+      "cwe_references": ["CWE-862", "CWE-915", "CWE-200", "CWE-863", "CWE-209"]
+    },
+    {
+      "date": "2026-07-06",
+      "scope": "focused re-review of activity logical annulment concurrency lock",
+      "outcome": "approved",
+      "finding_count_by_severity": {
+        "BLOQUEANTE": 0,
+        "ALTO": 0,
+        "MEDIO": 0,
+        "BAJO": 0
+      },
+      "cwe_references": []
     }
   ],
   "stats": {
-    "total_operations": 13,
-    "last_operation": "2026-07-09"
+    "total_operations": 15,
+    "total_reviews": 15,
+    "last_operation": "2026-07-09",
+    "last_review": "2026-07-09"
   }
 }

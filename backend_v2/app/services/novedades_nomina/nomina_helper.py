@@ -50,13 +50,22 @@ class NominaHelper:
         cedulas_procesadas = set()
         # 0. Crear mapa de excepciones para búsqueda rápida O(1)
         mapa_ex = {str(e.cedula): e for e in excepciones_activas}
-        
+
         # 1. Procesar registros que vienen del archivo
         for i, row in enumerate(rows):
             cedula_original = str(row["cedula"])
             cedulas_procesadas.add(cedula_original)
-            
+
             info_original = mapa_erp.get(cedula_original)
+
+            # Lógica para Seguros HDI: el descuento de la empresa (24%) solo aplica para colaboradores activos
+            valor_rdc_final = row.get("valor_rdc", 0.0)
+            valor_colaborador_final = row.get("valor_colaborador", 0.0)
+            if subcategoria == "SEGUROS HDI" and info_original:
+                if str(info_original.get("estado", "")).strip().upper() != "ACTIVO":
+                    valor_rdc_final = 0.0
+                    valor_colaborador_final = row["valor"]
+
             valor_final = row["valor"]
             concepto_final = row["concepto"]
             cedula_final = cedula_original
@@ -137,10 +146,29 @@ class NominaHelper:
                         estado_val = "EXCEPCION_AUTORIZADA"
                         observacion_ex = f"Contratista: {ex.observacion}"
                     elif ex.tipo == 'SALDO_FAVOR':
-                        valor_orig = valor_final
-                        valor_final = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
-                        estado_val = "EXCEPCION_SALDO_FAVOR"
-                        observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
+                        if subcategoria == "SEGUROS HDI":
+                            # Para Seguros HDI, aplicamos el saldo a favor a la porción del colaborador, no al total
+                            valor_orig = valor_colaborador_final
+                            valor_restante_colab = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+
+                            # Si el colaborador está ACTIVO, reducimos la deducción de nómina (valor_colaborador_final)
+                            # Si no está ACTIVO (retirado), mantenemos el valor original de cobro en el registro contable
+                            # para evitar que figure con $0 facturados (el cobro ya se descontó de su saldo de balance).
+                            es_activo = info_original and str(info_original.get("estado", "")).strip().upper() == "ACTIVO"
+                            if es_activo:
+                                valor_colaborador_final = valor_restante_colab
+                                valor_final = valor_rdc_final + valor_colaborador_final
+                            else:
+                                # Inactivo: no aplica descuento empresa y se reporta cobro completo
+                                valor_final = valor_colaborador_final
+
+                            estado_val = "EXCEPCION_SALDO_FAVOR"
+                            observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_restante_colab:,.0f}"
+                        else:
+                            valor_orig = valor_final
+                            valor_final = await ExcepcionService.aplicar_saldo_favor(session, ex, valor_orig, mes, anio)
+                            estado_val = "EXCEPCION_SALDO_FAVOR"
+                            observacion_ex = f"Saldo favor aplicado. Cobro: ${valor_orig:,.0f} -> ${valor_final:,.0f}"
 
             # Lógica de estados si no hay excepción dominante que autorice
             if estado_val == estado_default:
@@ -153,13 +181,16 @@ class NominaHelper:
 
             ciudad = (info_original.get("ciudadcontratacion", "") if info_original else "") or row.get("sucursal", "")
 
-            valor_rdc_final = row.get("valor_rdc", 0.0)
-            valor_colaborador_final = row.get("valor_colaborador", 0.0)
-            if valor_final == 0:
-                valor_rdc_final = 0.0
-                valor_colaborador_final = 0.0
-            elif valor_final != row["valor"]:
-                valor_colaborador_final = max(0.0, valor_final - valor_rdc_final)
+            # Lógica final de asignación para RDC/Colaborador
+            if subcategoria == "SEGUROS HDI" and estado_val == "EXCEPCION_SALDO_FAVOR":
+                # Ya fueron calculados correctamente dentro del bloque de SALDO_FAVOR
+                pass
+            else:
+                if valor_final == 0:
+                    valor_rdc_final = 0.0
+                    valor_colaborador_final = 0.0
+                elif valor_final != row["valor"]:
+                    valor_colaborador_final = max(0.0, valor_final - valor_rdc_final)
 
             reg = NominaRegistroNormalizado(
                 archivo_id=archivo_id,
@@ -180,7 +211,7 @@ class NominaHelper:
                 dias=row.get("dias", 0),
                 fila_origen=i + 1,
                 ciudad=ciudad or None,
-                observaciones=row.get("observaciones"),
+                observaciones=(f"{row.get('observaciones')} | {observacion_ex}" if row.get("observaciones") and observacion_ex else (observacion_ex or row.get("observaciones"))),
             )
             session.add(reg)
             registros.append(reg)
@@ -210,6 +241,27 @@ class NominaHelper:
                 if inyectar:
                     info = mapa_erp.get(ex.cedula)
                     ciudad_inyectado = info.get("ciudadcontratacion", "") if info else ""
+
+                    valor_normalizado = descuento
+                    val_rdc = 0.0
+                    val_colab = descuento
+
+                    if subcategoria == "SEGUROS HDI":
+                        es_activo = info and str(info.get("estado", "")).strip().upper() == "ACTIVO"
+                        if ex.tipo == 'SALDO_FAVOR':
+                            if es_activo:
+                                val_rdc = round(valor_orig * 0.24, 2)
+                                val_colab = descuento
+                                valor_normalizado = val_rdc + val_colab
+                            else:
+                                val_rdc = 0.0
+                                val_colab = valor_orig
+                                valor_normalizado = valor_orig
+                        else:
+                            val_rdc = 0.0
+                            val_colab = descuento
+                            valor_normalizado = descuento
+
                     reg = NominaRegistroNormalizado(
                         archivo_id=archivo_id,
                         fecha_creacion=datetime.now(),
@@ -217,7 +269,9 @@ class NominaHelper:
                         año_fact=anio,
                         cedula=ex.cedula,
                         nombre_asociado=ex.nombre_asociado or (info["nombre"] if info else "COLABORADOR SIN NOMBRE"),
-                        valor=descuento,
+                        valor=valor_normalizado,
+                        valor_rdc=val_rdc,
+                        valor_colaborador=val_colab,
                         empresa="CONTRATISTA" if ex.tipo == 'CONTRATISTAS' else ("RETIRADO_AUTORIZADO" if ex.tipo == 'RETIRADO_AUTORIZADO' else (info["empresa"] if info else "N/A")),
                         concepto=f"{subcategoria} (EXCEPCION)",
                         categoria_final=categoria,

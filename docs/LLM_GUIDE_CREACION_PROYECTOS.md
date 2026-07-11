@@ -240,7 +240,7 @@ POST /api/v2/actividades/
 
 - El sistema soporta N niveles de profundidad mediante `parent_id` autorreferencial.
 - El backend recalcula automáticamente el porcentaje del padre al crear hijos.
-- Al eliminar una actividad padre, se eliminan en cascada todos sus descendientes.
+- Al anular una actividad padre, se anulan lógicamente todos sus descendientes. Los registros no se borran físicamente.
 - Crear primero la actividad padre; usar el `id` retornado para las sub-actividades.
 
 ### Estados válidos para actividades
@@ -321,8 +321,8 @@ POST /api/v2/actividades/
 | Crear actividad | POST | `/api/v2/actividades/` |
 | Listar actividades del proyecto | GET | `/api/v2/actividades/?desarrollo_id={id}` |
 | Actualizar actividad | PATCH | `/api/v2/actividades/{id}` |
-| Eliminar actividad | DELETE | `/api/v2/actividades/{id}` |
-| Previsualizar eliminación en cascada | GET | `/api/v2/actividades/{id}/preview` |
+| Anular actividad | DELETE | `/api/v2/actividades/{id}` |
+| Previsualizar anulación recursiva | GET | `/api/v2/actividades/{id}/preview` |
 | Usuarios disponibles en jerarquía | GET | `/api/v2/jerarquia/usuarios-disponibles` |
 | Tipos de proyecto activos | GET | `/api/v2/desarrollos/tipos` |
 | Plantillas WBS disponibles | GET | `/api/v2/desarrollos/plantillas/` |
@@ -333,6 +333,6 @@ POST /api/v2/actividades/
 
 - **Mantener contexto de sesión:** El LLM debe recordar el `id` del proyecto creado durante toda la sesión para usarlo en cada `POST /actividades/`.
 - **IDs de usuario:** `responsable_id` y `asignado_a_id` esperan IDs del sistema en formato `USR-P-{cedula}`. Si no se puede resolver la persona, omitir estos campos; el usuario puede asignarlos desde la UI en `/service-portal/desarrollos/{id}`.
-- **Recálculo automático:** El backend calcula `porcentaje_progreso` del proyecto como `(actividades completadas / total actividades) × 100`. No calcular manualmente.
+- **Recálculo automático:** El backend calcula `porcentaje_progreso` con actividades activas; las actividades anuladas no cuentan para el avance. No calcular manualmente.
 - **Plantillas WBS:** Si el usuario no sabe cómo estructurar las actividades, ofrecer las plantillas existentes (`GET /api/v2/desarrollos/plantillas/`) como punto de partida en lugar de crear actividades desde cero.
 - **Orden de creación:** Crear siempre el proyecto antes de las actividades. Crear las actividades padre antes que sus hijos.

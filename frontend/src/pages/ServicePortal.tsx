@@ -62,6 +62,7 @@ const PlanillasRegionales1QPreview = React.lazy(() => import('./ServicePortal/pa
 const PlanillasRegionales2QPreview = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/PlanillasRegionales2QPreview'));
 const TablaMaestraView = React.lazy(() => import('./ServicePortal/pages/NOVEDADES_NOMINA/TablaMaestraView'));
 const ComisionesView = React.lazy(() => import('./ServicePortal/pages/Comisiones'));
+const AuditoriaIndicadores = React.lazy(() => import('./ServicePortal/pages/AuditoriaIndicadores'));
 const PreLiquidacionView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/PreLiquidacionView'));
 const CalculoListView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/CalculoListView'));
 const CalculoDetailView = React.lazy(() => import('./ServicePortal/pages/HORAS_EXTRAS/CalculoDetailView'));
@@ -234,8 +235,15 @@ const ServicePortal: React.FC = () => {
                             else if (v === 'horas_extras_planificador') navigate('/service-portal/horas-extras/planificador');
                             else if (v === 'horas_extras_configuracion') navigate('/service-portal/horas-extras/configuracion');
                             else if (v === 'horas_extras_calculos') navigate('/service-portal/horas-extras/calculos');
+                            else if (v === 'auditoria_indicadores') navigate('/service-portal/auditoria-indicadores');
                         }}
                     />
+                } />
+
+                <Route path="auditoria-indicadores" element={
+                    <ProtectedRoute moduleCode="auditoria_sistema">
+                        <AuditoriaIndicadores />
+                    </ProtectedRoute>
                 } />
 
                 {/* --- NUEVAS RUTAS DE REQUISICIONES / ALMACEN ERP --- */}

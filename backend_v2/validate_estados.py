@@ -1,7 +1,11 @@
 import asyncio
+import logging
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from app.config import config
+
+logger = logging.getLogger(__name__)
 
 SQL = """
     SELECT
@@ -19,27 +23,42 @@ SQL = """
     ORDER BY d.id
 """
 
+
+async def consultar_estados(db):
+    try:
+        return (await db.execute(text(SQL))).fetchall()
+    except SQLAlchemyError:
+        logger.exception("No fue posible consultar los estados de los desarrollos")
+        return []
+
+
 async def run():
     engine = create_async_engine(config.database_url)
     async with async_sessionmaker(engine)() as db:
-        rows = (await db.execute(text(SQL))).fetchall()
-        print(f"{'ID':<14} {'Estado':<16} {'Pct':>4}  {'Tot':>3} {'Comp':>4} {'EnPrg':>5} {'Otras':>5}  Nombre")
-        print('-' * 115)
+        rows = await consultar_estados(db)
+        print(
+            f"{'ID':<14} {'Estado':<16} {'Pct':>4}  {'Tot':>3} {'Comp':>4} {'EnPrg':>5} {'Otras':>5}  Nombre"
+        )
+        print("-" * 115)
         for r in rows:
-            est   = r.estado_general or '-'
-            pct   = int(r.porcentaje_progreso or 0)
-            tot   = int(r.total_act)
-            comp  = int(r.completadas or 0)
-            enp   = int(r.en_progreso or 0)
+            est = r.estado_general or "-"
+            pct = int(r.porcentaje_progreso or 0)
+            tot = int(r.total_act)
+            comp = int(r.completadas or 0)
+            enp = int(r.en_progreso or 0)
             otras = int(r.otras or 0)
-            nombre = (r.nombre or '')[:55]
+            nombre = (r.nombre or "")[:55]
             # Marcar inconsistencias
-            flag = ''
+            flag = ""
             if tot > 0:
                 esperado = round((comp * 100 + enp * 50) / tot)
                 if abs(esperado - pct) > 1:
-                    flag = f'  << esperado {esperado}%'
-            print(f"{r.id:<14} {est:<16} {pct:>4}%  {tot:>3} {comp:>4} {enp:>5} {otras:>5}  {nombre}{flag}")
+                    flag = f"  << esperado {esperado}%"
+            print(
+                f"{r.id:<14} {est:<16} {pct:>4}%  {tot:>3} {comp:>4} {enp:>5} {otras:>5}  {nombre}{flag}"
+            )
     await engine.dispose()
 
-asyncio.run(run())
+
+if __name__ == "__main__":
+    asyncio.run(run())

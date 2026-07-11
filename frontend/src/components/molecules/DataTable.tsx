@@ -36,6 +36,7 @@ export interface DataTableProps<T> {
     onMouseEnterRow?: (row: T, event: React.MouseEvent) => void;
     onMouseLeaveRow?: () => void;
     bodyRef?: React.MutableRefObject<HTMLDivElement | null>;
+    getRowClassName?: (row: T) => string;
     isRowDraggable?: boolean;
     onRowsReorder?: (fromIndex: number, toIndex: number) => void;
 
@@ -71,6 +72,7 @@ interface DataTableRowProps<T> {
     renderRowActions?: (row: T) => React.ReactNode;
     onMouseEnterRow?: (row: T, event: React.MouseEvent) => void;
     onMouseLeaveRow?: () => void;
+    getRowClassName?: (row: T) => string;
 }
 
 const DataTableRowInner = <T,>({
@@ -82,10 +84,11 @@ const DataTableRowInner = <T,>({
     renderRowActions,
     onMouseEnterRow,
     onMouseLeaveRow,
+    getRowClassName,
 }: DataTableRowProps<T>) => (
     <div
         onClick={() => onRowClick?.(row)}
-        className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+        className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-colors ${onRowClick ? 'cursor-pointer' : ''} ${getRowClassName?.(row) ?? ''}`}
         onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
         onMouseLeave={onMouseLeaveRow}
     >
@@ -122,6 +125,7 @@ const MemoDataTableRow = React.memo(DataTableRowInner, (prev, next) => (
     && prev.renderRowActions === next.renderRowActions
     && prev.onMouseEnterRow === next.onMouseEnterRow
     && prev.onMouseLeaveRow === next.onMouseLeaveRow
+    && prev.getRowClassName === next.getRowClassName
 )) as typeof DataTableRowInner;
 
 export function DataTable<T>({
@@ -136,6 +140,7 @@ export function DataTable<T>({
     actionsMinWidth = '100px',
     onMouseEnterRow,
     onMouseLeaveRow,
+    getRowClassName,
     bodyRef,
     isRowDraggable = false,
     onRowsReorder,
@@ -440,7 +445,7 @@ export function DataTable<T>({
                                                 setDraggedRowIndex(null);
                                                 setDragOverRowIndex(null);
                                             }}
-                                            className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-all duration-200 ${onRowClick ? 'cursor-pointer' : ''} ${dragOverRowIndex === rowIndex ? 'my-1 bg-[var(--color-primary)]/8 ring-1 ring-inset ring-[var(--color-primary)]/25 before:absolute before:-top-1 before:left-3 before:right-3 before:h-0.5 before:rounded-full before:bg-[var(--color-primary)] before:shadow-sm before:content-[""]' : ''} ${draggedRowIndex === rowIndex ? 'scale-[0.985] border-dashed bg-[var(--color-surface-variant)]/50 opacity-35 ring-1 ring-inset ring-[var(--color-primary)]/25' : ''}`}
+                                            className={`group relative grid col-span-full grid-cols-subgrid border-b border-[var(--color-border)] hover:bg-[var(--color-surface-variant)] transition-all duration-200 ${onRowClick ? 'cursor-pointer' : ''} ${getRowClassName?.(row) ?? ''} ${dragOverRowIndex === rowIndex ? 'my-1 bg-[var(--color-primary)]/8 ring-1 ring-inset ring-[var(--color-primary)]/25 before:absolute before:-top-1 before:left-3 before:right-3 before:h-0.5 before:rounded-full before:bg-[var(--color-primary)] before:shadow-sm before:content-[""]' : ''} ${draggedRowIndex === rowIndex ? 'scale-[0.985] border-dashed bg-[var(--color-surface-variant)]/50 opacity-35 ring-1 ring-inset ring-[var(--color-primary)]/25' : ''}`}
                                             onMouseEnter={(e) => onMouseEnterRow?.(row, e)}
                                             onMouseLeave={onMouseLeaveRow}
                                         >
@@ -537,6 +542,7 @@ export function DataTable<T>({
                                         renderRowActions={renderRowActions}
                                         onMouseEnterRow={onMouseEnterRow}
                                         onMouseLeaveRow={onMouseLeaveRow}
+                                        getRowClassName={getRowClassName}
                                     />
                                 );
                             })}

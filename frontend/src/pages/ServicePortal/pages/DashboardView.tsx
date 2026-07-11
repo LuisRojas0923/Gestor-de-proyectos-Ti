@@ -1,5 +1,6 @@
-import { Title, Text, MaterialCard } from '../../../components/atoms';
-import { FileText, Briefcase, ChevronRight, ScanFace } from 'lucide-react';
+import React, { useState } from 'react';
+import { Title, Text, MaterialCard, Input } from '../../../components/atoms';
+import { FileText, Briefcase, ChevronRight, Search, Activity, ScanFace } from 'lucide-react';
 import imgSolicitar from '../../../assets/images/categories/Solicitar Servicio.png';
 import imgGestionViaticos from '../../../assets/images/categories/gestion_viaticos.png';
 import imgReunion from '../../../assets/images/categories/Reunion.png';
@@ -14,9 +15,9 @@ interface DashboardViewProps {
         rol?: string;
         permissions?: string[];
         viaticante?: boolean;
-    };
+    } | null;
     moduleStatus: Record<string, boolean>;
-    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'biometria' | 'horas_extras' | 'horas_extras_planificador' | 'horas_extras_configuracion' | 'horas_extras_calculos') => void;
+    onNavigate: (view: 'categories' | 'status' | 'legalizar_gastos' | 'viaticos_gestion' | 'viaticos_estado' | 'reserva_salas' | 'requisiciones' | 'inventario' | 'nomina' | 'contabilidad' | 'gestion_actividades' | 'comisiones' | 'biometria' | 'horas_extras' | 'horas_extras_planificador' | 'horas_extras_configuracion' | 'horas_extras_calculos' | 'auditoria_indicadores') => void;
 }
 
 const ServicePortalCard: React.FC<{
@@ -55,6 +56,7 @@ const ServicePortalCard: React.FC<{
 };
 
 const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNavigate }) => {
+    const [searchTerm, setSearchTerm] = useState('');
     const userRole = (user?.rol || user?.role || '').toLowerCase();
     const permissions: string[] = user?.permissions || [];
 
@@ -123,6 +125,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
         : permissions.includes('nomina_horas_extras.admin')
             ? 'horas_extras_configuracion'
             : 'horas_extras_calculos';
+
+    const canSeeAuditoria = moduleStatus['auditoria_sistema'] !== false && (
+        permissions.includes('auditoria_sistema') ||
+        ['admin'].includes(userRole) // Solo admins por ahora como pidio el usuario
+    );
     const cards = [
         {
             key: 'solicitudes',
@@ -211,20 +218,42 @@ const DashboardView: React.FC<DashboardViewProps> = ({ user, moduleStatus, onNav
             description: ['admin'].includes(userRole) ? "Registra tu asistencia, audita registros y administra zonas de geocerca." : "Registra tu asistencia mediante reconocimiento facial.",
             icon: <ScanFace className="w-8 h-8 text-[var(--color-primary)]" />,
             onClick: () => onNavigate('biometria')
+        },
+        {
+            key: 'auditoria',
+            canSee: canSeeAuditoria,
+            title: "Auditoría del Sistema",
+            description: "Indicadores, gráficas y KPIs sobre la trazabilidad y eventos del sistema.",
+            icon: <Activity className="w-8 h-8 text-[var(--color-primary)]" />,
+            onClick: () => onNavigate('auditoria_indicadores')
         }
     ];
 
     const activeCards = cards
         .filter(card => card.canSee)
+        .filter(card =>
+            card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            card.description.toLowerCase().includes(searchTerm.toLowerCase())
+        )
         .sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
 
     return (
         <div className="space-y-12 py-6">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-4">
                 <Title variant="h3" weight="bold" className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-light)] bg-clip-text text-transparent">
                     ¿En qué podemos ayudarte hoy?
                 </Title>
                 <Text variant="h6" color="text-secondary" weight="medium">Selecciona una de las opciones principales de gestión</Text>
+
+                <div className="max-w-md mx-auto pt-4">
+                    <Input
+                        placeholder="Buscar opción o servicio..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        icon={Search}
+                        className="w-full rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm"
+                    />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

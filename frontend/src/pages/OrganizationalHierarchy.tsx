@@ -1,29 +1,107 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { GitBranch, RefreshCw, Search, UserPlus, X, ArrowLeft } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { GitBranch, RefreshCw, UserPlus, X, Filter, ChevronDown } from 'lucide-react';
+import { ReactFlow, MiniMap, Controls, Background, Edge, useNodesState, useEdgesState, ReactFlowProvider, useReactFlow } from '@xyflow/react';
+import type { EdgeChange, Node as FlowNode, NodeChange } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Button, Input, MaterialCard, Text, Title } from '../components/atoms';
+import { FilterDropdown } from '../components/molecules';
 import { useApi } from '../hooks/useApi';
 import { useAppContext } from '../context/AppContext';
 import { HierarchyNode, HierarchyRelation, HierarchyUser } from '../types/hierarchy';
 
+import { formatShortName, getCenterZoom, getLayoutedElements, isNodeExpanded, nodeHeight, nodeWidth } from './OrganizationalHierarchy/utils';
+import { CustomNodeComponent, type CustomNodeData } from './OrganizationalHierarchy/components/CustomNodeComponent';
+import { AutocompleteUserField } from './OrganizationalHierarchy/components/AutocompleteUserField';
+const nodeTypes = { custom: CustomNodeComponent };
+
+type AppUser = { id?: string; usuario_id?: string; rol?: string };
+
+export const FlowWithFitView: React.FC<{
+  nodes: FlowNode<CustomNodeData>[];
+  edges: Edge[];
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
+  nodeTypes: typeof nodeTypes;
+  selectedDirectors: string[];
+  nodeToCenter: string | null;
+  onCentered: () => void;
+}> = ({ nodes, edges, onNodesChange, onEdgesChange, nodeTypes, selectedDirectors, nodeToCenter, onCentered }) => {
+  const { fitView, setCenter } = useReactFlow();
+
+  useEffect(() => {
+    // Animación suave de recentrado al cambiar el filtro
+    const timer = setTimeout(() => {
+      void fitView({ duration: 400, padding: 0.1 });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [selectedDirectors, fitView]);
+
+  useEffect(() => {
+    if (nodeToCenter) {
+      const node = nodes.find((n) => n.id === nodeToCenter);
+      if (node) {
+        const timer = setTimeout(() => {
+          setCenter(
+            node.position.x + nodeWidth / 2,
+            node.position.y + nodeHeight / 2,
+            { duration: 800, zoom: getCenterZoom(window.innerWidth) },
+          );
+          onCentered();
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [nodeToCenter, nodes, onCentered, setCenter]);
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      nodeTypes={nodeTypes}
+      fitView
+      attributionPosition="bottom-right"
+      minZoom={0.2}
+      maxZoom={2}
+    >
+      <Background color="#ccc" gap={16} />
+      <MiniMap
+        nodeColor={(n: FlowNode<CustomNodeData>) => {
+          if (n.data?.selected) return 'var(--color-primary)';
+          return '#94a3b8';
+        }}
+        maskColor="rgba(0,0,0, 0.05)"
+      />
+      <Controls />
+    </ReactFlow>
+  );
+};
+
 const OrganizationalHierarchy: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const isPortal = location.pathname.startsWith('/service-portal');
   const { get, post, delete: deleteRequest } = useApi<unknown>();
   const { state } = useAppContext();
-  const currentUserId: string = (state.user as any)?.id || (state.user as any)?.usuario_id || '';
+  const appUser = state.user as AppUser | null | undefined;
+  const currentUserId: string = appUser?.id || appUser?.usuario_id || '';
   const [tree, setTree] = useState<HierarchyNode[]>([]);
   const [relations, setRelations] = useState<HierarchyRelation[]>([]);
   const [users, setUsers] = useState<HierarchyUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedSuperiorId, setSelectedSuperiorId] = useState('');
   const [observacion, setObservacion] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterAnchorRect, setFilterAnchorRect] = useState<DOMRect | null>(null);
+  const [selectedDirectors, setSelectedDirectors] = useState<string[]>([]);
+  const [tempSelectedDirectors, setTempSelectedDirectors] = useState<string[]>([]);
+  const [filterSearchTerm, setFilterSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [toggledNodes, setToggledNodes] = useState<Record<string, boolean>>({});
+  const [nodeToCenter, setNodeToCenter] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [treeData, relationData, userData] = await Promise.all([
@@ -42,11 +120,11 @@ const OrganizationalHierarchy: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [get]);
 
   useEffect(() => {
     void fetchData();
-  }, []);
+  }, [fetchData]);
 
   const currentRelation = relations.find((relation) => relation.usuario_id === selectedUserId);
 
@@ -58,7 +136,7 @@ const OrganizationalHierarchy: React.FC = () => {
 
   const reachableUsers = useMemo(() => {
     // Si es administrador o no hay usuario actual, permitimos ver todo (o nada si no hay login)
-    const isAdmin = (state.user as any)?.rol === 'admin';
+    const isAdmin = appUser?.rol === 'admin';
     if (isAdmin) return users;
 
     if (!currentUserId) return [];
@@ -88,7 +166,7 @@ const OrganizationalHierarchy: React.FC = () => {
     };
     collectSubs(currentUserId);
     return users.filter((u) => ids.has(u.id));
-  }, [currentUserId, relations, users, state.user]);
+  }, [appUser?.rol, currentUserId, relations, users]);
 
   const accessibleTree = useMemo(() => {
     if (reachableUsers.length === 0) return [];
@@ -105,29 +183,96 @@ const OrganizationalHierarchy: React.FC = () => {
     return tree.map(filterNode).filter((n): n is HierarchyNode => n !== null);
   }, [tree, reachableUsers]);
 
-  const filteredTree = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return accessibleTree;
+  const directorOptions = useMemo(() => {
+    const directorsMap = new Map<string, string>();
+    const traverse = (node: HierarchyNode) => {
+      if (node.subordinados && node.subordinados.length > 0) {
+        directorsMap.set(node.usuario_id, node.usuario.nombre);
+      }
+      node.subordinados?.forEach(traverse);
+    };
+    accessibleTree.forEach(traverse);
 
-    const filterNodes = (nodes: HierarchyNode[]): HierarchyNode[] => nodes
-      .map((node) => ({ ...node, subordinados: filterNodes(node.subordinados || []) }))
-      .filter((node) => {
-        const text = [node.usuario.nombre, node.usuario.cargo, node.usuario.area, node.usuario.rol]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        return text.includes(term) || node.subordinados.length > 0;
+    return Array.from(directorsMap.entries()).map(([id, name]) => ({
+      value: id,
+      label: formatShortName(name),
+    })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [accessibleTree]);
+
+  const filteredTree = useMemo(() => {
+    if (selectedDirectors.length === 0) return accessibleTree;
+
+    const matchedNodes: HierarchyNode[] = [];
+    const findNodes = (nodes: HierarchyNode[]) => {
+      nodes.forEach((node) => {
+        if (selectedDirectors.includes(node.usuario_id)) {
+          matchedNodes.push(node);
+        } else {
+          findNodes(node.subordinados || []);
+        }
+      });
+    };
+    findNodes(accessibleTree);
+    return matchedNodes;
+  }, [selectedDirectors, accessibleTree]);
+
+  // Preparar nodos para React Flow usando Dagre
+  const { initialNodes, initialEdges } = useMemo(() => {
+    const rfNodes: FlowNode<CustomNodeData>[] = [];
+    const rfEdges: Edge[] = [];
+
+    const handleToggleNode = (nodeId: string, currentState: boolean) => {
+      setToggledNodes(prev => ({ ...prev, [nodeId]: !currentState }));
+      setNodeToCenter(currentState ? null : nodeId);
+    };
+
+    const traverse = (node: HierarchyNode, level: number) => {
+      const isExpanded = isNodeExpanded(toggledNodes, node.usuario_id, level);
+      const hasChildren = node.subordinados && node.subordinados.length > 0;
+
+      rfNodes.push({
+        id: node.usuario_id,
+        type: 'custom',
+        position: { x: 0, y: 0 },
+        data: {
+          nodeData: node,
+          level,
+          selected: selectedUserId === node.usuario_id,
+          onSelect: setSelectedUserId,
+          isExpanded,
+          hasChildren,
+          onToggle: () => handleToggleNode(node.usuario_id, isExpanded)
+        }
       });
 
-    return filterNodes(accessibleTree);
-  }, [searchTerm, accessibleTree]);
+      if (isExpanded) {
+        node.subordinados?.forEach(child => {
+          rfEdges.push({
+            id: `e-${node.usuario_id}-${child.usuario_id}`,
+            source: node.usuario_id,
+            target: child.usuario_id,
+            type: 'smoothstep',
+            animated: false,
+            style: { strokeWidth: 2, stroke: '#94a3b8' } // neutral-400
+          });
+          traverse(child, level + 1);
+        });
+      }
+    };
 
-  const reachableRelations = relations.filter(
-    (r) => reachableUsers.some((u) => u.id === r.usuario_id)
-  );
-  const reachableWithoutSuperior = reachableUsers.filter(
-    (user) => !reachableRelations.some((r) => r.usuario_id === user.id)
-  );
+    filteredTree.forEach(node => traverse(node, 0));
+
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(rfNodes, rfEdges, 'TB');
+    return { initialNodes: layoutedNodes, initialEdges: layoutedEdges };
+  }, [filteredTree, selectedUserId, toggledNodes]);
+
+  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState(initialNodes);
+  const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  useEffect(() => {
+    setFlowNodes(initialNodes);
+    setFlowEdges(initialEdges);
+  }, [initialNodes, initialEdges, setFlowNodes, setFlowEdges]);
 
   const handleSave = async () => {
     if (!selectedUserId || !selectedSuperiorId) return;
@@ -250,15 +395,29 @@ const OrganizationalHierarchy: React.FC = () => {
                 <Title variant="h6" weight="bold" color="text-primary" className="m-0 !text-sm">Árbol jerárquico</Title>
                 <Badge variant="info" size="xs" className="!text-[9px]">Visualización gráfica</Badge>
               </div>
-              <div className="w-full md:max-w-[200px] scale-90 origin-right">
-                <Input
-                  placeholder="Filtrar árbol..."
-                  icon={Search}
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  className="h-7"
-                  size="xs"
-                />
+              <div className="relative scale-90 origin-right">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={Filter}
+                  onClick={(e) => {
+                    setFilterAnchorRect(e.currentTarget.getBoundingClientRect());
+                    setTempSelectedDirectors([...selectedDirectors]);
+                    setFilterSearchTerm('');
+                    setIsFilterOpen(true);
+                  }}
+                  className="shadow-sm whitespace-nowrap"
+                >
+                  <Text as="span" className="inline-flex items-center gap-1.5">
+                    Filtrar por Superior
+                    {selectedDirectors.length > 0 && (
+                      <Badge variant="primary" size="xs" className="px-1.5 py-0.5 rounded-full !text-[9px]">
+                        {selectedDirectors.length}
+                      </Badge>
+                    )}
+                    <ChevronDown size={14} className="opacity-60 shrink-0" />
+                  </Text>
+                </Button>
               </div>
             </div>
           </div>
@@ -276,136 +435,60 @@ const OrganizationalHierarchy: React.FC = () => {
                 <EmptyState />
               </div>
             ) : (
-              <div className="tree-container relative z-10">
-                <div className="tree">
-                  <ul>
-                    {filteredTree.map((node) => (
-                      <HierarchyTreeNode
-                        key={node.usuario_id}
-                        node={node}
-                        level={0}
-                        selectedUserId={selectedUserId}
-                        onSelect={setSelectedUserId}
-                      />
-                    ))}
-                  </ul>
-                </div>
+              <div className="w-full h-[600px] relative z-10 rounded-xl overflow-hidden">
+                <ReactFlowProvider>
+                  <FlowWithFitView
+                    nodes={flowNodes}
+                    edges={flowEdges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    nodeTypes={nodeTypes}
+                    selectedDirectors={selectedDirectors}
+                    nodeToCenter={nodeToCenter}
+                    onCentered={() => setNodeToCenter(null)}
+                  />
+                </ReactFlowProvider>
               </div>
             )}
           </div>
         </MaterialCard>
       </div>
+
+      <FilterDropdown
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        anchorRect={filterAnchorRect}
+        title="Filtrar por Superior"
+        type="categorical"
+        options={directorOptions}
+        tempValue={tempSelectedDirectors}
+        searchTerm={filterSearchTerm}
+        onSearchChange={setFilterSearchTerm}
+        onToggleOption={(val) => {
+          setTempSelectedDirectors((prev) =>
+            prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]
+          );
+        }}
+        onSelectAll={() => {
+          const allIds = directorOptions.map((o) => o.value);
+          setTempSelectedDirectors((prev) =>
+            prev.length === allIds.length ? [] : allIds
+          );
+        }}
+        isAllSelected={directorOptions.length > 0 && tempSelectedDirectors.length === directorOptions.length}
+        onClearSelection={() => setTempSelectedDirectors([])}
+        onApply={() => {
+          setSelectedDirectors(tempSelectedDirectors);
+          setIsFilterOpen(false);
+        }}
+        placeholder="Buscar superior..."
+      />
     </div>
   );
 };
 
-const AutocompleteUserField: React.FC<{
-  label: string;
-  value: string;
-  users: HierarchyUser[];
-  onChange: (userId: string) => void;
-  excludeId?: string;
-  disabled?: boolean;
-  compact?: boolean;
-}> = ({ label, value, users, onChange, excludeId, disabled, compact }) => {
-  const availableUsers = users.filter((u) => u.id !== excludeId);
-  const selected = availableUsers.find((u) => u.id === value);
 
-  const [nombreInput, setNombreInput] = useState(selected?.nombre || '');
-  const [cedulaInput, setCedulaInput] = useState(selected?.cedula || '');
-  const [open, setOpen] = useState(false);
-  const [filterBy, setFilterBy] = useState<'nombre' | 'cedula'>('nombre');
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const u = availableUsers.find((u) => u.id === value);
-    setNombreInput(u?.nombre || '');
-    setCedulaInput(u?.cedula || '');
-  }, [value, users, excludeId]);
-
-  const filtered = availableUsers.filter((u) => {
-    if (filterBy === 'cedula') return (u.cedula || '').includes(cedulaInput.trim());
-    return u.nombre.toLowerCase().includes(nombreInput.trim().toLowerCase());
-  });
-
-  const select = (user: HierarchyUser) => {
-    setNombreInput(user.nombre);
-    setCedulaInput(user.cedula || '');
-    setOpen(false);
-    onChange(user.id);
-  };
-
-  const clear = () => {
-    setNombreInput('');
-    setCedulaInput('');
-    onChange('');
-  };
-
-  return (
-    <div ref={containerRef} className={`${compact ? 'flex items-center gap-2' : 'space-y-1'}`}>
-      <Text variant="caption" weight="bold" color="text-secondary" className={`uppercase tracking-wide shrink-0 ${compact ? '!text-[9px] w-14' : ''}`}>{label}</Text>
-      <div className="flex flex-1 gap-2">
-        <div className="w-24 shrink-0">
-          <Input
-            value={cedulaInput}
-            disabled={disabled}
-            placeholder="Cédula..."
-            onChange={(e) => { setCedulaInput(e.target.value); setFilterBy('cedula'); setOpen(true); if (!e.target.value) clear(); }}
-            onFocus={() => { setFilterBy('cedula'); setOpen(true); }}
-            className="h-8 text-xs"
-            size="xs"
-          />
-        </div>
-        <div className="relative flex-1">
-          <Input
-            value={nombreInput}
-            disabled={disabled}
-            placeholder="Nombre del empleado..."
-            onChange={(e) => { setNombreInput(e.target.value); setFilterBy('nombre'); setOpen(true); if (!e.target.value) clear(); }}
-            onFocus={() => { setFilterBy('nombre'); setOpen(true); }}
-            className="h-8 text-xs"
-            size="xs"
-          />
-          {open && filtered.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl max-h-52 overflow-y-auto custom-scrollbar">
-              {filtered.map((user) => (
-                <Button
-                  key={user.id}
-                  variant="custom"
-                  className="w-full px-4 py-2.5 text-left hover:bg-[var(--color-primary)]/10 transition-colors border-b border-[var(--color-border)] last:border-0"
-                  onMouseDown={() => select(user)}
-                >
-                  <Text variant="body2" weight="semibold" color="text-primary">{user.nombre}</Text>
-                  <Text variant="caption" color="text-secondary">{user.cedula} · {user.cargo || user.rol}</Text>
-                </Button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const SummaryCard: React.FC<{ label: string; value: string; tone?: 'default' | 'warning' | 'success' }> = ({ label, value, tone = 'default' }) => (
-  <MaterialCard className="p-5" elevation={1}>
-    <Text variant="caption" weight="bold" color="text-secondary" className="uppercase tracking-wide">{label}</Text>
-    <div className="mt-2 flex items-end justify-between">
-      <Title variant="h3" weight="bold" color="text-primary">{value}</Title>
-      {tone !== 'default' && <Badge variant={tone} size="sm">{tone === 'warning' ? 'Revisar' : 'OK'}</Badge>}
-    </div>
-  </MaterialCard>
-);
 
 const EmptyState: React.FC = () => (
   <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
@@ -419,69 +502,6 @@ const EmptyState: React.FC = () => (
   </div>
 );
 
-const HierarchyTreeNode: React.FC<{
-  node: HierarchyNode;
-  level: number;
-  selectedUserId: string;
-  onSelect: (userId: string) => void;
-}> = ({ node, level, selectedUserId, onSelect }) => {
-  const isSelected = selectedUserId === node.usuario_id;
-
-  const getLevelStyles = (lvl: number, selected: boolean) => {
-    if (selected) return '!border-[var(--color-primary)] bg-[var(--color-primary)]/10 shadow-md scale-105';
-
-    switch (lvl) {
-      case 0: // N1
-        return 'border-primary-500/30 bg-gradient-to-br from-primary-500/5 to-primary-600/10 dark:from-primary-900/20 dark:to-primary-800/10';
-      case 1: // N2
-        return 'border-indigo-500/30 bg-gradient-to-br from-indigo-500/5 to-indigo-600/10 dark:from-indigo-900/20 dark:to-indigo-800/10';
-      case 2: // N3
-        return 'border-sky-500/30 bg-gradient-to-br from-sky-500/5 to-sky-600/10 dark:from-sky-900/20 dark:to-sky-800/10';
-      default: // N4+
-        return 'border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-600/10 dark:from-emerald-900/20 dark:to-emerald-800/10';
-    }
-  };
-
-  return (
-    <li>
-      <div className="flex flex-col items-center">
-        <MaterialCard
-          onClick={() => onSelect(node.usuario_id)}
-          className={`p-2 px-4 min-w-[240px] max-w-[320px] cursor-pointer transition-all ${getLevelStyles(level, isSelected)}`}
-          elevation={isSelected ? 2 : 1}
-        >
-          <div className="flex flex-col items-center text-center gap-0.5">
-            <Text variant="body2" weight="bold" color="text-primary" className="w-full leading-tight uppercase truncate" title={node.usuario.nombre}>
-              {node.usuario.nombre}
-            </Text>
-            <Text variant="body2" weight="medium" color="text-secondary" className="w-full leading-tight opacity-90 truncate" title={node.usuario.cargo || node.usuario.rol}>
-              {node.usuario.cargo || node.usuario.rol}
-            </Text>
-            <div className="mt-1 flex items-center justify-center gap-1 w-full">
-              <Badge variant={level === 0 ? 'primary' : 'default'} size="xs" className="!text-[9px] px-1.5 py-0 h-4.5 min-h-0 flex items-center font-bold">N{level + 1}</Badge>
-              {node.subordinados?.length > 0 && (
-                <Badge variant="info" size="xs" className="!text-[9px] px-1.5 py-0 h-4.5 min-h-0 flex items-center font-bold">{node.subordinados.length} dep.</Badge>
-              )}
-            </div>
-          </div>
-        </MaterialCard>
-
-        {node.subordinados?.length > 0 && (
-          <ul>
-            {node.subordinados.map((child) => (
-              <HierarchyTreeNode
-                key={child.usuario_id}
-                node={child}
-                level={level + 1}
-                selectedUserId={selectedUserId}
-                onSelect={onSelect}
-              />
-            ))}
-          </ul>
-        )}
-      </div>
-    </li>
-  );
-};
+// Nodo estático eliminado en favor de React Flow CustomNode
 
 export default OrganizationalHierarchy;
